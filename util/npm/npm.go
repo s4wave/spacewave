@@ -4,27 +4,61 @@ import (
 	"context"
 	oexec "os/exec"
 
+	"github.com/aperturerobotics/bldr/exp/autobun"
 	"github.com/aperturerobotics/util/exec"
+	"github.com/sirupsen/logrus"
 )
 
-// NpmFlags are common npm flags passed to npm commands.
-var NpmFlags = []string{
-	"--loglevel=error",
-	"--no-progress",
-	"--no-fund",
-	"--no-audit",
-	"--no-update-notifier",
-}
-
-// NpmExec runs the "npm exec" command to run a npm package w/o installing.
+// BunX runs "bunx" to execute a npm package without installing.
 //
-// pkg is be the package name, optionally with the version:
+// pkg is the package name, optionally with the version:
 //   - @electron/asar
 //   - @electron/asar@3.2.3
-func NpmExec(ctx context.Context, pkg string, cmd ...string) *oexec.Cmd {
-	args := []string{"exec"}
-	args = append(args, NpmFlags...)
-	args = append(args, "--", pkg)
+func BunX(ctx context.Context, le *logrus.Entry, stateDir, pkg string, cmd ...string) (*oexec.Cmd, error) {
+	bunPath, err := ResolveBunPath(ctx, le, stateDir)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"x", pkg}
 	args = append(args, cmd...)
-	return exec.NewCmd(ctx, "npm", args...)
+	return exec.NewCmd(ctx, bunPath, args...), nil
+}
+
+// BunInstall runs "bun install" with the given arguments.
+func BunInstall(ctx context.Context, le *logrus.Entry, stateDir string, installArgs ...string) (*oexec.Cmd, error) {
+	bunPath, err := ResolveBunPath(ctx, le, stateDir)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"install"}
+	args = append(args, installArgs...)
+	return exec.NewCmd(ctx, bunPath, args...), nil
+}
+
+// BunAdd runs "bun add" to add a package.
+func BunAdd(ctx context.Context, le *logrus.Entry, stateDir string, addArgs ...string) (*oexec.Cmd, error) {
+	bunPath, err := ResolveBunPath(ctx, le, stateDir)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"add"}
+	args = append(args, addArgs...)
+	return exec.NewCmd(ctx, bunPath, args...), nil
+}
+
+// ResolveBunPath resolves the path to the bun binary.
+// If bun is in PATH, returns that path.
+// If not, downloads bun to stateDir and returns that path.
+// If stateDir is empty and bun is not in PATH, returns an error.
+func ResolveBunPath(ctx context.Context, le *logrus.Entry, stateDir string) (string, error) {
+	// If stateDir is empty, just use system PATH
+	if stateDir == "" {
+		return oexec.LookPath("bun")
+	}
+
+	// Use autobun to ensure bun is available
+	return autobun.EnsureBun(ctx, le, stateDir, autobun.DefaultBunVersion)
 }

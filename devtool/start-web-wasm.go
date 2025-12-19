@@ -114,6 +114,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
+		stateDir,
 		repoRoot,
 		distSrcDir,
 		entrypointDir,

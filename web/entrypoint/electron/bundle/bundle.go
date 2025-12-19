@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
@@ -177,11 +176,12 @@ func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 
 // BuildElectronBundle builds and outputs the web & service worker files.
 //
+// stateDir is the directory where bun will be downloaded if not found in PATH.
 // startupFilename is the path to the react component to load on startup (can be empty).
 // minify enables file minification in esbuild
 // devMode enables devMode extensions in Electron
 // entrypointHash, if set, uses /entrypoint/{entrypointHash}/pkgs/...
-func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
+func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
@@ -221,6 +221,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(
 		ctx,
 		le,
+		stateDir,
 		bldrNativePlatform,
 		bldrDistRoot,
 		entrypointDir,
@@ -262,25 +263,30 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 
 // BuildAsar builds the app asar using the @electron/asar tool.
 //
-// asarBinPath should be the path to the asar binary.
+// stateDir is the directory where bun will be downloaded if not found in PATH.
 // buildDir should be pre-prepared using BuildElectronBundle.
 // outPath should be the path to the output .asar file
-func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) error {
-	cmd := npm.NpmExec(ctx, "@electron/asar", "pack", buildDir, outPath)
+func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPath string) error {
+	cmd, err := npm.BunX(ctx, le, stateDir, "@electron/asar", "pack", buildDir, outPath)
+	if err != nil {
+		return err
+	}
 	return exec.StartAndWait(ctx, le, cmd)
 }
 
 // DownloadElectronRedist downloads the electron redistributable to the destination dir.
 //
+// stateDir is the directory where bun will be downloaded if not found in PATH.
 // If npmPkg is empty, defaults to latest.
-func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
-	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
-	if err != nil {
+func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
+	npmDir := filepath.Join(buildDir, "dl-electron")
+	if err := fsutil.CleanCreateDir(npmDir); err != nil {
 		return err
 	}
 
-	npmDir := filepath.Join(buildDir, "dl-electron")
-	if err := fsutil.CleanCreateDir(npmDir); err != nil {
+	// Create an empty package.json to prevent bun from traversing up to parent directories
+	pkgJsonPath := filepath.Join(npmDir, "package.json")
+	if err := os.WriteFile(pkgJsonPath, []byte("{}"), 0o644); err != nil {
 		return err
 	}
 
@@ -297,17 +303,12 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 	}
 
 	le.
-		WithField("npm-platform", npmPlat.Platform).
-		WithField("npm-arch", npmPlat.Arch).
 		WithField("npm-pkg", npmPkg).
-		Debug("downloading electron with npm")
-	archFlags := npmPlat.ToNpmFlags()
-	args := []string{"install"}
-	args = append(args, npm.NpmFlags...)
-	args = append(args, "--prefix", npmDir)
-	args = append(args, archFlags...)
-	args = append(args, npmPkg)
-	cmd := exec.NewCmd(ctx, "npm", args...)
+		Debug("downloading electron with bun")
+	cmd, err := npm.BunAdd(ctx, le, stateDir, "--cwd", npmDir, npmPkg)
+	if err != nil {
+		return err
+	}
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		return err
 	}

@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
@@ -259,11 +258,13 @@ func BuildRendererBundle(
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
+// stateDir is the directory where bun will be downloaded if not found in PATH.
 // webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 // entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
 func BuildBrowserBundle(
 	ctx context.Context,
 	le *logrus.Entry,
+	stateDir,
 	sourcesRoot,
 	bldrDistRoot,
 	buildDir,
@@ -314,7 +315,7 @@ func BuildBrowserBundle(
 		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
 	}
 
-	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
+	if err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
 		return err
 	}
 
@@ -327,8 +328,10 @@ func BuildBrowserBundle(
 }
 
 // BuildWebPkgsBundle builds the web pkg bundle files.
+//
+// stateDir is the directory where bun will be downloaded if not found in PATH.
 // pathPrefix is the prefix to prepend to /pkgs/ for pkg paths
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) error {
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) error {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -347,23 +350,14 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		return err
 	}
 
-	// npm install
-	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
+	// bun install
+	le.
+		WithField("npm-pkg", []string{"react", "react-dom"}).
+		Debug("downloading dist deps with bun")
+	cmd, err := npm.BunInstall(ctx, le, stateDir, "--cwd", buildPkgsDir)
 	if err != nil {
 		return err
 	}
-
-	le.
-		WithField("npm-platform", npmPlat.Platform).
-		WithField("npm-arch", npmPlat.Arch).
-		WithField("npm-pkg", []string{"react", "react-dom"}).
-		Debug("downloading dist deps with npm")
-	archFlags := npmPlat.ToNpmFlags()
-	args := []string{"install"}
-	args = append(args, npm.NpmFlags...)
-	args = append(args, "--prefix", buildPkgsDir)
-	args = append(args, archFlags...)
-	cmd := exec.NewCmd(ctx, "npm", args...)
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		return err
 	}
