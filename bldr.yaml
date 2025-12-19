@@ -9,25 +9,25 @@ start:
 
 build:
   native:
-    manifests: ["web", "bldr-demo"]
-    platformIds: ["native"]
+    manifests: ['web', 'bldr-demo']
+    targets: ['desktop']
 
   web:
-    manifests: ["web", "bldr-demo"]
-    platformIds: ["web"]
+    manifests: ['web', 'bldr-demo']
+    targets: ['browser']
 
   release:
-    manifests: ["web", "bldr-demo", "bldr-demo-release"]
-    platformIds: ["native"]
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
+    targets: ['desktop']
 
   release-web:
-    manifests: ["web", "bldr-demo", "bldr-demo-release"]
-    platformIds: ["web"]
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
+    targets: ['browser']
 
   release-cross:
-    manifests: ["web", "bldr-demo", "bldr-demo-release"]
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
     platformIds:
-      - web
+      - js
       - native/linux/amd64
       - native/windows/amd64
       - native/darwin/amd64
@@ -41,8 +41,8 @@ remotes:
         id: hydra/bucket/setup
         config:
           applyBucketConfigs:
-          - volumeIdList: ["devtool"]
-            config: {'id': 'demo-dist'}
+            - volumeIdList: ['devtool']
+              config: { 'id': 'demo-dist' }
       demo-dist-world:
         id: hydra/world/block/engine
         config:
@@ -55,21 +55,21 @@ remotes:
 
 publish:
   demo-dist:
-    remotes: ["demo-dist"]
-    manifests: ["web", "bldr-demo", "bldr-demo-dist"]
+    remotes: ['demo-dist']
+    manifests: ['web', 'bldr-demo', 'bldr-demo-dist']
     storage:
       # bifrost util timestamp
-      timestamp: "2023-10-18T18:38:40Z"
+      timestamp: '2023-10-18T18:38:40Z'
       # if empty: uses transform config from remote world
       transformConf:
         steps:
-        - id: hydra/transform/s2
-        - id: hydra/transform/blockenc
-          config:
-            blockEnc: BlockEnc_XCHACHA20_POLY1305
-            # generate with: bifrost util generate-crypto-key
-            # after changing: npm run clean
-            key: DEn7LStBTb2ZOP1mlLixkmPLg6x773/TQ1mnyyXJu1A=
+          - id: hydra/transform/s2
+          - id: hydra/transform/blockenc
+            config:
+              blockEnc: BlockEnc_XCHACHA20_POLY1305
+              # generate with: bifrost util generate-crypto-key
+              # after changing: npm run clean
+              key: DEn7LStBTb2ZOP1mlLixkmPLg6x773/TQ1mnyyXJu1A=
 
 manifests:
   web:
@@ -117,10 +117,10 @@ manifests:
       id: bldr/dist/compiler
       config:
         embedManifests:
-        - web
-        - bldr-demo
+          - web
+          - bldr-demo
         loadPlugins:
-        - bldr-demo
+          - bldr-demo
         loadWebStartup: example/startup.tsx
         # enableCompression: ENABLE
         # enableTinygo: ENABLE

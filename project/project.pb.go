@@ -164,7 +164,12 @@ type BuildConfig struct {
 	// Manifests is the list of manifest IDs to build.
 	Manifests []string `protobuf:"bytes,1,rep,name=manifests,proto3" json:"manifests,omitempty"`
 	// PlatformIds is the list of platforms to target.
+	// If targets is set, platform_ids are merged with the targets' platform lists.
 	PlatformIds []string `protobuf:"bytes,2,rep,name=platform_ids,json=platformIds,proto3" json:"platformIds,omitempty"`
+	// Targets is the list of deployment targets (e.g., "browser", "desktop").
+	// Multiple targets can be specified to build for multiple environments.
+	// Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
+	Targets []string `protobuf:"bytes,3,rep,name=targets,proto3" json:"targets,omitempty"`
 }
 
 func (x *BuildConfig) Reset() {
@@ -183,6 +188,13 @@ func (x *BuildConfig) GetManifests() []string {
 func (x *BuildConfig) GetPlatformIds() []string {
 	if x != nil {
 		return x.PlatformIds
+	}
+	return nil
+}
+
+func (x *BuildConfig) GetTargets() []string {
+	if x != nil {
+		return x.Targets
 	}
 	return nil
 }
@@ -638,6 +650,9 @@ func (m *BuildConfig) CloneVT() *BuildConfig {
 	if rhs := m.PlatformIds; rhs != nil {
 		r.PlatformIds = slices.Clone(rhs)
 	}
+	if rhs := m.Targets; rhs != nil {
+		r.Targets = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -910,6 +925,15 @@ func (this *BuildConfig) EqualVT(that *BuildConfig) bool {
 	}
 	for i, vx := range this.PlatformIds {
 		vy := that.PlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Targets) != len(that.Targets) {
+		return false
+	}
+	for i, vx := range this.Targets {
+		vy := that.Targets[i]
 		if vx != vy {
 			return false
 		}
@@ -1580,6 +1604,11 @@ func (x *BuildConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("platformIds")
 		s.WriteStringArray(x.PlatformIds)
 	}
+	if len(x.Targets) > 0 || s.HasField("targets") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targets")
+		s.WriteStringArray(x.Targets)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1611,6 +1640,13 @@ func (x *BuildConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.PlatformIds = s.ReadStringArray()
+		case "targets":
+			s.AddField("targets")
+			if s.ReadNil() {
+				x.Targets = nil
+				return
+			}
+			x.Targets = s.ReadStringArray()
 		}
 	})
 }
@@ -2294,6 +2330,15 @@ func (m *BuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Targets) > 0 {
+		for iNdEx := len(m.Targets) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Targets[iNdEx])
+			copy(dAtA[i:], m.Targets[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Targets[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.PlatformIds) > 0 {
 		for iNdEx := len(m.PlatformIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.PlatformIds[iNdEx])
@@ -2705,6 +2750,12 @@ func (m *BuildConfig) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.Targets) > 0 {
+		for _, s := range m.Targets {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3089,6 +3140,19 @@ func (x *BuildConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("platform_ids: [")
 		for i, v := range x.PlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Targets) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("targets: [")
+		for i, v := range x.Targets {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
@@ -4282,6 +4346,38 @@ func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PlatformIds = append(m.PlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Targets", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Targets = append(m.Targets, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

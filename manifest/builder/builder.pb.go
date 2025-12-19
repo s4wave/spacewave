@@ -41,6 +41,11 @@ type BuilderConfig struct {
 	// Must be a valid-dns-label.
 	// Used to construct the application storage and dist bundle filenames.
 	ProjectId string `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
+	// TargetPlatformIds contains all platform IDs from the build target.
+	// Used by the dist compiler to collect manifests from all compatible platforms.
+	// For example, a browser target may include ["native/js/wasm", "js"].
+	// If empty, falls back to using only the platform_id from ManifestMeta.
+	TargetPlatformIds []string `protobuf:"bytes,10,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 }
 
 func (x *BuilderConfig) Reset() {
@@ -110,6 +115,13 @@ func (x *BuilderConfig) GetProjectId() string {
 		return x.ProjectId
 	}
 	return ""
+}
+
+func (x *BuilderConfig) GetTargetPlatformIds() []string {
+	if x != nil {
+		return x.TargetPlatformIds
+	}
+	return nil
 }
 
 // BuilderResult is the result of a builder run.
@@ -278,6 +290,9 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 	if rhs := m.LinkObjectKeys; rhs != nil {
 		r.LinkObjectKeys = slices.Clone(rhs)
 	}
+	if rhs := m.TargetPlatformIds; rhs != nil {
+		r.TargetPlatformIds = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -414,6 +429,15 @@ func (this *BuilderConfig) EqualVT(that *BuilderConfig) bool {
 	}
 	if this.ProjectId != that.ProjectId {
 		return false
+	}
+	if len(this.TargetPlatformIds) != len(that.TargetPlatformIds) {
+		return false
+	}
+	for i, vx := range this.TargetPlatformIds {
+		vy := that.TargetPlatformIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -605,6 +629,11 @@ func (x *BuilderConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("projectId")
 		s.WriteString(x.ProjectId)
 	}
+	if len(x.TargetPlatformIds) > 0 || s.HasField("targetPlatformIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetPlatformIds")
+		s.WriteStringArray(x.TargetPlatformIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -657,6 +686,13 @@ func (x *BuilderConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "project_id", "projectId":
 			s.AddField("project_id")
 			x.ProjectId = s.ReadString()
+		case "target_platform_ids", "targetPlatformIds":
+			s.AddField("target_platform_ids")
+			if s.ReadNil() {
+				x.TargetPlatformIds = nil
+				return
+			}
+			x.TargetPlatformIds = s.ReadStringArray()
 		}
 	})
 }
@@ -973,6 +1009,15 @@ func (m *BuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.TargetPlatformIds) > 0 {
+		for iNdEx := len(m.TargetPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TargetPlatformIds[iNdEx])
+			copy(dAtA[i:], m.TargetPlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x52
+		}
 	}
 	if len(m.ProjectId) > 0 {
 		i -= len(m.ProjectId)
@@ -1316,6 +1361,12 @@ func (m *BuilderConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.TargetPlatformIds) > 0 {
+		for _, s := range m.TargetPlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1475,6 +1526,19 @@ func (x *BuilderConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("project_id: ")
 		sb.WriteString(strconv.Quote(x.ProjectId))
+	}
+	if len(x.TargetPlatformIds) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_platform_ids: [")
+		for i, v := range x.TargetPlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1934,6 +1998,38 @@ func (m *BuilderConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetPlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetPlatformIds = append(m.TargetPlatformIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

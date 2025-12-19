@@ -34,6 +34,11 @@ type Controller interface {
 		args *BuildManifestArgs,
 		host BuildManifestHost,
 	) (*BuilderResult, error)
+
+	// GetSupportedPlatforms returns the base platform IDs this compiler supports.
+	// Used by the build system to select the appropriate platform for a target.
+	// Returns values like "native" or "js".
+	GetSupportedPlatforms() []string
 }
 
 // BuildManifestHost is the host API available to a BuildManifest routine.

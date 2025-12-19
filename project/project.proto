@@ -60,7 +60,12 @@ message BuildConfig {
   // Manifests is the list of manifest IDs to build.
   repeated string manifests = 1;
   // PlatformIds is the list of platforms to target.
+  // If targets is set, platform_ids are merged with the targets' platform lists.
   repeated string platform_ids = 2;
+  // Targets is the list of deployment targets (e.g., "browser", "desktop").
+  // Multiple targets can be specified to build for multiple environments.
+  // Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
+  repeated string targets = 3;
 }
 
 // RemoteConfig configures a location where manifests and source can be stored.

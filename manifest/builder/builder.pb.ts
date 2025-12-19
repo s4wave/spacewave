@@ -71,6 +71,15 @@ export interface BuilderConfig {
    * @generated from field: string project_id = 9;
    */
   projectId?: string
+  /**
+   * TargetPlatformIds contains all platform IDs from the build target.
+   * Used by the dist compiler to collect manifests from all compatible platforms.
+   * For example, a browser target may include ["native/js/wasm", "js"].
+   * If empty, falls back to using only the platform_id from ManifestMeta.
+   *
+   * @generated from field: repeated string target_platform_ids = 10;
+   */
+  targetPlatformIds?: string[]
 }
 
 // BuilderConfig contains the message type declaration for BuilderConfig.
@@ -92,6 +101,13 @@ export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
     },
     { no: 8, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 10,
+      name: 'target_platform_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -105,7 +105,7 @@ func (c *Controller) BuildManifest(
 	// sets to the host plugin bus via the WebRuntimeClient.
 	//
 	// TODO: how do we definitively know that the plugin host will run the web plugin?
-	if buildPlatform.GetExecutableExt() == ".mjs" {
+	if bldr_platform.IsWebPlatform(buildPlatform) {
 		return c.buildBrowserShimManifest(ctx, args)
 	}
 
@@ -134,6 +134,12 @@ func (c *Controller) BundleElectronHook(
 
 	// If this is not the native platform, do not bundle electron.
 	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_NATIVE {
+		return nil, nil
+	}
+
+	// If this is a wasm platform (native/js/wasm), do not bundle electron.
+	// Electron is not available for wasm targets.
+	if bldr_platform.IsWebPlatform(buildPlatform) {
 		return nil, nil
 	}
 
@@ -179,10 +185,12 @@ func (c *Controller) BundleElectronHook(
 		electronPkg = "electron@" + electronVer
 	}
 
-	// download the electron redistributable with npm
+	// download the electron redistributable with bun
+	stateDir := builderConf.GetWorkingPath()
 	if err := entrypoint_electron_bundle.DownloadElectronRedist(
 		ctx,
 		le,
+		stateDir,
 		buildPlatform,
 		workingDir,
 		electronDistPath,
@@ -204,14 +212,14 @@ func (c *Controller) BundleElectronHook(
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, webStartupSrcPath, minify, devMode)
+	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, stateDir, distSrcDir, workingEntrypointDir, webStartupSrcPath, minify, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// build the bundle asar
 	distAsarPath := filepath.Join(outDistPath, "app.asar")
-	if err := entrypoint_electron_bundle.BuildAsar(ctx, le, workingEntrypointDir, distAsarPath); err != nil {
+	if err := entrypoint_electron_bundle.BuildAsar(ctx, le, stateDir, workingEntrypointDir, distAsarPath); err != nil {
 		return nil, errors.Wrap(err, "build app.asar")
 	}
 
@@ -316,6 +324,11 @@ func (c *Controller) buildBrowserShimManifest(
 	}
 
 	return result, nil
+}
+
+// GetSupportedPlatforms returns the base platform IDs this compiler supports.
+func (c *Controller) GetSupportedPlatforms() []string {
+	return []string{bldr_platform.PlatformID_NATIVE}
 }
 
 // _ is a type assertion

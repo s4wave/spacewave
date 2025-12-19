@@ -4518,7 +4518,7 @@ var Client = class {
   }
 };
 
-// ../../../node_modules/@libp2p/interface/dist/src/errors.js
+// ../../../node_modules/@chainsafe/libp2p-yamux/node_modules/@libp2p/interface/dist/src/errors.js
 var AbortError2 = class extends Error {
   static name = "AbortError";
   constructor(message = "The operation was aborted") {
@@ -4540,20 +4540,6 @@ var MuxerClosedError = class extends Error {
     this.name = "MuxerClosedError";
   }
 };
-var StreamResetError = class extends Error {
-  static name = "StreamResetError";
-  constructor(message = "The stream has been reset") {
-    super(message);
-    this.name = "StreamResetError";
-  }
-};
-var StreamStateError = class extends Error {
-  static name = "StreamStateError";
-  constructor(message = "The stream is in an invalid state") {
-    super(message);
-    this.name = "StreamStateError";
-  }
-};
 var TooManyOutboundProtocolStreamsError = class extends Error {
   static name = "TooManyOutboundProtocolStreamsError";
   constructor(message = "Too many outbound protocol streams") {
@@ -4566,7 +4552,7 @@ var TooManyOutboundProtocolStreamsError = class extends Error {
 function setMaxListeners() {
 }
 
-// ../../../node_modules/@libp2p/interface/dist/src/index.js
+// ../../../node_modules/@chainsafe/libp2p-yamux/node_modules/@libp2p/interface/dist/src/index.js
 var serviceCapabilities = Symbol.for("@libp2p/service-capabilities");
 
 // ../../../node_modules/get-iterator/dist/src/index.js
@@ -4869,6 +4855,22 @@ function encodeHeader(header) {
   frame[11] = header.length;
   return frame;
 }
+
+// ../../../node_modules/@libp2p/utils/node_modules/@libp2p/interface/dist/src/errors.js
+var StreamResetError = class extends Error {
+  static name = "StreamResetError";
+  constructor(message = "The stream has been reset") {
+    super(message);
+    this.name = "StreamResetError";
+  }
+};
+var StreamStateError = class extends Error {
+  static name = "StreamStateError";
+  constructor(message = "The stream is in an invalid state") {
+    super(message);
+    this.name = "StreamStateError";
+  }
+};
 
 // ../../../node_modules/@libp2p/utils/dist/src/is-promise.js
 function isPromise(thing) {

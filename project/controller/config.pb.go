@@ -108,6 +108,10 @@ type ManifestBuilderConfig struct {
 	PlatformId string `protobuf:"bytes,3,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
 	// RemoteId is the identifier of the remote to attach to.
 	RemoteId string `protobuf:"bytes,4,opt,name=remote_id,json=remoteId,proto3" json:"remoteId,omitempty"`
+	// TargetPlatformIds contains all platform IDs from the build target.
+	// Used by the dist compiler to collect manifests from all compatible platforms.
+	// For example, a browser target may include ["native/js/wasm", "js"].
+	TargetPlatformIds []string `protobuf:"bytes,5,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 }
 
 func (x *ManifestBuilderConfig) Reset() {
@@ -142,6 +146,13 @@ func (x *ManifestBuilderConfig) GetRemoteId() string {
 		return x.RemoteId
 	}
 	return ""
+}
+
+func (x *ManifestBuilderConfig) GetTargetPlatformIds() []string {
+	if x != nil {
+		return x.TargetPlatformIds
+	}
+	return nil
 }
 
 // ManifestBuilderResult is the result of a ManifestBuilder build.
@@ -208,6 +219,9 @@ func (m *ManifestBuilderConfig) CloneVT() *ManifestBuilderConfig {
 	r.BuildType = m.BuildType
 	r.PlatformId = m.PlatformId
 	r.RemoteId = m.RemoteId
+	if rhs := m.TargetPlatformIds; rhs != nil {
+		r.TargetPlatformIds = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -294,6 +308,15 @@ func (this *ManifestBuilderConfig) EqualVT(that *ManifestBuilderConfig) bool {
 	}
 	if this.RemoteId != that.RemoteId {
 		return false
+	}
+	if len(this.TargetPlatformIds) != len(that.TargetPlatformIds) {
+		return false
+	}
+	for i, vx := range this.TargetPlatformIds {
+		vy := that.TargetPlatformIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -455,6 +478,11 @@ func (x *ManifestBuilderConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("remoteId")
 		s.WriteString(x.RemoteId)
 	}
+	if len(x.TargetPlatformIds) > 0 || s.HasField("targetPlatformIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetPlatformIds")
+		s.WriteStringArray(x.TargetPlatformIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -484,6 +512,13 @@ func (x *ManifestBuilderConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "remote_id", "remoteId":
 			s.AddField("remote_id")
 			x.RemoteId = s.ReadString()
+		case "target_platform_ids", "targetPlatformIds":
+			s.AddField("target_platform_ids")
+			if s.ReadNil() {
+				x.TargetPlatformIds = nil
+				return
+			}
+			x.TargetPlatformIds = s.ReadStringArray()
 		}
 	})
 }
@@ -675,6 +710,15 @@ func (m *ManifestBuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.TargetPlatformIds) > 0 {
+		for iNdEx := len(m.TargetPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TargetPlatformIds[iNdEx])
+			copy(dAtA[i:], m.TargetPlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
 	if len(m.RemoteId) > 0 {
 		i -= len(m.RemoteId)
 		copy(dAtA[i:], m.RemoteId)
@@ -817,6 +861,12 @@ func (m *ManifestBuilderConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.TargetPlatformIds) > 0 {
+		for _, s := range m.TargetPlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -929,6 +979,19 @@ func (x *ManifestBuilderConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("remote_id: ")
 		sb.WriteString(strconv.Quote(x.RemoteId))
+	}
+	if len(x.TargetPlatformIds) > 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_platform_ids: [")
+		for i, v := range x.TargetPlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1379,6 +1442,38 @@ func (m *ManifestBuilderConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.RemoteId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetPlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetPlatformIds = append(m.TargetPlatformIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

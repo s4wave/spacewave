@@ -117,6 +117,21 @@ var EntrypointURL string
 
 The available comment directives are documented here:
 
+### Vite
+
+The plugin compiler can use Vite to bundle the contents of the given entrypoint
+to the plugin asset filesystem.
+
+```go
+// ExampleVitePlugin is the Vite plugin configuration.
+//
+//bldr:vite vite.config.ts
+var ExampleVitePlugin bldr_web_bundler.WebBundlerOutput
+```
+
+All files output from Vite are served starting at the plugin asset path. The
+root index.html from a Vite build can be accessed by setting this variable.
+
 ### `bldr:asset`
 
 ```go
@@ -209,6 +224,28 @@ In Chromium: to view the SharedWorker developer tools:
 - Open chrome://inspect
 - Select "Shared workers"
 - Click "inspect" on the SharedWorker
+
+### Testing
+
+Run unit tests:
+
+```bash
+bun test
+```
+
+Run browser E2E tests (requires a web release build):
+
+```bash
+# Build the web release bundle first
+bun build:release:web
+
+# Run E2E tests in headless Chromium
+bun test:e2e
+```
+
+The E2E tests use Vitest browser mode with Playwright to test the full web
+release build, including service worker registration, SharedWorker
+initialization, and WASM runtime loading.
 
 ### VSCode Debugging
 

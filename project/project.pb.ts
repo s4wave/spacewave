@@ -99,10 +99,19 @@ export interface BuildConfig {
   manifests?: string[]
   /**
    * PlatformIds is the list of platforms to target.
+   * If targets is set, platform_ids are merged with the targets' platform lists.
    *
    * @generated from field: repeated string platform_ids = 2;
    */
   platformIds?: string[]
+  /**
+   * Targets is the list of deployment targets (e.g., "browser", "desktop").
+   * Multiple targets can be specified to build for multiple environments.
+   * Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
+   *
+   * @generated from field: repeated string targets = 3;
+   */
+  targets?: string[]
 }
 
 // BuildConfig contains the message type declaration for BuildConfig.
@@ -119,6 +128,13 @@ export const BuildConfig: MessageType<BuildConfig> = createMessageType({
     {
       no: 2,
       name: 'platform_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 3,
+      name: 'targets',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,

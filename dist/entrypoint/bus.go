@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -122,7 +123,7 @@ func BuildDistBus(
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
 
 	// HACK: we cannot create paths on the web platform
-	isWebPlatform := platformID == "web"
+	isWebPlatform := platformID == "js" || strings.HasPrefix(platformID, "native/js/")
 	if !isWebPlatform {
 		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 			rel()

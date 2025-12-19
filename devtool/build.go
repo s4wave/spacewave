@@ -57,10 +57,15 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	}
 
 	// build the targets
+	var targetsOverride []string
+	if a.TargetsCsv != "" {
+		targetsOverride = strings.Split(a.TargetsCsv, ",")
+	}
 	return projCtrl.BuildTargets(
 		ctx,
 		a.Remote,
 		strings.Split(a.BuildCsv, ","),
 		bldr_manifest.BuildType(a.BuildType),
+		targetsOverride,
 	)
 }

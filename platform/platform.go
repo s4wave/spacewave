@@ -35,3 +35,18 @@ func ParsePlatform(id string) (Platform, error) {
 		return nil, errors.Errorf("unknown platform id: %s", id)
 	}
 }
+
+// IsWebPlatform returns true if the platform targets a web browser environment.
+// This includes native/js/wasm (WebAssembly in browser) and js (pure JavaScript).
+func IsWebPlatform(p Platform) bool {
+	if p == nil {
+		return false
+	}
+	if np, ok := p.(*NativePlatform); ok {
+		return np.IsWebPlatform()
+	}
+	if _, ok := p.(*JsPlatform); ok {
+		return true
+	}
+	return false
+}

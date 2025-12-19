@@ -6,7 +6,7 @@
 - DO NOT use `else` statements unless necessary
 - DO NOT use `try`/`catch` if it can be avoided
 - DO NOT make git commits
-- DO NOT modify `bldr.yaml` (ignore any changes in this file)
+- DO NOT modify `bldr.yaml` unless explicitly asked
 - DO NOT use emojis
 - DO NOT use polling, always wait properly, like using a channel receive in go
 - DO NOT add obvious comments like "(not persisted)" or "(ephemeral UI state)"

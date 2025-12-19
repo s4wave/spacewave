@@ -118,6 +118,14 @@ export interface ManifestBuilderConfig {
    * @generated from field: string remote_id = 4;
    */
   remoteId?: string
+  /**
+   * TargetPlatformIds contains all platform IDs from the build target.
+   * Used by the dist compiler to collect manifests from all compatible platforms.
+   * For example, a browser target may include ["native/js/wasm", "js"].
+   *
+   * @generated from field: repeated string target_platform_ids = 5;
+   */
+  targetPlatformIds?: string[]
 }
 
 // ManifestBuilderConfig contains the message type declaration for ManifestBuilderConfig.
@@ -129,6 +137,13 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
       { no: 2, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'remote_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'target_platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -622,5 +622,10 @@ func CreateEntrypointsFromViteOutputs(
 	return backendEntrypoints, frontendEntrypoints
 }
 
+// GetSupportedPlatforms returns the base platform IDs this compiler supports.
+func (c *Controller) GetSupportedPlatforms() []string {
+	return []string{bldr_platform.PlatformID_JS}
+}
+
 // _ is a type assertion
 var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

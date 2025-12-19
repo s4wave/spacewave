@@ -4,6 +4,7 @@
 /.rr
 /.husky
 /.bldr
+/.bldr-*
 /vite-dist
 /vite-output.json
 /vite-analysis.json

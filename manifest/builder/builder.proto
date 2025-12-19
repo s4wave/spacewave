@@ -29,6 +29,12 @@ message BuilderConfig {
   // Must be a valid-dns-label.
   // Used to construct the application storage and dist bundle filenames.
   string project_id = 9;
+
+  // TargetPlatformIds contains all platform IDs from the build target.
+  // Used by the dist compiler to collect manifests from all compatible platforms.
+  // For example, a browser target may include ["native/js/wasm", "js"].
+  // If empty, falls back to using only the platform_id from ManifestMeta.
+  repeated string target_platform_ids = 10;
 }
 
 // BuilderResult is the result of a builder run.

@@ -66,6 +66,10 @@ type DevtoolArgs struct {
 
 	// DisableCleanup disables cleaning up the build files.
 	DisableCleanup bool
+
+	// TargetsCsv is the comma-separated list of deployment targets (e.g., "browser,desktop").
+	// Overrides platform_ids in build configs when specified.
+	TargetsCsv string
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -217,6 +221,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 		a.BuildStaticHttpCommand(),
 		a.BuildBuildCommand(),
 		a.BuildPublishCommand(),
+		a.BuildTargetsCommand(),
 	}
 }
 
@@ -320,6 +325,14 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 				Value:       a.BuildCsv,
 				Destination: &a.BuildCsv,
 			},
+			&cli.StringFlag{
+				Name:        "targets",
+				Aliases:     []string{"target", "t"},
+				Usage:       "comma-separated deployment targets (e.g., browser,desktop)",
+				EnvVars:     []string{"BLDR_TARGETS"},
+				Value:       a.TargetsCsv,
+				Destination: &a.TargetsCsv,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			return a.BuildProject(c.Context)
@@ -419,4 +432,15 @@ func (a *DevtoolArgs) GetOutputRoot(repoRoot string) string {
 		outputPath = filepath.Join(repoRoot, outputPath)
 	}
 	return outputPath
+}
+
+// BuildTargetsCommand builds the bldr targets command.
+func (a *DevtoolArgs) BuildTargetsCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "targets",
+		Usage: "lists available deployment targets",
+		Action: func(c *cli.Context) error {
+			return a.ListTargets()
+		},
+	}
 }

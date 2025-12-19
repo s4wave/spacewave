@@ -552,5 +552,11 @@ func (c *Controller) FastRebuildBundle(
 	return updatedInputManifest, nil
 }
 
+// GetSupportedPlatforms returns the base platform IDs this compiler supports.
+// Returns nil because esbuild is a sub-manifest builder that produces platform-agnostic JS bundles.
+func (c *Controller) GetSupportedPlatforms() []string {
+	return nil
+}
+
 // _ is a type assertion
 var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

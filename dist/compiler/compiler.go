@@ -13,6 +13,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -179,6 +180,14 @@ func (c *Controller) BuildManifest(
 		return nil, errors.New("link_object_keys is empty, cannot scan for manifests")
 	}
 
+	// Determine which platform IDs to search for manifests.
+	// If target platform IDs are provided, use them to find manifests from all compatible platforms.
+	// Otherwise, fall back to the single platform ID from the manifest meta.
+	searchPlatformIDs := builderConf.GetTargetPlatformIds()
+	if len(searchPlatformIDs) == 0 {
+		searchPlatformIDs = []string{platformID}
+	}
+
 	// Wait for all manifests to exist.
 	embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedManifestIDs))
 	handler := world_control.NewWaitForStateHandler(func(
@@ -189,7 +198,7 @@ func (c *Controller) BuildManifest(
 		rev uint64,
 	) (bool, error) {
 		// Scan for manifests we want to embed.
-		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, []string{platformID}, searchKeys...)
+		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, searchPlatformIDs, searchKeys...)
 		if err != nil {
 			return false, err
 		}
@@ -329,6 +338,12 @@ func (c *Controller) BuildManifest(
 	}
 
 	return result, nil
+}
+
+// GetSupportedPlatforms returns the base platform IDs this compiler supports.
+// The dist compiler supports native platforms including WebAssembly (native/js/wasm).
+func (c *Controller) GetSupportedPlatforms() []string {
+	return []string{bldr_platform.PlatformID_NATIVE}
 }
 
 // _ is a type assertion

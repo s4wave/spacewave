@@ -39,6 +39,10 @@ message ManifestBuilderConfig {
   string platform_id = 3;
   // RemoteId is the identifier of the remote to attach to.
   string remote_id = 4;
+  // TargetPlatformIds contains all platform IDs from the build target.
+  // Used by the dist compiler to collect manifests from all compatible platforms.
+  // For example, a browser target may include ["native/js/wasm", "js"].
+  repeated string target_platform_ids = 5;
 }
 
 // ManifestBuilderResult is the result of a ManifestBuilder build.

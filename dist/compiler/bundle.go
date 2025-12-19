@@ -66,7 +66,7 @@ func BuildDistBundle(
 	enableCompressionOpt enabled.Enabled,
 ) error {
 	isRelease := buildType.IsRelease()
-	isWebPlatform := buildPlatform.GetExecutableExt() == ".wasm"
+	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
 
 	// disable cgo on default
 	enableCgo := enableCgoOpt.IsEnabled(false)
@@ -359,6 +359,7 @@ func BuildDistBundle(
 		err := entrypoint_browser_bundle.BuildBrowserBundle(
 			ctx,
 			le,
+			"", // stateDir - use system PATH for bun
 			srcPath,
 			distSrcPath,
 			outputPath,

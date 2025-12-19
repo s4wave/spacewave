@@ -205,5 +205,12 @@ func (n *NativePlatform) GetExecutableExt() string {
 	return ""
 }
 
+// IsWebPlatform returns true if this is a web/browser platform (js/wasm or pure js).
+func (n *NativePlatform) IsWebPlatform() bool {
+	goos := n.GetGOOS()
+	goarch := n.GetGOARCH()
+	return goos == "js" || goarch == "wasm"
+}
+
 // _ is a type assertion
 var _ Platform = (*NativePlatform)(nil)

@@ -46,6 +46,17 @@ func NewManifestBuilderConfig(manifestID, buildType, platformID, remoteID string
 	}
 }
 
+// NewManifestBuilderConfigWithTargetPlatforms constructs a new ManifestBuilderConfig with target platform IDs.
+func NewManifestBuilderConfigWithTargetPlatforms(manifestID, buildType, platformID, remoteID string, targetPlatformIDs []string) *ManifestBuilderConfig {
+	return &ManifestBuilderConfig{
+		ManifestId:        manifestID,
+		BuildType:         buildType,
+		PlatformId:        platformID,
+		RemoteId:          remoteID,
+		TargetPlatformIds: targetPlatformIDs,
+	}
+}
+
 // UnmarshalManifestBuilderConfigB58 unmarshals a b58 manifest builder config.
 func UnmarshalManifestBuilderConfigB58(str string) (*ManifestBuilderConfig, error) {
 	m := &ManifestBuilderConfig{}
@@ -202,15 +213,16 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	meta.Rev = rev
 	manifestKey := bldr_manifest.NewManifestKey(storeObjKey, meta)
 	manifestBuilderConf := &bldr_manifest_builder.BuilderConfig{
-		ProjectId:      projectConfig.GetId(),
-		ManifestMeta:   meta,
-		EngineId:       remoteConf.GetEngineId(),
-		PeerId:         remoteConf.GetPeerId(),
-		ObjectKey:      manifestKey,
-		LinkObjectKeys: storeLinkObjKeys,
-		DistSourcePath: distSrcPath,
-		WorkingPath:    buildWorkingPath,
-		SourcePath:     ctrlConf.GetSourcePath(),
+		ProjectId:         projectConfig.GetId(),
+		ManifestMeta:      meta,
+		EngineId:          remoteConf.GetEngineId(),
+		PeerId:            remoteConf.GetPeerId(),
+		ObjectKey:         manifestKey,
+		LinkObjectKeys:    storeLinkObjKeys,
+		DistSourcePath:    distSrcPath,
+		WorkingPath:       buildWorkingPath,
+		SourcePath:        ctrlConf.GetSourcePath(),
+		TargetPlatformIds: t.conf.GetTargetPlatformIds(),
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,
