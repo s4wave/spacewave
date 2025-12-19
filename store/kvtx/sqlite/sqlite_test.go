@@ -30,7 +30,7 @@ func TestSQLite(t *testing.T) {
 
 	tp := path.Join(dir, "database.sqlite")
 
-	db, err := Open(tp, "test_table")
+	db, err := Open(ctx, tp, "test_table")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -82,7 +82,7 @@ func TestSQLiteWithMode(t *testing.T) {
 
 	tp := path.Join(dir, "database_mode.sqlite")
 
-	db, err := OpenWithMode(tp, 0o644, "test_table_mode")
+	db, err := OpenWithMode(ctx, tp, 0o644, "test_table_mode")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -116,7 +116,7 @@ func TestSQLiteIterator(t *testing.T) {
 
 	tp := path.Join(dir, "database_iter.sqlite")
 
-	db, err := Open(tp, "test_iter")
+	db, err := Open(ctx, tp, "test_iter")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

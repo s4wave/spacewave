@@ -34,7 +34,7 @@ func NewSqlite(
 		return nil, err
 	}
 
-	store, err := sqlite.Open(conf.GetPath(), conf.GetTable())
+	store, err := sqlite.Open(ctx, conf.GetPath(), conf.GetTable())
 	if err != nil {
 		return nil, err
 	}

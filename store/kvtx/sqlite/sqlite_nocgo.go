@@ -3,18 +3,19 @@
 package store_kvtx_sqlite
 
 import (
+	"context"
 	"database/sql"
 	"os"
 
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/purego"
 )
 
-func open(path string, table string) (Store, error) {
-	return purego.Open(path, table)
+func open(ctx context.Context, path string, table string) (Store, error) {
+	return purego.Open(ctx, path, table)
 }
 
-func openWithMode(path string, mode os.FileMode, table string) (Store, error) {
-	return purego.OpenWithMode(path, mode, table)
+func openWithMode(ctx context.Context, path string, mode os.FileMode, table string) (Store, error) {
+	return purego.OpenWithMode(ctx, path, mode, table)
 }
 
 func newStore(db *sql.DB, table string) (Store, error) {

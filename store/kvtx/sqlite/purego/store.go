@@ -1,6 +1,7 @@
 package purego
 
 import (
+	"context"
 	"database/sql"
 	"os"
 
@@ -51,13 +52,13 @@ func NewStore(db *sql.DB, table string) (*Store, error) {
 }
 
 // Open opens a SQLite database store using pure Go driver.
-func Open(path string, table string) (*Store, error) {
-	return common.Open(path, table, PureGoConfig{})
+func Open(ctx context.Context, path string, table string) (*Store, error) {
+	return common.Open(ctx, path, table, PureGoConfig{})
 }
 
 // OpenWithMode opens a SQLite database store with file mode.
-func OpenWithMode(path string, mode os.FileMode, table string) (*Store, error) {
-	return common.OpenWithMode(path, mode, table, PureGoConfig{})
+func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*Store, error) {
+	return common.OpenWithMode(ctx, path, mode, table, PureGoConfig{})
 }
 
 // _ is a type assertion

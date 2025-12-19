@@ -1,6 +1,7 @@
 package store_kvtx_sqlite
 
 import (
+	"context"
 	"database/sql"
 	"os"
 
@@ -22,13 +23,13 @@ type Store interface {
 
 // Open opens a SQLite database store.
 // The implementation will be automatically selected based on CGO availability.
-func Open(path string, table string) (Store, error) {
-	return open(path, table)
+func Open(ctx context.Context, path string, table string) (Store, error) {
+	return open(ctx, path, table)
 }
 
 // OpenWithMode opens a SQLite database store with file mode.
-func OpenWithMode(path string, mode os.FileMode, table string) (Store, error) {
-	return openWithMode(path, mode, table)
+func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (Store, error) {
+	return openWithMode(ctx, path, mode, table)
 }
 
 // NewStore constructs a new key-value store from an existing SQLite database connection.

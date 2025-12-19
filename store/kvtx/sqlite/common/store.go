@@ -59,7 +59,7 @@ func NewStore[T SQLiteDriverConfig](db *sql.DB, table string, config T) (*Store[
 }
 
 // Open opens a SQLite database store using the configured driver.
-func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T], error) {
+func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, config T) (*Store[T], error) {
 	if err := ValidateTableName(table); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,10 @@ func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T],
 		return nil, err
 	}
 
-	if err := store.initTable(); err != nil {
+	// Initialize table with retry on SQLITE_BUSY.
+	// This can happen when another process is closing the database and holds
+	// an exclusive lock during WAL cleanup, or when recovering from a crash.
+	if err := store.initTableWithRetry(ctx); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -87,7 +90,7 @@ func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T],
 }
 
 // OpenWithMode opens a SQLite database store with file mode.
-func OpenWithMode[T SQLiteDriverConfig](path string, mode os.FileMode, table string, config T) (*Store[T], error) {
+func OpenWithMode[T SQLiteDriverConfig](ctx context.Context, path string, mode os.FileMode, table string, config T) (*Store[T], error) {
 	// For SQLite, we can create the file with the specified mode before opening
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if file, err := os.OpenFile(path, os.O_CREATE, mode); err == nil {
@@ -95,7 +98,7 @@ func OpenWithMode[T SQLiteDriverConfig](path string, mode os.FileMode, table str
 		}
 	}
 
-	return Open(path, table, config)
+	return Open(ctx, path, table, config)
 }
 
 // GetDB returns the SQL DB.
@@ -111,6 +114,45 @@ func (s *Store[T]) initTable() error {
 	)`
 	_, err := s.db.Exec(query)
 	return err
+}
+
+// initTableWithRetry creates the key-value table with retry on SQLITE_BUSY.
+func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
+	backoff := 50 * time.Millisecond
+	maxBackoff := 2 * time.Second
+	maxRetries := 10
+
+	var lastErr error
+	for retry := 0; retry < maxRetries; retry++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		err := s.initTable()
+		if err == nil {
+			return nil
+		}
+
+		lastErr = err
+		if !s.config.IsBusyError(err) {
+			return err
+		}
+
+		// Backoff before retry
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(backoff):
+		}
+
+		// Exponential backoff with cap
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+
+	return errors.Join(errors.New("sqlite: database busy during initialization after retries"), lastErr)
 }
 
 // NewTransaction returns a new transaction against the store.

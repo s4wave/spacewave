@@ -3,6 +3,7 @@
 package cgo
 
 import (
+	"context"
 	"database/sql"
 	"os"
 
@@ -48,13 +49,13 @@ func NewStore(db *sql.DB, table string) (*Store, error) {
 }
 
 // Open opens a SQLite database store using CGO driver.
-func Open(path string, table string) (*Store, error) {
-	return common.Open(path, table, CGOConfig{})
+func Open(ctx context.Context, path string, table string) (*Store, error) {
+	return common.Open(ctx, path, table, CGOConfig{})
 }
 
 // OpenWithMode opens a SQLite database store with file mode.
-func OpenWithMode(path string, mode os.FileMode, table string) (*Store, error) {
-	return common.OpenWithMode(path, mode, table, CGOConfig{})
+func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*Store, error) {
+	return common.OpenWithMode(ctx, path, mode, table, CGOConfig{})
 }
 
 // _ is a type assertion
