@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.25
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.4-0.20251113003038-c3daed1090d0 // master
+	github.com/aperturerobotics/bifrost v0.43.5-0.20251122005342-06e64dd41183 // master
 	github.com/aperturerobotics/cayley v0.10.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -49,7 +49,7 @@ require (
 	github.com/spf13/cast v1.10.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.etcd.io/bbolt v1.4.3 // main
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.25.12
 )
@@ -79,7 +79,7 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20250211130249-04b037b40df0 // indirect
 	github.com/klauspost/compress v1.18.1
-	github.com/libp2p/go-libp2p v0.44.0
+	github.com/libp2p/go-libp2p v0.45.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.16.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -87,10 +87,10 @@ require (
 	github.com/pion/sdp/v3 v3.0.16 // indirect
 	github.com/pion/webrtc/v4 v4.1.6 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.55.0 // indirect
+	github.com/quic-go/quic-go v0.56.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.44.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	gonum.org/v1/gonum v0.16.0
 )
@@ -190,9 +190,9 @@ require (
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251008203120-078029d740a8 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
