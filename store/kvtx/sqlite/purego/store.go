@@ -32,6 +32,16 @@ func (c PureGoConfig) IsBusyError(err error) bool {
 	return false
 }
 
+// IsNestedTxError checks if the error is a nested transaction error for pure Go driver.
+// This occurs when BeginTx is called on a connection that already has an active transaction.
+func (c PureGoConfig) IsNestedTxError(err error) bool {
+	if sqliteErr, ok := err.(*sqlite.Error); ok {
+		// SQLITE_ERROR (1) with message containing "cannot start a transaction within a transaction"
+		return sqliteErr.Code() == sqlite3.SQLITE_ERROR
+	}
+	return false
+}
+
 // Store is a SQLite database key-value store using pure Go SQLite driver.
 type Store = common.Store[PureGoConfig]
 

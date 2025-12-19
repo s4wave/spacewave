@@ -39,6 +39,8 @@ type SQLiteDriverConfig interface {
 	Description() string
 	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver
 	IsBusyError(err error) bool
+	// IsNestedTxError checks if the error is a nested transaction error for this driver
+	IsNestedTxError(err error) bool
 }
 
 // Store represents a generic SQLite store that can work with any driver.
@@ -113,6 +115,39 @@ func (s *Store[T]) initTable() error {
 
 // NewTransaction returns a new transaction against the store.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	backoff := 10 * time.Millisecond
+	maxRetries := 5
+
+	for retry := 0; retry < maxRetries; retry++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		tx, err := s.tryNewTransaction(ctx, write)
+		if err == nil {
+			return tx, nil
+		}
+
+		// Retry on nested transaction error - this can happen when the connection
+		// pool returns a connection that still has an active transaction due to
+		// driver issues or connection pool timing.
+		if !s.config.IsNestedTxError(err) {
+			return nil, err
+		}
+
+		// Backoff before retry
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
+	}
+
+	return nil, errors.New("sqlite: failed to start transaction after retries (nested transaction error)")
+}
+
+// tryNewTransaction attempts to create a new transaction.
+func (s *Store[T]) tryNewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if !write {
 		// Read-only tx: allows multiple concurrent readers.
 		opts := &sql.TxOptions{ReadOnly: true}
@@ -127,10 +162,8 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	// Retry on SQLITE_BUSY
 	backoff := 10 * time.Millisecond
 	for {
-		select {
-		case <-ctx.Done():
-			return nil, context.Canceled
-		default:
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
 
 		txn, err := s.db.BeginTx(ctx, nil)
@@ -153,8 +186,12 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 			return nil, err
 		}
 
-		// Constant-time backoff.
-		time.Sleep(backoff)
+		// Backoff before retry.
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
 	}
 }
 
