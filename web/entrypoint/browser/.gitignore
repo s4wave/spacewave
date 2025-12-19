@@ -6,3 +6,6 @@ runtime-gopherjs.js.map
 browser.js
 browser.js.map
 browser
+test-results/
+__screenshots__/
+.tester.html
