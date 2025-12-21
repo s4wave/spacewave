@@ -438,6 +438,10 @@ func (c *Controller) BuildManifest(
 	buildOptions.Sourcemap = esbuild_api.SourceMapInline // Inline sourcemap for easier debugging.
 	buildOptions.Write = true
 
+	buildOptions.Plugins = append(buildOptions.Plugins,
+		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath()),
+	)
+
 	// Run esbuild
 	result := esbuild_api.Build(buildOptions)
 	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {

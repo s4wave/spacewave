@@ -12,6 +12,7 @@
 - DO NOT add obvious comments like "(not persisted)" or "(ephemeral UI state)"
 - DO NOT disable linter warnings unless absolutely necessary - if you need to disable a linter warning, it usually means you are doing something wrong and should rethink your approach
 - DO NOT use `time.Sleep` - always use `time.After` with a select that includes `ctx.Done()` for cancellation
+- DO NOT assume `bldr setup` needs to be run - it runs automatically when bldr starts for almost any operation
 - AVOID `try`/`catch` where possible
 - AVOID `else` statements
 - AVOID using `any` type
