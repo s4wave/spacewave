@@ -33,3 +33,5 @@ debug.test*
 .aider*
 /.tools/
 .env
+test-results/
+.tmp-*

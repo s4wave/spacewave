@@ -18,15 +18,19 @@ export function buildPipeName(rootDir: string, pipeUuid: string): string {
   if (process.platform === 'win32') {
     return `\\\\.\\pipe\\bldr\\${pipeUuid}`
   } else {
-    // Create a path relative to the current working directory
+    // Create absolute path for the socket
     const absolutePath = path.join(rootDir, `.pipe-${pipeUuid}`)
     try {
-      // Get the relative path from current working directory
-      return path.relative(process.cwd(), absolutePath)
-    } catch (err) {
-      console.warn('Failed to get relative path:', err)
-      // Fallback to just the filename if we can't get a relative path
-      return `.pipe-${pipeUuid}`
+      // Get relative path from current working directory if possible
+      // Use whichever is shorter (Unix socket paths are limited to ~104 chars)
+      const relPath = path.relative(process.cwd(), absolutePath)
+      if (relPath.length < absolutePath.length) {
+        return relPath
+      }
+      return absolutePath
+    } catch {
+      // If we can't get CWD (e.g., it was deleted), use absolute path
+      return absolutePath
     }
   }
 }

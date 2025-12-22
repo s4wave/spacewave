@@ -1,6 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const distPath = '.bldr-dist/build/native/js/wasm/bldr-demo-release/dist'
+const port =
+  Number.parseInt(process.env.PLAYWRIGHT_WEB_PORT ?? '', 10) ||
+  30000 + Math.floor(Math.random() * 10000)
+const url = `http://localhost:${port}`
 
 export default defineConfig({
   testDir: '.',
@@ -15,7 +19,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: url,
     trace: 'on-first-retry',
   },
   projects: [
@@ -25,10 +29,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `bun run bldr -- static --path ./${distPath} --listen :3000`,
+    command: `bun run bldr -- static --path ./${distPath} --listen :${port}`,
     cwd: '../../..',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    url,
+    reuseExistingServer: false,
     timeout: 30000,
   },
 })

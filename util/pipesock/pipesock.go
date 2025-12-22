@@ -17,19 +17,31 @@ import (
 // The pipeUuid is used for the socket path OR the Windows Pipe Name.
 // The pipeUuid should be unique to the local device and pipe.
 func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener, error) {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "get current working directory")
-	}
-
 	// Create absolute path for the socket
 	absolutePipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 
-	// Get relative path from current working directory
-	pipePath, err := filepath.Rel(cwd, absolutePipePath)
+	// Ensure the parent directory exists
+	pipeDir := filepath.Dir(absolutePipePath)
+	if err := os.MkdirAll(pipeDir, 0o755); err != nil {
+		return nil, errors.Wrap(err, "create pipe directory")
+	}
+
+	// Get current working directory
+	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err, "get relative path for pipe")
+		// If we can't get CWD (e.g., it was deleted), use absolute path
+		le.WithError(err).Debug("could not get cwd, using absolute pipe path")
+		cwd = ""
+	}
+
+	// Get relative path from current working directory if possible
+	// Use whichever is shorter (Unix socket paths are limited to ~104 chars)
+	pipePath := absolutePipePath
+	if cwd != "" {
+		relPath, err := filepath.Rel(cwd, absolutePipePath)
+		if err == nil && len(relPath) < len(absolutePipePath) {
+			pipePath = relPath
+		}
 	}
 
 	// remove old pipe file, if exists
@@ -49,26 +61,32 @@ func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener
 
 // DialPipeListener connects to the pipe listener in the directory.
 func DialPipeListener(ctx context.Context, le *logrus.Entry, rootDir, pipeUuid string) (net.Conn, error) {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "get current working directory")
-	}
-
 	// Create absolute path for the socket
 	absolutePipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 
-	// Get relative path from current working directory
-	pipePath, err := filepath.Rel(cwd, absolutePipePath)
+	// Get current working directory
+	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err, "get relative path for pipe")
+		// If we can't get CWD (e.g., it was deleted), use absolute path
+		le.WithError(err).Debug("could not get cwd, using absolute pipe path")
+		cwd = ""
+	}
+
+	// Get relative path from current working directory if possible
+	// Use whichever is shorter (Unix socket paths are limited to ~104 chars)
+	pipePath := absolutePipePath
+	if cwd != "" {
+		relPath, err := filepath.Rel(cwd, absolutePipePath)
+		if err == nil && len(relPath) < len(absolutePipePath) {
+			pipePath = relPath
+		}
 	}
 
 	addr := &net.UnixAddr{
 		Net:  "unix",
 		Name: pipePath,
 	}
-	le.Debugf("connecting to unix socket: %s (relative to %s)", addr.String(), cwd)
+	le.Debugf("connecting to unix socket: %s (cwd: %s)", addr.String(), cwd)
 	dialer := net.Dialer{}
 	return dialer.DialContext(ctx, "unix", addr.String())
 }
