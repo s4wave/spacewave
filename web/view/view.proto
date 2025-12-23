@@ -37,6 +37,12 @@ enum RenderMode {
   // Callback returns a function to call to shutdown the script.
   // Renders the default export of the JS module.
   RenderMode_FUNCTION = 2;
+  // RenderMode_REACT_CHILDREN renders React children passed to the WebView component.
+  // This is the default mode when children are passed to the React WebView.
+  //
+  // Allows tests and local components to render within a WebView context
+  // without Go explicitly setting the render mode.
+  RenderMode_REACT_CHILDREN = 3;
 }
 
 // SetRenderModeRequest is the request to change the render mode.

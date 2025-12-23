@@ -48,6 +48,10 @@ interface IWebViewProps {
   showDebugInfo?: boolean
   // loading is rendered when the web view is not ready yet (loading).
   loading?: React.ReactNode
+  // children are rendered when renderMode is REACT_CHILDREN.
+  // If children are passed and no SetRenderMode has been called,
+  // the initial renderMode defaults to REACT_CHILDREN instead of NONE.
+  children?: React.ReactNode
 }
 
 interface IWebViewHtmlLink {
@@ -156,8 +160,12 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const removableRef = useLatestRef(removable)
 
   // webViewState contains the current web view state.
+  // Default to REACT_CHILDREN if children are passed, otherwise NONE.
   const [webViewState, setWebViewState] = useState<IWebViewState>(() => ({
-    renderMode: RenderMode.RenderMode_NONE,
+    renderMode:
+      props.children ?
+        RenderMode.RenderMode_REACT_CHILDREN
+      : RenderMode.RenderMode_NONE,
     htmlLinks: [],
     refreshNonce: 0,
   }))
@@ -418,6 +426,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           />
         </Activity>
       : undefined}
+      {/* Render React children when in REACT_CHILDREN mode */}
+      {webViewState.ready &&
+        webViewState.renderMode === RenderMode.RenderMode_REACT_CHILDREN &&
+        props.children}
     </BldrContext.Provider>
   )
 }

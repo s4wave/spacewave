@@ -33,6 +33,12 @@ const (
 	// Callback returns a function to call to shutdown the script.
 	// Renders the default export of the JS module.
 	RenderMode_RenderMode_FUNCTION RenderMode = 2
+	// RenderMode_REACT_CHILDREN renders React children passed to the WebView component.
+	// This is the default mode when children are passed to the React WebView.
+	//
+	// Allows tests and local components to render within a WebView context
+	// without Go explicitly setting the render mode.
+	RenderMode_RenderMode_REACT_CHILDREN RenderMode = 3
 )
 
 // Enum value maps for RenderMode.
@@ -41,11 +47,13 @@ var (
 		0: "RenderMode_NONE",
 		1: "RenderMode_REACT_COMPONENT",
 		2: "RenderMode_FUNCTION",
+		3: "RenderMode_REACT_CHILDREN",
 	}
 	RenderMode_value = map[string]int32{
 		"RenderMode_NONE":            0,
 		"RenderMode_REACT_COMPONENT": 1,
 		"RenderMode_FUNCTION":        2,
+		"RenderMode_REACT_CHILDREN":  3,
 	}
 )
 

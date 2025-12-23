@@ -42,6 +42,17 @@ export enum RenderMode {
    * @generated from enum value: RenderMode_FUNCTION = 2;
    */
   RenderMode_FUNCTION = 2,
+
+  /**
+   * RenderMode_REACT_CHILDREN renders React children passed to the WebView component.
+   * This is the default mode when children are passed to the React WebView.
+   *
+   * Allows tests and local components to render within a WebView context
+   * without Go explicitly setting the render mode.
+   *
+   * @generated from enum value: RenderMode_REACT_CHILDREN = 3;
+   */
+  RenderMode_REACT_CHILDREN = 3,
 }
 
 // RenderMode_Enum is the enum type for RenderMode.
@@ -49,6 +60,7 @@ export const RenderMode_Enum = createEnumType('web.view.RenderMode', [
   { no: 0, name: 'RenderMode_NONE' },
   { no: 1, name: 'RenderMode_REACT_COMPONENT' },
   { no: 2, name: 'RenderMode_FUNCTION' },
+  { no: 3, name: 'RenderMode_REACT_CHILDREN' },
 ])
 
 /**
