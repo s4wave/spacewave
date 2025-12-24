@@ -23,7 +23,7 @@ can be used as a storage backend.
 ## Overview
 
 Hydra is built on the [ControllerBus] framework, which defines the Config,
-Controller, Directive structures and behaviors.
+Controller, Directive primitives.
 
 [ControllerBus]: https://github.com/aperturerobotics/controllerbus
 
