@@ -86,8 +86,8 @@ and constructing the volume controller with the [kvtx-backed Store]. [In-memory]
 key-value volume is an example of this approach.
 
 Volumes can be nested: the [Block] volume uses the [kvtx/block] key/value store
-to create a shared / networked Volume, which can be encrypted or compressed by
-adding a [transform config]. The [World] volume stores data in a shared Object.
+to create a shared Volume, which can be encrypted or compressed by adding a
+[transform config]. The [World] volume stores data in a world.
 
 [BadgerDB]: ./volume/badger/badger.proto#L10
 [Block]: ./volume/block/volume.proto#L11
