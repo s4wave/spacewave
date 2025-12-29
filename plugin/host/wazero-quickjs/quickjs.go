@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bifrost/util/randstring"
@@ -25,13 +26,12 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/blang/semver/v4"
-	quickjs_wasi "github.com/paralin/go-quickjs-wasi"
+	quickjs "github.com/paralin/go-quickjs-wasi/wazero-quickjs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tetratelabs/wazero"
 	wazero_exp_sysfs "github.com/tetratelabs/wazero/experimental/sysfs"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-	wazero_sys "github.com/tetratelabs/wazero/sys"
 )
 
 // ControllerID is the wazero-quickjs host controller ID.
@@ -115,8 +115,8 @@ func (h *WazeroQuickJsHost) resolveQuickjsVm(ctx context.Context, released func(
 		return nil, nil, err
 	}
 
-	// Compile the Wasm module.
-	mod, err := r.CompileModule(ctx, quickjs_wasi.QuickJSWASM)
+	// Compile the Wasm module using the reactor build.
+	mod, err := quickjs.CompileQuickJS(ctx, r)
 	if err != nil {
 		rel()
 		return nil, nil, err
@@ -328,17 +328,29 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			WithSysNanotime().
 			WithSysWalltime().
 			WithEnv("BLDR_SCRIPT_PATH", scriptPath).
-			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB64).
-			WithArgs(quickjs_wasi.QuickJSWASMFilename, "--std", path.Join(BootFsMount, "plugin-quickjs.esm.js"))
+			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB64)
 
-		// Execute the Wasm module.
-		// This will automatically run the "_start" function of the module.
-		// If the context is canceled, this will return.
-		mod, err := val.vm.InstantiateModule(ctx, val.mod, moduleConfig)
-		if mod != nil {
-			_ = mod.Close(ctx)
+		// Create a QuickJS instance using the pre-compiled module.
+		// This uses the reactor model which doesn't block in _start().
+		qjs, err := quickjs.NewQuickJSWithModule(ctx, val.vm, val.mod, moduleConfig)
+		if err != nil {
+			return errors.Wrap(err, "create quickjs instance")
 		}
+		defer qjs.Close(ctx)
+
+		// Initialize QuickJS with CLI args to load the boot harness.
+		// The boot harness reads BLDR_SCRIPT_PATH and BLDR_PLUGIN_START_INFO from env.
+		bootScript := path.Join(BootFsMount, "plugin-quickjs.esm.js")
+		if err := qjs.InitArgv(ctx, []string{"qjs", "--std", bootScript}); err != nil {
+			return errors.Wrap(err, "init quickjs")
+		}
+
+		// Run the event loop with stdin polling.
+		// Unlike RunLoop which exits on idle, we need to wait for stdin data
+		// when idle since the plugin is waiting for RPC messages.
+		err = runLoopWithStdin(ctx, qjs, stdinBuf)
 		_ = remoteWrite.Close()
+
 		if errPtr := acceptStreamErr.Load(); errPtr != nil {
 			return *errPtr
 		}
@@ -346,16 +358,79 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			return context.Canceled
 		}
 		if err != nil {
-			// Note: Most compilers do not exit the module after running "_start",
-			// unless there was an error. This allows you to call exported functions.
-			if exitErr, ok := err.(*wazero_sys.ExitError); ok {
-				return errors.Errorf("module exited with exit code %v", exitErr.ExitCode())
-			}
-			return errors.Wrap(err, "module exited with error")
+			return errors.Wrap(err, "quickjs event loop")
 		}
 
-		return errors.New("module _start function returned unexpectedly without an error")
+		return nil
 	})
+}
+
+// runLoopWithStdin runs the QuickJS event loop with stdin polling.
+// When the event loop becomes idle or waiting for a timer, it also monitors stdin.
+// This keeps the plugin alive waiting for RPC messages.
+//
+// The reactor model's qjs_loop_once() only handles timers and microtasks - it does
+// NOT poll for I/O. We use qjs_poll_io() to invoke os.setReadHandler callbacks when
+// stdin has data available. This is more efficient than the command model because
+// the host knows exactly when I/O is ready, avoiding unnecessary poll() syscalls.
+func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazerofs.StdinBuffer) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		result, err := qjs.LoopOnce(ctx)
+		if err != nil {
+			return err
+		}
+
+		switch {
+		case result == quickjs.LoopError:
+			return errors.New("JavaScript error occurred")
+		case result == 0:
+			// More microtasks pending, continue immediately
+			continue
+		case result > 0:
+			// Timer pending - wait for timer, stdin data, or context cancellation
+			ready, waitCh := stdinBuf.CheckReady()
+			if ready {
+				// Data available - poll I/O to invoke read handlers
+				if _, err := qjs.PollIO(ctx, 0); err != nil {
+					return err
+				}
+				continue
+			}
+			timerDur := time.Duration(result.NextTimerMs()) * time.Millisecond
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-waitCh:
+				// Stdin data available, continue loop
+				continue
+			case <-time.After(timerDur):
+				continue
+			}
+		case result == quickjs.LoopIdle:
+			// Idle - wait for stdin data or context cancellation
+			ready, waitCh := stdinBuf.CheckReady()
+			if ready {
+				// Data available - poll I/O to invoke read handlers
+				if _, err := qjs.PollIO(ctx, 0); err != nil {
+					return err
+				}
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-waitCh:
+				// Stdin data available, continue loop
+				continue
+			}
+		}
+	}
 }
 
 // DeletePlugin clears cached plugin data for the given plugin ID.

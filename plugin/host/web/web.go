@@ -248,12 +248,14 @@ func (h *WebHost) ExecutePlugin(
 			Shared:   pluginShared,
 			InitData: pluginStartInfoBin,
 		})
-		if createdWorker == nil && err == nil {
-			err = errors.New("document did not create the worker")
-		}
 		if err != nil {
 			le.WithError(err).Warn("unable to create web worker")
 			return err
+		}
+		// nil, nil means document is hidden - return nil to wait for visibility change
+		if createdWorker == nil {
+			le.Debug("document is hidden, waiting for visibility")
+			return nil
 		}
 
 		createdShared := createdWorker.GetShared()
@@ -336,8 +338,9 @@ func (h *WebHost) ExecutePlugin(
 		var docStatus *web_document.WebDocumentStatus
 		var workerInstance *web_document.WebWorkerStatus
 		for {
-			// Create the instance of the worker if it doesn't exist.
-			if workerInstance == nil {
+			// Wait for the document to become visible before creating the worker.
+			// CreateWebWorker returns nil, nil when the document is hidden.
+			if workerInstance == nil && (docStatus == nil || !docStatus.GetHidden()) {
 				if err := createWorkerWithDoc(ctx, doc); err != nil {
 					return err
 				}
@@ -351,11 +354,14 @@ func (h *WebHost) ExecutePlugin(
 				return nil
 			}
 
-			workers := docStatus.GetWebWorkers()
-			for _, worker := range workers {
-				if worker.GetId() == pluginWebWorkerID {
-					workerInstance = worker
-					break
+			// Find our worker instance in the status, or nil if not found or hidden.
+			workerInstance = nil
+			if !docStatus.GetHidden() {
+				for _, worker := range docStatus.GetWebWorkers() {
+					if worker.GetId() == pluginWebWorkerID {
+						workerInstance = worker
+						break
+					}
 				}
 			}
 		}

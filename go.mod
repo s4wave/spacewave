@@ -2,6 +2,12 @@ module github.com/aperturerobotics/bldr
 
 go 1.25
 
+// This uses wasi-reactor
+require (
+	github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b // wasi-reactor // v0.11.0-wasi29-reactor
+	github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b // wasi-reactor
+)
+
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
@@ -25,9 +31,8 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
-	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
-	github.com/tetratelabs/wazero v1.9.0
+	github.com/tetratelabs/wazero v1.11.0
 	golang.org/x/mod v0.30.0 // latest
 	golang.org/x/tools v0.39.0 // latest
 )

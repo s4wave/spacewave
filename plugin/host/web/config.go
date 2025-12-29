@@ -38,3 +38,31 @@ func (c *Config) Validate() error {
 
 // _ is a type assertion
 var _ config.Config = ((*Config)(nil))
+
+// NewQuickJSConfig constructs a new QuickJS controller config.
+func NewQuickJSConfig(webRuntimeID string) *QuickJSConfig {
+	return &QuickJSConfig{
+		WebRuntimeId: webRuntimeID,
+	}
+}
+
+// GetConfigID returns the unique string for this configuration type.
+func (c *QuickJSConfig) GetConfigID() string {
+	return QuickJSConfigID
+}
+
+// EqualsConfig checks if the config is equal to another.
+func (c *QuickJSConfig) EqualsConfig(other config.Config) bool {
+	return config.EqualsConfig(c, other)
+}
+
+// Validate validates the configuration.
+func (c *QuickJSConfig) Validate() error {
+	if c.GetWebRuntimeId() == "" {
+		return web_runtime.ErrEmptyWebRuntimeID
+	}
+	return nil
+}
+
+// _ is a type assertion
+var _ config.Config = ((*QuickJSConfig)(nil))

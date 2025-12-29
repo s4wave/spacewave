@@ -6,3 +6,9 @@ message Config {
   // WebRuntimeId is the identifier of the web runtime.
   string web_runtime_id = 1;
 }
+
+// QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
+message QuickJSConfig {
+  // WebRuntimeId is the identifier of the web runtime.
+  string web_runtime_id = 1;
+}

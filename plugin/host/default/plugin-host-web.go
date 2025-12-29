@@ -18,10 +18,16 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 	func(b bus.Bus) controller.Factory {
 		return plugin_host_web.NewFactory(b)
 	},
+	func(b bus.Bus) controller.Factory {
+		return plugin_host_web.NewQuickJSFactory(b)
+	},
 }
 
-// PluginHostController is an alias to the plugin host controller type.
-type PluginHostController = plugin_host_controller.Controller
+// PluginHostController contains the plugin host controllers.
+type PluginHostController struct {
+	WebHost     *plugin_host_controller.Controller
+	QuickJSHost *plugin_host_controller.Controller
+}
 
 // StartPluginHost starts the plugin host.
 //
@@ -34,15 +40,34 @@ func StartPluginHost(
 	pluginsDistRoot string,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
-	pluginHostProcessConf := plugin_host_web.NewConfig(webRuntimeID)
-	pluginHostCtrl, _, pluginHostRef, err := loader.WaitExecControllerRunningTyped[*PluginHostController](
+	webHostConf := plugin_host_web.NewConfig(webRuntimeID)
+	webHostCtrl, _, webHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
+		resolver.NewLoadControllerWithConfig(webHostConf),
 		nil,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
-	return pluginHostCtrl, pluginHostRef.Release, nil
+
+	quickjsHostConf := plugin_host_web.NewQuickJSConfig(webRuntimeID)
+	quickjsHostCtrl, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(quickjsHostConf),
+		nil,
+	)
+	if err != nil {
+		webHostRef.Release()
+		return nil, nil, err
+	}
+
+	return &PluginHostController{
+			WebHost:     webHostCtrl,
+			QuickJSHost: quickjsHostCtrl,
+		}, func() {
+			quickjsHostRef.Release()
+			webHostRef.Release()
+		}, nil
 }

@@ -16,6 +16,7 @@ import (
 //
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
+//go:embed web/wasi-shim/*.ts
 //go:embed web/document/*.ts web/view/*.ts web/view/handler/*.ts
 //go:embed web/electron web/entrypoint web/entrypoint/index/index.html
 //go:embed web/fetch/*.ts

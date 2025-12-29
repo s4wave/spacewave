@@ -108,6 +108,7 @@ function startGoRuntime(webRuntimeId: string) {
 // wait for startup / init command
 const runtimeStarted = false
 self.addEventListener('connect', (ev) => {
+  console.log('runtime-wasm: connect event received, ports:', ev.ports?.length)
   const ports = ev.ports
   if (!ports || !ports.length) {
     return
@@ -120,6 +121,7 @@ self.addEventListener('connect', (ev) => {
 
   // Handle an incoming client for the WebRuntime and/or start the worker.
   port.onmessage = (msgEvent) => {
+    console.log('runtime-wasm: onmessage received:', msgEvent.data)
     if (msgEvent.data === 'close') {
       port.close()
       return
@@ -133,6 +135,8 @@ self.addEventListener('connect', (ev) => {
       )
       return
     }
+
+    console.log('runtime-wasm: valid message from:', msg.from, 'keys:', Object.keys(msg))
 
     if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
       startGoRuntime(msg.initWebRuntime.webRuntimeId)

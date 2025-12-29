@@ -35,3 +35,4 @@ debug.test*
 .env
 test-results/
 .tmp-*
+__screenshots__

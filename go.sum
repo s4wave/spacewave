@@ -189,8 +189,10 @@ github.com/onsi/ginkgo/v2 v2.20.2 h1:7NVCeyIWROIAheY21RLS+3j2bb52W0W82tkberYytp4
 github.com/onsi/ginkgo/v2 v2.20.2/go.mod h1:K9gyxPIlb+aIvnZ8bd9Ak+YP18w3APlR+5coaZoE2ag=
 github.com/onsi/gomega v1.34.1 h1:EUMJIKUjM8sKjYbtxQI9A4z2o+rruxnzNvpknOXie6k=
 github.com/onsi/gomega v1.34.1/go.mod h1:kU1QgUvBDLXBJq618Xvm2LUX6rSAfRaFRTcdOeDLwwY=
-github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f h1:aKm7CtT5xA1lbVZ0QiSVZcg8igR8LoUw8BMiwjHrggU=
-github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f/go.mod h1:xCQtRFXtSfOH63fUqZNtIZRBsYFcpo09xb1vLBD9VgU=
+github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b h1:9Mv9BsNdxhU+SQ++wPx2XB+5orbwrM82Aa9GtSHWZvM=
+github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b/go.mod h1:qJvK/DGQy5Uw0JzgYByV1cUM3DJIYfQ13x4pFEHfDlk=
+github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b h1:51ESC/0zNa5L87woK6sOyFB+UpUMH2CUazCiV6Ukp4k=
+github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b/go.mod h1:4JeZ8F5io5K3LHnhD7xEFUsHVA2HYkY5T5cR+Z0DOaI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98 h1:8VijFMz4qJ70+ObyaByu6XZctKPhjllz/XfEoVZDQGo=

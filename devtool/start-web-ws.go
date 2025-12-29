@@ -181,6 +181,11 @@ func (d *DevtoolBus) ExecuteWebWs(
 	// serve the websocket if the path matches
 	webRuntimeWsPath := "/bldr-dev/web-runtime.ws"
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
+		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
+		// These enable SAB-based communication between SharedWorkers
+		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+
 		if req.URL.Path == webRuntimeWsPath {
 			le.Info("received websocket connection from frontend")
 			wc, err := websocket.Accept(rw, req, &websocket.AcceptOptions{})

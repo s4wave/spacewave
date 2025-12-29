@@ -308,7 +308,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer pluginSchecCtrlRel()
 
-	// run the web browser plugin loader implementation
+	// run the web browser plugin loader implementation (for "native/js/wasm" platform)
 	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{WebRuntimeId: webRuntimeID})
 	if err != nil {
 		err = errors.Wrap(err, "start web host controller")
@@ -324,6 +324,23 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer webPluginHostRel()
 	le.Info("web plugin host is running")
 	_ = webPluginHost
+
+	// run the QuickJS web browser plugin host (for "js" platform)
+	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{WebRuntimeId: webRuntimeID})
+	if err != nil {
+		err = errors.Wrap(err, "start web quickjs host controller")
+		return err
+	}
+	webQuickJSHostRel, err := b.AddController(ctx, webQuickJSHostCtrl, func(err error) {
+		le.WithError(err).Error("quickjs plugin host controller failed")
+	})
+	if err != nil {
+		err = errors.Wrap(err, "start web quickjs plugin host")
+		return err
+	}
+	defer webQuickJSHostRel()
+	le.Info("web quickjs plugin host is running")
+	_ = webQuickJSHost
 
 	// Call LoadPlugin for the list of Start plugins.
 	for _, pluginID := range devtoolInfo.GetStartPlugins() {

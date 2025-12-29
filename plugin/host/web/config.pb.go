@@ -35,6 +35,26 @@ func (x *Config) GetWebRuntimeId() string {
 	return ""
 }
 
+// QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
+type QuickJSConfig struct {
+	unknownFields []byte
+	// WebRuntimeId is the identifier of the web runtime.
+	WebRuntimeId string `protobuf:"bytes,1,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"webRuntimeId,omitempty"`
+}
+
+func (x *QuickJSConfig) Reset() {
+	*x = QuickJSConfig{}
+}
+
+func (*QuickJSConfig) ProtoMessage() {}
+
+func (x *QuickJSConfig) GetWebRuntimeId() string {
+	if x != nil {
+		return x.WebRuntimeId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -48,6 +68,22 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *QuickJSConfig) CloneVT() *QuickJSConfig {
+	if m == nil {
+		return (*QuickJSConfig)(nil)
+	}
+	r := new(QuickJSConfig)
+	r.WebRuntimeId = m.WebRuntimeId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *QuickJSConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -65,6 +101,26 @@ func (this *Config) EqualVT(that *Config) bool {
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *QuickJSConfig) EqualVT(that *QuickJSConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WebRuntimeId != that.WebRuntimeId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *QuickJSConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*QuickJSConfig)
 	if !ok {
 		return false
 	}
@@ -113,6 +169,48 @@ func (x *Config) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the QuickJSConfig message to JSON.
+func (x *QuickJSConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.WebRuntimeId != "" || s.HasField("webRuntimeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webRuntimeId")
+		s.WriteString(x.WebRuntimeId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the QuickJSConfig to JSON.
+func (x *QuickJSConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QuickJSConfig message from JSON.
+func (x *QuickJSConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "web_runtime_id", "webRuntimeId":
+			s.AddField("web_runtime_id")
+			x.WebRuntimeId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the QuickJSConfig from JSON.
+func (x *QuickJSConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -153,7 +251,61 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *QuickJSConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QuickJSConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *QuickJSConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebRuntimeId) > 0 {
+		i -= len(m.WebRuntimeId)
+		copy(dAtA[i:], m.WebRuntimeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebRuntimeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.WebRuntimeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *QuickJSConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -185,6 +337,24 @@ func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *QuickJSConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("QuickJSConfig {")
+	if x.WebRuntimeId != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_runtime_id: ")
+		sb.WriteString(strconv.Quote(x.WebRuntimeId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *QuickJSConfig) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -212,6 +382,90 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: Config: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebRuntimeId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebRuntimeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *QuickJSConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QuickJSConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QuickJSConfig: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

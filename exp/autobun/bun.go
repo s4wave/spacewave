@@ -208,8 +208,13 @@ func extractBunFromZip(zipPath, destDir string) error {
 			return err
 		}
 
-		// Copy the contents
-		_, err = io.Copy(outFile, rc)
+		// Copy the contents with a limit to prevent decompression bombs
+		// Use the uncompressed size from the zip header, with a reasonable maximum
+		maxSize := f.UncompressedSize64
+		if maxSize == 0 {
+			maxSize = 500 * 1024 * 1024 // 500MB default max for bun binary
+		}
+		_, err = io.CopyN(outFile, rc, int64(maxSize))
 		rc.Close()
 		outFile.Close()
 		if err != nil {

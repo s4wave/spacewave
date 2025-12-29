@@ -17,6 +17,45 @@ import (
 	_ "github.com/aperturerobotics/starpc/rpcstream"
 )
 
+// WebWorkerType specifies the type of worker to create.
+type WebWorkerType int32
+
+const (
+	// WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
+	// This is used for "native/js/wasm" platform plugins (Go WASM).
+	WebWorkerType_WEB_WORKER_TYPE_NATIVE WebWorkerType = 0
+	// WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
+	// This is used for "js" platform plugins. Uses shw-quickjs.mjs which loads the
+	// QuickJS reactor WASM and runs the plugin with re-entrant event loop.
+	WebWorkerType_WEB_WORKER_TYPE_QUICKJS WebWorkerType = 1
+)
+
+// Enum value maps for WebWorkerType.
+var (
+	WebWorkerType_name = map[int32]string{
+		0: "WEB_WORKER_TYPE_NATIVE",
+		1: "WEB_WORKER_TYPE_QUICKJS",
+	}
+	WebWorkerType_value = map[string]int32{
+		"WEB_WORKER_TYPE_NATIVE":  0,
+		"WEB_WORKER_TYPE_QUICKJS": 1,
+	}
+)
+
+func (x WebWorkerType) Enum() *WebWorkerType {
+	p := new(WebWorkerType)
+	*p = x
+	return p
+}
+
+func (x WebWorkerType) String() string {
+	name, valid := WebWorkerType_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
 type WatchWebDocumentStatusRequest struct {
 	unknownFields []byte
@@ -230,6 +269,9 @@ type CreateWebWorkerRequest struct {
 	//
 	// Usually a WebWorkerWasmPluginInit.
 	InitData []byte `protobuf:"bytes,4,opt,name=init_data,json=initData,proto3" json:"initData,omitempty"`
+	// WorkerType specifies which SharedWorker harness to use.
+	// If unset, defaults to WEB_WORKER_TYPE_NATIVE.
+	WorkerType WebWorkerType `protobuf:"varint,5,opt,name=worker_type,json=workerType,proto3" json:"workerType,omitempty"`
 }
 
 func (x *CreateWebWorkerRequest) Reset() {
@@ -264,6 +306,13 @@ func (x *CreateWebWorkerRequest) GetInitData() []byte {
 		return x.InitData
 	}
 	return nil
+}
+
+func (x *CreateWebWorkerRequest) GetWorkerType() WebWorkerType {
+	if x != nil {
+		return x.WorkerType
+	}
+	return WebWorkerType_WEB_WORKER_TYPE_NATIVE
 }
 
 // CreateWebWorkerResponse is the response to the CreateWebWorker request.
@@ -460,6 +509,7 @@ func (m *CreateWebWorkerRequest) CloneVT() *CreateWebWorkerRequest {
 	r.Id = m.Id
 	r.Path = m.Path
 	r.Shared = m.Shared
+	r.WorkerType = m.WorkerType
 	if rhs := m.InitData; rhs != nil {
 		r.InitData = slices.Clone(rhs)
 	}
@@ -712,6 +762,9 @@ func (this *CreateWebWorkerRequest) EqualVT(that *CreateWebWorkerRequest) bool {
 	if string(this.InitData) != string(that.InitData) {
 		return false
 	}
+	if this.WorkerType != that.WorkerType {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -784,6 +837,46 @@ func (this *RemoveWebWorkerResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the WebWorkerType to JSON.
+func (x WebWorkerType) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WebWorkerType_name)
+}
+
+// MarshalText marshals the WebWorkerType to text.
+func (x WebWorkerType) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WebWorkerType_name)), nil
+}
+
+// MarshalJSON marshals the WebWorkerType to JSON.
+func (x WebWorkerType) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebWorkerType from JSON.
+func (x *WebWorkerType) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WebWorkerType_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WebWorkerType enum: %v", err)
+		return
+	}
+	*x = WebWorkerType(v)
+}
+
+// UnmarshalText unmarshals the WebWorkerType from text.
+func (x *WebWorkerType) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WebWorkerType_value)
+	if err != nil {
+		return err
+	}
+	*x = WebWorkerType(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WebWorkerType from JSON.
+func (x *WebWorkerType) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchWebDocumentStatusRequest message to JSON.
@@ -1168,6 +1261,11 @@ func (x *CreateWebWorkerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("initData")
 		s.WriteBytes(x.InitData)
 	}
+	if x.WorkerType != 0 || s.HasField("workerType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("workerType")
+		x.WorkerType.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1197,6 +1295,9 @@ func (x *CreateWebWorkerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "init_data", "initData":
 			s.AddField("init_data")
 			x.InitData = s.ReadBytes()
+		case "worker_type", "workerType":
+			s.AddField("worker_type")
+			x.WorkerType.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1700,6 +1801,11 @@ func (m *CreateWebWorkerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.WorkerType != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WorkerType))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.InitData) > 0 {
 		i -= len(m.InitData)
 		copy(dAtA[i:], m.InitData)
@@ -2003,6 +2109,9 @@ func (m *CreateWebWorkerRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.WorkerType != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WorkerType))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2048,6 +2157,10 @@ func (m *RemoveWebWorkerResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x WebWorkerType) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *WatchWebDocumentStatusRequest) MarshalProtoText() string {
@@ -2257,6 +2370,15 @@ func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 		sb.WriteString("init_data: ")
 		sb.WriteString("\"")
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.InitData))
+		sb.WriteString("\"")
+	}
+	if x.WorkerType != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("worker_type: ")
+		sb.WriteString("\"")
+		sb.WriteString(WebWorkerType(x.WorkerType).String())
 		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
@@ -3143,6 +3265,25 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 				m.InitData = []byte{}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerType", wireType)
+			}
+			m.WorkerType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.WorkerType |= WebWorkerType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,0 +1,14 @@
+{
+  "name": "quickjs-browser-worker-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "^0.4.2"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

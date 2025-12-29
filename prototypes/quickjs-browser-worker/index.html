@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>QuickJS WASI in Browser Worker</title>
+    <style>
+      body {
+        font-family: monospace;
+        margin: 20px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+      }
+      h1 {
+        color: #569cd6;
+      }
+      #output {
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        padding: 10px;
+        white-space: pre-wrap;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .error {
+        color: #f44747;
+      }
+      .info {
+        color: #4ec9b0;
+      }
+      .log {
+        color: #d4d4d4;
+      }
+      button {
+        background: #0e639c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #1177bb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>QuickJS WASI in Browser WebWorker</h1>
+    <p class="info">
+      This prototype loads QuickJS (qjs-wasi.wasm) in a WebWorker using
+      @aspect/browser_wasi_shim.
+    </p>
+    <div>
+      <button id="start">Start Worker</button>
+      <button id="stop" disabled>Stop Worker</button>
+    </div>
+    <h2>Output:</h2>
+    <div id="output"></div>
+
+    <script type="module">
+      const output = document.getElementById('output')
+      const startBtn = document.getElementById('start')
+      const stopBtn = document.getElementById('stop')
+      let worker = null
+
+      function log(msg, type = 'log') {
+        const line = document.createElement('div')
+        line.className = type
+        line.textContent = `[${new Date().toISOString()}] ${msg}`
+        output.appendChild(line)
+        output.scrollTop = output.scrollHeight
+      }
+
+      startBtn.addEventListener('click', () => {
+        if (worker) return
+
+        log('Starting WebWorker...', 'info')
+        worker = new Worker('./worker.js', { type: 'module' })
+
+        worker.onmessage = (e) => {
+          const { type, data } = e.data
+          switch (type) {
+            case 'stdout':
+              log(`[stdout] ${data}`, 'log')
+              break
+            case 'stderr':
+              log(`[stderr] ${data}`, 'error')
+              break
+            case 'ready':
+              log('QuickJS WASI ready', 'info')
+              break
+            case 'exit':
+              log(`QuickJS exited with code ${data}`, 'info')
+              break
+            case 'error':
+              log(`Error: ${data}`, 'error')
+              break
+            default:
+              log(`Unknown message: ${JSON.stringify(e.data)}`, 'info')
+          }
+        }
+
+        worker.onerror = (e) => {
+          log(`Worker error: ${e.message}`, 'error')
+        }
+
+        startBtn.disabled = true
+        stopBtn.disabled = false
+      })
+
+      stopBtn.addEventListener('click', () => {
+        if (worker) {
+          worker.terminate()
+          worker = null
+          log('Worker terminated', 'info')
+        }
+        startBtn.disabled = false
+        stopBtn.disabled = true
+      })
+    </script>
+  </body>
+</html>

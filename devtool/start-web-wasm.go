@@ -301,6 +301,11 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	entrySrv := http.FileServer(entryFs)
 
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
+		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
+		// These enable SAB-based communication between SharedWorkers
+		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+
 		if req.URL.Path == infoPath {
 			le.Info("received info request from frontend")
 			rw.Header().Add("Content-Type", "application/x-protobuf")

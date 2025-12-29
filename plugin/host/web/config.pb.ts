@@ -29,3 +29,26 @@ export const Config: MessageType<Config> = createMessageType({
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
+ *
+ * @generated from message plugin.host.web.QuickJSConfig
+ */
+export interface QuickJSConfig {
+  /**
+   * WebRuntimeId is the identifier of the web runtime.
+   *
+   * @generated from field: string web_runtime_id = 1;
+   */
+  webRuntimeId?: string
+}
+
+// QuickJSConfig contains the message type declaration for QuickJSConfig.
+export const QuickJSConfig: MessageType<QuickJSConfig> = createMessageType({
+  typeName: 'plugin.host.web.QuickJSConfig',
+  fields: [
+    { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

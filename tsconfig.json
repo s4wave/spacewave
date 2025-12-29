@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "lib": ["webworker", "dom"],
+    "lib": ["ES2024", "webworker", "dom"],
     "paths": {
       "@go/*": ["./vendor/*"],
       "@aptre/bldr": ["./web/bldr/index.js"],

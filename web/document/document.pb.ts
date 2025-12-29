@@ -3,9 +3,43 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.document'
+
+/**
+ * WebWorkerType specifies the type of worker to create.
+ *
+ * @generated from enum web.document.WebWorkerType
+ */
+export enum WebWorkerType {
+  /**
+   * WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
+   * This is used for "native/js/wasm" platform plugins (Go WASM).
+   *
+   * @generated from enum value: WEB_WORKER_TYPE_NATIVE = 0;
+   */
+  NATIVE = 0,
+
+  /**
+   * WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
+   * This is used for "js" platform plugins. Uses shw-quickjs.mjs which loads the
+   * QuickJS reactor WASM and runs the plugin with re-entrant event loop.
+   *
+   * @generated from enum value: WEB_WORKER_TYPE_QUICKJS = 1;
+   */
+  QUICKJS = 1,
+}
+
+// WebWorkerType_Enum is the enum type for WebWorkerType.
+export const WebWorkerType_Enum = createEnumType('web.document.WebWorkerType', [
+  { no: 0, name: 'WEB_WORKER_TYPE_NATIVE' },
+  { no: 1, name: 'WEB_WORKER_TYPE_QUICKJS' },
+])
 
 /**
  * WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
@@ -255,6 +289,13 @@ export interface CreateWebWorkerRequest {
    * @generated from field: bytes init_data = 4;
    */
   initData?: Uint8Array
+  /**
+   * WorkerType specifies which SharedWorker harness to use.
+   * If unset, defaults to WEB_WORKER_TYPE_NATIVE.
+   *
+   * @generated from field: web.document.WebWorkerType worker_type = 5;
+   */
+  workerType?: WebWorkerType
 }
 
 // CreateWebWorkerRequest contains the message type declaration for CreateWebWorkerRequest.
@@ -266,6 +307,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'worker_type', kind: 'enum', T: WebWorkerType_Enum },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

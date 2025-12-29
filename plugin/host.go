@@ -99,6 +99,10 @@ const PluginAssetsHttpPrefix = BldrHttpPrefix + "pa/"
 // /b/pkg/
 const PluginWebPkgHttpPrefix = BldrHttpPrefix + "pkg/"
 
+// QuickJSHttpPrefix is the public URL path prefix for QuickJS runtime files.
+// /b/qjs/
+const QuickJSHttpPrefix = BldrHttpPrefix + "qjs/"
+
 // PluginHttpPrefix is the route prefix for plugin-controlled URL space.
 // /p/{pluginId}/
 const PluginHttpPrefix = "/p/"

@@ -119,6 +119,20 @@ func (b *StdinBuffer) Close() error {
 	return nil
 }
 
+// CheckReady checks if data is available and returns a wait channel if not.
+// Returns (ready, waitCh) where:
+// - ready=true means data is available now, waitCh should be ignored
+// - ready=false means no data, wait on waitCh for notification
+func (b *StdinBuffer) CheckReady() (ready bool, waitCh <-chan struct{}) {
+	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		ready = b.readQueueSize > 0 || b.closed
+		if !ready {
+			waitCh = getWaitCh()
+		}
+	})
+	return
+}
+
 // Poll checks if there is available data to read.
 func (b *StdinBuffer) Poll(flag fsapi.Pflag, timeoutMillis int32) (ready bool, errno wazero_exp_sys.Errno) {
 	// wait once only
@@ -137,6 +151,11 @@ func (b *StdinBuffer) Poll(flag fsapi.Pflag, timeoutMillis int32) (ready bool, e
 			}
 		})
 		if waitCh == nil {
+			return
+		}
+
+		// If timeout is 0, return immediately (non-blocking poll)
+		if timeoutMillis == 0 {
 			return
 		}
 

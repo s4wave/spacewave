@@ -231,6 +231,21 @@ Compilers return `nil, nil` (no error, no result) when they cannot build for a p
 - JS compiler skips non-JS platforms
 - This is by design - not all manifests support all platforms
 
+## DistSources Embedding
+
+TypeScript source files for the web entrypoints and SDKs are embedded in Go via `dist.go`:
+
+```go
+//go:embed web/bldr/*.ts web/bldr/*.tsx
+//go:embed web/wasi-shim/*.ts
+// ... other embed directives
+var DistSources embed.FS
+```
+
+**Important:** When adding new TypeScript directories that need to be bundled (like `web/wasi-shim/`), you must add a corresponding `//go:embed` directive in `dist.go`. Otherwise, the esbuild bundler won't be able to resolve imports to those files.
+
+Files are checked out to `.bldr/src/` so TypeScript and IDEs can see them during development.
+
 ## Current Limitations
 
 ### No Per-Manifest Platform Filtering
