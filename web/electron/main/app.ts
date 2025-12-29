@@ -216,6 +216,14 @@ export class BldrElectronApp {
 
     // Handle navigation to external URLs (clicked links)
     nwindow.webContents.on('will-navigate', (event, targetUrl) => {
+      // Prevent navigation to the same URL (spurious reload).
+      // This can happen during initial load when ServiceWorker isn't yet controlling.
+      const currentUrl = nwindow.webContents.getURL()
+      if (targetUrl === currentUrl) {
+        event.preventDefault()
+        return
+      }
+
       if (!this.isInternalUrl(targetUrl)) {
         event.preventDefault()
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {

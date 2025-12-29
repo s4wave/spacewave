@@ -828,7 +828,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
-    if (wbReg && !navigator.serviceWorker.controller) {
+    // Skip this in Electron - it causes spurious reloads that orphan in-flight requests.
+    if (!this.isElectron && wbReg && !navigator.serviceWorker.controller) {
       console.error('WebDocument: detected ctrl+shift+r: reloading page')
       location.reload()
       throw new Error('page loaded with cache disabled: ctrl+shift+r')
