@@ -30,6 +30,7 @@
     "start:native:release": "bun run build:release && cd ./.bldr/build/native/$(go env GOOS)/$(go env GOARCH)/bldr-demo-release/dist && ./bldr-demo",
     "start:web": "bun run bldr -- --minify-entrypoint=false start web",
     "start:web:wasm": "bun run bldr -- --minify-entrypoint=false start web --wasm",
+    "start:web:wasm:browser": "node scripts/start-web-wasm-browser.js",
     "start:web:release": "bun run build:release:web && bun run bldr -- static --path ./.bldr-dist/build/native/js/wasm/bldr-demo-release/dist",
     "start:web:release:debug": "bun run build:release:web:debug && bun run bldr -- static --path ./.bldr-dist/build/native/js/wasm/bldr-demo-release/dist",
     "debug:native": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start native",
