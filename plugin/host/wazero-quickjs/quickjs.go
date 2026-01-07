@@ -26,7 +26,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/blang/semver/v4"
-	quickjs "github.com/paralin/go-quickjs-wasi/wazero-quickjs"
+	quickjs "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tetratelabs/wazero"

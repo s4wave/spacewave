@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	quickjs_wasi "github.com/paralin/go-quickjs-wasi"
+	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 )
 
 //go:embed index.html worker.js

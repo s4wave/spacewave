@@ -24,7 +24,7 @@ Then open http://localhost:8090 in your browser.
 ## How it Works
 
 1. `main.go` serves:
-   - `/qjs-wasi.wasm` - The QuickJS WASI binary from `github.com/paralin/go-quickjs-wasi`
+   - `/qjs-wasi.wasm` - The QuickJS WASI binary from `github.com/aperturerobotics/go-quickjs-wasi-reactor`
    - `/index.html` - The test page
    - `/worker.js` - The WebWorker that loads QuickJS
    - `/node_modules/` - The browser_wasi_shim package

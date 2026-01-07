@@ -3,7 +3,7 @@ package quickjs_http
 
 import (
 	plugin_host_wazero_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
-	quickjs_wasi "github.com/paralin/go-quickjs-wasi"
+	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 )
 
 // QuickJSWASMBytes is the QuickJS WASI binary.

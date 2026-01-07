@@ -34,6 +34,10 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHwmhwx6oqe1PoMMU=
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260107001425-5bca2d1f3ebd h1:a/cBEJ38BVSv3bo9dpVcU7k5Ge5p6tMzVlKpLCm3X2k=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260107001425-5bca2d1f3ebd/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260107001425-5bca2d1f3ebd h1:6BIXaSVXaoP1SoWZJw4ajljg53ZR+MyC1Nn9IQiiTKU=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260107001425-5bca2d1f3ebd/go.mod h1:gV6BzPM8NE3eppcPESPMSeruZtkqSZHaua4of0C7ALI=
 github.com/aperturerobotics/hydra v0.0.0-20251219102943-6fe32009614c h1:g2+HtogISADEh7WWlJ1qYkg6/wv2zj1EZi1FmOFBa9Y=
 github.com/aperturerobotics/hydra v0.0.0-20251219102943-6fe32009614c/go.mod h1:sJEc0uIJUkneRg+BtgWPtgcCyjzNstnQIlhhcShiQNs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 h1:4B1F0DzuqPzb6WqgCjWaqDD7JU9RDsevQG5OP0DFBgs=
@@ -44,8 +48,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.11.0 h1:IAaZISqrEpodqECYxk0yKWgR
 github.com/aperturerobotics/protobuf-go-lite v0.11.0/go.mod h1:c4kGy7Dkfz6B1m0t4QBIMQoNeQ7m+nYj3Qxxnlwhygo=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 h1:MUXLrLDjCw36dx8OeBwF/B7YP5akyoU6Ps+v50qR5Lo=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89/go.mod h1:vhhkHYq2i9lb0bOllqKhOdtg/3i7r4o/7zc8XI/T4lo=
-github.com/aperturerobotics/starpc v0.41.0 h1:NG81ny5BeVzsUV56aZreL2Z0xiD42tjvPlnGDBfVpDQ=
-github.com/aperturerobotics/starpc v0.41.0/go.mod h1:TtXAw1hXQ2LNFaBz2yhZQg+BwFV9qvmZ2CpftuOavF0=
+github.com/aperturerobotics/starpc v0.41.2 h1:VVrnoka+MWLsjGb6jAk8NwnhVeusgyScfa3swz+7iwk=
+github.com/aperturerobotics/starpc v0.41.2/go.mod h1:UQOxEr3lQj9LbSaSXPi+64BPpy1+CpHCPNtAf5fy2oQ=
 github.com/aperturerobotics/util v1.31.4 h1:2F4j5CML/Hb4dQT1E1pjkZd3AdJhsAQiaRCR9pD/dwo=
 github.com/aperturerobotics/util v1.31.4/go.mod h1:qfeWUnkC60QpjxH4yocO6Q/No+J1E488yzuconPgF8c=
 github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54 h1:NDfiGotph6x6zkuCUjXp91woQwjyOc+vn309+L37WuI=
@@ -189,10 +193,6 @@ github.com/onsi/ginkgo/v2 v2.20.2 h1:7NVCeyIWROIAheY21RLS+3j2bb52W0W82tkberYytp4
 github.com/onsi/ginkgo/v2 v2.20.2/go.mod h1:K9gyxPIlb+aIvnZ8bd9Ak+YP18w3APlR+5coaZoE2ag=
 github.com/onsi/gomega v1.34.1 h1:EUMJIKUjM8sKjYbtxQI9A4z2o+rruxnzNvpknOXie6k=
 github.com/onsi/gomega v1.34.1/go.mod h1:kU1QgUvBDLXBJq618Xvm2LUX6rSAfRaFRTcdOeDLwwY=
-github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b h1:9Mv9BsNdxhU+SQ++wPx2XB+5orbwrM82Aa9GtSHWZvM=
-github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b/go.mod h1:qJvK/DGQy5Uw0JzgYByV1cUM3DJIYfQ13x4pFEHfDlk=
-github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b h1:51ESC/0zNa5L87woK6sOyFB+UpUMH2CUazCiV6Ukp4k=
-github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b/go.mod h1:4JeZ8F5io5K3LHnhD7xEFUsHVA2HYkY5T5cR+Z0DOaI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98 h1:8VijFMz4qJ70+ObyaByu6XZctKPhjllz/XfEoVZDQGo=
@@ -366,8 +366,8 @@ google.golang.org/protobuf v1.22.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2
 google.golang.org/protobuf v1.23.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.23.1-0.20200526195155-81db48ad09cc/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
-google.golang.org/protobuf v1.36.10 h1:AYd7cD/uASjIL6Q9LiTjz8JLcrh/88q5UObnmY3aOOE=
-google.golang.org/protobuf v1.36.10/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
+google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=

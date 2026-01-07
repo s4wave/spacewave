@@ -4,8 +4,8 @@ go 1.25
 
 // This uses wasi-reactor
 require (
-	github.com/paralin/go-quickjs-wasi v0.11.1-0.20260101005537-67d385d5139b // wasi-reactor // v0.11.0-wasi29-reactor
-	github.com/paralin/go-quickjs-wasi/wazero-quickjs v0.0.0-20260101005537-67d385d5139b // wasi-reactor
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260107001425-5bca2d1f3ebd // v0.11.0-wasi29-reactor-r3
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260107001425-5bca2d1f3ebd // wasi-reactor-r3
 )
 
 // This fork avoids importing net/http on wasm.
@@ -86,7 +86,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.51.4-0.20251122005227-10a046324797 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.41.0 // latest
+	github.com/aperturerobotics/starpc v0.41.2 // latest
 	github.com/aperturerobotics/util v1.31.4 // latest
 )
 
@@ -106,7 +106,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.14
 	github.com/klauspost/compress v1.18.1
-	github.com/libp2p/go-libp2p v0.45.0
+	github.com/libp2p/go-libp2p v0.46.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.16.1 // indirect
 	github.com/oklog/ulid/v2 v2.1.0
