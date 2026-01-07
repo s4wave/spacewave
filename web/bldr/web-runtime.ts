@@ -73,35 +73,47 @@ class WebRuntimeClientInstance {
     port.onmessage = this.onClientMessage.bind(this)
     port.start()
 
-    // For WebDocument clients, use Web Locks API to detect disconnection.
-    // When the WebDocument closes (or crashes), it releases its lock, and
-    // this lock request will succeed, allowing us to clean up immediately.
-    const clientUuid = init.clientUuid
+    // Note: Web Lock watching is NOT started here to avoid a race condition.
+    // The WebDocument must acquire its lock first, then send an armWebLock message.
+    // See armWebLock() method.
+  }
+
+  // armWebLock starts watching the Web Lock for disconnect detection.
+  // Called when the WebDocument sends an armWebLock message after acquiring its lock.
+  private armWebLock() {
+    const clientUuid = this.init.clientUuid
     if (
-      clientUuid &&
-      !init.disableWebLocks &&
-      init.clientType ===
-        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
-      typeof navigator !== 'undefined' &&
-      'locks' in navigator
+      !clientUuid ||
+      this.init.disableWebLocks ||
+      this.init.clientType !==
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT ||
+      typeof navigator === 'undefined' ||
+      !('locks' in navigator)
     ) {
-      this.abortController = new AbortController()
-      const lockName = `bldr-doc-${clientUuid}`
-      navigator.locks
-        .request(lockName, { signal: this.abortController.signal }, () => {
-          // Lock acquired means the WebDocument has disconnected.
-          if (!this.closed) {
-            console.log(
-              `WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`,
-            )
-            this.close()
-          }
-          return Promise.resolve()
-        })
-        .catch(() => {
-          // Lock request was aborted (during close) - this is expected.
-        })
+      return
     }
+
+    // Already armed
+    if (this.abortController) {
+      return
+    }
+
+    this.abortController = new AbortController()
+    const lockName = `bldr-doc-${clientUuid}`
+    navigator.locks
+      .request(lockName, { signal: this.abortController.signal }, () => {
+        // Lock acquired means the WebDocument has disconnected.
+        if (!this.closed) {
+          console.log(
+            `WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`,
+          )
+          this.close()
+        }
+        return Promise.resolve()
+      })
+      .catch(() => {
+        // Lock request was aborted (during close) - this is expected.
+      })
   }
 
   // openStream opens a RPC stream with the remote client.
@@ -191,6 +203,9 @@ class WebRuntimeClientInstance {
     const ports = ev.ports
     if (msg.openStream && ports.length) {
       await this.openWebRuntimeClientInstanceStream(ports[0])
+    }
+    if (msg.armWebLock) {
+      this.armWebLock()
     }
     if (msg.close) {
       console.log(

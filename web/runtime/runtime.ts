@@ -11,6 +11,9 @@ export interface ClientToWebRuntime {
   openStream?: true
   // close indicates the client is closing.
   close?: boolean
+  // armWebLock tells the WebRuntime to start watching the Web Lock for disconnect detection.
+  // The WebDocument sends this after acquiring its lock to avoid a race condition.
+  armWebLock?: true
 }
 
 // WebRuntimeToClient is a message sent to the runtime client.

@@ -583,11 +583,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // The WebRuntime (SharedWorker) will try to acquire the same lock.
     // When this page closes (or crashes), the lock is released and the
     // WebRuntime can detect the disconnect without relying on timeouts.
+    //
+    // IMPORTANT: We must acquire the lock BEFORE connecting to the WebRuntime,
+    // then send an armWebLock message to tell the WebRuntime to start watching.
+    // This avoids a race where the WebRuntime acquires the lock first.
     if (!this.isElectron && 'locks' in navigator) {
       this.abortController = new AbortController()
       const lockName = `bldr-doc-${this.webDocumentUuid}`
       navigator.locks
         .request(lockName, { signal: this.abortController.signal }, () => {
+          // Lock acquired - now safe to connect to WebRuntime.
+          // The WebRuntime will wait for this lock when we send armWebLock.
+          this.taskEnsureWebRuntimeConn()
           // Hold the lock until the page closes or abort is called.
           // This promise never resolves while the page is open.
           return new Promise<void>(() => {})
@@ -595,10 +602,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         .catch(() => {
           // Lock request was aborted (during close) - this is expected.
         })
+    } else {
+      // No Web Locks support (e.g., Electron) - connect immediately.
+      this.taskEnsureWebRuntimeConn()
     }
-
-    // trigger starting the connection to the WebRuntime
-    this.taskEnsureWebRuntimeConn()
   }
 
   // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.

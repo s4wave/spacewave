@@ -128,6 +128,15 @@ export class WebRuntimeClient {
     }
     this.clientChannel = port
     port.start()
+
+    // Tell the WebRuntime to start watching our Web Lock for disconnect detection.
+    // This is sent after we've acquired the lock (in WebDocument constructor),
+    // ensuring no race condition where WebRuntime acquires the lock first.
+    if (!this.disableWebLocks) {
+      const armMsg: ClientToWebRuntime = { armWebLock: true }
+      port.postMessage(armMsg)
+    }
+
     return port
   }
 
