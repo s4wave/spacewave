@@ -102,6 +102,7 @@
     "@libp2p/logger": "^6.2.2",
     "console": "^0.7.2",
     "electron": "^39.2.7",
+    "quickjs-wasi-reactor": "^0.0.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "starpc": "^0.41.2",

@@ -13,11 +13,16 @@ import (
 	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 )
 
+//go:generate go run -v ./gen-quickjs-reactor/main.go
+
 //go:embed index.html worker.js
 var staticFS embed.FS
 
 //go:embed wasi-shim/wasi-shim.esm.js
 var wasiShimJS []byte
+
+//go:embed quickjs-wasi-reactor.esm.js
+var quickjsWasiReactorJS []byte
 
 // corsMiddleware adds CORS headers to allow cross-origin requests
 func corsMiddleware(next http.Handler) http.Handler {
@@ -67,11 +72,18 @@ func main() {
 		mux.Handle("/node_modules/", http.StripPrefix("/node_modules/", http.FileServer(http.Dir("node_modules"))))
 	}
 
-	// Serve bundled wasi-shim ES module
+	// Serve bundled wasi-shim ES module (legacy)
 	mux.HandleFunc("/wasi-shim.esm.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(wasiShimJS)
+	})
+
+	// Serve bundled quickjs-wasi-reactor ES module
+	mux.HandleFunc("/quickjs-wasi-reactor.esm.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(quickjsWasiReactorJS)
 	})
 
 	// Serve the boot harness from disk (read at request time for development)

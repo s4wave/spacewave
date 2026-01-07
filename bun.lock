@@ -9,6 +9,7 @@
         "@libp2p/logger": "^6.2.2",
         "console": "^0.7.2",
         "electron": "^39.2.7",
+        "quickjs-wasi-reactor": "^0.0.4",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "starpc": "^0.41.2",
@@ -765,6 +766,8 @@
     "punycode": ["punycode@2.3.1", "", {}, "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="],
 
     "quick-lru": ["quick-lru@5.1.1", "", {}, "sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA=="],
+
+    "quickjs-wasi-reactor": ["quickjs-wasi-reactor@0.0.4", "", {}, "sha512-YS4zrSVdPs9mzAPVYJ+upJtpW2eDNmBUR3Eu5nGftQo9WSlrK+zll+6gRMSI1xRC8G50nw/cwHv1+q8jZB7Rxw=="],
 
     "race-event": ["race-event@1.6.1", "", { "dependencies": { "abort-error": "^1.0.1" } }, "sha512-vi7WH5g5KoTFpu2mme/HqZiWH14XSOtg5rfp6raBskBHl7wnmy3F/biAIyY5MsK+BHWhoPhxtZ1Y2R7OHHaWyQ=="],
 
