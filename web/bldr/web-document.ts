@@ -97,7 +97,7 @@ class WebDocumentWebWorker {
     public readonly id: string,
     // path is the path to the user's worker script.
     public readonly path: string,
-    // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs or shw-quickjs.mjs).
+    // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
     sharedWorkerPath: string,
     public readonly webDocumentUuid: string,
     initData: Uint8Array | undefined,
@@ -118,15 +118,19 @@ class WebDocumentWebWorker {
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
 
-    // Build the worker URL with script path in hash
+    // Build the worker URL with script path and worker type in hash
     const workerURL = new URL(sharedWorkerPath, baseURL)
 
-    // Use the hash to pass the script path to avoid potential conflicts with
+    // Use the hash to pass parameters to avoid potential conflicts with
     // query parameters used by the script itself.
+    // Format: #s=<scriptPath>&t=<workerType>
     // Encode necessary characters using encodeURIComponent, but then replace
     // encoded forward slashes (%2F) back to literal slashes (/), as slashes
     // are permitted characters within URL fragments (RFC 3986).
-    workerURL.hash = `s=${encodeURIComponent(path).replace(/%2F/g, '/')}`
+    const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
+    const workerTypeParam =
+      workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
+    workerURL.hash = `s=${encodedPath}${workerTypeParam}`
 
     if (typeof SharedWorker !== 'undefined') {
       // Use SharedWorker when available (both native and QuickJS plugins)
@@ -143,7 +147,10 @@ class WebDocumentWebWorker {
       this.sharedWorker.port.postMessage(init, [workerPort])
     } else {
       // Fallback to Dedicated Worker if SharedWorker unavailable
-      this.worker = new Worker(workerURL.toString(), { name: id, type: 'module' })
+      this.worker = new Worker(workerURL.toString(), {
+        name: id,
+        type: 'module',
+      })
 
       const init: WebDocumentToWorker = {
         from: webDocumentUuid,
@@ -323,11 +330,8 @@ export interface WebDocumentOptions {
   serviceWorkerPath?: string
   // sharedWorkerPath is the path to the bldr shw.mjs
   // if unset, defaults to /shw.mjs
+  // This unified worker handles both native and QuickJS plugins.
   sharedWorkerPath?: string
-  // quickjsWorkerPath is the path to the bldr shw-quickjs.mjs SharedWorker.
-  // if unset, defaults to /shw-quickjs.mjs
-  // This is used for "js" platform plugins that run in QuickJS WASI reactor.
-  quickjsWorkerPath?: string
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -406,9 +410,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // closed indicates the web document is closed with an optional error
   private closed?: true | Error
   // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
+  // This unified worker handles both native and QuickJS plugins via URL params.
   private readonly sharedWorkerPath: string
-  // quickjsWorkerPath is the path to the bldr QuickJS shared worker script (shw-quickjs.mjs).
-  private readonly quickjsWorkerPath: string
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
 
@@ -463,7 +466,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.client = new Client()
     this.webDocumentHost = new WebDocumentHostClient(this.client)
     this.sharedWorkerPath = opts?.sharedWorkerPath ?? '/shw.mjs'
-    this.quickjsWorkerPath = opts?.quickjsWorkerPath ?? '/shw-quickjs.mjs'
 
     this.webRuntimeClient = new WebRuntimeClient(
       this.webRuntimeId,
@@ -731,18 +733,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       old.close()
     }
 
-    // Select the worker path based on worker type
-    // QUICKJS uses shw-quickjs.mjs, NATIVE uses shw.mjs
+    // All workers use the same sharedWorkerPath, with workerType passed in URL
     const workerType = request.workerType ?? WebWorkerType.NATIVE
-    const workerPath =
-      workerType === WebWorkerType.QUICKJS
-        ? this.quickjsWorkerPath
-        : this.sharedWorkerPath
 
     const worker = new WebDocumentWebWorker(
       request.id,
       request.path,
-      workerPath,
+      this.sharedWorkerPath,
       this.webDocumentUuid,
       request.initData,
       workerType,

@@ -25,19 +25,14 @@ if (typeof BLDR_RUNTIME_JS === 'string') {
 // BLDR_SW_JS is an injected variable with the path to the sw.mjs
 declare const BLDR_SW_JS: string | undefined
 // BLDR_SHW_JS is an injected variable with the path to the shw.mjs
+// This unified worker handles both native and QuickJS plugins via URL params.
 declare const BLDR_SHW_JS: string | undefined
-// BLDR_SHW_QUICKJS_JS is an injected variable with the path to the shw-quickjs.mjs
-declare const BLDR_SHW_QUICKJS_JS: string | undefined
 if (typeof BLDR_SW_JS === 'string') {
   webDocumentOpts.serviceWorkerPath = BLDR_SW_JS
 }
 
 if (typeof BLDR_SHW_JS === 'string') {
   webDocumentOpts.sharedWorkerPath = BLDR_SHW_JS
-}
-
-if (typeof BLDR_SHW_QUICKJS_JS === 'string') {
-  webDocumentOpts.quickjsWorkerPath = BLDR_SHW_QUICKJS_JS
 }
 
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }

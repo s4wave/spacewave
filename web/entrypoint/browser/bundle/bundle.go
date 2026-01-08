@@ -114,20 +114,6 @@ func SharedWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.Build
 	return baseConfig
 }
 
-// QuickJSWorkerBuildOpts creates the BuildOpts for the QuickJS SharedWorker.
-// This worker runs JS plugins in QuickJS WASI reactor model.
-func QuickJSWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
-	if hash {
-		baseConfig.EntryNames = "shw-quickjs-[hash]"
-	} else {
-		baseConfig.EntryNames = "shw-quickjs"
-	}
-	baseConfig.EntryPoints = []string{"web/bldr/shw-quickjs.ts"}
-	baseConfig.EntryPointsAdvanced = nil
-	return baseConfig
-}
-
 // BuildServiceWorkerBundle builds specifically the service worker files.
 //
 // Returns the filename of the service worker output file (including the hash).
@@ -158,30 +144,6 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 	le.Debug("generating shared-worker bundle")
 
 	shwOpts := SharedWorkerBuildOpts(bldrDistRoot, minify, !devMode)
-	shwOpts.Outdir = buildDir
-	shwOpts.Write = true
-	if !minify {
-		shwOpts.Sourcemap = esbuild.SourceMapInline
-	}
-	shwOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	result := esbuild.Build(shwOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return "", err
-	}
-	if len(result.OutputFiles) != 1 {
-		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
-	}
-	return filepath.Base(result.OutputFiles[0].Path), nil
-}
-
-// BuildQuickJSWorkerBundle builds specifically the QuickJS shared worker files.
-// This worker runs JS plugins in QuickJS WASI reactor model.
-//
-// Returns the filename of the QuickJS worker output file (including the hash).
-func BuildQuickJSWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
-	le.Debug("generating quickjs-worker bundle")
-
-	shwOpts := QuickJSWorkerBuildOpts(bldrDistRoot, minify, !devMode)
 	shwOpts.Outdir = buildDir
 	shwOpts.Write = true
 	if !minify {
@@ -241,7 +203,6 @@ func BuildRendererBundle(
 	runtimeJsPath,
 	runtimeSwPath,
 	runtimeShwPath,
-	runtimeShwQuickjsPath,
 	webStartupSrcPath,
 	entrypointHash string,
 	minify bool,
@@ -272,10 +233,6 @@ func BuildRendererBundle(
 
 	if runtimeShwPath != "" {
 		rendererBuildOpts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
-	}
-
-	if runtimeShwQuickjsPath != "" {
-		rendererBuildOpts.Define["BLDR_SHW_QUICKJS_JS"] = strconv.Quote(runtimeShwQuickjsPath)
 	}
 
 	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
@@ -336,13 +293,6 @@ func BuildBrowserBundle(
 		return err
 	}
 
-	// QuickJS shared worker (for JS plugins running in QuickJS WASI reactor)
-	shwQuickjsFilename, err := BuildQuickJSWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
-	if err != nil {
-		return err
-	}
-	runtimeShwQuickjsPath := filepath.Join(filepath.Dir(runtimeShwPath), shwQuickjsFilename)
-
 	// replace the filename in runtimeSwPath with the sw filename
 	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
 	// replace the filename in runtimeShwPath with the shw filename
@@ -370,7 +320,7 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeShwQuickjsPath, webStartupSrcPath, entrypointHash, minify); err != nil {
+	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
 		return err
 	}
 

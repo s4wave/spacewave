@@ -7,14 +7,15 @@ import (
 	"strings"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	plugin_host_wazero_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_pkg_http "github.com/aperturerobotics/bldr/web/pkg/http"
-	quickjs_http "github.com/aperturerobotics/bldr/web/quickjs/http"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/blang/semver/v4"
@@ -373,10 +374,16 @@ func (c *Controller) ServeQuickJSHTTP(filePath string, rw http.ResponseWriter, r
 
 	switch filePath {
 	case "qjs-wasi.wasm":
-		content = quickjs_http.QuickJSWASMBytes
+		content = quickjs_wasi.QuickJSWASM
 		contentType = "application/wasm"
 	case "plugin-quickjs.esm.js":
-		content = quickjs_http.PluginQuickjsBootBytes
+		var err error
+		content, err = plugin_host_wazero_quickjs.PluginQuickjsBoot.ReadFile("plugin-quickjs.esm.js")
+		if err != nil {
+			rw.WriteHeader(500)
+			_, _ = rw.Write([]byte("bldr: failed to read boot harness: " + err.Error()))
+			return
+		}
 		contentType = "application/javascript"
 	default:
 		rw.WriteHeader(404)

@@ -1,13 +1,13 @@
-// shw-quickjs.ts - SharedWorker for QuickJS WASI reactor model
+// plugin-host-quickjs.ts runs a JavaScript plugin in the QuickJS WASI reactor.
 //
-// This worker runs JS plugins in QuickJS WASI reactor.
-// Unlike the blocking command model, the reactor model yields to the
-// browser event loop between iterations, allowing async RPC processing.
+// This module is imported by shared-worker.ts when the worker type is QUICKJS.
+// It sets up the QuickJS WASI environment and runs the plugin script inside
+// the QuickJS VM with a re-entrant event loop that yields to the browser.
 //
 // Architecture:
-// 1. Receive init message with plugin path from WebDocument
-// 2. Fetch QuickJS WASM from /b/qjs/qjs-wasi.wasm
-// 3. Fetch boot harness from /b/qjs/plugin-quickjs.esm.js
+// 1. Fetch QuickJS WASM from /b/qjs/qjs-wasi.wasm
+// 2. Fetch boot harness from /b/qjs/plugin-quickjs.esm.js
+// 3. Fetch plugin script from scriptPath
 // 4. Create WASI environment with stdin/dev-out for yamux
 // 5. Call qjs.init(["qjs", "--std", bootHarnessPath]) to initialize and run boot harness
 // 6. Run event loop with loopOnce()
@@ -17,7 +17,7 @@
 //    - Returns -2: error
 // 7. Yields to browser event loop between iterations
 
-import { HandleStreamCtr, HandleStreamFunc, StreamConn } from 'starpc'
+import { StreamConn } from 'starpc'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
 import {
@@ -28,19 +28,8 @@ import {
   LOOP_ERROR,
 } from 'quickjs-wasi-reactor'
 
-import { PluginWorker } from '../runtime/plugin-worker.js'
-import { PluginStartInfo } from '../../plugin/plugin.pb.js'
-
-// https://github.com/microsoft/TypeScript/issues/14877
-declare let self: SharedWorkerGlobalScope
-
-console.log('shw-quickjs: SharedWorker loaded')
-
-// handleIncomingStreamCtr is the container for the plugin handle stream func.
-const handleIncomingStreamCtr = new HandleStreamCtr()
-// handleIncomingStream waits for a handler to be registered in handleIncomingStreamCtr.
-const handleIncomingStream: HandleStreamFunc =
-  handleIncomingStreamCtr.handleStreamFunc
+import { BackendAPI } from '@aptre/bldr-sdk'
+import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 // Cached compiled QuickJS WASM module (shared across plugin restarts)
 let cachedWasmModule: WebAssembly.Module | null = null
@@ -84,12 +73,17 @@ async function fetchPluginScript(scriptPath: string): Promise<string> {
   return response.text()
 }
 
-// runQuickJSPlugin runs a plugin using the QuickJS reactor model.
-async function runQuickJSPlugin(
+// main runs a JavaScript plugin in the QuickJS WASI reactor.
+//
+// Unlike native JS plugins that run directly in the browser, QuickJS plugins
+// run inside a WebAssembly-based JavaScript VM. This provides isolation and
+// allows running plugins that use synchronous I/O patterns.
+export default async function main(
+  api: BackendAPI,
+  signal: AbortSignal,
   scriptPath: string,
-  startInfo: PluginStartInfo,
 ): Promise<void> {
-  console.log('shw-quickjs: loading QuickJS and boot harness...')
+  console.log('quickjs-runner: loading QuickJS and boot harness...')
 
   // Load WASM module, boot harness, and plugin script in parallel
   const [wasmModule, bootHarness, pluginScript] = await Promise.all([
@@ -98,7 +92,7 @@ async function runQuickJSPlugin(
     fetchPluginScript(scriptPath),
   ])
 
-  console.log('shw-quickjs: setting up WASI environment...')
+  console.log('quickjs-runner: setting up WASI environment...')
 
   // Create pollable stdin for yamux communication (host -> plugin)
   const stdin = new PollableStdin()
@@ -119,11 +113,11 @@ async function runQuickJSPlugin(
   const fs = buildFileSystem(files)
 
   // Encode start info for the plugin
-  const startInfoB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+  const startInfoB64 = btoa(PluginStartInfo.toJsonString(api.startInfo))
 
-  console.log('shw-quickjs: instantiating QuickJS reactor...')
+  console.log('quickjs-runner: instantiating QuickJS reactor...')
 
-  // Create QuickJS instance using the new API
+  // Create QuickJS instance
   const qjs = new QuickJS(wasmModule, {
     args: ['qjs'],
     env: [
@@ -137,18 +131,18 @@ async function runQuickJSPlugin(
     onDevOut: (data) => devOutStream.push(new Uint8Array(data)),
   })
 
-  console.log('shw-quickjs: initializing QuickJS...')
+  console.log('quickjs-runner: initializing QuickJS...')
 
   // Initialize QuickJS with --std flag and boot harness path.
   // This sets up the module loader and evaluates the boot harness as the main script.
   qjs.init(['qjs', '--std', '/boot/plugin-quickjs.esm.js'])
 
-  console.log('shw-quickjs: starting reactor event loop...')
+  console.log('quickjs-runner: starting reactor event loop...')
 
   // Set up yamux connection for RPC
   // The host side (us) is 'outbound' - we initiate streams to WebRuntime
   const hostConn = new StreamConn(
-    { handlePacketStream: handleIncomingStream },
+    { handlePacketStream: api.handleStreamCtr.handleStreamFunc },
     {
       direction: 'outbound',
       yamuxParams: {
@@ -167,20 +161,15 @@ async function runQuickJSPlugin(
       qjs.pushStdin(data)
     }
   }).catch((err) => {
-    console.error('shw-quickjs: yamux pipe error:', err)
+    console.error('quickjs-runner: yamux pipe error:', err)
   })
 
-  // Connect to WebRuntime via pluginWorker
-  const openStream = pluginWorker.webRuntimeClient.openStream.bind(
-    pluginWorker.webRuntimeClient,
-  )
-
   // Set up stream handling from plugin to host
-  handleIncomingStreamCtr.set(async (stream) => {
+  api.handleStreamCtr.set(async (stream) => {
     // When plugin opens a stream, forward it to WebRuntime
-    const hostStream = await openStream()
+    const hostStream = await api.openStream()
     pipe(stream, hostStream, stream).catch((err) => {
-      console.error('shw-quickjs: stream pipe error:', err)
+      console.error('quickjs-runner: stream pipe error:', err)
     })
   })
 
@@ -190,6 +179,17 @@ async function runQuickJSPlugin(
   let pendingTimeout: ReturnType<typeof setTimeout> | null = null
   let waitingForWake = false
   let exitResolve: (() => void) | null = null
+
+  // Handle abort signal
+  const onAbort = () => {
+    running = false
+    if (pendingTimeout !== null) {
+      clearTimeout(pendingTimeout)
+      pendingTimeout = null
+    }
+    exitResolve?.()
+  }
+  signal.addEventListener('abort', onAbort)
 
   // Wake callback: when stdin receives data, cancel any pending timeout and run immediately
   qjs.onStdinWake(() => {
@@ -217,13 +217,13 @@ async function runQuickJSPlugin(
     } catch (e) {
       running = false
       exitCode = 1
-      console.error('shw-quickjs: error in loopOnce:', e)
+      console.error('quickjs-runner: error in loopOnce:', e)
       exitResolve?.()
       return
     }
 
     if (result === LOOP_ERROR) {
-      console.error('shw-quickjs: JavaScript error occurred')
+      console.error('quickjs-runner: JavaScript error occurred')
       running = false
       exitResolve?.()
       return
@@ -243,7 +243,7 @@ async function runQuickJSPlugin(
         } catch (e) {
           running = false
           exitCode = 1
-          console.error('shw-quickjs: error in pollIO:', e)
+          console.error('quickjs-runner: error in pollIO:', e)
           exitResolve?.()
           return
         }
@@ -263,7 +263,7 @@ async function runQuickJSPlugin(
         } catch (e) {
           running = false
           exitCode = 1
-          console.error('shw-quickjs: error in pollIO:', e)
+          console.error('quickjs-runner: error in pollIO:', e)
           exitResolve?.()
           return
         }
@@ -286,6 +286,7 @@ async function runQuickJSPlugin(
   })
 
   // Cleanup
+  signal.removeEventListener('abort', onAbort)
   devOutStream.end()
   qjs.destroy()
 
@@ -293,30 +294,3 @@ async function runQuickJSPlugin(
     throw new Error(`Plugin exited with code ${exitCode}`)
   }
 }
-
-// Function passed to PluginWorker, called when the first WebDocument connects
-// and sends initialization data.
-const startPluginCallback = async (startInfo: PluginStartInfo) => {
-  // Parse the script path from the worker's URL hash.
-  const url = new URL(self.location.href)
-  let scriptPath: string | null = null
-  if (url.hash && url.hash.startsWith('#s=')) {
-    scriptPath = decodeURIComponent(url.hash.substring(3)) // Remove '#s=' prefix
-  }
-  if (!scriptPath) {
-    throw new Error('shw-quickjs: Missing script hash parameter in URL.')
-  }
-
-  console.log('shw-quickjs: starting QuickJS plugin:', scriptPath)
-
-  await runQuickJSPlugin(scriptPath, startInfo)
-}
-
-// Initialize the PluginWorker.
-// For QuickJS plugins, we accept incoming streams via handleIncomingStream.
-// The PluginWorker registers the onconnect callback on "self" in its constructor.
-const pluginWorker = new PluginWorker(
-  self,
-  startPluginCallback,
-  handleIncomingStream,
-)

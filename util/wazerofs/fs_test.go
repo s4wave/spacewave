@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
+	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	"github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
-	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 	"github.com/tetratelabs/wazero"
 	wazero_exp_sysfs "github.com/tetratelabs/wazero/experimental/sysfs"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"

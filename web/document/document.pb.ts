@@ -27,8 +27,8 @@ export enum WebWorkerType {
 
   /**
    * WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
-   * This is used for "js" platform plugins. Uses shw-quickjs.mjs which loads the
-   * QuickJS reactor WASM and runs the plugin with re-entrant event loop.
+   * This is used for "js" platform plugins. The unified shared-worker.ts dispatches
+   * to quickjs-runner.ts which loads the QuickJS reactor WASM and runs the plugin.
    *
    * @generated from enum value: WEB_WORKER_TYPE_QUICKJS = 1;
    */
