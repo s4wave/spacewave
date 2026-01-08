@@ -4,8 +4,8 @@ go 1.25
 
 // This uses wasi-reactor
 require (
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.0-wasi29-reactor-r5 // v0.11.0-wasi29-reactor-r3
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108021752-0bdc34c43167 // wasi-reactor-r3
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260108065606-84f1092c1463 // v0.11.0-wasi29-reactor-r3
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108065606-84f1092c1463 // wasi-reactor-r3
 )
 
 // This fork avoids importing net/http on wasm.

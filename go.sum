@@ -34,10 +34,10 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHwmhwx6oqe1PoMMU=
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.0-wasi29-reactor-r5 h1:h2SJIxNtdbJ4W2uwmootuZvryhmcZKMO7nPh/eHoml4=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.0-wasi29-reactor-r5/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108021752-0bdc34c43167 h1:JcoO07B7LcADCjtmPQwG9aFElqcxCtBTX/jWALMG1JM=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108021752-0bdc34c43167/go.mod h1:7vBBACqsqLGgL3XgdKTDdlge3Xuw/W5t9zlszAa1GWI=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260108065606-84f1092c1463 h1:u0wtc8UqCEhNa7DpkVsQZM6x2H6K+wPFvlnxzPnBlNQ=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260108065606-84f1092c1463/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108065606-84f1092c1463 h1:VWeHJrDB1/AQL0l7jCor3A//tm6cPoW2cLKN+f8lcRY=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260108065606-84f1092c1463/go.mod h1:y1BZPFsYiJlhfd/pdK7Z45lUcN3yBG9hJD52OaS1Pso=
 github.com/aperturerobotics/hydra v0.0.0-20251219102943-6fe32009614c h1:g2+HtogISADEh7WWlJ1qYkg6/wv2zj1EZi1FmOFBa9Y=
 github.com/aperturerobotics/hydra v0.0.0-20251219102943-6fe32009614c/go.mod h1:sJEc0uIJUkneRg+BtgWPtgcCyjzNstnQIlhhcShiQNs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 h1:4B1F0DzuqPzb6WqgCjWaqDD7JU9RDsevQG5OP0DFBgs=

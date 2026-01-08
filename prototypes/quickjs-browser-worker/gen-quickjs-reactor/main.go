@@ -22,9 +22,9 @@ func main() {
 		le.WithError(err).Fatal("failed to get cwd")
 		return
 	}
-	bldrRoot := filepath.Join(cwd, "../../..")
+	bldrRoot := filepath.Join(cwd, "../..")
 	entryPoint := filepath.Join(bldrRoot, "node_modules/quickjs-wasi-reactor/dist/index.js")
-	outfile := filepath.Join(cwd, "../quickjs-wasi-reactor.esm.js")
+	outfile := filepath.Join(cwd, "quickjs-wasi-reactor.esm.js")
 
 	le.WithFields(logrus.Fields{
 		"entryPoint": entryPoint,

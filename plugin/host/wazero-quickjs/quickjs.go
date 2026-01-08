@@ -21,12 +21,12 @@ import (
 	"github.com/aperturerobotics/bldr/util/wazerofs"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	quickjs "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/blang/semver/v4"
-	quickjs "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tetratelabs/wazero"
@@ -341,7 +341,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		// Initialize QuickJS with CLI args to load the boot harness.
 		// The boot harness reads BLDR_SCRIPT_PATH and BLDR_PLUGIN_START_INFO from env.
 		bootScript := path.Join(BootFsMount, "plugin-quickjs.esm.js")
-		if err := qjs.InitArgv(ctx, []string{"qjs", "--std", bootScript}); err != nil {
+		if err := qjs.Init(ctx, []string{"qjs", "--std", bootScript}); err != nil {
 			return errors.Wrap(err, "init quickjs")
 		}
 
@@ -407,7 +407,10 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-waitCh:
-				// Stdin data available, continue loop
+				// Stdin data available - poll I/O to invoke read handlers
+				if _, err := qjs.PollIO(ctx, 0); err != nil {
+					return err
+				}
 				continue
 			case <-time.After(timerDur):
 				continue
@@ -426,7 +429,10 @@ func runLoopWithStdin(ctx context.Context, qjs *quickjs.QuickJS, stdinBuf *wazer
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-waitCh:
-				// Stdin data available, continue loop
+				// Stdin data available - poll I/O to invoke read handlers
+				if _, err := qjs.PollIO(ctx, 0); err != nil {
+					return err
+				}
 				continue
 			}
 		}

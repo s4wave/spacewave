@@ -189,9 +189,29 @@ async function runQuickJSPlugin(
   // Run the reactor event loop
   let running = true
   let exitCode = 0
+  let pendingTimeout: ReturnType<typeof setTimeout> | null = null
+  let waitingForWake = false
+  let exitResolve: (() => void) | null = null
+
+  // Wake callback: when stdin receives data, cancel any pending timeout and run immediately
+  qjs.onStdinWake(() => {
+    if (pendingTimeout !== null) {
+      clearTimeout(pendingTimeout)
+      pendingTimeout = null
+      queueMicrotask(runLoop)
+    } else if (waitingForWake) {
+      waitingForWake = false
+      queueMicrotask(runLoop)
+    }
+  })
 
   const runLoop = () => {
-    if (!running) return
+    if (!running) {
+      exitResolve?.()
+      return
+    }
+    pendingTimeout = null
+    waitingForWake = false
 
     let result: number
     try {
@@ -200,12 +220,14 @@ async function runQuickJSPlugin(
       running = false
       exitCode = 1
       console.error('shw-quickjs: error in loopOnce:', e)
+      exitResolve?.()
       return
     }
 
     if (result === LOOP_ERROR) {
       console.error('shw-quickjs: JavaScript error occurred')
       running = false
+      exitResolve?.()
       return
     }
 
@@ -218,41 +240,40 @@ async function runQuickJSPlugin(
     if (result > 0) {
       // Timer pending - but also check stdin
       if (qjs.hasStdinData()) {
-        // Data available - poll I/O to invoke read handlers
         try {
           qjs.pollIO(0)
         } catch (e) {
           running = false
           exitCode = 1
           console.error('shw-quickjs: error in pollIO:', e)
+          exitResolve?.()
           return
         }
         queueMicrotask(runLoop)
         return
       }
-      // Wait for timer
-      setTimeout(runLoop, result)
+      // Wait for timer (onStdinWake will interrupt if data arrives)
+      pendingTimeout = setTimeout(runLoop, result)
       return
     }
 
     if (result === LOOP_IDLE) {
       // Idle - check if stdin has data
       if (qjs.hasStdinData()) {
-        // Data available - poll I/O to invoke read handlers
         try {
           qjs.pollIO(0)
         } catch (e) {
           running = false
           exitCode = 1
           console.error('shw-quickjs: error in pollIO:', e)
+          exitResolve?.()
           return
         }
         queueMicrotask(runLoop)
         return
       }
-      // No data - wait a bit and check again
-      // In the browser, we can't truly block, so we poll periodically
-      setTimeout(runLoop, 10)
+      // No data - wait for onStdinWake callback to restart the loop
+      waitingForWake = true
       return
     }
   }
@@ -262,14 +283,8 @@ async function runQuickJSPlugin(
 
   // Wait for the plugin to exit
   await new Promise<void>((resolve) => {
-    const checkDone = () => {
-      if (!running) {
-        resolve()
-        return
-      }
-      setTimeout(checkDone, 100)
-    }
-    checkDone()
+    exitResolve = resolve
+    if (!running) resolve()
   })
 
   // Cleanup
