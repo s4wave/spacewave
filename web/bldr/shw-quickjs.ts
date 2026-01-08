@@ -9,7 +9,7 @@
 // 2. Fetch QuickJS WASM from /b/qjs/qjs-wasi.wasm
 // 3. Fetch boot harness from /b/qjs/plugin-quickjs.esm.js
 // 4. Create WASI environment with stdin/dev-out for yamux
-// 5. Initialize QuickJS with initStdModule() and eval the boot harness
+// 5. Call qjs.init(["qjs", "--std", bootHarnessPath]) to initialize and run boot harness
 // 6. Run event loop with loopOnce()
 //    - Returns >0: setTimeout(loop, ms)
 //    - Returns 0: queueMicrotask(loop)
@@ -139,11 +139,9 @@ async function runQuickJSPlugin(
 
   console.log('shw-quickjs: initializing QuickJS...')
 
-  // Initialize with std modules (std, os, bjson as globals)
-  qjs.initStdModule()
-
-  // Evaluate the boot harness as an ES module
-  qjs.eval(bootHarness, true, '/boot/plugin-quickjs.esm.js')
+  // Initialize QuickJS with --std flag and boot harness path.
+  // This sets up the module loader and evaluates the boot harness as the main script.
+  qjs.init(['qjs', '--std', '/boot/plugin-quickjs.esm.js'])
 
   console.log('shw-quickjs: starting reactor event loop...')
 
