@@ -1,6 +1,6 @@
 # QuickJS Browser Support
 
-This package enables running JS plugins (platform `"js"`) in browser SharedWorkers using QuickJS WASI.
+JS plugins (platform `"js"`) run in browser SharedWorkers using QuickJS WASI.
 
 ## Architecture
 
@@ -73,19 +73,3 @@ WebRuntime -> Plugin (WebRuntime calling plugin):
 - `plugin/host/web/web-quickjs.go` - WebQuickJSHost controller
 - `plugin/host/wazero-quickjs/plugin-quickjs.ts` - Boot harness
 
-## Testing
-
-```bash
-# Run all QuickJS browser tests (11 tests)
-cd bldr
-bun run vitest run --project browser prototypes/quickjs-browser-worker/
-```
-
-Tests include:
-
-- Basic QuickJS WASM execution
-- stdin/stdout/`/dev/out` I/O
-- Async stdin with `os.setReadHandler`
-- Boot harness integration
-- E2E yamux connection verification
-- startInfo passing to plugins
