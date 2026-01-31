@@ -116,6 +116,7 @@ func (this *MockObjectOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *MockWorldOp) EqualVT(that *MockWorldOp) bool {
 	if this == that {
 		return true
@@ -367,6 +368,7 @@ func (x *MockObjectOp) MarshalProtoText() string {
 func (x *MockObjectOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MockWorldOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MockWorldOp {")
@@ -391,6 +393,7 @@ func (x *MockWorldOp) MarshalProtoText() string {
 func (x *MockWorldOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *MockObjectOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -474,6 +477,7 @@ func (m *MockObjectOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *MockWorldOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

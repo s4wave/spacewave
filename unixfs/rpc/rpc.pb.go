@@ -1656,10 +1656,8 @@ func (m *GetProxyCursorResponse) CloneVT() *GetProxyCursorResponse {
 		return (*GetProxyCursorResponse)(nil)
 	}
 	r := new(GetProxyCursorResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.CursorHandleId = m.CursorHandleId
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1818,12 +1816,10 @@ func (m *GetCursorOpsResponse) CloneVT() *GetCursorOpsResponse {
 		return (*GetCursorOpsResponse)(nil)
 	}
 	r := new(GetCursorOpsResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.OpsHandleId = m.OpsHandleId
 	r.Name = m.Name
 	r.NodeType = m.NodeType
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1887,10 +1883,8 @@ func (m *OpsGetPermissionsResponse) CloneVT() *OpsGetPermissionsResponse {
 		return (*OpsGetPermissionsResponse)(nil)
 	}
 	r := new(OpsGetPermissionsResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.FileMode = m.FileMode
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1926,9 +1920,7 @@ func (m *OpsSetPermissionsResponse) CloneVT() *OpsSetPermissionsResponse {
 		return (*OpsSetPermissionsResponse)(nil)
 	}
 	r := new(OpsSetPermissionsResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1960,10 +1952,8 @@ func (m *OpsGetSizeResponse) CloneVT() *OpsGetSizeResponse {
 		return (*OpsGetSizeResponse)(nil)
 	}
 	r := new(OpsGetSizeResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.Size = m.Size
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1995,9 +1985,7 @@ func (m *OpsGetModTimestampResponse) CloneVT() *OpsGetModTimestampResponse {
 		return (*OpsGetModTimestampResponse)(nil)
 	}
 	r := new(OpsGetModTimestampResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if rhs := m.ModTimestamp; rhs != nil {
 		r.ModTimestamp = rhs.CloneVT()
 	}
@@ -2035,9 +2023,7 @@ func (m *OpsSetModTimestampResponse) CloneVT() *OpsSetModTimestampResponse {
 		return (*OpsSetModTimestampResponse)(nil)
 	}
 	r := new(OpsSetModTimestampResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2071,9 +2057,7 @@ func (m *OpsReadAtResponse) CloneVT() *OpsReadAtResponse {
 		return (*OpsReadAtResponse)(nil)
 	}
 	r := new(OpsReadAtResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -2108,10 +2092,8 @@ func (m *OpsGetOptimalWriteSizeResponse) CloneVT() *OpsGetOptimalWriteSizeRespon
 		return (*OpsGetOptimalWriteSizeResponse)(nil)
 	}
 	r := new(OpsGetOptimalWriteSizeResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.OptimalWriteSize = m.OptimalWriteSize
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2150,9 +2132,7 @@ func (m *OpsWriteAtResponse) CloneVT() *OpsWriteAtResponse {
 		return (*OpsWriteAtResponse)(nil)
 	}
 	r := new(OpsWriteAtResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2188,9 +2168,7 @@ func (m *OpsTruncateResponse) CloneVT() *OpsTruncateResponse {
 		return (*OpsTruncateResponse)(nil)
 	}
 	r := new(OpsTruncateResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2226,9 +2204,7 @@ func (m *OpsLookupResponse) CloneVT() *OpsLookupResponse {
 	}
 	r := new(OpsLookupResponse)
 	r.CursorHandleId = m.CursorHandleId
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2345,9 +2321,7 @@ func (m *OpsMknodResponse) CloneVT() *OpsMknodResponse {
 		return (*OpsMknodResponse)(nil)
 	}
 	r := new(OpsMknodResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2366,9 +2340,7 @@ func (m *OpsSymlinkRequest) CloneVT() *OpsSymlinkRequest {
 	r.OpsHandleId = m.OpsHandleId
 	r.CheckExist = m.CheckExist
 	r.Name = m.Name
-	if rhs := m.Symlink; rhs != nil {
-		r.Symlink = rhs.CloneVT()
-	}
+	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -2387,9 +2359,7 @@ func (m *OpsSymlinkResponse) CloneVT() *OpsSymlinkResponse {
 		return (*OpsSymlinkResponse)(nil)
 	}
 	r := new(OpsSymlinkResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2422,12 +2392,8 @@ func (m *OpsReadlinkResponse) CloneVT() *OpsReadlinkResponse {
 		return (*OpsReadlinkResponse)(nil)
 	}
 	r := new(OpsReadlinkResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
-	if rhs := m.Symlink; rhs != nil {
-		r.Symlink = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
+	r.Symlink = m.Symlink.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2464,10 +2430,8 @@ func (m *OpsCopyToResponse) CloneVT() *OpsCopyToResponse {
 		return (*OpsCopyToResponse)(nil)
 	}
 	r := new(OpsCopyToResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.Done = m.Done
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2504,10 +2468,8 @@ func (m *OpsCopyFromResponse) CloneVT() *OpsCopyFromResponse {
 		return (*OpsCopyFromResponse)(nil)
 	}
 	r := new(OpsCopyFromResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.Done = m.Done
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2544,10 +2506,8 @@ func (m *OpsMoveToResponse) CloneVT() *OpsMoveToResponse {
 		return (*OpsMoveToResponse)(nil)
 	}
 	r := new(OpsMoveToResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.Done = m.Done
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2584,10 +2544,8 @@ func (m *OpsMoveFromResponse) CloneVT() *OpsMoveFromResponse {
 		return (*OpsMoveFromResponse)(nil)
 	}
 	r := new(OpsMoveFromResponse)
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	r.Done = m.Done
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2625,9 +2583,7 @@ func (m *OpsRemoveResponse) CloneVT() *OpsRemoveResponse {
 		return (*OpsRemoveResponse)(nil)
 	}
 	r := new(OpsRemoveResponse)
-	if rhs := m.UnixfsError; rhs != nil {
-		r.UnixfsError = rhs.CloneVT()
-	}
+	r.UnixfsError = m.UnixfsError.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2660,6 +2616,7 @@ func (this *GetProxyCursorRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetProxyCursorResponse) EqualVT(that *GetProxyCursorResponse) bool {
 	if this == that {
 		return true
@@ -2682,6 +2639,7 @@ func (this *GetProxyCursorResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSCursorChange) EqualVT(that *FSCursorChange) bool {
 	if this == that {
 		return true
@@ -2710,6 +2668,7 @@ func (this *FSCursorChange) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSCursorDirent) EqualVT(that *FSCursorDirent) bool {
 	if this == that {
 		return true
@@ -2732,6 +2691,7 @@ func (this *FSCursorDirent) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSCursorClientRequest) EqualVT(that *FSCursorClientRequest) bool {
 	if this == that {
 		return true
@@ -2748,6 +2708,7 @@ func (this *FSCursorClientRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSCursorClientResponse) EqualVT(that *FSCursorClientResponse) bool {
 	if this == that {
 		return true
@@ -2776,6 +2737,7 @@ func (this *FSCursorClientResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSCursorClientResponse_Init) EqualVT(thatIface isFSCursorClientResponse_Body) bool {
 	that, ok := thatIface.(*FSCursorClientResponse_Init)
 	if !ok {
@@ -2873,6 +2835,7 @@ func (this *FSClientInit) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetCursorOpsRequest) EqualVT(that *GetCursorOpsRequest) bool {
 	if this == that {
 		return true
@@ -2892,6 +2855,7 @@ func (this *GetCursorOpsRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetCursorOpsResponse) EqualVT(that *GetCursorOpsResponse) bool {
 	if this == that {
 		return true
@@ -2920,6 +2884,7 @@ func (this *GetCursorOpsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReleaseFSCursorRequest) EqualVT(that *ReleaseFSCursorRequest) bool {
 	if this == that {
 		return true
@@ -2942,6 +2907,7 @@ func (this *ReleaseFSCursorRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReleaseFSCursorResponse) EqualVT(that *ReleaseFSCursorResponse) bool {
 	if this == that {
 		return true
@@ -2958,6 +2924,7 @@ func (this *ReleaseFSCursorResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetPermissionsRequest) EqualVT(that *OpsGetPermissionsRequest) bool {
 	if this == that {
 		return true
@@ -2977,6 +2944,7 @@ func (this *OpsGetPermissionsRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetPermissionsResponse) EqualVT(that *OpsGetPermissionsResponse) bool {
 	if this == that {
 		return true
@@ -2999,6 +2967,7 @@ func (this *OpsGetPermissionsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSetPermissionsRequest) EqualVT(that *OpsSetPermissionsRequest) bool {
 	if this == that {
 		return true
@@ -3024,6 +2993,7 @@ func (this *OpsSetPermissionsRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSetPermissionsResponse) EqualVT(that *OpsSetPermissionsResponse) bool {
 	if this == that {
 		return true
@@ -3043,6 +3013,7 @@ func (this *OpsSetPermissionsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetSizeRequest) EqualVT(that *OpsGetSizeRequest) bool {
 	if this == that {
 		return true
@@ -3062,6 +3033,7 @@ func (this *OpsGetSizeRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetSizeResponse) EqualVT(that *OpsGetSizeResponse) bool {
 	if this == that {
 		return true
@@ -3084,6 +3056,7 @@ func (this *OpsGetSizeResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetModTimestampRequest) EqualVT(that *OpsGetModTimestampRequest) bool {
 	if this == that {
 		return true
@@ -3103,6 +3076,7 @@ func (this *OpsGetModTimestampRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetModTimestampResponse) EqualVT(that *OpsGetModTimestampResponse) bool {
 	if this == that {
 		return true
@@ -3125,6 +3099,7 @@ func (this *OpsGetModTimestampResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSetModTimestampRequest) EqualVT(that *OpsSetModTimestampRequest) bool {
 	if this == that {
 		return true
@@ -3147,6 +3122,7 @@ func (this *OpsSetModTimestampRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSetModTimestampResponse) EqualVT(that *OpsSetModTimestampResponse) bool {
 	if this == that {
 		return true
@@ -3166,6 +3142,7 @@ func (this *OpsSetModTimestampResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReadAtRequest) EqualVT(that *OpsReadAtRequest) bool {
 	if this == that {
 		return true
@@ -3191,6 +3168,7 @@ func (this *OpsReadAtRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReadAtResponse) EqualVT(that *OpsReadAtResponse) bool {
 	if this == that {
 		return true
@@ -3213,6 +3191,7 @@ func (this *OpsReadAtResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetOptimalWriteSizeRequest) EqualVT(that *OpsGetOptimalWriteSizeRequest) bool {
 	if this == that {
 		return true
@@ -3232,6 +3211,7 @@ func (this *OpsGetOptimalWriteSizeRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsGetOptimalWriteSizeResponse) EqualVT(that *OpsGetOptimalWriteSizeResponse) bool {
 	if this == that {
 		return true
@@ -3254,6 +3234,7 @@ func (this *OpsGetOptimalWriteSizeResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsWriteAtRequest) EqualVT(that *OpsWriteAtRequest) bool {
 	if this == that {
 		return true
@@ -3282,6 +3263,7 @@ func (this *OpsWriteAtRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsWriteAtResponse) EqualVT(that *OpsWriteAtResponse) bool {
 	if this == that {
 		return true
@@ -3301,6 +3283,7 @@ func (this *OpsWriteAtResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsTruncateRequest) EqualVT(that *OpsTruncateRequest) bool {
 	if this == that {
 		return true
@@ -3326,6 +3309,7 @@ func (this *OpsTruncateRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsTruncateResponse) EqualVT(that *OpsTruncateResponse) bool {
 	if this == that {
 		return true
@@ -3345,6 +3329,7 @@ func (this *OpsTruncateResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsLookupRequest) EqualVT(that *OpsLookupRequest) bool {
 	if this == that {
 		return true
@@ -3373,6 +3358,7 @@ func (this *OpsLookupRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsLookupResponse) EqualVT(that *OpsLookupResponse) bool {
 	if this == that {
 		return true
@@ -3395,6 +3381,7 @@ func (this *OpsLookupResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReaddirAllRequest) EqualVT(that *OpsReaddirAllRequest) bool {
 	if this == that {
 		return true
@@ -3417,6 +3404,7 @@ func (this *OpsReaddirAllRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReaddirAllResponse) EqualVT(that *OpsReaddirAllResponse) bool {
 	if this == that {
 		return true
@@ -3445,6 +3433,7 @@ func (this *OpsReaddirAllResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReaddirAllResponse_UnixfsError) EqualVT(thatIface isOpsReaddirAllResponse_Body) bool {
 	that, ok := thatIface.(*OpsReaddirAllResponse_UnixfsError)
 	if !ok {
@@ -3552,6 +3541,7 @@ func (this *OpsMknodRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsMknodResponse) EqualVT(that *OpsMknodResponse) bool {
 	if this == that {
 		return true
@@ -3571,6 +3561,7 @@ func (this *OpsMknodResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSymlinkRequest) EqualVT(that *OpsSymlinkRequest) bool {
 	if this == that {
 		return true
@@ -3602,6 +3593,7 @@ func (this *OpsSymlinkRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsSymlinkResponse) EqualVT(that *OpsSymlinkResponse) bool {
 	if this == that {
 		return true
@@ -3621,6 +3613,7 @@ func (this *OpsSymlinkResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReadlinkRequest) EqualVT(that *OpsReadlinkRequest) bool {
 	if this == that {
 		return true
@@ -3643,6 +3636,7 @@ func (this *OpsReadlinkRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsReadlinkResponse) EqualVT(that *OpsReadlinkResponse) bool {
 	if this == that {
 		return true
@@ -3665,6 +3659,7 @@ func (this *OpsReadlinkResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsCopyToRequest) EqualVT(that *OpsCopyToRequest) bool {
 	if this == that {
 		return true
@@ -3693,6 +3688,7 @@ func (this *OpsCopyToRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsCopyToResponse) EqualVT(that *OpsCopyToResponse) bool {
 	if this == that {
 		return true
@@ -3715,6 +3711,7 @@ func (this *OpsCopyToResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsCopyFromRequest) EqualVT(that *OpsCopyFromRequest) bool {
 	if this == that {
 		return true
@@ -3743,6 +3740,7 @@ func (this *OpsCopyFromRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsCopyFromResponse) EqualVT(that *OpsCopyFromResponse) bool {
 	if this == that {
 		return true
@@ -3765,6 +3763,7 @@ func (this *OpsCopyFromResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsMoveToRequest) EqualVT(that *OpsMoveToRequest) bool {
 	if this == that {
 		return true
@@ -3793,6 +3792,7 @@ func (this *OpsMoveToRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsMoveToResponse) EqualVT(that *OpsMoveToResponse) bool {
 	if this == that {
 		return true
@@ -3815,6 +3815,7 @@ func (this *OpsMoveToResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsMoveFromRequest) EqualVT(that *OpsMoveFromRequest) bool {
 	if this == that {
 		return true
@@ -3843,6 +3844,7 @@ func (this *OpsMoveFromRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsMoveFromResponse) EqualVT(that *OpsMoveFromResponse) bool {
 	if this == that {
 		return true
@@ -3865,6 +3867,7 @@ func (this *OpsMoveFromResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsRemoveRequest) EqualVT(that *OpsRemoveRequest) bool {
 	if this == that {
 		return true
@@ -3896,6 +3899,7 @@ func (this *OpsRemoveRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *OpsRemoveResponse) EqualVT(that *OpsRemoveResponse) bool {
 	if this == that {
 		return true
@@ -6932,6 +6936,7 @@ func (m *FSCursorClientResponse_Init) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FSCursorClientResponse_CursorChange) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -6955,6 +6960,7 @@ func (m *FSCursorClientResponse_CursorChange) MarshalToSizedBufferVT(dAtA []byte
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FSCursorClientResponse_UnixfsError) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -6978,6 +6984,7 @@ func (m *FSCursorClientResponse_UnixfsError) MarshalToSizedBufferVT(dAtA []byte)
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FSClientInit) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8239,6 +8246,7 @@ func (m *OpsReaddirAllResponse_UnixfsError) MarshalToSizedBufferVT(dAtA []byte) 
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *OpsReaddirAllResponse_Done) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -8256,6 +8264,7 @@ func (m *OpsReaddirAllResponse_Done) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	dAtA[i] = 0x10
 	return len(dAtA) - i, nil
 }
+
 func (m *OpsReaddirAllResponse_Dirent) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -8279,6 +8288,7 @@ func (m *OpsReaddirAllResponse_Dirent) MarshalToSizedBufferVT(dAtA []byte) (int,
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *OpsMknodRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9276,6 +9286,7 @@ func (m *FSCursorClientResponse_Init) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FSCursorClientResponse_CursorChange) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9290,6 +9301,7 @@ func (m *FSCursorClientResponse_CursorChange) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FSCursorClientResponse_UnixfsError) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9304,6 +9316,7 @@ func (m *FSCursorClientResponse_UnixfsError) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FSClientInit) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9761,6 +9774,7 @@ func (m *OpsReaddirAllResponse_UnixfsError) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *OpsReaddirAllResponse_Done) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9770,6 +9784,7 @@ func (m *OpsReaddirAllResponse_Done) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *OpsReaddirAllResponse_Dirent) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -9784,6 +9799,7 @@ func (m *OpsReaddirAllResponse_Dirent) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *OpsMknodRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10132,6 +10148,7 @@ func (x *GetProxyCursorRequest) MarshalProtoText() string {
 func (x *GetProxyCursorRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetProxyCursorResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetProxyCursorResponse {")
@@ -10156,6 +10173,7 @@ func (x *GetProxyCursorResponse) MarshalProtoText() string {
 func (x *GetProxyCursorResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSCursorChange) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSCursorChange {")
@@ -10194,6 +10212,7 @@ func (x *FSCursorChange) MarshalProtoText() string {
 func (x *FSCursorChange) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSCursorDirent) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSCursorDirent {")
@@ -10220,6 +10239,7 @@ func (x *FSCursorDirent) MarshalProtoText() string {
 func (x *FSCursorDirent) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSCursorClientRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSCursorClientRequest {")
@@ -10230,6 +10250,7 @@ func (x *FSCursorClientRequest) MarshalProtoText() string {
 func (x *FSCursorClientRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSCursorClientResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSCursorClientResponse {")
@@ -10266,6 +10287,7 @@ func (x *FSCursorClientResponse) MarshalProtoText() string {
 func (x *FSCursorClientResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSClientInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSClientInit {")
@@ -10290,6 +10312,7 @@ func (x *FSClientInit) MarshalProtoText() string {
 func (x *FSClientInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetCursorOpsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetCursorOpsRequest {")
@@ -10307,6 +10330,7 @@ func (x *GetCursorOpsRequest) MarshalProtoText() string {
 func (x *GetCursorOpsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetCursorOpsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetCursorOpsResponse {")
@@ -10347,6 +10371,7 @@ func (x *GetCursorOpsResponse) MarshalProtoText() string {
 func (x *GetCursorOpsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReleaseFSCursorRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ReleaseFSCursorRequest {")
@@ -10371,6 +10396,7 @@ func (x *ReleaseFSCursorRequest) MarshalProtoText() string {
 func (x *ReleaseFSCursorRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReleaseFSCursorResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ReleaseFSCursorResponse {")
@@ -10381,6 +10407,7 @@ func (x *ReleaseFSCursorResponse) MarshalProtoText() string {
 func (x *ReleaseFSCursorResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetPermissionsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetPermissionsRequest {")
@@ -10398,6 +10425,7 @@ func (x *OpsGetPermissionsRequest) MarshalProtoText() string {
 func (x *OpsGetPermissionsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetPermissionsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetPermissionsResponse {")
@@ -10422,6 +10450,7 @@ func (x *OpsGetPermissionsResponse) MarshalProtoText() string {
 func (x *OpsGetPermissionsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSetPermissionsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSetPermissionsRequest {")
@@ -10453,6 +10482,7 @@ func (x *OpsSetPermissionsRequest) MarshalProtoText() string {
 func (x *OpsSetPermissionsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSetPermissionsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSetPermissionsResponse {")
@@ -10470,6 +10500,7 @@ func (x *OpsSetPermissionsResponse) MarshalProtoText() string {
 func (x *OpsSetPermissionsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetSizeRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetSizeRequest {")
@@ -10487,6 +10518,7 @@ func (x *OpsGetSizeRequest) MarshalProtoText() string {
 func (x *OpsGetSizeRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetSizeResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetSizeResponse {")
@@ -10511,6 +10543,7 @@ func (x *OpsGetSizeResponse) MarshalProtoText() string {
 func (x *OpsGetSizeResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetModTimestampRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetModTimestampRequest {")
@@ -10528,6 +10561,7 @@ func (x *OpsGetModTimestampRequest) MarshalProtoText() string {
 func (x *OpsGetModTimestampRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetModTimestampResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetModTimestampResponse {")
@@ -10552,6 +10586,7 @@ func (x *OpsGetModTimestampResponse) MarshalProtoText() string {
 func (x *OpsGetModTimestampResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSetModTimestampRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSetModTimestampRequest {")
@@ -10576,6 +10611,7 @@ func (x *OpsSetModTimestampRequest) MarshalProtoText() string {
 func (x *OpsSetModTimestampRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSetModTimestampResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSetModTimestampResponse {")
@@ -10593,6 +10629,7 @@ func (x *OpsSetModTimestampResponse) MarshalProtoText() string {
 func (x *OpsSetModTimestampResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReadAtRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReadAtRequest {")
@@ -10624,6 +10661,7 @@ func (x *OpsReadAtRequest) MarshalProtoText() string {
 func (x *OpsReadAtRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReadAtResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReadAtResponse {")
@@ -10650,6 +10688,7 @@ func (x *OpsReadAtResponse) MarshalProtoText() string {
 func (x *OpsReadAtResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetOptimalWriteSizeRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetOptimalWriteSizeRequest {")
@@ -10667,6 +10706,7 @@ func (x *OpsGetOptimalWriteSizeRequest) MarshalProtoText() string {
 func (x *OpsGetOptimalWriteSizeRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsGetOptimalWriteSizeResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsGetOptimalWriteSizeResponse {")
@@ -10691,6 +10731,7 @@ func (x *OpsGetOptimalWriteSizeResponse) MarshalProtoText() string {
 func (x *OpsGetOptimalWriteSizeResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsWriteAtRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsWriteAtRequest {")
@@ -10731,6 +10772,7 @@ func (x *OpsWriteAtRequest) MarshalProtoText() string {
 func (x *OpsWriteAtRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsWriteAtResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsWriteAtResponse {")
@@ -10748,6 +10790,7 @@ func (x *OpsWriteAtResponse) MarshalProtoText() string {
 func (x *OpsWriteAtResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsTruncateRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsTruncateRequest {")
@@ -10779,6 +10822,7 @@ func (x *OpsTruncateRequest) MarshalProtoText() string {
 func (x *OpsTruncateRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsTruncateResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsTruncateResponse {")
@@ -10796,6 +10840,7 @@ func (x *OpsTruncateResponse) MarshalProtoText() string {
 func (x *OpsTruncateResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsLookupRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsLookupRequest {")
@@ -10834,6 +10879,7 @@ func (x *OpsLookupRequest) MarshalProtoText() string {
 func (x *OpsLookupRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsLookupResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsLookupResponse {")
@@ -10858,6 +10904,7 @@ func (x *OpsLookupResponse) MarshalProtoText() string {
 func (x *OpsLookupResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReaddirAllRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReaddirAllRequest {")
@@ -10882,6 +10929,7 @@ func (x *OpsReaddirAllRequest) MarshalProtoText() string {
 func (x *OpsReaddirAllRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReaddirAllResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReaddirAllResponse {")
@@ -10918,6 +10966,7 @@ func (x *OpsReaddirAllResponse) MarshalProtoText() string {
 func (x *OpsReaddirAllResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMknodRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMknodRequest {")
@@ -10978,6 +11027,7 @@ func (x *OpsMknodRequest) MarshalProtoText() string {
 func (x *OpsMknodRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMknodResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMknodResponse {")
@@ -10995,6 +11045,7 @@ func (x *OpsMknodResponse) MarshalProtoText() string {
 func (x *OpsMknodResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSymlinkRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSymlinkRequest {")
@@ -11040,6 +11091,7 @@ func (x *OpsSymlinkRequest) MarshalProtoText() string {
 func (x *OpsSymlinkRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsSymlinkResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsSymlinkResponse {")
@@ -11057,6 +11109,7 @@ func (x *OpsSymlinkResponse) MarshalProtoText() string {
 func (x *OpsSymlinkResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReadlinkRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReadlinkRequest {")
@@ -11081,6 +11134,7 @@ func (x *OpsReadlinkRequest) MarshalProtoText() string {
 func (x *OpsReadlinkRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsReadlinkResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsReadlinkResponse {")
@@ -11105,6 +11159,7 @@ func (x *OpsReadlinkResponse) MarshalProtoText() string {
 func (x *OpsReadlinkResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsCopyToRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsCopyToRequest {")
@@ -11143,6 +11198,7 @@ func (x *OpsCopyToRequest) MarshalProtoText() string {
 func (x *OpsCopyToRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsCopyToResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsCopyToResponse {")
@@ -11167,6 +11223,7 @@ func (x *OpsCopyToResponse) MarshalProtoText() string {
 func (x *OpsCopyToResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsCopyFromRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsCopyFromRequest {")
@@ -11205,6 +11262,7 @@ func (x *OpsCopyFromRequest) MarshalProtoText() string {
 func (x *OpsCopyFromRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsCopyFromResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsCopyFromResponse {")
@@ -11229,6 +11287,7 @@ func (x *OpsCopyFromResponse) MarshalProtoText() string {
 func (x *OpsCopyFromResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMoveToRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMoveToRequest {")
@@ -11267,6 +11326,7 @@ func (x *OpsMoveToRequest) MarshalProtoText() string {
 func (x *OpsMoveToRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMoveToResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMoveToResponse {")
@@ -11291,6 +11351,7 @@ func (x *OpsMoveToResponse) MarshalProtoText() string {
 func (x *OpsMoveToResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMoveFromRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMoveFromRequest {")
@@ -11329,6 +11390,7 @@ func (x *OpsMoveFromRequest) MarshalProtoText() string {
 func (x *OpsMoveFromRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsMoveFromResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsMoveFromResponse {")
@@ -11353,6 +11415,7 @@ func (x *OpsMoveFromResponse) MarshalProtoText() string {
 func (x *OpsMoveFromResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsRemoveRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsRemoveRequest {")
@@ -11390,6 +11453,7 @@ func (x *OpsRemoveRequest) MarshalProtoText() string {
 func (x *OpsRemoveRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *OpsRemoveResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpsRemoveResponse {")
@@ -11407,6 +11471,7 @@ func (x *OpsRemoveResponse) MarshalProtoText() string {
 func (x *OpsRemoveResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *GetProxyCursorRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -11496,6 +11561,7 @@ func (m *GetProxyCursorRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetProxyCursorResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -11602,6 +11668,7 @@ func (m *GetProxyCursorResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSCursorChange) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -11730,6 +11797,7 @@ func (m *FSCursorChange) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSCursorDirent) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -11832,6 +11900,7 @@ func (m *FSCursorDirent) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSCursorClientRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -11883,6 +11952,7 @@ func (m *FSCursorClientRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSCursorClientResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12057,6 +12127,7 @@ func (m *FSCursorClientResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSClientInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12146,6 +12217,7 @@ func (m *FSClientInit) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetCursorOpsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12216,6 +12288,7 @@ func (m *GetCursorOpsRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetCursorOpsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12373,6 +12446,7 @@ func (m *GetCursorOpsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReleaseFSCursorRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12462,6 +12536,7 @@ func (m *ReleaseFSCursorRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReleaseFSCursorResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12513,6 +12588,7 @@ func (m *ReleaseFSCursorResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetPermissionsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12583,6 +12659,7 @@ func (m *OpsGetPermissionsRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetPermissionsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12689,6 +12766,7 @@ func (m *OpsGetPermissionsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSetPermissionsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12814,6 +12892,7 @@ func (m *OpsSetPermissionsRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSetPermissionsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12901,6 +12980,7 @@ func (m *OpsSetPermissionsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetSizeRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -12971,6 +13051,7 @@ func (m *OpsGetSizeRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetSizeResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13077,6 +13158,7 @@ func (m *OpsGetSizeResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetModTimestampRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13147,6 +13229,7 @@ func (m *OpsGetModTimestampRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetModTimestampResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13270,6 +13353,7 @@ func (m *OpsGetModTimestampResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSetModTimestampRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13376,6 +13460,7 @@ func (m *OpsSetModTimestampRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSetModTimestampResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13463,6 +13548,7 @@ func (m *OpsSetModTimestampResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReadAtRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13571,6 +13657,7 @@ func (m *OpsReadAtRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReadAtResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13692,6 +13779,7 @@ func (m *OpsReadAtResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetOptimalWriteSizeRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13762,6 +13850,7 @@ func (m *OpsGetOptimalWriteSizeRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsGetOptimalWriteSizeResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13868,6 +13957,7 @@ func (m *OpsGetOptimalWriteSizeResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsWriteAtRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14027,6 +14117,7 @@ func (m *OpsWriteAtRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsWriteAtResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14114,6 +14205,7 @@ func (m *OpsWriteAtResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsTruncateRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14239,6 +14331,7 @@ func (m *OpsTruncateRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsTruncateResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14326,6 +14419,7 @@ func (m *OpsTruncateResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsLookupRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14466,6 +14560,7 @@ func (m *OpsLookupRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsLookupResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14572,6 +14667,7 @@ func (m *OpsLookupResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReaddirAllRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14661,6 +14757,7 @@ func (m *OpsReaddirAllRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReaddirAllResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14815,6 +14912,7 @@ func (m *OpsReaddirAllResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMknodRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15011,6 +15109,7 @@ func (m *OpsMknodRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMknodResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15098,6 +15197,7 @@ func (m *OpsMknodResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSymlinkRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15292,6 +15392,7 @@ func (m *OpsSymlinkRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsSymlinkResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15379,6 +15480,7 @@ func (m *OpsSymlinkResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReadlinkRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15481,6 +15583,7 @@ func (m *OpsReadlinkRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsReadlinkResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15604,6 +15707,7 @@ func (m *OpsReadlinkResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsCopyToRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15761,6 +15865,7 @@ func (m *OpsCopyToRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsCopyToResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -15868,6 +15973,7 @@ func (m *OpsCopyToResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsCopyFromRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16025,6 +16131,7 @@ func (m *OpsCopyFromRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsCopyFromResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16132,6 +16239,7 @@ func (m *OpsCopyFromResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMoveToRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16289,6 +16397,7 @@ func (m *OpsMoveToRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMoveToResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16396,6 +16505,7 @@ func (m *OpsMoveToResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMoveFromRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16553,6 +16663,7 @@ func (m *OpsMoveFromRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsMoveFromResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16660,6 +16771,7 @@ func (m *OpsMoveFromResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsRemoveRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -16798,6 +16910,7 @@ func (m *OpsRemoveRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *OpsRemoveResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

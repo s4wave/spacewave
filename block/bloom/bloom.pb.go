@@ -65,9 +65,7 @@ func (m *BloomFilter) CloneVT() *BloomFilter {
 	r := new(BloomFilter)
 	r.K = m.K
 	r.M = m.M
-	if rhs := m.BitSet; rhs != nil {
-		r.BitSet = rhs.CloneVT()
-	}
+	r.BitSet = m.BitSet.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -270,6 +268,7 @@ func (x *BloomFilter) MarshalProtoText() string {
 func (x *BloomFilter) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *BloomFilter) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

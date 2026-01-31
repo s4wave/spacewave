@@ -237,11 +237,9 @@ func (m *PutBlockRequest) CloneVT() *PutBlockRequest {
 		return (*PutBlockRequest)(nil)
 	}
 	r := new(PutBlockRequest)
+	r.PutOpts = m.PutOpts.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -258,11 +256,9 @@ func (m *PutBlockResponse) CloneVT() *PutBlockResponse {
 		return (*PutBlockResponse)(nil)
 	}
 	r := new(PutBlockResponse)
+	r.Ref = m.Ref.CloneVT()
 	r.Existed = m.Existed
 	r.Error = m.Error
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -278,9 +274,7 @@ func (m *GetBlockRequest) CloneVT() *GetBlockRequest {
 		return (*GetBlockRequest)(nil)
 	}
 	r := new(GetBlockRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -316,9 +310,7 @@ func (m *GetBlockExistsRequest) CloneVT() *GetBlockExistsRequest {
 		return (*GetBlockExistsRequest)(nil)
 	}
 	r := new(GetBlockExistsRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -351,9 +343,7 @@ func (m *RmBlockRequest) CloneVT() *RmBlockRequest {
 		return (*RmBlockRequest)(nil)
 	}
 	r := new(RmBlockRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -402,6 +392,7 @@ func (this *PutBlockRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PutBlockResponse) EqualVT(that *PutBlockResponse) bool {
 	if this == that {
 		return true
@@ -427,6 +418,7 @@ func (this *PutBlockResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetBlockRequest) EqualVT(that *GetBlockRequest) bool {
 	if this == that {
 		return true
@@ -446,6 +438,7 @@ func (this *GetBlockRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetBlockResponse) EqualVT(that *GetBlockResponse) bool {
 	if this == that {
 		return true
@@ -471,6 +464,7 @@ func (this *GetBlockResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetBlockExistsRequest) EqualVT(that *GetBlockExistsRequest) bool {
 	if this == that {
 		return true
@@ -490,6 +484,7 @@ func (this *GetBlockExistsRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetBlockExistsResponse) EqualVT(that *GetBlockExistsResponse) bool {
 	if this == that {
 		return true
@@ -512,6 +507,7 @@ func (this *GetBlockExistsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RmBlockRequest) EqualVT(that *RmBlockRequest) bool {
 	if this == that {
 		return true
@@ -531,6 +527,7 @@ func (this *RmBlockRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RmBlockResponse) EqualVT(that *RmBlockResponse) bool {
 	if this == that {
 		return true
@@ -1500,6 +1497,7 @@ func (x *PutBlockRequest) MarshalProtoText() string {
 func (x *PutBlockRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PutBlockResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PutBlockResponse {")
@@ -1531,6 +1529,7 @@ func (x *PutBlockResponse) MarshalProtoText() string {
 func (x *PutBlockResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetBlockRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetBlockRequest {")
@@ -1548,6 +1547,7 @@ func (x *GetBlockRequest) MarshalProtoText() string {
 func (x *GetBlockRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetBlockResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetBlockResponse {")
@@ -1581,6 +1581,7 @@ func (x *GetBlockResponse) MarshalProtoText() string {
 func (x *GetBlockResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetBlockExistsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetBlockExistsRequest {")
@@ -1598,6 +1599,7 @@ func (x *GetBlockExistsRequest) MarshalProtoText() string {
 func (x *GetBlockExistsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetBlockExistsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetBlockExistsResponse {")
@@ -1622,6 +1624,7 @@ func (x *GetBlockExistsResponse) MarshalProtoText() string {
 func (x *GetBlockExistsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RmBlockRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RmBlockRequest {")
@@ -1639,6 +1642,7 @@ func (x *RmBlockRequest) MarshalProtoText() string {
 func (x *RmBlockRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RmBlockResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RmBlockResponse {")
@@ -1656,6 +1660,7 @@ func (x *RmBlockResponse) MarshalProtoText() string {
 func (x *RmBlockResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *PutBlockRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1777,6 +1782,7 @@ func (m *PutBlockRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PutBlockResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1916,6 +1922,7 @@ func (m *PutBlockResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetBlockRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2003,6 +2010,7 @@ func (m *GetBlockRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetBlockResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2140,6 +2148,7 @@ func (m *GetBlockResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetBlockExistsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2227,6 +2236,7 @@ func (m *GetBlockExistsRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetBlockExistsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2330,6 +2340,7 @@ func (m *GetBlockExistsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RmBlockRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2417,6 +2428,7 @@ func (m *RmBlockRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RmBlockResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

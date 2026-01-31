@@ -294,11 +294,9 @@ func (m *SyncMessage) CloneVT() *SyncMessage {
 	}
 	r := new(SyncMessage)
 	r.MessageType = m.MessageType
+	r.Ref = m.Ref.CloneVT()
 	r.Complete = m.Complete
 	r.BlockSize = m.BlockSize
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if rhs := m.Chunk; rhs != nil {
 		r.Chunk = slices.Clone(rhs)
 	}
@@ -343,6 +341,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PubSubMessage) EqualVT(that *PubSubMessage) bool {
 	if this == that {
 		return true
@@ -413,6 +412,7 @@ func (this *PubSubMessage) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *SyncMessage) EqualVT(that *SyncMessage) bool {
 	if this == that {
 		return true
@@ -1078,6 +1078,7 @@ func (m *SyncMessage) SizeVT() (n int) {
 func (x SyncMessageType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -1123,6 +1124,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PubSubMessage) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PubSubMessage {")
@@ -1179,6 +1181,7 @@ func (x *PubSubMessage) MarshalProtoText() string {
 func (x *PubSubMessage) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SyncMessage) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SyncMessage {")
@@ -1228,6 +1231,7 @@ func (x *SyncMessage) MarshalProtoText() string {
 func (x *SyncMessage) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1430,6 +1434,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1603,6 +1608,7 @@ func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *SyncMessage) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

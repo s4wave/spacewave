@@ -301,6 +301,7 @@ func (x *Quad) MarshalProtoText() string {
 func (x *Quad) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Quad) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

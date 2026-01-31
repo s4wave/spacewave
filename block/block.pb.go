@@ -218,6 +218,7 @@ func (this *BlockRef) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PutOpts) EqualVT(that *PutOpts) bool {
 	if this == that {
 		return true
@@ -460,6 +461,7 @@ func (m *PutOpts) SizeVT() (n int) {
 func (x OverlayMode) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *BlockRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BlockRef {")
@@ -477,6 +479,7 @@ func (x *BlockRef) MarshalProtoText() string {
 func (x *BlockRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PutOpts) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PutOpts {")
@@ -503,6 +506,7 @@ func (x *PutOpts) MarshalProtoText() string {
 func (x *PutOpts) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *BlockRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -590,6 +594,7 @@ func (m *BlockRef) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PutOpts) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

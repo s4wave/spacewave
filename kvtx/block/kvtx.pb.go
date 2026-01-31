@@ -89,9 +89,7 @@ func (m *KeyValueStore) CloneVT() *KeyValueStore {
 	}
 	r := new(KeyValueStore)
 	r.ImplType = m.ImplType
-	if rhs := m.IavlRoot; rhs != nil {
-		r.IavlRoot = rhs.CloneVT()
-	}
+	r.IavlRoot = m.IavlRoot.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -287,6 +285,7 @@ func (m *KeyValueStore) SizeVT() (n int) {
 func (x KVImplType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *KeyValueStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KeyValueStore {")
@@ -313,6 +312,7 @@ func (x *KeyValueStore) MarshalProtoText() string {
 func (x *KeyValueStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *KeyValueStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

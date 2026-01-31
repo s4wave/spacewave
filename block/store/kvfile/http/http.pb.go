@@ -150,15 +150,13 @@ func (m *Config) CloneVT() *Config {
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
 	r.DisableCache = m.DisableCache
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.MinRequestSize = m.MinRequestSize
 	if rhs := m.Headers; rhs != nil {
 		r.Headers = maps.Clone(rhs)
 	}
 	if rhs := m.BucketIds; rhs != nil {
 		r.BucketIds = slices.Clone(rhs)
-	}
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -599,6 +597,7 @@ func (x *Config_HeadersEntry) MarshalProtoText() string {
 func (x *Config_HeadersEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -685,6 +684,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

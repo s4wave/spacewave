@@ -331,15 +331,13 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Id = m.Id
 	r.Rev = m.Rev
+	r.PutOpts = m.PutOpts.CloneVT()
 	r.Lookup = m.Lookup.CloneVT()
 	if rhs := m.Reconcilers; rhs != nil {
 		r.Reconcilers = make([]*ReconcilerConfig, len(rhs))
 		for k, v := range rhs {
 			r.Reconcilers[k] = v.CloneVT()
 		}
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -435,16 +433,10 @@ func (m *ObjectRef) CloneVT() *ObjectRef {
 		return (*ObjectRef)(nil)
 	}
 	r := new(ObjectRef)
+	r.RootRef = m.RootRef.CloneVT()
 	r.BucketId = m.BucketId
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
-	if rhs := m.TransformConfRef; rhs != nil {
-		r.TransformConfRef = rhs.CloneVT()
-	}
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConfRef = m.TransformConfRef.CloneVT()
+	r.TransformConf = m.TransformConf.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -517,6 +509,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BucketInfo) EqualVT(that *BucketInfo) bool {
 	if this == that {
 		return true
@@ -536,6 +529,7 @@ func (this *BucketInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReconcilerConfig) EqualVT(that *ReconcilerConfig) bool {
 	if this == that {
 		return true
@@ -561,6 +555,7 @@ func (this *ReconcilerConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *LookupConfig) EqualVT(that *LookupConfig) bool {
 	if this == that {
 		return true
@@ -583,6 +578,7 @@ func (this *LookupConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ApplyBucketConfigResult) EqualVT(that *ApplyBucketConfigResult) bool {
 	if this == that {
 		return true
@@ -620,6 +616,7 @@ func (this *ApplyBucketConfigResult) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ObjectRef) EqualVT(that *ObjectRef) bool {
 	if this == that {
 		return true
@@ -648,6 +645,7 @@ func (this *ObjectRef) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BucketOpArgs) EqualVT(that *BucketOpArgs) bool {
 	if this == that {
 		return true
@@ -1747,6 +1745,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BucketInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BucketInfo {")
@@ -1764,6 +1763,7 @@ func (x *BucketInfo) MarshalProtoText() string {
 func (x *BucketInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReconcilerConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ReconcilerConfig {")
@@ -1795,6 +1795,7 @@ func (x *ReconcilerConfig) MarshalProtoText() string {
 func (x *ReconcilerConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *LookupConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LookupConfig {")
@@ -1819,6 +1820,7 @@ func (x *LookupConfig) MarshalProtoText() string {
 func (x *LookupConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ApplyBucketConfigResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ApplyBucketConfigResult {")
@@ -1878,6 +1880,7 @@ func (x *ApplyBucketConfigResult) MarshalProtoText() string {
 func (x *ApplyBucketConfigResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ObjectRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ObjectRef {")
@@ -1916,6 +1919,7 @@ func (x *ObjectRef) MarshalProtoText() string {
 func (x *ObjectRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BucketOpArgs) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BucketOpArgs {")
@@ -1940,6 +1944,7 @@ func (x *BucketOpArgs) MarshalProtoText() string {
 func (x *BucketOpArgs) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2148,6 +2153,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BucketInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2235,6 +2241,7 @@ func (m *BucketInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReconcilerConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2374,6 +2381,7 @@ func (m *ReconcilerConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *LookupConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2481,6 +2489,7 @@ func (m *LookupConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ApplyBucketConfigResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2756,6 +2765,7 @@ func (m *ApplyBucketConfigResult) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ObjectRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2947,6 +2957,7 @@ func (m *ObjectRef) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BucketOpArgs) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

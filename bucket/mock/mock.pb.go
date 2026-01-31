@@ -40,9 +40,7 @@ func (m *Root) CloneVT() *Root {
 		return (*Root)(nil)
 	}
 	r := new(Root)
-	if rhs := m.ExamplePtr; rhs != nil {
-		r.ExamplePtr = rhs.CloneVT()
-	}
+	r.ExamplePtr = m.ExamplePtr.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -193,6 +191,7 @@ func (x *Root) MarshalProtoText() string {
 func (x *Root) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Root) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -1429,6 +1429,7 @@ func (this *KvtxTransactionRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxTransactionRequest_Init) EqualVT(thatIface isKvtxTransactionRequest_Body) bool {
 	that, ok := thatIface.(*KvtxTransactionRequest_Init)
 	if !ok {
@@ -1507,6 +1508,7 @@ func (this *KvtxTransactionInit) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxTransactionResponse) EqualVT(that *KvtxTransactionResponse) bool {
 	if this == that {
 		return true
@@ -1535,6 +1537,7 @@ func (this *KvtxTransactionResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxTransactionResponse_Ack) EqualVT(thatIface isKvtxTransactionResponse_Body) bool {
 	that, ok := thatIface.(*KvtxTransactionResponse_Ack)
 	if !ok {
@@ -1607,6 +1610,7 @@ func (this *KvtxTransactionAck) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxTransactionComplete) EqualVT(that *KvtxTransactionComplete) bool {
 	if this == that {
 		return true
@@ -1632,6 +1636,7 @@ func (this *KvtxTransactionComplete) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KeyCountRequest) EqualVT(that *KeyCountRequest) bool {
 	if this == that {
 		return true
@@ -1648,6 +1653,7 @@ func (this *KeyCountRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KeyCountResponse) EqualVT(that *KeyCountResponse) bool {
 	if this == that {
 		return true
@@ -1667,6 +1673,7 @@ func (this *KeyCountResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxKeyRequest) EqualVT(that *KvtxKeyRequest) bool {
 	if this == that {
 		return true
@@ -1686,6 +1693,7 @@ func (this *KvtxKeyRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxKeyDataResponse) EqualVT(that *KvtxKeyDataResponse) bool {
 	if this == that {
 		return true
@@ -1711,6 +1719,7 @@ func (this *KvtxKeyDataResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxKeyExistsResponse) EqualVT(that *KvtxKeyExistsResponse) bool {
 	if this == that {
 		return true
@@ -1733,6 +1742,7 @@ func (this *KvtxKeyExistsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxSetKeyRequest) EqualVT(that *KvtxSetKeyRequest) bool {
 	if this == that {
 		return true
@@ -1755,6 +1765,7 @@ func (this *KvtxSetKeyRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxSetKeyResponse) EqualVT(that *KvtxSetKeyResponse) bool {
 	if this == that {
 		return true
@@ -1774,6 +1785,7 @@ func (this *KvtxSetKeyResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxDeleteKeyRequest) EqualVT(that *KvtxDeleteKeyRequest) bool {
 	if this == that {
 		return true
@@ -1793,6 +1805,7 @@ func (this *KvtxDeleteKeyRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxDeleteKeyResponse) EqualVT(that *KvtxDeleteKeyResponse) bool {
 	if this == that {
 		return true
@@ -1812,6 +1825,7 @@ func (this *KvtxDeleteKeyResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxScanPrefixRequest) EqualVT(that *KvtxScanPrefixRequest) bool {
 	if this == that {
 		return true
@@ -1834,6 +1848,7 @@ func (this *KvtxScanPrefixRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxScanPrefixResponse) EqualVT(that *KvtxScanPrefixResponse) bool {
 	if this == that {
 		return true
@@ -1859,6 +1874,7 @@ func (this *KvtxScanPrefixResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxIterateRequest) EqualVT(that *KvtxIterateRequest) bool {
 	if this == that {
 		return true
@@ -1887,6 +1903,7 @@ func (this *KvtxIterateRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxIterateRequest_Init) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
 	that, ok := thatIface.(*KvtxIterateRequest_Init)
 	if !ok {
@@ -2022,6 +2039,7 @@ func (this *KvtxIterateInit) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxIterateResponse) EqualVT(that *KvtxIterateResponse) bool {
 	if this == that {
 		return true
@@ -2050,6 +2068,7 @@ func (this *KvtxIterateResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *KvtxIterateResponse_Ack) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
 	that, ok := thatIface.(*KvtxIterateResponse_Ack)
 	if !ok {
@@ -3322,6 +3341,7 @@ func (m *KvtxTransactionRequest_Init) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxTransactionRequest_Commit) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -3339,6 +3359,7 @@ func (m *KvtxTransactionRequest_Commit) MarshalToSizedBufferVT(dAtA []byte) (int
 	dAtA[i] = 0x10
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxTransactionRequest_Discard) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -3356,6 +3377,7 @@ func (m *KvtxTransactionRequest_Discard) MarshalToSizedBufferVT(dAtA []byte) (in
 	dAtA[i] = 0x18
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxTransactionInit) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3464,6 +3486,7 @@ func (m *KvtxTransactionResponse_Ack) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxTransactionResponse_Complete) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -3487,6 +3510,7 @@ func (m *KvtxTransactionResponse_Complete) MarshalToSizedBufferVT(dAtA []byte) (
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxTransactionAck) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4148,6 +4172,7 @@ func (m *KvtxIterateRequest_Init) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateRequest_LookupValue) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4165,6 +4190,7 @@ func (m *KvtxIterateRequest_LookupValue) MarshalToSizedBufferVT(dAtA []byte) (in
 	dAtA[i] = 0x10
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateRequest_Next) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4182,6 +4208,7 @@ func (m *KvtxIterateRequest_Next) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	dAtA[i] = 0x18
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateRequest_Seek) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4196,6 +4223,7 @@ func (m *KvtxIterateRequest_Seek) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	dAtA[i] = 0x22
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateRequest_SeekBeginning) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4213,6 +4241,7 @@ func (m *KvtxIterateRequest_SeekBeginning) MarshalToSizedBufferVT(dAtA []byte) (
 	dAtA[i] = 0x28
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateRequest_Close) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4230,6 +4259,7 @@ func (m *KvtxIterateRequest_Close) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	dAtA[i] = 0x30
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateInit) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4349,6 +4379,7 @@ func (m *KvtxIterateResponse_Ack) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateResponse_ReqError) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4363,6 +4394,7 @@ func (m *KvtxIterateResponse_ReqError) MarshalToSizedBufferVT(dAtA []byte) (int,
 	dAtA[i] = 0x12
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateResponse_Status) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4386,6 +4418,7 @@ func (m *KvtxIterateResponse_Status) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateResponse_Value) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4400,6 +4433,7 @@ func (m *KvtxIterateResponse_Value) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	dAtA[i] = 0x22
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateResponse_Closed) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -4417,6 +4451,7 @@ func (m *KvtxIterateResponse_Closed) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	dAtA[i] = 0x28
 	return len(dAtA) - i, nil
 }
+
 func (m *KvtxIterateStatus) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4501,6 +4536,7 @@ func (m *KvtxTransactionRequest_Init) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *KvtxTransactionRequest_Commit) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4510,6 +4546,7 @@ func (m *KvtxTransactionRequest_Commit) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxTransactionRequest_Discard) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4519,6 +4556,7 @@ func (m *KvtxTransactionRequest_Discard) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxTransactionInit) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4559,6 +4597,7 @@ func (m *KvtxTransactionResponse_Ack) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *KvtxTransactionResponse_Complete) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4573,6 +4612,7 @@ func (m *KvtxTransactionResponse_Complete) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *KvtxTransactionAck) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4812,6 +4852,7 @@ func (m *KvtxIterateRequest_Init) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *KvtxIterateRequest_LookupValue) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4821,6 +4862,7 @@ func (m *KvtxIterateRequest_LookupValue) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateRequest_Next) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4830,6 +4872,7 @@ func (m *KvtxIterateRequest_Next) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateRequest_Seek) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4840,6 +4883,7 @@ func (m *KvtxIterateRequest_Seek) SizeVT() (n int) {
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	return n
 }
+
 func (m *KvtxIterateRequest_SeekBeginning) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4849,6 +4893,7 @@ func (m *KvtxIterateRequest_SeekBeginning) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateRequest_Close) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4858,6 +4903,7 @@ func (m *KvtxIterateRequest_Close) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateInit) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4900,6 +4946,7 @@ func (m *KvtxIterateResponse_Ack) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateResponse_ReqError) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4910,6 +4957,7 @@ func (m *KvtxIterateResponse_ReqError) SizeVT() (n int) {
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	return n
 }
+
 func (m *KvtxIterateResponse_Status) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4924,6 +4972,7 @@ func (m *KvtxIterateResponse_Status) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *KvtxIterateResponse_Value) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4934,6 +4983,7 @@ func (m *KvtxIterateResponse_Value) SizeVT() (n int) {
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	return n
 }
+
 func (m *KvtxIterateResponse_Closed) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4943,6 +4993,7 @@ func (m *KvtxIterateResponse_Closed) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *KvtxIterateStatus) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5000,6 +5051,7 @@ func (x *KvtxTransactionRequest) MarshalProtoText() string {
 func (x *KvtxTransactionRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxTransactionInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxTransactionInit {")
@@ -5017,6 +5069,7 @@ func (x *KvtxTransactionInit) MarshalProtoText() string {
 func (x *KvtxTransactionInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxTransactionResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxTransactionResponse {")
@@ -5045,6 +5098,7 @@ func (x *KvtxTransactionResponse) MarshalProtoText() string {
 func (x *KvtxTransactionResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxTransactionAck) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxTransactionAck {")
@@ -5069,6 +5123,7 @@ func (x *KvtxTransactionAck) MarshalProtoText() string {
 func (x *KvtxTransactionAck) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxTransactionComplete) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxTransactionComplete {")
@@ -5100,6 +5155,7 @@ func (x *KvtxTransactionComplete) MarshalProtoText() string {
 func (x *KvtxTransactionComplete) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KeyCountRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KeyCountRequest {")
@@ -5110,6 +5166,7 @@ func (x *KeyCountRequest) MarshalProtoText() string {
 func (x *KeyCountRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KeyCountResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KeyCountResponse {")
@@ -5127,6 +5184,7 @@ func (x *KeyCountResponse) MarshalProtoText() string {
 func (x *KeyCountResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxKeyRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxKeyRequest {")
@@ -5146,6 +5204,7 @@ func (x *KvtxKeyRequest) MarshalProtoText() string {
 func (x *KvtxKeyRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxKeyDataResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxKeyDataResponse {")
@@ -5179,6 +5238,7 @@ func (x *KvtxKeyDataResponse) MarshalProtoText() string {
 func (x *KvtxKeyDataResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxKeyExistsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxKeyExistsResponse {")
@@ -5203,6 +5263,7 @@ func (x *KvtxKeyExistsResponse) MarshalProtoText() string {
 func (x *KvtxKeyExistsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxSetKeyRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxSetKeyRequest {")
@@ -5231,6 +5292,7 @@ func (x *KvtxSetKeyRequest) MarshalProtoText() string {
 func (x *KvtxSetKeyRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxSetKeyResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxSetKeyResponse {")
@@ -5248,6 +5310,7 @@ func (x *KvtxSetKeyResponse) MarshalProtoText() string {
 func (x *KvtxSetKeyResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxDeleteKeyRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxDeleteKeyRequest {")
@@ -5267,6 +5330,7 @@ func (x *KvtxDeleteKeyRequest) MarshalProtoText() string {
 func (x *KvtxDeleteKeyRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxDeleteKeyResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxDeleteKeyResponse {")
@@ -5284,6 +5348,7 @@ func (x *KvtxDeleteKeyResponse) MarshalProtoText() string {
 func (x *KvtxDeleteKeyResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxScanPrefixRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxScanPrefixRequest {")
@@ -5310,6 +5375,7 @@ func (x *KvtxScanPrefixRequest) MarshalProtoText() string {
 func (x *KvtxScanPrefixRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxScanPrefixResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxScanPrefixResponse {")
@@ -5345,6 +5411,7 @@ func (x *KvtxScanPrefixResponse) MarshalProtoText() string {
 func (x *KvtxScanPrefixResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxIterateRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxIterateRequest {")
@@ -5407,6 +5474,7 @@ func (x *KvtxIterateRequest) MarshalProtoText() string {
 func (x *KvtxIterateRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxIterateInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxIterateInit {")
@@ -5440,6 +5508,7 @@ func (x *KvtxIterateInit) MarshalProtoText() string {
 func (x *KvtxIterateInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxIterateResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxIterateResponse {")
@@ -5494,6 +5563,7 @@ func (x *KvtxIterateResponse) MarshalProtoText() string {
 func (x *KvtxIterateResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *KvtxIterateStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("KvtxIterateStatus {")
@@ -5527,6 +5597,7 @@ func (x *KvtxIterateStatus) MarshalProtoText() string {
 func (x *KvtxIterateStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *KvtxTransactionRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5661,6 +5732,7 @@ func (m *KvtxTransactionRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxTransactionInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5732,6 +5804,7 @@ func (m *KvtxTransactionInit) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxTransactionResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5865,6 +5938,7 @@ func (m *KvtxTransactionResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxTransactionAck) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5980,6 +6054,7 @@ func (m *KvtxTransactionAck) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxTransactionComplete) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6103,6 +6178,7 @@ func (m *KvtxTransactionComplete) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KeyCountRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6154,6 +6230,7 @@ func (m *KeyCountRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KeyCountResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6224,6 +6301,7 @@ func (m *KeyCountResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxKeyRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6309,6 +6387,7 @@ func (m *KvtxKeyRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxKeyDataResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6446,6 +6525,7 @@ func (m *KvtxKeyDataResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxKeyExistsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6549,6 +6629,7 @@ func (m *KvtxKeyExistsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxSetKeyRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6668,6 +6749,7 @@ func (m *KvtxSetKeyRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxSetKeyResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6751,6 +6833,7 @@ func (m *KvtxSetKeyResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxDeleteKeyRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6836,6 +6919,7 @@ func (m *KvtxDeleteKeyRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxDeleteKeyResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6919,6 +7003,7 @@ func (m *KvtxDeleteKeyResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxScanPrefixRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7024,6 +7109,7 @@ func (m *KvtxScanPrefixRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxScanPrefixResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7175,6 +7261,7 @@ func (m *KvtxScanPrefixResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxIterateRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7384,6 +7471,7 @@ func (m *KvtxIterateRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxIterateInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7509,6 +7597,7 @@ func (m *KvtxIterateInit) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxIterateResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7708,6 +7797,7 @@ func (m *KvtxIterateResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *KvtxIterateStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

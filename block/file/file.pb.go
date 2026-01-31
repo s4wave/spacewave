@@ -132,10 +132,8 @@ func (m *File) CloneVT() *File {
 	}
 	r := new(File)
 	r.TotalSize = m.TotalSize
+	r.RootBlob = m.RootBlob.CloneVT()
 	r.RangeNonce = m.RangeNonce
-	if rhs := m.RootBlob; rhs != nil {
-		r.RootBlob = rhs.CloneVT()
-	}
 	if rhs := m.Ranges; rhs != nil {
 		r.Ranges = make([]*Range, len(rhs))
 		for k, v := range rhs {
@@ -160,9 +158,7 @@ func (m *Range) CloneVT() *Range {
 	r.Nonce = m.Nonce
 	r.Start = m.Start
 	r.Length = m.Length
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -215,6 +211,7 @@ func (this *File) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Range) EqualVT(that *Range) bool {
 	if this == that {
 		return true
@@ -621,6 +618,7 @@ func (x *File) MarshalProtoText() string {
 func (x *File) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Range) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Range {")
@@ -659,6 +657,7 @@ func (x *Range) MarshalProtoText() string {
 func (x *Range) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *File) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -818,6 +817,7 @@ func (m *File) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Range) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

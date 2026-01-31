@@ -6,13 +6,14 @@ package unixfs_world_e2e
 
 import (
 	fmt "fmt"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	io "io"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
+
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // InitUnixFSDemoOp initializes a UnixFS filesystem with demo content.
@@ -232,6 +233,7 @@ func (x *InitUnixFSDemoOp) MarshalProtoText() string {
 func (x *InitUnixFSDemoOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *InitUnixFSDemoOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

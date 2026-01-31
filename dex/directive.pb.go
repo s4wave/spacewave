@@ -51,9 +51,7 @@ func (m *LookupBlockFromNetworkRequest) CloneVT() *LookupBlockFromNetworkRequest
 	}
 	r := new(LookupBlockFromNetworkRequest)
 	r.BucketId = m.BucketId
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -233,6 +231,7 @@ func (x *LookupBlockFromNetworkRequest) MarshalProtoText() string {
 func (x *LookupBlockFromNetworkRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *LookupBlockFromNetworkRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

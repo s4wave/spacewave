@@ -509,10 +509,8 @@ func (m *ApplyBucketConfigRequest) CloneVT() *ApplyBucketConfigRequest {
 		return (*ApplyBucketConfigRequest)(nil)
 	}
 	r := new(ApplyBucketConfigRequest)
+	r.Config = m.Config.CloneVT()
 	r.VolumeIdRe = m.VolumeIdRe
-	if rhs := m.Config; rhs != nil {
-		r.Config = rhs.CloneVT()
-	}
 	if rhs := m.VolumeIdList; rhs != nil {
 		r.VolumeIdList = slices.Clone(rhs)
 	}
@@ -531,9 +529,7 @@ func (m *ApplyBucketConfigResponse) CloneVT() *ApplyBucketConfigResponse {
 		return (*ApplyBucketConfigResponse)(nil)
 	}
 	r := new(ApplyBucketConfigResponse)
-	if rhs := m.ApplyConfResult; rhs != nil {
-		r.ApplyConfResult = rhs.CloneVT()
-	}
+	r.ApplyConfResult = m.ApplyConfResult.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -550,15 +546,9 @@ func (m *BucketOpRequest) CloneVT() *BucketOpRequest {
 	}
 	r := new(BucketOpRequest)
 	r.Op = m.Op
-	if rhs := m.BucketOpArgs; rhs != nil {
-		r.BucketOpArgs = rhs.CloneVT()
-	}
-	if rhs := m.BlockRef; rhs != nil {
-		r.BlockRef = rhs.CloneVT()
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
-	}
+	r.BucketOpArgs = m.BucketOpArgs.CloneVT()
+	r.BlockRef = m.BlockRef.CloneVT()
+	r.PutOpts = m.PutOpts.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -577,10 +567,8 @@ func (m *BucketOpResponse) CloneVT() *BucketOpResponse {
 		return (*BucketOpResponse)(nil)
 	}
 	r := new(BucketOpResponse)
+	r.Event = m.Event.CloneVT()
 	r.Found = m.Found
-	if rhs := m.Event; rhs != nil {
-		r.Event = rhs.CloneVT()
-	}
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -657,6 +645,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ListVolumesRequest) EqualVT(that *ListVolumesRequest) bool {
 	if this == that {
 		return true
@@ -673,6 +662,7 @@ func (this *ListVolumesRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ListVolumesResponse) EqualVT(that *ListVolumesResponse) bool {
 	if this == that {
 		return true
@@ -706,6 +696,7 @@ func (this *ListVolumesResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ListBucketsResponse) EqualVT(that *ListBucketsResponse) bool {
 	if this == that {
 		return true
@@ -739,6 +730,7 @@ func (this *ListBucketsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ApplyBucketConfigRequest) EqualVT(that *ApplyBucketConfigRequest) bool {
 	if this == that {
 		return true
@@ -770,6 +762,7 @@ func (this *ApplyBucketConfigRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ApplyBucketConfigResponse) EqualVT(that *ApplyBucketConfigResponse) bool {
 	if this == that {
 		return true
@@ -789,6 +782,7 @@ func (this *ApplyBucketConfigResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BucketOpRequest) EqualVT(that *BucketOpRequest) bool {
 	if this == that {
 		return true
@@ -820,6 +814,7 @@ func (this *BucketOpRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BucketOpResponse) EqualVT(that *BucketOpResponse) bool {
 	if this == that {
 		return true
@@ -845,6 +840,7 @@ func (this *BucketOpResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ObjectStoreOpRequest) EqualVT(that *ObjectStoreOpRequest) bool {
 	if this == that {
 		return true
@@ -876,6 +872,7 @@ func (this *ObjectStoreOpRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ObjectStoreOpResponse) EqualVT(that *ObjectStoreOpResponse) bool {
 	if this == that {
 		return true
@@ -2283,9 +2280,11 @@ func (m *ObjectStoreOpResponse) SizeVT() (n int) {
 func (x BucketOp) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x ObjectStoreOp) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -2296,6 +2295,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ListVolumesRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListVolumesRequest {")
@@ -2306,6 +2306,7 @@ func (x *ListVolumesRequest) MarshalProtoText() string {
 func (x *ListVolumesRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ListVolumesResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListVolumesResponse {")
@@ -2329,6 +2330,7 @@ func (x *ListVolumesResponse) MarshalProtoText() string {
 func (x *ListVolumesResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ListBucketsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListBucketsResponse {")
@@ -2352,6 +2354,7 @@ func (x *ListBucketsResponse) MarshalProtoText() string {
 func (x *ListBucketsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ApplyBucketConfigRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ApplyBucketConfigRequest {")
@@ -2389,6 +2392,7 @@ func (x *ApplyBucketConfigRequest) MarshalProtoText() string {
 func (x *ApplyBucketConfigRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ApplyBucketConfigResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ApplyBucketConfigResponse {")
@@ -2406,6 +2410,7 @@ func (x *ApplyBucketConfigResponse) MarshalProtoText() string {
 func (x *ApplyBucketConfigResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BucketOpRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BucketOpRequest {")
@@ -2455,6 +2460,7 @@ func (x *BucketOpRequest) MarshalProtoText() string {
 func (x *BucketOpRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BucketOpResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BucketOpResponse {")
@@ -2488,6 +2494,7 @@ func (x *BucketOpResponse) MarshalProtoText() string {
 func (x *BucketOpResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ObjectStoreOpRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ObjectStoreOpRequest {")
@@ -2537,6 +2544,7 @@ func (x *ObjectStoreOpRequest) MarshalProtoText() string {
 func (x *ObjectStoreOpRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ObjectStoreOpResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ObjectStoreOpResponse {")
@@ -2578,6 +2586,7 @@ func (x *ObjectStoreOpResponse) MarshalProtoText() string {
 func (x *ObjectStoreOpResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2629,6 +2638,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ListVolumesRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2680,6 +2690,7 @@ func (m *ListVolumesRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ListVolumesResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2765,6 +2776,7 @@ func (m *ListVolumesResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ListBucketsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2850,6 +2862,7 @@ func (m *ListBucketsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ApplyBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3001,6 +3014,7 @@ func (m *ApplyBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ApplyBucketConfigResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3088,6 +3102,7 @@ func (m *ApplyBucketConfigResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BucketOpRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3300,6 +3315,7 @@ func (m *BucketOpRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BucketOpResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3441,6 +3457,7 @@ func (m *BucketOpResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ObjectStoreOpRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3641,6 +3658,7 @@ func (m *ObjectStoreOpRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ObjectStoreOpResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

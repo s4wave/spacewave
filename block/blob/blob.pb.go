@@ -519,11 +519,9 @@ func (m *Chunk) CloneVT() *Chunk {
 		return (*Chunk)(nil)
 	}
 	r := new(Chunk)
+	r.DataRef = m.DataRef.CloneVT()
 	r.Size = m.Size
 	r.Start = m.Start
-	if rhs := m.DataRef; rhs != nil {
-		r.DataRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -562,6 +560,7 @@ func (this *Blob) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuildBlobOpts) EqualVT(that *BuildBlobOpts) bool {
 	if this == that {
 		return true
@@ -584,6 +583,7 @@ func (this *BuildBlobOpts) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ChunkIndex) EqualVT(that *ChunkIndex) bool {
 	if this == that {
 		return true
@@ -620,6 +620,7 @@ func (this *ChunkIndex) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ChunkerArgs) EqualVT(that *ChunkerArgs) bool {
 	if this == that {
 		return true
@@ -645,6 +646,7 @@ func (this *ChunkerArgs) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RabinArgs) EqualVT(that *RabinArgs) bool {
 	if this == that {
 		return true
@@ -673,6 +675,7 @@ func (this *RabinArgs) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *JcArgs) EqualVT(that *JcArgs) bool {
 	if this == that {
 		return true
@@ -701,6 +704,7 @@ func (this *JcArgs) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Chunk) EqualVT(that *Chunk) bool {
 	if this == that {
 		return true
@@ -1803,9 +1807,11 @@ func (m *Chunk) SizeVT() (n int) {
 func (x BlobType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x ChunkerType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Blob) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Blob {")
@@ -1848,6 +1854,7 @@ func (x *Blob) MarshalProtoText() string {
 func (x *Blob) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuildBlobOpts) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildBlobOpts {")
@@ -1872,6 +1879,7 @@ func (x *BuildBlobOpts) MarshalProtoText() string {
 func (x *BuildBlobOpts) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ChunkIndex) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ChunkIndex {")
@@ -1902,6 +1910,7 @@ func (x *ChunkIndex) MarshalProtoText() string {
 func (x *ChunkIndex) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ChunkerArgs) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ChunkerArgs {")
@@ -1935,6 +1944,7 @@ func (x *ChunkerArgs) MarshalProtoText() string {
 func (x *ChunkerArgs) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RabinArgs) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RabinArgs {")
@@ -1973,6 +1983,7 @@ func (x *RabinArgs) MarshalProtoText() string {
 func (x *RabinArgs) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *JcArgs) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("JcArgs {")
@@ -2013,6 +2024,7 @@ func (x *JcArgs) MarshalProtoText() string {
 func (x *JcArgs) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Chunk) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Chunk {")
@@ -2044,6 +2056,7 @@ func (x *Chunk) MarshalProtoText() string {
 func (x *Chunk) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Blob) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2203,6 +2216,7 @@ func (m *Blob) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuildBlobOpts) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2309,6 +2323,7 @@ func (m *BuildBlobOpts) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ChunkIndex) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2430,6 +2445,7 @@ func (m *ChunkIndex) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ChunkerArgs) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2572,6 +2588,7 @@ func (m *ChunkerArgs) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RabinArgs) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2700,6 +2717,7 @@ func (m *RabinArgs) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *JcArgs) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2842,6 +2860,7 @@ func (m *JcArgs) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Chunk) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -988,10 +988,8 @@ func (m *Repo) CloneVT() *Repo {
 	r.ReferencesStore = m.ReferencesStore.CloneVT()
 	r.ModuleReferencesStore = m.ModuleReferencesStore.CloneVT()
 	r.EncodedObjectStore = m.EncodedObjectStore.CloneVT()
+	r.ShallowRefsStoreRef = m.ShallowRefsStoreRef.CloneVT()
 	r.GitConfig = m.GitConfig
-	if rhs := m.ShallowRefsStoreRef; rhs != nil {
-		r.ShallowRefsStoreRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1007,12 +1005,8 @@ func (m *EncodedObjectStore) CloneVT() *EncodedObjectStore {
 		return (*EncodedObjectStore)(nil)
 	}
 	r := new(EncodedObjectStore)
-	if rhs := m.KvtxRoot; rhs != nil {
-		r.KvtxRoot = rhs.CloneVT()
-	}
-	if rhs := m.ChunkerArgs; rhs != nil {
-		r.ChunkerArgs = rhs.CloneVT()
-	}
+	r.KvtxRoot = m.KvtxRoot.CloneVT()
+	r.ChunkerArgs = m.ChunkerArgs.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1028,9 +1022,7 @@ func (m *ReferencesStore) CloneVT() *ReferencesStore {
 		return (*ReferencesStore)(nil)
 	}
 	r := new(ReferencesStore)
-	if rhs := m.KvtxRoot; rhs != nil {
-		r.KvtxRoot = rhs.CloneVT()
-	}
+	r.KvtxRoot = m.KvtxRoot.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1046,9 +1038,7 @@ func (m *ModuleReferencesStore) CloneVT() *ModuleReferencesStore {
 		return (*ModuleReferencesStore)(nil)
 	}
 	r := new(ModuleReferencesStore)
-	if rhs := m.KvtxRoot; rhs != nil {
-		r.KvtxRoot = rhs.CloneVT()
-	}
+	r.KvtxRoot = m.KvtxRoot.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1086,9 +1076,7 @@ func (m *Submodule) CloneVT() *Submodule {
 	}
 	r := new(Submodule)
 	r.Name = m.Name
-	if rhs := m.RepoRef; rhs != nil {
-		r.RepoRef = rhs.CloneVT()
-	}
+	r.RepoRef = m.RepoRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1125,10 +1113,8 @@ func (m *EncodedObject) CloneVT() *EncodedObject {
 		return (*EncodedObject)(nil)
 	}
 	r := new(EncodedObject)
+	r.DataBlob = m.DataBlob.CloneVT()
 	r.EncodedObjectType = m.EncodedObjectType
-	if rhs := m.DataBlob; rhs != nil {
-		r.DataBlob = rhs.CloneVT()
-	}
 	if rhs := m.DataHash; rhs != nil {
 		r.DataHash = rhs.CloneVT()
 	}
@@ -1400,6 +1386,7 @@ func (this *Repo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EncodedObjectStore) EqualVT(that *EncodedObjectStore) bool {
 	if this == that {
 		return true
@@ -1422,6 +1409,7 @@ func (this *EncodedObjectStore) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReferencesStore) EqualVT(that *ReferencesStore) bool {
 	if this == that {
 		return true
@@ -1441,6 +1429,7 @@ func (this *ReferencesStore) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ModuleReferencesStore) EqualVT(that *ModuleReferencesStore) bool {
 	if this == that {
 		return true
@@ -1460,6 +1449,7 @@ func (this *ModuleReferencesStore) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ShallowRefsStore) EqualVT(that *ShallowRefsStore) bool {
 	if this == that {
 		return true
@@ -1493,6 +1483,7 @@ func (this *ShallowRefsStore) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Submodule) EqualVT(that *Submodule) bool {
 	if this == that {
 		return true
@@ -1515,6 +1506,7 @@ func (this *Submodule) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Reference) EqualVT(that *Reference) bool {
 	if this == that {
 		return true
@@ -1543,6 +1535,7 @@ func (this *Reference) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EncodedObject) EqualVT(that *EncodedObject) bool {
 	if this == that {
 		return true
@@ -1568,6 +1561,7 @@ func (this *EncodedObject) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Index) EqualVT(that *Index) bool {
 	if this == that {
 		return true
@@ -1613,6 +1607,7 @@ func (this *Index) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Tree) EqualVT(that *Tree) bool {
 	if this == that {
 		return true
@@ -1646,6 +1641,7 @@ func (this *Tree) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TreeEntry) EqualVT(that *TreeEntry) bool {
 	if this == that {
 		return true
@@ -1674,6 +1670,7 @@ func (this *TreeEntry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ResolveUndo) EqualVT(that *ResolveUndo) bool {
 	if this == that {
 		return true
@@ -1707,6 +1704,7 @@ func (this *ResolveUndo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ResolveUndoEntry) EqualVT(that *ResolveUndoEntry) bool {
 	if this == that {
 		return true
@@ -1746,6 +1744,7 @@ func (this *ResolveUndoEntry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EndOfIndexEntry) EqualVT(that *EndOfIndexEntry) bool {
 	if this == that {
 		return true
@@ -1768,6 +1767,7 @@ func (this *EndOfIndexEntry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *IndexEntry) EqualVT(that *IndexEntry) bool {
 	if this == that {
 		return true
@@ -1823,6 +1823,7 @@ func (this *IndexEntry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *AuthOpts) EqualVT(that *AuthOpts) bool {
 	if this == that {
 		return true
@@ -1845,6 +1846,7 @@ func (this *AuthOpts) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CloneOpts) EqualVT(that *CloneOpts) bool {
 	if this == that {
 		return true
@@ -1891,6 +1893,7 @@ func (this *CloneOpts) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CheckoutOpts) EqualVT(that *CheckoutOpts) bool {
 	if this == that {
 		return true
@@ -4972,12 +4975,15 @@ func (m *CheckoutOpts) SizeVT() (n int) {
 func (x ReferenceType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x EncodedObjectType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x TagMode) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Repo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Repo {")
@@ -5023,6 +5029,7 @@ func (x *Repo) MarshalProtoText() string {
 func (x *Repo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EncodedObjectStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EncodedObjectStore {")
@@ -5047,6 +5054,7 @@ func (x *EncodedObjectStore) MarshalProtoText() string {
 func (x *EncodedObjectStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReferencesStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ReferencesStore {")
@@ -5064,6 +5072,7 @@ func (x *ReferencesStore) MarshalProtoText() string {
 func (x *ReferencesStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ModuleReferencesStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ModuleReferencesStore {")
@@ -5081,6 +5090,7 @@ func (x *ModuleReferencesStore) MarshalProtoText() string {
 func (x *ModuleReferencesStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ShallowRefsStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ShallowRefsStore {")
@@ -5104,6 +5114,7 @@ func (x *ShallowRefsStore) MarshalProtoText() string {
 func (x *ShallowRefsStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Submodule) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Submodule {")
@@ -5128,6 +5139,7 @@ func (x *Submodule) MarshalProtoText() string {
 func (x *Submodule) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Reference) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Reference {")
@@ -5168,6 +5180,7 @@ func (x *Reference) MarshalProtoText() string {
 func (x *Reference) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EncodedObject) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EncodedObject {")
@@ -5201,6 +5214,7 @@ func (x *EncodedObject) MarshalProtoText() string {
 func (x *EncodedObject) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Index) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Index {")
@@ -5252,6 +5266,7 @@ func (x *Index) MarshalProtoText() string {
 func (x *Index) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Tree) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Tree {")
@@ -5275,6 +5290,7 @@ func (x *Tree) MarshalProtoText() string {
 func (x *Tree) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TreeEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TreeEntry {")
@@ -5313,6 +5329,7 @@ func (x *TreeEntry) MarshalProtoText() string {
 func (x *TreeEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResolveUndo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResolveUndo {")
@@ -5336,6 +5353,7 @@ func (x *ResolveUndo) MarshalProtoText() string {
 func (x *ResolveUndo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResolveUndoEntry_StagesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("StagesEntry {")
@@ -5360,6 +5378,7 @@ func (x *ResolveUndoEntry_StagesEntry) MarshalProtoText() string {
 func (x *ResolveUndoEntry_StagesEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResolveUndoEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResolveUndoEntry {")
@@ -5391,6 +5410,7 @@ func (x *ResolveUndoEntry) MarshalProtoText() string {
 func (x *ResolveUndoEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EndOfIndexEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EndOfIndexEntry {")
@@ -5415,6 +5435,7 @@ func (x *EndOfIndexEntry) MarshalProtoText() string {
 func (x *EndOfIndexEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *IndexEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("IndexEntry {")
@@ -5516,6 +5537,7 @@ func (x *IndexEntry) MarshalProtoText() string {
 func (x *IndexEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *AuthOpts) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("AuthOpts {")
@@ -5540,6 +5562,7 @@ func (x *AuthOpts) MarshalProtoText() string {
 func (x *AuthOpts) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CloneOpts) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CloneOpts {")
@@ -5622,6 +5645,7 @@ func (x *CloneOpts) MarshalProtoText() string {
 func (x *CloneOpts) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CheckoutOpts) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CheckoutOpts {")
@@ -5667,6 +5691,7 @@ func (x *CheckoutOpts) MarshalProtoText() string {
 func (x *CheckoutOpts) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Repo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5894,6 +5919,7 @@ func (m *Repo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EncodedObjectStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6017,6 +6043,7 @@ func (m *EncodedObjectStore) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReferencesStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6104,6 +6131,7 @@ func (m *ReferencesStore) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ModuleReferencesStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6191,6 +6219,7 @@ func (m *ModuleReferencesStore) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ShallowRefsStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6276,6 +6305,7 @@ func (m *ShallowRefsStore) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Submodule) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6395,6 +6425,7 @@ func (m *Submodule) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Reference) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6565,6 +6596,7 @@ func (m *Reference) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EncodedObject) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6707,6 +6739,7 @@ func (m *EncodedObject) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Index) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6919,6 +6952,7 @@ func (m *Index) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Tree) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7004,6 +7038,7 @@ func (m *Tree) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TreeEntry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7161,6 +7196,7 @@ func (m *TreeEntry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResolveUndo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7246,6 +7282,7 @@ func (m *ResolveUndo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResolveUndoEntry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7444,6 +7481,7 @@ func (m *ResolveUndoEntry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EndOfIndexEntry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7550,6 +7588,7 @@ func (m *EndOfIndexEntry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *IndexEntry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7914,6 +7953,7 @@ func (m *IndexEntry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *AuthOpts) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -8029,6 +8069,7 @@ func (m *AuthOpts) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CloneOpts) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -8326,6 +8367,7 @@ func (m *CloneOpts) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CheckoutOpts) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

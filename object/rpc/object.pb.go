@@ -108,6 +108,7 @@ func (this *DeleteObjectStoreRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *DeleteObjectStoreResponse) EqualVT(that *DeleteObjectStoreResponse) bool {
 	if this == that {
 		return true
@@ -337,6 +338,7 @@ func (x *DeleteObjectStoreRequest) MarshalProtoText() string {
 func (x *DeleteObjectStoreRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *DeleteObjectStoreResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DeleteObjectStoreResponse {")
@@ -354,6 +356,7 @@ func (x *DeleteObjectStoreResponse) MarshalProtoText() string {
 func (x *DeleteObjectStoreResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *DeleteObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -437,6 +440,7 @@ func (m *DeleteObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *DeleteObjectStoreResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

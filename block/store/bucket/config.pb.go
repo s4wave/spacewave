@@ -74,11 +74,9 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.BlockStoreId = m.BlockStoreId
+	r.BucketConfig = m.BucketConfig.CloneVT()
 	r.BucketStoreId = m.BucketStoreId
 	r.NotFoundIfIdle = m.NotFoundIfIdle
-	if rhs := m.BucketConfig; rhs != nil {
-		r.BucketConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -318,6 +316,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

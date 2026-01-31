@@ -45,9 +45,7 @@ func (m *MsgpackBlob) CloneVT() *MsgpackBlob {
 		return (*MsgpackBlob)(nil)
 	}
 	r := new(MsgpackBlob)
-	if rhs := m.Blob; rhs != nil {
-		r.Blob = rhs.CloneVT()
-	}
+	r.Blob = m.Blob.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -198,6 +196,7 @@ func (x *MsgpackBlob) MarshalProtoText() string {
 func (x *MsgpackBlob) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *MsgpackBlob) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

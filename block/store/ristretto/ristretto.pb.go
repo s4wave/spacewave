@@ -111,16 +111,12 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.BlockStoreId = m.BlockStoreId
+	r.Ristretto = m.Ristretto.CloneVT()
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.ForceHashType = m.ForceHashType
 	r.HashGet = m.HashGet
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
-	if rhs := m.Ristretto; rhs != nil {
-		r.Ristretto = rhs.CloneVT()
-	}
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
 	if rhs := m.BucketIds; rhs != nil {
 		r.BucketIds = slices.Clone(rhs)
 	}
@@ -509,6 +505,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

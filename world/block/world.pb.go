@@ -375,14 +375,10 @@ func (m *World) CloneVT() *World {
 		return (*World)(nil)
 	}
 	r := new(World)
+	r.ObjectKeyValue = m.ObjectKeyValue.CloneVT()
+	r.GraphKeyValue = m.GraphKeyValue.CloneVT()
 	r.LastChange = m.LastChange.CloneVT()
 	r.LastChangeDisable = m.LastChangeDisable
-	if rhs := m.ObjectKeyValue; rhs != nil {
-		r.ObjectKeyValue = rhs.CloneVT()
-	}
-	if rhs := m.GraphKeyValue; rhs != nil {
-		r.GraphKeyValue = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -399,10 +395,8 @@ func (m *Object) CloneVT() *Object {
 	}
 	r := new(Object)
 	r.Key = m.Key
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -420,19 +414,11 @@ func (m *WorldChange) CloneVT() *WorldChange {
 	r := new(WorldChange)
 	r.ChangeType = m.ChangeType
 	r.Key = m.Key
+	r.Quad = m.Quad.CloneVT()
+	r.TransactionRef = m.TransactionRef.CloneVT()
+	r.ObjectRef = m.ObjectRef.CloneVT()
+	r.PrevObjectRef = m.PrevObjectRef.CloneVT()
 	r.ObjectRev = m.ObjectRev
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
-	if rhs := m.TransactionRef; rhs != nil {
-		r.TransactionRef = rhs.CloneVT()
-	}
-	if rhs := m.ObjectRef; rhs != nil {
-		r.ObjectRef = rhs.CloneVT()
-	}
-	if rhs := m.PrevObjectRef; rhs != nil {
-		r.PrevObjectRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -449,10 +435,8 @@ func (m *WorldChangeLL) CloneVT() *WorldChangeLL {
 	}
 	r := new(WorldChangeLL)
 	r.Height = m.Height
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.TotalSize = m.TotalSize
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
 	if rhs := m.Changes; rhs != nil {
 		r.Changes = make([]*WorldChange, len(rhs))
 		for k, v := range rhs {
@@ -475,14 +459,10 @@ func (m *ChangeLogLL) CloneVT() *ChangeLogLL {
 	}
 	r := new(ChangeLogLL)
 	r.Seqno = m.Seqno
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeBatch = m.ChangeBatch.CloneVT()
 	r.ChangeType = m.ChangeType
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
-	if rhs := m.KeyFilters; rhs != nil {
-		r.KeyFilters = rhs.CloneVT()
-	}
+	r.KeyFilters = m.KeyFilters.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -521,6 +501,7 @@ func (this *World) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Object) EqualVT(that *Object) bool {
 	if this == that {
 		return true
@@ -546,6 +527,7 @@ func (this *Object) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WorldChange) EqualVT(that *WorldChange) bool {
 	if this == that {
 		return true
@@ -583,6 +565,7 @@ func (this *WorldChange) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WorldChangeLL) EqualVT(that *WorldChangeLL) bool {
 	if this == that {
 		return true
@@ -625,6 +608,7 @@ func (this *WorldChangeLL) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ChangeLogLL) EqualVT(that *ChangeLogLL) bool {
 	if this == that {
 		return true
@@ -1615,6 +1599,7 @@ func (m *ChangeLogLL) SizeVT() (n int) {
 func (x WorldChangeType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *World) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("World {")
@@ -1653,6 +1638,7 @@ func (x *World) MarshalProtoText() string {
 func (x *World) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Object) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Object {")
@@ -1684,6 +1670,7 @@ func (x *Object) MarshalProtoText() string {
 func (x *Object) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WorldChange) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WorldChange {")
@@ -1745,6 +1732,7 @@ func (x *WorldChange) MarshalProtoText() string {
 func (x *WorldChange) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WorldChangeLL) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WorldChangeLL {")
@@ -1789,6 +1777,7 @@ func (x *WorldChangeLL) MarshalProtoText() string {
 func (x *WorldChangeLL) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ChangeLogLL) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ChangeLogLL {")
@@ -1836,6 +1825,7 @@ func (x *ChangeLogLL) MarshalProtoText() string {
 func (x *ChangeLogLL) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *World) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2015,6 +2005,7 @@ func (m *World) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Object) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2153,6 +2144,7 @@ func (m *Object) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WorldChange) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2418,6 +2410,7 @@ func (m *WorldChange) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WorldChangeLL) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2577,6 +2570,7 @@ func (m *WorldChangeLL) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ChangeLogLL) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

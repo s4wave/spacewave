@@ -108,10 +108,8 @@ func (m *ApplyBucketConfig) CloneVT() *ApplyBucketConfig {
 		return (*ApplyBucketConfig)(nil)
 	}
 	r := new(ApplyBucketConfig)
+	r.Config = m.Config.CloneVT()
 	r.VolumeIdRe = m.VolumeIdRe
-	if rhs := m.Config; rhs != nil {
-		r.Config = rhs.CloneVT()
-	}
 	if rhs := m.VolumeIdList; rhs != nil {
 		r.VolumeIdList = slices.Clone(rhs)
 	}
@@ -158,6 +156,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ApplyBucketConfig) EqualVT(that *ApplyBucketConfig) bool {
 	if this == that {
 		return true
@@ -486,6 +485,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ApplyBucketConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ApplyBucketConfig {")
@@ -523,6 +523,7 @@ func (x *ApplyBucketConfig) MarshalProtoText() string {
 func (x *ApplyBucketConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -608,6 +609,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ApplyBucketConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

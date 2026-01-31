@@ -116,11 +116,9 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
+	r.MqueueConfig = m.MqueueConfig.CloneVT()
 	r.HashType = m.HashType
 	r.DisableHashGet = m.DisableHashGet
-	if rhs := m.MqueueConfig; rhs != nil {
-		r.MqueueConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -191,6 +189,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *MqueueMeta) EqualVT(that *MqueueMeta) bool {
 	if this == that {
 		return true
@@ -210,6 +209,7 @@ func (this *MqueueMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BucketReconcilerMqueueId) EqualVT(that *BucketReconcilerMqueueId) bool {
 	if this == that {
 		return true
@@ -617,6 +617,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MqueueMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MqueueMeta {")
@@ -636,6 +637,7 @@ func (x *MqueueMeta) MarshalProtoText() string {
 func (x *MqueueMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BucketReconcilerMqueueId) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BucketReconcilerMqueueId {")
@@ -660,6 +662,7 @@ func (x *BucketReconcilerMqueueId) MarshalProtoText() string {
 func (x *BucketReconcilerMqueueId) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -786,6 +789,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *MqueueMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -871,6 +875,7 @@ func (m *MqueueMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BucketReconcilerMqueueId) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

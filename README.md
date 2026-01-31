@@ -370,7 +370,7 @@ Re-generating protobufs is only necessary if they were changed.
 
 ## Developing on MacOS
 
-On MacOS, some homebrew packages are required for `yarn gen`:
+On MacOS, some homebrew packages are required for `bun run gen`:
 
 ```
 brew install bash make coreutils gnu-sed findutils protobuf

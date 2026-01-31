@@ -214,9 +214,7 @@ func (m *BlockCommon) CloneVT() *BlockCommon {
 	r.BucketId = m.BucketId
 	r.VolumeId = m.VolumeId
 	r.BucketConfRev = m.BucketConfRev
-	if rhs := m.BlockRef; rhs != nil {
-		r.BlockRef = rhs.CloneVT()
-	}
+	r.BlockRef = m.BlockRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -284,6 +282,7 @@ func (this *Event) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BlockCommon) EqualVT(that *BlockCommon) bool {
 	if this == that {
 		return true
@@ -312,6 +311,7 @@ func (this *BlockCommon) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PutBlock) EqualVT(that *PutBlock) bool {
 	if this == that {
 		return true
@@ -331,6 +331,7 @@ func (this *PutBlock) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RmBlock) EqualVT(that *RmBlock) bool {
 	if this == that {
 		return true
@@ -902,6 +903,7 @@ func (m *RmBlock) SizeVT() (n int) {
 func (x EventType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Event) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Event {")
@@ -935,6 +937,7 @@ func (x *Event) MarshalProtoText() string {
 func (x *Event) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BlockCommon) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BlockCommon {")
@@ -973,6 +976,7 @@ func (x *BlockCommon) MarshalProtoText() string {
 func (x *BlockCommon) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PutBlock) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PutBlock {")
@@ -990,6 +994,7 @@ func (x *PutBlock) MarshalProtoText() string {
 func (x *PutBlock) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RmBlock) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RmBlock {")
@@ -1007,6 +1012,7 @@ func (x *RmBlock) MarshalProtoText() string {
 func (x *RmBlock) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Event) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1149,6 +1155,7 @@ func (m *Event) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BlockCommon) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1319,6 +1326,7 @@ func (m *BlockCommon) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PutBlock) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1406,6 +1414,7 @@ func (m *PutBlock) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RmBlock) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

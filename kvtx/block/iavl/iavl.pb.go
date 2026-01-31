@@ -106,20 +106,12 @@ func (m *Node) CloneVT() *Node {
 	r := new(Node)
 	r.Height = m.Height
 	r.Size = m.Size
+	r.ValueRef = m.ValueRef.CloneVT()
+	r.ValueBlob = m.ValueBlob.CloneVT()
+	r.LeftChildRef = m.LeftChildRef.CloneVT()
+	r.RightChildRef = m.RightChildRef.CloneVT()
 	if rhs := m.Key; rhs != nil {
 		r.Key = slices.Clone(rhs)
-	}
-	if rhs := m.ValueRef; rhs != nil {
-		r.ValueRef = rhs.CloneVT()
-	}
-	if rhs := m.ValueBlob; rhs != nil {
-		r.ValueBlob = rhs.CloneVT()
-	}
-	if rhs := m.LeftChildRef; rhs != nil {
-		r.LeftChildRef = rhs.CloneVT()
-	}
-	if rhs := m.RightChildRef; rhs != nil {
-		r.RightChildRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -462,6 +454,7 @@ func (x *Node) MarshalProtoText() string {
 func (x *Node) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Node) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

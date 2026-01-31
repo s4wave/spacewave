@@ -300,11 +300,9 @@ func (m *PutRequest) CloneVT() *PutRequest {
 		return (*PutRequest)(nil)
 	}
 	r := new(PutRequest)
+	r.PutOpts = m.PutOpts.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -321,11 +319,9 @@ func (m *PutResponse) CloneVT() *PutResponse {
 		return (*PutResponse)(nil)
 	}
 	r := new(PutResponse)
+	r.Ref = m.Ref.CloneVT()
 	r.Exists = m.Exists
 	r.Err = m.Err
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -434,6 +430,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PutRequest) EqualVT(that *PutRequest) bool {
 	if this == that {
 		return true
@@ -456,6 +453,7 @@ func (this *PutRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PutResponse) EqualVT(that *PutResponse) bool {
 	if this == that {
 		return true
@@ -481,6 +479,7 @@ func (this *PutResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetResponse) EqualVT(that *GetResponse) bool {
 	if this == that {
 		return true
@@ -506,6 +505,7 @@ func (this *GetResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ExistsResponse) EqualVT(that *ExistsResponse) bool {
 	if this == that {
 		return true
@@ -531,6 +531,7 @@ func (this *ExistsResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RmResponse) EqualVT(that *RmResponse) bool {
 	if this == that {
 		return true
@@ -1498,6 +1499,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PutRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PutRequest {")
@@ -1524,6 +1526,7 @@ func (x *PutRequest) MarshalProtoText() string {
 func (x *PutRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PutResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PutResponse {")
@@ -1555,6 +1558,7 @@ func (x *PutResponse) MarshalProtoText() string {
 func (x *PutResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetResponse {")
@@ -1588,6 +1592,7 @@ func (x *GetResponse) MarshalProtoText() string {
 func (x *GetResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ExistsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ExistsResponse {")
@@ -1619,6 +1624,7 @@ func (x *ExistsResponse) MarshalProtoText() string {
 func (x *ExistsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RmResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RmResponse {")
@@ -1643,6 +1649,7 @@ func (x *RmResponse) MarshalProtoText() string {
 func (x *RmResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1869,6 +1876,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PutRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1990,6 +1998,7 @@ func (m *PutRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PutResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2129,6 +2138,7 @@ func (m *PutResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2266,6 +2276,7 @@ func (m *GetResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ExistsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2389,6 +2400,7 @@ func (m *ExistsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RmResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

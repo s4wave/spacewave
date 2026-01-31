@@ -358,6 +358,7 @@ func (m *UnixFSError) SizeVT() (n int) {
 func (x UnixFSErrorType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *UnixFSError) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("UnixFSError {")
@@ -384,6 +385,7 @@ func (x *UnixFSError) MarshalProtoText() string {
 func (x *UnixFSError) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *UnixFSError) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

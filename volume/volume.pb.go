@@ -175,10 +175,8 @@ func (m *VolumeBucketInfo) CloneVT() *VolumeBucketInfo {
 		return (*VolumeBucketInfo)(nil)
 	}
 	r := new(VolumeBucketInfo)
+	r.BucketInfo = m.BucketInfo.CloneVT()
 	r.VolumeInfo = m.VolumeInfo.CloneVT()
-	if rhs := m.BucketInfo; rhs != nil {
-		r.BucketInfo = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -240,6 +238,7 @@ func (this *VolumeInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *VolumeBucketInfo) EqualVT(that *VolumeBucketInfo) bool {
 	if this == that {
 		return true
@@ -262,6 +261,7 @@ func (this *VolumeBucketInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ListBucketsRequest) EqualVT(that *ListBucketsRequest) bool {
 	if this == that {
 		return true
@@ -788,6 +788,7 @@ func (x *VolumeInfo) MarshalProtoText() string {
 func (x *VolumeInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *VolumeBucketInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("VolumeBucketInfo {")
@@ -812,6 +813,7 @@ func (x *VolumeBucketInfo) MarshalProtoText() string {
 func (x *VolumeBucketInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ListBucketsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ListBucketsRequest {")
@@ -849,6 +851,7 @@ func (x *ListBucketsRequest) MarshalProtoText() string {
 func (x *ListBucketsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *VolumeInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1051,6 +1054,7 @@ func (m *VolumeInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *VolumeBucketInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1174,6 +1178,7 @@ func (m *VolumeBucketInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ListBucketsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

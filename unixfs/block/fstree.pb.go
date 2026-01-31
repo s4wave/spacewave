@@ -437,12 +437,10 @@ func (m *FSNode) CloneVT() *FSNode {
 	r := new(FSNode)
 	r.NodeType = m.NodeType
 	r.Permissions = m.Permissions
+	r.File = m.File.CloneVT()
 	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.ModTime; rhs != nil {
 		r.ModTime = rhs.CloneVT()
-	}
-	if rhs := m.File; rhs != nil {
-		r.File = rhs.CloneVT()
 	}
 	if rhs := m.DirectoryEntry; rhs != nil {
 		r.DirectoryEntry = make([]*Dirent, len(rhs))
@@ -466,10 +464,8 @@ func (m *Dirent) CloneVT() *Dirent {
 	}
 	r := new(Dirent)
 	r.Name = m.Name
+	r.NodeRef = m.NodeRef.CloneVT()
 	r.NodeType = m.NodeType
-	if rhs := m.NodeRef; rhs != nil {
-		r.NodeRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -571,14 +567,10 @@ func (m *FSChange) CloneVT() *FSChange {
 	}
 	r := new(FSChange)
 	r.Seqno = m.Seqno
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeType = m.ChangeType
+	r.TransactionRef = m.TransactionRef.CloneVT()
 	r.NodeType = m.NodeType
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
-	if rhs := m.TransactionRef; rhs != nil {
-		r.TransactionRef = rhs.CloneVT()
-	}
 	if rhs := m.Paths; rhs != nil {
 		r.Paths = make([]*FSPath, len(rhs))
 		for k, v := range rhs {
@@ -649,6 +641,7 @@ func (this *FSNode) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Dirent) EqualVT(that *Dirent) bool {
 	if this == that {
 		return true
@@ -674,6 +667,7 @@ func (this *Dirent) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSSymlink) EqualVT(that *FSSymlink) bool {
 	if this == that {
 		return true
@@ -693,6 +687,7 @@ func (this *FSSymlink) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSObject) EqualVT(that *FSObject) bool {
 	if this == that {
 		return true
@@ -718,6 +713,7 @@ func (this *FSObject) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSHostVolume) EqualVT(that *FSHostVolume) bool {
 	if this == that {
 		return true
@@ -737,6 +733,7 @@ func (this *FSHostVolume) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSConfig) EqualVT(that *FSConfig) bool {
 	if this == that {
 		return true
@@ -756,6 +753,7 @@ func (this *FSConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSPath) EqualVT(that *FSPath) bool {
 	if this == that {
 		return true
@@ -784,6 +782,7 @@ func (this *FSPath) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FSChange) EqualVT(that *FSChange) bool {
 	if this == that {
 		return true
@@ -2153,9 +2152,11 @@ func (m *FSChange) SizeVT() (n int) {
 func (x NodeType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x FSChangeType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *FSNode) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSNode {")
@@ -2216,6 +2217,7 @@ func (x *FSNode) MarshalProtoText() string {
 func (x *FSNode) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Dirent) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Dirent {")
@@ -2249,6 +2251,7 @@ func (x *Dirent) MarshalProtoText() string {
 func (x *Dirent) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSSymlink) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSSymlink {")
@@ -2266,6 +2269,7 @@ func (x *FSSymlink) MarshalProtoText() string {
 func (x *FSSymlink) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSObject) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSObject {")
@@ -2297,6 +2301,7 @@ func (x *FSObject) MarshalProtoText() string {
 func (x *FSObject) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSHostVolume) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSHostVolume {")
@@ -2314,6 +2319,7 @@ func (x *FSHostVolume) MarshalProtoText() string {
 func (x *FSHostVolume) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSConfig {")
@@ -2331,6 +2337,7 @@ func (x *FSConfig) MarshalProtoText() string {
 func (x *FSConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSPath) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSPath {")
@@ -2361,6 +2368,7 @@ func (x *FSPath) MarshalProtoText() string {
 func (x *FSPath) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FSChange) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FSChange {")
@@ -2436,6 +2444,7 @@ func (x *FSChange) MarshalProtoText() string {
 func (x *FSChange) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *FSNode) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2667,6 +2676,7 @@ func (m *FSNode) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Dirent) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2805,6 +2815,7 @@ func (m *Dirent) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSSymlink) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2892,6 +2903,7 @@ func (m *FSSymlink) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSObject) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3051,6 +3063,7 @@ func (m *FSObject) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSHostVolume) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3134,6 +3147,7 @@ func (m *FSHostVolume) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3205,6 +3219,7 @@ func (m *FSConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSPath) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3308,6 +3323,7 @@ func (m *FSPath) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FSChange) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

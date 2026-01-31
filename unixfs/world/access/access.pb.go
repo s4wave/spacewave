@@ -102,11 +102,9 @@ func (m *Config) CloneVT() *Config {
 	r.FsId = m.FsId
 	r.EngineId = m.EngineId
 	r.PeerId = m.PeerId
+	r.FsRef = m.FsRef.CloneVT()
 	r.MkdirPath = m.MkdirPath
 	r.DisableWatchChanges = m.DisableWatchChanges
-	if rhs := m.FsRef; rhs != nil {
-		r.FsRef = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -445,6 +443,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

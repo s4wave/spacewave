@@ -217,6 +217,7 @@ func (this *Entry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Root) EqualVT(that *Root) bool {
 	if this == that {
 		return true
@@ -646,6 +647,7 @@ func (x *Entry) MarshalProtoText() string {
 func (x *Entry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Root) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Root {")
@@ -679,6 +681,7 @@ func (x *Root) MarshalProtoText() string {
 func (x *Root) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Entry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -916,6 +919,7 @@ func (m *Entry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Root) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

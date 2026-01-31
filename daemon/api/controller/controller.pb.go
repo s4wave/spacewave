@@ -91,14 +91,12 @@ func (m *Config) CloneVT() *Config {
 	r.ListenAddr = m.ListenAddr
 	r.DisableBifrostApi = m.DisableBifrostApi
 	r.DisableBusApi = m.DisableBusApi
+	r.HydraApiConfig = m.HydraApiConfig.CloneVT()
 	if rhs := m.BifrostApiConfig; rhs != nil {
 		r.BifrostApiConfig = rhs.CloneVT()
 	}
 	if rhs := m.BusApiConfig; rhs != nil {
 		r.BusApiConfig = rhs.CloneVT()
-	}
-	if rhs := m.HydraApiConfig; rhs != nil {
-		r.HydraApiConfig = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -413,6 +411,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

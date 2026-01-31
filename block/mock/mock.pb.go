@@ -97,9 +97,7 @@ func (m *SubBlock) CloneVT() *SubBlock {
 		return (*SubBlock)(nil)
 	}
 	r := new(SubBlock)
-	if rhs := m.ExamplePtr; rhs != nil {
-		r.ExamplePtr = rhs.CloneVT()
-	}
+	r.ExamplePtr = m.ExamplePtr.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -145,6 +143,7 @@ func (this *Root) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *SubBlock) EqualVT(that *SubBlock) bool {
 	if this == that {
 		return true
@@ -164,6 +163,7 @@ func (this *SubBlock) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Example) EqualVT(that *Example) bool {
 	if this == that {
 		return true
@@ -503,6 +503,7 @@ func (x *Root) MarshalProtoText() string {
 func (x *Root) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SubBlock) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SubBlock {")
@@ -520,6 +521,7 @@ func (x *SubBlock) MarshalProtoText() string {
 func (x *SubBlock) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Example) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Example {")
@@ -537,6 +539,7 @@ func (x *Example) MarshalProtoText() string {
 func (x *Example) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Root) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -624,6 +627,7 @@ func (m *Root) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *SubBlock) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -711,6 +715,7 @@ func (m *SubBlock) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Example) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

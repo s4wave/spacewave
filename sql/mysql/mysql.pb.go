@@ -397,9 +397,7 @@ func (m *RootDb) CloneVT() *RootDb {
 	}
 	r := new(RootDb)
 	r.Name = m.Name
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -437,9 +435,7 @@ func (m *DatabaseRootTable) CloneVT() *DatabaseRootTable {
 	}
 	r := new(DatabaseRootTable)
 	r.Name = m.Name
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -484,9 +480,7 @@ func (m *TablePartitionRoot) CloneVT() *TablePartitionRoot {
 		return (*TablePartitionRoot)(nil)
 	}
 	r := new(TablePartitionRoot)
-	if rhs := m.RowKeyValue; rhs != nil {
-		r.RowKeyValue = rhs.CloneVT()
-	}
+	r.RowKeyValue = m.RowKeyValue.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -523,9 +517,7 @@ func (m *TableColumn) CloneVT() *TableColumn {
 		return (*TableColumn)(nil)
 	}
 	r := new(TableColumn)
-	if rhs := m.MsgpackBlob; rhs != nil {
-		r.MsgpackBlob = rhs.CloneVT()
-	}
+	r.MsgpackBlob = m.MsgpackBlob.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -614,6 +606,7 @@ func (this *Root) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RootDb) EqualVT(that *RootDb) bool {
 	if this == that {
 		return true
@@ -636,6 +629,7 @@ func (this *RootDb) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *DatabaseRoot) EqualVT(that *DatabaseRoot) bool {
 	if this == that {
 		return true
@@ -669,6 +663,7 @@ func (this *DatabaseRoot) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *DatabaseRootTable) EqualVT(that *DatabaseRootTable) bool {
 	if this == that {
 		return true
@@ -691,6 +686,7 @@ func (this *DatabaseRootTable) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TableRoot) EqualVT(that *TableRoot) bool {
 	if this == that {
 		return true
@@ -748,6 +744,7 @@ func (this *TableRoot) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TablePartitionRoot) EqualVT(that *TablePartitionRoot) bool {
 	if this == that {
 		return true
@@ -767,6 +764,7 @@ func (this *TablePartitionRoot) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TableRow) EqualVT(that *TableRow) bool {
 	if this == that {
 		return true
@@ -800,6 +798,7 @@ func (this *TableRow) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TableColumn) EqualVT(that *TableColumn) bool {
 	if this == that {
 		return true
@@ -819,6 +818,7 @@ func (this *TableColumn) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TableSchema) EqualVT(that *TableSchema) bool {
 	if this == that {
 		return true
@@ -852,6 +852,7 @@ func (this *TableSchema) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TableSchemaColumn) EqualVT(that *TableSchemaColumn) bool {
 	if this == that {
 		return true
@@ -2386,6 +2387,7 @@ func (x *Root) MarshalProtoText() string {
 func (x *Root) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RootDb) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RootDb {")
@@ -2410,6 +2412,7 @@ func (x *RootDb) MarshalProtoText() string {
 func (x *RootDb) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *DatabaseRoot) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DatabaseRoot {")
@@ -2433,6 +2436,7 @@ func (x *DatabaseRoot) MarshalProtoText() string {
 func (x *DatabaseRoot) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *DatabaseRootTable) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DatabaseRootTable {")
@@ -2457,6 +2461,7 @@ func (x *DatabaseRootTable) MarshalProtoText() string {
 func (x *DatabaseRootTable) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TableRoot) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TableRoot {")
@@ -2528,6 +2533,7 @@ func (x *TableRoot) MarshalProtoText() string {
 func (x *TableRoot) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TablePartitionRoot) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TablePartitionRoot {")
@@ -2545,6 +2551,7 @@ func (x *TablePartitionRoot) MarshalProtoText() string {
 func (x *TablePartitionRoot) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TableRow) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TableRow {")
@@ -2568,6 +2575,7 @@ func (x *TableRow) MarshalProtoText() string {
 func (x *TableRow) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TableColumn) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TableColumn {")
@@ -2585,6 +2593,7 @@ func (x *TableColumn) MarshalProtoText() string {
 func (x *TableColumn) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TableSchema) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TableSchema {")
@@ -2608,6 +2617,7 @@ func (x *TableSchema) MarshalProtoText() string {
 func (x *TableSchema) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TableSchemaColumn) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TableSchemaColumn {")
@@ -2681,6 +2691,7 @@ func (x *TableSchemaColumn) MarshalProtoText() string {
 func (x *TableSchemaColumn) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Root) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2766,6 +2777,7 @@ func (m *Root) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RootDb) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2885,6 +2897,7 @@ func (m *RootDb) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *DatabaseRoot) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2970,6 +2983,7 @@ func (m *DatabaseRoot) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *DatabaseRootTable) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3089,6 +3103,7 @@ func (m *DatabaseRootTable) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TableRoot) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3392,6 +3407,7 @@ func (m *TableRoot) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TablePartitionRoot) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3479,6 +3495,7 @@ func (m *TablePartitionRoot) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TableRow) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3564,6 +3581,7 @@ func (m *TableRow) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TableColumn) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3651,6 +3669,7 @@ func (m *TableColumn) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TableSchema) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3736,6 +3755,7 @@ func (m *TableSchema) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TableSchemaColumn) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

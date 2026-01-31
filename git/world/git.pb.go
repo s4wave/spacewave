@@ -270,11 +270,9 @@ func (m *GitInitOp) CloneVT() *GitInitOp {
 	}
 	r := new(GitInitOp)
 	r.ObjectKey = m.ObjectKey
+	r.RepoRef = m.RepoRef.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
-	if rhs := m.RepoRef; rhs != nil {
-		r.RepoRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -290,10 +288,8 @@ func (m *Worktree) CloneVT() *Worktree {
 		return (*Worktree)(nil)
 	}
 	r := new(Worktree)
+	r.GitIndex = m.GitIndex.CloneVT()
 	r.HeadRefStore = m.HeadRefStore.CloneVT()
-	if rhs := m.GitIndex; rhs != nil {
-		r.GitIndex = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -310,9 +306,7 @@ func (m *HeadRefStore) CloneVT() *HeadRefStore {
 	}
 	r := new(HeadRefStore)
 	r.SubmoduleName = m.SubmoduleName
-	if rhs := m.HeadRef; rhs != nil {
-		r.HeadRef = rhs.CloneVT()
-	}
+	r.HeadRef = m.HeadRef.CloneVT()
 	if rhs := m.Submodules; rhs != nil {
 		r.Submodules = make([]*HeadRefStore, len(rhs))
 		for k, v := range rhs {
@@ -336,14 +330,10 @@ func (m *GitCreateWorktreeOp) CloneVT() *GitCreateWorktreeOp {
 	r := new(GitCreateWorktreeOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
+	r.WorkdirRef = m.WorkdirRef.CloneVT()
 	r.CreateWorkdir = m.CreateWorkdir
+	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
-	if rhs := m.WorkdirRef; rhs != nil {
-		r.WorkdirRef = rhs.CloneVT()
-	}
-	if rhs := m.CheckoutOpts; rhs != nil {
-		r.CheckoutOpts = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -364,9 +354,7 @@ func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 	r := new(GitWorktreeCheckoutOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
-	if rhs := m.CheckoutOpts; rhs != nil {
-		r.CheckoutOpts = rhs.CloneVT()
-	}
+	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -408,6 +396,7 @@ func (this *GitInitOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Worktree) EqualVT(that *Worktree) bool {
 	if this == that {
 		return true
@@ -430,6 +419,7 @@ func (this *Worktree) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HeadRefStore) EqualVT(that *HeadRefStore) bool {
 	if this == that {
 		return true
@@ -469,6 +459,7 @@ func (this *HeadRefStore) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GitCreateWorktreeOp) EqualVT(that *GitCreateWorktreeOp) bool {
 	if this == that {
 		return true
@@ -506,6 +497,7 @@ func (this *GitCreateWorktreeOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GitWorktreeCheckoutOp) EqualVT(that *GitWorktreeCheckoutOp) bool {
 	if this == that {
 		return true
@@ -1442,6 +1434,7 @@ func (x *GitInitOp) MarshalProtoText() string {
 func (x *GitInitOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Worktree) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Worktree {")
@@ -1466,6 +1459,7 @@ func (x *Worktree) MarshalProtoText() string {
 func (x *Worktree) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HeadRefStore) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HeadRefStore {")
@@ -1503,6 +1497,7 @@ func (x *HeadRefStore) MarshalProtoText() string {
 func (x *HeadRefStore) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GitCreateWorktreeOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GitCreateWorktreeOp {")
@@ -1562,6 +1557,7 @@ func (x *GitCreateWorktreeOp) MarshalProtoText() string {
 func (x *GitCreateWorktreeOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GitWorktreeCheckoutOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GitWorktreeCheckoutOp {")
@@ -1600,6 +1596,7 @@ func (x *GitWorktreeCheckoutOp) MarshalProtoText() string {
 func (x *GitWorktreeCheckoutOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *GitInitOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1775,6 +1772,7 @@ func (m *GitInitOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Worktree) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1898,6 +1896,7 @@ func (m *Worktree) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HeadRefStore) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2051,6 +2050,7 @@ func (m *HeadRefStore) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GitCreateWorktreeOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2314,6 +2314,7 @@ func (m *GitCreateWorktreeOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GitWorktreeCheckoutOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

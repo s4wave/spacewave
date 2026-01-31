@@ -217,15 +217,13 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
+	r.BucketConf = m.BucketConf.CloneVT()
 	r.NotFoundBehavior = m.NotFoundBehavior
 	r.PutBlockBehavior = m.PutBlockBehavior
 	r.WritebackBehavior = m.WritebackBehavior
 	r.LookupTimeoutDur = m.LookupTimeoutDur
 	r.Verbose = m.Verbose
 	r.FallbackBlockStoreId = m.FallbackBlockStoreId
-	if rhs := m.BucketConf; rhs != nil {
-		r.BucketConf = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -607,12 +605,15 @@ func (m *Config) SizeVT() (n int) {
 func (x NotFoundBehavior) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x PutBlockBehavior) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x WritebackBehavior) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -678,6 +679,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

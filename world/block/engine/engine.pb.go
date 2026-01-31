@@ -192,17 +192,13 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStoreId = m.ObjectStoreId
 	r.ObjectStorePrefix = m.ObjectStorePrefix
 	r.ObjectStoreHeadKey = m.ObjectStoreHeadKey
+	r.InitHeadRef = m.InitHeadRef.CloneVT()
+	r.StateTransformConf = m.StateTransformConf.CloneVT()
 	r.DisableChangelog = m.DisableChangelog
 	r.DisableLookup = m.DisableLookup
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
 	r.DisableApplyObjectOp = m.DisableApplyObjectOp
 	r.Verbose = m.Verbose
-	if rhs := m.InitHeadRef; rhs != nil {
-		r.InitHeadRef = rhs.CloneVT()
-	}
-	if rhs := m.StateTransformConf; rhs != nil {
-		r.StateTransformConf = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -218,9 +214,7 @@ func (m *HeadState) CloneVT() *HeadState {
 		return (*HeadState)(nil)
 	}
 	r := new(HeadState)
-	if rhs := m.HeadRef; rhs != nil {
-		r.HeadRef = rhs.CloneVT()
-	}
+	r.HeadRef = m.HeadRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -286,6 +280,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HeadState) EqualVT(that *HeadState) bool {
 	if this == that {
 		return true
@@ -858,6 +853,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HeadState) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HeadState {")
@@ -875,6 +871,7 @@ func (x *HeadState) MarshalProtoText() string {
 func (x *HeadState) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1290,6 +1287,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HeadState) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

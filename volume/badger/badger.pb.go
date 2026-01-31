@@ -268,10 +268,13 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Dir = m.Dir
 	r.ValueDir = m.ValueDir
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
 	r.BadgerDebug = m.BadgerDebug
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
+	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.NumVersionsToKeep = m.NumVersionsToKeep
 	r.BaseTableSize = m.BaseTableSize
 	r.LevelSizeMultiplier = m.LevelSizeMultiplier
@@ -285,15 +288,6 @@ func (m *Config) CloneVT() *Config {
 	r.ValueLogMaxEntries = m.ValueLogMaxEntries
 	r.NumCompactors = m.NumCompactors
 	r.NoSyncWrites = m.NoSyncWrites
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
-	if rhs := m.StoreConfig; rhs != nil {
-		r.StoreConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1065,6 +1059,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

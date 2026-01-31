@@ -273,6 +273,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *VolumeAliases) EqualVT(that *VolumeAliases) bool {
 	if this == that {
 		return true
@@ -767,6 +768,7 @@ func (x *Config_VolumeAliasesEntry) MarshalProtoText() string {
 func (x *Config_VolumeAliasesEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -846,6 +848,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *VolumeAliases) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("VolumeAliases {")
@@ -869,6 +872,7 @@ func (x *VolumeAliases) MarshalProtoText() string {
 func (x *VolumeAliases) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1265,6 +1269,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *VolumeAliases) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

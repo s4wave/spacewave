@@ -1,0 +1,1479 @@
+{
+  "version": 2,
+  "protocFlagsHash": "457269b440a59202be7f200225c90f335f080073fa62979585d43f4b362d7cf9",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.11.0,starpc=v0.39.8,protobuf-es-lite=^0.5.2",
+  "packages": {
+    "github.com/aperturerobotics/hydra/block": {
+      "hash": "c205759a1f70fb40e46c97cdb9edbe7b3e2d998b2de09b78c1c5f1976f337538",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/block.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/block.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/block.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/block.pb.ts",
+        "block/block.pb.cc",
+        "block/block.pb.go",
+        "block/block.pb.h",
+        "block/block.pb.ts"
+      ],
+      "protoFiles": [
+        "block/block.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/bitset": {
+      "hash": "519e924835213783331f0ca292692eddfea37aa9d1bf3977cf411cc8d654cc85",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/bitset/bitset.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/bitset/bitset.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/bitset/bitset.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/bitset/bitset.pb.ts",
+        "block/bitset/bitset.pb.cc",
+        "block/bitset/bitset.pb.go",
+        "block/bitset/bitset.pb.h",
+        "block/bitset/bitset.pb.ts"
+      ],
+      "protoFiles": [
+        "block/bitset/bitset.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/blob": {
+      "hash": "32fb2222d548426998383141269e651ba6f20ad04abba11df8f2e40fea3d2d22",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/blob/blob.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/blob/blob.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/blob/blob.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/blob/blob.pb.ts",
+        "block/blob/blob.pb.cc",
+        "block/blob/blob.pb.go",
+        "block/blob/blob.pb.h",
+        "block/blob/blob.pb.ts"
+      ],
+      "protoFiles": [
+        "block/blob/blob.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/bloom": {
+      "hash": "fdcc20a4805037c75f56cc2474d19c8da0d03a32b85104e8cd02a8f2349618cd",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/bloom/bloom.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/bloom/bloom.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/bloom/bloom.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/bloom/bloom.pb.ts",
+        "block/bloom/bloom.pb.cc",
+        "block/bloom/bloom.pb.go",
+        "block/bloom/bloom.pb.h",
+        "block/bloom/bloom.pb.ts"
+      ],
+      "protoFiles": [
+        "block/bloom/bloom.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/file": {
+      "hash": "cb2622694af73f58f00b2d053fac0ddf34d09944da15bba6bd5688e1c5a7f4ee",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/file/file.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/file/file.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/file/file.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/file/file.pb.ts",
+        "block/file/file.pb.cc",
+        "block/file/file.pb.go",
+        "block/file/file.pb.h",
+        "block/file/file.pb.ts"
+      ],
+      "protoFiles": [
+        "block/file/file.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/filters": {
+      "hash": "8afbb49700ae5e3e20b3c093a8fe44eddbd0a0713bb09bb34f458b84cf0d5392",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/filters/filters.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/filters/filters.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/filters/filters.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/filters/filters.pb.ts",
+        "block/filters/filters.pb.cc",
+        "block/filters/filters.pb.go",
+        "block/filters/filters.pb.h",
+        "block/filters/filters.pb.ts"
+      ],
+      "protoFiles": [
+        "block/filters/filters.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/mock": {
+      "hash": "7eb5cf645a5d3f4550d13fe9929be28dc0f2b1326933c8a87f849d3b22fe1f33",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/mock/mock.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/mock/mock.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/mock/mock.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/mock/mock.pb.ts",
+        "block/mock/mock.pb.cc",
+        "block/mock/mock.pb.go",
+        "block/mock/mock.pb.h",
+        "block/mock/mock.pb.ts"
+      ],
+      "protoFiles": [
+        "block/mock/mock.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/msgpack": {
+      "hash": "37b352ca97d5a07ea437801d2043dfda57f4603d40be846c9b5a5ed0a285962e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/msgpack/msgpack.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/msgpack/msgpack.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/msgpack/msgpack.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/msgpack/msgpack.pb.ts",
+        "block/msgpack/msgpack.pb.cc",
+        "block/msgpack/msgpack.pb.go",
+        "block/msgpack/msgpack.pb.h",
+        "block/msgpack/msgpack.pb.ts"
+      ],
+      "protoFiles": [
+        "block/msgpack/msgpack.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/quad": {
+      "hash": "1bf0e7ed5f8cb0192c1b0160890d80002f7cd2b3cc89d5795ac6255146df4693",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/quad/quad.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/quad/quad.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/quad/quad.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/quad/quad.pb.ts",
+        "block/quad/quad.pb.cc",
+        "block/quad/quad.pb.go",
+        "block/quad/quad.pb.h",
+        "block/quad/quad.pb.ts"
+      ],
+      "protoFiles": [
+        "block/quad/quad.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/rpc": {
+      "hash": "c13ead540ae6d5fb92cb0b74b336f16b674cac55e087a4896c77412693956a9a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/rpc/block_srpc.pb.ts",
+        "block/rpc/block.pb.cc",
+        "block/rpc/block.pb.go",
+        "block/rpc/block.pb.h",
+        "block/rpc/block.pb.ts",
+        "block/rpc/block_srpc.pb.go",
+        "block/rpc/block_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "block/rpc/block.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/bucket": {
+      "hash": "9654344ef0e285b688138a7b53614a81233a1184b1d4098a361ac7a96170d4f5",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/bucket/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/bucket/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/bucket/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/bucket/config.pb.ts",
+        "block/store/bucket/config.pb.cc",
+        "block/store/bucket/config.pb.go",
+        "block/store/bucket/config.pb.h",
+        "block/store/bucket/config.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/bucket/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/http": {
+      "hash": "775c1ec95c859d217251d6c30f6b5779ca0050c5515aaebdf2038ccdc69eae0c",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/http.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/http.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/http.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/http.pb.ts",
+        "block/store/http/http.pb.cc",
+        "block/store/http/http.pb.go",
+        "block/store/http/http.pb.h",
+        "block/store/http/http.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/http/http.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/http/lookup": {
+      "hash": "171ae98f61e541f33a65b0d61a9db427b40eadbbab00fb765c015240b2c42a40",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/lookup/lookup.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/lookup/lookup.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/lookup/lookup.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/lookup/lookup.pb.ts",
+        "block/store/http/lookup/lookup.pb.cc",
+        "block/store/http/lookup/lookup.pb.go",
+        "block/store/http/lookup/lookup.pb.h",
+        "block/store/http/lookup/lookup.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/http/lookup/lookup.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/http/server": {
+      "hash": "414e08b61dfba114d28412dce08c9e6a626f268a45e1294d0e86273594258e5e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/server/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/server/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/server/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/http/server/config.pb.ts",
+        "block/store/http/server/config.pb.cc",
+        "block/store/http/server/config.pb.go",
+        "block/store/http/server/config.pb.h",
+        "block/store/http/server/config.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/http/server/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/inmem": {
+      "hash": "eba2a88020dfc8e1458f6b31ad0762945b5fd31eee5329d49b06b8472f83479f",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/inmem/inmem.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/inmem/inmem.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/inmem/inmem.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/inmem/inmem.pb.ts",
+        "block/store/inmem/inmem.pb.cc",
+        "block/store/inmem/inmem.pb.go",
+        "block/store/inmem/inmem.pb.h",
+        "block/store/inmem/inmem.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/inmem/inmem.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/kvfile/http": {
+      "hash": "e53207c8b95f688fc55559b25b2e03ade16c141add275fc3caf838aeeea92823",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/kvfile/http/http.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/kvfile/http/http.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/kvfile/http/http.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/kvfile/http/http.pb.ts",
+        "block/store/kvfile/http/http.pb.cc",
+        "block/store/kvfile/http/http.pb.go",
+        "block/store/kvfile/http/http.pb.h",
+        "block/store/kvfile/http/http.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/kvfile/http/http.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/overlay": {
+      "hash": "9509707a6bdef0a320249d8a4b2821e9007c7e569243b7f784f1874c5c72f035",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/overlay/overlay.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/overlay/overlay.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/overlay/overlay.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/overlay/overlay.pb.ts",
+        "block/store/overlay/overlay.pb.cc",
+        "block/store/overlay/overlay.pb.go",
+        "block/store/overlay/overlay.pb.h",
+        "block/store/overlay/overlay.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/overlay/overlay.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/redis": {
+      "hash": "029088a02666177b616945c025fd92536ef8b997769f677c2ebea07857d4aafa",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/redis/redis.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/redis/redis.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/redis/redis.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/redis/redis.pb.ts",
+        "block/store/redis/redis.pb.cc",
+        "block/store/redis/redis.pb.go",
+        "block/store/redis/redis.pb.h",
+        "block/store/redis/redis.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/redis/redis.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/ristretto": {
+      "hash": "cfed095f098ceb3be64bf0f9c2d719047aa9577589df9c3faa202cedf70bce60",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/ristretto/ristretto.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/ristretto/ristretto.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/ristretto/ristretto.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/ristretto/ristretto.pb.ts",
+        "block/store/ristretto/ristretto.pb.cc",
+        "block/store/ristretto/ristretto.pb.go",
+        "block/store/ristretto/ristretto.pb.h",
+        "block/store/ristretto/ristretto.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/ristretto/ristretto.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/rpc": {
+      "hash": "e6d90efe07812a6094be2d9f224659340eaf345ccca35b83d8f73a69d09c5caf",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/rpc.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/rpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/rpc.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/rpc.pb.ts",
+        "block/store/rpc/rpc.pb.cc",
+        "block/store/rpc/rpc.pb.go",
+        "block/store/rpc/rpc.pb.h",
+        "block/store/rpc/rpc.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/rpc/rpc.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/rpc/lookup": {
+      "hash": "8740bc3c7c1df294b8740402a86008692307175ea41ddad9feec4031cf6debef",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/lookup/lookup.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/lookup/lookup.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/lookup/lookup.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/lookup/lookup.pb.ts",
+        "block/store/rpc/lookup/lookup.pb.cc",
+        "block/store/rpc/lookup/lookup.pb.go",
+        "block/store/rpc/lookup/lookup.pb.h",
+        "block/store/rpc/lookup/lookup.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/rpc/lookup/lookup.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/rpc/server": {
+      "hash": "f6f78ad2b2f61379e74e69fbe503599a327effed59b81c8962656a5dfdf0d4fa",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/config.pb.ts",
+        "block/store/rpc/server/config.pb.cc",
+        "block/store/rpc/server/config.pb.go",
+        "block/store/rpc/server/config.pb.h",
+        "block/store/rpc/server/config.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/rpc/server/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/rpc/server/bucket": {
+      "hash": "31927adfdc700be886d97b76f8e38a3edb35609ae04eea9ad6198eae5ae0a109",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/bucket/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/bucket/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/bucket/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/rpc/server/bucket/config.pb.ts",
+        "block/store/rpc/server/bucket/config.pb.cc",
+        "block/store/rpc/server/bucket/config.pb.go",
+        "block/store/rpc/server/bucket/config.pb.h",
+        "block/store/rpc/server/bucket/config.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/rpc/server/bucket/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/s3": {
+      "hash": "22bad05e47642c9956a865b5687c8c27f08d89cc306a64e2bbd5598598f4b740",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/s3.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/s3.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/s3.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/s3.pb.ts",
+        "block/store/s3/s3.pb.cc",
+        "block/store/s3/s3.pb.go",
+        "block/store/s3/s3.pb.h",
+        "block/store/s3/s3.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/s3/s3.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/store/s3/lookup": {
+      "hash": "6cc8249e74b83fa2936633bfde2bb91de2113f23a6cd11230a949527a1c182bc",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/lookup/lookup.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/lookup/lookup.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/lookup/lookup.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/store/s3/lookup/lookup.pb.ts",
+        "block/store/s3/lookup/lookup.pb.cc",
+        "block/store/s3/lookup/lookup.pb.go",
+        "block/store/s3/lookup/lookup.pb.h",
+        "block/store/s3/lookup/lookup.pb.ts"
+      ],
+      "protoFiles": [
+        "block/store/s3/lookup/lookup.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform": {
+      "hash": "39cded9de5b8d8529d48808855746871e97147edc62e5c123291a4c660848c20",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/transform.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/transform.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/transform.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/transform.pb.ts",
+        "block/transform/transform.pb.cc",
+        "block/transform/transform.pb.go",
+        "block/transform/transform.pb.h",
+        "block/transform/transform.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/transform.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform/blockenc": {
+      "hash": "eff5e8309f7df06c74f56db51aca031eacd3d01e6127f06884e996ff4d6795c1",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.pb.ts",
+        "block/transform/blockenc/blockenc.pb.cc",
+        "block/transform/blockenc/blockenc.pb.go",
+        "block/transform/blockenc/blockenc.pb.h",
+        "block/transform/blockenc/blockenc.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/blockenc/blockenc.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform/chksum": {
+      "hash": "22369bf6b5fd94ee144aaa3cf4f4b76c08f7cf3e7a1984d380d56b3aef426dcc",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/chksum/chksum.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/chksum/chksum.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/chksum/chksum.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/chksum/chksum.pb.ts",
+        "block/transform/chksum/chksum.pb.cc",
+        "block/transform/chksum/chksum.pb.go",
+        "block/transform/chksum/chksum.pb.h",
+        "block/transform/chksum/chksum.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/chksum/chksum.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform/lz4": {
+      "hash": "d72b82cf970e2d497ccb1fa5000ff6355c99456cd54290e20e99eeab0a081dd9",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/lz4/lz4.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/lz4/lz4.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/lz4/lz4.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/lz4/lz4.pb.ts",
+        "block/transform/lz4/lz4.pb.cc",
+        "block/transform/lz4/lz4.pb.go",
+        "block/transform/lz4/lz4.pb.h",
+        "block/transform/lz4/lz4.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/lz4/lz4.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform/s2": {
+      "hash": "d27d05222cc9ff90c094f1c4bf925ee5e6ac6044149a30d18d2b8aec45caab77",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/s2/s2.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/s2/s2.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/s2/s2.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/s2/s2.pb.ts",
+        "block/transform/s2/s2.pb.cc",
+        "block/transform/s2/s2.pb.go",
+        "block/transform/s2/s2.pb.h",
+        "block/transform/s2/s2.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/s2/s2.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/block/transform/snappy": {
+      "hash": "a8e6c55fc112c3e95de7932534e7bb26415457a94b995d61cf13f23ed6b50009",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/block/transform/snappy/snappy.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/snappy/snappy.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/snappy/snappy.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/block/transform/snappy/snappy.pb.ts",
+        "block/transform/snappy/snappy.pb.cc",
+        "block/transform/snappy/snappy.pb.go",
+        "block/transform/snappy/snappy.pb.h",
+        "block/transform/snappy/snappy.pb.ts"
+      ],
+      "protoFiles": [
+        "block/transform/snappy/snappy.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket": {
+      "hash": "6ed151a7b2788a027233ecdebaf3693a4c36936bb0a471453855fc185373014a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/bucket.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/bucket.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/bucket.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/bucket.pb.ts",
+        "bucket/bucket.pb.cc",
+        "bucket/bucket.pb.go",
+        "bucket/bucket.pb.h",
+        "bucket/bucket.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/bucket.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/event": {
+      "hash": "0f2b70f927d3ba5950af5d1e4e9f55b916e81e1ee6f4b99e94e4b1275897332a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/event/event.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/event/event.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/event/event.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/event/event.pb.ts",
+        "bucket/event/event.pb.cc",
+        "bucket/event/event.pb.go",
+        "bucket/event/event.pb.h",
+        "bucket/event/event.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/event/event.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/http/server": {
+      "hash": "14d3bbdfb25b20f14c2501c384ce8820b8a73cf60e55106bcb9628ddb119dc66",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/http/server/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/http/server/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/http/server/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/http/server/config.pb.ts",
+        "bucket/http/server/config.pb.cc",
+        "bucket/http/server/config.pb.go",
+        "bucket/http/server/config.pb.h",
+        "bucket/http/server/config.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/http/server/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/lookup/concurrent": {
+      "hash": "ee16c3595ff4466ad377b146ae27bf7fdd1a5f38de2b7242ce86a2378d32e44e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.pb.ts",
+        "bucket/lookup/concurrent/concurrent.pb.cc",
+        "bucket/lookup/concurrent/concurrent.pb.go",
+        "bucket/lookup/concurrent/concurrent.pb.h",
+        "bucket/lookup/concurrent/concurrent.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/lookup/concurrent/concurrent.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/mock": {
+      "hash": "344fb7780f973c03f17549cbf74d6052daf1c135c09b3d77c03db5e4b734eb1f",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/mock/mock.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/mock/mock.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/mock/mock.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/mock/mock.pb.ts",
+        "bucket/mock/mock.pb.cc",
+        "bucket/mock/mock.pb.go",
+        "bucket/mock/mock.pb.h",
+        "bucket/mock/mock.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/mock/mock.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/setup": {
+      "hash": "4f0ecda9c6e8bdecea0ff42663e8c79476f7ba40589bd7e66bc362694bbd0de5",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/setup/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/setup/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/setup/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/setup/config.pb.ts",
+        "bucket/setup/config.pb.cc",
+        "bucket/setup/config.pb.go",
+        "bucket/setup/config.pb.h",
+        "bucket/setup/config.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/setup/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/bucket/store/rpc": {
+      "hash": "2ba5e41034ea0194a064f5b2df1ff186d019745d7fb79a442155008fb50cc15e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/bucket/store/rpc/bucket_srpc.pb.ts",
+        "bucket/store/rpc/bucket.pb.cc",
+        "bucket/store/rpc/bucket.pb.go",
+        "bucket/store/rpc/bucket.pb.h",
+        "bucket/store/rpc/bucket.pb.ts",
+        "bucket/store/rpc/bucket_srpc.pb.go",
+        "bucket/store/rpc/bucket_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bucket/store/rpc/bucket.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/daemon/api": {
+      "hash": "70380bd5d53c8fc289a866b8abd5e559052ef429c9e302eed5ce12751cef3487",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/api_srpc.pb.ts",
+        "daemon/api/api.pb.cc",
+        "daemon/api/api.pb.go",
+        "daemon/api/api.pb.h",
+        "daemon/api/api.pb.ts",
+        "daemon/api/api_srpc.pb.go",
+        "daemon/api/api_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "daemon/api/api.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/daemon/api/controller": {
+      "hash": "8d944050f68d4887dc9d43cf10c4aa5eb11999d1c501b9322b255babc28b9a03",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/controller/controller.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/controller/controller.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/controller/controller.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/daemon/api/controller/controller.pb.ts",
+        "daemon/api/controller/controller.pb.cc",
+        "daemon/api/controller/controller.pb.go",
+        "daemon/api/controller/controller.pb.h",
+        "daemon/api/controller/controller.pb.ts"
+      ],
+      "protoFiles": [
+        "daemon/api/controller/controller.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/dex": {
+      "hash": "cb17a8da2dcc367ee9ed681b84d477b800c661a4385bf437d00a23c25cae300a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/dex/directive.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/dex/directive.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/dex/directive.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/dex/directive.pb.ts",
+        "dex/directive.pb.cc",
+        "dex/directive.pb.go",
+        "dex/directive.pb.h",
+        "dex/directive.pb.ts"
+      ],
+      "protoFiles": [
+        "dex/directive.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/dex/psecho": {
+      "hash": "003e9dde85549d3882e6d92b9a78e3219408b0bd3dc5ca1f651d23f48571a0aa",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/dex/psecho/psecho.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/dex/psecho/psecho.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/dex/psecho/psecho.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/dex/psecho/psecho.pb.ts",
+        "dex/psecho/psecho.pb.cc",
+        "dex/psecho/psecho.pb.go",
+        "dex/psecho/psecho.pb.h",
+        "dex/psecho/psecho.pb.ts"
+      ],
+      "protoFiles": [
+        "dex/psecho/psecho.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/entitygraph": {
+      "hash": "a7f1f9797d349e3c4eb27d8ab4b19b7395a7cc2ebab5dbfa3eaaa14773a2dfff",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/entitygraph/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/entitygraph/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/entitygraph/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/entitygraph/config.pb.ts",
+        "entitygraph/config.pb.cc",
+        "entitygraph/config.pb.go",
+        "entitygraph/config.pb.h",
+        "entitygraph/config.pb.ts"
+      ],
+      "protoFiles": [
+        "entitygraph/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/git/block": {
+      "hash": "3acfb56e259ed5d4b83e50945bf765ace93736fa4715f3d2ad39f27c7cf06dce",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/git/block/git.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/git/block/git.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/git/block/git.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/git/block/git.pb.ts",
+        "git/block/git.pb.cc",
+        "git/block/git.pb.go",
+        "git/block/git.pb.h",
+        "git/block/git.pb.ts"
+      ],
+      "protoFiles": [
+        "git/block/git.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/git/world": {
+      "hash": "f42f4efb75cb78afc1626d9a6d3ae3124daa234990d607782ee1f33999e03a10",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/git/world/git.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/git/world/git.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/git/world/git.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/git/world/git.pb.ts",
+        "git/world/git.pb.cc",
+        "git/world/git.pb.go",
+        "git/world/git.pb.h",
+        "git/world/git.pb.ts"
+      ],
+      "protoFiles": [
+        "git/world/git.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/kvtx/block": {
+      "hash": "42851cce5602504fd804ace9532b301a83e8fcbbe6316060954525a8885cc21b",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/kvtx.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/kvtx.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/kvtx.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/kvtx.pb.ts",
+        "kvtx/block/kvtx.pb.cc",
+        "kvtx/block/kvtx.pb.go",
+        "kvtx/block/kvtx.pb.h",
+        "kvtx/block/kvtx.pb.ts"
+      ],
+      "protoFiles": [
+        "kvtx/block/kvtx.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/kvtx/block/iavl": {
+      "hash": "77530f37c0c0504b55e844441a568a2e839e1be6f2045a4a82051e6afd4553f5",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.pb.ts",
+        "kvtx/block/iavl/iavl.pb.cc",
+        "kvtx/block/iavl/iavl.pb.go",
+        "kvtx/block/iavl/iavl.pb.h",
+        "kvtx/block/iavl/iavl.pb.ts"
+      ],
+      "protoFiles": [
+        "kvtx/block/iavl/iavl.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/kvtx/fibheap": {
+      "hash": "036dbdce3ef1e70226d0298e8b938bdc335d86fd606777a10fcbab3ccde46f40",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/kvtx/fibheap/fibheap.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/fibheap/fibheap.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/fibheap/fibheap.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/fibheap/fibheap.pb.ts",
+        "kvtx/fibheap/fibheap.pb.cc",
+        "kvtx/fibheap/fibheap.pb.go",
+        "kvtx/fibheap/fibheap.pb.h",
+        "kvtx/fibheap/fibheap.pb.ts"
+      ],
+      "protoFiles": [
+        "kvtx/fibheap/fibheap.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/kvtx/mqueue": {
+      "hash": "b4faece11c2eb30f92662eb77508c89eb6ec7ff9a2a3151d4e40216034dd2911",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.pb.ts",
+        "kvtx/mqueue/mqueue.pb.cc",
+        "kvtx/mqueue/mqueue.pb.go",
+        "kvtx/mqueue/mqueue.pb.h",
+        "kvtx/mqueue/mqueue.pb.ts"
+      ],
+      "protoFiles": [
+        "kvtx/mqueue/mqueue.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/kvtx/rpc": {
+      "hash": "a9466b596ce79b49e6c7ade48e66d2dbee89e64ec62bcbcdbda85ac846d04f68",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/kvtx/rpc/kvtx_srpc.pb.ts",
+        "kvtx/rpc/kvtx.pb.cc",
+        "kvtx/rpc/kvtx.pb.go",
+        "kvtx/rpc/kvtx.pb.h",
+        "kvtx/rpc/kvtx.pb.ts",
+        "kvtx/rpc/kvtx_srpc.pb.go",
+        "kvtx/rpc/kvtx_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "kvtx/rpc/kvtx.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/mqueue/rpc": {
+      "hash": "741051bb8e1133b3cc710ad4eafe524375e5b8a0c24083c53e8356ab94d85587",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/mqueue/rpc/mqueue_srpc.pb.ts",
+        "mqueue/rpc/mqueue.pb.cc",
+        "mqueue/rpc/mqueue.pb.go",
+        "mqueue/rpc/mqueue.pb.h",
+        "mqueue/rpc/mqueue.pb.ts",
+        "mqueue/rpc/mqueue_srpc.pb.go",
+        "mqueue/rpc/mqueue_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "mqueue/rpc/mqueue.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/node/controller": {
+      "hash": "07d728fd5472dda3ce9d855bdb9dc26b39784308c1bc642701293fb98b3985a1",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/node/controller/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/node/controller/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/node/controller/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/node/controller/config.pb.ts",
+        "node/controller/config.pb.cc",
+        "node/controller/config.pb.go",
+        "node/controller/config.pb.h",
+        "node/controller/config.pb.ts"
+      ],
+      "protoFiles": [
+        "node/controller/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/object/peer": {
+      "hash": "5d80302a082ee78f245a3226e7dff0109cd0b88eeb4b84c9a7151825cbd21331",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/object/peer/peer.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/object/peer/peer.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/object/peer/peer.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/object/peer/peer.pb.ts",
+        "object/peer/peer.pb.cc",
+        "object/peer/peer.pb.go",
+        "object/peer/peer.pb.h",
+        "object/peer/peer.pb.ts"
+      ],
+      "protoFiles": [
+        "object/peer/peer.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/object/rpc": {
+      "hash": "3d447aa011235ba9bca99e62d2080b5a4cff3030784a833fc8163b71c890a64b",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/object/rpc/object_srpc.pb.ts",
+        "object/rpc/object.pb.cc",
+        "object/rpc/object.pb.go",
+        "object/rpc/object.pb.h",
+        "object/rpc/object.pb.ts",
+        "object/rpc/object_srpc.pb.go",
+        "object/rpc/object_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "object/rpc/object.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/reconciler/example": {
+      "hash": "e7e3cf6a3ca921bbe51625cf2b064b9bb44108d11aac6e8b19ea54cfb43073a9",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/reconciler/example/example.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/reconciler/example/example.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/reconciler/example/example.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/reconciler/example/example.pb.ts",
+        "reconciler/example/example.pb.cc",
+        "reconciler/example/example.pb.go",
+        "reconciler/example/example.pb.h",
+        "reconciler/example/example.pb.ts"
+      ],
+      "protoFiles": [
+        "reconciler/example/example.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/sql/mysql": {
+      "hash": "7b60f84c08fbc753ea6ea7bc842068cff4025a102db3b88222022658e9f93e0b",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/mysql.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/mysql.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/mysql.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/mysql.pb.ts",
+        "sql/mysql/mysql.pb.cc",
+        "sql/mysql/mysql.pb.go",
+        "sql/mysql/mysql.pb.h",
+        "sql/mysql/mysql.pb.ts"
+      ],
+      "protoFiles": [
+        "sql/mysql/mysql.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/sql/mysql/controller": {
+      "hash": "563b04e3704df30805c4901f023dbcb23d14687faca396de84bc9f00da2e2cd8",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/controller/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/controller/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/controller/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/sql/mysql/controller/config.pb.ts",
+        "sql/mysql/controller/config.pb.cc",
+        "sql/mysql/controller/config.pb.go",
+        "sql/mysql/controller/config.pb.h",
+        "sql/mysql/controller/config.pb.ts"
+      ],
+      "protoFiles": [
+        "sql/mysql/controller/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/store/kvkey": {
+      "hash": "d1af413efa4a553dd346580fa62f6c0949469018c548b6ca5d04068ce7474a79",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/store/kvkey/kvkey.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/store/kvkey/kvkey.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/store/kvkey/kvkey.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/store/kvkey/kvkey.pb.ts",
+        "store/kvkey/kvkey.pb.cc",
+        "store/kvkey/kvkey.pb.go",
+        "store/kvkey/kvkey.pb.h",
+        "store/kvkey/kvkey.pb.ts"
+      ],
+      "protoFiles": [
+        "store/kvkey/kvkey.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/store/kvtx": {
+      "hash": "6b20c5bc16a791985751ef1b19fb34cdc972a1785c40216a57f94ee3a3fe5c95",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/kvtx.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/kvtx.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/kvtx.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/kvtx.pb.ts",
+        "store/kvtx/kvtx.pb.cc",
+        "store/kvtx/kvtx.pb.go",
+        "store/kvtx/kvtx.pb.h",
+        "store/kvtx/kvtx.pb.ts"
+      ],
+      "protoFiles": [
+        "store/kvtx/kvtx.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/store/kvtx/redis": {
+      "hash": "1fa5c0bbeb19ade49345630fee23e08f8a726f8089ccb1ffe799b79829378c94",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/redis/redis.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/redis/redis.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/redis/redis.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/redis/redis.pb.ts",
+        "store/kvtx/redis/redis.pb.cc",
+        "store/kvtx/redis/redis.pb.go",
+        "store/kvtx/redis/redis.pb.h",
+        "store/kvtx/redis/redis.pb.ts"
+      ],
+      "protoFiles": [
+        "store/kvtx/redis/redis.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/store/kvtx/ristretto": {
+      "hash": "338e4f56e8b51bf0463bcdade53156e33efbe3868a327e32f4ab75017bf1ea4a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.pb.ts",
+        "store/kvtx/ristretto/ristretto.pb.cc",
+        "store/kvtx/ristretto/ristretto.pb.go",
+        "store/kvtx/ristretto/ristretto.pb.h",
+        "store/kvtx/ristretto/ristretto.pb.ts"
+      ],
+      "protoFiles": [
+        "store/kvtx/ristretto/ristretto.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/access/http": {
+      "hash": "34dd97bfaf602deb9ceb1ec7ecf69419899e0c1b9236e16c8f08b467e9e3ad12",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/access/http/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/access/http/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/access/http/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/access/http/config.pb.ts",
+        "unixfs/access/http/config.pb.cc",
+        "unixfs/access/http/config.pb.go",
+        "unixfs/access/http/config.pb.h",
+        "unixfs/access/http/config.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/access/http/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/block": {
+      "hash": "aebae9113d47df61796f38ad6311eeb6a7c46ad6752e0432d48e0e2b6eaa669c",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/block/fstree.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/block/fstree.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/block/fstree.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/block/fstree.pb.ts",
+        "unixfs/block/fstree.pb.cc",
+        "unixfs/block/fstree.pb.go",
+        "unixfs/block/fstree.pb.h",
+        "unixfs/block/fstree.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/block/fstree.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/errors": {
+      "hash": "d9ac3daca8de7a7414af8ac6b282f250d4b505f89ae1a6b00ef41bb84ec863cb",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/errors/errors.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/errors/errors.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/errors/errors.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/errors/errors.pb.ts",
+        "unixfs/errors/errors.pb.cc",
+        "unixfs/errors/errors.pb.go",
+        "unixfs/errors/errors.pb.h",
+        "unixfs/errors/errors.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/errors/errors.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/mount/checkout": {
+      "hash": "bc86d89881d147c618a7d2c0686a1b9b2f1cf98dfa5d35c113f2c87b1c9ec8c1",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/checkout/checkout.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/checkout/checkout.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/checkout/checkout.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/checkout/checkout.pb.ts",
+        "unixfs/mount/checkout/checkout.pb.cc",
+        "unixfs/mount/checkout/checkout.pb.go",
+        "unixfs/mount/checkout/checkout.pb.h",
+        "unixfs/mount/checkout/checkout.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/mount/checkout/checkout.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/mount/fuse": {
+      "hash": "6bd6fedb00001337da4348109369f1c916b79e0ba43c2ccd1be95293cca69059",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/fuse/fuse.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/fuse/fuse.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/fuse/fuse.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/mount/fuse/fuse.pb.ts",
+        "unixfs/mount/fuse/fuse.pb.cc",
+        "unixfs/mount/fuse/fuse.pb.go",
+        "unixfs/mount/fuse/fuse.pb.h",
+        "unixfs/mount/fuse/fuse.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/mount/fuse/fuse.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/rpc": {
+      "hash": "4fccaf3ccf0110d20016d71e14cb6fd6f72cd9890670acb1efecb490ac78d23c",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/rpc/rpc_srpc.pb.ts",
+        "unixfs/rpc/rpc.pb.cc",
+        "unixfs/rpc/rpc.pb.go",
+        "unixfs/rpc/rpc.pb.h",
+        "unixfs/rpc/rpc.pb.ts",
+        "unixfs/rpc/rpc_srpc.pb.go",
+        "unixfs/rpc/rpc_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/rpc/rpc.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/sync": {
+      "hash": "85dc5887c77181346f3c66f311b5db1ef0841cc968ad859eb7c6e250477ba9ad",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/sync/sync.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/sync/sync.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/sync/sync.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/sync/sync.pb.ts",
+        "unixfs/sync/sync.pb.cc",
+        "unixfs/sync/sync.pb.go",
+        "unixfs/sync/sync.pb.h",
+        "unixfs/sync/sync.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/sync/sync.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/world": {
+      "hash": "183178036699b11e8462e3286a6a06aa9e51a69d8f06934fa4dd8f5b4ef356a4",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/unixfs.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/unixfs.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/unixfs.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/unixfs.pb.ts",
+        "unixfs/world/unixfs.pb.cc",
+        "unixfs/world/unixfs.pb.go",
+        "unixfs/world/unixfs.pb.h",
+        "unixfs/world/unixfs.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/world/unixfs.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/world/access": {
+      "hash": "a745494a95dc0c486edb6807ec9265d8f97d93d13d864a5516d69f20be0038ad",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/access/access.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/access/access.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/access/access.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/access/access.pb.ts",
+        "unixfs/world/access/access.pb.cc",
+        "unixfs/world/access/access.pb.go",
+        "unixfs/world/access/access.pb.h",
+        "unixfs/world/access/access.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/world/access/access.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/unixfs/world/e2e": {
+      "hash": "a180b80ca5245b0cd26afae5e24e5b0e8abc38147a5203989bcad5d5e934f4f9",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/e2e/init_unixfs_demo.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/e2e/init_unixfs_demo.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/e2e/init_unixfs_demo.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/unixfs/world/e2e/init_unixfs_demo.pb.ts",
+        "unixfs/world/e2e/init_unixfs_demo.pb.cc",
+        "unixfs/world/e2e/init_unixfs_demo.pb.go",
+        "unixfs/world/e2e/init_unixfs_demo.pb.h",
+        "unixfs/world/e2e/init_unixfs_demo.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/world/e2e/init_unixfs_demo.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/util/blockenc": {
+      "hash": "f58307b0b6ff74cd5e7af91d48bd5429b68c13b8c14118c7b46add556eef149d",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/util/blockenc/blockenc.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/util/blockenc/blockenc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/util/blockenc/blockenc.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/util/blockenc/blockenc.pb.ts",
+        "util/blockenc/blockenc.pb.cc",
+        "util/blockenc/blockenc.pb.go",
+        "util/blockenc/blockenc.pb.h",
+        "util/blockenc/blockenc.pb.ts"
+      ],
+      "protoFiles": [
+        "util/blockenc/blockenc.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume": {
+      "hash": "e36890ba64c0b4dbe1ef3be6673c175aff76ae3f5588897a8e8618c7d408986e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/volume.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/volume.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/volume.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/volume.pb.ts",
+        "volume/volume.pb.cc",
+        "volume/volume.pb.go",
+        "volume/volume.pb.h",
+        "volume/volume.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/volume.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/badger": {
+      "hash": "923e803116fbe5b7d6d8213f1b6847ee26918022e0151d8c3064a569c32984c8",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/badger/badger.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/badger/badger.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/badger/badger.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/badger/badger.pb.ts",
+        "volume/badger/badger.pb.cc",
+        "volume/badger/badger.pb.go",
+        "volume/badger/badger.pb.h",
+        "volume/badger/badger.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/badger/badger.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/block": {
+      "hash": "42dcd4aa1e6dd17e73efed78164f1d98bdb9aab52d4997f49c9067e5fc6af1d6",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/block/volume.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/block/volume.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/block/volume.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/block/volume.pb.ts",
+        "volume/block/volume.pb.cc",
+        "volume/block/volume.pb.go",
+        "volume/block/volume.pb.h",
+        "volume/block/volume.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/block/volume.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/bolt": {
+      "hash": "1309a8fb79b1b7693c45805331c7da364cecdb78b8e2125ea371c849d19e5e9a",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/bolt/bolt.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/bolt/bolt.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/bolt/bolt.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/bolt/bolt.pb.ts",
+        "volume/bolt/bolt.pb.cc",
+        "volume/bolt/bolt.pb.go",
+        "volume/bolt/bolt.pb.h",
+        "volume/bolt/bolt.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/bolt/bolt.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/controller": {
+      "hash": "833355c4f7484b9e3e1dda8d3516bb1b1d601341b96235901273312b348e762c",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/controller/controller.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/controller/controller.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/controller/controller.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/controller/controller.pb.ts",
+        "volume/controller/controller.pb.cc",
+        "volume/controller/controller.pb.go",
+        "volume/controller/controller.pb.h",
+        "volume/controller/controller.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/controller/controller.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/js/indexeddb": {
+      "hash": "466afa1fdea661d24faa72931f44e8cc90f24f17d4d72891c9a2d84bda0dbb14",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.pb.ts",
+        "volume/js/indexeddb/indexeddb.pb.cc",
+        "volume/js/indexeddb/indexeddb.pb.go",
+        "volume/js/indexeddb/indexeddb.pb.h",
+        "volume/js/indexeddb/indexeddb.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/js/indexeddb/indexeddb.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/kvfile": {
+      "hash": "a4b3d7e6194b2984b8796b95f4ca93a6c3855190e7492952228f07fbff316453",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/kvfile/kvfile.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvfile/kvfile.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvfile/kvfile.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvfile/kvfile.pb.ts",
+        "volume/kvfile/kvfile.pb.cc",
+        "volume/kvfile/kvfile.pb.go",
+        "volume/kvfile/kvfile.pb.h",
+        "volume/kvfile/kvfile.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/kvfile/kvfile.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/kvtxinmem": {
+      "hash": "260eb9059e47cc8e8825f202e71e16126c05a083c20b4150c1920fd35362f620",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/kvtxinmem/kvtxinmem.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvtxinmem/kvtxinmem.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvtxinmem/kvtxinmem.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/kvtxinmem/kvtxinmem.pb.ts",
+        "volume/kvtxinmem/kvtxinmem.pb.cc",
+        "volume/kvtxinmem/kvtxinmem.pb.go",
+        "volume/kvtxinmem/kvtxinmem.pb.h",
+        "volume/kvtxinmem/kvtxinmem.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/kvtxinmem/kvtxinmem.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/redis": {
+      "hash": "0c1dab3db5439f14588c24b3df85895055871237c2d610068be1458d0d059291",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/redis/redis.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/redis/redis.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/redis/redis.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/redis/redis.pb.ts",
+        "volume/redis/redis.pb.cc",
+        "volume/redis/redis.pb.go",
+        "volume/redis/redis.pb.h",
+        "volume/redis/redis.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/redis/redis.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/rpc": {
+      "hash": "e323afffd66808dfc034e46f3f6030a2408e9e243c7d1692df1758df262d1e52",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume.pb.ts",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume_srpc.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/volume_srpc.pb.ts",
+        "volume/rpc/volume.pb.cc",
+        "volume/rpc/volume.pb.go",
+        "volume/rpc/volume.pb.h",
+        "volume/rpc/volume.pb.ts",
+        "volume/rpc/volume_srpc.pb.go",
+        "volume/rpc/volume_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/rpc/volume.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/rpc/client": {
+      "hash": "defb995c5ce590ceaec1dc3c05af7d6c58b79405e25556b1880b84e7fbfcf8ff",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/client/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/client/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/client/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/client/config.pb.ts",
+        "volume/rpc/client/config.pb.cc",
+        "volume/rpc/client/config.pb.go",
+        "volume/rpc/client/config.pb.h",
+        "volume/rpc/client/config.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/rpc/client/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/rpc/server": {
+      "hash": "7f9589d5b0117bc1e9783f58df1c419706ca57c3271987e0f7c1b940bd866704",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/server/config.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/server/config.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/server/config.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/rpc/server/config.pb.ts",
+        "volume/rpc/server/config.pb.cc",
+        "volume/rpc/server/config.pb.go",
+        "volume/rpc/server/config.pb.h",
+        "volume/rpc/server/config.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/rpc/server/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/sqlite": {
+      "hash": "8e707ad5b543c63fac96b5a01fa16d486d974c5ad3cbd2cbc3232c912b39fca8",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/sqlite/sqlite.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/sqlite/sqlite.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/sqlite/sqlite.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/sqlite/sqlite.pb.ts",
+        "volume/sqlite/sqlite.pb.cc",
+        "volume/sqlite/sqlite.pb.go",
+        "volume/sqlite/sqlite.pb.h",
+        "volume/sqlite/sqlite.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/sqlite/sqlite.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/volume/world": {
+      "hash": "a8ccfbcb99043eda5beabcfd840347de7c7d9fa019d87be2bda3e37162200222",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/volume/world/volume.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/volume/world/volume.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/volume/world/volume.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/volume/world/volume.pb.ts",
+        "volume/world/volume.pb.cc",
+        "volume/world/volume.pb.go",
+        "volume/world/volume.pb.h",
+        "volume/world/volume.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/world/volume.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/world/block": {
+      "hash": "5c640fafa107226ea20b6142a1d4cde2cc991d144981526b5ae422e459d2fcb1",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/world/block/world.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/world/block/world.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/world/block/world.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/world/block/world.pb.ts",
+        "world/block/world.pb.cc",
+        "world/block/world.pb.go",
+        "world/block/world.pb.h",
+        "world/block/world.pb.ts"
+      ],
+      "protoFiles": [
+        "world/block/world.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/world/block/engine": {
+      "hash": "dd8438aee482a69694cb6ad7b09214afaa74cd0c5de53762ff36942ad5c6a18c",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/world/block/engine/engine.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/world/block/engine/engine.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/world/block/engine/engine.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/world/block/engine/engine.pb.ts",
+        "world/block/engine/engine.pb.cc",
+        "world/block/engine/engine.pb.go",
+        "world/block/engine/engine.pb.h",
+        "world/block/engine/engine.pb.ts"
+      ],
+      "protoFiles": [
+        "world/block/engine/engine.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/world/block/tx": {
+      "hash": "32f9e77e678e155b54fb94fec754846b7413c3a947f93de3dd152a2a863dba51",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/world/block/tx/tx.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/world/block/tx/tx.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/world/block/tx/tx.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/world/block/tx/tx.pb.ts",
+        "world/block/tx/tx.pb.cc",
+        "world/block/tx/tx.pb.go",
+        "world/block/tx/tx.pb.h",
+        "world/block/tx/tx.pb.ts"
+      ],
+      "protoFiles": [
+        "world/block/tx/tx.proto"
+      ]
+    },
+    "github.com/aperturerobotics/hydra/world/mock": {
+      "hash": "91014b629a35bbe00c64e490e376a9a88995ec9c384c03b6b4b2b9633fa64242",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/hydra/world/mock/mock.pb.cc",
+        "vendor/github.com/aperturerobotics/hydra/world/mock/mock.pb.go",
+        "vendor/github.com/aperturerobotics/hydra/world/mock/mock.pb.h",
+        "vendor/github.com/aperturerobotics/hydra/world/mock/mock.pb.ts",
+        "world/mock/mock.pb.cc",
+        "world/mock/mock.pb.go",
+        "world/mock/mock.pb.h",
+        "world/mock/mock.pb.ts"
+      ],
+      "protoFiles": [
+        "world/mock/mock.proto"
+      ]
+    }
+  }
+}

@@ -98,9 +98,7 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStoreId = m.ObjectStoreId
 	r.VolumeId = m.VolumeId
 	r.ObjectStoreKey = m.ObjectStoreKey
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConf = m.TransformConf.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -155,6 +153,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *StoredValue) EqualVT(that *StoredValue) bool {
 	if this == that {
 		return true
@@ -469,6 +468,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *StoredValue) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("StoredValue {")
@@ -486,6 +486,7 @@ func (x *StoredValue) MarshalProtoText() string {
 func (x *StoredValue) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -669,6 +670,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *StoredValue) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

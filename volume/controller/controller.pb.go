@@ -129,11 +129,9 @@ func (m *Config) CloneVT() *Config {
 	r.BlockStoreId = m.BlockStoreId
 	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
 	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
+	r.BlockStoreWritebackPutOpts = m.BlockStoreWritebackPutOpts.CloneVT()
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		r.VolumeIdAlias = slices.Clone(rhs)
-	}
-	if rhs := m.BlockStoreWritebackPutOpts; rhs != nil {
-		r.BlockStoreWritebackPutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -544,6 +542,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

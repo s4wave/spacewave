@@ -150,9 +150,7 @@ func (m *WatchVolumeInfoResponse) CloneVT() *WatchVolumeInfoResponse {
 	}
 	r := new(WatchVolumeInfoResponse)
 	r.NotFound = m.NotFound
-	if rhs := m.VolumeInfo; rhs != nil {
-		r.VolumeInfo = rhs.CloneVT()
-	}
+	r.VolumeInfo = m.VolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -183,9 +181,7 @@ func (m *GetVolumeInfoResponse) CloneVT() *GetVolumeInfoResponse {
 		return (*GetVolumeInfoResponse)(nil)
 	}
 	r := new(GetVolumeInfoResponse)
-	if rhs := m.VolumeInfo; rhs != nil {
-		r.VolumeInfo = rhs.CloneVT()
-	}
+	r.VolumeInfo = m.VolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -246,6 +242,7 @@ func (this *WatchVolumeInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WatchVolumeInfoResponse) EqualVT(that *WatchVolumeInfoResponse) bool {
 	if this == that {
 		return true
@@ -268,6 +265,7 @@ func (this *WatchVolumeInfoResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetVolumeInfoRequest) EqualVT(that *GetVolumeInfoRequest) bool {
 	if this == that {
 		return true
@@ -284,6 +282,7 @@ func (this *GetVolumeInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetVolumeInfoResponse) EqualVT(that *GetVolumeInfoResponse) bool {
 	if this == that {
 		return true
@@ -303,6 +302,7 @@ func (this *GetVolumeInfoResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetPeerPrivRequest) EqualVT(that *GetPeerPrivRequest) bool {
 	if this == that {
 		return true
@@ -319,6 +319,7 @@ func (this *GetPeerPrivRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetPeerPrivResponse) EqualVT(that *GetPeerPrivResponse) bool {
 	if this == that {
 		return true
@@ -921,6 +922,7 @@ func (x *WatchVolumeInfoRequest) MarshalProtoText() string {
 func (x *WatchVolumeInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WatchVolumeInfoResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WatchVolumeInfoResponse {")
@@ -945,6 +947,7 @@ func (x *WatchVolumeInfoResponse) MarshalProtoText() string {
 func (x *WatchVolumeInfoResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetVolumeInfoRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetVolumeInfoRequest {")
@@ -955,6 +958,7 @@ func (x *GetVolumeInfoRequest) MarshalProtoText() string {
 func (x *GetVolumeInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetVolumeInfoResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetVolumeInfoResponse {")
@@ -972,6 +976,7 @@ func (x *GetVolumeInfoResponse) MarshalProtoText() string {
 func (x *GetVolumeInfoResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetPeerPrivRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPeerPrivRequest {")
@@ -982,6 +987,7 @@ func (x *GetPeerPrivRequest) MarshalProtoText() string {
 func (x *GetPeerPrivRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetPeerPrivResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPeerPrivResponse {")
@@ -999,6 +1005,7 @@ func (x *GetPeerPrivResponse) MarshalProtoText() string {
 func (x *GetPeerPrivResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WatchVolumeInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1082,6 +1089,7 @@ func (m *WatchVolumeInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WatchVolumeInfoResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1189,6 +1197,7 @@ func (m *WatchVolumeInfoResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetVolumeInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1240,6 +1249,7 @@ func (m *GetVolumeInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetVolumeInfoResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1327,6 +1337,7 @@ func (m *GetVolumeInfoResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetPeerPrivRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1378,6 +1389,7 @@ func (m *GetPeerPrivRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetPeerPrivResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -147,25 +147,17 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.Verbose = m.Verbose
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
+	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
+	r.InitHeadRef = m.InitHeadRef.CloneVT()
 	r.EngineId = m.EngineId
 	r.ObjectKey = m.ObjectKey
 	r.BucketId = m.BucketId
 	r.VolumeId = m.VolumeId
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
-	if rhs := m.StoreConfig; rhs != nil {
-		r.StoreConfig = rhs.CloneVT()
-	}
-	if rhs := m.InitHeadRef; rhs != nil {
-		r.InitHeadRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -633,6 +625,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -311,6 +311,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ClientConfig) EqualVT(that *ClientConfig) bool {
 	if this == that {
 		return true
@@ -339,6 +340,7 @@ func (this *ClientConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Credentials) EqualVT(that *Credentials) bool {
 	if this == that {
 		return true
@@ -1008,6 +1010,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ClientConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ClientConfig {")
@@ -1046,6 +1049,7 @@ func (x *ClientConfig) MarshalProtoText() string {
 func (x *ClientConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Credentials) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Credentials {")
@@ -1077,6 +1081,7 @@ func (x *Credentials) MarshalProtoText() string {
 func (x *Credentials) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1371,6 +1376,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ClientConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1542,6 +1548,7 @@ func (m *ClientConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Credentials) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

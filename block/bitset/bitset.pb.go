@@ -254,6 +254,7 @@ func (x *BitSet) MarshalProtoText() string {
 func (x *BitSet) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *BitSet) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

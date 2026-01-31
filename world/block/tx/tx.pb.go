@@ -525,9 +525,7 @@ func (m *TxCreateObject) CloneVT() *TxCreateObject {
 	}
 	r := new(TxCreateObject)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -544,9 +542,7 @@ func (m *TxObjectSet) CloneVT() *TxObjectSet {
 	}
 	r := new(TxObjectSet)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -595,9 +591,7 @@ func (m *TxSetGraphQuad) CloneVT() *TxSetGraphQuad {
 		return (*TxSetGraphQuad)(nil)
 	}
 	r := new(TxSetGraphQuad)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -613,9 +607,7 @@ func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 		return (*TxDeleteGraphQuad)(nil)
 	}
 	r := new(TxDeleteGraphQuad)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -672,6 +664,7 @@ func (this *Tx) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxBatch) EqualVT(that *TxBatch) bool {
 	if this == that {
 		return true
@@ -705,6 +698,7 @@ func (this *TxBatch) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxApplyWorldOp) EqualVT(that *TxApplyWorldOp) bool {
 	if this == that {
 		return true
@@ -727,6 +721,7 @@ func (this *TxApplyWorldOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxApplyObjectOp) EqualVT(that *TxApplyObjectOp) bool {
 	if this == that {
 		return true
@@ -752,6 +747,7 @@ func (this *TxApplyObjectOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxCreateObject) EqualVT(that *TxCreateObject) bool {
 	if this == that {
 		return true
@@ -774,6 +770,7 @@ func (this *TxCreateObject) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxObjectSet) EqualVT(that *TxObjectSet) bool {
 	if this == that {
 		return true
@@ -796,6 +793,7 @@ func (this *TxObjectSet) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxObjectIncRev) EqualVT(that *TxObjectIncRev) bool {
 	if this == that {
 		return true
@@ -815,6 +813,7 @@ func (this *TxObjectIncRev) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxDeleteObject) EqualVT(that *TxDeleteObject) bool {
 	if this == that {
 		return true
@@ -837,6 +836,7 @@ func (this *TxDeleteObject) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxSetGraphQuad) EqualVT(that *TxSetGraphQuad) bool {
 	if this == that {
 		return true
@@ -856,6 +856,7 @@ func (this *TxSetGraphQuad) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *TxDeleteGraphQuad) EqualVT(that *TxDeleteGraphQuad) bool {
 	if this == that {
 		return true
@@ -2282,6 +2283,7 @@ func (m *TxDeleteGraphQuad) SizeVT() (n int) {
 func (x TxType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Tx) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Tx {")
@@ -2364,6 +2366,7 @@ func (x *Tx) MarshalProtoText() string {
 func (x *Tx) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxBatch) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxBatch {")
@@ -2387,6 +2390,7 @@ func (x *TxBatch) MarshalProtoText() string {
 func (x *TxBatch) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxApplyWorldOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxApplyWorldOp {")
@@ -2413,6 +2417,7 @@ func (x *TxApplyWorldOp) MarshalProtoText() string {
 func (x *TxApplyWorldOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxApplyObjectOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxApplyObjectOp {")
@@ -2446,6 +2451,7 @@ func (x *TxApplyObjectOp) MarshalProtoText() string {
 func (x *TxApplyObjectOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxCreateObject) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxCreateObject {")
@@ -2470,6 +2476,7 @@ func (x *TxCreateObject) MarshalProtoText() string {
 func (x *TxCreateObject) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxObjectSet) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxObjectSet {")
@@ -2494,6 +2501,7 @@ func (x *TxObjectSet) MarshalProtoText() string {
 func (x *TxObjectSet) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxObjectIncRev) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxObjectIncRev {")
@@ -2511,6 +2519,7 @@ func (x *TxObjectIncRev) MarshalProtoText() string {
 func (x *TxObjectIncRev) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxDeleteObject) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxDeleteObject {")
@@ -2535,6 +2544,7 @@ func (x *TxDeleteObject) MarshalProtoText() string {
 func (x *TxDeleteObject) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxSetGraphQuad) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxSetGraphQuad {")
@@ -2552,6 +2562,7 @@ func (x *TxSetGraphQuad) MarshalProtoText() string {
 func (x *TxSetGraphQuad) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *TxDeleteGraphQuad) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxDeleteGraphQuad {")
@@ -2569,6 +2580,7 @@ func (x *TxDeleteGraphQuad) MarshalProtoText() string {
 func (x *TxDeleteGraphQuad) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Tx) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2963,6 +2975,7 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxBatch) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3048,6 +3061,7 @@ func (m *TxBatch) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxApplyWorldOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3165,6 +3179,7 @@ func (m *TxApplyWorldOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxApplyObjectOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3314,6 +3329,7 @@ func (m *TxApplyObjectOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxCreateObject) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3433,6 +3449,7 @@ func (m *TxCreateObject) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxObjectSet) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3552,6 +3569,7 @@ func (m *TxObjectSet) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxObjectIncRev) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3635,6 +3653,7 @@ func (m *TxObjectIncRev) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxDeleteObject) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3738,6 +3757,7 @@ func (m *TxDeleteObject) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxSetGraphQuad) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3825,6 +3845,7 @@ func (m *TxSetGraphQuad) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *TxDeleteGraphQuad) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

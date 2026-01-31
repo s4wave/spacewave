@@ -68,12 +68,8 @@ func (m *KeyFilters) CloneVT() *KeyFilters {
 	}
 	r := new(KeyFilters)
 	r.KeyPrefix = m.KeyPrefix
-	if rhs := m.QuadPrefix; rhs != nil {
-		r.QuadPrefix = rhs.CloneVT()
-	}
-	if rhs := m.KeyBloom; rhs != nil {
-		r.KeyBloom = rhs.CloneVT()
-	}
+	r.QuadPrefix = m.QuadPrefix.CloneVT()
+	r.KeyBloom = m.KeyBloom.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -289,6 +285,7 @@ func (x *KeyFilters) MarshalProtoText() string {
 func (x *KeyFilters) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *KeyFilters) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

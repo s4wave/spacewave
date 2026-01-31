@@ -211,6 +211,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *MQQueueMeta) EqualVT(that *MQQueueMeta) bool {
 	if this == that {
 		return true
@@ -245,6 +246,7 @@ func (this *MQQueueMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *MQMessageWrapper) EqualVT(that *MQMessageWrapper) bool {
 	if this == that {
 		return true
@@ -711,6 +713,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MQQueueMeta_MetaEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MetaEntry {")
@@ -735,6 +738,7 @@ func (x *MQQueueMeta_MetaEntry) MarshalProtoText() string {
 func (x *MQQueueMeta_MetaEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MQQueueMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MQQueueMeta {")
@@ -773,6 +777,7 @@ func (x *MQQueueMeta) MarshalProtoText() string {
 func (x *MQQueueMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MQMessageWrapper) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MQMessageWrapper {")
@@ -799,6 +804,7 @@ func (x *MQMessageWrapper) MarshalProtoText() string {
 func (x *MQMessageWrapper) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -882,6 +888,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *MQQueueMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1098,6 +1105,7 @@ func (m *MQQueueMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *MQMessageWrapper) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

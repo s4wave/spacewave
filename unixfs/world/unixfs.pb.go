@@ -773,9 +773,7 @@ func (m *UnixfsRef) CloneVT() *UnixfsRef {
 	r := new(UnixfsRef)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -793,10 +791,8 @@ func (m *FsInitOp) CloneVT() *FsInitOp {
 	r := new(FsInitOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.FsRef = m.FsRef.CloneVT()
 	r.FsOverwrite = m.FsOverwrite
-	if rhs := m.FsRef; rhs != nil {
-		r.FsRef = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -845,12 +841,8 @@ func (m *FsSymlinkOp) CloneVT() *FsSymlinkOp {
 	r := new(FsSymlinkOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
-	if rhs := m.Symlink; rhs != nil {
-		r.Symlink = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
+	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -924,13 +916,9 @@ func (m *FsWriteAtOp) CloneVT() *FsWriteAtOp {
 	r := new(FsWriteAtOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.Path = m.Path.CloneVT()
 	r.Offset = m.Offset
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
-	if rhs := m.BlobRef; rhs != nil {
-		r.BlobRef = rhs.CloneVT()
-	}
+	r.BlobRef = m.BlobRef.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -951,10 +939,8 @@ func (m *FsTruncateOp) CloneVT() *FsTruncateOp {
 	r := new(FsTruncateOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.Path = m.Path.CloneVT()
 	r.FileSize = m.FileSize
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -975,12 +961,8 @@ func (m *FsCopyOp) CloneVT() *FsCopyOp {
 	r := new(FsCopyOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.SrcPath; rhs != nil {
-		r.SrcPath = rhs.CloneVT()
-	}
-	if rhs := m.DestPath; rhs != nil {
-		r.DestPath = rhs.CloneVT()
-	}
+	r.SrcPath = m.SrcPath.CloneVT()
+	r.DestPath = m.DestPath.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1001,12 +983,8 @@ func (m *FsRenameOp) CloneVT() *FsRenameOp {
 	r := new(FsRenameOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.SrcPath; rhs != nil {
-		r.SrcPath = rhs.CloneVT()
-	}
-	if rhs := m.DestPath; rhs != nil {
-		r.DestPath = rhs.CloneVT()
-	}
+	r.SrcPath = m.SrcPath.CloneVT()
+	r.DestPath = m.DestPath.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1069,9 +1047,7 @@ func (m *RefValue) CloneVT() *RefValue {
 	}
 	r := new(RefValue)
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1107,6 +1083,7 @@ func (this *UnixfsRef) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsInitOp) EqualVT(that *FsInitOp) bool {
 	if this == that {
 		return true
@@ -1138,6 +1115,7 @@ func (this *FsInitOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsMknodOp) EqualVT(that *FsMknodOp) bool {
 	if this == that {
 		return true
@@ -1186,6 +1164,7 @@ func (this *FsMknodOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsSymlinkOp) EqualVT(that *FsSymlinkOp) bool {
 	if this == that {
 		return true
@@ -1217,6 +1196,7 @@ func (this *FsSymlinkOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsSetPermissionsOp) EqualVT(that *FsSetPermissionsOp) bool {
 	if this == that {
 		return true
@@ -1262,6 +1242,7 @@ func (this *FsSetPermissionsOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsSetModTimestampOp) EqualVT(that *FsSetModTimestampOp) bool {
 	if this == that {
 		return true
@@ -1304,6 +1285,7 @@ func (this *FsSetModTimestampOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsWriteAtOp) EqualVT(that *FsWriteAtOp) bool {
 	if this == that {
 		return true
@@ -1338,6 +1320,7 @@ func (this *FsWriteAtOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsTruncateOp) EqualVT(that *FsTruncateOp) bool {
 	if this == that {
 		return true
@@ -1369,6 +1352,7 @@ func (this *FsTruncateOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsCopyOp) EqualVT(that *FsCopyOp) bool {
 	if this == that {
 		return true
@@ -1400,6 +1384,7 @@ func (this *FsCopyOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsRenameOp) EqualVT(that *FsRenameOp) bool {
 	if this == that {
 		return true
@@ -1431,6 +1416,7 @@ func (this *FsRenameOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FsRemoveOp) EqualVT(that *FsRemoveOp) bool {
 	if this == that {
 		return true
@@ -1473,6 +1459,7 @@ func (this *FsRemoveOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *MountValue) EqualVT(that *MountValue) bool {
 	if this == that {
 		return true
@@ -1495,6 +1482,7 @@ func (this *MountValue) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RefValue) EqualVT(that *RefValue) bool {
 	if this == that {
 		return true
@@ -3862,6 +3850,7 @@ func (m *RefValue) SizeVT() (n int) {
 func (x FSType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *UnixfsRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("UnixfsRef {")
@@ -3895,6 +3884,7 @@ func (x *UnixfsRef) MarshalProtoText() string {
 func (x *UnixfsRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsInitOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsInitOp {")
@@ -3942,6 +3932,7 @@ func (x *FsInitOp) MarshalProtoText() string {
 func (x *FsInitOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsMknodOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsMknodOp {")
@@ -4004,6 +3995,7 @@ func (x *FsMknodOp) MarshalProtoText() string {
 func (x *FsMknodOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsSymlinkOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsSymlinkOp {")
@@ -4051,6 +4043,7 @@ func (x *FsSymlinkOp) MarshalProtoText() string {
 func (x *FsSymlinkOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsSetPermissionsOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsSetPermissionsOp {")
@@ -4104,6 +4097,7 @@ func (x *FsSetPermissionsOp) MarshalProtoText() string {
 func (x *FsSetPermissionsOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsSetModTimestampOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsSetModTimestampOp {")
@@ -4150,6 +4144,7 @@ func (x *FsSetModTimestampOp) MarshalProtoText() string {
 func (x *FsSetModTimestampOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsWriteAtOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsWriteAtOp {")
@@ -4204,6 +4199,7 @@ func (x *FsWriteAtOp) MarshalProtoText() string {
 func (x *FsWriteAtOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsTruncateOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsTruncateOp {")
@@ -4251,6 +4247,7 @@ func (x *FsTruncateOp) MarshalProtoText() string {
 func (x *FsTruncateOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsCopyOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsCopyOp {")
@@ -4298,6 +4295,7 @@ func (x *FsCopyOp) MarshalProtoText() string {
 func (x *FsCopyOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsRenameOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsRenameOp {")
@@ -4345,6 +4343,7 @@ func (x *FsRenameOp) MarshalProtoText() string {
 func (x *FsRenameOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FsRemoveOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FsRemoveOp {")
@@ -4391,6 +4390,7 @@ func (x *FsRemoveOp) MarshalProtoText() string {
 func (x *FsRemoveOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *MountValue) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MountValue {")
@@ -4415,6 +4415,7 @@ func (x *MountValue) MarshalProtoText() string {
 func (x *MountValue) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RefValue) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RefValue {")
@@ -4441,6 +4442,7 @@ func (x *RefValue) MarshalProtoText() string {
 func (x *RefValue) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *UnixfsRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4579,6 +4581,7 @@ func (m *UnixfsRef) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsInitOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4773,6 +4776,7 @@ func (m *FsInitOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsMknodOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4983,6 +4987,7 @@ func (m *FsMknodOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsSymlinkOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5193,6 +5198,7 @@ func (m *FsSymlinkOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsSetPermissionsOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5384,6 +5390,7 @@ func (m *FsSetPermissionsOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsSetModTimestampOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5556,6 +5563,7 @@ func (m *FsSetModTimestampOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsWriteAtOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5785,6 +5793,7 @@ func (m *FsWriteAtOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsTruncateOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5978,6 +5987,7 @@ func (m *FsTruncateOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsCopyOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6188,6 +6198,7 @@ func (m *FsCopyOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsRenameOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6398,6 +6409,7 @@ func (m *FsRenameOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FsRemoveOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6570,6 +6582,7 @@ func (m *FsRemoveOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *MountValue) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6685,6 +6698,7 @@ func (m *MountValue) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RefValue) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
