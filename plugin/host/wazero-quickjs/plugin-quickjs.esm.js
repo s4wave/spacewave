@@ -7689,13 +7689,7 @@ var ControllerConfig = createMessageType({
 var ConfigSet = createMessageType({
   typeName: "configset.proto.ConfigSet",
   fields: [
-    {
-      no: 1,
-      name: "configs",
-      kind: "map",
-      K: ScalarType.STRING,
-      V: { kind: "message", T: () => ControllerConfig }
-    }
+    { no: 1, name: "configs", kind: "map", K: ScalarType.STRING, V: { kind: "message", T: () => ControllerConfig } }
   ],
   packedByDefault: true
 });
@@ -7712,26 +7706,18 @@ var Info = createMessageType({
 });
 
 // ../../../vendor/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.ts
-var ControllerStatus_Enum = createEnumType(
-  "controller.exec.ControllerStatus",
-  [
-    { no: 0, name: "ControllerStatus_UNKNOWN" },
-    { no: 1, name: "ControllerStatus_CONFIGURING" },
-    { no: 2, name: "ControllerStatus_RUNNING" },
-    { no: 3, name: "ControllerStatus_ERROR" }
-  ]
-);
+var ControllerStatus_Enum = createEnumType("controller.exec.ControllerStatus", [
+  { no: 0, name: "ControllerStatus_UNKNOWN" },
+  { no: 1, name: "ControllerStatus_CONFIGURING" },
+  { no: 2, name: "ControllerStatus_RUNNING" },
+  { no: 3, name: "ControllerStatus_ERROR" }
+]);
 var ExecControllerRequest = createMessageType({
   typeName: "controller.exec.ExecControllerRequest",
   fields: [
     { no: 1, name: "config_set", kind: "message", T: () => ConfigSet },
     { no: 2, name: "config_set_yaml", kind: "scalar", T: ScalarType.STRING },
-    {
-      no: 3,
-      name: "config_set_yaml_overwrite",
-      kind: "scalar",
-      T: ScalarType.BOOL
-    }
+    { no: 3, name: "config_set_yaml_overwrite", kind: "scalar", T: ScalarType.BOOL }
   ],
   packedByDefault: true
 });

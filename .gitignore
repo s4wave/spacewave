@@ -8,6 +8,7 @@
 /vite-dist
 /vite-output.json
 /vite-analysis.json
+.cache
 
 # misc
 .DS_Store

@@ -3,6 +3,8 @@
 package bldr
 
 import (
-	// _ imports common with the Makefile and tools
+	// _ imports common
 	_ "github.com/aperturerobotics/common"
+	// _ imports common aptre cli
+	_ "github.com/aperturerobotics/common/cmd/aptre"
 )
