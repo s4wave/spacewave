@@ -19,7 +19,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.26.11 // latest
+	github.com/aperturerobotics/common v0.29.0 // latest
 	github.com/aperturerobotics/hydra v0.0.0-20260131061755-2317d7bae7e5 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.12.0 // master
 )
@@ -86,7 +86,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.52.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.43.1 // latest
+	github.com/aperturerobotics/starpc v0.44.0 // latest
 	github.com/aperturerobotics/util v1.32.3 // latest
 )
 
@@ -124,9 +124,9 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/abseil-cpp v0.0.0-20260130220554-305ed0ea7006 // indirect
+	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131050911-b5f94b044584 // indirect
-	github.com/aperturerobotics/protobuf v0.0.0-20260131033322-bd4a2148b9c4 // indirect
+	github.com/aperturerobotics/protobuf v0.0.0-20260131105503-b82131c27d52 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect

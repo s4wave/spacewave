@@ -1,5 +1,18 @@
 ## IMPORTANT
 
+Fix anything that you come across in the project while working that violates any of these guidelines as you encounter it.
+
+**CRITICAL: When asked to update AGENTS.md:**
+
+- ALWAYS read the ENTIRE file first before making edits
+- Check for duplicate information across sections
+- Condense and consolidate duplicates into a single authoritative section
+- Ensure guidelines are clear and non-contradictory
+
+Remember to always delete dead code when changing things - for example if you changed something and a function is no longer used anywhere, delete that function.
+
+When a bug is reported, don't start by trying to fix it. Instead, start by writing a test that reproduces the bug. Then, have subagents try to fix the bug and prove it with a passing test.
+
 - Try to keep things in one function unless composable or reusable
 - Always use bun instead of npm, yarn, or pnpm
 - DO NOT do unnecessary destructuring of variables
@@ -13,6 +26,8 @@
 - DO NOT disable linter warnings unless absolutely necessary - if you need to disable a linter warning, it usually means you are doing something wrong and should rethink your approach
 - DO NOT use `time.Sleep` - always use `time.After` with a select that includes `ctx.Done()` for cancellation
 - DO NOT assume `bldr setup` needs to be run - it runs automatically when bldr starts for almost any operation
+- DO NOT use `context.Background()` or `context.TODO()` - always use the appropriate context from the caller
+- DO NOT use `context.WithoutCancel` - respect context cancellation
 - AVOID `try`/`catch` where possible
 - AVOID `else` statements
 - AVOID using `any` type
@@ -21,8 +36,13 @@
 - PREFER single word variable names where possible
 - PREFER to merge multiple `useState` together into one if applicable
 - PREFER `if err := ctx.Err(); err != nil` over `select { case <-ctx.Done(): ... default: }` for context cancellation checks
+- PREFER one exported struct per `.go` file (file named after the struct, e.g., `state-atom-resource.go` for `StateAtomResource`)
+  - Multiple unexported (internal) structs in the same file are acceptable
+  - Constants and type aliases can be co-located with the struct that uses them
 - ALWAYS investigate all existing implementation details before making changes
 - ALWAYS import useMemo, useCallback, etc, instead of using React.useMemo, React.useCallback, etc.
+- NOTE that generated files like `*.pb*` are ignored from ripgrep (rg)
+- NOTE that ripgrep does not have a built-in `tsx` type; use `-g "*.tsx"` instead of `--type tsx`
 
 ## Imports
 
@@ -364,6 +384,44 @@ go build ./...
 ```
 
 These commands should be run before committing code changes.
+
+### Rebuilding .bldr
+
+If you encounter issues with `.bldr` (stale exports, module resolution errors, etc.), rebuild it with:
+
+```
+bun run setup
+```
+
+This regenerates the `.bldr/src` directory from source.
+
+### Running Commands with Large Output
+
+For commands that produce large output or may timeout, redirect to a log file and show the last few lines:
+
+```bash
+# Run command, show last 5 lines
+bun run test > .tmp/test.log 2>&1; tail -5 .tmp/test.log
+
+# With exit code visibility
+bun run test > .tmp/test.log 2>&1; echo "exit: $?"; tail -5 .tmp/test.log
+
+# Show errors on failure, then tail
+cmd > .tmp/log 2>&1; EC=$?; [ $EC -ne 0 ] && grep -i "error\|fail" .tmp/log; tail -5 .tmp/log
+```
+
+After running, you can inspect more of the log:
+
+```bash
+grep -A 5 "FAIL" .tmp/test.log   # Context around failures
+tail -50 .tmp/test.log            # More lines
+```
+
+Why this matters:
+
+- Piping long-running commands (`cmd | tail`) may timeout before output appears
+- Log files allow multiple reads without re-running expensive commands
+- The `.tmp/` directory is gitignored and safe for temporary files
 
 ## Testing
 
