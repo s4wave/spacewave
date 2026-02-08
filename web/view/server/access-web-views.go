@@ -69,7 +69,7 @@ func (h *AccessWebViewsViaBus) GetWebViewInvoker(
 		return nil, nil, err
 	}
 	handler := web_view.NewSRPCWebViewHandler(NewWebViewServer(webView), "")
-	mux := srpc.NewMux()
+	mux := srpc.NewMux(srpc.NewClientInvoker(webView.GetClient()))
 	if err := mux.Register(handler); err != nil {
 		webViewRef.Release()
 		return nil, nil, err
