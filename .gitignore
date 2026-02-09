@@ -23,6 +23,8 @@ yarn-error.log*
 !.vscode/launch.json
 
 vendor/
-debug.test/
-/.tools/
+debug.test*
+__debug*
 .aider*
+*.test
+/.tools/

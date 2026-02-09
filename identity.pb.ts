@@ -8,7 +8,7 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
-import { Signature } from '../bifrost/peer/peer.pb.js'
+import { Signature } from '@go/github.com/aperturerobotics/bifrost/peer/peer.pb.js'
 
 export const protobufPackage = 'identity'
 

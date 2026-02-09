@@ -14,15 +14,13 @@ module.exports = {
   rules: {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-empty-object-type': 'off',
   },
   ignorePatterns: [
     "node_modules",
-    "dist",
-    "coverage",
-    "bundle",
-    "runtime",
     "vendor",
-    ".eslintrc.js",
-    "wasm_exec.js"
+    "dist",
+    ".eslintrc.js"
   ]
 }

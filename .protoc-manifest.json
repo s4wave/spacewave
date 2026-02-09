@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "protocFlagsHash": "b4c609945930fb35e0921dc0398e4ed774ace7a0345f3221539b4d102bdab140",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.1,starpc=v0.45.1-0.20260203090429-3e915608d4e8,protobuf-es-lite=^0.5.2",
+  "packages": {
+    "github.com/aperturerobotics/identity": {
+      "hash": "94b79630602663f64189f7a6d60c58d014da59d69246807adfde1545b7ff68cf",
+      "generatedFiles": [
+        "identity.pb.cc",
+        "identity.pb.go",
+        "identity.pb.h",
+        "identity.pb.rs",
+        "identity.pb.ts"
+      ],
+      "protoFiles": [
+        "identity.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/domain": {
+      "hash": "5f0c2cd5361895c652e41b72dea1ceca5b48e5057280e51c6abd39e08060df08",
+      "generatedFiles": [
+        "domain/domain.pb.ts",
+        "domain/domain.pb.cc",
+        "domain/domain.pb.go",
+        "domain/domain.pb.h",
+        "domain/domain.pb.rs"
+      ],
+      "protoFiles": [
+        "domain/domain.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/domain/service": {
+      "hash": "872c1c4c93da7fc00f1b92e5e911cc6555a3ae5d4388339fce4485d4ffc1083a",
+      "generatedFiles": [
+        "domain/service/service.pb.cc",
+        "domain/service/service.pb.h",
+        "domain/service/service.pb.rs",
+        "domain/service/service_srpc.pb.cpp",
+        "domain/service/service_srpc.pb.go",
+        "domain/service/service_srpc.pb.hpp",
+        "domain/service/service_srpc.pb.rs",
+        "domain/service/service_srpc.pb.ts",
+        "domain/service/service.pb.go",
+        "domain/service/service.pb.ts"
+      ],
+      "protoFiles": [
+        "domain/service/service.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/domain/service/client": {
+      "hash": "9ad28d0bb448cab9d33d3ca804268e40c48e514d2c4528b17b3d54db1a411a2d",
+      "generatedFiles": [
+        "domain/service/client/client.pb.rs",
+        "domain/service/client/client.pb.ts",
+        "domain/service/client/client.pb.cc",
+        "domain/service/client/client.pb.go",
+        "domain/service/client/client.pb.h"
+      ],
+      "protoFiles": [
+        "domain/service/client/client.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/domain/service/server": {
+      "hash": "0b498cd124fcde026a080145c58ffeb772802d52783726e91ec8779121b4cf72",
+      "generatedFiles": [
+        "domain/service/server/server.pb.cc",
+        "domain/service/server/server.pb.go",
+        "domain/service/server/server.pb.h",
+        "domain/service/server/server.pb.rs",
+        "domain/service/server/server.pb.ts"
+      ],
+      "protoFiles": [
+        "domain/service/server/server.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/domain/static": {
+      "hash": "c2621afe4bc405dc5328765c62716e540d500355270f820f74cd5a8d581ba676",
+      "generatedFiles": [
+        "domain/static/static.pb.go",
+        "domain/static/static.pb.h",
+        "domain/static/static.pb.ts",
+        "domain/static/static.pb.cc"
+      ],
+      "protoFiles": [
+        "domain/static/static.proto"
+      ]
+    },
+    "github.com/aperturerobotics/identity/world": {
+      "hash": "517e1d7d5c618444f11fdd9a0953b22186fc8bab3dff110f8a50a64ed356211d",
+      "generatedFiles": [
+        "world/world.pb.go",
+        "world/world.pb.h",
+        "world/world.pb.rs",
+        "world/world.pb.ts",
+        "world/world.pb.cc"
+      ],
+      "protoFiles": [
+        "world/world.proto"
+      ]
+    }
+  }
+}

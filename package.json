@@ -20,23 +20,27 @@
   },
   "type": "module",
   "scripts": {
+    "check": "npm run typecheck && npm run lint",
+    "typecheck": "tsc --project tsconfig.json --noEmit true",
+    "deps": "depcheck --ignore-patterns=.eslintrc.cjs,package.json --ignores depcheck,@aptre/common,prettier,rimraf,typescript",
+    "clean": "rimraf ./dist/",
     "build": "tsc --project tsconfig.json --noEmit false --outDir ./dist/",
-    "check": "npm run typecheck",
-    "typecheck": "tsc --noEmit",
-    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,starpc",
     "codegen": "npm run gen",
-    "ci": "npm run build && npm run lint:js && npm run lint:go",
+    "gen": "npm run go:aptre -- generate",
+    "gen:force": "npm run go:aptre -- generate --force",
     "format": "npm run format:js && npm run format:go",
+    "format:go": "npm run go:aptre -- format",
     "format:js": "prettier --write './!(vendor|dist)/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
-    "format:go": "make format",
-    "gen": "make genproto",
-    "test": "make test && npm run check",
-    "test:js": "echo No JS tests.",
-    "demo": "make demo",
+    "test": "npm run test:js && npm run test:go",
+    "test:js": "npm run typecheck",
+    "test:go": "npm run go:aptre -- test",
     "lint": "npm run lint:go && npm run lint:js",
-    "lint:go": "make lint",
+    "lint:go": "npm run go:aptre -- lint",
     "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
-    "prepare": "go mod vendor && rimraf ./.tools",
+    "ci": "npm run build && npm run lint:js && npm run lint:go",
+    "prepare": "npm run clean && rimraf ./.tools && npm run vendor",
+    "vendor": "go mod vendor",
+    "go:aptre": "go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
     "precommit": "npm run format"
   },
   "prettier": {
@@ -44,14 +48,17 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.20.3",
+    "@aptre/common": "^0.30.1",
     "depcheck": "^1.4.7",
-    "prettier": "^3.4.2",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.7.2"
+    "prettier": "^3.8.1",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.8",
-    "starpc": "^0.36.1"
+    "@aptre/protobuf-es-lite": "^0.5.2",
+    "starpc": "^0.42.0"
+  },
+  "resolutions": {
+    "@aptre/protobuf-es-lite": "0.5.2"
   }
 }
