@@ -1,5 +1,5 @@
-/.tools
-/vendor
+node_modules/
+vendor/
 *.pb.go
-*.pb.tsgo.sum
-*_*.pb.ts
+*.pb.ts
+go.sum

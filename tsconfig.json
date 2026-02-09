@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react",
     "baseUrl": "./",
     "paths": {
@@ -10,7 +10,6 @@
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "importsNotUsedAsValues": "remove",
     "noEmit": true,
@@ -19,9 +18,5 @@
     "strict": true,
     "lib": ["webworker", "dom"]
   },
-  "exclude": ["node_modules", "vendor", "dist"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": true
-  }
+  "exclude": ["node_modules", "vendor"]
 }

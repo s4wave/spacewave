@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "protocFlagsHash": "efefe4e95dd027438d839600d42ac90b0642cc0f6b3ea908eaa20c2911f106de",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.0,starpc=v0.42.0,protobuf-es-lite=^0.5.2",
+  "packages": {
+    "github.com/aperturerobotics/auth/derive": {
+      "hash": "765281debfe3d2fa125cbf15ce3099a38411252970936b7fdde0064caefcf87e",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/auth/derive/derive.pb.cc",
+        "vendor/github.com/aperturerobotics/auth/derive/derive.pb.go",
+        "vendor/github.com/aperturerobotics/auth/derive/derive.pb.h",
+        "vendor/github.com/aperturerobotics/auth/derive/derive.pb.ts",
+        "derive/derive.pb.cc",
+        "derive/derive.pb.go",
+        "derive/derive.pb.h",
+        "derive/derive.pb.ts"
+      ],
+      "protoFiles": [
+        "derive/derive.proto"
+      ]
+    },
+    "github.com/aperturerobotics/auth/method/controller": {
+      "hash": "5657100bbba16d124cde1716e029c5a6979fb4af3958dff2ce45596f4c65f620",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/auth/method/controller/controller.pb.cc",
+        "vendor/github.com/aperturerobotics/auth/method/controller/controller.pb.go",
+        "vendor/github.com/aperturerobotics/auth/method/controller/controller.pb.h",
+        "vendor/github.com/aperturerobotics/auth/method/controller/controller.pb.ts",
+        "method/controller/controller.pb.cc",
+        "method/controller/controller.pb.go",
+        "method/controller/controller.pb.h",
+        "method/controller/controller.pb.ts"
+      ],
+      "protoFiles": [
+        "method/controller/controller.proto"
+      ]
+    },
+    "github.com/aperturerobotics/auth/method/triplesec": {
+      "hash": "334d0bb3abfbc178265465469f6e0528a10fade72b35e7e4dbeee8067583583f",
+      "generatedFiles": [
+        "vendor/github.com/aperturerobotics/auth/method/triplesec/triplesec-password.pb.cc",
+        "vendor/github.com/aperturerobotics/auth/method/triplesec/triplesec-password.pb.go",
+        "vendor/github.com/aperturerobotics/auth/method/triplesec/triplesec-password.pb.h",
+        "vendor/github.com/aperturerobotics/auth/method/triplesec/triplesec-password.pb.ts",
+        "method/triplesec/triplesec-password.pb.cc",
+        "method/triplesec/triplesec-password.pb.go",
+        "method/triplesec/triplesec-password.pb.h",
+        "method/triplesec/triplesec-password.pb.ts"
+      ],
+      "protoFiles": [
+        "method/triplesec/triplesec-password.proto"
+      ]
+    }
+  }
+}
