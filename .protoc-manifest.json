@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "protocFlagsHash": "b4c609945930fb35e0921dc0398e4ed774ace7a0345f3221539b4d102bdab140",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.1,starpc=v0.45.1-0.20260203090429-3e915608d4e8,protobuf-es-lite=^0.5.2",
+  "protocFlagsHash": "bb6f3a7061f0f8bed881aecb435bc3afd81d34f296a556b02f517aa8eedff6c4",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.1,starpc=v0.45.1-0.20260203090429-3e915608d4e8,protobuf-es-lite=^0.5.3",
   "packages": {
     "github.com/aperturerobotics/identity": {
       "hash": "94b79630602663f64189f7a6d60c58d014da59d69246807adfde1545b7ff68cf",
@@ -19,11 +19,11 @@
     "github.com/aperturerobotics/identity/domain": {
       "hash": "5f0c2cd5361895c652e41b72dea1ceca5b48e5057280e51c6abd39e08060df08",
       "generatedFiles": [
-        "domain/domain.pb.ts",
         "domain/domain.pb.cc",
         "domain/domain.pb.go",
         "domain/domain.pb.h",
-        "domain/domain.pb.rs"
+        "domain/domain.pb.rs",
+        "domain/domain.pb.ts"
       ],
       "protoFiles": [
         "domain/domain.proto"
@@ -32,16 +32,16 @@
     "github.com/aperturerobotics/identity/domain/service": {
       "hash": "872c1c4c93da7fc00f1b92e5e911cc6555a3ae5d4388339fce4485d4ffc1083a",
       "generatedFiles": [
-        "domain/service/service.pb.cc",
         "domain/service/service.pb.h",
-        "domain/service/service.pb.rs",
+        "domain/service/service.pb.ts",
         "domain/service/service_srpc.pb.cpp",
         "domain/service/service_srpc.pb.go",
         "domain/service/service_srpc.pb.hpp",
         "domain/service/service_srpc.pb.rs",
         "domain/service/service_srpc.pb.ts",
+        "domain/service/service.pb.cc",
         "domain/service/service.pb.go",
-        "domain/service/service.pb.ts"
+        "domain/service/service.pb.rs"
       ],
       "protoFiles": [
         "domain/service/service.proto"
@@ -76,10 +76,10 @@
     "github.com/aperturerobotics/identity/domain/static": {
       "hash": "c2621afe4bc405dc5328765c62716e540d500355270f820f74cd5a8d581ba676",
       "generatedFiles": [
-        "domain/static/static.pb.go",
-        "domain/static/static.pb.h",
         "domain/static/static.pb.ts",
-        "domain/static/static.pb.cc"
+        "domain/static/static.pb.cc",
+        "domain/static/static.pb.go",
+        "domain/static/static.pb.h"
       ],
       "protoFiles": [
         "domain/static/static.proto"
@@ -88,11 +88,11 @@
     "github.com/aperturerobotics/identity/world": {
       "hash": "517e1d7d5c618444f11fdd9a0953b22186fc8bab3dff110f8a50a64ed356211d",
       "generatedFiles": [
-        "world/world.pb.go",
-        "world/world.pb.h",
         "world/world.pb.rs",
         "world/world.pb.ts",
-        "world/world.pb.cc"
+        "world/world.pb.cc",
+        "world/world.pb.go",
+        "world/world.pb.h"
       ],
       "protoFiles": [
         "world/world.proto"
