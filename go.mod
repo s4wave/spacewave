@@ -9,7 +9,7 @@ require github.com/aperturerobotics/hydra v0.0.0-20260131061755-2317d7bae7e5 // 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.45.1 // master
+	github.com/aperturerobotics/bifrost v0.45.2-0.20260209015539-8e35acc2a1d3 // master
 	github.com/aperturerobotics/cayley v0.10.0 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 // indirect; latest
 )
@@ -33,7 +33,6 @@ replace (
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	golang.org/x/sync v0.19.0 // indirect
 )
 
 // Note: the below is from the Bifrost go.mod
@@ -54,7 +53,6 @@ replace (
 	github.com/libp2p/go-msgio => github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 // aperture
 	github.com/multiformats/go-multiaddr => github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 // aperture
 	github.com/multiformats/go-multihash => github.com/aperturerobotics/go-multihash v0.2.3 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 )
 
@@ -80,8 +78,6 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
-	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
@@ -94,12 +90,8 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/onsi/ginkgo/v2 v2.20.2 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
-	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
