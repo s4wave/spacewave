@@ -36,7 +36,7 @@
     "test:js": "vitest run && bun run typecheck",
     "lint": "bun run lint:go && bun run lint:js",
     "lint:go": "bun run go:aptre -- lint",
-    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
+    "lint:js": "eslint ./",
     "prepare": "go mod vendor && rimraf ./.tools",
     "go:aptre": "go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
     "precommit": "bun run format"
