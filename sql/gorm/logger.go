@@ -29,17 +29,17 @@ func (l *Logger) LogMode(ll logger.LogLevel) logger.Interface {
 }
 
 // Info logs an info message
-func (l *Logger) Info(_ context.Context, fmt string, args ...interface{}) {
+func (l *Logger) Info(_ context.Context, fmt string, args ...any) {
 	l.le.Infof(fmt, args...)
 }
 
 // Warn logs a warning message
-func (l *Logger) Warn(_ context.Context, fmt string, args ...interface{}) {
+func (l *Logger) Warn(_ context.Context, fmt string, args ...any) {
 	l.le.Warnf(fmt, args...)
 }
 
 // Error logs an error message
-func (l *Logger) Error(_ context.Context, fmt string, args ...interface{}) {
+func (l *Logger) Error(_ context.Context, fmt string, args ...any) {
 	l.le.Errorf(fmt, args...)
 }
 

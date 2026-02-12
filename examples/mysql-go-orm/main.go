@@ -171,4 +171,4 @@ type Entry struct {
 	Value int `json:"value"`
 }
 
-var _ interface{} = common.AddStorageVolume
+var _ any = common.AddStorageVolume

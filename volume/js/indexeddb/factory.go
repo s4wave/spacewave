@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package volume_indexeddb
 

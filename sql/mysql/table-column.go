@@ -19,7 +19,7 @@ func BuildTableColumn(
 	ctx context.Context,
 	bcs *block.Cursor,
 	opts *blob.BuildBlobOpts,
-	col interface{},
+	col any,
 ) (*TableColumn, error) {
 	ntc := &TableColumn{}
 	bcs.ClearAllRefs()
@@ -48,14 +48,14 @@ func (t *TableColumn) IsEmpty() bool {
 }
 
 // FetchSqlColumn converts the row back into a sql column.
-func (t *TableColumn) FetchSqlColumn(ctx context.Context, bcs *block.Cursor) (interface{}, error) {
+func (t *TableColumn) FetchSqlColumn(ctx context.Context, bcs *block.Cursor) (any, error) {
 	if t == nil || bcs == nil {
 		// treat nil object or cursor as nil column
 		return nil, nil
 	}
 
 	// msgpack contains type information
-	var out interface{}
+	var out any
 
 	// follow the data container
 	cbcs := bcs.FollowSubBlock(1)

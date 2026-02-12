@@ -1,14 +1,14 @@
 package volume
 
+import "slices"
+
 import "regexp"
 
 // CheckIDMatchesList checks if the ID matches the list or regex.
 // If the ID matches the regex OR matches the list, returns true.
 func CheckIDMatchesList(id string, list []string, re *regexp.Regexp) bool {
-	for _, val := range list {
-		if val == id {
-			return true
-		}
+	if slices.Contains(list, id) {
+		return true
 	}
 	if re != nil && re.MatchString(id) {
 		return true
@@ -25,10 +25,5 @@ func CheckIDMatchesAliases(targetVolID, volID string, aliases []string) bool {
 	if volID == targetVolID {
 		return true
 	}
-	for _, aliasID := range aliases {
-		if aliasID == targetVolID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(aliases, targetVolID)
 }

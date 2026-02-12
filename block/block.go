@@ -133,7 +133,7 @@ type BlockWithCloneVT[T Block] interface {
 }
 
 // CastToBlock casts a object to a block or returns an error.
-func CastToBlock(sb interface{}) (Block, error) {
+func CastToBlock(sb any) (Block, error) {
 	if sb == nil {
 		return nil, nil
 	}
@@ -150,7 +150,7 @@ func CastToBlock(sb interface{}) (Block, error) {
 // The block should implement proto.Message or BlockWithClone.
 //
 // returns ErrUnexpectedType or ErrNotClonable if the block was not clonable.
-func CloneBlock(blk interface{}) (interface{}, error) {
+func CloneBlock(blk any) (any, error) {
 	if blk == nil {
 		return nil, nil
 	}

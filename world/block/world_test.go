@@ -431,7 +431,7 @@ func TestWorldState_Basic(t *testing.T) {
 
 	nObjects := 100
 	keys := make([]string, 0, nObjects)
-	for i := 0; i < nObjects; i++ {
+	for i := range nObjects {
 		keys = append(keys, "test-obj-"+strconv.Itoa(i))
 	}
 	forEachObj := func(cb func(objKey string) error) {

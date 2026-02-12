@@ -28,9 +28,9 @@ type handle struct {
 	dirty bool
 
 	// blk is the decoded block and/or sub-block pointer if known
-	blk interface{}
+	blk any
 	// blkPreWrite is the pre write callback
-	blkPreWrite func(b interface{}) error
+	blkPreWrite func(b any) error
 }
 
 // Clone clones the handle object.

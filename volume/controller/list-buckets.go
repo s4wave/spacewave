@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -75,12 +76,7 @@ func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume, al
 		if volumeRe.MatchString(volID) {
 			return true
 		}
-		for _, aliasID := range alias {
-			if volumeRe.MatchString(aliasID) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(alias, volumeRe.MatchString)
 	}
 
 	if volumeIDList := dir.ListBucketsVolumeIDList(); len(volumeIDList) != 0 {
@@ -88,10 +84,8 @@ func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume, al
 			if id == volID {
 				return true
 			}
-			for _, aliasID := range alias {
-				if aliasID == volID {
-					return true
-				}
+			if slices.Contains(alias, volID) {
+				return true
 			}
 		}
 	}

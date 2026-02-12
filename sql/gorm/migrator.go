@@ -30,7 +30,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) clause.Expr {
 	return expr
 }
 
-func (m Migrator) AlterColumn(value interface{}, field string) error {
+func (m Migrator) AlterColumn(value any, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
 			return m.DB.Exec(
@@ -42,7 +42,7 @@ func (m Migrator) AlterColumn(value interface{}, field string) error {
 	})
 }
 
-func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error {
+func (m Migrator) RenameColumn(value any, oldName, newName string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		/*
 			if !m.Dialector.DontSupportRenameColumn {
@@ -73,7 +73,7 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 	})
 }
 
-func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error {
+func (m Migrator) RenameIndex(value any, oldName, newName string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		return m.DB.Exec(
 			"ALTER TABLE ? RENAME INDEX ? TO ?",
@@ -82,7 +82,7 @@ func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error 
 	})
 }
 
-func (m Migrator) DropTable(values ...interface{}) error {
+func (m Migrator) DropTable(values ...any) error {
 	values = m.ReorderModels(values, false)
 	tx := m.DB.Session(&gorm.Session{})
 	tx.Exec("SET FOREIGN_KEY_CHECKS = 0;")
@@ -97,7 +97,7 @@ func (m Migrator) DropTable(values ...interface{}) error {
 	return nil
 }
 
-func (m Migrator) DropConstraint(value interface{}, name string) error {
+func (m Migrator) DropConstraint(value any, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		chk, chkOk := constraint.(*schema.CheckConstraint)
@@ -117,7 +117,7 @@ func (m Migrator) DropConstraint(value interface{}, name string) error {
 	})
 }
 
-func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType, err error) {
+func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err error) {
 	columnTypes = make([]gorm.ColumnType, 0)
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		var (
@@ -158,7 +158,7 @@ func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType,
 				datetimePrecision sql.NullInt64
 				extraValue        sql.NullString
 				columnKey         sql.NullString
-				values            = []interface{}{
+				values            = []any{
 					&column.NameValue,
 					&column.DefaultValueValue,
 					&column.NullableValue,

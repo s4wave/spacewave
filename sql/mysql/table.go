@@ -53,7 +53,7 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 		if colSch.GetAutoIncrement() {
 			autoIncIdx = i + 1
 			autoIncType := types.Uint64
-			var autoIncInter interface{}
+			var autoIncInter any
 			autoIncInter, _, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
 			if err == nil {
 				var ok bool
@@ -246,7 +246,7 @@ func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (uint64, error) {
 // column is passed in a row with the autoinc column failed, the next auto increment value must
 // update its internal state accordingly and use the insert val at runtime.
 // Implementations are responsible for updating their state to provide the correct values.
-func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interface{}) (uint64, error) {
+func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal any) (uint64, error) {
 	/*
 		autoIncCol := t.schema.Schema[t.autoIncIdx]
 		cmp, err := autoIncCol.Type.Compare(insertVal, t.autoIncVal)

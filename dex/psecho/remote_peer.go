@@ -3,6 +3,7 @@ package psecho
 import (
 	"context"
 	"hash"
+	"maps"
 	"time"
 
 	bhash "github.com/aperturerobotics/bifrost/hash"
@@ -317,9 +318,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 		var extraWantedRefs map[string]*block.BlockRef
 		if len(cachedRefs) == 0 && len(p.wantedRefs) != 0 {
 			extraWantedRefs = make(map[string]*block.BlockRef)
-			for refStr, ref := range p.wantedRefs {
-				extraWantedRefs[refStr] = ref
-			}
+			maps.Copy(extraWantedRefs, p.wantedRefs)
 		}
 		p.c.mtx.Unlock()
 
@@ -402,10 +401,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 						return blkCtx.Err()
 					default:
 					}
-					end := i + chunkSize
-					if end > len(blkDat) {
-						end = len(blkDat)
-					}
+					end := min(i+chunkSize, len(blkDat))
 					msg.Chunk = blkDat[i:end]
 					msg.Complete = end >= len(blkDat)
 					if err := syncStrm.sendSyncMessage(msg); err != nil {

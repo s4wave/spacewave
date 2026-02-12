@@ -1,7 +1,7 @@
 package testbed
 
 // Option is a option passed to NewTestbed
-type Option interface{}
+type Option any
 
 type withWorldVerbose struct{ verbose bool }
 

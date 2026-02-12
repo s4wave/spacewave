@@ -123,7 +123,7 @@ func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
 	maxRetries := 10
 
 	var lastErr error
-	for retry := 0; retry < maxRetries; retry++ {
+	for range maxRetries {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	backoff := 10 * time.Millisecond
 	maxRetries := 5
 
-	for retry := 0; retry < maxRetries; retry++ {
+	for range maxRetries {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}

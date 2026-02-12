@@ -86,7 +86,7 @@ func (i *Iterator) Value() ([]byte, error) {
 	}
 
 	// allow skipping 1 unexpected packet
-	for x := 0; x < 2; x++ {
+	for range 2 {
 		resp, err := i.client.Recv()
 		if err != nil {
 			return nil, err
@@ -151,7 +151,7 @@ func (i *Iterator) Next() bool {
 	}
 
 	// allow skipping 1 unexpected packet
-	for x := 0; x < 2; x++ {
+	for range 2 {
 		resp, err := i.client.Recv()
 		if err != nil {
 			i.storeErr(err)
@@ -196,7 +196,7 @@ func (i *Iterator) Seek(k []byte) error {
 	}
 
 	// allow skipping 1 unexpected packet
-	for x := 0; x < 2; x++ {
+	for range 2 {
 		resp, err := i.client.Recv()
 		if err != nil {
 			i.storeErr(err)

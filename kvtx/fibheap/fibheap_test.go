@@ -154,14 +154,14 @@ func assertNoError(t *testing.T, err error) {
 }
 
 // assertEqual asserts two things are equal.
-func assertEqual(t *testing.T, t1, t2 interface{}) {
+func assertEqual(t *testing.T, t1, t2 any) {
 	if !reflect.DeepEqual(t1, t2) {
 		t.Fatalf("objects not equal: %#v != %#v", t1, t2)
 	}
 }
 
 // assertZero asserts something is zero
-func assertZero(t *testing.T, t1 interface{}) {
+func assertZero(t *testing.T, t1 any) {
 	vo := reflect.ValueOf(t1)
 	if s, ok := t1.(string); ok {
 		if s != "" {
@@ -215,7 +215,7 @@ func TestEnqueueDequeueMin(t *testing.T) {
 	heap, err := fibheap.NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
-	for i := 0; i < len(NumberSequence1); i++ {
+	for i := range len(NumberSequence1) {
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence1[i])
 		if err != nil {
 			t.Fatal(err.Error())
@@ -254,7 +254,7 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	for i := 0; i < len(NumberSequence1); i++ {
+	for i := range len(NumberSequence1) {
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence1[i])
 		if err != nil {
 			t.Fatal(err.Error())
@@ -301,7 +301,7 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	e1k := "test1"
 	e2k := "test2"
 	e3k := "test3"
-	for i := 0; i < len(NumberSequence2); i++ {
+	for i := range len(NumberSequence2) {
 		if NumberSequence2[i] == Seq2DecreaseKey1Orig {
 			err := heap.Enqueue(ctx, []byte(e1k), NumberSequence2[i])
 			if err != nil {
@@ -332,7 +332,7 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	err = heap.DecreaseKey(ctx, []byte(e3k), Seq2DecreaseKey3Trgt)
 	assertNoError(t, err)
 
-	for i := 0; i < len(NumberSequence2Sorted); i++ {
+	for i := range len(NumberSequence2Sorted) {
 		_, minp, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
 		assertEqual(t, NumberSequence2Sorted[i], minp)
@@ -381,7 +381,7 @@ func TestEnqueueDelete(t *testing.T) {
 	e1k := "test1"
 	e2k := "test2"
 	e3k := "test3"
-	for i := 0; i < len(NumberSequence2); i++ {
+	for i := range len(NumberSequence2) {
 		var err error
 		if NumberSequence2[i] == Seq2DecreaseKey1Orig {
 			err = heap.Enqueue(ctx, []byte(e1k), NumberSequence2[i])
@@ -402,7 +402,7 @@ func TestEnqueueDelete(t *testing.T) {
 	err = heap.Delete(ctx, []byte(e3k))
 	assertNoError(t, err)
 
-	for i := 0; i < len(NumberSequence2Deleted3ElemSorted); i++ {
+	for i := range len(NumberSequence2Deleted3ElemSorted) {
 		_, pmin, err := heap.DequeueMin(ctx)
 		assertNoError(t, err)
 		assertEqual(t, NumberSequence2Deleted3ElemSorted[i], pmin)
@@ -486,7 +486,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 	N := 1000000
 
 	slice := make([]float64, 0, N)
-	for i := 0; i < N; i++ {
+	for i := range N {
 		slice = append(slice, 2*1e10*(rand.Float64()-0.5))
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), slice[i])
 		if err != nil {
@@ -515,7 +515,7 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 	N := 10000000
 
 	sliceFlt := make([]float64, 0, N)
-	for i := 0; i < N; i++ {
+	for i := range N {
 		sliceFlt = append(sliceFlt, 2*1e10*(float64(i)-0.5))
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), sliceFlt[i])
 		if err != nil {

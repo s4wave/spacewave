@@ -116,7 +116,7 @@ func (r *SubBlockSet) Delete(i, j int) {
 	if nremove <= 0 || i >= ls {
 		return
 	}
-	for o := 0; o < nremove; o++ {
+	for o := range nremove {
 		destIdx := uint32(i + o)
 		srcIdx := uint32(j + o)
 		r.bcs.ClearRef(destIdx)
@@ -153,7 +153,7 @@ func (r *SubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
 	}
 	ln := r.sl.Len()
 	m := make(map[uint32]block.SubBlock, ln)
-	for i := 0; i < ln; i++ {
+	for i := range ln {
 		m[uint32(i)] = r.sl.Get(i)
 	}
 	return m

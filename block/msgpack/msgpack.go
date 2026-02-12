@@ -21,7 +21,7 @@ func BuildMsgpackBlob(
 	ctx context.Context,
 	bcs *block.Cursor,
 	opts *blob.BuildBlobOpts,
-	obj interface{},
+	obj any,
 ) (*MsgpackBlob, error) {
 	nobj := &MsgpackBlob{}
 	bcs.ClearAllRefs()
@@ -100,7 +100,7 @@ func (m *MsgpackBlob) BuildMsgpackDecoder(ctx context.Context, bcs *block.Cursor
 // UnmarshalMsgpack unmarshals the msgpack data to an object.
 //
 // bcs must be located at the MsgpackBlob object.
-func (m *MsgpackBlob) UnmarshalMsgpack(ctx context.Context, bcs *block.Cursor, obj interface{}) error {
+func (m *MsgpackBlob) UnmarshalMsgpack(ctx context.Context, bcs *block.Cursor, obj any) error {
 	dec, err := m.BuildMsgpackDecoder(ctx, bcs)
 	if err != nil {
 		return err

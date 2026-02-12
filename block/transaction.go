@@ -167,10 +167,7 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 				continue
 			}
 			fromNn := t.blockGraph.From(nnID)
-			fromNnLen := fromNn.Len()
-			if fromNnLen < 0 {
-				fromNnLen = 0
-			}
+			fromNnLen := max(fromNn.Len(), 0)
 			fromNodes := make([]int64, 0, fromNnLen)
 			for fromNn.Next() {
 				to := fromNn.Node()

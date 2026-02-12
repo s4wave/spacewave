@@ -1,5 +1,4 @@
 //go:build test_git_clone_world
-// +build test_git_clone_world
 
 package git_world
 

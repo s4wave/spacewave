@@ -1,5 +1,4 @@
 //go:build test_s3
-// +build test_s3
 
 package block_store_s3
 

@@ -21,7 +21,7 @@ type ApplyBucketConfigResult struct {
 	// OldBucketConf is the old bucket conf.
 	OldBucketConf *Config `json:"old_bucket_conf,omitempty"`
 	// Timestamp is the timestamp.
-	Timestamp time.Time `json:"timestamp,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 	// Updated indicates if the value was updated.
 	Updated bool `json:"updated"`
 }

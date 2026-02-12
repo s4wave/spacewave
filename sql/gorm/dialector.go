@@ -3,6 +3,7 @@ package sql_gorm
 import (
 	"database/sql"
 	"fmt"
+	"maps"
 	"math"
 	"strings"
 
@@ -52,9 +53,7 @@ func (d *Dialector) Initialize(db *gorm.DB) (err error) {
 		UpdateClauses: UpdateClauses,
 		DeleteClauses: DeleteClauses,
 	})
-	for k, v := range d.ClauseBuilders() {
-		db.ClauseBuilders[k] = v
-	}
+	maps.Copy(db.ClauseBuilders, d.ClauseBuilders())
 	return nil
 }
 
@@ -123,7 +122,7 @@ func (d *Dialector) Migrator(db *gorm.DB) gorm.Migrator {
 	}}, d}
 }
 
-func (d *Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
+func (d *Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v any) {
 	_ = writer.WriteByte('?')
 }
 
@@ -143,7 +142,7 @@ func (d *Dialector) QuoteTo(writer clause.Writer, str string) {
 	}
 }
 
-func (d *Dialector) Explain(sql string, vars ...interface{}) string {
+func (d *Dialector) Explain(sql string, vars ...any) string {
 	return logger.ExplainSQL(sql, nil, `'`, vars...)
 }
 

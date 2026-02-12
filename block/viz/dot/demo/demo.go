@@ -80,8 +80,8 @@ func runDemo() error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 5; i++ {
-		key := []byte(fmt.Sprintf("key-%d", i))
+	for i := range 5 {
+		key := fmt.Appendf(nil, "key-%d", i)
 		err := atx.Set(ctx, key, key)
 		if err != nil {
 			return err

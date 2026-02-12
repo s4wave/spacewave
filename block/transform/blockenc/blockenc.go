@@ -22,7 +22,7 @@ func NewBlockEnc(c *Config) (*BlockEnc, error) {
 	}
 	enc := &BlockEnc{alloc: blockenc.DefaultAllocFn()}
 	enc.cryptArena = sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			// note: we asserted this doesn't error above
 			crypt, _ := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey())
 			return crypt

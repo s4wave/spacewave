@@ -36,7 +36,7 @@ var _ NamedSubBlock = ((*testNamedSubBlock)(nil))
 // TestSortNamedSubBlocks tests sorting a set of named sub blocks.
 func TestSortNamedTestBlocks(t *testing.T) {
 	namesSorted := make([]string, 100)
-	for i := 0; i < len(namesSorted); i++ {
+	for i := range namesSorted {
 		namesSorted[i] = "foo-" + strconv.Itoa(i)
 	}
 

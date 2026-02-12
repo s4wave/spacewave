@@ -103,10 +103,7 @@ func ReadFromChunks(
 		}
 		// note: start always >= currChunkStart
 		readStartPos := start - int(currChunkStart)
-		readEndPos := readStartPos + len(buf)
-		if readEndPos > int(currChunkSize) {
-			readEndPos = int(currChunkSize)
-		}
+		readEndPos := min(readStartPos+len(buf), int(currChunkSize))
 
 		data, err := currChunk.FetchData(ctx, currChunkBcs, false)
 		if err != nil {

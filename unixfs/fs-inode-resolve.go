@@ -38,7 +38,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 		return nil
 	}
 
-	for tries := 0; tries < fsInodeTries; tries++ {
+	for range fsInodeTries {
 		isRel, relErr := i.checkReleasedWithErr()
 		if isRel {
 			if relErr != nil {

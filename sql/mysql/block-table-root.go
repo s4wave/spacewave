@@ -80,7 +80,7 @@ func (r *TableRoot) FetchAutoIncrVal(
 	ctx context.Context,
 	bcs *block.Cursor,
 	expectedType sql.Type,
-) (interface{}, sql.ConvertInRange, error) {
+) (any, sql.ConvertInRange, error) {
 	autoIncrVal, err := r.GetAutoIncrVal().FetchSqlColumn(ctx, bcs.FollowSubBlock(4))
 	if err != nil {
 		return nil, false, err
@@ -95,7 +95,7 @@ func (r *TableRoot) StoreAutoIncrVal(
 	ctx context.Context,
 	bcs *block.Cursor,
 	buildBlobOpts *blob.BuildBlobOpts,
-	val interface{},
+	val any,
 ) error {
 	bcs = bcs.FollowSubBlock(4)
 	var err error

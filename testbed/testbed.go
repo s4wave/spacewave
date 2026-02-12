@@ -51,7 +51,7 @@ type Testbed struct {
 var Verbose bool = false
 
 // Option is a option passed to NewTestbed
-type Option interface{}
+type Option any
 
 type withVolumeConfig struct{ conf config.Config }
 
@@ -206,8 +206,7 @@ func RunTest(t *testing.T, cb func(t *testing.T, tb *Testbed)) {
 // must return before the outer test function for t returns.
 func RunSubtest(t *testing.T, name string, cb func(t *testing.T, tb *Testbed)) bool {
 	return t.Run(name, func(t *testing.T) {
-		ctx, ctxCancel := context.WithCancel(context.Background())
-		defer ctxCancel()
+		ctx := t.Context()
 		log := logrus.New()
 		log.SetLevel(logrus.DebugLevel)
 		le := logrus.NewEntry(log)

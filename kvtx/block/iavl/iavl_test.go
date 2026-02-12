@@ -39,7 +39,7 @@ func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
 		}
 
 		// Print indentation
-		for i := 0; i < depth; i++ {
+		for range depth {
 			sb.WriteString("  ")
 		}
 
@@ -244,9 +244,9 @@ func TestIavl(t *testing.T) {
 
 	kn := 5
 	t.Logf("placing %d keys", kn)
-	for i := 0; i < kn; i++ {
-		key := []byte(fmt.Sprintf("key-%d", i))
-		val := []byte(fmt.Sprintf("key-%d", kn-i))
+	for i := range kn {
+		key := fmt.Appendf(nil, "key-%d", i)
+		val := fmt.Appendf(nil, "key-%d", kn-i)
 
 		err := btx.Set(ctx, key, val)
 		if err != nil {
@@ -257,7 +257,7 @@ func TestIavl(t *testing.T) {
 
 	checkAll := func() {
 		for i := kn - 1; i >= 0; i-- {
-			key := []byte(fmt.Sprintf("key-%d", i))
+			key := fmt.Appendf(nil, "key-%d", i)
 			ival, ok, err := btx.Get(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
@@ -301,8 +301,8 @@ func TestIavl(t *testing.T) {
 	}
 
 	checkAll()
-	for i := 0; i < kn; i++ {
-		key := []byte(fmt.Sprintf("key-%d", i))
+	for i := range kn {
+		key := fmt.Appendf(nil, "key-%d", i)
 		if i%2 == 0 {
 			t.Logf("deleting key %s", key)
 			err := btx.Delete(ctx, key)
@@ -344,8 +344,8 @@ func TestIavl(t *testing.T) {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}
 	actLen := 0
-	for i := 0; i < kn; i++ {
-		key := []byte(fmt.Sprintf("key-%d", i))
+	for i := range kn {
+		key := fmt.Appendf(nil, "key-%d", i)
 		keep := i%2 != 0
 		_, exists, err := btx.Get(ctx, key)
 		if err != nil {

@@ -216,7 +216,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	// this exercises seeking to different locations in a blob.
 	prand := prng.BuildSeededRand([]byte("random-reads"))
 	buf := make([]byte, 4096)
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		// get random location
 		loc := int64(prand.Uint64() % uint64(len(expectedData)))
 		// read from that location

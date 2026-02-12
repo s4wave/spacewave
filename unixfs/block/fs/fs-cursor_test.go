@@ -20,7 +20,7 @@ func TestBuildPath(t *testing.T) {
 	fs := &FS{}
 	root := &FSCursor{}
 	tail := root
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		tail = &FSCursor{
 			fs:     fs,
 			parent: tail,
@@ -38,7 +38,7 @@ func TestBuildPath(t *testing.T) {
 	if len(tpath) != 10 {
 		t.Fail()
 	}
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if tpath[i] != strconv.Itoa(i) {
 			t.Fail()
 		}

@@ -173,7 +173,7 @@ func TestMysql(t *testing.T) {
 	tx, e := buildEngine()
 
 	printQuery(e, fmt.Sprintf("SELECT * FROM `%s`", tableName))
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		printQuery(e,
 			fmt.Sprintf(
 				"INSERT INTO `%s` (name, email, created_at, phone_numbers) VALUES ('entry-%d', 'account-%d@email.com', NOW(), '[\"555-555-555%d\"]')",

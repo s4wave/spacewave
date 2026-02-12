@@ -15,8 +15,8 @@ func TestBloom(t *testing.T) {
 
 	bl := boom.NewWithEstimates(n, fpRate)
 	var datas [][]byte
-	for i := 0; i < 1000; i++ {
-		msgData := []byte(fmt.Sprintf("hello world #%v", i))
+	for i := range 1000 {
+		msgData := fmt.Appendf(nil, "hello world #%v", i)
 		bl.Add(msgData)
 		datas = append(
 			datas,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -188,16 +189,12 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 		return volumeID, true
 	}
 	for to, alias := range volumeAliases {
-		for _, fromID := range alias.GetFrom() {
-			if fromID == volumeID {
-				return to, true
-			}
+		if slices.Contains(alias.GetFrom(), volumeID) {
+			return to, true
 		}
 	}
-	for _, matchID := range volumeIDList {
-		if matchID == volumeID {
-			return volumeID, true
-		}
+	if slices.Contains(volumeIDList, volumeID) {
+		return volumeID, true
 	}
 	if c.matchVolumeIdRe == nil {
 		return "", false

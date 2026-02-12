@@ -71,17 +71,14 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 
 	blobSize := int(r.root.GetTotalSize())
 	readSize := len(p)
-	readEnd := r.idx + readSize
-	if readEnd > blobSize {
-		readEnd = blobSize
-	}
+	readEnd := min(r.idx+readSize, blobSize)
 	if readStart >= readEnd {
 		return 0, io.EOF
 	}
 
 	fillZeros := func() int {
 		readLen := readEnd - readStart
-		for i := 0; i < readLen; i++ {
+		for i := range readLen {
 			p[i] = 0
 		}
 		return readLen

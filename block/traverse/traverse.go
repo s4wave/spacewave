@@ -23,15 +23,15 @@ type Location struct {
 	Cursor *block.Cursor
 	// Block contains the block or sub-block at the location.
 	// May be nil if the block type is unknown or ref not found.
-	Block interface{}
+	Block any
 	// ParentRefID is the reference ID that was previously followed.
 	ParentRefID uint32
 }
 
 // GetParentBlocks traverses the list and gets all parent blocks
 // The tail block is the first in the list.
-func (l *Location) GetParentBlocks() []interface{} {
-	res := make([]interface{}, 0, l.Depth)
+func (l *Location) GetParentBlocks() []any {
+	res := make([]any, 0, l.Depth)
 	for x := l; x != nil; x = x.Parent {
 		res = append(res, x.Block)
 	}

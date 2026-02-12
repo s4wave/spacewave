@@ -56,7 +56,7 @@ func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlS
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		_, err = printQuery(
 			tx,
 			fmt.Sprintf(

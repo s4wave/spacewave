@@ -292,7 +292,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 	var startIdx int
 	var skipBitset bitset.BitSet
 	indexes := make([]int, len(dirs))
-	for i := 0; i < len(dirs); i++ {
+	for i := range dirs {
 		if err := ValidateDirentName(dirs[i]); err != nil {
 			return nil, indexes, err
 		}
@@ -359,7 +359,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 		return outputCursors, nil
 	}
 
-	for i := 0; i < len(dirs); i++ {
+	for i := range dirs {
 		if skipBitset.Test(uint(i + 1)) {
 			// already created
 			continue

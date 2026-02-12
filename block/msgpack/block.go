@@ -113,6 +113,6 @@ func (b *MsgpackBlock[T]) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block    = ((*MsgpackBlock[interface{}])(nil))
-	_ block.SubBlock = ((*MsgpackBlock[interface{}])(nil))
+	_ block.Block    = ((*MsgpackBlock[any])(nil))
+	_ block.SubBlock = ((*MsgpackBlock[any])(nil))
 )

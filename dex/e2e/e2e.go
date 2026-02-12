@@ -70,7 +70,7 @@ func TestMultiNodeDEX(
 
 	// 1. Create a testbed for each node.
 	t.Log("constructing testbeds")
-	for i := 0; i < nnodes; i++ {
+	for i := range nnodes {
 		tb, err := testbed.NewTestbed(
 			ctx,
 			le.WithField("testbed-i", i),

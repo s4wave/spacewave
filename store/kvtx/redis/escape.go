@@ -10,7 +10,7 @@ func escapeKey(key []byte, extraCap int) []byte {
 	var esc []byte
 
 	// check for any necessary escapes
-	for i := 0; i < len(key); i++ {
+	for i := range key {
 		// anything outside of basic chars should be escaped
 		c := key[i]
 		if !IsBasicRune(c) {

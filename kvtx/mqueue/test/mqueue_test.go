@@ -15,7 +15,7 @@ func TestMQueueSimple(t *testing.T) {
 	ctx := context.Background()
 	q := kvtx_mqueue.NewMQueue(objs, &kvtx_mqueue.Config{})
 	for i := 1; i <= 3; i++ {
-		msg, err := q.Push(ctx, []byte(fmt.Sprintf("test-%d", i)))
+		msg, err := q.Push(ctx, fmt.Appendf(nil, "test-%d", i))
 		if err != nil {
 			t.Fatal(err.Error())
 		}

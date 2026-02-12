@@ -282,10 +282,7 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 
 	// Write data in chunks
 	for offset := int64(0); offset < int64(len(data)); offset += int64(optimalWriteSize) {
-		end := offset + int64(optimalWriteSize)
-		if end > int64(len(data)) {
-			end = int64(len(data))
-		}
+		end := min(offset+int64(optimalWriteSize), int64(len(data)))
 		chunk := data[offset:end]
 
 		err = fsh.WriteAt(ctx, offset, chunk, ts)

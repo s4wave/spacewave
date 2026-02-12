@@ -15,19 +15,19 @@ func newBadgerLogger(le *logrus.Entry, withDebug bool) *badgerLogger {
 	return &badgerLogger{le: le, withDebug: withDebug}
 }
 
-func (l *badgerLogger) Errorf(fmt string, args ...interface{}) {
+func (l *badgerLogger) Errorf(fmt string, args ...any) {
 	l.le.Errorf(fmt, args...)
 }
 
-func (l *badgerLogger) Warningf(fmt string, args ...interface{}) {
+func (l *badgerLogger) Warningf(fmt string, args ...any) {
 	l.le.Warnf(fmt, args...)
 }
 
-func (l *badgerLogger) Infof(fmt string, args ...interface{}) {
+func (l *badgerLogger) Infof(fmt string, args ...any) {
 	l.le.Infof(fmt, args...)
 }
 
-func (l *badgerLogger) Debugf(fmt string, args ...interface{}) {
+func (l *badgerLogger) Debugf(fmt string, args ...any) {
 	if l.withDebug {
 		l.le.Debugf(fmt, args...)
 	}

@@ -1,5 +1,4 @@
 //go:build unixfs_billy_test
-// +build unixfs_billy_test
 
 package unixfs_world
 

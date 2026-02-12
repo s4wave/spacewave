@@ -90,12 +90,7 @@ func CheckApplyBucketConfigMatchesVolume(dir ApplyBucketConfig, volID string, al
 		if volumeIDConstraint.MatchString(volID) {
 			return true
 		}
-		for _, aliasID := range alias {
-			if volumeIDConstraint.MatchString(aliasID) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(alias, volumeIDConstraint.MatchString)
 	}
 	if volumeIDList := dir.ApplyBucketConfigVolumeIDList(); len(volumeIDList) != 0 {
 		var matched bool

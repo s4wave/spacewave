@@ -31,7 +31,7 @@ type WalkObjectBlocksEntry struct {
 	Ctor block.Ctor
 	// Blk is the block or sub-block at this entry.
 	// May be nil if ctor was nil.
-	Blk interface{}
+	Blk any
 	// IsSubBlock indicates this is a sub-block.
 	// If set, found is also true and err is nil.
 	IsSubBlock bool

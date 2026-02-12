@@ -72,7 +72,7 @@ func (r *NamedSubBlockSet) ValidateUnique(nonEmpty bool) error {
 	}
 	rl := r.Len()
 	seen := make(map[string]struct{}, rl)
-	for i := 0; i < rl; i++ {
+	for i := range rl {
 		v := r.sl.Get(i)
 		if v == nil {
 			continue
@@ -282,7 +282,7 @@ func (r *NamedSubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
 	}
 	ln := r.sl.Len()
 	m := make(map[uint32]block.SubBlock, ln)
-	for i := 0; i < ln; i++ {
+	for i := range ln {
 		m[uint32(i)] = r.sl.Get(i)
 	}
 	return m

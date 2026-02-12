@@ -146,7 +146,7 @@ func (r *NamedBlockRefSet) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	}
 	ls := r.sl.Len()
 	m := make(map[uint32]*block.BlockRef, ls)
-	for i := 0; i < ls; i++ {
+	for i := range ls {
 		sv := r.sl.Get(i)
 		if sv == nil {
 			return nil, errors.Errorf("entry at index %d was nil", i)

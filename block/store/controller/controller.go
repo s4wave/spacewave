@@ -2,6 +2,7 @@ package block_store_controller
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -110,11 +111,8 @@ func (c *Controller) HandleDirective(
 		if storeID == "" {
 			matched = true
 		} else {
-			for _, id := range c.blockStoreIds {
-				if id == storeID {
-					matched = true
-					break
-				}
+			if slices.Contains(c.blockStoreIds, storeID) {
+				matched = true
 			}
 		}
 		if !matched {

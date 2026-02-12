@@ -126,25 +126,19 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 	}
 
 	// readEnd is the index after the one we will read to.
-	readEnd := idx + readSize
-	if readEnd > totalSize {
-		readEnd = totalSize
-	}
+	readEnd := min(idx+readSize, totalSize)
 
 	// zeros if current == nil
 	if r.currentRange == nil || r.currentBlob == nil {
 		// zeroEnd is the index after the zeros.
-		zeroEnd := r.nextEval
-		if zeroEnd > totalSize {
-			zeroEnd = totalSize
-		}
+		zeroEnd := min(r.nextEval, totalSize)
 		if zeroEnd < readEnd {
 			readEnd = zeroEnd
 		}
 		// read up to min(readEnd, zeroEnd)
 		readN := int(readEnd - idx)
 		// this is optimized by compiler to memset
-		for i := 0; i < readN; i++ {
+		for i := range readN {
 			p[i] = 0
 		}
 		r.idx += uint64(readN)
@@ -168,10 +162,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	nextIdx := r.idx + uint64(blobReadN)
-	if nextIdx > blobEnd {
-		nextIdx = blobEnd
-	}
+	nextIdx := min(r.idx+uint64(blobReadN), blobEnd)
 	r.idx = nextIdx
 	return blobReadN, nil
 }

@@ -241,7 +241,7 @@ func TestRandomReads(t *testing.T) {
 	prand := prng.BuildSeededRand([]byte("random-reads"))
 	_ = prand
 	buf := make([]byte, 4096)
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		// get random location (fails)
 		loc := int64(prand.Uint64() % uint64(len(expectedData)))
 		// sequential: works perfectly

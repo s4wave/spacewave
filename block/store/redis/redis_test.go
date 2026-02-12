@@ -1,5 +1,4 @@
 //go:build test_redis
-// +build test_redis
 
 package block_store_redis
 

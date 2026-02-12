@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.44.1-0.20260131060332-1c6e160693d5 // master
+	github.com/aperturerobotics/bifrost v0.45.2-0.20260211040244-d8830f88ceca // master
 	github.com/aperturerobotics/cayley v0.11.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -57,9 +57,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
+	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
+	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.30.3 // latest
-	github.com/aperturerobotics/controllerbus v0.52.0 // latest
+	github.com/aperturerobotics/controllerbus v0.52.1 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
+	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.1 // latest
 	github.com/aperturerobotics/starpc v0.46.2 // latest
 	github.com/aperturerobotics/util v1.32.3 // latest
@@ -77,6 +80,8 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20250211130249-04b037b40df0 // indirect
+	github.com/blang/semver/v4 v4.0.0 // latest
+	github.com/coder/websocket v1.8.14 // indirect; master
 	github.com/klauspost/compress v1.18.3
 	github.com/libp2p/go-libp2p v0.47.0
 	github.com/mr-tron/base58 v1.2.0
@@ -86,35 +91,31 @@ require (
 	github.com/pion/sdp/v3 v3.0.17 // indirect
 	github.com/pion/webrtc/v4 v4.2.3 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect; latest
 	github.com/sirupsen/logrus v1.9.4
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.47.0
-	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	gonum.org/v1/gonum v0.17.0
 )
 
 require (
-	github.com/aperturerobotics/cli v1.1.0
-	github.com/blang/semver/v4 v4.0.0
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
-	github.com/gomodule/redigo v1.9.2
-	github.com/hack-pad/safejs v0.1.1
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible // master
-	github.com/tidwall/btree v1.7.0
-	gotest.tools/v3 v3.5.1
-	modernc.org/sqlite v1.38.2 // latest
+	github.com/gomodule/redigo v1.9.3
+	github.com/hack-pad/safejs v0.1.0
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/tidwall/btree v1.8.1
+	gotest.tools/v3 v3.5.2
+	modernc.org/sqlite v1.45.0
 )
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
-	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/cloudflare/circl v1.3.8 // indirect
-	github.com/coder/websocket v1.8.14 // indirect
+	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -152,7 +153,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pion/dtls/v3 v3.0.10 // indirect
 	github.com/pion/ice/v4 v4.2.0 // indirect
 	github.com/pion/interceptor v0.1.43 // indirect
@@ -197,7 +198,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
-	modernc.org/libc v1.66.3 // indirect
+	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )

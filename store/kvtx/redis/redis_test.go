@@ -1,5 +1,4 @@
 //go:build redis_test
-// +build redis_test
 
 package store_kvtx_redis
 

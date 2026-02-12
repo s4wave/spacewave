@@ -1,5 +1,4 @@
 //go:build !js && !wasip1
-// +build !js,!wasip1
 
 package store_kvtx_bolt
 
@@ -105,7 +104,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 	}
 
 	write := t.txn.Writable()
-	emittedKeys := rbt.NewWith(func(i, j interface{}) int {
+	emittedKeys := rbt.NewWith(func(i, j any) int {
 		return bytes.Compare(i.([]byte), j.([]byte))
 	})
 	checkElem := func(k, v []byte) error {
