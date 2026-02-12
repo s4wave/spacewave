@@ -12,8 +12,8 @@ github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:t
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
 github.com/aperturerobotics/bifrost v0.45.2-0.20260211040244-d8830f88ceca h1:gZLZzkQMdESW9s/g1pLYawiHjAUzaqzOg5AyJp5r7dc=
 github.com/aperturerobotics/bifrost v0.45.2-0.20260211040244-d8830f88ceca/go.mod h1:4YYM5zm0ultpnN9rYaJjpp47XZaIabS0Oa6F+sIeZS8=
-github.com/aperturerobotics/bldr-saucer v0.3.0 h1:2XIXnpDJnnsxNfcUXcdAPjORej7ma8HFkCgb3Xk6j94=
-github.com/aperturerobotics/bldr-saucer v0.3.0/go.mod h1:JLcmg/S5LLcHoX+5tkAvsi/NN64mTVCjAhkeSi17X5U=
+github.com/aperturerobotics/bldr-saucer v0.3.1 h1:CO21sMcgbM3Z57Mk1JBSrUyEEdEQehGX5KjkQvYwNcI=
+github.com/aperturerobotics/bldr-saucer v0.3.1/go.mod h1:rwkXIRRWshFUUYJBOr0q75IRG8Iazyr1dm+3L5A4w8k=
 github.com/aperturerobotics/cayley v0.11.0 h1:ni1J4pc6sMfC5j02FQtiMZT45gaJqRLQmifZEiDV+3I=
 github.com/aperturerobotics/cayley v0.11.0/go.mod h1:/QH0zmwZdBrj7yMtb9XQ3JOfVD5NEZCMfo4RIcWPSaM=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
@@ -58,8 +58,8 @@ github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3B
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
 github.com/aperturerobotics/protobuf-go-lite v0.12.1 h1:o9of87F/LFS2p5xfq32CrU99dvfqIAalTP7ZzoZK6Kg=
 github.com/aperturerobotics/protobuf-go-lite v0.12.1/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
-github.com/aperturerobotics/saucer v0.0.0-20260211194039-c426857606a9 h1:oblswLgP4FPB0ewj9ymB6fsKWl4ONcBhcj139L7HABQ=
-github.com/aperturerobotics/saucer v0.0.0-20260211194039-c426857606a9/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
+github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 h1:M8Y+CjQ0gFNWAAItuop12kT+Ap86pu1q4wC6rOhDdo0=
+github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.46.3-0.20260211025523-75aa78408dcf h1:AQOr5KX1ab7AwF/IHe5Nza05SEAkufZelxjcCafbvFY=
 github.com/aperturerobotics/starpc v0.46.3-0.20260211025523-75aa78408dcf/go.mod h1:boNyYtoQvPgE7xLJ3aFhFazSMGFlPWHXZFoSYY9JbPU=
 github.com/aperturerobotics/util v1.32.3 h1:wBc6L2guYMgLEzFwORH3CLMoMpfEqbV6pDqYervo3S0=
