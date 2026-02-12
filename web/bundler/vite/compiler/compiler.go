@@ -286,7 +286,6 @@ func (c *Controller) buildViteBundles(
 	var mu sync.Mutex
 
 	for i, bundle := range bundleList {
-		i, bundle := i, bundle
 		eg.Go(func() error {
 			bundleID := bundle.Id
 			key := newViteBundlerKey(

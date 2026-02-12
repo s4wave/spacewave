@@ -70,6 +70,10 @@ type DevtoolArgs struct {
 	// TargetsCsv is the comma-separated list of deployment targets (e.g., "browser,desktop").
 	// Overrides platform_ids in build configs when specified.
 	TargetsCsv string
+
+	// WebRenderer is the web renderer to use for native applications.
+	// Valid values: "electron", "saucer"
+	WebRenderer string
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -278,6 +282,15 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 		{
 			Name:  "native",
 			Usage: "Start the application as a native app.",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "web-renderer",
+					Usage:       "web renderer to use (electron, saucer)",
+					EnvVars:     []string{"BLDR_WEB_RENDERER"},
+					Destination: &a.WebRenderer,
+					Value:       "saucer",
+				},
+			},
 			Action: func(c *cli.Context) error {
 				return a.ExecuteNativeProject(c.Context)
 			},

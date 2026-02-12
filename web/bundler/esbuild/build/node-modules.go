@@ -2,6 +2,7 @@ package bldr_web_bundler_esbuild_build
 
 import (
 	"path/filepath"
+	"slices"
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -40,13 +41,7 @@ func ExternalNodeModulesPlugin() esbuild.Plugin {
 					pathParts := strings.Split(filepath.ToSlash(cleanPath), "/")
 
 					// Check if any part of the path is "node_modules"
-					isNodeModule := false
-					for _, part := range pathParts {
-						if part == "node_modules" {
-							isNodeModule = true
-							break
-						}
-					}
+					isNodeModule := slices.Contains(pathParts, "node_modules")
 					if isNodeModule {
 						// If it is, mark it as external.
 						// Return the original path requested, not the resolved path.

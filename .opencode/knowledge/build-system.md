@@ -183,6 +183,27 @@ Builds the web runtime plugin:
 - Only targets native platforms (for WASM)
 - Bundles web runtime JavaScript
 
+## Manifest Storage and Lifecycle
+
+### Manifest Storage
+
+Manifests are stored in the world state (Hydra data store) under a plugin host object key:
+- **Object key**: Typically `"devtool"` for devtool bus
+- **Storage location**: In the world engine's transaction-based storage system
+- **Metadata**: Each manifest stores `ManifestMeta` (ID, platform, build type, revision)
+
+### Devtool Startup Cleanup (Added 2026-02-10)
+
+When the devtool bus is initialized (`devtool/bus.go`, `BuildDevtoolBus()`, lines 285-314):
+
+1. **Manifest cleanup on startup**: Before the plugin host scheduler begins watching, old manifests from previous bldr sessions are cleared
+2. **Reason**: Prevents stale plugin code from prior sessions from being executed
+3. **Implementation**:
+   - Uses `bldr_manifest_world.ListManifests()` to find all manifests linked to `pluginHostObjectKey`
+   - Deletes each manifest via `DeleteObject()` in a transaction
+   - Logs count of cleared manifests for audit trail
+4. **Within-session behavior**: Within a single session, falling back to old manifests during build failures is intentional and allowed
+
 ## Waiting for Manifests
 
 The dist compiler waits for dependent manifests to be built before proceeding.

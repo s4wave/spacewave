@@ -12,11 +12,11 @@
     },
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "0.5.2",
+    "@aptre/protobuf-es-lite": "0.5.3",
     "@libp2p/interface": "2.6.1",
   },
   "packages": {
-    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@0.5.2", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-AUUiBZP/2C2W3ig50loSWKfhOvr8Gb7uL9vl49kFRsXQJOcNbcDMRSKOS7HNYcDIM6ZhASGL9EasghmNesNa7Q=="],
+    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@0.5.3", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-EBjXGadsJqt6LjwMYj70MDowzqeM/EBDb1yhJ44ZY3XMncDbKoDnmhPVT6nsEg8eGCGdeumwQFvKrT2M/6NyGQ=="],
 
     "@typescript/vfs": ["@typescript/vfs@1.6.2", "", { "dependencies": { "debug": "^4.1.1" }, "peerDependencies": { "typescript": "*" } }, "sha512-hoBwJwcbKHmvd2QVebiytN1aELvpk9B74B4L1mFm/XT1Q/VOYAWl2vQ9AWRFtQq8zmz6enTpfTV8WRc4ATjW/g=="],
 

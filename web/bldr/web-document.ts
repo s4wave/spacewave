@@ -49,6 +49,7 @@ import {
   WebViewDefinition,
 } from '../view/view_srpc.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
+import { isSaucer, SaucerRuntimeClient } from '../saucer/saucer.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
@@ -369,6 +370,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
+  // isSaucer indicates this is saucer and we will use HTTP endpoints.
+  private isSaucer?: boolean
   // disableStoragePersist disables requesting persistent storage permission
   private disableStoragePersist?: boolean
   // releaseShutdownCallback removes the callback handler for onunload.
@@ -394,9 +397,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // electron: not used
   private worker?: SharedWorker
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
-  private webRuntimePort: MessagePort
+  // Not used in saucer mode (uses HTTP-based communication instead).
+  private webRuntimePort?: MessagePort
   // webRuntimeClient is the client for the WebRuntime.
-  private readonly webRuntimeClient: WebRuntimeClient
+  private readonly webRuntimeClient: WebRuntimeClient | SaucerRuntimeClient
   // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
   private readonly webDocumentHost: WebDocumentHostClient
 
@@ -433,6 +437,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (isElectron) {
       this.isElectron = true
     }
+    if (isSaucer) {
+      this.isSaucer = true
+    }
     this.webViews = {}
     this.webWorkers = {}
     if (opts?.disableStoragePersist) {
@@ -442,10 +449,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.closedCallback = opts.closedCallback
     }
 
-    // Detect if we can use WebAssembly.
-    const useWasm = detectWasmSupported()
-    if (!useWasm) {
-      throw new Error('WebAssembly is not supported in this browser')
+    // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
+    if (!this.isSaucer) {
+      const useWasm = detectWasmSupported()
+      if (!useWasm) {
+        throw new Error('WebAssembly is not supported in this browser')
+      }
     }
 
     // Setup the status stream.
@@ -467,15 +476,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.webDocumentHost = new WebDocumentHostClient(this.client)
     this.sharedWorkerPath = opts?.sharedWorkerPath ?? '/shw.mjs'
 
-    this.webRuntimeClient = new WebRuntimeClient(
-      this.webRuntimeId,
-      this.webDocumentUuid,
-      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
-      this.openWebRuntimeClient.bind(this),
-      this.handleWebRuntimeOpenStream.bind(this),
-      this.handleWebRuntimeClientDisconnected.bind(this),
-      this.isElectron,
-    )
+    // Create the appropriate runtime client based on the environment.
+    if (this.isSaucer) {
+      this.webRuntimeClient = new SaucerRuntimeClient(
+        this.webRuntimeId,
+        this.webDocumentUuid,
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+        this.handleWebRuntimeOpenStream.bind(this),
+      )
+    } else {
+      this.webRuntimeClient = new WebRuntimeClient(
+        this.webRuntimeId,
+        this.webDocumentUuid,
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+        this.openWebRuntimeClient.bind(this),
+        this.handleWebRuntimeOpenStream.bind(this),
+        this.handleWebRuntimeClientDisconnected.bind(this),
+        this.isElectron,
+      )
+    }
 
     // add a global shutdown callback to terminate this
     this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
@@ -491,6 +510,16 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       document.addEventListener('visibilitychange', listener)
       this.releaseVisibilityCallback = () =>
         document.removeEventListener('visibilitychange', listener)
+    }
+
+    // set the conn on the client to start accepting rpcs
+    this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
+
+    // Saucer mode: Go runtime runs natively, no SharedWorker/ServiceWorker needed.
+    if (this.isSaucer) {
+      console.log('WebDocument: saucer mode - using HTTP-based communication')
+      this.taskEnsureWebRuntimeConn()
+      return
     }
 
     // startup
@@ -562,7 +591,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // we don't expect any messages directly from the main worker port.
-    this.webRuntimePort.start()
+    this.webRuntimePort!.start()
 
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
@@ -577,9 +606,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
     this.initServiceWorker(wb)
-
-    // set the conn on the client to start accepting rpcs
-    this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
 
     // Acquire a Web Lock to enable reliable disconnect detection.
     // The WebRuntime (SharedWorker) will try to acquire the same lock.
@@ -611,7 +637,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.
+  // In Saucer mode, wraps the stream in WebRuntimeHost.WebDocumentRpc rpcstream
+  // so Go can route to the per-document mux.
   public async openWebDocumentHostStream(): Promise<PacketStream> {
+    if (this.isSaucer) {
+      const src = this.webRuntimeClient as SaucerRuntimeClient
+      return src.openWebDocumentHostStream(this.webDocumentUuid)
+    }
     return this.webRuntimeClient.openStream()
   }
 
@@ -669,7 +701,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // if a local web view
     const webView = this.webViews[webViewId]
     if (!webView) {
-      throw new Error('unknown web view: ${webViewId}')
+      throw new Error(`unknown web view: ${webViewId}`)
     }
 
     const server = webView.getRpcServer()
@@ -964,7 +996,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
+  // Only used in non-saucer mode (Electron/SharedWorker).
   private sendWebRuntimeOpenClient(init: Uint8Array, remotePort: MessagePort) {
+    if (!this.webRuntimePort) {
+      throw new Error('webRuntimePort not initialized')
+    }
     const msg: WebDocumentToWebRuntime = {
       from: this.webDocumentUuid,
       connectWebRuntime: {

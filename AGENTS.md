@@ -39,10 +39,12 @@ When a bug is reported, don't start by trying to fix it. Instead, start by writi
 - PREFER one exported struct per `.go` file (file named after the struct, e.g., `state-atom-resource.go` for `StateAtomResource`)
   - Multiple unexported (internal) structs in the same file are acceptable
   - Constants and type aliases can be co-located with the struct that uses them
+- PREFER to run go fix ./... after changing Go code when done with a batch of changes
 - ALWAYS investigate all existing implementation details before making changes
 - ALWAYS import useMemo, useCallback, etc, instead of using React.useMemo, React.useCallback, etc.
 - NOTE that generated files like `*.pb*` are ignored from ripgrep (rg)
 - NOTE that ripgrep does not have a built-in `tsx` type; use `-g "*.tsx"` instead of `--type tsx`
+- DO NOT edit vendor/ as these changes will be clobbered by go mod vendor
 
 ## Imports
 
@@ -105,6 +107,65 @@ var _ SomeInterface = (*SomeStruct)(nil)
 ```
 
 This verifies at compile-time that `SomeStruct` implements `SomeInterface`.
+
+## Broadcast Wait Pattern
+
+When waiting for a condition that is signaled via `broadcast.Broadcast`, always get the wait channel and check the condition inside the same `HoldLock` call. This prevents missed-wakeup race conditions.
+
+Use `broadcast.Broadcast` as the single mutex guarding shared state rather than a separate `sync.Mutex`. Name the field `bcast`.
+
+```go
+// ✅ Do this - check state and get wait channel atomically
+for {
+	var ch <-chan struct{}
+	var val SomeType
+	dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch = getWaitCh()
+		val = dm.someState
+	})
+
+	if val != nil {
+		return val
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-ch:
+	}
+}
+
+// ❌ Don't do this - separate lock and broadcast (missed wakeup possible)
+for {
+	dm.mtx.Lock()
+	val := dm.someState
+	dm.mtx.Unlock()
+	if val != nil {
+		return val
+	}
+
+	var ch <-chan struct{}
+	dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch = getWaitCh()
+	})
+	// BUG: broadcast can fire between mtx.Unlock and getWaitCh,
+	// closing the old channel before we get the new one.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-ch:
+	}
+}
+```
+
+When broadcasting a state change, update state and broadcast inside the same `HoldLock`:
+
+```go
+dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	dm.someState = newValue
+	broadcast()
+})
+```
 
 ## Controller Patterns
 

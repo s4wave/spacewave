@@ -3,17 +3,17 @@
   // quickjs/polyfill-symbol.ts
   function createSymbolPolyfills() {
     Symbol.asyncIterator || Object.defineProperty(Symbol, "asyncIterator", {
-      value: Symbol("Symbol.asyncIterator"),
+      value: /* @__PURE__ */ Symbol("Symbol.asyncIterator"),
       writable: false,
       enumerable: false,
       configurable: false
     }), Symbol.dispose || Object.defineProperty(Symbol, "dispose", {
-      value: Symbol("Symbol.dispose"),
+      value: /* @__PURE__ */ Symbol("Symbol.dispose"),
       writable: false,
       enumerable: false,
       configurable: false
     }), Symbol.asyncDispose || Object.defineProperty(Symbol, "asyncDispose", {
-      value: Symbol("Symbol.asyncDispose"),
+      value: /* @__PURE__ */ Symbol("Symbol.asyncDispose"),
       writable: false,
       enumerable: false,
       configurable: false
@@ -1906,7 +1906,7 @@ function applyPartialMap(sourceMap, targetMap, value, clone) {
 }
 
 // ../../../node_modules/@aptre/protobuf-es-lite/dist/unknown.js
-var unknownFieldsSymbol = Symbol("@aptre/protobuf-es-lite/unknown-fields");
+var unknownFieldsSymbol = /* @__PURE__ */ Symbol("@aptre/protobuf-es-lite/unknown-fields");
 function handleUnknownField(message, no, wireType, data) {
   if (typeof message !== "object") {
     return;
@@ -3026,8 +3026,8 @@ function readField2(target, jsonValue, field, options) {
     }
   }
 }
-var tokenNull = Symbol();
-var tokenIgnoredUnknownEnum = Symbol();
+var tokenNull = /* @__PURE__ */ Symbol();
+var tokenIgnoredUnknownEnum = /* @__PURE__ */ Symbol();
 function readEnum(type, json, ignoreUnknownFields, nullAsZeroValue) {
   if (json === null) {
     if (type.typeName == "google.protobuf.NullValue") {
@@ -3403,6 +3403,8 @@ function createMessageType(params, exts) {
       return mt.fromJson(json, options);
     },
     toBinary(a, options) {
+      if (a == null)
+        return new Uint8Array(0);
       const opt = makeWriteOptions(options);
       const writer = opt.writerFactory();
       writeMessage(a, fields, writer, opt);
@@ -3866,7 +3868,7 @@ function equals(a, b) {
 }
 
 // ../../../node_modules/uint8arraylist/dist/src/index.js
-var symbol = Symbol.for("@achingbrain/uint8arraylist");
+var symbol = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
 function findBufAndOffset(bufs, index) {
   if (index == null || index < 0) {
     throw new RangeError("index is out of bounds");
@@ -4567,7 +4569,7 @@ function setMaxListeners() {
 }
 
 // ../../../node_modules/@libp2p/interface/dist/src/index.js
-var serviceCapabilities = Symbol.for("@libp2p/service-capabilities");
+var serviceCapabilities = /* @__PURE__ */ Symbol.for("@libp2p/service-capabilities");
 
 // ../../../node_modules/get-iterator/dist/src/index.js
 function getIterator(obj) {
@@ -6462,7 +6464,7 @@ function createAbortController() {
 function createSymbolPolyfills() {
   if (!Symbol.asyncIterator) {
     Object.defineProperty(Symbol, "asyncIterator", {
-      value: Symbol("Symbol.asyncIterator"),
+      value: /* @__PURE__ */ Symbol("Symbol.asyncIterator"),
       writable: false,
       enumerable: false,
       configurable: false
@@ -6470,7 +6472,7 @@ function createSymbolPolyfills() {
   }
   if (!Symbol.dispose) {
     Object.defineProperty(Symbol, "dispose", {
-      value: Symbol("Symbol.dispose"),
+      value: /* @__PURE__ */ Symbol("Symbol.dispose"),
       writable: false,
       enumerable: false,
       configurable: false
@@ -6478,7 +6480,7 @@ function createSymbolPolyfills() {
   }
   if (!Symbol.asyncDispose) {
     Object.defineProperty(Symbol, "asyncDispose", {
-      value: Symbol("Symbol.asyncDispose"),
+      value: /* @__PURE__ */ Symbol("Symbol.asyncDispose"),
       writable: false,
       enumerable: false,
       configurable: false

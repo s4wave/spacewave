@@ -121,6 +121,16 @@ enum WebRuntimeClientType {
   WebRuntimeClientType_WEB_WORKER = 3;
 }
 
+// WebRenderer is the type of web renderer to use for native applications.
+enum WebRenderer {
+  // WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+  WEB_RENDERER_DEFAULT = 0;
+  // WEB_RENDERER_ELECTRON uses Electron as the native runtime.
+  WEB_RENDERER_ELECTRON = 1;
+  // WEB_RENDERER_SAUCER uses Saucer (C++ webview) as the native runtime.
+  WEB_RENDERER_SAUCER = 2;
+}
+
 // WebRuntimeClientInit is a message sent by a client of a WebRuntime.
 message WebRuntimeClientInit {
   // RuntimeId is the shared identifier for the Go Runtime instance.

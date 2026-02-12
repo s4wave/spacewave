@@ -59,6 +59,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace web {
 namespace runtime {
+enum WebRenderer : int;
+extern const uint32_t WebRenderer_internal_data_[];
 enum WebRuntimeClientType : int;
 extern const uint32_t WebRuntimeClientType_internal_data_[];
 class CreateWebDocumentRequest;
@@ -101,6 +103,9 @@ extern const ::google::protobuf::internal::ClassDataFull WebRuntimeStatus_class_
 }  // namespace web
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::web::runtime::WebRenderer_internal_data_>
+    internal::EnumTraitsImpl::value<::web::runtime::WebRenderer>;
 template <>
 internal::EnumTraitsT<::web::runtime::WebRuntimeClientType_internal_data_>
     internal::EnumTraitsImpl::value<::web::runtime::WebRuntimeClientType>;
@@ -145,6 +150,43 @@ inline const ::std::string& WebRuntimeClientType_Name(WebRuntimeClientType value
 inline bool WebRuntimeClientType_Parse(
     ::absl::string_view name, WebRuntimeClientType* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<WebRuntimeClientType>(WebRuntimeClientType_descriptor(), name,
+                                           value);
+}
+enum WebRenderer : int {
+  WEB_RENDERER_DEFAULT = 0,
+  WEB_RENDERER_ELECTRON = 1,
+  WEB_RENDERER_SAUCER = 2,
+  WebRenderer_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  WebRenderer_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t WebRenderer_internal_data_[];
+inline constexpr WebRenderer WebRenderer_MIN =
+    static_cast<WebRenderer>(0);
+inline constexpr WebRenderer WebRenderer_MAX =
+    static_cast<WebRenderer>(2);
+inline bool WebRenderer_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int WebRenderer_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebRenderer_descriptor();
+template <typename T>
+const ::std::string& WebRenderer_Name(T value) {
+  static_assert(::std::is_same<T, WebRenderer>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to WebRenderer_Name().");
+  return WebRenderer_Name(static_cast<WebRenderer>(value));
+}
+template <>
+inline const ::std::string& WebRenderer_Name(WebRenderer value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<WebRenderer_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool WebRenderer_Parse(
+    ::absl::string_view name, WebRenderer* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<WebRenderer>(WebRenderer_descriptor(), name,
                                            value);
 }
 
@@ -2638,6 +2680,12 @@ struct is_proto_enum<::web::runtime::WebRuntimeClientType> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::runtime::WebRuntimeClientType>() {
   return ::web::runtime::WebRuntimeClientType_descriptor();
+}
+template <>
+struct is_proto_enum<::web::runtime::WebRenderer> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::runtime::WebRenderer>() {
+  return ::web::runtime::WebRenderer_descriptor();
 }
 
 }  // namespace protobuf

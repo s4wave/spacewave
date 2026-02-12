@@ -8,6 +8,8 @@
 /vite-dist
 /vite-output.json
 /vite-analysis.json
+/.opencode/tool-output
+/.tmp
 .cache
 
 # misc
@@ -30,6 +32,7 @@ output/
 
 __debug_bin*
 debug.test*
+/bin/bldr-saucer
 .aider*
 /.tools/
 .env

@@ -268,7 +268,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace runtime
 }  // namespace web
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto = nullptr;
 const ::uint32_t
@@ -378,25 +378,27 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "tType_UNKNOWN\020\000\022%\n!WebRuntimeClientType_"
     "WEB_DOCUMENT\020\001\022\'\n#WebRuntimeClientType_S"
     "ERVICE_WORKER\020\002\022#\n\037WebRuntimeClientType_"
-    "WEB_WORKER\020\0032\372\001\n\016WebRuntimeHost\022L\n\016WebDo"
-    "cumentRpc\022\032.rpcstream.RpcStreamPacket\032\032."
-    "rpcstream.RpcStreamPacket(\0010\001\022N\n\020Service"
-    "WorkerRpc\022\032.rpcstream.RpcStreamPacket\032\032."
-    "rpcstream.RpcStreamPacket(\0010\001\022J\n\014WebWork"
-    "erRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcs"
-    "tream.RpcStreamPacket(\0010\0012\323\003\n\nWebRuntime"
-    "\022c\n\025WatchWebRuntimeStatus\022).web.runtime."
-    "WatchWebRuntimeStatusRequest\032\035.web.runti"
-    "me.WebRuntimeStatus0\001\022b\n\021CreateWebDocume"
-    "nt\022%.web.runtime.CreateWebDocumentReques"
-    "t\032&.web.runtime.CreateWebDocumentRespons"
-    "e\022b\n\021RemoveWebDocument\022%.web.runtime.Rem"
-    "oveWebDocumentRequest\032&.web.runtime.Remo"
-    "veWebDocumentResponse\022L\n\016WebDocumentRpc\022"
-    "\032.rpcstream.RpcStreamPacket\032\032.rpcstream."
-    "RpcStreamPacket(\0010\001\022J\n\014WebWorkerRpc\022\032.rp"
-    "cstream.RpcStreamPacket\032\032.rpcstream.RpcS"
-    "treamPacket(\0010\001b\006proto3"
+    "WEB_WORKER\020\003*[\n\013WebRenderer\022\030\n\024WEB_RENDE"
+    "RER_DEFAULT\020\000\022\031\n\025WEB_RENDERER_ELECTRON\020\001"
+    "\022\027\n\023WEB_RENDERER_SAUCER\020\0022\372\001\n\016WebRuntime"
+    "Host\022L\n\016WebDocumentRpc\022\032.rpcstream.RpcSt"
+    "reamPacket\032\032.rpcstream.RpcStreamPacket(\001"
+    "0\001\022N\n\020ServiceWorkerRpc\022\032.rpcstream.RpcSt"
+    "reamPacket\032\032.rpcstream.RpcStreamPacket(\001"
+    "0\001\022J\n\014WebWorkerRpc\022\032.rpcstream.RpcStream"
+    "Packet\032\032.rpcstream.RpcStreamPacket(\0010\0012\323"
+    "\003\n\nWebRuntime\022c\n\025WatchWebRuntimeStatus\022)"
+    ".web.runtime.WatchWebRuntimeStatusReques"
+    "t\032\035.web.runtime.WebRuntimeStatus0\001\022b\n\021Cr"
+    "eateWebDocument\022%.web.runtime.CreateWebD"
+    "ocumentRequest\032&.web.runtime.CreateWebDo"
+    "cumentResponse\022b\n\021RemoveWebDocument\022%.we"
+    "b.runtime.RemoveWebDocumentRequest\032&.web"
+    ".runtime.RemoveWebDocumentResponse\022L\n\016We"
+    "bDocumentRpc\022\032.rpcstream.RpcStreamPacket"
+    "\032\032.rpcstream.RpcStreamPacket(\0010\001\022J\n\014WebW"
+    "orkerRpc\022\032.rpcstream.RpcStreamPacket\032\032.r"
+    "pcstream.RpcStreamPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto_deps[1] = {
@@ -406,7 +408,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto = {
     false,
     false,
-    1623,
+    1716,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto,
     "github.com/aperturerobotics/bldr/web/runtime/runtime.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto_once,
@@ -427,6 +429,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebRuntimeClientType_
 }
 PROTOBUF_CONSTINIT const uint32_t WebRuntimeClientType_internal_data_[] = {
     262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebRenderer_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t WebRenderer_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class WebRuntimeHostInit::_Internal {

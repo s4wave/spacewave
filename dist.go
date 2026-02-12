@@ -21,6 +21,7 @@ import (
 //go:embed web/electron web/entrypoint web/entrypoint/index/index.html
 //go:embed web/fetch/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
+//go:embed web/saucer/*.ts
 //go:embed web/runtime/wasm
 //go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
 //go:embed web/runtime/wasm/fetch-decompress.ts web/runtime/wasm/node-stubs.js

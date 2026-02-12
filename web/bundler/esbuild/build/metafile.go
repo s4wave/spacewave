@@ -5,8 +5,8 @@ package bldr_web_bundler_esbuild_build
 // The paths in the outputs are relative to the working directory.
 type EsbuildMetafile struct {
 	Inputs map[string]struct {
-		Bytes   int         `json:"bytes"`
-		Imports interface{} `json:"imports"`
+		Bytes   int `json:"bytes"`
+		Imports any `json:"imports"`
 	} `json:"inputs"`
 	Outputs map[string]EsbuildMetaFileOutput `json:"outputs"`
 }

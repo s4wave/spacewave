@@ -93,8 +93,8 @@ func ParseTarget(id string) (*Target, error) {
 	}
 
 	// Handle parameterized targets like "desktop/darwin/arm64"
-	if strings.HasPrefix(id, TargetID_Desktop+"/") {
-		suffix := strings.TrimPrefix(id, TargetID_Desktop+"/")
+	if after, ok := strings.CutPrefix(id, TargetID_Desktop+"/"); ok {
+		suffix := after
 		if suffix == "cross" {
 			return &Target{
 				ID:          id,

@@ -219,6 +219,20 @@ bun start:web:release
 bun build:cross
 ```
 
+### Environment Variables
+
+- `BLDR_FROM_SOURCE=1`: Forces building saucer from vendored C++ sources
+  instead of resolving a prebuilt binary from the `@aptre/bldr-saucer` npm
+  package. Useful when developing saucer itself or when prebuilt binaries are
+  not available for your platform.
+
+```bash
+export BLDR_FROM_SOURCE=1
+bun start:native
+```
+
+### Chromium SharedWorker Debugging
+
 In Chromium: to view the SharedWorker developer tools:
 
 - Open chrome://inspect

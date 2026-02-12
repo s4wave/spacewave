@@ -165,7 +165,7 @@ func BuildHeadersMap(headers http.Header, setDefaults bool) map[string]string {
 func SetHeaders(headerMap map[string]string, setTo http.Header) {
 	for k, v := range headerMap {
 		vals := strings.Split(v, ",")
-		for i := 0; i < len(vals); i++ {
+		for i := range vals {
 			vals[i] = strings.TrimSpace(vals[i])
 			if len(vals[i]) != 0 {
 				setTo.Add(k, vals[i])

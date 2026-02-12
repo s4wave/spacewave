@@ -13,6 +13,8 @@ import (
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
 	web_pkg_compiler "github.com/aperturerobotics/bldr/web/pkg/compiler"
 	web_plugin_compiler "github.com/aperturerobotics/bldr/web/plugin/compiler"
+	web_plugin_electron "github.com/aperturerobotics/bldr/web/plugin/electron"
+	web_plugin_saucer "github.com/aperturerobotics/bldr/web/plugin/saucer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
@@ -43,4 +45,8 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	sr.AddFactory(bldr_web_bundler_esbuild_compiler.NewFactory(b))
 	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+
+	// native runtimes
+	sr.AddFactory(web_plugin_electron.NewFactory(b))
+	sr.AddFactory(web_plugin_saucer.NewFactory(b))
 }

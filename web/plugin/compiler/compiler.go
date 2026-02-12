@@ -14,9 +14,13 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	"github.com/aperturerobotics/bldr/util/npm"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
+	entrypoint_saucer_bundle "github.com/aperturerobotics/bldr/web/entrypoint/saucer/bundle"
 	web_plugin_browser_build "github.com/aperturerobotics/bldr/web/plugin/browser/build"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"
+	saucer "github.com/aperturerobotics/bldr/web/plugin/saucer"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -114,8 +118,14 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// bundle electron, if applicable.
-	pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
+	// Check which web renderer to bundle based on BLDR_WEB_RENDERER env var.
+	renderer := web_runtime.GetWebRendererFromEnv().Resolve()
+	switch renderer {
+	case web_runtime.WebRenderer_WEB_RENDERER_SAUCER:
+		pluginCompilerCtrl.AddPreBuildHook(c.BundleSaucerHook)
+	case web_runtime.WebRenderer_WEB_RENDERER_ELECTRON:
+		pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
+	}
 
 	// build the manifest
 	return pluginCompilerCtrl.BuildManifest(ctx, args, host)
@@ -143,14 +153,7 @@ func (c *Controller) BundleElectronHook(
 		return nil, nil
 	}
 
-	// HACK: This is used by start-web-ws to disable bundling electron.
-	// HACK: Replace this with something better.
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	if buildType.IsDev() && os.Getenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON") == "true" {
-		c.GetLogger().Debug("skipping bundling electron as the skip env var is set")
-		return nil, nil
-	}
-
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	minify, devMode := buildType.IsRelease(), buildType.IsDev()
@@ -256,6 +259,119 @@ func (c *Controller) BundleElectronHook(
 	}, nil
 }
 
+// BundleSaucerHook bundles saucer.
+func (c *Controller) BundleSaucerHook(
+	ctx context.Context,
+	builderConf *bldr_manifest_builder.BuilderConfig,
+	worldEng world.Engine,
+) (*plugin_compiler_go.PreBuildHookResult, error) {
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	// If this is not the native platform, do not bundle saucer.
+	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_NATIVE {
+		return nil, nil
+	}
+
+	// If this is a wasm platform (native/js/wasm), do not bundle saucer.
+	if bldr_platform.IsWebPlatform(buildPlatform) {
+		return nil, nil
+	}
+
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	platformID := meta.GetPlatformId()
+	pluginID := meta.GetManifestId()
+	minify := buildType.IsRelease()
+
+	le := c.GetLogger().
+		WithField("plugin-id", pluginID).
+		WithField("build-type", buildType).
+		WithField("platform-id", platformID)
+	le.Debug("building web plugin with saucer")
+
+	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
+		return nil, err
+	}
+
+	// Build directories for saucer resolution
+	stateDir := builderConf.GetWorkingPath()
+	buildDir := filepath.Join(stateDir, "build", "saucer")
+	binDir := filepath.Join(outDistPath, "bin")
+	for _, dir := range []string{buildDir, binDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
+		}
+	}
+
+	// BLDR_FROM_SOURCE=1 forces building saucer from vendored C++ sources.
+	if os.Getenv("BLDR_FROM_SOURCE") != "" {
+		le.Info("building saucer from source (BLDR_FROM_SOURCE set)")
+		vendorDir := filepath.Join(builderConf.GetSourcePath(), "vendor")
+		saucerBuildDir := filepath.Join(buildDir, "bldr-saucer-build")
+		if err := entrypoint_saucer_bundle.BuildSaucerFromSource(ctx, le, vendorDir, saucerBuildDir, binDir, buildPlatform); err != nil {
+			return nil, errors.Wrap(err, "build saucer from source")
+		}
+	} else {
+		// Resolve the saucer binary from the @aptre/bldr-saucer npm package.
+		saucerPkg := "@aptre/bldr-saucer@latest"
+		packageJsonPath := filepath.Join(builderConf.GetSourcePath(), "package.json")
+		saucerVer, pkgErr := npm.LoadPackageVersion(packageJsonPath, "@aptre/bldr-saucer")
+		if pkgErr != nil {
+			le.WithError(pkgErr).Warn("unable to load package.json to determine saucer version")
+			saucerVer = ""
+		}
+		if saucerVer != "" {
+			saucerPkg = "@aptre/bldr-saucer@" + strings.TrimSpace(saucerVer)
+		}
+
+		// Cache resolved binaries to avoid re-downloading across incremental builds.
+		cacheDir := filepath.Join(stateDir, "cache", "saucer")
+
+		le.Info("resolving saucer binary...")
+		if err := entrypoint_saucer_bundle.ResolveSaucerBinary(ctx, le, stateDir, binDir, cacheDir, buildPlatform, saucerPkg); err != nil {
+			return nil, errors.Wrap(err, "resolve saucer binary")
+		}
+	}
+	le.Info("saucer binary resolved successfully")
+
+	// Build JS bundle
+	le.Debug("building saucer JS bundle...")
+	distSrcDir := builderConf.GetDistSourcePath()
+	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, minify)
+	if err != nil {
+		return nil, errors.Wrap(err, "build saucer JS bundle")
+	}
+
+	// Build config set to start the saucer entrypoint on startup
+	webRuntimeId := random_id.RandomIdentifier(0)
+	saucerCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &saucer.Config{
+		WebRuntimeId:  webRuntimeId,
+		SaucerPath:    filepath.Join("bin", entrypoint_saucer_bundle.GetSaucerBinName(buildPlatform)),
+		DevTools:      buildType.IsDev(),
+		BootstrapHtml: jsBundle.BootstrapHTML,
+		EntrypointJs:  jsBundle.EntrypointJS,
+	}), false)
+	if err != nil {
+		return nil, err
+	}
+
+	// return result
+	return &plugin_compiler_go.PreBuildHookResult{
+		Config: &plugin_compiler_go.Config{
+			ConfigSet: map[string]*configset_proto.ControllerConfig{
+				"saucer": saucerCtrlConf,
+			},
+			GoPkgs: []string{
+				basePkg + "/web/plugin/saucer",
+			},
+			WebPkgs: bldr_web_bundler.GetBldrDistWebPkgRefConfigs(),
+		},
+	}, nil
+}
+
 // buildBrowserShimManifest attempts to compile the web browser shim manifest once.
 //
 // TODO: replace the below code with a call to the js plugin compiler
@@ -334,5 +450,6 @@ func (c *Controller) GetSupportedPlatforms() []string {
 // _ is a type assertion
 var (
 	_ plugin_compiler_go.PreBuildHook  = ((*Controller)(nil)).BundleElectronHook
+	_ plugin_compiler_go.PreBuildHook  = ((*Controller)(nil)).BundleSaucerHook
 	_ bldr_manifest_builder.Controller = ((*Controller)(nil))
 )

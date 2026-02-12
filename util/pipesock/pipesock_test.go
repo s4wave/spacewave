@@ -292,7 +292,7 @@ func TestConcurrentConnections(t *testing.T) {
 
 	// Accept connections in goroutine
 	go func() {
-		for i := 0; i < numClients; i++ {
+		for range numClients {
 			conn, err := listener.Accept()
 			if err != nil {
 				return
@@ -305,7 +305,7 @@ func TestConcurrentConnections(t *testing.T) {
 	}()
 
 	// Launch multiple clients
-	for i := 0; i < numClients; i++ {
+	for i := range numClients {
 		wg.Add(1)
 		go func(clientID int) {
 			defer wg.Done()

@@ -4,9 +4,11 @@ package devtool
 
 import (
 	"context"
+	"os"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
@@ -19,6 +21,20 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 		return err
 	}
 	le.Infof("starting with state dir: %s", stateDir)
+
+	// Set web renderer env var if specified (non-empty).
+	// This is read by the web plugin compiler to decide which runtime to bundle.
+	if a.WebRenderer != "" {
+		renderer, err := web_runtime.ParseWebRenderer(a.WebRenderer)
+		if err != nil {
+			return err
+		}
+		resolved := renderer.Resolve()
+		le.Infof("using web renderer: %s", resolved.String())
+		if err := os.Setenv(web_runtime.WebRendererEnvVar, resolved.String()); err != nil {
+			return err
+		}
+	}
 
 	// initialize the storage + bus
 	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
@@ -78,6 +94,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	}
 
 	// execute the project controller
+	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),

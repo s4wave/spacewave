@@ -1,0 +1,86 @@
+syntax = "proto3";
+package saucer;
+
+option go_package = "github.com/aperturerobotics/bldr/web/plugin/saucer;saucer";
+
+// ExternalLinks configures how external links are handled.
+enum ExternalLinks {
+  // EXTERNAL_LINKS_OS_BROWSER opens external links in the OS default browser.
+  EXTERNAL_LINKS_OS_BROWSER = 0;
+  // EXTERNAL_LINKS_DENY denies all external link navigation.
+  EXTERNAL_LINKS_DENY = 1;
+}
+
+// SaucerInit is passed from Go to the Saucer C++ process on startup.
+// Serialized as JSON and passed via BLDR_SAUCER_INIT env var.
+message SaucerInit {
+  // DevTools enables the developer tools.
+  bool dev_tools = 1;
+  // BootstrapHtml is the HTML content to load initially.
+  // This is the full HTML string, not base64 encoded.
+  // Deprecated: Use bootstrap_html_path instead to avoid env var size limits.
+  string bootstrap_html = 2;
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 3;
+  // BootstrapHtmlPath is the path to a file containing the bootstrap HTML.
+  // Used instead of bootstrap_html to avoid "argument list too long" errors.
+  string bootstrap_html_path = 4;
+  // EntrypointJs is the entrypoint JavaScript module content.
+  // Written to a file and passed as entrypoint_js_path to C++.
+  string entrypoint_js = 5;
+  // EntrypointJsPath is the path to the entrypoint JS module file.
+  // The C++ binary serves this at /entrypoint.mjs.
+  string entrypoint_js_path = 6;
+}
+
+// SaucerDebugService provides debug access to the saucer webview.
+service SaucerDebugService {
+  // EvalJS evaluates JavaScript code in the webview context.
+  rpc EvalJS(EvalJSRequest) returns (EvalJSResponse);
+}
+
+// EvalJSRequest is a request to evaluate JavaScript code.
+message EvalJSRequest {
+  // Code is the JavaScript code to evaluate.
+  string code = 1;
+}
+
+// EvalJSResponse is the response from evaluating JavaScript code.
+message EvalJSResponse {
+  // Result is the result string.
+  string result = 1;
+  // Error is the error message, if any.
+  string error = 2;
+}
+
+// Config is the configuration for the saucer runtime.
+message Config {
+  // SaucerPath is the path to the saucer binary.
+  string saucer_path = 1;
+
+  // WorkdirPath is the path to the working directory to use.
+  // If unset, defaults to the current working directory of the process.
+  string workdir_path = 2;
+
+  // WebRuntimeId is the value to use for the runtime uuid.
+  // Used for the Unix pipe paths and for the BroadcastChannel ids.
+  // Should be unique against other running Saucer instances.
+  string web_runtime_id = 3;
+
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 4;
+
+  // SaucerFlags are additional flags to pass to the saucer binary.
+  repeated string saucer_flags = 5;
+
+  // BootstrapHtml is the HTML content to load initially.
+  // This is the full HTML string with import map.
+  string bootstrap_html = 6;
+
+  // DevTools enables the developer tools in the webview.
+  bool dev_tools = 7;
+
+  // EntrypointJs is the entrypoint JavaScript module.
+  // This is written to a file and served at /entrypoint.mjs.
+  string entrypoint_js = 8;
+}

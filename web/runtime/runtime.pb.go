@@ -60,6 +60,46 @@ func (x WebRuntimeClientType) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// WebRenderer is the type of web renderer to use for native applications.
+type WebRenderer int32
+
+const (
+	// WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+	WebRenderer_WEB_RENDERER_DEFAULT WebRenderer = 0
+	// WEB_RENDERER_ELECTRON uses Electron as the native runtime.
+	WebRenderer_WEB_RENDERER_ELECTRON WebRenderer = 1
+	// WEB_RENDERER_SAUCER uses Saucer (C++ webview) as the native runtime.
+	WebRenderer_WEB_RENDERER_SAUCER WebRenderer = 2
+)
+
+// Enum value maps for WebRenderer.
+var (
+	WebRenderer_name = map[int32]string{
+		0: "WEB_RENDERER_DEFAULT",
+		1: "WEB_RENDERER_ELECTRON",
+		2: "WEB_RENDERER_SAUCER",
+	}
+	WebRenderer_value = map[string]int32{
+		"WEB_RENDERER_DEFAULT":  0,
+		"WEB_RENDERER_ELECTRON": 1,
+		"WEB_RENDERER_SAUCER":   2,
+	}
+)
+
+func (x WebRenderer) Enum() *WebRenderer {
+	p := new(WebRenderer)
+	*p = x
+	return p
+}
+
+func (x WebRenderer) String() string {
+	name, valid := WebRenderer_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WebRuntimeHostInit initializes the WebRuntimeHost.
 //
 // only used in cases where the host runtime is initialized by the web runtime.
@@ -710,6 +750,46 @@ func (x *WebRuntimeClientType) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the WebRuntimeClientType from JSON.
 func (x *WebRuntimeClientType) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WebRenderer to JSON.
+func (x WebRenderer) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WebRenderer_name)
+}
+
+// MarshalText marshals the WebRenderer to text.
+func (x WebRenderer) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WebRenderer_name)), nil
+}
+
+// MarshalJSON marshals the WebRenderer to JSON.
+func (x WebRenderer) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebRenderer from JSON.
+func (x *WebRenderer) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WebRenderer_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WebRenderer enum: %v", err)
+		return
+	}
+	*x = WebRenderer(v)
+}
+
+// UnmarshalText unmarshals the WebRenderer from text.
+func (x *WebRenderer) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WebRenderer_value)
+	if err != nil {
+		return err
+	}
+	*x = WebRenderer(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WebRenderer from JSON.
+func (x *WebRenderer) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1727,6 +1807,10 @@ func (m *WebRuntimeClientInit) SizeVT() (n int) {
 }
 
 func (x WebRuntimeClientType) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x WebRenderer) MarshalProtoText() string {
 	return x.String()
 }
 

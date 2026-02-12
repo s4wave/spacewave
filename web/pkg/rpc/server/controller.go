@@ -3,6 +3,7 @@ package web_pkg_rpc_server
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
@@ -149,11 +150,8 @@ func (c *Controller) HandleDirective(
 			matched = webPkgIDRe.MatchString(webPkgID)
 		}
 		if !matched {
-			for _, mWebPkgID := range webPkgIDList {
-				if mWebPkgID == webPkgID {
-					matched = true
-					break
-				}
+			if slices.Contains(webPkgIDList, webPkgID) {
+				matched = true
 			}
 		}
 		if !matched {

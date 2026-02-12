@@ -13,5 +13,5 @@
     "entrypoint/**/*",
     "util/**/*"
   ],
-  "exclude": ["node_modules", "vendor", "dist", "prototypes", "**/*.test.ts"]
+  "exclude": ["node_modules", "vendor", "dist", "prototypes", "**/*.test.ts", "web/saucer/build"]
 }

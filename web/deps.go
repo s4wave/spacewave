@@ -16,4 +16,6 @@ import (
 	_ "github.com/aperturerobotics/hydra/bucket"
 	// _ imports bldr_values
 	_ "github.com/aperturerobotics/bldr/values"
+	// _ imports cpp-yamux for saucer C++ binding
+	_ "github.com/aperturerobotics/cpp-yamux"
 )

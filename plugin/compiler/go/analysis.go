@@ -130,7 +130,7 @@ func AnalyzePackages(
 		packages.NeedModule
 
 	conf.Dir = workDir
-	conf.Logf = func(format string, args ...interface{}) {
+	conf.Logf = func(format string, args ...any) {
 		le.Debugf(format, args...)
 	}
 	conf.BuildFlags = append(conf.BuildFlags, "-mod=vendor")
@@ -262,11 +262,8 @@ func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 			pakImportPath := pak.PkgPath
 			if len(packagePaths) != 0 {
 				var found bool
-				for _, ex := range packagePaths {
-					if ex == pakImportPath {
-						found = true
-						break
-					}
+				if slices.Contains(packagePaths, pakImportPath) {
+					found = true
 				}
 				if !found {
 					continue

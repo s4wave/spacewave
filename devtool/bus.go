@@ -282,6 +282,37 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
+	// Clear old devtool manifests from previous sessions.
+	// Within a session, fallback to old manifests is fine, but on startup
+	// we should not execute stale plugin code from a previous bldr run.
+	cleanupTx, err := eng.NewTransaction(ctx, true)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	manifestObjKeys, err := bldr_manifest_world.ListManifests(ctx, cleanupTx, pluginHostObjectKey)
+	if err != nil {
+		cleanupTx.Discard()
+		rel()
+		return nil, err
+	}
+	if len(manifestObjKeys) > 0 {
+		le.Infof("clearing %d old devtool manifests from previous session", len(manifestObjKeys))
+		for _, objKey := range manifestObjKeys {
+			if _, err := cleanupTx.DeleteObject(ctx, objKey); err != nil {
+				cleanupTx.Discard()
+				rel()
+				return nil, err
+			}
+		}
+		if err := cleanupTx.Commit(ctx); err != nil {
+			rel()
+			return nil, err
+		}
+	} else {
+		cleanupTx.Discard()
+	}
+
 	// distSrcDir is the path to the dist sources dir
 	distSrcDir := filepath.Join(stateRoot, "src")
 

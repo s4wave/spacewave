@@ -219,3 +219,18 @@ The scheduler matches plugins to hosts by platform ID:
 | `native/darwin/arm64` | ProcessHost | - |
 | `native/js/wasm` | - | WebHost |
 | `js` | WazeroQuickJsHost | WebQuickJSHost |
+
+## Startup Manifest Cleanup
+
+**Location:** `devtool/bus.go`, `BuildDevtoolBus()` function, lines 285-314
+
+When the devtool bus is initialized on startup, old manifests from previous bldr sessions are cleared from the world state:
+
+1. **Why**: Prevents stale plugin code from previous sessions being executed
+2. **When**: Before the scheduler starts watching, during bus initialization
+3. **How**:
+   - Get all manifests linked to `pluginHostObjectKey` via `bldr_manifest_world.ListManifests()`
+   - Delete each manifest object using `DeleteObject()` in a transaction
+   - Log the number of cleared manifests for debugging
+
+**Note on Within-Session Fallback:** Within a single bldr session, falling back to old/stale manifests during build failures is acceptable and intended behavior. The cleanup only happens on startup to prevent cross-session stale code execution.

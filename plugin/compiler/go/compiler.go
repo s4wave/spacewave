@@ -482,9 +482,13 @@ func (c *Controller) BuildPlugin(
 		if len(webPkgs) != 0 {
 			// NOTE: add the actual config later after we build the web pkgs
 			addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg-assets")
-			addGoPkg("github.com/aperturerobotics/bldr/web/pkg/rpc/server")
-			addGoPkg("github.com/aperturerobotics/bldr/web/pkg/fs/controller")
 		}
+	}
+
+	// Add Go packages for web package serving if any web packages are defined.
+	if len(webPkgs) != 0 {
+		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/rpc/server")
+		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/fs/controller")
 	}
 
 	// apply host config set
@@ -686,6 +690,19 @@ func (c *Controller) BuildPlugin(
 
 		// Merge web pkg refs from vite with any from esbuild
 		webPkgRefs = append(webPkgRefs, viteWebPkgRefs...)
+	}
+
+	// If there are web packages declared but none were built by esbuild/vite
+	// sub-manifests, build them directly.
+	if len(webPkgRefs) == 0 && len(webPkgs) != 0 {
+		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
+		directRefs, err := bldr_plugin_compiler.BuildDirectWebPkgs(
+			ctx, le, distSourcePath, workingPath, outAssetsPath, isRelease,
+		)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "build direct web packages")
+		}
+		webPkgRefs = append(webPkgRefs, directRefs...)
 	}
 
 	// sort the web pkg refs
