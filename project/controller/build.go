@@ -12,6 +12,38 @@ import (
 	bldr_project "github.com/aperturerobotics/bldr/project"
 )
 
+// BuildManifests compiles the given manifest IDs for the native platform.
+//
+// Returns the manifest refs and object keys for the built manifests.
+func (c *Controller) BuildManifests(
+	ctx context.Context,
+	remote string,
+	manifestIDs []string,
+	buildType bldr_manifest.BuildType,
+) ([]*bldr_manifest.ManifestRef, []string, error) {
+	np, err := bldr_platform.ParseNativePlatform("native")
+	if err != nil {
+		return nil, nil, err
+	}
+	platformID := np.GetPlatformID()
+
+	var confs []*ManifestBuilderConfig
+	for _, id := range manifestIDs {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		confs = append(confs, NewManifestBuilderConfig(
+			id,
+			string(buildType),
+			platformID,
+			remote,
+		))
+	}
+
+	return c.BuildManifestBuilderConfigs(ctx, confs)
+}
+
 // BuildTargets compiles the given build target(s)
 //
 // If the targets list is empty, builds all targets.
@@ -53,7 +85,7 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 	}
 
-	_, _, err := c.BuildManifests(ctx, manifestBuilderConfs)
+	_, _, err := c.BuildManifestBuilderConfigs(ctx, manifestBuilderConfs)
 	return err
 }
 

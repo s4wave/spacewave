@@ -175,10 +175,10 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	return nil
 }
 
-// BuildManifests compiles a set of manifests linking them to the remote object key.
+// BuildManifestBuilderConfigs compiles a set of manifests linking them to the remote object key.
 //
 // Returns the list of created manifest refs and corresponding object keys.
-func (c *Controller) BuildManifests(
+func (c *Controller) BuildManifestBuilderConfigs(
 	ctx context.Context,
 	manifestBuilderConfigs []*ManifestBuilderConfig,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
