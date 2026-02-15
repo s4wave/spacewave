@@ -19,6 +19,8 @@ import (
 type DevtoolArgs struct {
 	// Logger is the root logger.
 	Logger *logrus.Entry
+	// LogLevel is the log level string (debug, info, warn, error).
+	LogLevel string
 
 	// BldrVersion is the version of bldr to require in go.mod
 	BldrVersion string
@@ -87,8 +89,11 @@ func NewDevtoolArgs() *DevtoolArgs {
 func (a *DevtoolArgs) FillDefaults() {
 	if a.Logger == nil {
 		log := logrus.New()
-		log.SetLevel(logrus.DebugLevel)
+		log.SetLevel(logrus.InfoLevel)
 		a.Logger = logrus.NewEntry(log)
+	}
+	if a.LogLevel == "" {
+		a.LogLevel = "info"
 	}
 
 	a.OutputPath = "output"
@@ -122,6 +127,13 @@ func (a *DevtoolArgs) BuildDevtoolCommand() *cli.Command {
 // BuildFlags attaches the flags to a flag set.
 func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{
+			Name:        "log-level",
+			Usage:       "log level (debug, info, warn, error)",
+			EnvVars:     []string{"BLDR_LOG_LEVEL"},
+			Value:       a.LogLevel,
+			Destination: &a.LogLevel,
+		},
 		&cli.StringFlag{
 			Name:        "config",
 			Aliases:     []string{"c"},
@@ -317,9 +329,8 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 			Action: func(c *cli.Context) error {
 				if a.WebUseWasm {
 					return a.ExecuteWebWasmProject(c.Context)
-				} else {
-					return a.ExecuteWebWsProject(c.Context)
 				}
+				return a.ExecuteWebWsProject(c.Context)
 			},
 		},
 	}
@@ -413,11 +424,24 @@ func (a *DevtoolArgs) GetStateRoot(repoRoot string) string {
 	return filepath.Join(repoRoot, ".bldr")
 }
 
+// applyLogLevel parses and applies the LogLevel to the logger.
+func (a *DevtoolArgs) applyLogLevel() {
+	if a.LogLevel == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(a.LogLevel)
+	if err != nil {
+		return
+	}
+	a.Logger.Logger.SetLevel(lvl)
+}
+
 // InitRepoRoot finds an initializes the repo root.
 func (a *DevtoolArgs) InitRepoRoot() (
 	repoRoot, stateRoot string,
 	err error,
 ) {
+	a.applyLogLevel()
 	repoRoot, err = a.FindRepoRoot()
 	if err != nil {
 		return
