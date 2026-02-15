@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260210211602-17940b831f59 // master
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260204215916-dc1f0fed8cfc // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131050911-b5f94b044584 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260212054154-9a57de05490b // master
+	github.com/aperturerobotics/hydra v0.0.0-20260215112216-4cb96f96dfbf // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.1 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 // indirect
