@@ -6,9 +6,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
@@ -361,7 +363,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		d.distSrcRoot,
 		distSourcesHandle,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules"}),
+		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules", "go.mod", "go.sum", ".sync-hash"}),
 	)
 	if err != nil {
 		return err
@@ -377,13 +379,13 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		return goVendorCmd.Run()
 	}
 
-	// parse modfile
+	// Read go.mod from embedded DistSources (not disk).
 	bldrGoModPath := filepath.Join(d.distSrcRoot, "go.mod")
-	bldrGoModData, err := os.ReadFile(bldrGoModPath)
+	bldrGoModData, err := bldr.DistSources.ReadFile("go.mod")
 	if err != nil {
 		return err
 	}
-	bldrModFile, err := modfile.Parse(bldrGoModPath, bldrGoModData, nil)
+	bldrModFile, err := modfile.Parse("go.mod", bldrGoModData, nil)
 	if err != nil {
 		return err
 	}
@@ -412,6 +414,23 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	if err != nil {
 		return err
 	}
+
+	// Check if we can skip tidy+vendor by comparing input hash.
+	goModHash := sha256.Sum256(updatedBldrGoMod)
+	hashStr := hex.EncodeToString(goModHash[:])
+	syncHashPath := filepath.Join(d.distSrcRoot, ".sync-hash")
+	vendorDir := filepath.Join(d.distSrcRoot, "vendor")
+
+	existingHash, hashReadErr := os.ReadFile(syncHashPath)
+	_, vendorStatErr := os.Stat(vendorDir)
+
+	if hashReadErr == nil && strings.TrimSpace(string(existingHash)) == hashStr && vendorStatErr == nil {
+		le.Info("bldr sources: inputs unchanged, skipping tidy+vendor")
+		le.Info("done checking out bldr sources")
+		return nil
+	}
+
+	// Inputs changed or first run: write go.mod and run tidy+vendor.
 	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0o644); err != nil {
 		return err
 	}
@@ -452,6 +471,9 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	if err := runGoMod("vendor"); err != nil {
 		return err
 	}
+
+	// Save hash for next run.
+	_ = os.WriteFile(syncHashPath, []byte(hashStr), 0o644)
 
 	le.Info("done checking out bldr sources")
 
