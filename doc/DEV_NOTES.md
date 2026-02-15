@@ -20,10 +20,10 @@ dlv debug --backend=rr --wd=../../ -- --disable-cleanup --bldr-version=$(git rev
 
 Debugging a plugin:
 
- 1. Add `delveAddr: wait` to the plugin compiler config.
- 2. Run `bldr`
- 3. cd to `./.bldr/plugin/dist/my-plugin`
- 4. run the plugin with `dlv debug`
+1.  Add `delveAddr: wait` to the plugin compiler config.
+2.  Run `bldr`
+3.  cd to `./.bldr/plugin/dist/my-plugin`
+4.  run the plugin with `dlv debug`
 
 You can use `--backend=rr` if you have Mozilla RR installed to record the plugin
 operations, then press ctrl c to interrupt and replay.

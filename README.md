@@ -71,6 +71,16 @@ configured startup controllers.
 
 The **LoadPlugin** directive instructs the plugin host to load a plugin by ID.
 
+### CLI
+
+The **CLI compiler** (`bldr/cli/compiler`) generates standalone command-line
+binaries. It scans Go packages for controller factories (`NewFactory`) and CLI
+command providers (`NewCliCommands`), embeds a ConfigSet, and compiles a
+self-contained binary that boots a DevtoolBus on startup.
+
+See [doc/CLI.md](./doc/CLI.md) for the full guide and [example/cli/](./example/cli/)
+for a working example.
+
 ### Web
 
 The **web** layer for bldr adds additional concepts:
@@ -203,14 +213,17 @@ bun install
 Here are some of the available ways to start the app:
 
 ```
-# start web application
+# start web application (loads web plugin via --plugins)
 bun start:web
 
 # start web application in wasm mode
 bun start:web:wasm
 
-# start native application
+# start native application (loads web plugin via --plugins)
 bun start:native
+
+# start CLI application (loads bldr-demo-cli plugin via --plugins)
+bun start:cli
 
 # build web (wasm) distribution bundle & serve
 bun start:web:release
@@ -218,6 +231,23 @@ bun start:web:release
 # build release bundle for all platforms
 bun build:cross
 ```
+
+### Start Plugins
+
+The `bldr start` command accepts a `--plugins` flag to load additional plugins
+on startup. These are merged with any plugins declared in `bldr.yaml` under
+`start.plugins`.
+
+```bash
+# load specific plugins for the start session
+bldr start --plugins web native
+bldr start --plugins bldr-demo-cli native
+bldr start --plugins web --plugins extra-plugin web
+```
+
+The `start.plugins` list in `bldr.yaml` declares plugins that are always loaded.
+The `--plugins` flag adds to this list without modifying the config file,
+allowing different start configurations for different targets (native, web, CLI).
 
 ### Environment Variables
 

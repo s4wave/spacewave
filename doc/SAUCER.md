@@ -10,7 +10,7 @@ domain sockets using yamux multiplexing and the SRPC RPC framework.
 
 The implementation spans three repositories:
 
-- **bldr** (`saucer-v3` branch) -- Go controller, C++ webview process, TypeScript client
+- **bldr** -- Go controller, C++ webview process, TypeScript client
 - **cpp-yamux** -- C++ implementation of the yamux stream multiplexer protocol
 - **starpc** -- C++ implementation of the SRPC RPC framework and RpcStream protocol
 

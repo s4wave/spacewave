@@ -1,11 +1,11 @@
 # Plugins
 
- - Entrypoint: the "main process" of this system - initial starting point.
-   - Requires restarting the program fully to update the Entrypoint.
-   - Rarely updated: all programs can use the same binary executable.
-   - Stores a configuration for the initial sub-plugin to load.
- - Plugin: loaded as a sub-process of the Entrypoint.
-   - Loading a new version: unload the current, load the new.
+- Entrypoint: the "main process" of this system - initial starting point.
+  - Requires restarting the program fully to update the Entrypoint.
+  - Rarely updated: all programs can use the same binary executable.
+  - Stores a configuration for the initial sub-plugin to load.
+- Plugin: loaded as a sub-process of the Entrypoint.
+  - Loading a new version: unload the current, load the new.
 
 ## Go
 
@@ -28,4 +28,3 @@ Js plugin:
   - the function name to call is configurable
   - the promise should not resolve until the program is done executing
 - If no "entrypoint" is defined the plugin just contains static files.
-
