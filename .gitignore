@@ -3,12 +3,13 @@
 /.log
 /.rr
 /.husky
-/.bldr
-/.bldr-*
+.bldr
+.bldr-*
 /vite-dist
 /vite-output.json
 /vite-analysis.json
 /.opencode/tool-output
+/.opencode/prompts
 /.tmp
 .cache
 
