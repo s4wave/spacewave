@@ -64,12 +64,26 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 		return nil, err
 	}
 
-	// Set WAL mode and a default busy_timeout in DSN for basic waiting on non-transactional ops.
-	// For transaction-level waiting, we handle retries in NewTransaction.
-	dsn := path + "?_journal_mode=WAL&_busy_timeout=5000"
+	// Set WAL mode, synchronous=NORMAL, and busy_timeout in DSN.
+	// DSN params work for go-sqlite3; explicit PRAGMAs below cover other drivers.
+	dsn := path + "?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000"
 	db, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
 		return nil, err
+	}
+
+	// Execute PRAGMAs directly as a safety net for drivers that may ignore DSN params.
+	// journal_mode and synchronous are database-level and persist once set.
+	// busy_timeout is per-connection but covers the initial connection used for setup.
+	for _, pragma := range []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA busy_timeout=5000",
+	} {
+		if _, err := db.ExecContext(ctx, pragma); err != nil {
+			db.Close()
+			return nil, err
+		}
 	}
 
 	store, err := NewStore(db, table, config)
