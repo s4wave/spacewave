@@ -1,0 +1,25 @@
+syntax = "proto3";
+package bldr.cli.compiler;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config configures the CLI compiler controller.
+//
+// Builds a standalone CLI binary from a bldr.yaml manifest.
+// Scans go_pkgs for controller factories and cli_pkgs for CLI commands.
+message Config {
+  // GoPkgs is a list of Go packages to scan for controller factories.
+  // Looks for package-level NewFactory(b bus.Bus) controller.Factory functions.
+  repeated string go_pkgs = 1;
+
+  // CliPkgs is a list of Go packages providing CLI commands.
+  // Each package must export NewCliCommands.
+  repeated string cli_pkgs = 2;
+
+  // ConfigSet is a ConfigSet to apply on CLI startup.
+  // This will be embedded in the CLI binary.
+  map<string, .configset.proto.ControllerConfig> config_set = 3;
+
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 4;
+}

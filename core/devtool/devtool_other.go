@@ -3,6 +3,7 @@
 package bldr_core_devtool
 
 import (
+	cli_compiler "github.com/aperturerobotics/bldr/cli/compiler"
 	dist_compiler "github.com/aperturerobotics/bldr/dist/compiler"
 	bldr_plugin_builder_controller "github.com/aperturerobotics/bldr/manifest/builder/controller"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
@@ -35,6 +36,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	// compiler
 	sr.AddFactory(bldr_plugin_builder_controller.NewFactory(b))
+	sr.AddFactory(cli_compiler.NewFactory(b))
 	sr.AddFactory(dist_compiler.NewFactory(b))
 
 	sr.AddFactory(plugin_compiler_go.NewFactory(b))
