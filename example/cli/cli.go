@@ -1,0 +1,52 @@
+// Package example_cli provides example CLI commands for the bldr demo.
+//
+// This package is referenced from bldr.yaml as a cli_pkgs entry in
+// the bldr/cli/compiler manifest. The compiler codegen imports
+// NewCliCommands to wire these commands into the generated binary.
+package example_cli
+
+import (
+	"fmt"
+
+	cli_entrypoint "github.com/aperturerobotics/bldr/cli/entrypoint"
+	"github.com/aperturerobotics/cli"
+)
+
+// NewCliCommands builds the example CLI commands.
+func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:  "hello",
+			Usage: "print a greeting",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "name",
+					Usage: "name to greet",
+					Value: "bldr",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				name := c.String("name")
+				fmt.Printf("hello, %s!\n", name)
+				b := getBus()
+				if b != nil {
+					b.GetLogger().Infof("greeted %s via CLI", name)
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "status",
+			Usage: "show bus status",
+			Action: func(c *cli.Context) error {
+				b := getBus()
+				if b == nil {
+					return fmt.Errorf("bus not initialized")
+				}
+				b.GetLogger().Info("bus is running")
+				fmt.Printf("world engine: %s\n", b.GetWorldEngineID())
+				return nil
+			},
+		},
+	}
+}

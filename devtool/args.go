@@ -305,6 +305,22 @@ func (a *DevtoolArgs) BuildStaticHttpCommand() *cli.Command {
 func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 	return []*cli.Command{
 		{
+			Name:      "cli",
+			Usage:     "Build and run a CLI manifest as a subprocess.",
+			ArgsUsage: "<manifest-id> [-- args...]",
+			Action: func(c *cli.Context) error {
+				manifestID := c.Args().First()
+				if manifestID == "" {
+					return errors.New("manifest ID required")
+				}
+				args := c.Args().Tail()
+				if len(args) > 0 && args[0] == "--" {
+					args = args[1:]
+				}
+				return a.ExecuteCliProject(c.Context, manifestID, args)
+			},
+		},
+		{
 			Name:  "native",
 			Usage: "Start the application as a native app.",
 			Flags: []cli.Flag{

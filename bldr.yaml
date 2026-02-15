@@ -111,6 +111,20 @@ manifests:
                   pluginId: bldr-demo
                   fetchManifestIdRe: demo-.*
 
+  bldr-demo-cli:
+    builder:
+      id: bldr/cli/compiler
+      config:
+        goPkgs:
+          - ./example
+        cliPkgs:
+          - ./example/cli
+        configSet:
+          demo-1:
+            id: bldr/example/demo
+            config:
+              runDemo: false
+
   bldr-demo-release:
     builder:
       id: bldr/dist/compiler
