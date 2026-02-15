@@ -1,0 +1,4 @@
+# Minimal bldr config for testing SyncDistSources optimization.
+# This config only triggers the setup phase (SyncDistSources).
+# No plugins or manifests needed since we're testing setup speed.
+id: sync-optimization
