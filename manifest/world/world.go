@@ -552,7 +552,7 @@ func CreateManifestBundle(
 	}
 
 	// sort & duplicate list of keys
-	sort.Strings(manifestObjKeys)
+	slices.Sort(manifestObjKeys)
 	manifestObjKeys = slices.Compact(manifestObjKeys)
 
 	// iterate over the manifests

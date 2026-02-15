@@ -9,7 +9,6 @@ import (
 	"go/token"
 	"go/types"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -119,7 +118,7 @@ func CodegenPluginWrapperFromAnalysis(
 	for fpkg := range a.controllerFactories {
 		controllerFactoriesPackages = append(controllerFactoriesPackages, fpkg)
 	}
-	sort.Strings(controllerFactoriesPackages)
+	slices.Sort(controllerFactoriesPackages)
 	for _, fpkg := range controllerFactoriesPackages {
 		buildControllersElts = append(buildControllersElts, &gast.CallExpr{
 			Args: []gast.Expr{

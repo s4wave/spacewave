@@ -2,7 +2,6 @@ package bldr_project_controller
 
 import (
 	"slices"
-	"sort"
 )
 
 // ForManifestSelector iterates over all combinations of platform id & manifest id in the given sets.
@@ -11,12 +10,12 @@ import (
 func ForManifestSelector(manifestIDs, platformIDs []string, cb func(manifestID, platformID string) (bool, error)) error {
 	// sort & dedupe list of manifests
 	manifestIDs = slices.Clone(manifestIDs)
-	sort.Strings(manifestIDs)
+	slices.Sort(manifestIDs)
 	manifestIDs = slices.Compact(manifestIDs)
 
 	// sort & dedupe list of platform ids
 	platformIDs = slices.Clone(platformIDs)
-	sort.Strings(platformIDs)
+	slices.Sort(platformIDs)
 	platformIDs = slices.Compact(platformIDs)
 
 	for _, platformID := range platformIDs {

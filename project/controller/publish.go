@@ -5,7 +5,6 @@ package bldr_project_controller
 import (
 	"context"
 	"slices"
-	"sort"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -56,7 +55,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 
 		// cleanup list of remotes
 		destRemoteIDs := slices.Clone(publishTarget.GetRemotes())
-		sort.Strings(destRemoteIDs)
+		slices.Sort(destRemoteIDs)
 		destRemoteIDs = slices.Compact(destRemoteIDs)
 		if len(destRemoteIDs) != 0 && destRemoteIDs[0] == "" {
 			destRemoteIDs = destRemoteIDs[1:]

@@ -2,7 +2,6 @@ package bldr_project
 
 import (
 	"slices"
-	"sort"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
@@ -55,7 +54,7 @@ func MergeProjectConfigs(dest, src *ProjectConfig) error {
 		dest.Start.DisableBuild = true
 	}
 	dest.Start.Plugins = append(dest.Start.Plugins, srcStart.GetPlugins()...)
-	sort.Strings(dest.Start.Plugins)
+	slices.Sort(dest.Start.Plugins)
 	dest.Start.Plugins = slices.Compact(dest.Start.Plugins)
 
 	if dest.Manifests == nil {
@@ -169,7 +168,7 @@ func (c *ManifestConfig) Validate() error {
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupeSrcObjectKeys() []string {
 	srcObjectKeys := slices.Clone(c.GetSourceObjectKeys())
-	sort.Strings(srcObjectKeys)
+	slices.Sort(srcObjectKeys)
 	srcObjectKeys = slices.Compact(srcObjectKeys)
 	if len(srcObjectKeys) != 0 && srcObjectKeys[0] == "" {
 		srcObjectKeys = srcObjectKeys[1:]
@@ -182,7 +181,7 @@ func (c *PublishConfig) DedupeSrcObjectKeys() []string {
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupeManifests() []string {
 	manifests := slices.Clone(c.GetManifests())
-	sort.Strings(manifests)
+	slices.Sort(manifests)
 	manifests = slices.Compact(manifests)
 	if len(manifests) != 0 && manifests[0] == "" {
 		manifests = manifests[1:]
@@ -195,7 +194,7 @@ func (c *PublishConfig) DedupeManifests() []string {
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupePlatformIDs() []string {
 	platformIDs := slices.Clone(c.GetPlatformIds())
-	sort.Strings(platformIDs)
+	slices.Sort(platformIDs)
 	platformIDs = slices.Compact(platformIDs)
 	if len(platformIDs) != 0 && platformIDs[0] == "" {
 		platformIDs = platformIDs[1:]

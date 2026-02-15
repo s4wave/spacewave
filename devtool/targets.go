@@ -4,7 +4,7 @@ package devtool
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -17,7 +17,7 @@ func (a *DevtoolArgs) ListTargets() error {
 
 	// Collect all target IDs
 	targetIDs := bldr_platform.ListBuiltinTargetIDs()
-	sort.Strings(targetIDs)
+	slices.Sort(targetIDs)
 
 	for _, id := range targetIDs {
 		target := bldr_platform.GetBuiltinTarget(id)

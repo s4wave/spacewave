@@ -2,7 +2,6 @@ package bldr_plugin_load
 
 import (
 	"slices"
-	"sort"
 	"strings"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
@@ -51,7 +50,7 @@ func (c *Config) CleanupPluginIds() []string {
 	for i := range ids {
 		ids[i] = strings.TrimSpace(ids[i])
 	}
-	sort.Strings(ids)
+	slices.Sort(ids)
 	ids = slices.Compact(ids)
 	if ids[0] == "" {
 		ids = ids[1:]

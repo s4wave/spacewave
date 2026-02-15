@@ -174,7 +174,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 	}
 
 	sockDir := filepath.Join(workdir, ".bldr")
-	if err := os.MkdirAll(sockDir, 0755); err != nil {
+	if err := os.MkdirAll(sockDir, 0o755); err != nil {
 		return fmt.Errorf("create .bldr dir: %w", err)
 	}
 	sockPath := filepath.Join(sockDir, debugSocketName)
@@ -191,7 +191,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 		_ = os.Remove(sockPath)
 	}()
 
-	if err := os.Chmod(sockPath, 0600); err != nil {
+	if err := os.Chmod(sockPath, 0o600); err != nil {
 		le.WithError(err).Warn("failed to chmod socket")
 	}
 
