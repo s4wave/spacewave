@@ -28,12 +28,7 @@ func Sync(
 		return unixfs_errors.ErrReleased
 	}
 
-	// create / reset outPath
-	if _, err := os.Stat(outPath); err == nil {
-		if err := os.RemoveAll(outPath); err != nil {
-			return err
-		}
-	}
+	// create outPath if necessary
 	if err := os.MkdirAll(outPath, 0o755); err != nil {
 		return err
 	}
