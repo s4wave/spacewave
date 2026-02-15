@@ -42,6 +42,7 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 		repoRoot,
 		a.ConfigPath,
 		"",
+		nil,
 	)
 	if err != nil {
 		return err

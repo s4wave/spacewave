@@ -76,6 +76,10 @@ type DevtoolArgs struct {
 	// WebRenderer is the web renderer to use for native applications.
 	// Valid values: "electron", "saucer"
 	WebRenderer string
+
+	// StartPlugins is additional plugin IDs to load on startup.
+	// Appended to the plugins list from bldr.yaml start config.
+	StartPlugins cli.StringSlice
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -244,8 +248,17 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 // BuildStartCommand builds the start sub-command.
 func (a *DevtoolArgs) BuildStartCommand() *cli.Command {
 	return &cli.Command{
-		Name:        "start",
-		Usage:       "start a bldr application in development mode",
+		Name:  "start",
+		Usage: "start a bldr application in development mode",
+		Flags: []cli.Flag{
+			&cli.StringSliceFlag{
+				Name:        "plugins",
+				Aliases:     []string{"p"},
+				Usage:       "additional plugin IDs to load on startup",
+				EnvVars:     []string{"BLDR_START_PLUGINS"},
+				Destination: &a.StartPlugins,
+			},
+		},
 		Subcommands: a.BuildStartCommands(),
 	}
 }

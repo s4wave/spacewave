@@ -5,7 +5,6 @@ id: bldr-demo
 start:
   plugins:
     - bldr-demo
-    - web
 
 build:
   native:

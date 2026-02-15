@@ -44,6 +44,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 		repoRoot,
 		a.ConfigPath,
 		"",
+		nil,
 	)
 	if err != nil {
 		return err

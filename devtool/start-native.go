@@ -101,6 +101,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
+		a.StartPlugins.Value(),
 	)
 	if err != nil {
 		return err

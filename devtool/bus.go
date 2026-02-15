@@ -555,6 +555,7 @@ func (d *DevtoolBus) StartStorageVolume(
 // StartProjectController reads the config file & starts the project controller.
 // ConfigPath is the path to the project config.
 // ConfigPath can be empty to start with an empty config.
+// extraPlugins are additional plugin IDs appended to the start config.
 // Returns the directive reference & controller.
 func (d *DevtoolBus) StartProjectController(
 	ctx context.Context,
@@ -562,25 +563,32 @@ func (d *DevtoolBus) StartProjectController(
 	repoRoot,
 	configPath string,
 	startWithRemote string,
+	extraPlugins []string,
 ) (
 	*bldr_project_watcher.Controller,
 	directive.Reference,
 	error,
 ) {
 	absConfigPath := filepath.Join(repoRoot, configPath)
+	baseProjectConfig := &bldr_project.ProjectConfig{
+		Remotes: map[string]*bldr_project.RemoteConfig{
+			"devtool": {
+				EngineId:       d.worldEngineID,
+				PeerId:         d.peerID.String(),
+				ObjectKey:      d.pluginHostObjectKey,
+				LinkObjectKeys: []string{d.pluginHostObjectKey},
+			},
+		},
+	}
+	if len(extraPlugins) != 0 {
+		baseProjectConfig.Start = &bldr_project.StartConfig{
+			Plugins: extraPlugins,
+		}
+	}
 	projCtrlConf := bldr_project_controller.NewConfig(
 		repoRoot,
 		d.GetStateRoot(),
-		&bldr_project.ProjectConfig{
-			Remotes: map[string]*bldr_project.RemoteConfig{
-				"devtool": {
-					EngineId:       d.worldEngineID,
-					PeerId:         d.peerID.String(),
-					ObjectKey:      d.pluginHostObjectKey,
-					LinkObjectKeys: []string{d.pluginHostObjectKey},
-				},
-			},
-		},
+		baseProjectConfig,
 		d.watch,
 		startWithRemote != "",
 	)
