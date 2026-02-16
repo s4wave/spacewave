@@ -138,7 +138,7 @@ func (t *Tx) ApplyWorldOp(
 		if err != nil {
 			return err
 		}
-		bcs.SetPreWriteHook(func(b interface{}) error {
+		bcs.SetPreWriteHook(func(b any) error {
 			v, vOk := b.(*forge_task.Task)
 			if !vOk {
 				return block.ErrUnexpectedType

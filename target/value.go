@@ -108,7 +108,7 @@ func LoadBlobValueToBytes(
 func StoreMsgpackValue(
 	ctx context.Context,
 	handle ExecControllerHandle,
-	value interface{},
+	value any,
 ) (*forge_value.Value, error) {
 	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
 		err := block_msgpack.ObjectToBlock(bcs, value)

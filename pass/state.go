@@ -1,6 +1,8 @@
 package forge_pass
 
 import (
+	"slices"
+
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/pkg/errors"
 )
@@ -30,11 +32,8 @@ func (s State) Validate(allowUnknown bool) error {
 // EnsureMatches checks if the state matches or returns an error.
 func (s State) EnsureMatches(sts ...State) error {
 	var match bool
-	for _, st := range sts {
-		if st == s {
-			match = true
-			break
-		}
+	if slices.Contains(sts, s) {
+		match = true
 	}
 	if !match {
 		return errors.Wrapf(
