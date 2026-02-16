@@ -447,7 +447,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
 		bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
-		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0o644)
+		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
 			return err
 		}
