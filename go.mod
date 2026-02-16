@@ -48,7 +48,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.45.2-0.20260211040244-d8830f88ceca // master
+	github.com/aperturerobotics/bifrost v0.45.2-0.20260216060431-5b506f9341a1 // master
 	github.com/aperturerobotics/cayley v0.11.0 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
@@ -92,10 +92,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.52.1 // latest
+	github.com/aperturerobotics/controllerbus v0.52.3 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.46.3-0.20260211025523-75aa78408dcf // latest
-	github.com/aperturerobotics/util v1.32.3 // latest
+	github.com/aperturerobotics/util v1.32.4 // latest
 )
 
 // aperture: use compatibility forks
