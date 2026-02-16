@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/linkedlist"
-	"github.com/tetratelabs/wazero/experimental/fsapi"
 	wazero_exp_sys "github.com/tetratelabs/wazero/experimental/sys"
 )
 
@@ -134,7 +133,7 @@ func (b *StdinBuffer) CheckReady() (ready bool, waitCh <-chan struct{}) {
 }
 
 // Poll checks if there is available data to read.
-func (b *StdinBuffer) Poll(flag fsapi.Pflag, timeoutMillis int32) (ready bool, errno wazero_exp_sys.Errno) {
+func (b *StdinBuffer) Poll(flag wazero_exp_sys.Pflag, timeoutMillis int32) (ready bool, errno wazero_exp_sys.Errno) {
 	// wait once only
 	var waited bool
 	for {
@@ -167,16 +166,9 @@ func (b *StdinBuffer) Poll(flag fsapi.Pflag, timeoutMillis int32) (ready bool, e
 	}
 }
 
-// pollable has just the Poll function.
-// https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
-type pollable interface {
-	// Poll(fsapi.Pflag, int32) (ready bool, errno experimentalsys.Errno)
-	Poll(fsapi.Pflag, int32) (ready bool, errno wazero_exp_sys.Errno)
-}
-
 // _ is a type assertion
 var (
-	_ io.ReadWriter = ((*StdinBuffer)(nil))
-	_ io.Closer     = ((*StdinBuffer)(nil))
-	_ pollable      = ((*StdinBuffer)(nil))
+	_ io.ReadWriter           = ((*StdinBuffer)(nil))
+	_ io.Closer               = ((*StdinBuffer)(nil))
+	_ wazero_exp_sys.Pollable = ((*StdinBuffer)(nil))
 )

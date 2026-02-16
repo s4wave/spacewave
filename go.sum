@@ -44,10 +44,6 @@ github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260204215916-dc1f0fed8c
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260204215916-dc1f0fed8cfc/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131050911-b5f94b044584 h1:ER8DYYL71cTg39uZ+Gi699tL/hZoscUWDOw4DbizqhI=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260131050911-b5f94b044584/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260112223600-6443bb0b4d38 h1:Nf8Ut2SfjlPE/id0VNS7VMCGwjkPOvC86/uNS/uO5/s=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260112223600-6443bb0b4d38/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260112223702-234a25b15aef h1:0etT/QiC6tI/GqqMJ16jKeXtVSWClXzc0kh7P+jR3uA=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260112223702-234a25b15aef/go.mod h1:5aq7uDVxQmGHEV+HgYOmp4x+w7oIdWfuIGDp/uo/2Dc=
 github.com/aperturerobotics/hydra v0.0.0-20260215112216-4cb96f96dfbf h1:2sDbcWLJTO8takvIswyvf09hnclisN9ZHYthFpsSGNM=
 github.com/aperturerobotics/hydra v0.0.0-20260215112216-4cb96f96dfbf/go.mod h1:v6sGJUzB7+J5kn22ax3UCpXQ/CUyKaltNT0qPm2z7VQ=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 h1:4B1F0DzuqPzb6WqgCjWaqDD7JU9RDsevQG5OP0DFBgs=
@@ -64,8 +60,8 @@ github.com/aperturerobotics/starpc v0.46.3-0.20260211025523-75aa78408dcf h1:AQOr
 github.com/aperturerobotics/starpc v0.46.3-0.20260211025523-75aa78408dcf/go.mod h1:boNyYtoQvPgE7xLJ3aFhFazSMGFlPWHXZFoSYY9JbPU=
 github.com/aperturerobotics/util v1.32.3 h1:wBc6L2guYMgLEzFwORH3CLMoMpfEqbV6pDqYervo3S0=
 github.com/aperturerobotics/util v1.32.3/go.mod h1:qfRZZUDn0sEfc43JRA6rKP8bwFxliqGqJZX+p1jeOnQ=
-github.com/aperturerobotics/wazero v0.0.0-20260107095457-79bf31f21173 h1:oWPtxr4z8SDDvG+k4+3ZHYszb8NPytWRP0m9wrQD1X8=
-github.com/aperturerobotics/wazero v0.0.0-20260107095457-79bf31f21173/go.mod h1:eV28rsN8Q+xwjogd7f4/Pp4xFxO7uOGbLcD/LzB1wiU=
+github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28 h1:/+tsxRY9dWFjlsUWzzUomB1+VnK9GE736AzM16nfjyk=
+github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28/go.mod h1:eV28rsN8Q+xwjogd7f4/Pp4xFxO7uOGbLcD/LzB1wiU=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.14.3 h1:Gd2c8lSNf9pKXom5JtD7AaKO8o7fGQ2LtFj1436qilA=
 github.com/bits-and-blooms/bitset v1.14.3/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

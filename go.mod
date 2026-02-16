@@ -4,7 +4,7 @@ go 1.25.0
 
 // This uses wasi-reactor
 require (
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260112223600-6443bb0b4d38
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.11.1-0.20260112224152-86b9154ed020
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260112223702-234a25b15aef
 )
 
@@ -15,7 +15,13 @@ replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.1
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20260207080357-f9e3a0273225 // aperture
 
 // https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
-replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260107095457-79bf31f21173 // aperture
+// https://github.com/wazero/wazero/pull/2476
+replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28
+
+// Use local go-quickjs-wasi-reactor for wazero Pollable API migration
+replace github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs => ../go-quickjs-wasi-reactor/wazero-quickjs
+
+replace github.com/aperturerobotics/go-quickjs-wasi-reactor => ../go-quickjs-wasi-reactor
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
