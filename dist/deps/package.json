@@ -21,7 +21,8 @@
   "dependencies": {
     "@aptre/protobuf-es-lite": "^1.0.1",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "workbox-window": "^7.4.0"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "1.0.1",

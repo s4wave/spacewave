@@ -168,6 +168,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       : RenderMode.RenderMode_NONE,
     htmlLinks: [],
     refreshNonce: 0,
+    cssLoaded: true,
   }))
   const [isComponentReady, setIsComponentReady] = useState(false)
 

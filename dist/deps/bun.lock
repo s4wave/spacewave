@@ -5,18 +5,18 @@
     "": {
       "name": "@aperturerobotics/bldr",
       "dependencies": {
-        "@aptre/protobuf-es-lite": "^0.5.3",
+        "@aptre/protobuf-es-lite": "^1.0.1",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
       },
     },
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "0.5.3",
+    "@aptre/protobuf-es-lite": "1.0.1",
     "@libp2p/interface": "2.6.1",
   },
   "packages": {
-    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@0.5.3", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-EBjXGadsJqt6LjwMYj70MDowzqeM/EBDb1yhJ44ZY3XMncDbKoDnmhPVT6nsEg8eGCGdeumwQFvKrT2M/6NyGQ=="],
+    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@1.0.1", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-n2wlt5vn/BLYDNxvRe1/mZ2EuxGCWl5bOYVRKltONChCN3Qukb3nfjoBfn89GV6pXv16rZL++iGp2lmP/CHwVA=="],
 
     "@typescript/vfs": ["@typescript/vfs@1.6.2", "", { "dependencies": { "debug": "^4.1.1" }, "peerDependencies": { "typescript": "*" } }, "sha512-hoBwJwcbKHmvd2QVebiytN1aELvpk9B74B4L1mFm/XT1Q/VOYAWl2vQ9AWRFtQq8zmz6enTpfTV8WRc4ATjW/g=="],
 

@@ -2540,8 +2540,7 @@ function readMessage(message, fields, reader, lengthOrEndTagFieldNo, options, de
     }
     readField(message, reader, field, wireType, options);
   }
-  if (delimitedMessageEncoding && // eslint-disable-line @typescript-eslint/strict-boolean-expressions
-  (wireType != WireType.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) {
+  if (delimitedMessageEncoding && (wireType != WireType.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) {
     throw new Error(`invalid end group tag`);
   }
 }
@@ -2876,7 +2875,7 @@ function writeMessage2(message, fields, options) {
   } catch (e) {
     const m = field ? `cannot encode field ${field.name} to JSON` : `cannot encode message to JSON`;
     const r = e instanceof Error ? e.message : String(e);
-    throw new Error(m + (r.length > 0 ? `: ${r}` : ""));
+    throw new Error(m + (r.length > 0 ? `: ${r}` : ""), { cause: e });
   }
   return json;
 }
@@ -2919,7 +2918,7 @@ function readField2(target, jsonValue, field, options) {
             if (e instanceof Error && e.message.length > 0) {
               m += `: ${e.message}`;
             }
-            throw new Error(m);
+            throw new Error(m, { cause: e });
           }
           break;
       }
@@ -2947,7 +2946,7 @@ function readField2(target, jsonValue, field, options) {
         if (e instanceof Error && e.message.length > 0) {
           m += `: ${e.message}`;
         }
-        throw new Error(m);
+        throw new Error(m, { cause: e });
       }
       throwSanitizeKey(key);
       switch (field.V.kind) {
@@ -2971,7 +2970,7 @@ function readField2(target, jsonValue, field, options) {
             if (e instanceof Error && e.message.length > 0) {
               m += `: ${e.message}`;
             }
-            throw new Error(m);
+            throw new Error(m, { cause: e });
           }
           break;
       }
@@ -3020,7 +3019,7 @@ function readField2(target, jsonValue, field, options) {
           if (e instanceof Error && e.message.length > 0) {
             m += `: ${e.message}`;
           }
-          throw new Error(m);
+          throw new Error(m, { cause: e });
         }
         break;
     }
@@ -3142,7 +3141,7 @@ function readScalar2(type, json, longType = LongType.BIGINT, nullAsZeroValue = t
       try {
         encodeURIComponent(json);
       } catch (_e) {
-        throw new Error("invalid UTF8");
+        throw new Error("invalid UTF8", { cause: _e });
       }
       return json;
     // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
@@ -3397,7 +3396,7 @@ function createMessageType(params, exts) {
         try {
           json = JSON.parse(jsonString);
         } catch (e) {
-          throw new Error(`cannot decode ${typeName} from JSON: ${e instanceof Error ? e.message : String(e)}`);
+          throw new Error(`cannot decode ${typeName} from JSON: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
         }
       }
       return mt.fromJson(json, options);
@@ -7971,7 +7970,8 @@ var ManifestMeta = createMessageType({
     { no: 1, name: "manifest_id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "build_type", kind: "scalar", T: ScalarType.STRING },
     { no: 3, name: "platform_id", kind: "scalar", T: ScalarType.STRING },
-    { no: 4, name: "rev", kind: "scalar", T: ScalarType.UINT64 }
+    { no: 4, name: "rev", kind: "scalar", T: ScalarType.UINT64 },
+    { no: 5, name: "description", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
