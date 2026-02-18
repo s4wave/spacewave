@@ -706,6 +706,7 @@ func (c *Controller) performFullRebuild(
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
+			[]string{filepath.Join(sourcePath, "node_modules")},
 		)
 		if err != nil {
 			return nil, err

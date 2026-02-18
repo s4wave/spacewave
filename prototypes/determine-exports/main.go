@@ -1,27 +1,21 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
-	"github.com/sirupsen/logrus"
+	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 )
 
 func main() {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	if err := run(ctx, le); err != nil {
+	if err := run(); err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, le *logrus.Entry) error {
+func run() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -33,11 +27,15 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		imp = os.Args[1]
 	}
 
-	exports, err := determine_cjs_exports_exec.ExecDetermineCjsExports(ctx, le, codeRootDir, imp)
+	result, err := determine_cjs_exports.AnalyzeCjsExports(codeRootDir, imp, nil)
 	if err != nil {
 		return err
 	}
-	le.Info(exports)
+	fmt.Printf("exports (%d): %v\n", len(result.Exports), result.Exports)
+	fmt.Printf("exportDefault: %v\n", result.ExportDefault)
+	if result.Reexport != "" {
+		fmt.Printf("reexport: %s\n", result.Reexport)
+	}
 
 	return nil
 }

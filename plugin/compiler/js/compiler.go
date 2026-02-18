@@ -26,6 +26,7 @@ import (
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
+	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -354,6 +355,15 @@ func (c *Controller) BuildManifest(
 	// Sort collected web package references
 	web_pkg.SortWebPkgRefs(allWebPkgRefs)
 
+	// Install dist deps for the entrypoint build (cached: skips if package.json unchanged).
+	// The entrypoint bundles @aptre/bldr which transitively imports packages
+	// (like workbox-window) that must be resolved via dist/deps/package.json.
+	distDepsDir := filepath.Join(workingPath, "dist-deps")
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, filepath.Join(distSourcePath, "dist/deps/package.json"), distDepsDir); err != nil {
+		return nil, errors.Wrap(err, "failed to install dist deps for entrypoint")
+	}
+	distDepsNodeModules := filepath.Join(distDepsDir, "node_modules")
+
 	// -- Compile the main JS entrypoint (plugin-{hash}.mjs) --
 	le.Info("compiling js plugin entrypoint")
 	entrypointTsSrcPath := filepath.Join(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
@@ -437,6 +447,7 @@ func (c *Controller) BuildManifest(
 	buildOptions.Splitting = false                       // Do not split code for this simple entrypoint.
 	buildOptions.Sourcemap = esbuild_api.SourceMapInline // Inline sourcemap for easier debugging.
 	buildOptions.Write = true
+	buildOptions.NodePaths = []string{distDepsNodeModules}
 
 	buildOptions.Plugins = append(buildOptions.Plugins,
 		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath()),

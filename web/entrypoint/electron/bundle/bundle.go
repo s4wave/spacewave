@@ -279,17 +279,6 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPat
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // If npmPkg is empty, defaults to latest.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
-	npmDir := filepath.Join(buildDir, "dl-electron")
-	if err := fsutil.CleanCreateDir(npmDir); err != nil {
-		return err
-	}
-
-	// Create an empty package.json to prevent bun from traversing up to parent directories
-	pkgJsonPath := filepath.Join(npmDir, "package.json")
-	if err := os.WriteFile(pkgJsonPath, []byte("{}"), 0o644); err != nil {
-		return err
-	}
-
 	// use the latest version if not defined
 	if npmPkg == "" {
 		npmPkg = "electron@latest"
@@ -302,26 +291,19 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 		npmPkgName = npmPkgName[:npmPkgVerIdx]
 	}
 
+	// install electron (cached: skips if package string unchanged)
+	npmDir := filepath.Join(buildDir, "dl-electron")
 	le.
 		WithField("npm-pkg", npmPkg).
 		Debug("downloading electron with bun")
-	cmd, err := npm.BunAdd(ctx, le, stateDir, "--cwd", npmDir, npmPkg)
-	if err != nil {
-		return err
-	}
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+	if err := npm.EnsureBunAdd(ctx, le, stateDir, npmDir, npmPkg); err != nil {
 		return err
 	}
 
-	// move the redistributable out of node_modules
+	// copy the redistributable out of node_modules
 	nodeModulesPath := filepath.Join(npmDir, "node_modules")
 	electronDistPath := filepath.Join(nodeModulesPath, npmPkgName, "dist")
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
-		return err
-	}
-
-	// delete npm dir
-	if err := fsutil.CleanDir(npmDir); err != nil {
 		return err
 	}
 

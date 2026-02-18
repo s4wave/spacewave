@@ -9,8 +9,6 @@ import (
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	"github.com/aperturerobotics/util/exec"
-	"github.com/aperturerobotics/util/fsutil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,28 +24,9 @@ func BuildDirectWebPkgs(
 	outAssetsPath string,
 	isRelease bool,
 ) (web_pkg.WebPkgRefSlice, error) {
-	// Create a temporary directory for bun install.
+	// Install dist deps (cached: skips if package.json unchanged).
 	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
-	if err := fsutil.CleanCreateDir(buildPkgsDir); err != nil {
-		return nil, err
-	}
-
-	// Copy dist/deps/package.json for installing npm dependencies.
-	if err := fsutil.CopyFile(
-		filepath.Join(buildPkgsDir, "package.json"),
-		filepath.Join(distSourcePath, "dist/deps/package.json"),
-		0o644,
-	); err != nil {
-		return nil, err
-	}
-
-	// Run bun install to get react, react-dom, etc.
-	le.Debug("installing npm deps for web packages")
-	cmd, err := npm.BunInstall(ctx, le, workingPath, "--cwd", buildPkgsDir)
-	if err != nil {
-		return nil, err
-	}
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, filepath.Join(distSourcePath, "dist/deps/package.json"), buildPkgsDir); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +36,7 @@ func BuildDirectWebPkgs(
 	// Build web packages with esbuild.
 	le.Debug("building web packages with esbuild")
 	outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-	_, _, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
+	_, _, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
 		le,
 		buildPkgsDir,
@@ -65,6 +44,7 @@ func BuildDirectWebPkgs(
 		outWebPkgsPath,
 		bldr_plugin.PluginWebPkgHttpPrefix,
 		isRelease,
+		[]string{filepath.Join(buildPkgsDir, "node_modules")},
 	)
 	if err != nil {
 		return nil, err

@@ -13,8 +13,6 @@ import (
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	"github.com/aperturerobotics/util/exec"
-	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -335,30 +333,10 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
-	// make temporary dir to build web pkgs
-	buildPkgsDir := filepath.Join(buildDir, "build-web-pkgs")
-	if err := fsutil.CleanCreateDir(buildPkgsDir); err != nil {
-		return err
-	}
-
-	// copy package.json into it
-	if err := fsutil.CopyFile(
-		filepath.Join(buildPkgsDir, "package.json"),
-		filepath.Join(bldrDistRoot, "dist/deps/package.json"),
-		0o644,
-	); err != nil {
-		return err
-	}
-
-	// bun install
-	le.
-		WithField("npm-pkg", []string{"react", "react-dom"}).
-		Debug("downloading dist deps with bun")
-	cmd, err := npm.BunInstall(ctx, le, stateDir, "--cwd", buildPkgsDir)
-	if err != nil {
-		return err
-	}
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+	// install dist deps (cached: skips if package.json unchanged)
+	// Use stateDir (not buildDir) so the cache survives CleanCreateDir on the build output.
+	buildPkgsDir := filepath.Join(stateDir, "build-web-pkgs")
+	if err := npm.EnsureBunInstall(ctx, le, stateDir, filepath.Join(bldrDistRoot, "dist/deps/package.json"), buildPkgsDir); err != nil {
 		return err
 	}
 
@@ -374,7 +352,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		}
 	}
 
-	_, _, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
+	_, _, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
 		le,
 		buildDir,
@@ -382,12 +360,9 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		outDir,
 		pathPrefix+"/pkgs/",
 		minify,
+		[]string{filepath.Join(buildPkgsDir, "node_modules")},
 	)
 	if err != nil {
-		return err
-	}
-
-	if err := fsutil.CleanDir(buildPkgsDir); err != nil {
 		return err
 	}
 

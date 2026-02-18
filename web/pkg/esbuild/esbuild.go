@@ -14,7 +14,6 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
-	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
@@ -199,6 +198,7 @@ func BuildWebPkgsEsbuild(
 	outputPath string,
 	webPkgBasePath string,
 	isRelease bool,
+	nodePaths []string,
 ) (webPkgIDs, sourcePaths []string, err error) {
 	// Build list of web pkg IDs
 	for _, webPkgRef := range webPkgsRefs {
@@ -272,15 +272,10 @@ func BuildWebPkgsEsbuild(
 				continue
 			}
 
-			webPkgExports, err := determine_cjs_exports_exec.ExecDetermineCjsExports(
-				ctx,
-				le.WithFields(logrus.Fields{
-					"exec":           "determine-cjs-exports",
-					"web-pkg-id":     webPkgID,
-					"web-pkg-import": impPath,
-				}),
-				webPkgRef.WebPkgRoot, // codeRootPath,
+			webPkgExports, err := determine_cjs_exports.AnalyzeCjsExports(
+				webPkgRef.WebPkgRoot,
 				"./"+impPath,
+				nodePaths,
 			)
 			if err != nil {
 				return nil, nil, err
@@ -339,6 +334,7 @@ func BuildWebPkgsEsbuild(
 			isRelease,
 			false,
 		)
+		buildOpts.NodePaths = nodePaths
 
 		buildOpts.EntryPoints = nil
 		buildOpts.EntryPointsAdvanced = buildEntrypoints
