@@ -12,7 +12,7 @@ require (
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20260207080357-f9e3a0273225 // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20260218060823-d61a0af50be5 // aperture-15
 
 // https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
 // https://github.com/wazero/wazero/pull/2476

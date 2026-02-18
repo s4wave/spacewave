@@ -2,23 +2,11 @@ package determine_cjs_exports
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
 )
-
-// DetermineCjsExportsFS contains the contents of the determine-cjs-exports.mjs file.
-//
-//go:embed determine-cjs-exports.mjs
-var DetermineCjsExportsFS embed.FS
-
-// GetDetermineCjsExportsScript returns the contents of the determine-cjs-exports.mjs file.
-func GetDetermineCjsExportsScript() string {
-	data, _ := DetermineCjsExportsFS.ReadFile("determine-cjs-exports.mjs")
-	return string(data)
-}
 
 // GetSupportedExtensions returns the list of file extensions determine-cjs-exports supports.
 func GetSupportedExtensions() []string {

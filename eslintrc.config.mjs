@@ -20,7 +20,6 @@ export default defineConfig([
       'runtime',
       'prototypes',
       'wasm_exec.js',
-      '**/determine-cjs-exports.mjs',
       '.bldr',
       '**/*.pb.ts',
       '**/*.esm.js',
