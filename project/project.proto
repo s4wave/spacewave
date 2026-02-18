@@ -45,6 +45,8 @@ message ManifestConfig {
   //
   // Useful for forcing a manifest to be rebuilt/reloaded even if nothing changed.
   uint64 rev = 2;
+  // Description is a short human-readable description of the manifest.
+  string description = 3;
 }
 
 // StartConfig configures starting the program.

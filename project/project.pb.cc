@@ -121,6 +121,9 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr ManifestConfig::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        description_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         builder_{nullptr},
         rev_{::uint64_t{0u}} {}
 
@@ -397,11 +400,13 @@ const ::uint32_t
         5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::ManifestConfig, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::project::ManifestConfig, _impl_.builder_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::ManifestConfig, _impl_.rev_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::bldr::project::ManifestConfig, _impl_.description_),
         1,
+        2,
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::StartConfig, _impl_._has_bits_),
         5, // hasbit index offset
@@ -483,13 +488,13 @@ static const ::_pbi::MigrationSchema
         {21, sizeof(::bldr::project::ProjectConfig_PublishEntry_DoNotUse)},
         {28, sizeof(::bldr::project::ProjectConfig)},
         {43, sizeof(::bldr::project::ManifestConfig)},
-        {50, sizeof(::bldr::project::StartConfig)},
-        {57, sizeof(::bldr::project::BuildConfig)},
-        {66, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
-        {73, sizeof(::bldr::project::RemoteConfig)},
-        {86, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
-        {93, sizeof(::bldr::project::PublishConfig)},
-        {112, sizeof(::bldr::project::PublishStorageConfig)},
+        {52, sizeof(::bldr::project::StartConfig)},
+        {59, sizeof(::bldr::project::BuildConfig)},
+        {68, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
+        {75, sizeof(::bldr::project::RemoteConfig)},
+        {88, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
+        {95, sizeof(::bldr::project::PublishConfig)},
+        {114, sizeof(::bldr::project::PublishStorageConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::project::_ProjectConfig_ManifestsEntry_DoNotUse_default_instance_._instance,
@@ -531,32 +536,33 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpr
     "\t\022)\n\005value\030\002 \001(\0132\032.bldr.project.RemoteCo"
     "nfig:\0028\001\032K\n\014PublishEntry\022\013\n\003key\030\001 \001(\t\022*\n"
     "\005value\030\002 \001(\0132\033.bldr.project.PublishConfi"
-    "g:\0028\001\"Q\n\016ManifestConfig\0222\n\007builder\030\001 \001(\013"
+    "g:\0028\001\"f\n\016ManifestConfig\0222\n\007builder\030\001 \001(\013"
     "2!.configset.proto.ControllerConfig\022\013\n\003r"
-    "ev\030\002 \001(\004\"5\n\013StartConfig\022\017\n\007plugins\030\001 \003(\t"
-    "\022\025\n\rdisable_build\030\002 \001(\010\"G\n\013BuildConfig\022\021"
-    "\n\tmanifests\030\001 \003(\t\022\024\n\014platform_ids\030\002 \003(\t\022"
-    "\017\n\007targets\030\003 \003(\t\"\201\002\n\014RemoteConfig\022F\n\017hos"
-    "t_config_set\030\001 \003(\0132-.bldr.project.Remote"
-    "Config.HostConfigSetEntry\022\021\n\tengine_id\030\002"
-    " \001(\t\022\017\n\007peer_id\030\003 \001(\t\022\022\n\nobject_key\030\004 \001("
-    "\t\022\030\n\020link_object_keys\030\005 \003(\t\032W\n\022HostConfi"
-    "gSetEntry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!."
-    "configset.proto.ControllerConfig:\0028\001\"\366\002\n"
-    "\rPublishConfig\022\032\n\022source_object_keys\030\001 \003"
-    "(\t\022\021\n\tmanifests\030\002 \003(\t\022\031\n\021all_manifest_re"
-    "vs\030\003 \001(\010\022\024\n\014platform_ids\030\004 \003(\t\022\017\n\007remote"
-    "s\030\005 \003(\t\022\027\n\017dest_object_key\030\006 \001(\t\0223\n\007stor"
-    "age\030\007 \001(\0132\".bldr.project.PublishStorageC"
-    "onfig\022J\n\020manifest_storage\030\010 \003(\01320.bldr.p"
-    "roject.PublishConfig.ManifestStorageEntr"
-    "y\032Z\n\024ManifestStorageEntry\022\013\n\003key\030\001 \001(\t\0221"
-    "\n\005value\030\002 \001(\0132\".bldr.project.PublishStor"
-    "ageConfig:\0028\001\"\252\001\n\024PublishStorageConfig\0222"
-    "\n\027transform_conf_from_ref\030\001 \001(\0132\021.bucket"
-    ".ObjectRef\022/\n\016transform_conf\030\002 \001(\0132\027.blo"
-    "ck.transform.Config\022-\n\ttimestamp\030\003 \001(\0132\032"
-    ".google.protobuf.Timestampb\006proto3"
+    "ev\030\002 \001(\004\022\023\n\013description\030\003 \001(\t\"5\n\013StartCo"
+    "nfig\022\017\n\007plugins\030\001 \003(\t\022\025\n\rdisable_build\030\002"
+    " \001(\010\"G\n\013BuildConfig\022\021\n\tmanifests\030\001 \003(\t\022\024"
+    "\n\014platform_ids\030\002 \003(\t\022\017\n\007targets\030\003 \003(\t\"\201\002"
+    "\n\014RemoteConfig\022F\n\017host_config_set\030\001 \003(\0132"
+    "-.bldr.project.RemoteConfig.HostConfigSe"
+    "tEntry\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007peer_id\030\003 \001"
+    "(\t\022\022\n\nobject_key\030\004 \001(\t\022\030\n\020link_object_ke"
+    "ys\030\005 \003(\t\032W\n\022HostConfigSetEntry\022\013\n\003key\030\001 "
+    "\001(\t\0220\n\005value\030\002 \001(\0132!.configset.proto.Con"
+    "trollerConfig:\0028\001\"\366\002\n\rPublishConfig\022\032\n\022s"
+    "ource_object_keys\030\001 \003(\t\022\021\n\tmanifests\030\002 \003"
+    "(\t\022\031\n\021all_manifest_revs\030\003 \001(\010\022\024\n\014platfor"
+    "m_ids\030\004 \003(\t\022\017\n\007remotes\030\005 \003(\t\022\027\n\017dest_obj"
+    "ect_key\030\006 \001(\t\0223\n\007storage\030\007 \001(\0132\".bldr.pr"
+    "oject.PublishStorageConfig\022J\n\020manifest_s"
+    "torage\030\010 \003(\01320.bldr.project.PublishConfi"
+    "g.ManifestStorageEntry\032Z\n\024ManifestStorag"
+    "eEntry\022\013\n\003key\030\001 \001(\t\0221\n\005value\030\002 \001(\0132\".bld"
+    "r.project.PublishStorageConfig:\0028\001\"\252\001\n\024P"
+    "ublishStorageConfig\0222\n\027transform_conf_fr"
+    "om_ref\030\001 \001(\0132\021.bucket.ObjectRef\022/\n\016trans"
+    "form_conf\030\002 \001(\0132\027.block.transform.Config"
+    "\022-\n\ttimestamp\030\003 \001(\0132\032.google.protobuf.Ti"
+    "mestampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_deps[4] = {
@@ -569,7 +575,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto = {
     false,
     false,
-    1954,
+    1975,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto,
     "github.com/aperturerobotics/bldr/project/project.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_once,
@@ -1554,7 +1560,7 @@ void ManifestConfig::clear_builder() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.builder_ != nullptr) _impl_.builder_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 ManifestConfig::ManifestConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1570,7 +1576,8 @@ PROTOBUF_NDEBUG_INLINE ManifestConfig::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::bldr::project::ManifestConfig& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        description_(arena, from.description_) {}
 
 ManifestConfig::ManifestConfig(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1586,7 +1593,7 @@ ManifestConfig::ManifestConfig(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.builder_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.builder_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_)
                 : nullptr;
   _impl_.rev_ = from._impl_.rev_;
@@ -1596,7 +1603,8 @@ ManifestConfig::ManifestConfig(
 PROTOBUF_NDEBUG_INLINE ManifestConfig::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        description_(arena) {}
 
 inline void ManifestConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -1618,6 +1626,7 @@ inline void ManifestConfig::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.description_.Destroy();
   delete this_._impl_.builder_;
   this_._impl_.~Impl_();
 }
@@ -1628,7 +1637,7 @@ inline void* PROTOBUF_NONNULL ManifestConfig::PlacementNew_(
   return ::new (mem) ManifestConfig(arena);
 }
 constexpr auto ManifestConfig::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ManifestConfig),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ManifestConfig),
                                             alignof(ManifestConfig));
 }
 constexpr auto ManifestConfig::InternalGenerateClassData_() {
@@ -1665,16 +1674,16 @@ ManifestConfig::GetClassData() const {
   return ManifestConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 47, 2>
 ManifestConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     ManifestConfig_class_data_.base(),
@@ -1684,26 +1693,36 @@ ManifestConfig::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::project::ManifestConfig>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint64 rev = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ManifestConfig, _impl_.rev_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.rev_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .configset.proto.ControllerConfig builder = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.builder_)}},
+    // uint64 rev = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ManifestConfig, _impl_.rev_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.rev_)}},
+    // string description = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.description_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .configset.proto.ControllerConfig builder = 1;
-    {PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.builder_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.builder_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint64 rev = 2;
-    {PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.rev_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.rev_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string description = 3;
+    {PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.description_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
   }},
   {{
+    "\33\0\0\13\0\0\0\0"
+    "bldr.project.ManifestConfig"
+    "description"
   }},
 };
 PROTOBUF_NOINLINE void ManifestConfig::Clear() {
@@ -1714,9 +1733,14 @@ PROTOBUF_NOINLINE void ManifestConfig::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.builder_ != nullptr);
-    _impl_.builder_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.description_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.builder_ != nullptr);
+      _impl_.builder_->Clear();
+    }
   }
   _impl_.rev_ = ::uint64_t{0u};
   _impl_._has_bits_.Clear();
@@ -1743,18 +1767,28 @@ PROTOBUF_NOINLINE void ManifestConfig::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .configset.proto.ControllerConfig builder = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.builder_, this_._impl_.builder_->GetCachedSize(), target,
         stream);
   }
 
   // uint64 rev = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
           2, this_._internal_rev(), target);
+    }
+  }
+
+  // string description = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_description().empty()) {
+      const ::std::string& _s = this_._internal_description();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.project.ManifestConfig.description");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
@@ -1783,14 +1817,21 @@ PROTOBUF_NOINLINE void ManifestConfig::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    // .configset.proto.ControllerConfig builder = 1;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string description = 3;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_description().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_description());
+      }
+    }
+    // .configset.proto.ControllerConfig builder = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.builder_);
     }
     // uint64 rev = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_rev());
@@ -1816,8 +1857,17 @@ void ManifestConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_description().empty()) {
+        _this->_internal_set_description(from._internal_description());
+      } else {
+        if (_this->_impl_.description_.IsDefault()) {
+          _this->_internal_set_description("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(from._impl_.builder_ != nullptr);
       if (_this->_impl_.builder_ == nullptr) {
         _this->_impl_.builder_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_);
@@ -1825,7 +1875,7 @@ void ManifestConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.builder_->MergeFrom(*from._impl_.builder_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_rev() != 0) {
         _this->_impl_.rev_ = from._impl_.rev_;
       }
@@ -1846,8 +1896,11 @@ void ManifestConfig::CopyFrom(const ManifestConfig& from) {
 
 void ManifestConfig::InternalSwap(ManifestConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.description_, &other->_impl_.description_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(ManifestConfig, _impl_.rev_)
       + sizeof(ManifestConfig::_impl_.rev_)

@@ -18,6 +18,8 @@ message ManifestMeta {
   // Higher revision numbers take priority over lower.
   // The number is incremented with each manifest build.
   uint64 rev = 4;
+  // Description is a short human-readable description of the manifest.
+  string description = 5;
 }
 
 // Manifest contains metadata and contents.

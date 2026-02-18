@@ -251,6 +251,7 @@ class ManifestMeta final : public ::google::protobuf::Message
     kManifestIdFieldNumber = 1,
     kBuildTypeFieldNumber = 2,
     kPlatformIdFieldNumber = 3,
+    kDescriptionFieldNumber = 5,
     kRevFieldNumber = 4,
   };
   // string manifest_id = 1;
@@ -298,6 +299,21 @@ class ManifestMeta final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_platform_id();
 
   public:
+  // string description = 5;
+  void clear_description() ;
+  const ::std::string& description() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_description(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_description();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_description();
+  void set_allocated_description(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_description() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_description(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
+
+  public:
   // uint64 rev = 4;
   void clear_rev() ;
   ::uint64_t rev() const;
@@ -312,8 +328,8 @@ class ManifestMeta final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 67,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 78,
                                    2>
       _table_;
 
@@ -337,6 +353,7 @@ class ManifestMeta final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr manifest_id_;
     ::google::protobuf::internal::ArenaStringPtr build_type_;
     ::google::protobuf::internal::ArenaStringPtr platform_id_;
+    ::google::protobuf::internal::ArenaStringPtr description_;
     ::uint64_t rev_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2129,7 +2146,7 @@ inline void ManifestMeta::clear_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline ::uint64_t ManifestMeta::rev() const {
   // @@protoc_insertion_point(field_get:bldr.manifest.ManifestMeta.rev)
@@ -2137,7 +2154,7 @@ inline ::uint64_t ManifestMeta::rev() const {
 }
 inline void ManifestMeta::set_rev(::uint64_t value) {
   _internal_set_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:bldr.manifest.ManifestMeta.rev)
 }
 inline ::uint64_t ManifestMeta::_internal_rev() const {
@@ -2147,6 +2164,71 @@ inline ::uint64_t ManifestMeta::_internal_rev() const {
 inline void ManifestMeta::_internal_set_rev(::uint64_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = value;
+}
+
+// string description = 5;
+inline void ManifestMeta::clear_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& ManifestMeta::description() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.ManifestMeta.description)
+  return _internal_description();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManifestMeta::set_description(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.description_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.manifest.ManifestMeta.description)
+}
+inline ::std::string* PROTOBUF_NONNULL ManifestMeta::mutable_description()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_description();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.ManifestMeta.description)
+  return _s;
+}
+inline const ::std::string& ManifestMeta::_internal_description() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.description_.Get();
+}
+inline void ManifestMeta::_internal_set_description(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManifestMeta::_internal_mutable_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.description_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManifestMeta::release_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.ManifestMeta.description)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.description_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManifestMeta::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.description_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.description_.IsDefault()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.ManifestMeta.description)
 }
 
 // -------------------------------------------------------------------

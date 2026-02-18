@@ -48,6 +48,9 @@ pub struct ManifestConfig {
     /// Useful for forcing a manifest to be rebuilt/reloaded even if nothing changed.
     #[prost(uint64, tag="2")]
     pub rev: u64,
+    /// Description is a short human-readable description of the manifest.
+    #[prost(string, tag="3")]
+    pub description: ::prost::alloc::string::String,
 }
 /// StartConfig configures starting the program.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

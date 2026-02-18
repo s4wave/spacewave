@@ -815,9 +815,25 @@ class ManifestConfig final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kDescriptionFieldNumber = 3,
     kBuilderFieldNumber = 1,
     kRevFieldNumber = 2,
   };
+  // string description = 3;
+  void clear_description() ;
+  const ::std::string& description() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_description(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_description();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_description();
+  void set_allocated_description(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_description() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_description(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
+
+  public:
   // .configset.proto.ControllerConfig builder = 1;
   bool has_builder() const;
   void clear_builder() ;
@@ -847,8 +863,8 @@ class ManifestConfig final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 47,
                                    2>
       _table_;
 
@@ -869,6 +885,7 @@ class ManifestConfig final : public ::google::protobuf::Message
         const ManifestConfig& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr description_;
     ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE builder_;
     ::uint64_t rev_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -2491,7 +2508,7 @@ inline ::google::protobuf::Map<::std::string, ::bldr::project::PublishConfig>* P
 
 // .configset.proto.ControllerConfig builder = 1;
 inline bool ManifestConfig::has_builder() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.builder_ != nullptr);
   return value;
 }
@@ -2512,16 +2529,16 @@ inline void ManifestConfig::unsafe_arena_set_allocated_builder(
   }
   _impl_.builder_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.ManifestConfig.builder)
 }
 inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ManifestConfig::release_builder() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::configset::proto::ControllerConfig* released = _impl_.builder_;
   _impl_.builder_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2541,7 +2558,7 @@ inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ManifestConfig::u
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.project.ManifestConfig.builder)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::configset::proto::ControllerConfig* temp = _impl_.builder_;
   _impl_.builder_ = nullptr;
   return temp;
@@ -2556,7 +2573,7 @@ inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ManifestConfig::_i
 }
 inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ManifestConfig::mutable_builder()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::configset::proto::ControllerConfig* _msg = _internal_mutable_builder();
   // @@protoc_insertion_point(field_mutable:bldr.project.ManifestConfig.builder)
   return _msg;
@@ -2573,9 +2590,9 @@ inline void ManifestConfig::set_allocated_builder(::configset::proto::Controller
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.builder_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
@@ -2587,7 +2604,7 @@ inline void ManifestConfig::clear_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline ::uint64_t ManifestConfig::rev() const {
   // @@protoc_insertion_point(field_get:bldr.project.ManifestConfig.rev)
@@ -2595,7 +2612,7 @@ inline ::uint64_t ManifestConfig::rev() const {
 }
 inline void ManifestConfig::set_rev(::uint64_t value) {
   _internal_set_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:bldr.project.ManifestConfig.rev)
 }
 inline ::uint64_t ManifestConfig::_internal_rev() const {
@@ -2605,6 +2622,71 @@ inline ::uint64_t ManifestConfig::_internal_rev() const {
 inline void ManifestConfig::_internal_set_rev(::uint64_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = value;
+}
+
+// string description = 3;
+inline void ManifestConfig::clear_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ManifestConfig::description() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.ManifestConfig.description)
+  return _internal_description();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManifestConfig::set_description(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.description_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.project.ManifestConfig.description)
+}
+inline ::std::string* PROTOBUF_NONNULL ManifestConfig::mutable_description()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_description();
+  // @@protoc_insertion_point(field_mutable:bldr.project.ManifestConfig.description)
+  return _s;
+}
+inline const ::std::string& ManifestConfig::_internal_description() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.description_.Get();
+}
+inline void ManifestConfig::_internal_set_description(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManifestConfig::_internal_mutable_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.description_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManifestConfig::release_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.ManifestConfig.description)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.description_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManifestConfig::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.description_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.description_.IsDefault()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.ManifestConfig.description)
 }
 
 // -------------------------------------------------------------------

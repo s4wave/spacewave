@@ -32,6 +32,8 @@ type ManifestMeta struct {
 	// Higher revision numbers take priority over lower.
 	// The number is incremented with each manifest build.
 	Rev uint64 `protobuf:"varint,4,opt,name=rev,proto3" json:"rev,omitempty"`
+	// Description is a short human-readable description of the manifest.
+	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 }
 
 func (x *ManifestMeta) Reset() {
@@ -66,6 +68,13 @@ func (x *ManifestMeta) GetRev() uint64 {
 		return x.Rev
 	}
 	return 0
+}
+
+func (x *ManifestMeta) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 // Manifest contains metadata and contents.
@@ -335,6 +344,7 @@ func (m *ManifestMeta) CloneVT() *ManifestMeta {
 	r.BuildType = m.BuildType
 	r.PlatformId = m.PlatformId
 	r.Rev = m.Rev
+	r.Description = m.Description
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -509,6 +519,9 @@ func (this *ManifestMeta) EqualVT(that *ManifestMeta) bool {
 		return false
 	}
 	if this.Rev != that.Rev {
+		return false
+	}
+	if this.Description != that.Description {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -766,6 +779,11 @@ func (x *ManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rev")
 		s.WriteUint64(x.Rev)
 	}
+	if x.Description != "" || s.HasField("description") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("description")
+		s.WriteString(x.Description)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -795,6 +813,9 @@ func (x *ManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint64()
+		case "description":
+			s.AddField("description")
+			x.Description = s.ReadString()
 		}
 	})
 }
@@ -1310,6 +1331,13 @@ func (m *ManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Description) > 0 {
+		i -= len(m.Description)
+		copy(dAtA[i:], m.Description)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
 		i--
@@ -1762,6 +1790,10 @@ func (m *ManifestMeta) SizeVT() (n int) {
 	if m.Rev != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
 	}
+	l = len(m.Description)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1946,6 +1978,13 @@ func (x *ManifestMeta) MarshalProtoText() string {
 		}
 		sb.WriteString("rev: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
+	}
+	if x.Description != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("description: ")
+		sb.WriteString(strconv.Quote(x.Description))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2284,6 +2323,28 @@ func (m *ManifestMeta) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Description = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

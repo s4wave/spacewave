@@ -137,6 +137,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		0,
 	)
 	manifestID := meta.GetManifestId()
+
 	if manifestID == "" {
 		return bldr_manifest.ErrEmptyManifestID
 	}
@@ -156,14 +157,12 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	// load plugin config from project config
 	projectConfig := ctrlConf.GetProjectConfig()
-	manifestConfigs := projectConfig.GetManifests()
-	manifestConfig := manifestConfigs[manifestID].CloneVT()
+	manifestConfig := projectConfig.GetManifests()[manifestID].CloneVT()
 	if manifestConfig == nil {
 		return bldr_project.ErrManifestConfNotFound
 	}
-
-	// set the manifest conf
 	t.manifestConf.Store(manifestConfig)
+	meta.Description = manifestConfig.GetDescription()
 
 	// determine plugin rev from previous version
 	rev := manifestConfig.GetRev()

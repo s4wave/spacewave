@@ -18,6 +18,9 @@ pub struct ManifestMeta {
     /// The number is incremented with each manifest build.
     #[prost(uint64, tag="4")]
     pub rev: u64,
+    /// Description is a short human-readable description of the manifest.
+    #[prost(string, tag="5")]
+    pub description: ::prost::alloc::string::String,
 }
 /// Manifest contains metadata and contents.
 /// The Manifest represents a specific version for one target architecture.

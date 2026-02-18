@@ -43,6 +43,12 @@ export interface ManifestMeta {
    * @generated from field: uint64 rev = 4;
    */
   rev?: bigint
+  /**
+   * Description is a short human-readable description of the manifest.
+   *
+   * @generated from field: string description = 5;
+   */
+  description?: string
 }
 
 // ManifestMeta contains the message type declaration for ManifestMeta.
@@ -53,6 +59,7 @@ export const ManifestMeta: MessageType<ManifestMeta> = createMessageType({
     { no: 2, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 5, name: 'description', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -41,6 +41,9 @@ inline constexpr ManifestMeta::Impl_::Impl_(
         platform_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        description_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         rev_{::uint64_t{0u}} {}
 
 template <typename>
@@ -264,14 +267,16 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_.manifest_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_.build_type_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_.platform_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_.rev_),
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_.description_),
         0,
         1,
         2,
+        4,
         3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::Manifest, _impl_._has_bits_),
@@ -337,13 +342,13 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::manifest::ManifestMeta)},
-        {11, sizeof(::bldr::manifest::Manifest)},
-        {22, sizeof(::bldr::manifest::ManifestRef)},
-        {29, sizeof(::bldr::manifest::ManifestBundle)},
-        {36, sizeof(::bldr::manifest::ManifestSnapshot)},
-        {43, sizeof(::bldr::manifest::FetchManifestRequest)},
-        {54, sizeof(::bldr::manifest::FetchManifestValue)},
-        {59, sizeof(::bldr::manifest::FetchManifestResponse)},
+        {13, sizeof(::bldr::manifest::Manifest)},
+        {24, sizeof(::bldr::manifest::ManifestRef)},
+        {31, sizeof(::bldr::manifest::ManifestBundle)},
+        {38, sizeof(::bldr::manifest::ManifestSnapshot)},
+        {45, sizeof(::bldr::manifest::FetchManifestRequest)},
+        {56, sizeof(::bldr::manifest::FetchManifestValue)},
+        {61, sizeof(::bldr::manifest::FetchManifestResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::manifest::_ManifestMeta_default_instance_._instance,
@@ -362,31 +367,32 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fma
     "b.com/aperturerobotics/hydra/block/block"
     ".proto\0325github.com/aperturerobotics/hydr"
     "a/bucket/bucket.proto\032\037google/protobuf/t"
-    "imestamp.proto\"Y\n\014ManifestMeta\022\023\n\013manife"
+    "imestamp.proto\"n\n\014ManifestMeta\022\023\n\013manife"
     "st_id\030\001 \001(\t\022\022\n\nbuild_type\030\002 \001(\t\022\023\n\013platf"
-    "orm_id\030\003 \001(\t\022\013\n\003rev\030\004 \001(\004\"\227\001\n\010Manifest\022)"
-    "\n\004meta\030\001 \001(\0132\033.bldr.manifest.ManifestMet"
-    "a\022\022\n\nentrypoint\030\002 \001(\t\022$\n\013dist_fs_ref\030\003 \001"
-    "(\0132\017.block.BlockRef\022&\n\rassets_fs_ref\030\004 \001"
-    "(\0132\017.block.BlockRef\"a\n\013ManifestRef\022)\n\004me"
-    "ta\030\001 \001(\0132\033.bldr.manifest.ManifestMeta\022\'\n"
-    "\014manifest_ref\030\002 \001(\0132\021.bucket.ObjectRef\"r"
-    "\n\016ManifestBundle\0221\n\rmanifest_refs\030\001 \003(\0132"
-    "\032.bldr.manifest.ManifestRef\022-\n\ttimestamp"
-    "\030\002 \001(\0132\032.google.protobuf.Timestamp\"f\n\020Ma"
-    "nifestSnapshot\022\'\n\014manifest_ref\030\001 \001(\0132\021.b"
-    "ucket.ObjectRef\022)\n\010manifest\030\002 \001(\0132\027.bldr"
-    ".manifest.Manifest\"c\n\024FetchManifestReque"
-    "st\022\023\n\013manifest_id\030\001 \001(\t\022\023\n\013build_types\030\002"
-    " \003(\t\022\024\n\014platform_ids\030\003 \003(\t\022\013\n\003rev\030\004 \001(\004\""
-    "G\n\022FetchManifestValue\0221\n\rmanifest_refs\030\001"
-    " \003(\0132\032.bldr.manifest.ManifestRef\"z\n\025Fetc"
-    "hManifestResponse\022\020\n\010value_id\030\001 \001(\r\0220\n\005v"
-    "alue\030\002 \001(\0132!.bldr.manifest.FetchManifest"
-    "Value\022\017\n\007removed\030\003 \001(\010\022\014\n\004idle\030\004 \001(\r2o\n\r"
-    "ManifestFetch\022^\n\rFetchManifest\022#.bldr.ma"
-    "nifest.FetchManifestRequest\032$.bldr.manif"
-    "est.FetchManifestResponse\"\0000\001b\006proto3"
+    "orm_id\030\003 \001(\t\022\013\n\003rev\030\004 \001(\004\022\023\n\013description"
+    "\030\005 \001(\t\"\227\001\n\010Manifest\022)\n\004meta\030\001 \001(\0132\033.bldr"
+    ".manifest.ManifestMeta\022\022\n\nentrypoint\030\002 \001"
+    "(\t\022$\n\013dist_fs_ref\030\003 \001(\0132\017.block.BlockRef"
+    "\022&\n\rassets_fs_ref\030\004 \001(\0132\017.block.BlockRef"
+    "\"a\n\013ManifestRef\022)\n\004meta\030\001 \001(\0132\033.bldr.man"
+    "ifest.ManifestMeta\022\'\n\014manifest_ref\030\002 \001(\013"
+    "2\021.bucket.ObjectRef\"r\n\016ManifestBundle\0221\n"
+    "\rmanifest_refs\030\001 \003(\0132\032.bldr.manifest.Man"
+    "ifestRef\022-\n\ttimestamp\030\002 \001(\0132\032.google.pro"
+    "tobuf.Timestamp\"f\n\020ManifestSnapshot\022\'\n\014m"
+    "anifest_ref\030\001 \001(\0132\021.bucket.ObjectRef\022)\n\010"
+    "manifest\030\002 \001(\0132\027.bldr.manifest.Manifest\""
+    "c\n\024FetchManifestRequest\022\023\n\013manifest_id\030\001"
+    " \001(\t\022\023\n\013build_types\030\002 \003(\t\022\024\n\014platform_id"
+    "s\030\003 \003(\t\022\013\n\003rev\030\004 \001(\004\"G\n\022FetchManifestVal"
+    "ue\0221\n\rmanifest_refs\030\001 \003(\0132\032.bldr.manifes"
+    "t.ManifestRef\"z\n\025FetchManifestResponse\022\020"
+    "\n\010value_id\030\001 \001(\r\0220\n\005value\030\002 \001(\0132!.bldr.m"
+    "anifest.FetchManifestValue\022\017\n\007removed\030\003 "
+    "\001(\010\022\014\n\004idle\030\004 \001(\r2o\n\rManifestFetch\022^\n\rFe"
+    "tchManifest\022#.bldr.manifest.FetchManifes"
+    "tRequest\032$.bldr.manifest.FetchManifestRe"
+    "sponse\"\0000\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_deps[3] = {
@@ -398,7 +404,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto = {
     false,
     false,
-    1197,
+    1218,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
     "github.com/aperturerobotics/bldr/manifest/manifest.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_once,
@@ -440,7 +446,8 @@ PROTOBUF_NDEBUG_INLINE ManifestMeta::Impl_::Impl_(
         _cached_size_{0},
         manifest_id_(arena, from.manifest_id_),
         build_type_(arena, from.build_type_),
-        platform_id_(arena, from.platform_id_) {}
+        platform_id_(arena, from.platform_id_),
+        description_(arena, from.description_) {}
 
 ManifestMeta::ManifestMeta(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -465,7 +472,8 @@ PROTOBUF_NDEBUG_INLINE ManifestMeta::Impl_::Impl_(
       : _cached_size_{0},
         manifest_id_(arena),
         build_type_(arena),
-        platform_id_(arena) {}
+        platform_id_(arena),
+        description_(arena) {}
 
 inline void ManifestMeta::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -485,6 +493,7 @@ inline void ManifestMeta::SharedDtor(MessageLite& self) {
   this_._impl_.manifest_id_.Destroy();
   this_._impl_.build_type_.Destroy();
   this_._impl_.platform_id_.Destroy();
+  this_._impl_.description_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -531,16 +540,16 @@ ManifestMeta::GetClassData() const {
   return ManifestMeta_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 67, 2>
+const ::_pbi::TcParseTable<3, 5, 0, 78, 2>
 ManifestMeta::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ManifestMeta_class_data_.base(),
@@ -550,10 +559,7 @@ ManifestMeta::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::manifest::ManifestMeta>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint64 rev = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ManifestMeta, _impl_.rev_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.rev_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string manifest_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -566,6 +572,16 @@ ManifestMeta::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.platform_id_)}},
+    // uint64 rev = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ManifestMeta, _impl_.rev_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.rev_)}},
+    // string description = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.description_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -576,15 +592,18 @@ ManifestMeta::_table_ = {
     // string platform_id = 3;
     {PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.platform_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint64 rev = 4;
-    {PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.rev_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.rev_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string description = 5;
+    {PROTOBUF_FIELD_OFFSET(ManifestMeta, _impl_.description_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\32\13\12\13\0\0\0\0"
+    "\32\13\12\13\0\13\0\0"
     "bldr.manifest.ManifestMeta"
     "manifest_id"
     "build_type"
     "platform_id"
+    "description"
   }},
 };
 PROTOBUF_NOINLINE void ManifestMeta::Clear() {
@@ -595,7 +614,7 @@ PROTOBUF_NOINLINE void ManifestMeta::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.manifest_id_.ClearNonDefaultToEmpty();
     }
@@ -604,6 +623,9 @@ PROTOBUF_NOINLINE void ManifestMeta::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       _impl_.platform_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.description_.ClearNonDefaultToEmpty();
     }
   }
   _impl_.rev_ = ::uint64_t{0u};
@@ -661,11 +683,21 @@ PROTOBUF_NOINLINE void ManifestMeta::Clear() {
   }
 
   // uint64 rev = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
           4, this_._internal_rev(), target);
+    }
+  }
+
+  // string description = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_description().empty()) {
+      const ::std::string& _s = this_._internal_description();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.manifest.ManifestMeta.description");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
 
@@ -694,7 +726,7 @@ PROTOBUF_NOINLINE void ManifestMeta::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // string manifest_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_manifest_id().empty()) {
@@ -716,8 +748,15 @@ PROTOBUF_NOINLINE void ManifestMeta::Clear() {
                                         this_._internal_platform_id());
       }
     }
-    // uint64 rev = 4;
+    // string description = 5;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_description().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_description());
+      }
+    }
+    // uint64 rev = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_rev());
@@ -742,7 +781,7 @@ void ManifestMeta::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_manifest_id().empty()) {
         _this->_internal_set_manifest_id(from._internal_manifest_id());
@@ -771,6 +810,15 @@ void ManifestMeta::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_description().empty()) {
+        _this->_internal_set_description(from._internal_description());
+      } else {
+        if (_this->_impl_.description_.IsDefault()) {
+          _this->_internal_set_description("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_rev() != 0) {
         _this->_impl_.rev_ = from._impl_.rev_;
       }
@@ -798,6 +846,7 @@ void ManifestMeta::InternalSwap(ManifestMeta* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.manifest_id_, &other->_impl_.manifest_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.build_type_, &other->_impl_.build_type_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.description_, &other->_impl_.description_, arena);
   swap(_impl_.rev_, other->_impl_.rev_);
 }
 

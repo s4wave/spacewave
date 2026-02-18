@@ -73,6 +73,12 @@ export interface ManifestConfig {
    * @generated from field: uint64 rev = 2;
    */
   rev?: bigint
+  /**
+   * Description is a short human-readable description of the manifest.
+   *
+   * @generated from field: string description = 3;
+   */
+  description?: string
 }
 
 // ManifestConfig contains the message type declaration for ManifestConfig.
@@ -81,6 +87,7 @@ export const ManifestConfig: MessageType<ManifestConfig> = createMessageType({
   fields: [
     { no: 1, name: 'builder', kind: 'message', T: () => ControllerConfig },
     { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
