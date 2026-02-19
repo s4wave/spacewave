@@ -8,7 +8,7 @@ import (
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	"github.com/aperturerobotics/controllerbus/config"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )
 

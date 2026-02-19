@@ -9,8 +9,21 @@
   "branchConcurrentLimit": 0,
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["replace"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "replace"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
       "enabled": false
     }
   ]

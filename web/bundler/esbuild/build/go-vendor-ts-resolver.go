@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 func GoVendorTsResolverPlugin(projectRoot string) esbuild.Plugin {

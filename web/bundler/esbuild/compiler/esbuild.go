@@ -14,7 +14,7 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

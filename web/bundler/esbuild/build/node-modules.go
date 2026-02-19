@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 // ExternalNodeModulesPlugin creates an esbuild plugin that marks modules resolved within

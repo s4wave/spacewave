@@ -23,7 +23,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

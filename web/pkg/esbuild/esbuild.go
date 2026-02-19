@@ -15,7 +15,7 @@ import (
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

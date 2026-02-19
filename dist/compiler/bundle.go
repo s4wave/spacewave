@@ -38,7 +38,7 @@ import (
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/enabled"
 	"github.com/aperturerobotics/util/fsutil"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"

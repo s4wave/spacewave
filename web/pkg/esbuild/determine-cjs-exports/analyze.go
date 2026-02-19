@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/evanw/esbuild/pkg/cjsexports"
+	"github.com/aperturerobotics/esbuild/pkg/cjsexports"
 	"github.com/pkg/errors"
 )
 

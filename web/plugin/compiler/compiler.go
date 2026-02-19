@@ -28,7 +28,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )
 

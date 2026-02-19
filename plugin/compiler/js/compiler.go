@@ -37,7 +37,7 @@ import (
 	protobuf_go_lite_json "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

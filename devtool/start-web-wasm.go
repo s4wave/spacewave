@@ -27,7 +27,7 @@ import (
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.

@@ -11,9 +11,6 @@ require (
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-// https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20260218060823-d61a0af50be5 // aperture-15
-
 // https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
 // https://github.com/wazero/wazero/pull/2476
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28 // master
@@ -34,7 +31,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/evanw/esbuild v0.27.3 // latest
+	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/fatih/color v1.17.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -179,7 +176,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect

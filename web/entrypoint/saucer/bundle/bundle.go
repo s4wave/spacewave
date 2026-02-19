@@ -19,7 +19,7 @@ import (
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 

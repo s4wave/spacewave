@@ -3,8 +3,8 @@ package bldr_web_bundler_esbuild_build
 import (
 	"errors"
 
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
-	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	esbuild_cli "github.com/aperturerobotics/esbuild/pkg/cli"
 	shellquote "github.com/kballard/go-shellquote"
 )
 

@@ -2,7 +2,7 @@ package web_pkg_esbuild
 
 import (
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,7 +4,7 @@ import (
 	"os"
 	"os/exec"
 
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 

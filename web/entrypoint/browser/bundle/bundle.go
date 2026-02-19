@@ -13,7 +13,7 @@ import (
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

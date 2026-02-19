@@ -22,7 +22,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
 	"github.com/coder/websocket"
-	esbuild "github.com/evanw/esbuild/pkg/api"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 

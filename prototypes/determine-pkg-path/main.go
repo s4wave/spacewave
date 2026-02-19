@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/evanw/esbuild/pkg/api"
+	"github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 func newResolvePlugin(pkgName string) api.Plugin {
