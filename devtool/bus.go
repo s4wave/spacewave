@@ -435,19 +435,27 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		return err
 	}
 
+	// Write the embedded go.sum as a base. It contains checksums for all of
+	// bldr's transitive dependencies which bldr-dist also needs.
+	bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
+	bldrGoSumData, err := bldr.DistSources.ReadFile("go.sum")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(bldrGoSumPath, bldrGoSumData, 0o644); err != nil {
+		return err
+	}
+
 	// If bldrSum is set, we are using bldr as a Go module.
-	// In this case we can skip "go mod tidy" (much faster) by updating go.sum.
+	// In this case we can skip "go mod tidy" (much faster) by appending bldr's
+	// own entry to go.sum (the embedded go.sum has deps but not bldr itself).
 	if bldrSum != "" {
-		// go.sum expects the module hash and the go.mod hash.
-		// we expect the go.mod to match the bldrGoModData above.
-		// calculate the go.mod checksum
 		goModSum := sha256.Sum256(bldrGoModData)
 		goModInner := fmt.Sprintf("%x  %s\n", goModSum, "go.mod")
 		goModInnerSum := sha256.Sum256([]byte(goModInner))
 		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
-		bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
-		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0o644)
 		if err != nil {
 			return err
 		}
