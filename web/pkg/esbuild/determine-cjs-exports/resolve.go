@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -153,12 +154,7 @@ func readPackageMain(path string) (string, error) {
 // hasExtension checks if the path has one of the supported extensions.
 func hasExtension(p string) bool {
 	ext := filepath.Ext(p)
-	for _, e := range resolveExtensions {
-		if ext == e {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(resolveExtensions, ext)
 }
 
 // isFile checks if the path is a regular file.
