@@ -5,6 +5,7 @@ package bldr_project_watcher
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"time"
 
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -169,7 +170,19 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 			return nil, err
 		}
 
-		// merge
+		// resolve extends: merge extended project configs first (in order)
+		sourcePath := filepath.Dir(configPath)
+		for _, modulePath := range projConfig.GetExtends() {
+			extConfig, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "extends %s", modulePath)
+			}
+			if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, extConfig); err != nil {
+				return nil, errors.Wrapf(err, "merge extends %s", modulePath)
+			}
+		}
+
+		// merge local config on top of extended configs
 		if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
 			return nil, err
 		}

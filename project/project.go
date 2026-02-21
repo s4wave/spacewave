@@ -1,6 +1,8 @@
 package bldr_project
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -200,6 +202,26 @@ func (c *PublishConfig) DedupePlatformIDs() []string {
 		platformIDs = platformIDs[1:]
 	}
 	return platformIDs
+}
+
+// LoadExtendedProjectConfig loads a project config from an extended module path.
+// sourcePath is the root directory of the current project (containing vendor/).
+// modulePath is the Go module path to resolve (e.g. "github.com/aperturerobotics/alpha").
+func LoadExtendedProjectConfig(sourcePath, modulePath string) (*ProjectConfig, error) {
+	if modulePath == "" {
+		return nil, errors.New("extends: empty module path")
+	}
+	vendorPath := filepath.Join(sourcePath, "vendor", modulePath)
+	configPath := filepath.Join(vendorPath, "bldr.yaml")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "read %s", configPath)
+	}
+	conf := &ProjectConfig{}
+	if err := UnmarshalProjectConfig(data, conf); err != nil {
+		return nil, errors.Wrapf(err, "unmarshal %s", configPath)
+	}
+	return conf, nil
 }
 
 // Merge merges another config into this config.
