@@ -30,6 +30,12 @@ pub struct ProjectConfig {
     /// Contains configuration for bldr publish... commands.
     #[prost(map="string, message", tag="6")]
     pub publish: ::std::collections::HashMap<::prost::alloc::string::String, PublishConfig>,
+    /// Extends references other bldr projects to inherit configuration from.
+    /// Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+    /// The extended project's bldr.yaml is resolved via the vendor/ directory.
+    /// Extended configs are merged in order, then local config is merged on top.
+    #[prost(string, repeated, tag="7")]
+    pub extends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// ManifestConfig is a configuration for building a manifest.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

@@ -435,6 +435,15 @@ export interface ProjectConfig {
    * @generated from field: map<string, bldr.project.PublishConfig> publish = 6;
    */
   publish?: { [key: string]: PublishConfig }
+  /**
+   * Extends references other bldr projects to inherit configuration from.
+   * Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+   * The extended project's bldr.yaml is resolved via the vendor/ directory.
+   * Extended configs are merged in order, then local config is merged on top.
+   *
+   * @generated from field: repeated string extends = 7;
+   */
+  extends?: string[]
 }
 
 // ProjectConfig contains the message type declaration for ProjectConfig.
@@ -470,6 +479,13 @@ export const ProjectConfig: MessageType<ProjectConfig> = createMessageType({
       kind: 'map',
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => PublishConfig },
+    },
+    {
+      no: 7,
+      name: 'extends',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

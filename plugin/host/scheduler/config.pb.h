@@ -231,6 +231,7 @@ class Config final : public ::google::protobuf::Message
     kWatchFetchManifestFieldNumber = 5,
     kDisableStoreManifestFieldNumber = 6,
     kDisableCopyManifestFieldNumber = 10,
+    kVerboseFieldNumber = 11,
   };
   // string engine_id = 1;
   void clear_engine_id() ;
@@ -362,11 +363,21 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_disable_copy_manifest(bool value);
 
   public:
+  // bool verbose = 11;
+  void clear_verbose() ;
+  bool verbose() const;
+  void set_verbose(bool value);
+
+  private:
+  bool _internal_verbose() const;
+  void _internal_set_verbose(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:plugin.host.scheduler.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
                                    2, 80,
                                    2>
       _table_;
@@ -398,6 +409,7 @@ class Config final : public ::google::protobuf::Message
     bool watch_fetch_manifest_;
     bool disable_store_manifest_;
     bool disable_copy_manifest_;
+    bool verbose_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -966,6 +978,31 @@ inline void Config::set_allocated_exec_backoff(::backoff::Backoff* PROTOBUF_NULL
 
   _impl_.exec_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
   // @@protoc_insertion_point(field_set_allocated:plugin.host.scheduler.Config.exec_backoff)
+}
+
+// bool verbose = 11;
+inline void Config::clear_verbose() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.verbose_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline bool Config::verbose() const {
+  // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.verbose)
+  return _internal_verbose();
+}
+inline void Config::set_verbose(bool value) {
+  _internal_set_verbose(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.verbose)
+}
+inline bool Config::_internal_verbose() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.verbose_;
+}
+inline void Config::_internal_set_verbose(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.verbose_ = value;
 }
 
 #ifdef __GNUC__

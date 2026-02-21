@@ -57,6 +57,8 @@ type Config struct {
 	// ExecBackoff is the backoff config for executing plugin manifests.
 	// If unset, defaults to reasonable defaults.
 	ExecBackoff *backoff.Backoff `protobuf:"bytes,9,opt,name=exec_backoff,json=execBackoff,proto3" json:"execBackoff,omitempty"`
+	// Verbose enables verbose logging for world ops (slower).
+	Verbose bool `protobuf:"varint,11,opt,name=verbose,proto3" json:"verbose,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -135,6 +137,13 @@ func (x *Config) GetExecBackoff() *backoff.Backoff {
 	return nil
 }
 
+func (x *Config) GetVerbose() bool {
+	if x != nil {
+		return x.Verbose
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -148,6 +157,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableStoreManifest = m.DisableStoreManifest
 	r.DisableCopyManifest = m.DisableCopyManifest
 	r.FetchConcurrency = m.FetchConcurrency
+	r.Verbose = m.Verbose
 	if rhs := m.FetchBackoff; rhs != nil {
 		r.FetchBackoff = rhs.CloneVT()
 	}
@@ -198,6 +208,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DisableCopyManifest != that.DisableCopyManifest {
+		return false
+	}
+	if this.Verbose != that.Verbose {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -269,6 +282,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableCopyManifest")
 		s.WriteBool(x.DisableCopyManifest)
 	}
+	if x.Verbose || s.HasField("verbose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("verbose")
+		s.WriteBool(x.Verbose)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -324,6 +342,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_copy_manifest", "disableCopyManifest":
 			s.AddField("disable_copy_manifest")
 			x.DisableCopyManifest = s.ReadBool()
+		case "verbose":
+			s.AddField("verbose")
+			x.Verbose = s.ReadBool()
 		}
 	})
 }
@@ -362,6 +383,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Verbose {
+		i--
+		if m.Verbose {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.DisableCopyManifest {
 		i--
@@ -491,6 +522,9 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableCopyManifest {
 		n += 2
 	}
+	if m.Verbose {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -567,6 +601,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_copy_manifest: ")
 		sb.WriteString(strconv.FormatBool(x.DisableCopyManifest))
+	}
+	if x.Verbose != false {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("verbose: ")
+		sb.WriteString(strconv.FormatBool(x.Verbose))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -785,6 +826,18 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableCopyManifest = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Verbose = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

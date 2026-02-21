@@ -44,4 +44,7 @@ message Config {
   // ExecBackoff is the backoff config for executing plugin manifests.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff exec_backoff = 9;
+
+  // Verbose enables verbose logging for world ops (slower).
+  bool verbose = 11;
 }

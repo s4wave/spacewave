@@ -42,6 +42,11 @@ type ProjectConfig struct {
 	// Publish contains configuration for build + publish manifests to destinations.
 	// Contains configuration for bldr publish... commands.
 	Publish map[string]*PublishConfig `protobuf:"bytes,6,rep,name=publish,proto3" json:"publish,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Extends references other bldr projects to inherit configuration from.
+	// Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+	// The extended project's bldr.yaml is resolved via the vendor/ directory.
+	// Extended configs are merged in order, then local config is merged on top.
+	Extends []string `protobuf:"bytes,7,rep,name=extends,proto3" json:"extends,omitempty"`
 }
 
 func (x *ProjectConfig) Reset() {
@@ -88,6 +93,13 @@ func (x *ProjectConfig) GetRemotes() map[string]*RemoteConfig {
 func (x *ProjectConfig) GetPublish() map[string]*PublishConfig {
 	if x != nil {
 		return x.Publish
+	}
+	return nil
+}
+
+func (x *ProjectConfig) GetExtends() []string {
+	if x != nil {
+		return x.Extends
 	}
 	return nil
 }
@@ -600,6 +612,9 @@ func (m *ProjectConfig) CloneVT() *ProjectConfig {
 			r.Publish[k] = v.CloneVT()
 		}
 	}
+	if rhs := m.Extends; rhs != nil {
+		r.Extends = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -850,6 +865,15 @@ func (this *ProjectConfig) EqualVT(that *ProjectConfig) bool {
 			if !p.EqualVT(q) {
 				return false
 			}
+		}
+	}
+	if len(this.Extends) != len(that.Extends) {
+		return false
+	}
+	for i, vx := range this.Extends {
+		vy := that.Extends[i]
+		if vx != vy {
+			return false
 		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1407,6 +1431,11 @@ func (x *ProjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if len(x.Extends) > 0 || s.HasField("extends") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("extends")
+		s.WriteStringArray(x.Extends)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1482,6 +1511,13 @@ func (x *ProjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				v.UnmarshalProtoJSON(s)
 				x.Publish[key] = &v
 			})
+		case "extends":
+			s.AddField("extends")
+			if s.ReadNil() {
+				x.Extends = nil
+				return
+			}
+			x.Extends = s.ReadStringArray()
 		}
 	})
 }
@@ -2113,6 +2149,15 @@ func (m *ProjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Extends) > 0 {
+		for iNdEx := len(m.Extends) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Extends[iNdEx])
+			copy(dAtA[i:], m.Extends[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Extends[iNdEx])))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
 	if len(m.Publish) > 0 {
 		for k := range m.Publish {
 			v := m.Publish[k]
@@ -2720,6 +2765,12 @@ func (m *ProjectConfig) SizeVT() (n int) {
 			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
 		}
 	}
+	if len(m.Extends) > 0 {
+		for _, s := range m.Extends {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3085,6 +3136,19 @@ func (x *ProjectConfig) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString(" }")
+	}
+	if len(x.Extends) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("extends: [")
+		for i, v := range x.Extends {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3887,6 +3951,28 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Publish[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Extends", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Extends = append(m.Extends, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

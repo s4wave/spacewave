@@ -2037,6 +2037,7 @@ class ProjectConfig final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kExtendsFieldNumber = 7,
     kIdFieldNumber = 1,
     kStartFieldNumber = 2,
     kManifestsFieldNumber = 3,
@@ -2044,6 +2045,28 @@ class ProjectConfig final : public ::google::protobuf::Message
     kRemotesFieldNumber = 5,
     kPublishFieldNumber = 6,
   };
+  // repeated string extends = 7;
+  int extends_size() const;
+  private:
+  int _internal_extends_size() const;
+
+  public:
+  void clear_extends() ;
+  const ::std::string& extends(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_extends(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_extends(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_extends();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_extends(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& extends() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_extends();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_extends() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_extends();
+
+  public:
   // string id = 1;
   void clear_id() ;
   const ::std::string& id() const;
@@ -2138,8 +2161,8 @@ class ProjectConfig final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 6,
-                                   9, 65,
+  static const ::google::protobuf::internal::TcParseTable<2, 7,
+                                   9, 72,
                                    2>
       _table_;
 
@@ -2160,6 +2183,7 @@ class ProjectConfig final : public ::google::protobuf::Message
         const ProjectConfig& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> extends_;
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::bldr::project::StartConfig* PROTOBUF_NULLABLE start_;
     ::google::protobuf::internal::MapField<ProjectConfig_ManifestsEntry_DoNotUse, ::std::string, ::bldr::project::ManifestConfig,
@@ -2215,7 +2239,7 @@ inline void ProjectConfig::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 inline const ::std::string& ProjectConfig::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2225,13 +2249,13 @@ inline const ::std::string& ProjectConfig::id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void ProjectConfig::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bldr.project.ProjectConfig.id)
 }
 inline ::std::string* PROTOBUF_NONNULL ProjectConfig::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_id();
   // @@protoc_insertion_point(field_mutable:bldr.project.ProjectConfig.id)
   return _s;
@@ -2251,10 +2275,10 @@ inline ::std::string* PROTOBUF_NONNULL ProjectConfig::_internal_mutable_id() {
 inline ::std::string* PROTOBUF_NULLABLE ProjectConfig::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.project.ProjectConfig.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   auto* released = _impl_.id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.id_.Set("", GetArena());
@@ -2264,9 +2288,9 @@ inline ::std::string* PROTOBUF_NULLABLE ProjectConfig::release_id() {
 inline void ProjectConfig::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   _impl_.id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
@@ -2277,7 +2301,7 @@ inline void ProjectConfig::set_allocated_id(::std::string* PROTOBUF_NULLABLE val
 
 // .bldr.project.StartConfig start = 2;
 inline bool ProjectConfig::has_start() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.start_ != nullptr);
   return value;
 }
@@ -2285,7 +2309,7 @@ inline void ProjectConfig::clear_start() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.start_ != nullptr) _impl_.start_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::bldr::project::StartConfig& ProjectConfig::_internal_start() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2304,16 +2328,16 @@ inline void ProjectConfig::unsafe_arena_set_allocated_start(
   }
   _impl_.start_ = reinterpret_cast<::bldr::project::StartConfig*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.ProjectConfig.start)
 }
 inline ::bldr::project::StartConfig* PROTOBUF_NULLABLE ProjectConfig::release_start() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bldr::project::StartConfig* released = _impl_.start_;
   _impl_.start_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2333,7 +2357,7 @@ inline ::bldr::project::StartConfig* PROTOBUF_NULLABLE ProjectConfig::unsafe_are
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.project.ProjectConfig.start)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bldr::project::StartConfig* temp = _impl_.start_;
   _impl_.start_ = nullptr;
   return temp;
@@ -2348,7 +2372,7 @@ inline ::bldr::project::StartConfig* PROTOBUF_NONNULL ProjectConfig::_internal_m
 }
 inline ::bldr::project::StartConfig* PROTOBUF_NONNULL ProjectConfig::mutable_start()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bldr::project::StartConfig* _msg = _internal_mutable_start();
   // @@protoc_insertion_point(field_mutable:bldr.project.ProjectConfig.start)
   return _msg;
@@ -2365,9 +2389,9 @@ inline void ProjectConfig::set_allocated_start(::bldr::project::StartConfig* PRO
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.start_ = reinterpret_cast<::bldr::project::StartConfig*>(value);
@@ -2385,7 +2409,7 @@ inline void ProjectConfig::clear_manifests() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.manifests_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::project::ManifestConfig>& ProjectConfig::_internal_manifests() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2401,7 +2425,7 @@ inline ::google::protobuf::Map<::std::string, ::bldr::project::ManifestConfig>* 
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::project::ManifestConfig>* PROTOBUF_NONNULL ProjectConfig::mutable_manifests()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_mutable_map:bldr.project.ProjectConfig.manifests)
   return _internal_mutable_manifests();
 }
@@ -2417,7 +2441,7 @@ inline void ProjectConfig::clear_build() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.build_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::project::BuildConfig>& ProjectConfig::_internal_build() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2433,7 +2457,7 @@ inline ::google::protobuf::Map<::std::string, ::bldr::project::BuildConfig>* PRO
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::project::BuildConfig>* PROTOBUF_NONNULL ProjectConfig::mutable_build()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_mutable_map:bldr.project.ProjectConfig.build)
   return _internal_mutable_build();
 }
@@ -2449,7 +2473,7 @@ inline void ProjectConfig::clear_remotes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.remotes_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::project::RemoteConfig>& ProjectConfig::_internal_remotes() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2465,7 +2489,7 @@ inline ::google::protobuf::Map<::std::string, ::bldr::project::RemoteConfig>* PR
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::project::RemoteConfig>* PROTOBUF_NONNULL ProjectConfig::mutable_remotes()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_mutable_map:bldr.project.ProjectConfig.remotes)
   return _internal_mutable_remotes();
 }
@@ -2481,7 +2505,7 @@ inline void ProjectConfig::clear_publish() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.publish_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::project::PublishConfig>& ProjectConfig::_internal_publish() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2497,9 +2521,81 @@ inline ::google::protobuf::Map<::std::string, ::bldr::project::PublishConfig>* P
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::project::PublishConfig>* PROTOBUF_NONNULL ProjectConfig::mutable_publish()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_mutable_map:bldr.project.ProjectConfig.publish)
   return _internal_mutable_publish();
+}
+
+// repeated string extends = 7;
+inline int ProjectConfig::_internal_extends_size() const {
+  return _internal_extends().size();
+}
+inline int ProjectConfig::extends_size() const {
+  return _internal_extends_size();
+}
+inline void ProjectConfig::clear_extends() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.extends_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL ProjectConfig::add_extends()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_extends()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.project.ProjectConfig.extends)
+  return _s;
+}
+inline const ::std::string& ProjectConfig::extends(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.ProjectConfig.extends)
+  return _internal_extends().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL ProjectConfig::mutable_extends(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.project.ProjectConfig.extends)
+  return _internal_mutable_extends()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void ProjectConfig::set_extends(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_extends()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.project.ProjectConfig.extends)
+}
+template <typename Arg_, typename... Args_>
+inline void ProjectConfig::add_extends(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_extends(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.project.ProjectConfig.extends)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& ProjectConfig::extends()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.project.ProjectConfig.extends)
+  return _internal_extends();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+ProjectConfig::mutable_extends() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.project.ProjectConfig.extends)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_extends();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+ProjectConfig::_internal_extends() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.extends_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+ProjectConfig::_internal_mutable_extends() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.extends_;
 }
 
 // -------------------------------------------------------------------

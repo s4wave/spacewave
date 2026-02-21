@@ -51,5 +51,8 @@ pub struct Config {
     /// If unset, defaults to reasonable defaults.
     #[prost(message, optional, tag="9")]
     pub exec_backoff: ::core::option::Option<super::super::super::backoff::Backoff>,
+    /// Verbose enables verbose logging for world ops (slower).
+    #[prost(bool, tag="11")]
+    pub verbose: bool,
 }
 // @@protoc_insertion_point(module)

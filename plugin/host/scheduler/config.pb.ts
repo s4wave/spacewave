@@ -92,6 +92,12 @@ export interface Config {
    * @generated from field: backoff.Backoff exec_backoff = 9;
    */
   execBackoff?: Backoff
+  /**
+   * Verbose enables verbose logging for world ops (slower).
+   *
+   * @generated from field: bool verbose = 11;
+   */
+  verbose?: boolean
 }
 
 // Config contains the message type declaration for Config.
@@ -118,6 +124,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
     { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
+    { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

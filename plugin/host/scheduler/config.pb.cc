@@ -50,7 +50,8 @@ inline constexpr Config::Impl_::Impl_(
         fetch_concurrency_{0u},
         watch_fetch_manifest_{false},
         disable_store_manifest_{false},
-        disable_copy_manifest_{false} {}
+        disable_copy_manifest_{false},
+        verbose_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -83,7 +84,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_._has_bits_),
-        13, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.object_key_),
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.peer_id_),
@@ -94,6 +95,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.fetch_concurrency_),
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.fetch_backoff_),
         PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.exec_backoff_),
+        PROTOBUF_FIELD_OFFSET(::plugin::host::scheduler::Config, _impl_.verbose_),
         0,
         1,
         2,
@@ -104,6 +106,7 @@ const ::uint32_t
         6,
         4,
         5,
+        10,
 };
 
 static const ::_pbi::MigrationSchema
@@ -118,15 +121,15 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     "\nCgithub.com/aperturerobotics/bldr/plugi"
     "n/host/scheduler/config.proto\022\025plugin.ho"
     "st.scheduler\0326github.com/aperturerobotic"
-    "s/util/backoff/backoff.proto\"\234\002\n\006Config\022"
+    "s/util/backoff/backoff.proto\"\255\002\n\006Config\022"
     "\021\n\tengine_id\030\001 \001(\t\022\022\n\nobject_key\030\002 \001(\t\022\017"
     "\n\007peer_id\030\003 \001(\t\022\021\n\tvolume_id\030\004 \001(\t\022\034\n\024wa"
     "tch_fetch_manifest\030\005 \001(\010\022\036\n\026disable_stor"
     "e_manifest\030\006 \001(\010\022\035\n\025disable_copy_manifes"
     "t\030\n \001(\010\022\031\n\021fetch_concurrency\030\007 \001(\r\022\'\n\rfe"
     "tch_backoff\030\010 \001(\0132\020.backoff.Backoff\022&\n\014e"
-    "xec_backoff\030\t \001(\0132\020.backoff.Backoffb\006pro"
-    "to3"
+    "xec_backoff\030\t \001(\0132\020.backoff.Backoff\022\017\n\007v"
+    "erbose\030\013 \001(\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fscheduler_2fconfig_2eproto_deps[1] = {
@@ -136,7 +139,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fscheduler_2fconfig_2eproto = {
     false,
     false,
-    443,
+    460,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fscheduler_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/plugin/host/scheduler/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fscheduler_2fconfig_2eproto_once,
@@ -218,9 +221,9 @@ Config::Config(
                offsetof(Impl_, fetch_concurrency_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, fetch_concurrency_),
-           offsetof(Impl_, disable_copy_manifest_) -
+           offsetof(Impl_, verbose_) -
                offsetof(Impl_, fetch_concurrency_) +
-               sizeof(Impl_::disable_copy_manifest_));
+               sizeof(Impl_::verbose_));
 
   // @@protoc_insertion_point(copy_constructor:plugin.host.scheduler.Config)
 }
@@ -238,9 +241,9 @@ inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, fetch_backoff_),
            0,
-           offsetof(Impl_, disable_copy_manifest_) -
+           offsetof(Impl_, verbose_) -
                offsetof(Impl_, fetch_backoff_) +
-               sizeof(Impl_::disable_copy_manifest_));
+               sizeof(Impl_::verbose_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:plugin.host.scheduler.Config)
@@ -305,16 +308,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 2, 80, 2>
+const ::_pbi::TcParseTable<4, 11, 2, 80, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    11,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -365,7 +368,10 @@ Config::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_copy_manifest_), 9>(),
      {80, 9, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_copy_manifest_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool verbose = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.verbose_), 10>(),
+     {88, 10, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -393,6 +399,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.exec_backoff_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool disable_copy_manifest = 10;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_copy_manifest_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool verbose = 11;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::backoff::Backoff>()},
@@ -442,10 +450,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
         reinterpret_cast<char*>(&_impl_.watch_fetch_manifest_) -
         reinterpret_cast<char*>(&_impl_.fetch_concurrency_)) + sizeof(_impl_.watch_fetch_manifest_));
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     ::memset(&_impl_.disable_store_manifest_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.disable_copy_manifest_) -
-        reinterpret_cast<char*>(&_impl_.disable_store_manifest_)) + sizeof(_impl_.disable_copy_manifest_));
+        reinterpret_cast<char*>(&_impl_.verbose_) -
+        reinterpret_cast<char*>(&_impl_.disable_store_manifest_)) + sizeof(_impl_.verbose_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -560,6 +568,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // bool verbose = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_verbose() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          11, this_._internal_verbose(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -638,7 +655,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // bool disable_store_manifest = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_disable_store_manifest() != 0) {
@@ -648,6 +665,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     // bool disable_copy_manifest = 10;
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_disable_copy_manifest() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool verbose = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_verbose() != 0) {
         total_size += 2;
       }
     }
@@ -735,7 +758,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_disable_store_manifest() != 0) {
         _this->_impl_.disable_store_manifest_ = from._impl_.disable_store_manifest_;
@@ -744,6 +767,11 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_disable_copy_manifest() != 0) {
         _this->_impl_.disable_copy_manifest_ = from._impl_.disable_copy_manifest_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_verbose() != 0) {
+        _this->_impl_.verbose_ = from._impl_.verbose_;
       }
     }
   }
@@ -771,8 +799,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.volume_id_, &other->_impl_.volume_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_copy_manifest_)
-      + sizeof(Config::_impl_.disable_copy_manifest_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_)
+      + sizeof(Config::_impl_.verbose_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.fetch_backoff_)>(
           reinterpret_cast<char*>(&_impl_.fetch_backoff_),
           reinterpret_cast<char*>(&other->_impl_.fetch_backoff_));
