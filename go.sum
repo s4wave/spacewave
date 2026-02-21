@@ -48,8 +48,8 @@ github.com/aperturerobotics/go-quickjs-wasi-reactor v0.12.2-0.20260216043809-e2b
 github.com/aperturerobotics/go-quickjs-wasi-reactor v0.12.2-0.20260216043809-e2be8a854e6e/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e h1:AR+bRHp6Cp1sZur8HxKpE4SFaVDCIZYIooBke4HEnBU=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e/go.mod h1:gS+eAiBNo9GdTHy//HK+Jcdwl4vY3gmVLakNbK1vKGM=
-github.com/aperturerobotics/hydra v0.0.0-20260215112216-4cb96f96dfbf h1:2sDbcWLJTO8takvIswyvf09hnclisN9ZHYthFpsSGNM=
-github.com/aperturerobotics/hydra v0.0.0-20260215112216-4cb96f96dfbf/go.mod h1:v6sGJUzB7+J5kn22ax3UCpXQ/CUyKaltNT0qPm2z7VQ=
+github.com/aperturerobotics/hydra v0.0.0-20260221114333-c218fedb3c5f h1:RK5DOJptsrZEhvpP64DZAtOsWosrokKN4NouH3jL8/w=
+github.com/aperturerobotics/hydra v0.0.0-20260221114333-c218fedb3c5f/go.mod h1:v6sGJUzB7+J5kn22ax3UCpXQ/CUyKaltNT0qPm2z7VQ=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 h1:4B1F0DzuqPzb6WqgCjWaqDD7JU9RDsevQG5OP0DFBgs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
