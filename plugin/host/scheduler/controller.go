@@ -178,7 +178,10 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.hostVolumeCtr.SetValue(nil)
 
 	// construct the world engine handle
-	busEngine := world_vlogger.NewEngine(c.le, world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId()))
+	var busEngine world.Engine = world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+	if c.conf.GetVerbose() {
+		busEngine = world_vlogger.NewEngine(c.le, busEngine)
+	}
 	ws := world.NewEngineWorldState(busEngine, true)
 
 	c.worldStateCtr.SetValue(ws)

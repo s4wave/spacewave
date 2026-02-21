@@ -54,8 +54,9 @@ func (t *pluginInstance) processManifestWorldState(
 		return true, nil
 	}
 
-	// TODO remove
-	ws = world_vlogger.NewWorldState(le, ws)
+	if t.c.conf.GetVerbose() {
+		ws = world_vlogger.NewWorldState(le, ws)
+	}
 
 	// Lookup the latest PluginManifests matching our plugin linked to PluginHost.
 	platformIDsMap := hosts.toPlatformIDsMap()

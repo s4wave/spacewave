@@ -23,7 +23,7 @@ func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
 	cc, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(
 		1, // rev
 		&lookup_concurrent.Config{
-			Verbose:              true,
+			// Verbose:              true,
 			FallbackBlockStoreId: StaticBlockStoreID,
 			WritebackBehavior:    lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL,
 			PutBlockBehavior:     lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL,
