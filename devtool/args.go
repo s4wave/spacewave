@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/aperturerobotics/bldr"
+	"github.com/aperturerobotics/bldr/util/logfile"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/sirupsen/logrus"
@@ -80,6 +82,11 @@ type DevtoolArgs struct {
 	// StartPlugins is additional plugin IDs to load on startup.
 	// Appended to the plugins list from bldr.yaml start config.
 	StartPlugins cli.StringSlice
+
+	// LogFiles is the list of log file specs.
+	LogFiles cli.StringSlice
+	// logFileCleanup closes log file hooks on shutdown.
+	logFileCleanup func()
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -230,6 +237,7 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Value:       a.DisableCleanup,
 			Destination: &a.DisableCleanup,
 		},
+		logfile.BuildLogFileFlag(&a.LogFiles),
 	}
 }
 
@@ -471,6 +479,30 @@ func (a *DevtoolArgs) InitRepoRoot() (
 	err error,
 ) {
 	a.applyLogLevel()
+
+	// Auto-enable file logging in dev mode when no --log-file flags are set.
+	if a.BuildType == "dev" && len(a.LogFiles.Value()) == 0 {
+		a.LogFiles.Set("level=DEBUG;path=.bldr/logs/{ts}.log")
+	}
+
+	// Attach log file hooks.
+	raw := a.LogFiles.Value()
+	if len(raw) != 0 {
+		specs, specErr := logfile.ParseLogFileSpecs(raw, time.Now())
+		if specErr != nil {
+			err = specErr
+			return
+		}
+		if len(specs) != 0 {
+			cleanup, attachErr := logfile.AttachLogFiles(a.Logger.Logger, specs)
+			if attachErr != nil {
+				err = attachErr
+				return
+			}
+			a.logFileCleanup = cleanup
+		}
+	}
+
 	repoRoot, err = a.FindRepoRoot()
 	if err != nil {
 		return
@@ -489,6 +521,14 @@ func (a *DevtoolArgs) InitRepoRoot() (
 		err = os.WriteFile(gitIgnoreFile, []byte(gitIgnoreBody), 0o644)
 	}
 	return repoRoot, stateRoot, err
+}
+
+// CloseLogFiles closes any attached log file hooks.
+func (a *DevtoolArgs) CloseLogFiles() {
+	if a.logFileCleanup != nil {
+		a.logFileCleanup()
+		a.logFileCleanup = nil
+	}
 }
 
 // GetOutputRoot returns the output path root relative to the project root.

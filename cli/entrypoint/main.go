@@ -8,7 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
+	"github.com/aperturerobotics/bldr/util/logfile"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/sirupsen/logrus"
@@ -29,6 +31,8 @@ func Main(
 
 	var statePath string
 	var logLevel string
+	var logFiles cli.StringSlice
+	var logFileCleanup func()
 
 	app := cli.NewApp()
 	app.Name = appName
@@ -50,6 +54,7 @@ func Main(
 			Value:       "info",
 			Destination: &logLevel,
 		},
+		logfile.BuildLogFileFlag(&logFiles),
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -64,6 +69,21 @@ func Main(
 		}
 		log.SetLevel(lvl)
 		le := logrus.NewEntry(log)
+
+		// Attach log file hooks if configured.
+		if raw := logFiles.Value(); len(raw) != 0 {
+			specs, err := logfile.ParseLogFileSpecs(raw, time.Now())
+			if err != nil {
+				return err
+			}
+			if len(specs) != 0 {
+				cleanup, err := logfile.AttachLogFiles(log, specs)
+				if err != nil {
+					return err
+				}
+				logFileCleanup = cleanup
+			}
+		}
 
 		root := statePath
 		if !filepath.IsAbs(root) {
@@ -125,6 +145,10 @@ func Main(
 		if dtBus != nil {
 			dtBus.Release()
 			dtBus = nil
+		}
+		if logFileCleanup != nil {
+			logFileCleanup()
+			logFileCleanup = nil
 		}
 		return nil
 	}

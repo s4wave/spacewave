@@ -12,4 +12,5 @@ func init() {
 	devtoolArgs = bldr_dev.NewDevtoolArgs()
 	commands = append(commands, devtoolArgs.BuildSubCommands()...)
 	flags = append(flags, devtoolArgs.BuildFlags()...)
+	afterFuncs = append(afterFuncs, devtoolArgs.CloseLogFiles)
 }

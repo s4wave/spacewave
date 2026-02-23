@@ -8,10 +8,12 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	"github.com/aperturerobotics/bldr/util/logfile"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/refcount"
 	fcolor "github.com/fatih/color"
@@ -27,6 +29,24 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 	})
 	log.SetLevel(logLevel)
 	le := logrus.NewEntry(log)
+
+	// Attach log file hooks from BLDR_LOG_FILE env var.
+	if raw := os.Getenv("BLDR_LOG_FILE"); raw != "" {
+		parts := strings.Split(raw, ",")
+		specs, err := logfile.ParseLogFileSpecs(parts, time.Now())
+		if err != nil {
+			le.WithError(err).Warn("failed to parse BLDR_LOG_FILE")
+		}
+		if len(specs) != 0 {
+			cleanup, err := logfile.AttachLogFiles(log, specs)
+			if err != nil {
+				le.WithError(err).Warn("failed to attach log files")
+			}
+			if cleanup != nil {
+				defer cleanup()
+			}
+		}
+	}
 
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
