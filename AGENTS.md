@@ -110,18 +110,16 @@ This verifies at compile-time that `SomeStruct` implements `SomeInterface`.
 
 ## Broadcast Wait Pattern
 
-When waiting for a condition that is signaled via `broadcast.Broadcast`, always get the wait channel and check the condition inside the same `HoldLock` call. This prevents missed-wakeup race conditions.
-
-Use `broadcast.Broadcast` as the single mutex guarding shared state rather than a separate `sync.Mutex`. Name the field `bcast`.
+Use `broadcast.Broadcast` as the single mutex guarding shared state rather than a separate `sync.Mutex`. Name the field `bcast`. When waiting for a condition, always check state and get the wait channel inside the same `HoldLock` call to prevent missed-wakeup race conditions.
 
 ```go
-// ✅ Do this - check state and get wait channel atomically
+// Correct: check state and get wait channel atomically
 for {
 	var ch <-chan struct{}
 	var val SomeType
-	dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
-		val = dm.someState
+		val = s.state
 	})
 
 	if val != nil {
@@ -135,17 +133,17 @@ for {
 	}
 }
 
-// ❌ Don't do this - separate lock and broadcast (missed wakeup possible)
+// Wrong: separate lock and broadcast (missed wakeup possible)
 for {
-	dm.mtx.Lock()
-	val := dm.someState
-	dm.mtx.Unlock()
+	s.mtx.Lock()
+	val := s.state
+	s.mtx.Unlock()
 	if val != nil {
 		return val
 	}
 
 	var ch <-chan struct{}
-	dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
 	})
 	// BUG: broadcast can fire between mtx.Unlock and getWaitCh,
@@ -161,11 +159,34 @@ for {
 When broadcasting a state change, update state and broadcast inside the same `HoldLock`:
 
 ```go
-dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-	dm.someState = newValue
+s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	s.state = newValue
 	broadcast()
 })
 ```
+
+## File Logging
+
+Bldr supports file-based logging via the `--log-file` flag and `BLDR_LOG_FILE`
+environment variable. Implementation is in `util/logfile/`.
+
+```bash
+# Explicit file logging
+bldr --log-file 'level=DEBUG;format=json;path=.bldr/logs/{ts}.log' start web
+
+# Via environment variable
+BLDR_LOG_FILE='level=WARN;path=/tmp/bldr-warn.log' bldr start web
+
+# Short form (path only, defaults to level=DEBUG;format=text)
+bldr --log-file '.bldr/logs/{ts}.log' start web
+
+# Disable auto-logging in dev mode
+BLDR_LOG_FILE=none bldr start web
+```
+
+In dev mode (`--build-type dev`), file logging is auto-enabled with
+`level=DEBUG;path=.bldr/logs/{ts}.log`. Log files are created under
+`.bldr/logs/` with session-stamped filenames. No auto-cleanup or rotation.
 
 ## Controller Patterns
 
