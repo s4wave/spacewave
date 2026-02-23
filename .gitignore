@@ -2,7 +2,7 @@
 /coverage
 /build
 /.log
-/.snowpack
+/.tmp
 
 # misc
 .DS_Store
