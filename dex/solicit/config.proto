@@ -1,0 +1,17 @@
+syntax = "proto3";
+package dex.solicit;
+
+// Config configures the solicitation-based DEX controller.
+message Config {
+  // BucketId is the bucket ID to use to serve and store blocks.
+  string bucket_id = 1;
+  // PeerId is the peer ID to use for DEX.
+  // If empty, attaches to any available peer.
+  string peer_id = 2;
+  // TransportId sets a transport ID constraint.
+  // Can be empty.
+  uint64 transport_id = 3;
+  // MaxForwardHops is the maximum number of times a request can be
+  // forwarded between peers. Zero disables forwarding (default).
+  uint32 max_forward_hops = 4;
+}

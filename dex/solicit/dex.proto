@@ -1,0 +1,29 @@
+syntax = "proto3";
+package dex.solicit;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// DexMessage is a message sent over a DEX stream.
+// Each message is either a request or a response, distinguished by the
+// request_id field. A request has a non-empty ref and a zero-value
+// response. A response has a non-zero request_id and the response fields set.
+message DexMessage {
+  // RequestId is a unique ID for this request/response pair.
+  // The requester picks a unique ID. The responder echoes it back.
+  uint32 request_id = 1;
+  // IsResponse indicates this is a response to a prior request.
+  bool is_response = 2;
+  // Ref is the block reference to look up (request only).
+  .block.BlockRef ref = 3;
+  // Found indicates whether the block was found (response only).
+  bool found = 4;
+  // Data is the block data (response only).
+  bytes data = 5;
+  // Error is an error message (response only).
+  string error = 6;
+  // RemainingHops limits forwarding to prevent loops.
+  // When a node does not have the block locally and remaining_hops > 0,
+  // it forwards the request to other connected peers with remaining_hops - 1.
+  // Zero means no forwarding allowed (local lookup only).
+  uint32 remaining_hops = 7;
+}
