@@ -2,6 +2,7 @@ package bldr_core_devtool
 
 import (
 	"github.com/aperturerobotics/bifrost/transport/websocket"
+	manifest_fetch_plugin "github.com/aperturerobotics/bldr/manifest/fetch/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -25,6 +26,9 @@ func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 
 	// plugin scheduler
 	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
+
+	// manifest fetch via plugin
+	sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
 
 	// volume rpc server
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
