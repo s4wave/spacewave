@@ -2,70 +2,15 @@ syntax = "proto3";
 package psecho;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
-import "github.com/aperturerobotics/util/backoff/backoff.proto";
 
-// Config configures the pubsub echo controller.
-message Config {
-  // BucketId is the bucket ID to use to serve blocks.
-  string bucket_id = 1;
-  // PubsubChannel is the channel to subscribe and publish to.
-  string pubsub_channel = 2;
-  // PeerId is the peer id to use for pubsub and bucket.
-  // If empty, will attach to any available peer.
-  string peer_id = 3;
-  // TransportId sets a transport ID constraint.
-  // Can be empty.
-  uint64 transport_id = 4;
-
-  // SyncBackoff controls sync session backoff.
-  backoff.Backoff sync_backoff = 5;
-}
-
-// PubSubMessage is the root pub-sub message.
+// PubSubMessage is gossipped on the pub-sub channel.
 message PubSubMessage {
-  // WantRefs is the list of wanted blocks.
-  // Blocks here have been added to the want list.
-  repeated block.BlockRef want_refs = 1;
-  // HaveRefs is the list of recently received blocks.
-  // These should be removed from the want list.
-  // This advertises the blocks to remote peers.
-  repeated block.BlockRef have_refs = 2;
-  // ClearRefs is the list of no longer wanted blocks.
-  // These should be removed from the want list.
-  repeated block.BlockRef clear_refs = 3;
-  // WantEmpty indicates the wantlist is now empty.
-  // The clear_refs list will be empty if this is set.
-  bool want_empty = 4;
+  // WantRefs is a full snapshot of blocks we currently want.
+  repeated .block.BlockRef want_refs = 1;
+  // ClearRefs signals we no longer want these blocks.
+  repeated .block.BlockRef clear_refs = 2;
+  // WantEmpty indicates the wantlist is empty.
+  bool want_empty = 3;
+  // TimestampUnixNano is the message timestamp (for ordering).
+  int64 timestamp_unix_nano = 4;
 }
-
-// SyncMessageType is the set of sync message types
-enum SyncMessageType {
-  SyncMessageType_UNKNOWN = 0;
-  // SyncMessageType_START_XMIT indicates start of block transmission.
-  SyncMessageType_START_XMIT = 1;
-  // SyncMessageType_CTNU_XMIT indicates continue block transmission.
-  SyncMessageType_CTNU_XMIT = 2;
-  // SyncMessageType_REFUSE_RX indicates reception refusal.
-  SyncMessageType_REFUSE_RX = 3;
-}
-
-// SyncMessage is the root sync session message.
-message SyncMessage {
-  // MessageType is the message type.
-  SyncMessageType message_type = 1;
-
-  // Ref is the block reference if relevant.
-  // Used for START_XMIT, REFUSE_RX
-  block.BlockRef ref = 2;
-  // Chunk is the data chunk.
-  // Stream is always ordered - therefore, we don't need to send index.
-  // Used for START_XMIT, CTNU_XMIT
-  bytes chunk = 3;
-  // Complete indicates this is the last block to transmit in the sequence.
-  // Used for START_XMIT, CTNU_XMIT
-  bool complete = 4;
-  // BlockSize is the size of the block.
-  // Used for START_XMIT
-  uint32 block_size = 5;
-}
-

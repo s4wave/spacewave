@@ -1,0 +1,10 @@
+syntax = "proto3";
+package psecho;
+
+import "github.com/aperturerobotics/hydra/dex/session/session.proto";
+
+// SyncMessage wraps a BlockTransfer for psecho sync streams.
+message SyncMessage {
+  // Transfer is the block transfer payload.
+  .dex.session.BlockTransfer transfer = 1;
+}

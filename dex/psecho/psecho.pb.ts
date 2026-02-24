@@ -2,146 +2,42 @@
 // @generated from file github.com/aperturerobotics/hydra/dex/psecho/psecho.proto (package psecho, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
-import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'psecho'
 
 /**
- * SyncMessageType is the set of sync message types
- *
- * @generated from enum psecho.SyncMessageType
- */
-export enum SyncMessageType {
-  /**
-   * @generated from enum value: SyncMessageType_UNKNOWN = 0;
-   */
-  SyncMessageType_UNKNOWN = 0,
-
-  /**
-   * SyncMessageType_START_XMIT indicates start of block transmission.
-   *
-   * @generated from enum value: SyncMessageType_START_XMIT = 1;
-   */
-  SyncMessageType_START_XMIT = 1,
-
-  /**
-   * SyncMessageType_CTNU_XMIT indicates continue block transmission.
-   *
-   * @generated from enum value: SyncMessageType_CTNU_XMIT = 2;
-   */
-  SyncMessageType_CTNU_XMIT = 2,
-
-  /**
-   * SyncMessageType_REFUSE_RX indicates reception refusal.
-   *
-   * @generated from enum value: SyncMessageType_REFUSE_RX = 3;
-   */
-  SyncMessageType_REFUSE_RX = 3,
-}
-
-// SyncMessageType_Enum is the enum type for SyncMessageType.
-export const SyncMessageType_Enum = createEnumType('psecho.SyncMessageType', [
-  { no: 0, name: 'SyncMessageType_UNKNOWN' },
-  { no: 1, name: 'SyncMessageType_START_XMIT' },
-  { no: 2, name: 'SyncMessageType_CTNU_XMIT' },
-  { no: 3, name: 'SyncMessageType_REFUSE_RX' },
-])
-
-/**
- * Config configures the pubsub echo controller.
- *
- * @generated from message psecho.Config
- */
-export interface Config {
-  /**
-   * BucketId is the bucket ID to use to serve blocks.
-   *
-   * @generated from field: string bucket_id = 1;
-   */
-  bucketId?: string
-  /**
-   * PubsubChannel is the channel to subscribe and publish to.
-   *
-   * @generated from field: string pubsub_channel = 2;
-   */
-  pubsubChannel?: string
-  /**
-   * PeerId is the peer id to use for pubsub and bucket.
-   * If empty, will attach to any available peer.
-   *
-   * @generated from field: string peer_id = 3;
-   */
-  peerId?: string
-  /**
-   * TransportId sets a transport ID constraint.
-   * Can be empty.
-   *
-   * @generated from field: uint64 transport_id = 4;
-   */
-  transportId?: bigint
-  /**
-   * SyncBackoff controls sync session backoff.
-   *
-   * @generated from field: backoff.Backoff sync_backoff = 5;
-   */
-  syncBackoff?: Backoff
-}
-
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'psecho.Config',
-  fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'pubsub_channel', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 5, name: 'sync_backoff', kind: 'message', T: () => Backoff },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * PubSubMessage is the root pub-sub message.
+ * PubSubMessage is gossipped on the pub-sub channel.
  *
  * @generated from message psecho.PubSubMessage
  */
 export interface PubSubMessage {
   /**
-   * WantRefs is the list of wanted blocks.
-   * Blocks here have been added to the want list.
+   * WantRefs is a full snapshot of blocks we currently want.
    *
    * @generated from field: repeated block.BlockRef want_refs = 1;
    */
   wantRefs?: BlockRef[]
   /**
-   * HaveRefs is the list of recently received blocks.
-   * These should be removed from the want list.
-   * This advertises the blocks to remote peers.
+   * ClearRefs signals we no longer want these blocks.
    *
-   * @generated from field: repeated block.BlockRef have_refs = 2;
-   */
-  haveRefs?: BlockRef[]
-  /**
-   * ClearRefs is the list of no longer wanted blocks.
-   * These should be removed from the want list.
-   *
-   * @generated from field: repeated block.BlockRef clear_refs = 3;
+   * @generated from field: repeated block.BlockRef clear_refs = 2;
    */
   clearRefs?: BlockRef[]
   /**
-   * WantEmpty indicates the wantlist is now empty.
-   * The clear_refs list will be empty if this is set.
+   * WantEmpty indicates the wantlist is empty.
    *
-   * @generated from field: bool want_empty = 4;
+   * @generated from field: bool want_empty = 3;
    */
   wantEmpty?: boolean
+  /**
+   * TimestampUnixNano is the message timestamp (for ordering).
+   *
+   * @generated from field: int64 timestamp_unix_nano = 4;
+   */
+  timestampUnixNano?: bigint
 }
 
 // PubSubMessage contains the message type declaration for PubSubMessage.
@@ -157,75 +53,13 @@ export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
     },
     {
       no: 2,
-      name: 'have_refs',
-      kind: 'message',
-      T: () => BlockRef,
-      repeated: true,
-    },
-    {
-      no: 3,
       name: 'clear_refs',
       kind: 'message',
       T: () => BlockRef,
       repeated: true,
     },
-    { no: 4, name: 'want_empty', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * SyncMessage is the root sync session message.
- *
- * @generated from message psecho.SyncMessage
- */
-export interface SyncMessage {
-  /**
-   * MessageType is the message type.
-   *
-   * @generated from field: psecho.SyncMessageType message_type = 1;
-   */
-  messageType?: SyncMessageType
-  /**
-   * Ref is the block reference if relevant.
-   * Used for START_XMIT, REFUSE_RX
-   *
-   * @generated from field: block.BlockRef ref = 2;
-   */
-  ref?: BlockRef
-  /**
-   * Chunk is the data chunk.
-   * Stream is always ordered - therefore, we don't need to send index.
-   * Used for START_XMIT, CTNU_XMIT
-   *
-   * @generated from field: bytes chunk = 3;
-   */
-  chunk?: Uint8Array
-  /**
-   * Complete indicates this is the last block to transmit in the sequence.
-   * Used for START_XMIT, CTNU_XMIT
-   *
-   * @generated from field: bool complete = 4;
-   */
-  complete?: boolean
-  /**
-   * BlockSize is the size of the block.
-   * Used for START_XMIT
-   *
-   * @generated from field: uint32 block_size = 5;
-   */
-  blockSize?: number
-}
-
-// SyncMessage contains the message type declaration for SyncMessage.
-export const SyncMessage: MessageType<SyncMessage> = createMessageType({
-  typeName: 'psecho.SyncMessage',
-  fields: [
-    { no: 1, name: 'message_type', kind: 'enum', T: SyncMessageType_Enum },
-    { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
-    { no: 3, name: 'chunk', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 4, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'block_size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 3, name: 'want_empty', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'timestamp_unix_nano', kind: 'scalar', T: ScalarType.INT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

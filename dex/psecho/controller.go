@@ -2,32 +2,26 @@ package psecho
 
 import (
 	"context"
-	"io"
-	"sync"
+	"maps"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/link"
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/protocol"
 	"github.com/aperturerobotics/bifrost/pubsub"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
-	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// xmitWantlistDur is the time to wait between soliciting the wantlist.
-var xmitWantlistDur = time.Second * time.Duration(3)
-
-// xmitWantlistSize is the max number of refs per xmission
-// at 32 bytes each, 64 should be a good cap
-var xmitWantlistSize = 64
 
 // Version is the version of the controller implementation.
 var Version = semver.MustParse("0.0.1")
@@ -35,76 +29,75 @@ var Version = semver.MustParse("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "hydra/dex/psecho"
 
-// Controller is the pubsub echo controller.
-//
-// The execute routine manages the local want list, and communicating changes to
-// the network. When a directive to look up a block arrives, the LookupBlock
-// call is issued with a context and a desired block ref. This pushes the
-// reference and a handle to the Execute routine. All waiters for a given
-// reference are processed together once.
+// syncProtocolID is the protocol ID for sync streams.
+const syncProtocolID = protocol.ID("hydra/dex/psecho/sync")
+
+// sessionKey identifies a keyed routine for stream management.
+type sessionKey struct {
+	PeerID peer.ID
+	Nonce  uint64
+}
+
+// remotePeerState tracks what a remote peer wants and what to send.
+type remotePeerState struct {
+	wantRefs  map[string]*block.BlockRef
+	lastTS    int64
+	sendQueue []*block.BlockRef
+}
+
+// incomingStream holds a stored incoming stream pending processing.
+type incomingStream struct {
+	ms link.MountedStream
+}
+
+// Controller is the pub-sub DEX controller.
 type Controller struct {
-	// le is the root logger
 	le *logrus.Entry
-	// b is the controller bus
-	b bus.Bus
-	// cc is the configuration
+	b  bus.Bus
 	cc *Config
-	// wakeCh wakes the execute routine
-	wakeCh chan struct{}
 
-	// mtx guards below fields
-	mtx sync.Mutex
-	// waiters contains the current block waiter set
-	// key: block ref as a string
-	waiters map[string]*desiredBlockWaiter
-	// remotePeers contains remote peer states
-	remotePeers map[peer.ID]*remotePeer
-	// syncWantCheckCh pushes a wantlist for checking to initiate a sync session
-	syncWantCheckCh chan *syncCheckList
-	// rxBlockCh contains incoming blocks received from peers
-	rxBlockCh chan *rxBlock
-	// cState contains the cState object
-	// set when the controller becomes ready
-	cState *ccontainer.CContainer[*cState]
-}
+	bcast broadcast.Broadcast
+	// All below guarded by bcast.
+	wantRefs    map[string]*block.BlockRef
+	remotePeers map[peer.ID]*remotePeerState
+	incoming    map[sessionKey]*incomingStream
+	nextNonce   uint64
 
-// cState contains information about the controller that is resolved at start
-type cState struct {
-	// ctx is the root context
-	ctx context.Context
-	// peerID is the resolved peer id
+	// peerID is set during Execute.
 	peerID peer.ID
-	// peerPriv is the resolved peer private key
-	peerPriv crypto.PrivKey
+
+	incomingKeyed *keyed.Keyed[sessionKey, struct{}]
+	outgoingKeyed *keyed.Keyed[sessionKey, struct{}]
+
+	// publishNow is set to 1 to bypass debounce for immediate publish.
+	publishNow atomic.Int32
 }
 
-// NewController constructs a new node controller.
+// NewController constructs a new pub-sub DEX controller.
 func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error) {
-	if channelID := cc.GetPubsubChannel(); channelID != "" {
-		le = le.WithField("pubsub-channel", channelID)
+	c := &Controller{
+		le:          le,
+		b:           b,
+		cc:          cc,
+		wantRefs:    make(map[string]*block.BlockRef),
+		remotePeers: make(map[peer.ID]*remotePeerState),
+		incoming:    make(map[sessionKey]*incomingStream),
 	}
-
-	return &Controller{
-		le: le,
-		b:  b,
-		cc: cc,
-
-		waiters:         make(map[string]*desiredBlockWaiter),
-		remotePeers:     make(map[peer.ID]*remotePeer),
-		wakeCh:          make(chan struct{}, 1),
-		syncWantCheckCh: make(chan *syncCheckList, 15),
-		rxBlockCh:       make(chan *rxBlock),
-		cState:          ccontainer.NewCContainer[*cState](nil),
-	}, nil
+	c.incomingKeyed = keyed.NewKeyed(
+		c.buildIncomingRoutine,
+		keyed.WithExitLogger[sessionKey, struct{}](le),
+	)
+	c.outgoingKeyed = keyed.NewKeyed(
+		c.buildOutgoingRoutine,
+		keyed.WithExitLogger[sessionKey, struct{}](le),
+		keyed.WithRetry[sessionKey, struct{}](cc.GetSyncBackoff()),
+	)
+	return c, nil
 }
 
 // Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// c.concurrent.Execute() -> is a stub, no need to call it.
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
+	c.le.Debug("psecho controller running")
 
 	peerID, err := c.cc.ParsePeerID()
 	if err != nil {
@@ -113,341 +106,285 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	pr, _, prRef, err := peer.GetPeerWithID(ctx, c.b, peerID, false, nil)
 	if err != nil {
-		return errors.Wrapf(err, "get peer with id %s", peerID.String())
+		return errors.Wrap(err, "get peer")
 	}
 	privKey, err := pr.GetPrivKey(ctx)
 	if err != nil {
+		prRef.Release()
 		return err
 	}
 	peerID = pr.GetPeerID()
+	c.peerID = peerID
 	prRef.Release()
 
-	setCState := &cState{
-		ctx:      ctx,
-		peerID:   peerID,
-		peerPriv: privKey,
-	}
-	c.cState.SetValue(setCState)
-	defer c.cState.SwapValue(func(val *cState) *cState {
-		if val == setCState {
-			val = nil
-		}
-		return val
-	})
+	c.incomingKeyed.SetContext(ctx, true)
+	c.outgoingKeyed.SetContext(ctx, true)
 
-	// Subscribe to the pubsub channel.
-	channelID := c.cc.GetPubsubChannel()
-	psChVal, _, psChRef, err := bus.ExecOneOff(
-		ctx,
-		c.b,
-		pubsub.NewBuildChannelSubscription(channelID, privKey),
-		nil,
-		subCtxCancel,
+	sub, _, subRef, err := pubsub.ExBuildChannelSubscription(
+		ctx, c.b, false, c.cc.GetPubsubChannelId(), privKey, nil,
 	)
 	if err != nil {
 		return err
 	}
-	defer psChRef.Release()
+	defer subRef.Release()
 
-	psCh, ok := psChVal.GetValue().(pubsub.BuildChannelSubscriptionValue)
-	if !ok {
-		return errors.New("build channel subscription returned unexpected value")
-	}
-
-	// add pubsub handler
-	relHandler := psCh.AddHandler(func(m pubsub.Message) {
-		c.handleIncomingMessage(subCtx, m, privKey)
+	relHandler := sub.AddHandler(func(m pubsub.Message) {
+		c.handleIncomingMessage(ctx, m, privKey)
 	})
 	defer relHandler()
 
-	// defer cleanup of all waiters
-	defer func() {
-		c.mtx.Lock()
-		for id, w := range c.waiters {
-			w.err = context.Canceled
-			close(w.doneCh)
-			delete(c.waiters, id)
-		}
-		c.mtx.Unlock()
-	}()
+	go c.publishLoop(ctx, sub)
 
-	// outer message to send to network
-	var psOut PubSubMessage
-	// send a advertisement of wantlist every N seconds
-	wantlistTicker := time.NewTicker(xmitWantlistDur)
-	defer wantlistTicker.Stop()
-	var nextWantlistMin int
-	// inner loop
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// publishLoop runs the debounced wantlist publish loop.
+func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
+	debounce := time.Duration(c.cc.GetPublishDebounceMsOrDefault()) * time.Millisecond
+	timer := time.NewTimer(debounce)
+	defer timer.Stop()
+
+	var prevSnap string
 	for {
-		select {
-		case <-subCtx.Done():
-			return subCtx.Err()
-		case rxb := <-c.rxBlockCh: // wait for incoming blocks
-			rxRef := rxb.ref
-			var wasWaiting func()
-			rxRefStr := rxRef.MarshalString()
-			c.mtx.Lock()
-			for wid, waiter := range c.waiters {
-				if waiter.ref.EqualsRef(rxRef) {
-					waiter.data = rxb.data
-					waiter.err = nil
-					prevWasWaiting := wasWaiting
-					wasWaiting = func() {
-						if prevWasWaiting != nil {
-							prevWasWaiting()
-						}
-						close(waiter.doneCh)
-					}
-					delete(c.waiters, wid)
-					break
-				}
-			}
-			for _, rpeer := range c.remotePeers {
-				if _, ok := rpeer.wantedRefs[rxRefStr]; ok {
-					if _, ok := rpeer.cachedRefs[rxRefStr]; !ok {
-						rpeer.cachedRefs[rxRefStr] = rxb.data
-						c.triggerRpeerSyncSession(subCtx, rpeer)
-					}
-				}
-			}
-			c.mtx.Unlock()
-			// wasWaiting is a function chain that releases the waiters resolved above.
-			if wasWaiting != nil {
-				// build bucket handle
-				lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, false, c.cc.GetBucketId(), nil)
-				if err != nil {
-					wasWaiting()
-					// TODO: possibly handle better
-					return err
-				}
-				lk, err := lkv.GetLookup(ctx)
-				if err != nil {
-					wasWaiting()
-					// TODO: possibly handle better
-					return err
-				}
-				if lk == nil {
-					// GetLookup may return nil if the bucket config is not known
-					// just assume we don't have the blocks in this case
-					wasWaiting()
-					continue
-				}
-				_, _, err = lk.PutBlock(subCtx, rxb.data, &block.PutOpts{
-					HashType:      rxRef.GetHash().GetHashType(),
-					ForceBlockRef: rxb.ref.Clone(),
-				})
-				lkRel.Release()
-				wasWaiting()
-				if err != nil {
-					c.le.WithError(err).Warn("unable to put block to lookup handle")
-				}
-			} else {
-				// nothing was waiting for the block, ignore it.
-				continue
-			}
-		case wantList := <-c.syncWantCheckCh:
-			// process sync checklist
-			// first, quick check to ensure the peer still wants blocks
-			c.mtx.Lock()
-			lp, hasPeer := c.remotePeers[wantList.peer]
-			c.mtx.Unlock()
-			if !hasPeer {
-				continue
-			}
-			// build bucket handle
-			le := lp.le()
-			le.WithField("ref", wantList.refs[0].MarshalString()).
-				Debug("looking up refs for peer")
-			lkr, _, lkRef, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, false, c.cc.GetBucketId(), nil)
-			if err != nil {
-				// TODO: possibly handle better
-				return err
-			}
-			lk, err := lkr.GetLookup(ctx)
-			if err != nil {
-				// TODO: possibly handle better
-				return err
-			}
-			if lk == nil {
-				// GetLookup may return nil if the bucket config is not known
-				// just assume we don't have the blocks in this case
-				continue
-			}
-			for _, want := range wantList.refs {
-				dat, ok, err := lk.LookupBlock(subCtx, want, bucket_lookup.WithLocalOnly())
-				if err != nil {
-					c.le.WithError(err).Warn("error looking up block")
-					continue
-				}
-				if !ok {
-					le.WithField("ref", want.MarshalString()).Debug("block not found")
-					continue
-				}
+		var ch <-chan struct{}
+		var refs map[string]*block.BlockRef
+		c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			ch = getWaitCh()
+			refs = make(map[string]*block.BlockRef, len(c.wantRefs))
+			maps.Copy(refs, c.wantRefs)
+		})
 
-				le.WithField("ref", want.MarshalString()).Debug("block found")
-				wantStr := want.MarshalString()
-				c.mtx.Lock()
-				rpeer, rpeerOk := c.remotePeers[wantList.peer]
-				if !rpeerOk {
-					c.mtx.Unlock()
-					break
-				}
-				_, wasWanted := rpeer.wantedRefs[wantStr]
-				if wasWanted {
-					rpeer.cachedRefs[wantStr] = dat
-					le.WithField("ref", want.MarshalString()).Debug("triggering sync session")
-					c.triggerRpeerSyncSession(subCtx, rpeer)
-				}
-				c.mtx.Unlock()
-				if wasWanted {
-					break
+		immediate := c.publishNow.Swap(0) != 0
+		if !immediate {
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
 				}
 			}
-			lkRef.Release()
-		case <-c.wakeCh:
-		case <-wantlistTicker.C:
-			nextWantlistMin = xmitWantlistSize
+			timer.Reset(debounce)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ch:
+			case <-timer.C:
+			}
+			// Re-snapshot after waiting.
+			c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				ch = getWaitCh()
+				refs = make(map[string]*block.BlockRef, len(c.wantRefs))
+				maps.Copy(refs, c.wantRefs)
+			})
 		}
 
-		// scan wait list
-		c.mtx.Lock()
-		for id, w := range c.waiters {
-			if w.refcount <= 0 {
-				if w.xmit {
-					// TODO: determine if the data was fetched or not
-					psOut.ClearRefs = append(psOut.ClearRefs, w.ref)
+		snap := snapshotKey(refs)
+		if snap == prevSnap {
+			if !immediate {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ch:
+					continue
 				}
-				close(w.doneCh)
-				delete(c.waiters, id)
-				continue
 			}
-			if !w.xmit || len(psOut.WantRefs) < nextWantlistMin {
-				psOut.WantRefs = append(psOut.WantRefs, w.ref)
-				w.xmit = true
-			}
+			continue
 		}
-		if len(c.waiters) == 0 &&
-			(len(psOut.ClearRefs) != 0 || len(psOut.HaveRefs) != 0) {
-			psOut.WantEmpty = true
-			psOut.ClearRefs = nil
-			psOut.HaveRefs = nil
-		}
-		c.mtx.Unlock()
+		prevSnap = snap
 
-		// send message to pubsub if needed
-		nextWantlistMin = 0
-		if len(psOut.GetClearRefs()) != 0 ||
-			len(psOut.GetHaveRefs()) != 0 ||
-			len(psOut.GetWantRefs()) != 0 || psOut.WantEmpty {
-			data, err := psOut.MarshalBlock()
-			if err != nil {
-				return err
-			}
-			psOut.LogFields(c.le).Debug("sent pubsub message")
-			psOut.Reset()
-			if err := psCh.Publish(data); err != nil {
-				return errors.Wrap(err, "publish message")
-			}
+		if err := c.publishWantList(sub, refs); err != nil {
+			c.le.WithError(err).Warn("publish wantlist failed")
 		}
 	}
 }
 
-// HandleMountedStream handles an incoming mounted stream.
-// Any returned error indicates the stream should be closed.
-// This function should return as soon as possible, and start
-// additional goroutines to manage the lifecycle of the stream.
-// Typically EstablishLink is asserted in HandleMountedStream.
-func (c *Controller) HandleMountedStream(
-	ctx context.Context,
-	ms link.MountedStream,
-) error {
-	if mpid := ms.GetProtocolID(); mpid != syncProtocolID {
-		return errors.Errorf(
-			"expected protocol id %s but got %s",
-			syncProtocolID,
-			mpid,
-		)
+// snapshotKey builds a string from refs for change detection.
+func snapshotKey(refs map[string]*block.BlockRef) string {
+	if len(refs) == 0 {
+		return ""
 	}
-
-	// assert establish link to hold the link open
-	_, lnkRef, err := c.b.AddDirective(
-		link.NewEstablishLinkWithPeer(ms.GetLink().GetLocalPeer(), ms.GetPeerID()),
-		nil,
-	)
-	if err != nil {
-		return err
+	var b []byte
+	for k := range refs {
+		b = append(b, k...)
+		b = append(b, ',')
 	}
-
-	cs, err := c.getCState(ctx)
-	if err != nil {
-		lnkRef.Release()
-		return err
-	}
-
-	from := ms.GetPeerID()
-
-	// Incoming sync session
-	// This occurs when we have some wanted blocks to receive.
-
-	// need to build a remotePeer
-	c.mtx.Lock()
-	rpeer, ok := c.remotePeers[from]
-	if !ok {
-		rpeer = newRemotePeer(c, cs.peerID, from)
-		c.remotePeers[from] = rpeer
-	}
-	rpeer.incSyncSessions++
-	c.mtx.Unlock()
-
-	go func() {
-		if err := rpeer.executeIncomingSyncSession(cs.ctx, ms); err != nil {
-			if err != context.Canceled && err != io.EOF {
-				rpeer.le().WithError(err).Warn("error handling incoming sync session")
-			}
-		}
-		lnkRef.Release()
-		ms.GetStream().Close()
-		c.mtx.Lock()
-		if rpeer.incSyncSessions > 0 {
-			rpeer.incSyncSessions--
-		}
-		if mp, mpOk := c.remotePeers[from]; mpOk && mp == rpeer {
-			if rpeer.incSyncSessions == 0 &&
-				len(rpeer.wantedRefs) == 0 &&
-				rpeer.syncCtxCancel == nil {
-				delete(c.remotePeers, from)
-			}
-		}
-		c.mtx.Unlock()
-	}()
-
-	return nil
-}
-
-// wakeExecute wakes the execute loop
-func (c *Controller) wakeExecute() {
-	select {
-	case c.wakeCh <- struct{}{}:
-	default:
-	}
+	return string(b)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
-// Any unexpected errors are returned for logging.
-// It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
-	dir := di.GetDirective()
-	switch d := dir.(type) {
+	switch d := di.GetDirective().(type) {
 	case dex.LookupBlockFromNetwork:
-		return directive.R(c.resolveLookupBlockFromNetwork(ctx, di, d))
+		return c.resolveLookupBlockFromNetwork(ctx, di, d)
 	case link.HandleMountedStream:
-		return directive.R(c.resolveHandleMountedStream(ctx, di, d))
+		return c.resolveHandleMountedStream(ctx, di, d)
 	}
 	return nil, nil
+}
+
+// resolveHandleMountedStream resolves a HandleMountedStream directive.
+func (c *Controller) resolveHandleMountedStream(
+	_ context.Context,
+	_ directive.Instance,
+	dir link.HandleMountedStream,
+) ([]directive.Resolver, error) {
+	if dir.HandleMountedStreamProtocolID() != syncProtocolID {
+		return nil, nil
+	}
+	return directive.Resolvers(directive.NewValueResolver(
+		[]link.MountedStreamHandler{c},
+	)), nil
+}
+
+// HandleMountedStream handles an incoming mounted stream.
+func (c *Controller) HandleMountedStream(
+	ctx context.Context,
+	ms link.MountedStream,
+) error {
+	from := ms.GetPeerID()
+	var key sessionKey
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		c.nextNonce++
+		key = sessionKey{PeerID: from, Nonce: c.nextNonce}
+		c.incoming[key] = &incomingStream{ms: ms}
+	})
+	c.incomingKeyed.SetKey(key, true)
+	return nil
+}
+
+// handleIncomingMessage processes a pub-sub message from a remote peer.
+func (c *Controller) handleIncomingMessage(
+	ctx context.Context,
+	m pubsub.Message,
+	privKey crypto.PrivKey,
+) {
+	if !m.GetAuthenticated() || m.GetFrom().MatchesPrivateKey(privKey) {
+		return
+	}
+
+	var msg PubSubMessage
+	if err := msg.UnmarshalVT(m.GetData()); err != nil {
+		c.le.WithError(err).Warn("cannot parse pubsub message")
+		return
+	}
+
+	from := m.GetFrom()
+	ts := msg.GetTimestampUnixNano()
+
+	c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		rp, ok := c.remotePeers[from]
+		if msg.GetWantEmpty() {
+			if ok {
+				delete(c.remotePeers, from)
+				bcast()
+			}
+			return
+		}
+		if !ok {
+			rp = &remotePeerState{
+				wantRefs: make(map[string]*block.BlockRef),
+			}
+			c.remotePeers[from] = rp
+		}
+		if ts <= rp.lastTS {
+			return
+		}
+		rp.lastTS = ts
+
+		// Replace wantlist with snapshot from message.
+		rp.wantRefs = make(map[string]*block.BlockRef, len(msg.GetWantRefs()))
+		for _, ref := range msg.GetWantRefs() {
+			if ref.GetEmpty() {
+				continue
+			}
+			rp.wantRefs[ref.MarshalString()] = ref
+		}
+
+		// Process clear refs.
+		for _, ref := range msg.GetClearRefs() {
+			delete(rp.wantRefs, ref.MarshalString())
+		}
+
+		bcast()
+	})
+
+	// Check local bucket for blocks the remote peer wants.
+	c.checkAndQueueBlocks(ctx, from)
+}
+
+// checkAndQueueBlocks checks the local bucket for wanted blocks and queues them.
+func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
+	var wants []*block.BlockRef
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		rp, ok := c.remotePeers[pid]
+		if !ok {
+			return
+		}
+		for _, ref := range rp.wantRefs {
+			wants = append(wants, ref)
+		}
+	})
+	if len(wants) == 0 {
+		return
+	}
+
+	lk, rel, err := c.getBucketLookup(ctx)
+	if err != nil || lk == nil {
+		return
+	}
+	defer rel()
+
+	var queued []*block.BlockRef
+	for _, ref := range wants {
+		_, ok, lerr := lk.LookupBlock(ctx, ref, WithLocalOnly())
+		if lerr != nil || !ok {
+			continue
+		}
+		queued = append(queued, ref)
+	}
+	if len(queued) == 0 {
+		return
+	}
+
+	c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		rp, ok := c.remotePeers[pid]
+		if !ok {
+			return
+		}
+		rp.sendQueue = append(rp.sendQueue, queued...)
+		bcast()
+	})
+
+	c.startOutgoingStreams(pid)
+}
+
+// startOutgoingStreams starts outgoing stream routines for a peer if needed.
+func (c *Controller) startOutgoingStreams(pid peer.ID) {
+	maxStreams := c.cc.GetMaxConcurrentStreamsOrDefault()
+
+	// Count existing outgoing streams for this peer.
+	var count uint32
+	for _, key := range c.outgoingKeyed.GetKeys() {
+		if key.PeerID == pid {
+			count++
+		}
+	}
+
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		rp, ok := c.remotePeers[pid]
+		if !ok || len(rp.sendQueue) == 0 {
+			return
+		}
+		for count < maxStreams && len(rp.sendQueue) > 0 {
+			c.nextNonce++
+			key := sessionKey{PeerID: pid, Nonce: c.nextNonce}
+			c.outgoingKeyed.SetKey(key, true)
+			count++
+		}
+	})
 }
 
 // GetControllerInfo returns information about the controller.
@@ -455,37 +392,17 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"psecho pub-sub data exchange controller",
+		"pub-sub data exchange controller",
 	)
 }
 
 // Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
 }
 
-// triggerRpeerSyncSession triggers a sync session for a remote peer.
-func (c *Controller) triggerRpeerSyncSession(subCtx context.Context, rpx *remotePeer) {
-	rpx.triggerSyncSession(subCtx, func() {
-		c.mtx.Lock()
-		if rpeer := c.remotePeers[rpx.id]; rpeer == rpx {
-			if rpeer.syncCtxCancel != nil {
-				rpeer.syncCtxCancel()
-				rpeer.syncCtxCancel = nil
-			}
-			if len(rpeer.wantedRefs) == 0 && rpeer.incSyncSessions <= 0 {
-				delete(c.remotePeers, rpx.id)
-			}
-		}
-		c.mtx.Unlock()
-	})
-}
-
-// getCState returns the controller state
-func (c *Controller) getCState(ctx context.Context) (*cState, error) {
-	return c.cState.WaitValue(ctx, nil)
-}
+// _ is a type assertion
+var _ link.MountedStreamHandler = ((*Controller)(nil))
 
 // _ is a type assertion
 var _ controller.Controller = ((*Controller)(nil))

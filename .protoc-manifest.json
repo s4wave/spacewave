@@ -552,16 +552,27 @@
       ]
     },
     "github.com/aperturerobotics/hydra/dex/psecho": {
-      "hash": "003e9dde85549d3882e6d92b9a78e3219408b0bd3dc5ca1f651d23f48571a0aa",
+      "hash": "5b9ec49a1f5e33d299901acebf77e09ed7ccad9b775422402dc9adf528e21261",
       "generatedFiles": [
+        "dex/psecho/config.pb.cc",
+        "dex/psecho/config.pb.go",
+        "dex/psecho/config.pb.h",
+        "dex/psecho/config.pb.rs",
+        "dex/psecho/config.pb.ts",
         "dex/psecho/psecho.pb.cc",
         "dex/psecho/psecho.pb.go",
         "dex/psecho/psecho.pb.h",
         "dex/psecho/psecho.pb.rs",
-        "dex/psecho/psecho.pb.ts"
+        "dex/psecho/psecho.pb.ts",
+        "dex/psecho/sync.pb.cc",
+        "dex/psecho/sync.pb.go",
+        "dex/psecho/sync.pb.h",
+        "dex/psecho/sync.pb.ts"
       ],
       "protoFiles": [
-        "dex/psecho/psecho.proto"
+        "dex/psecho/config.proto",
+        "dex/psecho/psecho.proto",
+        "dex/psecho/sync.proto"
       ]
     },
     "github.com/aperturerobotics/hydra/dex/session": {

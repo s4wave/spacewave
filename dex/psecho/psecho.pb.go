@@ -5,7 +5,6 @@
 package psecho
 
 import (
-	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
 	slices "slices"
@@ -15,126 +14,19 @@ import (
 	block "github.com/aperturerobotics/hydra/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	backoff "github.com/aperturerobotics/util/backoff"
 )
 
-// SyncMessageType is the set of sync message types
-type SyncMessageType int32
-
-const (
-	SyncMessageType_SyncMessageType_UNKNOWN SyncMessageType = 0
-	// SyncMessageType_START_XMIT indicates start of block transmission.
-	SyncMessageType_SyncMessageType_START_XMIT SyncMessageType = 1
-	// SyncMessageType_CTNU_XMIT indicates continue block transmission.
-	SyncMessageType_SyncMessageType_CTNU_XMIT SyncMessageType = 2
-	// SyncMessageType_REFUSE_RX indicates reception refusal.
-	SyncMessageType_SyncMessageType_REFUSE_RX SyncMessageType = 3
-)
-
-// Enum value maps for SyncMessageType.
-var (
-	SyncMessageType_name = map[int32]string{
-		0: "SyncMessageType_UNKNOWN",
-		1: "SyncMessageType_START_XMIT",
-		2: "SyncMessageType_CTNU_XMIT",
-		3: "SyncMessageType_REFUSE_RX",
-	}
-	SyncMessageType_value = map[string]int32{
-		"SyncMessageType_UNKNOWN":    0,
-		"SyncMessageType_START_XMIT": 1,
-		"SyncMessageType_CTNU_XMIT":  2,
-		"SyncMessageType_REFUSE_RX":  3,
-	}
-)
-
-func (x SyncMessageType) Enum() *SyncMessageType {
-	p := new(SyncMessageType)
-	*p = x
-	return p
-}
-
-func (x SyncMessageType) String() string {
-	name, valid := SyncMessageType_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
-// Config configures the pubsub echo controller.
-type Config struct {
-	unknownFields []byte
-	// BucketId is the bucket ID to use to serve blocks.
-	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucketId,omitempty"`
-	// PubsubChannel is the channel to subscribe and publish to.
-	PubsubChannel string `protobuf:"bytes,2,opt,name=pubsub_channel,json=pubsubChannel,proto3" json:"pubsubChannel,omitempty"`
-	// PeerId is the peer id to use for pubsub and bucket.
-	// If empty, will attach to any available peer.
-	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
-	// TransportId sets a transport ID constraint.
-	// Can be empty.
-	TransportId uint64 `protobuf:"varint,4,opt,name=transport_id,json=transportId,proto3" json:"transportId,omitempty"`
-	// SyncBackoff controls sync session backoff.
-	SyncBackoff *backoff.Backoff `protobuf:"bytes,5,opt,name=sync_backoff,json=syncBackoff,proto3" json:"syncBackoff,omitempty"`
-}
-
-func (x *Config) Reset() {
-	*x = Config{}
-}
-
-func (*Config) ProtoMessage() {}
-
-func (x *Config) GetBucketId() string {
-	if x != nil {
-		return x.BucketId
-	}
-	return ""
-}
-
-func (x *Config) GetPubsubChannel() string {
-	if x != nil {
-		return x.PubsubChannel
-	}
-	return ""
-}
-
-func (x *Config) GetPeerId() string {
-	if x != nil {
-		return x.PeerId
-	}
-	return ""
-}
-
-func (x *Config) GetTransportId() uint64 {
-	if x != nil {
-		return x.TransportId
-	}
-	return 0
-}
-
-func (x *Config) GetSyncBackoff() *backoff.Backoff {
-	if x != nil {
-		return x.SyncBackoff
-	}
-	return nil
-}
-
-// PubSubMessage is the root pub-sub message.
+// PubSubMessage is gossipped on the pub-sub channel.
 type PubSubMessage struct {
 	unknownFields []byte
-	// WantRefs is the list of wanted blocks.
-	// Blocks here have been added to the want list.
+	// WantRefs is a full snapshot of blocks we currently want.
 	WantRefs []*block.BlockRef `protobuf:"bytes,1,rep,name=want_refs,json=wantRefs,proto3" json:"wantRefs,omitempty"`
-	// HaveRefs is the list of recently received blocks.
-	// These should be removed from the want list.
-	// This advertises the blocks to remote peers.
-	HaveRefs []*block.BlockRef `protobuf:"bytes,2,rep,name=have_refs,json=haveRefs,proto3" json:"haveRefs,omitempty"`
-	// ClearRefs is the list of no longer wanted blocks.
-	// These should be removed from the want list.
-	ClearRefs []*block.BlockRef `protobuf:"bytes,3,rep,name=clear_refs,json=clearRefs,proto3" json:"clearRefs,omitempty"`
-	// WantEmpty indicates the wantlist is now empty.
-	// The clear_refs list will be empty if this is set.
-	WantEmpty bool `protobuf:"varint,4,opt,name=want_empty,json=wantEmpty,proto3" json:"wantEmpty,omitempty"`
+	// ClearRefs signals we no longer want these blocks.
+	ClearRefs []*block.BlockRef `protobuf:"bytes,2,rep,name=clear_refs,json=clearRefs,proto3" json:"clearRefs,omitempty"`
+	// WantEmpty indicates the wantlist is empty.
+	WantEmpty bool `protobuf:"varint,3,opt,name=want_empty,json=wantEmpty,proto3" json:"wantEmpty,omitempty"`
+	// TimestampUnixNano is the message timestamp (for ordering).
+	TimestampUnixNano int64 `protobuf:"varint,4,opt,name=timestamp_unix_nano,json=timestampUnixNano,proto3" json:"timestampUnixNano,omitempty"`
 }
 
 func (x *PubSubMessage) Reset() {
@@ -146,13 +38,6 @@ func (*PubSubMessage) ProtoMessage() {}
 func (x *PubSubMessage) GetWantRefs() []*block.BlockRef {
 	if x != nil {
 		return x.WantRefs
-	}
-	return nil
-}
-
-func (x *PubSubMessage) GetHaveRefs() []*block.BlockRef {
-	if x != nil {
-		return x.HaveRefs
 	}
 	return nil
 }
@@ -171,87 +56,11 @@ func (x *PubSubMessage) GetWantEmpty() bool {
 	return false
 }
 
-// SyncMessage is the root sync session message.
-type SyncMessage struct {
-	unknownFields []byte
-	// MessageType is the message type.
-	MessageType SyncMessageType `protobuf:"varint,1,opt,name=message_type,json=messageType,proto3" json:"messageType,omitempty"`
-	// Ref is the block reference if relevant.
-	// Used for START_XMIT, REFUSE_RX
-	Ref *block.BlockRef `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
-	// Chunk is the data chunk.
-	// Stream is always ordered - therefore, we don't need to send index.
-	// Used for START_XMIT, CTNU_XMIT
-	Chunk []byte `protobuf:"bytes,3,opt,name=chunk,proto3" json:"chunk,omitempty"`
-	// Complete indicates this is the last block to transmit in the sequence.
-	// Used for START_XMIT, CTNU_XMIT
-	Complete bool `protobuf:"varint,4,opt,name=complete,proto3" json:"complete,omitempty"`
-	// BlockSize is the size of the block.
-	// Used for START_XMIT
-	BlockSize uint32 `protobuf:"varint,5,opt,name=block_size,json=blockSize,proto3" json:"blockSize,omitempty"`
-}
-
-func (x *SyncMessage) Reset() {
-	*x = SyncMessage{}
-}
-
-func (*SyncMessage) ProtoMessage() {}
-
-func (x *SyncMessage) GetMessageType() SyncMessageType {
+func (x *PubSubMessage) GetTimestampUnixNano() int64 {
 	if x != nil {
-		return x.MessageType
-	}
-	return SyncMessageType_SyncMessageType_UNKNOWN
-}
-
-func (x *SyncMessage) GetRef() *block.BlockRef {
-	if x != nil {
-		return x.Ref
-	}
-	return nil
-}
-
-func (x *SyncMessage) GetChunk() []byte {
-	if x != nil {
-		return x.Chunk
-	}
-	return nil
-}
-
-func (x *SyncMessage) GetComplete() bool {
-	if x != nil {
-		return x.Complete
-	}
-	return false
-}
-
-func (x *SyncMessage) GetBlockSize() uint32 {
-	if x != nil {
-		return x.BlockSize
+		return x.TimestampUnixNano
 	}
 	return 0
-}
-
-func (m *Config) CloneVT() *Config {
-	if m == nil {
-		return (*Config)(nil)
-	}
-	r := new(Config)
-	r.BucketId = m.BucketId
-	r.PubsubChannel = m.PubsubChannel
-	r.PeerId = m.PeerId
-	r.TransportId = m.TransportId
-	if rhs := m.SyncBackoff; rhs != nil {
-		r.SyncBackoff = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
 }
 
 func (m *PubSubMessage) CloneVT() *PubSubMessage {
@@ -260,16 +69,11 @@ func (m *PubSubMessage) CloneVT() *PubSubMessage {
 	}
 	r := new(PubSubMessage)
 	r.WantEmpty = m.WantEmpty
+	r.TimestampUnixNano = m.TimestampUnixNano
 	if rhs := m.WantRefs; rhs != nil {
 		r.WantRefs = make([]*block.BlockRef, len(rhs))
 		for k, v := range rhs {
 			r.WantRefs[k] = v.CloneVT()
-		}
-	}
-	if rhs := m.HaveRefs; rhs != nil {
-		r.HaveRefs = make([]*block.BlockRef, len(rhs))
-		for k, v := range rhs {
-			r.HaveRefs[k] = v.CloneVT()
 		}
 	}
 	if rhs := m.ClearRefs; rhs != nil {
@@ -288,60 +92,6 @@ func (m *PubSubMessage) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *SyncMessage) CloneVT() *SyncMessage {
-	if m == nil {
-		return (*SyncMessage)(nil)
-	}
-	r := new(SyncMessage)
-	r.MessageType = m.MessageType
-	r.Ref = m.Ref.CloneVT()
-	r.Complete = m.Complete
-	r.BlockSize = m.BlockSize
-	if rhs := m.Chunk; rhs != nil {
-		r.Chunk = slices.Clone(rhs)
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SyncMessage) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (this *Config) EqualVT(that *Config) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.BucketId != that.BucketId {
-		return false
-	}
-	if this.PubsubChannel != that.PubsubChannel {
-		return false
-	}
-	if this.PeerId != that.PeerId {
-		return false
-	}
-	if this.TransportId != that.TransportId {
-		return false
-	}
-	if !this.SyncBackoff.EqualVT(that.SyncBackoff) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *Config) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*Config)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *PubSubMessage) EqualVT(that *PubSubMessage) bool {
 	if this == that {
 		return true
@@ -353,23 +103,6 @@ func (this *PubSubMessage) EqualVT(that *PubSubMessage) bool {
 	}
 	for i, vx := range this.WantRefs {
 		vy := that.WantRefs[i]
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &block.BlockRef{}
-			}
-			if q == nil {
-				q = &block.BlockRef{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
-	if len(this.HaveRefs) != len(that.HaveRefs) {
-		return false
-	}
-	for i, vx := range this.HaveRefs {
-		vy := that.HaveRefs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
 				p = &block.BlockRef{}
@@ -402,6 +135,9 @@ func (this *PubSubMessage) EqualVT(that *PubSubMessage) bool {
 	if this.WantEmpty != that.WantEmpty {
 		return false
 	}
+	if this.TimestampUnixNano != that.TimestampUnixNano {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -411,156 +147,6 @@ func (this *PubSubMessage) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-func (this *SyncMessage) EqualVT(that *SyncMessage) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.MessageType != that.MessageType {
-		return false
-	}
-	if !this.Ref.EqualVT(that.Ref) {
-		return false
-	}
-	if string(this.Chunk) != string(that.Chunk) {
-		return false
-	}
-	if this.Complete != that.Complete {
-		return false
-	}
-	if this.BlockSize != that.BlockSize {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SyncMessage) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SyncMessage)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-// MarshalProtoJSON marshals the SyncMessageType to JSON.
-func (x SyncMessageType) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), SyncMessageType_name)
-}
-
-// MarshalText marshals the SyncMessageType to text.
-func (x SyncMessageType) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), SyncMessageType_name)), nil
-}
-
-// MarshalJSON marshals the SyncMessageType to JSON.
-func (x SyncMessageType) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SyncMessageType from JSON.
-func (x *SyncMessageType) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(SyncMessageType_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read SyncMessageType enum: %v", err)
-		return
-	}
-	*x = SyncMessageType(v)
-}
-
-// UnmarshalText unmarshals the SyncMessageType from text.
-func (x *SyncMessageType) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), SyncMessageType_value)
-	if err != nil {
-		return err
-	}
-	*x = SyncMessageType(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the SyncMessageType from JSON.
-func (x *SyncMessageType) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the Config message to JSON.
-func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.BucketId != "" || s.HasField("bucketId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("bucketId")
-		s.WriteString(x.BucketId)
-	}
-	if x.PubsubChannel != "" || s.HasField("pubsubChannel") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("pubsubChannel")
-		s.WriteString(x.PubsubChannel)
-	}
-	if x.PeerId != "" || s.HasField("peerId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("peerId")
-		s.WriteString(x.PeerId)
-	}
-	if x.TransportId != 0 || s.HasField("transportId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("transportId")
-		s.WriteUint64(x.TransportId)
-	}
-	if x.SyncBackoff != nil || s.HasField("syncBackoff") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("syncBackoff")
-		x.SyncBackoff.MarshalProtoJSON(s.WithField("syncBackoff"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the Config to JSON.
-func (x *Config) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the Config message from JSON.
-func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "bucket_id", "bucketId":
-			s.AddField("bucket_id")
-			x.BucketId = s.ReadString()
-		case "pubsub_channel", "pubsubChannel":
-			s.AddField("pubsub_channel")
-			x.PubsubChannel = s.ReadString()
-		case "peer_id", "peerId":
-			s.AddField("peer_id")
-			x.PeerId = s.ReadString()
-		case "transport_id", "transportId":
-			s.AddField("transport_id")
-			x.TransportId = s.ReadUint64()
-		case "sync_backoff", "syncBackoff":
-			if s.ReadNil() {
-				x.SyncBackoff = nil
-				return
-			}
-			x.SyncBackoff = &backoff.Backoff{}
-			x.SyncBackoff.UnmarshalProtoJSON(s.WithField("sync_backoff", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the Config from JSON.
-func (x *Config) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the PubSubMessage message to JSON.
@@ -582,17 +168,6 @@ func (x *PubSubMessage) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
-	if len(x.HaveRefs) > 0 || s.HasField("haveRefs") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("haveRefs")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.HaveRefs {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("haveRefs"))
-		}
-		s.WriteArrayEnd()
-	}
 	if len(x.ClearRefs) > 0 || s.HasField("clearRefs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("clearRefs")
@@ -608,6 +183,11 @@ func (x *PubSubMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("wantEmpty")
 		s.WriteBool(x.WantEmpty)
+	}
+	if x.TimestampUnixNano != 0 || s.HasField("timestampUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestampUnixNano")
+		s.WriteInt64(x.TimestampUnixNano)
 	}
 	s.WriteObjectEnd()
 }
@@ -644,24 +224,6 @@ func (x *PubSubMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.WantRefs = append(x.WantRefs, v)
 			})
-		case "have_refs", "haveRefs":
-			s.AddField("have_refs")
-			if s.ReadNil() {
-				x.HaveRefs = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.HaveRefs = append(x.HaveRefs, nil)
-					return
-				}
-				v := &block.BlockRef{}
-				v.UnmarshalProtoJSON(s.WithField("have_refs", false))
-				if s.Err() != nil {
-					return
-				}
-				x.HaveRefs = append(x.HaveRefs, v)
-			})
 		case "clear_refs", "clearRefs":
 			s.AddField("clear_refs")
 			if s.ReadNil() {
@@ -683,6 +245,9 @@ func (x *PubSubMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "want_empty", "wantEmpty":
 			s.AddField("want_empty")
 			x.WantEmpty = s.ReadBool()
+		case "timestamp_unix_nano", "timestampUnixNano":
+			s.AddField("timestamp_unix_nano")
+			x.TimestampUnixNano = s.ReadInt64()
 		}
 	})
 }
@@ -690,153 +255,6 @@ func (x *PubSubMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the PubSubMessage from JSON.
 func (x *PubSubMessage) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the SyncMessage message to JSON.
-func (x *SyncMessage) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.MessageType != 0 || s.HasField("messageType") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("messageType")
-		x.MessageType.MarshalProtoJSON(s)
-	}
-	if x.Ref != nil || s.HasField("ref") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ref")
-		x.Ref.MarshalProtoJSON(s.WithField("ref"))
-	}
-	if len(x.Chunk) > 0 || s.HasField("chunk") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("chunk")
-		s.WriteBytes(x.Chunk)
-	}
-	if x.Complete || s.HasField("complete") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("complete")
-		s.WriteBool(x.Complete)
-	}
-	if x.BlockSize != 0 || s.HasField("blockSize") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blockSize")
-		s.WriteUint32(x.BlockSize)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SyncMessage to JSON.
-func (x *SyncMessage) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SyncMessage message from JSON.
-func (x *SyncMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "message_type", "messageType":
-			s.AddField("message_type")
-			x.MessageType.UnmarshalProtoJSON(s)
-		case "ref":
-			if s.ReadNil() {
-				x.Ref = nil
-				return
-			}
-			x.Ref = &block.BlockRef{}
-			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
-		case "chunk":
-			s.AddField("chunk")
-			x.Chunk = s.ReadBytes()
-		case "complete":
-			s.AddField("complete")
-			x.Complete = s.ReadBool()
-		case "block_size", "blockSize":
-			s.AddField("block_size")
-			x.BlockSize = s.ReadUint32()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the SyncMessage from JSON.
-func (x *SyncMessage) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-func (m *Config) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Config) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.SyncBackoff != nil {
-		size, err := m.SyncBackoff.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.TransportId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TransportId))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.PeerId) > 0 {
-		i -= len(m.PeerId)
-		copy(dAtA[i:], m.PeerId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PeerId)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.PubsubChannel) > 0 {
-		i -= len(m.PubsubChannel)
-		copy(dAtA[i:], m.PubsubChannel)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PubsubChannel)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.BucketId) > 0 {
-		i -= len(m.BucketId)
-		copy(dAtA[i:], m.BucketId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BucketId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
 }
 
 func (m *PubSubMessage) MarshalVT() (dAtA []byte, err error) {
@@ -869,6 +287,11 @@ func (m *PubSubMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TimestampUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TimestampUnixNano))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.WantEmpty {
 		i--
 		if m.WantEmpty {
@@ -877,23 +300,11 @@ func (m *PubSubMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x18
 	}
 	if len(m.ClearRefs) > 0 {
 		for iNdEx := len(m.ClearRefs) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.ClearRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.HaveRefs) > 0 {
-		for iNdEx := len(m.HaveRefs) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.HaveRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -918,105 +329,6 @@ func (m *PubSubMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SyncMessage) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SyncMessage) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SyncMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.BlockSize != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockSize))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.Complete {
-		i--
-		if m.Complete {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.Chunk) > 0 {
-		i -= len(m.Chunk)
-		copy(dAtA[i:], m.Chunk)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Chunk)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Ref != nil {
-		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.MessageType != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MessageType))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Config) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.BucketId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.PubsubChannel)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.TransportId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TransportId))
-	}
-	if m.SyncBackoff != nil {
-		l = m.SyncBackoff.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *PubSubMessage) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1025,12 +337,6 @@ func (m *PubSubMessage) SizeVT() (n int) {
 	_ = l
 	if len(m.WantRefs) > 0 {
 		for _, e := range m.WantRefs {
-			l = e.SizeVT()
-			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-		}
-	}
-	if len(m.HaveRefs) > 0 {
-		for _, e := range m.HaveRefs {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
@@ -1044,85 +350,11 @@ func (m *PubSubMessage) SizeVT() (n int) {
 	if m.WantEmpty {
 		n += 2
 	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *SyncMessage) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.MessageType != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.MessageType))
-	}
-	if m.Ref != nil {
-		l = m.Ref.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Chunk)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Complete {
-		n += 2
-	}
-	if m.BlockSize != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockSize))
+	if m.TimestampUnixNano != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TimestampUnixNano))
 	}
 	n += len(m.unknownFields)
 	return n
-}
-
-func (x SyncMessageType) MarshalProtoText() string {
-	return x.String()
-}
-
-func (x *Config) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("Config {")
-	if x.BucketId != "" {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("bucket_id: ")
-		sb.WriteString(strconv.Quote(x.BucketId))
-	}
-	if x.PubsubChannel != "" {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("pubsub_channel: ")
-		sb.WriteString(strconv.Quote(x.PubsubChannel))
-	}
-	if x.PeerId != "" {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("peer_id: ")
-		sb.WriteString(strconv.Quote(x.PeerId))
-	}
-	if x.TransportId != 0 {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("transport_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.TransportId), 10))
-	}
-	if x.SyncBackoff != nil {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("sync_backoff: ")
-		sb.WriteString(x.SyncBackoff.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *Config) String() string {
-	return x.MarshalProtoText()
 }
 
 func (x *PubSubMessage) MarshalProtoText() string {
@@ -1134,19 +366,6 @@ func (x *PubSubMessage) MarshalProtoText() string {
 		}
 		sb.WriteString("want_refs: [")
 		for i, v := range x.WantRefs {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString("]")
-	}
-	if len(x.HaveRefs) > 0 {
-		if sb.Len() > 15 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("have_refs: [")
-		for i, v := range x.HaveRefs {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
@@ -1174,208 +393,19 @@ func (x *PubSubMessage) MarshalProtoText() string {
 		sb.WriteString("want_empty: ")
 		sb.WriteString(strconv.FormatBool(x.WantEmpty))
 	}
+	if x.TimestampUnixNano != 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp_unix_nano: ")
+		sb.WriteString(strconv.FormatInt(int64(x.TimestampUnixNano), 10))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *PubSubMessage) String() string {
 	return x.MarshalProtoText()
-}
-
-func (x *SyncMessage) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("SyncMessage {")
-	if x.MessageType != 0 {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("message_type: ")
-		sb.WriteString("\"")
-		sb.WriteString(SyncMessageType(x.MessageType).String())
-		sb.WriteString("\"")
-	}
-	if x.Ref != nil {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("ref: ")
-		sb.WriteString(x.Ref.MarshalProtoText())
-	}
-	if x.Chunk != nil {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("chunk: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.Chunk))
-		sb.WriteString("\"")
-	}
-	if x.Complete != false {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("complete: ")
-		sb.WriteString(strconv.FormatBool(x.Complete))
-	}
-	if x.BlockSize != 0 {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("block_size: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.BlockSize), 10))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *SyncMessage) String() string {
-	return x.MarshalProtoText()
-}
-
-func (m *Config) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Config: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Config: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BucketId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.BucketId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PubsubChannel", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PubsubChannel = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TransportId", wireType)
-			}
-			m.TransportId = 0
-			m.TransportId, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SyncBackoff", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.SyncBackoff == nil {
-				m.SyncBackoff = &backoff.Backoff{}
-			}
-			if err := m.SyncBackoff.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 
 func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
@@ -1426,32 +456,6 @@ func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HaveRefs", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.HaveRefs = append(m.HaveRefs, &block.BlockRef{})
-			if err := m.HaveRefs[len(m.HaveRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ClearRefs", wireType)
 			}
 			var msglen int
@@ -1476,7 +480,7 @@ func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WantEmpty", wireType)
 			}
@@ -1488,132 +492,12 @@ func (m *PubSubMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.WantEmpty = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *SyncMessage) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SyncMessage: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SyncMessage: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MessageType", wireType)
-			}
-			m.MessageType = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.MessageType = SyncMessageType(_v)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Ref == nil {
-				m.Ref = &block.BlockRef{}
-			}
-			if err := m.Ref.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Chunk", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Chunk = append(m.Chunk[:0], dAtA[iNdEx:postIndex]...)
-			if m.Chunk == nil {
-				m.Chunk = []byte{}
-			}
-			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Complete", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TimestampUnixNano", wireType)
 			}
-			var v int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
-			if err != nil {
-				return err
-			}
-			m.Complete = bool(v != 0)
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockSize", wireType)
-			}
-			m.BlockSize = 0
-			m.BlockSize, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			m.TimestampUnixNano = 0
+			m.TimestampUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

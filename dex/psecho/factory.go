@@ -9,13 +9,12 @@ import (
 	"github.com/blang/semver/v4"
 )
 
-// Factory constructs a pub-sub echo data exchange controller.
+// Factory constructs a pub-sub DEX controller.
 type Factory struct {
-	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a pub-sub echo data exchange controller factory.
+// NewFactory builds a pub-sub DEX controller factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -43,7 +42,6 @@ func (t *Factory) Construct(
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
 	cc := conf.(*Config)
-
 	return NewController(le, t.bus, cc)
 }
 
