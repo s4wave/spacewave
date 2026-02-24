@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/libp2p/go-libp2p/core/network"
 )
 
 // SingletonMuxedConn treats a net.Listener as a single multiplexed conn.
@@ -25,7 +24,7 @@ type SingletonMuxedConn struct {
 	// mtx guards below fields
 	mtx sync.Mutex
 	// conn is the most recent conn
-	conn network.MuxedConn
+	conn srpc.MuxedConn
 	// closedErr if set, indicates the conn is closed.
 	closedErr error
 }
@@ -52,7 +51,7 @@ func (l *SingletonMuxedConn) IsClosed() bool {
 
 // SetConnection sets the latest MuxedConn and clears old streams.
 // returns an error if the Singleton is closed.
-func (l *SingletonMuxedConn) SetConnection(conn network.MuxedConn) error {
+func (l *SingletonMuxedConn) SetConnection(conn srpc.MuxedConn) error {
 	l.mtx.Lock()
 	if l.conn != nil {
 		_ = l.conn.Close()
@@ -95,9 +94,9 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 }
 
 // OpenStream creates a new stream.
-func (l *SingletonMuxedConn) OpenStream(ctx context.Context) (network.MuxedStream, error) {
-	var out network.MuxedStream
-	err := l.tryConn(ctx, func(conn network.MuxedConn) error {
+func (l *SingletonMuxedConn) OpenStream(ctx context.Context) (srpc.MuxedStream, error) {
+	var out srpc.MuxedStream
+	err := l.tryConn(ctx, func(conn srpc.MuxedConn) error {
 		var err error
 		out, err = conn.OpenStream(ctx)
 		return err
@@ -106,10 +105,10 @@ func (l *SingletonMuxedConn) OpenStream(ctx context.Context) (network.MuxedStrea
 }
 
 // AcceptStream accepts a stream opened by the other side.
-func (l *SingletonMuxedConn) AcceptStream() (network.MuxedStream, error) {
-	var out network.MuxedStream
+func (l *SingletonMuxedConn) AcceptStream() (srpc.MuxedStream, error) {
+	var out srpc.MuxedStream
 	ctx := l.ctx
-	err := l.tryConn(ctx, func(conn network.MuxedConn) error {
+	err := l.tryConn(ctx, func(conn srpc.MuxedConn) error {
 		var err error
 		out, err = conn.AcceptStream()
 		return err
@@ -159,9 +158,9 @@ func (l *SingletonMuxedConn) doTrig() {
 }
 
 // WaitConn waits for l.conn or for the Singleton to be closed.
-func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (network.MuxedConn, error) {
+func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (srpc.MuxedConn, error) {
 	for {
-		var conn network.MuxedConn
+		var conn srpc.MuxedConn
 		l.mtx.Lock()
 		err := l.closedErr
 		if err == nil {
@@ -199,7 +198,7 @@ func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (network.MuxedConn, e
 
 // tryConn waits for l.conn, calls the callback, and closes the conn if it returns an error
 // keeps trying until ctx is canceled or the Singleton is closed.
-func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn network.MuxedConn) error) error {
+func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn srpc.MuxedConn) error) error {
 	for {
 		conn, err := l.WaitConn(ctx)
 		if err != nil {
@@ -227,4 +226,4 @@ func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn network.M
 }
 
 // _ is a type assertion
-var _ network.MuxedConn = ((*SingletonMuxedConn)(nil))
+var _ srpc.MuxedConn = ((*SingletonMuxedConn)(nil))

@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	web_fetch "github.com/aperturerobotics/bldr/web/fetch"
-	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,7 +43,7 @@ func NewRequestHandler(
 }
 
 // AcceptStreams accepts yamux streams from the muxed connection and handles each.
-func (h *RequestHandler) AcceptStreams(ctx context.Context, mc network.MuxedConn) error {
+func (h *RequestHandler) AcceptStreams(ctx context.Context, mc srpc.MuxedConn) error {
 	h.le.Debug("accepting yamux streams from C++")
 	for {
 		stream, err := mc.AcceptStream()

@@ -22,7 +22,6 @@ import (
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -318,7 +317,7 @@ func (h *ProcessHost) ExecutePlugin(
 // execPluginIPC executes the plugin IPC channel.
 func (h *ProcessHost) execPluginIPC(
 	ctx context.Context,
-	muxedConn network.MuxedConn,
+	muxedConn srpc.MuxedConn,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {

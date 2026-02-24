@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/util/exec"
-	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -113,7 +113,7 @@ func RunSaucer(
 }
 
 // GetMuxedConn returns the main muxed conn with the C++ process.
-func (s *Saucer) GetMuxedConn() network.MuxedConn {
+func (s *Saucer) GetMuxedConn() srpc.MuxedConn {
 	return s.conn
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/util/exec"
-	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,7 +95,7 @@ func RunElectron(
 }
 
 // GetMuxedConn returns the muxed conn with the main process.
-func (e *Electron) GetMuxedConn() network.MuxedConn {
+func (e *Electron) GetMuxedConn() srpc.MuxedConn {
 	return e.ipc
 }
 
