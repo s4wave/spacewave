@@ -19,7 +19,7 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.3.1 // master
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.31.0 // latest
+	github.com/aperturerobotics/common v0.31.1 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260210211602-17940b831f59 // master
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
