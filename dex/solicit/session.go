@@ -108,10 +108,7 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 	// Forward to other peers if hops remain.
 	// Clamp to configured max so a malicious peer cannot amplify traffic.
 	maxHops := s.c.cc.GetMaxForwardHops()
-	hops := req.GetRemainingHops()
-	if hops > maxHops {
-		hops = maxHops
-	}
+	hops := min(req.GetRemainingHops(), maxHops)
 	if hops > 0 {
 		data, found = s.c.forwardToPeers(ctx, ref, hops-1, s)
 		if found {
