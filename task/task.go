@@ -27,6 +27,11 @@ const (
 	PredTaskToTarget = quad.IRI("forge/task-target")
 	// PredTaskToPass is the predicate linking Task to a Pass.
 	PredTaskToPass = quad.IRI("forge/task-pass")
+	// PredTaskToSubtask is a graph predicate linking a parent Task to child Tasks.
+	PredTaskToSubtask = quad.IRI("forge/task-subtask")
+	// PredTaskToCached is a graph predicate linking a Task to a previous Task
+	// whose result is inherited/cached.
+	PredTaskToCached = quad.IRI("forge/task-cached")
 )
 
 // NewTaskBlock constructs a new Task block.
@@ -60,6 +65,27 @@ func NewTaskToPassQuad(taskObjKey, passObjKey string, passNonce uint64) world.Gr
 		PredTaskToPass.String(),
 		passObjKey,
 		nonceVal,
+	)
+}
+
+// NewTaskToSubtaskQuad creates a quad linking a parent Task to a child Task.
+func NewTaskToSubtaskQuad(parentTaskKey, childTaskKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		parentTaskKey,
+		PredTaskToSubtask.String(),
+		childTaskKey,
+		"",
+	)
+}
+
+// NewTaskToCachedQuad creates a quad linking a Task to a previous Task whose
+// result is inherited/cached.
+func NewTaskToCachedQuad(taskKey, cachedTaskKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		taskKey,
+		PredTaskToCached.String(),
+		cachedTaskKey,
+		"",
 	)
 }
 

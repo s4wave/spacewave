@@ -7,6 +7,7 @@ import (
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/world"
+	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
 )
@@ -184,4 +185,70 @@ func FindPassWithNonce(passNonce uint64, passes []*forge_pass.Pass) (*forge_pass
 		}
 	}
 	return nil, -1
+}
+
+// ListTaskSubtasks lists all subtask object keys for a parent Task.
+func ListTaskSubtasks(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
+	return world.CollectPathWithKeys(
+		ctx,
+		w,
+		taskKeys,
+		func(p *cayley.Path) (*cayley.Path, error) {
+			return p.Out(PredTaskToSubtask), nil
+		},
+	)
+}
+
+// CollectTaskSubtasks collects all subtask objects for a parent Task.
+// If any of the linked tasks are invalid, returns an error.
+func CollectTaskSubtasks(
+	ctx context.Context,
+	ws world.WorldState,
+	taskKeys ...string,
+) ([]*Task, []string, error) {
+	objKeys, err := ListTaskSubtasks(ctx, ws, taskKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tasks := make([]*Task, len(objKeys))
+	for i, objKey := range objKeys {
+		tasks[i], _, err = LookupTask(ctx, ws, objKey)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "subtasks[%s]", objKey)
+		}
+	}
+
+	return tasks, objKeys, nil
+}
+
+// LinkTaskSubtask creates the graph links between parent and child Tasks.
+// Sets both forge/task-subtask (parent->child) and hydra/world/parent (child->parent).
+func LinkTaskSubtask(ctx context.Context, ws world.WorldState, parentTaskKey, childTaskKey string) error {
+	err := world_parent.SetObjectParent(ctx, ws, childTaskKey, parentTaskKey, false)
+	if err != nil {
+		return err
+	}
+	return ws.SetGraphQuad(ctx, NewTaskToSubtaskQuad(parentTaskKey, childTaskKey))
+}
+
+// LinkTaskCached creates a graph link from a Task to a previous Task whose
+// result is inherited.
+func LinkTaskCached(ctx context.Context, ws world.WorldState, taskKey, cachedTaskKey string) error {
+	return ws.SetGraphQuad(ctx, NewTaskToCachedQuad(taskKey, cachedTaskKey))
+}
+
+// LookupTaskCached looks up the cached task linked to a given task.
+// Returns "", nil if no cached task is linked.
+func LookupTaskCached(ctx context.Context, ws world.WorldState, taskKey string) (string, error) {
+	gqs, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(
+		world.KeyToGraphValue(taskKey).String(),
+		PredTaskToCached.String(),
+		"",
+		"",
+	), 1)
+	if err != nil || len(gqs) == 0 {
+		return "", err
+	}
+	return world.GraphValueToKey(gqs[0].GetObj())
 }
