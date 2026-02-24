@@ -71,6 +71,9 @@ require (
 // aperture: use compatibility forks
 replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260224001138-7e9b62cc47d9 // master
 
+// aperture: use bbolt fork with multi-process concurrent access
+replace go.etcd.io/bbolt => github.com/aperturerobotics/bbolt v0.0.0-20260217020925-7f3c81ed5b77 // master
+
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // latest
