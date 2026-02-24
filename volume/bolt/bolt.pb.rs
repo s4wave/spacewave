@@ -37,5 +37,10 @@ pub struct Config {
     /// Reduces write performance but increases recovery performance.
     #[prost(bool, tag="9")]
     pub freelist_sync: bool,
+    /// BatchSize coalesces this many write transactions into one BoltDB commit.
+    /// Dramatically reduces fsync overhead for bulk write workloads.
+    /// 0 or 1 disables batching (default). Typical value: 100-1000.
+    #[prost(uint32, tag="11")]
+    pub batch_size: u32,
 }
 // @@protoc_insertion_point(module)

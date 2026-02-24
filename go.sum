@@ -664,6 +664,10 @@ github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e h
 github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e/go.mod h1:ekjSKTsgK/2obT23keK7ixAB9cFsGPyrIoYzZTG+3pU=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 h1:vaGKrZ/ti7T9RcrPHyqrAzrG9ThuhBF1lhVRExS01bg=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 h1:DbLHhYu2wdFvwQ02KE3rxBE1vSc+ecMxLEyTwv8Ci00=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 h1:2O8djle14ujtze1xQb9MVXAdEepumxhoBJPEdf+kNnA=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.5-0.20260224001138-7e9b62cc47d9 h1:5BNFRgHTV20x/XmAWToav5WWTa9Ezixj/0YM4G29qn4=

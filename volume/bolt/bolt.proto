@@ -33,5 +33,9 @@ message Config {
   // FreelistSync enables syncing the freelist to disk.
   // Reduces write performance but increases recovery performance.
   bool freelist_sync = 9;
+  // BatchSize coalesces this many write transactions into one BoltDB commit.
+  // Dramatically reduces fsync overhead for bulk write workloads.
+  // 0 or 1 disables batching (default). Typical value: 100-1000.
+  uint32 batch_size = 11;
 }
 

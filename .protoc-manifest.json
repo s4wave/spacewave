@@ -1056,7 +1056,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume/bolt": {
-      "hash": "1309a8fb79b1b7693c45805331c7da364cecdb78b8e2125ea371c849d19e5e9a",
+      "hash": "2726ff4d27a8bfd7ce8ca8b661f33a4ca23b95b1d3f3a167d090e02a28c10e76",
       "generatedFiles": [
         "volume/bolt/bolt.pb.cc",
         "volume/bolt/bolt.pb.go",

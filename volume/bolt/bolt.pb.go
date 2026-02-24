@@ -46,6 +46,10 @@ type Config struct {
 	// FreelistSync enables syncing the freelist to disk.
 	// Reduces write performance but increases recovery performance.
 	FreelistSync bool `protobuf:"varint,9,opt,name=freelist_sync,json=freelistSync,proto3" json:"freelistSync,omitempty"`
+	// BatchSize coalesces this many write transactions into one BoltDB commit.
+	// Dramatically reduces fsync overhead for bulk write workloads.
+	// 0 or 1 disables batching (default). Typical value: 100-1000.
+	BatchSize uint32 `protobuf:"varint,11,opt,name=batch_size,json=batchSize,proto3" json:"batchSize,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -117,20 +121,34 @@ func (x *Config) GetFreelistSync() bool {
 	return false
 }
 
+func (x *Config) GetBatchSize() uint32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.Path = m.Path
-	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.Verbose = m.Verbose
-	r.VolumeConfig = m.VolumeConfig.CloneVT()
-	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Sync = m.Sync
 	r.FreelistSync = m.FreelistSync
+	r.BatchSize = m.BatchSize
+	if rhs := m.KvKeyOpts; rhs != nil {
+		r.KvKeyOpts = rhs.CloneVT()
+	}
+	if rhs := m.VolumeConfig; rhs != nil {
+		r.VolumeConfig = rhs.CloneVT()
+	}
+	if rhs := m.StoreConfig; rhs != nil {
+		r.StoreConfig = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -172,6 +190,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.NoWriteKey != that.NoWriteKey {
+		return false
+	}
+	if this.BatchSize != that.BatchSize {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -238,6 +259,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("noWriteKey")
 		s.WriteBool(x.NoWriteKey)
 	}
+	if x.BatchSize != 0 || s.HasField("batchSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("batchSize")
+		s.WriteUint32(x.BatchSize)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -294,6 +320,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "no_write_key", "noWriteKey":
 			s.AddField("no_write_key")
 			x.NoWriteKey = s.ReadBool()
+		case "batch_size", "batchSize":
+			s.AddField("batch_size")
+			x.BatchSize = s.ReadUint32()
 		}
 	})
 }
@@ -332,6 +361,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BatchSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BatchSize))
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.NoWriteKey {
 		i--
@@ -460,6 +494,9 @@ func (m *Config) SizeVT() (n int) {
 	if m.NoWriteKey {
 		n += 2
 	}
+	if m.BatchSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BatchSize))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -529,6 +566,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("no_write_key: ")
 		sb.WriteString(strconv.FormatBool(x.NoWriteKey))
+	}
+	if x.BatchSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("batch_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BatchSize), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -724,6 +768,15 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.NoWriteKey = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BatchSize", wireType)
+			}
+			m.BatchSize = 0
+			m.BatchSize, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

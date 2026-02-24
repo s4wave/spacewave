@@ -229,6 +229,7 @@ class Config final : public ::google::protobuf::Message
     kSyncFieldNumber = 8,
     kFreelistSyncFieldNumber = 9,
     kNoWriteKeyFieldNumber = 10,
+    kBatchSizeFieldNumber = 11,
   };
   // string path = 1;
   void clear_path() ;
@@ -340,11 +341,21 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_no_write_key(bool value);
 
   public:
+  // uint32 batch_size = 11;
+  void clear_batch_size() ;
+  ::uint32_t batch_size() const;
+  void set_batch_size(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_batch_size() const;
+  void _internal_set_batch_size(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:volume.bolt.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
                                    3, 39,
                                    2>
       _table_;
@@ -375,6 +386,7 @@ class Config final : public ::google::protobuf::Message
     bool sync_;
     bool freelist_sync_;
     bool no_write_key_;
+    ::uint32_t batch_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -866,6 +878,31 @@ inline bool Config::_internal_freelist_sync() const {
 inline void Config::_internal_set_freelist_sync(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.freelist_sync_ = value;
+}
+
+// uint32 batch_size = 11;
+inline void Config::clear_batch_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.batch_size_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::uint32_t Config::batch_size() const {
+  // @@protoc_insertion_point(field_get:volume.bolt.Config.batch_size)
+  return _internal_batch_size();
+}
+inline void Config::set_batch_size(::uint32_t value) {
+  _internal_set_batch_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:volume.bolt.Config.batch_size)
+}
+inline ::uint32_t Config::_internal_batch_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.batch_size_;
+}
+inline void Config::_internal_set_batch_size(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.batch_size_ = value;
 }
 
 #ifdef __GNUC__

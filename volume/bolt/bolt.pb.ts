@@ -77,6 +77,14 @@ export interface Config {
    * @generated from field: bool freelist_sync = 9;
    */
   freelistSync?: boolean
+  /**
+   * BatchSize coalesces this many write transactions into one BoltDB commit.
+   * Dramatically reduces fsync overhead for bulk write workloads.
+   * 0 or 1 disables batching (default). Typical value: 100-1000.
+   *
+   * @generated from field: uint32 batch_size = 11;
+   */
+  batchSize?: number
 }
 
 // Config contains the message type declaration for Config.
@@ -92,6 +100,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 10, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
     { no: 9, name: 'freelist_sync', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 11, name: 'batch_size', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -57,8 +57,24 @@ func NewBolt(
 	}
 
 	var vstore skvtx.Store = store
+	var batchStore *sbolt.BatchStore
+	if batchSize := conf.GetBatchSize(); batchSize > 1 {
+		batchStore = sbolt.NewBatchStore(store, int(batchSize))
+		vstore = batchStore
+	}
 	if conf.GetVerbose() {
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
+	}
+
+	closeFn := store.GetDB().Close
+	if batchStore != nil {
+		origClose := closeFn
+		closeFn = func() error {
+			if err := batchStore.Flush(); err != nil {
+				return err
+			}
+			return origClose()
+		}
 	}
 
 	return kvtx.NewVolume(
@@ -69,7 +85,7 @@ func NewBolt(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
-		store.GetDB().Close,
+		closeFn,
 	)
 }
 
