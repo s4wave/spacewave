@@ -18,8 +18,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_test "github.com/aperturerobotics/hydra/volume/test"
-	"github.com/libp2p/go-libp2p/core/crypto"
-	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
+	"github.com/aperturerobotics/bifrost/crypto"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
@@ -127,7 +126,7 @@ func TestBlockVolume(t *testing.T) {
 	if !bvolPriv.GetPublic().Equals(nvolPriv.GetPublic()) {
 		t.Fatal("key mismatch")
 	}
-	if tp := bvolPriv.Type(); tp != pb.KeyType_Ed25519 {
+	if tp := bvolPriv.Type(); tp != crypto.KeyType_Ed25519 {
 		t.Fatalf("expected ed25519 but got %s", tp.String())
 	}
 }

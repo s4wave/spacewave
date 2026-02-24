@@ -3,7 +3,7 @@ package volume_store
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/aperturerobotics/bifrost/crypto"
 )
 
 // Store implements the volume state store.

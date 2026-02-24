@@ -16,7 +16,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	volume_store "github.com/aperturerobotics/hydra/volume/store"
-	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/aperturerobotics/bifrost/crypto"
 )
 
 // ProxyVolume implements a volume backed by a ProxyVolume service.
