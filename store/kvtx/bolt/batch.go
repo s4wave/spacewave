@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "go.etcd.io/bbolt"
-	bdberrors "go.etcd.io/bbolt/errors"
+	bdb "github.com/aperturerobotics/bbolt"
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 )
 
 // flushInterval is how long unflushed writes can sit before a periodic commit.

@@ -14,7 +14,7 @@ import (
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
-	bdb "go.etcd.io/bbolt"
+	bdb "github.com/aperturerobotics/bbolt"
 )
 
 // ControllerID identifies the Bolt volume controller.

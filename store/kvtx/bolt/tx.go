@@ -11,7 +11,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
-	bdb "go.etcd.io/bbolt"
+	bdb "github.com/aperturerobotics/bbolt"
 )
 
 // Tx is a bolt transaction.

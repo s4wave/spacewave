@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"go.etcd.io/bbolt"
+	"github.com/aperturerobotics/bbolt"
 )
 
 // Iterator iterates over a bbolt cursor.

@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "go.etcd.io/bbolt"
+	bdb "github.com/aperturerobotics/bbolt"
 )
 
 // Store is a bolt database key-value store.

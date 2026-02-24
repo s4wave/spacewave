@@ -30,6 +30,7 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/aperturerobotics/bbolt v0.0.0-20260224224535-8e39194f00cd // master
 	github.com/bits-and-blooms/bitset v1.14.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -48,7 +49,6 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
-	go.etcd.io/bbolt v1.4.3 // main
 	golang.org/x/sync v0.19.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.25.12
@@ -70,9 +70,6 @@ require (
 
 // aperture: use compatibility forks
 replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260224001138-7e9b62cc47d9 // master
-
-// aperture: use bbolt fork with multi-process concurrent access
-replace go.etcd.io/bbolt => github.com/aperturerobotics/bbolt v0.0.0-20260217020925-7f3c81ed5b77 // master
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
