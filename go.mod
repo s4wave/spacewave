@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // master
-	github.com/aperturerobotics/common v0.31.0 // latest
+	github.com/aperturerobotics/common v0.31.1 // latest
 	github.com/aperturerobotics/controllerbus v0.52.4 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
