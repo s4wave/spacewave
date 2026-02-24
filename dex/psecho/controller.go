@@ -145,7 +145,6 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 	timer := time.NewTimer(debounce)
 	defer timer.Stop()
 
-	var prevSnap string
 	for {
 		var ch <-chan struct{}
 		var refs map[string]*block.BlockRef
@@ -178,37 +177,23 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 			})
 		}
 
-		snap := snapshotKey(refs)
-		if snap == prevSnap {
-			if !immediate {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ch:
-					continue
-				}
+		if len(refs) == 0 {
+			// Empty wantlist: wait for a directive to add something.
+			select {
+			case <-ctx.Done():
+				return
+			case <-ch:
 			}
 			continue
 		}
-		prevSnap = snap
 
+		// Always re-publish non-empty wantlists on each tick.
+		// Pub-sub messages can be lost (e.g. subscription not yet
+		// established), so periodic re-announce ensures delivery.
 		if err := c.publishWantList(sub, refs); err != nil {
 			c.le.WithError(err).Warn("publish wantlist failed")
 		}
 	}
-}
-
-// snapshotKey builds a string from refs for change detection.
-func snapshotKey(refs map[string]*block.BlockRef) string {
-	if len(refs) == 0 {
-		return ""
-	}
-	var b []byte
-	for k := range refs {
-		b = append(b, k...)
-		b = append(b, ',')
-	}
-	return string(b)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
