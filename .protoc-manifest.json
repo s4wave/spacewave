@@ -564,6 +564,19 @@
         "dex/psecho/psecho.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/dex/session": {
+      "hash": "5f7631f10dc84d3c94e7b81cefcfa04fc4517e7e7b375ea565ad103490ac16fd",
+      "generatedFiles": [
+        "dex/session/session.pb.cc",
+        "dex/session/session.pb.go",
+        "dex/session/session.pb.h",
+        "dex/session/session.pb.rs",
+        "dex/session/session.pb.ts"
+      ],
+      "protoFiles": [
+        "dex/session/session.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/dex/solicit": {
       "hash": "4f6731c7c06b946fb15b734cfe3011f5f3a3f42cd69ebc719e9ff99bf21ddee2",
       "generatedFiles": [

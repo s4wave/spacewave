@@ -1,0 +1,24 @@
+syntax = "proto3";
+package dex.session;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// BlockTransfer is a message on a block transfer stream.
+// Embedded as a submessage in backend-specific wire protocols.
+message BlockTransfer {
+  // RequestId pairs requests with responses.
+  uint64 request_id = 1;
+  // Ref is the block reference (set in Init message).
+  .block.BlockRef ref = 2;
+  // TotalSize is the total block size in bytes (set in Init message).
+  // Receiver rejects if over max_block_size.
+  uint64 total_size = 3;
+  // Data is the chunk payload (up to chunk_size bytes).
+  bytes data = 4;
+  // Complete indicates this is the last chunk for this block.
+  bool complete = 5;
+  // Error is set if the transfer failed.
+  string error = 6;
+  // Cancel requests the sender to skip this block.
+  bool cancel = 7;
+}
