@@ -7,7 +7,7 @@ import (
 	crypto_triplesec "github.com/aperturerobotics/auth/crypto/triplesec"
 	auth_method "github.com/aperturerobotics/auth/method"
 	"github.com/keybase/go-triplesec"
-	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
 )
