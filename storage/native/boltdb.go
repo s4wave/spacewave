@@ -50,7 +50,7 @@ func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller
 	return &volume_bolt.Config{
 		Path:         filepath.Join(i.rootDir, filename),
 		Verbose:      i.verbose,
-		Sync:         true,
+		Sync:         false,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
 }
