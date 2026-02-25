@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20260224072647-ce10cb7c5508 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260224230459-72a38a641fc2 // master
 	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
 )
 
@@ -51,7 +51,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
-	go.etcd.io/bbolt v1.4.3 // indirect; main
 	golang.org/x/sync v0.19.0 // indirect
 	gorm.io/gorm v1.25.12 // indirect
 )
@@ -72,6 +71,9 @@ require (
 
 // aperture: use compatibility forks
 replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260224043555-98f902c31410 // master
+
+// local: WatchLoop wake debounce
+replace github.com/aperturerobotics/hydra => ../hydra
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
@@ -113,6 +115,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // indirect
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
