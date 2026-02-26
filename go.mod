@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260224230459-72a38a641fc2 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260226204638-b8110623bd9d // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 // indirect
@@ -47,7 +47,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // master
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260226200404-e9a2a03ae528 // master
 	github.com/aperturerobotics/cayley v0.11.0 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
@@ -101,7 +101,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.14
 	github.com/klauspost/compress v1.18.4
-	github.com/libp2p/go-yamux/v4 v4.0.2
+	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
