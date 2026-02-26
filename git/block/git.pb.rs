@@ -266,6 +266,41 @@ pub struct CloneOpts {
     #[prost(string, tag="10")]
     pub ca_bundle: ::prost::alloc::string::String,
 }
+/// FetchOpts are options for a Git fetch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FetchOpts {
+    /// RemoteName is the name of the remote to fetch from, by default "origin."
+    #[prost(string, tag="1")]
+    pub remote_name: ::prost::alloc::string::String,
+    /// RemoteUrl overrides the remote repo address with a custom URL.
+    #[prost(string, tag="2")]
+    pub remote_url: ::prost::alloc::string::String,
+    /// RefSpecs are the refspecs to use for the fetch.
+    /// If empty, uses the default refspecs for the remote.
+    #[prost(string, repeated, tag="3")]
+    pub ref_specs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Depth limits to the specific number of commits.
+    /// If zero, fetches all of the commits.
+    #[prost(uint32, tag="4")]
+    pub depth: u32,
+    /// TagMode controls the fetching of tags.
+    #[prost(enumeration="TagMode", tag="5")]
+    pub tag_mode: i32,
+    /// Force allows the fetch to update a local branch even when the remote
+    /// branch does not descend from it.
+    #[prost(bool, tag="6")]
+    pub force: bool,
+    /// Insecure indicates that TLS checks should be skipped.
+    #[prost(bool, tag="7")]
+    pub insecure: bool,
+    /// CaBundle contains additional CA certificates to trust.
+    #[prost(string, tag="8")]
+    pub ca_bundle: ::prost::alloc::string::String,
+    /// Prune indicates that local refs matching RefSpecs that do not exist
+    /// remotely will be removed.
+    #[prost(bool, tag="9")]
+    pub prune: bool,
+}
 /// CheckoutOpts are options when checking out a repo.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckoutOpts {

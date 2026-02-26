@@ -96,6 +96,10 @@ class EndOfIndexEntry;
 struct EndOfIndexEntryDefaultTypeInternal;
 extern EndOfIndexEntryDefaultTypeInternal _EndOfIndexEntry_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull EndOfIndexEntry_class_data_;
+class FetchOpts;
+struct FetchOptsDefaultTypeInternal;
+extern FetchOptsDefaultTypeInternal _FetchOpts_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull FetchOpts_class_data_;
 class Index;
 struct IndexDefaultTypeInternal;
 extern IndexDefaultTypeInternal _Index_default_instance_;
@@ -286,6 +290,319 @@ inline bool TagMode_Parse(
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class FetchOpts final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:git.block.FetchOpts) */ {
+ public:
+  inline FetchOpts() : FetchOpts(nullptr) {}
+  ~FetchOpts() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(FetchOpts* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(FetchOpts));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR FetchOpts(::google::protobuf::internal::ConstantInitialized);
+
+  inline FetchOpts(const FetchOpts& from) : FetchOpts(nullptr, from) {}
+  inline FetchOpts(FetchOpts&& from) noexcept
+      : FetchOpts(nullptr, ::std::move(from)) {}
+  inline FetchOpts& operator=(const FetchOpts& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline FetchOpts& operator=(FetchOpts&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const FetchOpts& default_instance() {
+    return *reinterpret_cast<const FetchOpts*>(
+        &_FetchOpts_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(FetchOpts& a, FetchOpts& b) { a.Swap(&b); }
+  inline void Swap(FetchOpts* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(FetchOpts* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  FetchOpts* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<FetchOpts>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const FetchOpts& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const FetchOpts& from) { FetchOpts::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(FetchOpts* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "git.block.FetchOpts"; }
+
+  explicit FetchOpts(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  FetchOpts(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const FetchOpts& from);
+  FetchOpts(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, FetchOpts&& from) noexcept
+      : FetchOpts(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRefSpecsFieldNumber = 3,
+    kRemoteNameFieldNumber = 1,
+    kRemoteUrlFieldNumber = 2,
+    kCaBundleFieldNumber = 8,
+    kDepthFieldNumber = 4,
+    kTagModeFieldNumber = 5,
+    kForceFieldNumber = 6,
+    kInsecureFieldNumber = 7,
+    kPruneFieldNumber = 9,
+  };
+  // repeated string ref_specs = 3;
+  int ref_specs_size() const;
+  private:
+  int _internal_ref_specs_size() const;
+
+  public:
+  void clear_ref_specs() ;
+  const ::std::string& ref_specs(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_ref_specs(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ref_specs(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_ref_specs();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_ref_specs(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& ref_specs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_ref_specs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_ref_specs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_ref_specs();
+
+  public:
+  // string remote_name = 1;
+  void clear_remote_name() ;
+  const ::std::string& remote_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_remote_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_remote_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_remote_name();
+  void set_allocated_remote_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_remote_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_remote_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_remote_name();
+
+  public:
+  // string remote_url = 2;
+  void clear_remote_url() ;
+  const ::std::string& remote_url() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_remote_url(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_remote_url();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_remote_url();
+  void set_allocated_remote_url(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_remote_url() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_remote_url(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_remote_url();
+
+  public:
+  // string ca_bundle = 8;
+  void clear_ca_bundle() ;
+  const ::std::string& ca_bundle() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ca_bundle(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ca_bundle();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ca_bundle();
+  void set_allocated_ca_bundle(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ca_bundle() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ca_bundle(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ca_bundle();
+
+  public:
+  // uint32 depth = 4;
+  void clear_depth() ;
+  ::uint32_t depth() const;
+  void set_depth(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_depth() const;
+  void _internal_set_depth(::uint32_t value);
+
+  public:
+  // .git.block.TagMode tag_mode = 5;
+  void clear_tag_mode() ;
+  ::git::block::TagMode tag_mode() const;
+  void set_tag_mode(::git::block::TagMode value);
+
+  private:
+  ::git::block::TagMode _internal_tag_mode() const;
+  void _internal_set_tag_mode(::git::block::TagMode value);
+
+  public:
+  // bool force = 6;
+  void clear_force() ;
+  bool force() const;
+  void set_force(bool value);
+
+  private:
+  bool _internal_force() const;
+  void _internal_set_force(bool value);
+
+  public:
+  // bool insecure = 7;
+  void clear_insecure() ;
+  bool insecure() const;
+  void set_insecure(bool value);
+
+  private:
+  bool _internal_insecure() const;
+  void _internal_set_insecure(bool value);
+
+  public:
+  // bool prune = 9;
+  void clear_prune() ;
+  bool prune() const;
+  void set_prune(bool value);
+
+  private:
+  bool _internal_prune() const;
+  void _internal_set_prune(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:git.block.FetchOpts)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   0, 75,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const FetchOpts& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> ref_specs_;
+    ::google::protobuf::internal::ArenaStringPtr remote_name_;
+    ::google::protobuf::internal::ArenaStringPtr remote_url_;
+    ::google::protobuf::internal::ArenaStringPtr ca_bundle_;
+    ::uint32_t depth_;
+    int tag_mode_;
+    bool force_;
+    bool insecure_;
+    bool prune_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull FetchOpts_class_data_;
 // -------------------------------------------------------------------
 
 class CloneOpts final : public ::google::protobuf::Message
@@ -2147,7 +2464,7 @@ class CheckoutOpts final : public ::google::protobuf::Message
     return *reinterpret_cast<const CheckoutOpts*>(
         &_CheckoutOpts_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(CheckoutOpts& a, CheckoutOpts& b) { a.Swap(&b); }
   inline void Swap(CheckoutOpts* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8099,6 +8416,402 @@ inline void CloneOpts::set_allocated_ca_bundle(::std::string* PROTOBUF_NULLABLE 
     _impl_.ca_bundle_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:git.block.CloneOpts.ca_bundle)
+}
+
+// -------------------------------------------------------------------
+
+// FetchOpts
+
+// string remote_name = 1;
+inline void FetchOpts::clear_remote_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& FetchOpts::remote_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.remote_name)
+  return _internal_remote_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void FetchOpts::set_remote_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.remote_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.remote_name)
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::mutable_remote_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_remote_name();
+  // @@protoc_insertion_point(field_mutable:git.block.FetchOpts.remote_name)
+  return _s;
+}
+inline const ::std::string& FetchOpts::_internal_remote_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_name_.Get();
+}
+inline void FetchOpts::_internal_set_remote_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::_internal_mutable_remote_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.remote_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE FetchOpts::release_remote_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.block.FetchOpts.remote_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.remote_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.remote_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void FetchOpts::set_allocated_remote_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.remote_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.remote_name_.IsDefault()) {
+    _impl_.remote_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.block.FetchOpts.remote_name)
+}
+
+// string remote_url = 2;
+inline void FetchOpts::clear_remote_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_url_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& FetchOpts::remote_url() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.remote_url)
+  return _internal_remote_url();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void FetchOpts::set_remote_url(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.remote_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.remote_url)
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::mutable_remote_url()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_remote_url();
+  // @@protoc_insertion_point(field_mutable:git.block.FetchOpts.remote_url)
+  return _s;
+}
+inline const ::std::string& FetchOpts::_internal_remote_url() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_url_.Get();
+}
+inline void FetchOpts::_internal_set_remote_url(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_url_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::_internal_mutable_remote_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.remote_url_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE FetchOpts::release_remote_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.block.FetchOpts.remote_url)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.remote_url_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.remote_url_.Set("", GetArena());
+  }
+  return released;
+}
+inline void FetchOpts::set_allocated_remote_url(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.remote_url_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.remote_url_.IsDefault()) {
+    _impl_.remote_url_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.block.FetchOpts.remote_url)
+}
+
+// repeated string ref_specs = 3;
+inline int FetchOpts::_internal_ref_specs_size() const {
+  return _internal_ref_specs().size();
+}
+inline int FetchOpts::ref_specs_size() const {
+  return _internal_ref_specs_size();
+}
+inline void FetchOpts::clear_ref_specs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ref_specs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::add_ref_specs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_ref_specs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:git.block.FetchOpts.ref_specs)
+  return _s;
+}
+inline const ::std::string& FetchOpts::ref_specs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.ref_specs)
+  return _internal_ref_specs().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::mutable_ref_specs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:git.block.FetchOpts.ref_specs)
+  return _internal_mutable_ref_specs()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void FetchOpts::set_ref_specs(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_ref_specs()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.ref_specs)
+}
+template <typename Arg_, typename... Args_>
+inline void FetchOpts::add_ref_specs(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_ref_specs(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:git.block.FetchOpts.ref_specs)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& FetchOpts::ref_specs()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:git.block.FetchOpts.ref_specs)
+  return _internal_ref_specs();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+FetchOpts::mutable_ref_specs() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:git.block.FetchOpts.ref_specs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_ref_specs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+FetchOpts::_internal_ref_specs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ref_specs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+FetchOpts::_internal_mutable_ref_specs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.ref_specs_;
+}
+
+// uint32 depth = 4;
+inline void FetchOpts::clear_depth() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.depth_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t FetchOpts::depth() const {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.depth)
+  return _internal_depth();
+}
+inline void FetchOpts::set_depth(::uint32_t value) {
+  _internal_set_depth(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.depth)
+}
+inline ::uint32_t FetchOpts::_internal_depth() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.depth_;
+}
+inline void FetchOpts::_internal_set_depth(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.depth_ = value;
+}
+
+// .git.block.TagMode tag_mode = 5;
+inline void FetchOpts::clear_tag_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tag_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::git::block::TagMode FetchOpts::tag_mode() const {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.tag_mode)
+  return _internal_tag_mode();
+}
+inline void FetchOpts::set_tag_mode(::git::block::TagMode value) {
+  _internal_set_tag_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.tag_mode)
+}
+inline ::git::block::TagMode FetchOpts::_internal_tag_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::git::block::TagMode>(_impl_.tag_mode_);
+}
+inline void FetchOpts::_internal_set_tag_mode(::git::block::TagMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tag_mode_ = value;
+}
+
+// bool force = 6;
+inline void FetchOpts::clear_force() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.force_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool FetchOpts::force() const {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.force)
+  return _internal_force();
+}
+inline void FetchOpts::set_force(bool value) {
+  _internal_set_force(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.force)
+}
+inline bool FetchOpts::_internal_force() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.force_;
+}
+inline void FetchOpts::_internal_set_force(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.force_ = value;
+}
+
+// bool insecure = 7;
+inline void FetchOpts::clear_insecure() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.insecure_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline bool FetchOpts::insecure() const {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.insecure)
+  return _internal_insecure();
+}
+inline void FetchOpts::set_insecure(bool value) {
+  _internal_set_insecure(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.insecure)
+}
+inline bool FetchOpts::_internal_insecure() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.insecure_;
+}
+inline void FetchOpts::_internal_set_insecure(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.insecure_ = value;
+}
+
+// string ca_bundle = 8;
+inline void FetchOpts::clear_ca_bundle() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ca_bundle_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& FetchOpts::ca_bundle() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.ca_bundle)
+  return _internal_ca_bundle();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void FetchOpts::set_ca_bundle(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.ca_bundle_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.ca_bundle)
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::mutable_ca_bundle()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_ca_bundle();
+  // @@protoc_insertion_point(field_mutable:git.block.FetchOpts.ca_bundle)
+  return _s;
+}
+inline const ::std::string& FetchOpts::_internal_ca_bundle() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ca_bundle_.Get();
+}
+inline void FetchOpts::_internal_set_ca_bundle(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ca_bundle_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL FetchOpts::_internal_mutable_ca_bundle() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ca_bundle_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE FetchOpts::release_ca_bundle() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.block.FetchOpts.ca_bundle)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.ca_bundle_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ca_bundle_.Set("", GetArena());
+  }
+  return released;
+}
+inline void FetchOpts::set_allocated_ca_bundle(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.ca_bundle_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ca_bundle_.IsDefault()) {
+    _impl_.ca_bundle_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.block.FetchOpts.ca_bundle)
+}
+
+// bool prune = 9;
+inline void FetchOpts::clear_prune() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.prune_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline bool FetchOpts::prune() const {
+  // @@protoc_insertion_point(field_get:git.block.FetchOpts.prune)
+  return _internal_prune();
+}
+inline void FetchOpts::set_prune(bool value) {
+  _internal_set_prune(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:git.block.FetchOpts.prune)
+}
+inline bool FetchOpts::_internal_prune() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.prune_;
+}
+inline void FetchOpts::_internal_set_prune(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.prune_ = value;
 }
 
 // -------------------------------------------------------------------

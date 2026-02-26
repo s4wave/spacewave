@@ -29,6 +29,34 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace git {
 namespace world {
 
+inline constexpr GitFetchOp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        fetch_opts_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GitFetchOp::GitFetchOp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GitFetchOp_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GitFetchOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GitFetchOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GitFetchOpDefaultTypeInternal() {}
+  union {
+    GitFetchOp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GitFetchOpDefaultTypeInternal _GitFetchOp_default_instance_;
+
 inline constexpr HeadRefStore::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -234,6 +262,13 @@ const ::uint32_t
         6,
         4,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::git::world::GitFetchOp, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::git::world::GitFetchOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::git::world::GitFetchOp, _impl_.fetch_opts_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::GitWorktreeCheckoutOp, _impl_._has_bits_),
         7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::world::GitWorktreeCheckoutOp, _impl_.object_key_),
@@ -252,13 +287,15 @@ static const ::_pbi::MigrationSchema
         {11, sizeof(::git::world::Worktree)},
         {18, sizeof(::git::world::HeadRefStore)},
         {27, sizeof(::git::world::GitCreateWorktreeOp)},
-        {44, sizeof(::git::world::GitWorktreeCheckoutOp)},
+        {44, sizeof(::git::world::GitFetchOp)},
+        {51, sizeof(::git::world::GitWorktreeCheckoutOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::world::_GitInitOp_default_instance_._instance,
     &::git::world::_Worktree_default_instance_._instance,
     &::git::world::_HeadRefStore_default_instance_._instance,
     &::git::world::_GitCreateWorktreeOp_default_instance_._instance,
+    &::git::world::_GitFetchOp_default_instance_._instance,
     &::git::world::_GitWorktreeCheckoutOp_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -285,12 +322,13 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fg
     "ef\022\026\n\016create_workdir\030\004 \001(\010\022.\n\rcheckout_o"
     "pts\030\005 \001(\0132\027.git.block.CheckoutOpts\022\030\n\020di"
     "sable_checkout\030\006 \001(\010\022-\n\ttimestamp\030\007 \001(\0132"
-    "\032.google.protobuf.Timestamp\"\243\001\n\025GitWorkt"
-    "reeCheckoutOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017rep"
-    "o_object_key\030\002 \001(\t\022.\n\rcheckout_opts\030\003 \001("
-    "\0132\027.git.block.CheckoutOpts\022-\n\ttimestamp\030"
-    "\004 \001(\0132\032.google.protobuf.Timestampb\006proto"
-    "3"
+    "\032.google.protobuf.Timestamp\"J\n\nGitFetchO"
+    "p\022\022\n\nobject_key\030\001 \001(\t\022(\n\nfetch_opts\030\002 \001("
+    "\0132\024.git.block.FetchOpts\"\243\001\n\025GitWorktreeC"
+    "heckoutOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017repo_ob"
+    "ject_key\030\002 \001(\t\022.\n\rcheckout_opts\030\003 \001(\0132\027."
+    "git.block.CheckoutOpts\022-\n\ttimestamp\030\004 \001("
+    "\0132\032.google.protobuf.Timestampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_deps[4] = {
@@ -303,13 +341,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto = {
     false,
     false,
-    1081,
+    1157,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
     "github.com/aperturerobotics/hydra/git/world/git.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_deps,
     4,
-    5,
+    6,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto::offsets,
@@ -1940,6 +1978,332 @@ void GitCreateWorktreeOp::InternalSwap(GitCreateWorktreeOp* PROTOBUF_RESTRICT PR
 }
 
 ::google::protobuf::Metadata GitCreateWorktreeOp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GitFetchOp::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GitFetchOp>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_._has_bits_);
+};
+
+void GitFetchOp::clear_fetch_opts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.fetch_opts_ != nullptr) _impl_.fetch_opts_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+GitFetchOp::GitFetchOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GitFetchOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:git.world.GitFetchOp)
+}
+PROTOBUF_NDEBUG_INLINE GitFetchOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::git::world::GitFetchOp& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_) {}
+
+GitFetchOp::GitFetchOp(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GitFetchOp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GitFetchOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GitFetchOp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.fetch_opts_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.fetch_opts_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:git.world.GitFetchOp)
+}
+PROTOBUF_NDEBUG_INLINE GitFetchOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena) {}
+
+inline void GitFetchOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.fetch_opts_ = {};
+}
+GitFetchOp::~GitFetchOp() {
+  // @@protoc_insertion_point(destructor:git.world.GitFetchOp)
+  SharedDtor(*this);
+}
+inline void GitFetchOp::SharedDtor(MessageLite& self) {
+  GitFetchOp& this_ = static_cast<GitFetchOp&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  delete this_._impl_.fetch_opts_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GitFetchOp::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GitFetchOp(arena);
+}
+constexpr auto GitFetchOp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(GitFetchOp),
+                                            alignof(GitFetchOp));
+}
+constexpr auto GitFetchOp::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GitFetchOp_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GitFetchOp::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GitFetchOp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GitFetchOp::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GitFetchOp>(), &GitFetchOp::ByteSizeLong,
+              &GitFetchOp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_._cached_size_),
+          false,
+      },
+      &GitFetchOp::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GitFetchOp_class_data_ =
+        GitFetchOp::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GitFetchOp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GitFetchOp_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GitFetchOp_class_data_.tc_table);
+  return GitFetchOp_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 39, 2>
+GitFetchOp::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GitFetchOp_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::git::world::GitFetchOp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .git.block.FetchOpts fetch_opts = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_.fetch_opts_)}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_.object_key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .git.block.FetchOpts fetch_opts = 2;
+    {PROTOBUF_FIELD_OFFSET(GitFetchOp, _impl_.fetch_opts_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::git::block::FetchOpts>()},
+  }},
+  {{
+    "\24\12\0\0\0\0\0\0"
+    "git.world.GitFetchOp"
+    "object_key"
+  }},
+};
+PROTOBUF_NOINLINE void GitFetchOp::Clear() {
+// @@protoc_insertion_point(message_clear_start:git.world.GitFetchOp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.fetch_opts_ != nullptr);
+      _impl_.fetch_opts_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GitFetchOp::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GitFetchOp& this_ = static_cast<const GitFetchOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GitFetchOp::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GitFetchOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:git.world.GitFetchOp)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "git.world.GitFetchOp.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .git.block.FetchOpts fetch_opts = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.fetch_opts_, this_._impl_.fetch_opts_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:git.world.GitFetchOp)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GitFetchOp::ByteSizeLong(const MessageLite& base) {
+  const GitFetchOp& this_ = static_cast<const GitFetchOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GitFetchOp::ByteSizeLong() const {
+  const GitFetchOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:git.world.GitFetchOp)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // .git.block.FetchOpts fetch_opts = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.fetch_opts_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GitFetchOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GitFetchOp*>(&to_msg);
+  auto& from = static_cast<const GitFetchOp&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:git.world.GitFetchOp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.fetch_opts_ != nullptr);
+      if (_this->_impl_.fetch_opts_ == nullptr) {
+        _this->_impl_.fetch_opts_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.fetch_opts_);
+      } else {
+        _this->_impl_.fetch_opts_->MergeFrom(*from._impl_.fetch_opts_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GitFetchOp::CopyFrom(const GitFetchOp& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:git.world.GitFetchOp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GitFetchOp::InternalSwap(GitFetchOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  swap(_impl_.fetch_opts_, other->_impl_.fetch_opts_);
+}
+
+::google::protobuf::Metadata GitFetchOp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

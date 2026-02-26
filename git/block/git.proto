@@ -248,6 +248,32 @@ message CloneOpts {
   string ca_bundle = 10;
 }
 
+// FetchOpts are options for a Git fetch.
+message FetchOpts {
+  // RemoteName is the name of the remote to fetch from, by default "origin."
+  string remote_name = 1;
+  // RemoteUrl overrides the remote repo address with a custom URL.
+  string remote_url = 2;
+  // RefSpecs are the refspecs to use for the fetch.
+  // If empty, uses the default refspecs for the remote.
+  repeated string ref_specs = 3;
+  // Depth limits to the specific number of commits.
+  // If zero, fetches all of the commits.
+  uint32 depth = 4;
+  // TagMode controls the fetching of tags.
+  TagMode tag_mode = 5;
+  // Force allows the fetch to update a local branch even when the remote
+  // branch does not descend from it.
+  bool force = 6;
+  // Insecure indicates that TLS checks should be skipped.
+  bool insecure = 7;
+  // CaBundle contains additional CA certificates to trust.
+  string ca_bundle = 8;
+  // Prune indicates that local refs matching RefSpecs that do not exist
+  // remotely will be removed.
+  bool prune = 9;
+}
+
 // CheckoutOpts are options when checking out a repo.
 message CheckoutOpts {
   // Commit is the commit hash to check out.

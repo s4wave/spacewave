@@ -29,6 +29,45 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace git {
 namespace block {
 
+inline constexpr FetchOpts::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        ref_specs_{},
+        remote_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        remote_url_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ca_bundle_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        depth_{0u},
+        tag_mode_{static_cast< ::git::block::TagMode >(0)},
+        force_{false},
+        insecure_{false},
+        prune_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR FetchOpts::FetchOpts(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(FetchOpts_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct FetchOptsDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR FetchOptsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~FetchOptsDefaultTypeInternal() {}
+  union {
+    FetchOpts _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FetchOptsDefaultTypeInternal _FetchOpts_default_instance_;
+
 inline constexpr CloneOpts::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -756,6 +795,27 @@ const ::uint32_t
         8,
         3,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_._has_bits_),
+        12, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.remote_name_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.remote_url_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.ref_specs_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.depth_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.tag_mode_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.force_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.insecure_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.ca_bundle_),
+        PROTOBUF_FIELD_OFFSET(::git::block::FetchOpts, _impl_.prune_),
+        1,
+        2,
+        0,
+        4,
+        5,
+        6,
+        7,
+        3,
+        8,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::block::CheckoutOpts, _impl_._has_bits_),
         8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::block::CheckoutOpts, _impl_.commit_),
@@ -790,7 +850,8 @@ static const ::_pbi::MigrationSchema
         {117, sizeof(::git::block::IndexEntry)},
         {146, sizeof(::git::block::AuthOpts)},
         {153, sizeof(::git::block::CloneOpts)},
-        {176, sizeof(::git::block::CheckoutOpts)},
+        {176, sizeof(::git::block::FetchOpts)},
+        {197, sizeof(::git::block::CheckoutOpts)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::block::_Repo_default_instance_._instance,
@@ -811,6 +872,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::block::_IndexEntry_default_instance_._instance,
     &::git::block::_AuthOpts_default_instance_._instance,
     &::git::block::_CloneOpts_default_instance_._instance,
+    &::git::block::_FetchOpts_default_instance_._instance,
     &::git::block::_CheckoutOpts_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -874,21 +936,25 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fg
     "gle_branch\030\004 \001(\010\022\030\n\020disable_checkout\030\005 \001"
     "(\010\022\r\n\005depth\030\006 \001(\r\022\021\n\trecursive\030\007 \001(\010\022$\n\010"
     "tag_mode\030\010 \001(\0162\022.git.block.TagMode\022\020\n\010in"
-    "secure\030\t \001(\010\022\021\n\tca_bundle\030\n \001(\t\"g\n\014Check"
-    "outOpts\022\032\n\006commit\030\001 \001(\0132\n.hash.Hash\022\016\n\006b"
-    "ranch\030\002 \001(\t\022\016\n\006create\030\003 \001(\010\022\r\n\005force\030\004 \001"
-    "(\010\022\014\n\004keep\030\005 \001(\010*^\n\rReferenceType\022\031\n\025Ref"
-    "erenceType_INVALID\020\000\022\026\n\022ReferenceType_HA"
-    "SH\020\001\022\032\n\026ReferenceType_SYMBOLIC\020\002*\345\001\n\021Enc"
-    "odedObjectType\022\035\n\031EncodedObjectType_INVA"
-    "LID\020\000\022\034\n\030EncodedObjectType_COMMIT\020\001\022\032\n\026E"
-    "ncodedObjectType_TREE\020\002\022\032\n\026EncodedObject"
-    "Type_BLOB\020\003\022\031\n\025EncodedObjectType_TAG\020\004\022\037"
-    "\n\033EncodedObjectType_OFS_DELTA\020\006\022\037\n\033Encod"
-    "edObjectType_REF_DELTA\020\007*X\n\007TagMode\022\023\n\017T"
-    "agMode_DEFAULT\020\000\022\020\n\014TagMode_NONE\020\001\022\017\n\013Ta"
-    "gMode_ALL\020\002\022\025\n\021TagMode_FOLLOWING\020\003b\006prot"
-    "o3"
+    "secure\030\t \001(\010\022\021\n\tca_bundle\030\n \001(\t\"\277\001\n\tFetc"
+    "hOpts\022\023\n\013remote_name\030\001 \001(\t\022\022\n\nremote_url"
+    "\030\002 \001(\t\022\021\n\tref_specs\030\003 \003(\t\022\r\n\005depth\030\004 \001(\r"
+    "\022$\n\010tag_mode\030\005 \001(\0162\022.git.block.TagMode\022\r"
+    "\n\005force\030\006 \001(\010\022\020\n\010insecure\030\007 \001(\010\022\021\n\tca_bu"
+    "ndle\030\010 \001(\t\022\r\n\005prune\030\t \001(\010\"g\n\014CheckoutOpt"
+    "s\022\032\n\006commit\030\001 \001(\0132\n.hash.Hash\022\016\n\006branch\030"
+    "\002 \001(\t\022\016\n\006create\030\003 \001(\010\022\r\n\005force\030\004 \001(\010\022\014\n\004"
+    "keep\030\005 \001(\010*^\n\rReferenceType\022\031\n\025Reference"
+    "Type_INVALID\020\000\022\026\n\022ReferenceType_HASH\020\001\022\032"
+    "\n\026ReferenceType_SYMBOLIC\020\002*\345\001\n\021EncodedOb"
+    "jectType\022\035\n\031EncodedObjectType_INVALID\020\000\022"
+    "\034\n\030EncodedObjectType_COMMIT\020\001\022\032\n\026Encoded"
+    "ObjectType_TREE\020\002\022\032\n\026EncodedObjectType_B"
+    "LOB\020\003\022\031\n\025EncodedObjectType_TAG\020\004\022\037\n\033Enco"
+    "dedObjectType_OFS_DELTA\020\006\022\037\n\033EncodedObje"
+    "ctType_REF_DELTA\020\007*X\n\007TagMode\022\023\n\017TagMode"
+    "_DEFAULT\020\000\022\020\n\014TagMode_NONE\020\001\022\017\n\013TagMode_"
+    "ALL\020\002\022\025\n\021TagMode_FOLLOWING\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps[5] = {
@@ -902,13 +968,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto = {
     false,
     false,
-    2922,
+    3116,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
     "github.com/aperturerobotics/hydra/git/block/git.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps,
     5,
-    19,
+    20,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto::offsets,
@@ -7417,6 +7483,582 @@ void CloneOpts::InternalSwap(CloneOpts* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
 }
 
 ::google::protobuf::Metadata CloneOpts::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class FetchOpts::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<FetchOpts>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_._has_bits_);
+};
+
+FetchOpts::FetchOpts(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FetchOpts_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:git.block.FetchOpts)
+}
+PROTOBUF_NDEBUG_INLINE FetchOpts::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::git::block::FetchOpts& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        ref_specs_{visibility, arena, from.ref_specs_},
+        remote_name_(arena, from.remote_name_),
+        remote_url_(arena, from.remote_url_),
+        ca_bundle_(arena, from.ca_bundle_) {}
+
+FetchOpts::FetchOpts(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const FetchOpts& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FetchOpts_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  FetchOpts* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, depth_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, depth_),
+           offsetof(Impl_, prune_) -
+               offsetof(Impl_, depth_) +
+               sizeof(Impl_::prune_));
+
+  // @@protoc_insertion_point(copy_constructor:git.block.FetchOpts)
+}
+PROTOBUF_NDEBUG_INLINE FetchOpts::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        ref_specs_{visibility, arena},
+        remote_name_(arena),
+        remote_url_(arena),
+        ca_bundle_(arena) {}
+
+inline void FetchOpts::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, depth_),
+           0,
+           offsetof(Impl_, prune_) -
+               offsetof(Impl_, depth_) +
+               sizeof(Impl_::prune_));
+}
+FetchOpts::~FetchOpts() {
+  // @@protoc_insertion_point(destructor:git.block.FetchOpts)
+  SharedDtor(*this);
+}
+inline void FetchOpts::SharedDtor(MessageLite& self) {
+  FetchOpts& this_ = static_cast<FetchOpts&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.remote_name_.Destroy();
+  this_._impl_.remote_url_.Destroy();
+  this_._impl_.ca_bundle_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL FetchOpts::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) FetchOpts(arena);
+}
+constexpr auto FetchOpts::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.ref_specs_) +
+          decltype(FetchOpts::_impl_.ref_specs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(FetchOpts), alignof(FetchOpts), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&FetchOpts::PlacementNew_,
+                                 sizeof(FetchOpts),
+                                 alignof(FetchOpts));
+  }
+}
+constexpr auto FetchOpts::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_FetchOpts_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &FetchOpts::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<FetchOpts>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &FetchOpts::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<FetchOpts>(), &FetchOpts::ByteSizeLong,
+              &FetchOpts::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_._cached_size_),
+          false,
+      },
+      &FetchOpts::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull FetchOpts_class_data_ =
+        FetchOpts::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+FetchOpts::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&FetchOpts_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(FetchOpts_class_data_.tc_table);
+  return FetchOpts_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 9, 0, 75, 2>
+FetchOpts::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_._has_bits_),
+    0, // no _extensions_
+    9, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966784,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    9,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    FetchOpts_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::git::block::FetchOpts>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string remote_name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.remote_name_)}},
+    // string remote_url = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.remote_url_)}},
+    // repeated string ref_specs = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.ref_specs_)}},
+    // uint32 depth = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FetchOpts, _impl_.depth_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.depth_)}},
+    // .git.block.TagMode tag_mode = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FetchOpts, _impl_.tag_mode_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.tag_mode_)}},
+    // bool force = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(FetchOpts, _impl_.force_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.force_)}},
+    // bool insecure = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(FetchOpts, _impl_.insecure_), 7>(),
+     {56, 7, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.insecure_)}},
+    // string ca_bundle = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 3, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.ca_bundle_)}},
+    // bool prune = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(FetchOpts, _impl_.prune_), 8>(),
+     {72, 8, 0,
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.prune_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string remote_name = 1;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.remote_name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string remote_url = 2;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.remote_url_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string ref_specs = 3;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.ref_specs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // uint32 depth = 4;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.depth_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .git.block.TagMode tag_mode = 5;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.tag_mode_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bool force = 6;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.force_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool insecure = 7;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.insecure_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string ca_bundle = 8;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.ca_bundle_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool prune = 9;
+    {PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.prune_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+    "\23\13\12\11\0\0\0\0\11\0\0\0\0\0\0\0"
+    "git.block.FetchOpts"
+    "remote_name"
+    "remote_url"
+    "ref_specs"
+    "ca_bundle"
+  }},
+};
+PROTOBUF_NOINLINE void FetchOpts::Clear() {
+// @@protoc_insertion_point(message_clear_start:git.block.FetchOpts)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.ref_specs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.remote_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.remote_url_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.ca_bundle_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000f0U)) {
+    ::memset(&_impl_.depth_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.insecure_) -
+        reinterpret_cast<char*>(&_impl_.depth_)) + sizeof(_impl_.insecure_));
+  }
+  _impl_.prune_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL FetchOpts::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const FetchOpts& this_ = static_cast<const FetchOpts&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL FetchOpts::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const FetchOpts& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:git.block.FetchOpts)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string remote_name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_remote_name().empty()) {
+      const ::std::string& _s = this_._internal_remote_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "git.block.FetchOpts.remote_name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string remote_url = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_remote_url().empty()) {
+      const ::std::string& _s = this_._internal_remote_url();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "git.block.FetchOpts.remote_url");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // repeated string ref_specs = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_ref_specs_size(); i < n; ++i) {
+      const auto& s = this_._internal_ref_specs().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "git.block.FetchOpts.ref_specs");
+      target = stream->WriteString(3, s, target);
+    }
+  }
+
+  // uint32 depth = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_depth() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_depth(), target);
+    }
+  }
+
+  // .git.block.TagMode tag_mode = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_tag_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_tag_mode(), target);
+    }
+  }
+
+  // bool force = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_force() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          6, this_._internal_force(), target);
+    }
+  }
+
+  // bool insecure = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_insecure() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          7, this_._internal_insecure(), target);
+    }
+  }
+
+  // string ca_bundle = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_ca_bundle().empty()) {
+      const ::std::string& _s = this_._internal_ca_bundle();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "git.block.FetchOpts.ca_bundle");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // bool prune = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_prune() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          9, this_._internal_prune(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:git.block.FetchOpts)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t FetchOpts::ByteSizeLong(const MessageLite& base) {
+  const FetchOpts& this_ = static_cast<const FetchOpts&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t FetchOpts::ByteSizeLong() const {
+  const FetchOpts& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:git.block.FetchOpts)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated string ref_specs = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_ref_specs().size());
+      for (int i = 0, n = this_._internal_ref_specs().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_ref_specs().Get(i));
+      }
+    }
+    // string remote_name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_remote_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_remote_name());
+      }
+    }
+    // string remote_url = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_remote_url().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_remote_url());
+      }
+    }
+    // string ca_bundle = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_ca_bundle().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ca_bundle());
+      }
+    }
+    // uint32 depth = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_depth() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_depth());
+      }
+    }
+    // .git.block.TagMode tag_mode = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_tag_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_tag_mode());
+      }
+    }
+    // bool force = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_force() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool insecure = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_insecure() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+   {
+    // bool prune = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_prune() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void FetchOpts::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<FetchOpts*>(&to_msg);
+  auto& from = static_cast<const FetchOpts&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:git.block.FetchOpts)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_ref_specs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_ref_specs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_remote_name().empty()) {
+        _this->_internal_set_remote_name(from._internal_remote_name());
+      } else {
+        if (_this->_impl_.remote_name_.IsDefault()) {
+          _this->_internal_set_remote_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_remote_url().empty()) {
+        _this->_internal_set_remote_url(from._internal_remote_url());
+      } else {
+        if (_this->_impl_.remote_url_.IsDefault()) {
+          _this->_internal_set_remote_url("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_ca_bundle().empty()) {
+        _this->_internal_set_ca_bundle(from._internal_ca_bundle());
+      } else {
+        if (_this->_impl_.ca_bundle_.IsDefault()) {
+          _this->_internal_set_ca_bundle("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_depth() != 0) {
+        _this->_impl_.depth_ = from._impl_.depth_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_tag_mode() != 0) {
+        _this->_impl_.tag_mode_ = from._impl_.tag_mode_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_force() != 0) {
+        _this->_impl_.force_ = from._impl_.force_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_insecure() != 0) {
+        _this->_impl_.insecure_ = from._impl_.insecure_;
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_prune() != 0) {
+      _this->_impl_.prune_ = from._impl_.prune_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void FetchOpts::CopyFrom(const FetchOpts& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:git.block.FetchOpts)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void FetchOpts::InternalSwap(FetchOpts* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.ref_specs_.InternalSwap(&other->_impl_.ref_specs_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_name_, &other->_impl_.remote_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_url_, &other->_impl_.remote_url_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ca_bundle_, &other->_impl_.ca_bundle_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.prune_)
+      + sizeof(FetchOpts::_impl_.prune_)
+      - PROTOBUF_FIELD_OFFSET(FetchOpts, _impl_.depth_)>(
+          reinterpret_cast<char*>(&_impl_.depth_),
+          reinterpret_cast<char*>(&other->_impl_.depth_));
+}
+
+::google::protobuf::Metadata FetchOpts::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

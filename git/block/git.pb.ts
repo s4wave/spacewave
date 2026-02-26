@@ -925,6 +925,95 @@ export const CloneOpts: MessageType<CloneOpts> = createMessageType({
 })
 
 /**
+ * FetchOpts are options for a Git fetch.
+ *
+ * @generated from message git.block.FetchOpts
+ */
+export interface FetchOpts {
+  /**
+   * RemoteName is the name of the remote to fetch from, by default "origin."
+   *
+   * @generated from field: string remote_name = 1;
+   */
+  remoteName?: string
+  /**
+   * RemoteUrl overrides the remote repo address with a custom URL.
+   *
+   * @generated from field: string remote_url = 2;
+   */
+  remoteUrl?: string
+  /**
+   * RefSpecs are the refspecs to use for the fetch.
+   * If empty, uses the default refspecs for the remote.
+   *
+   * @generated from field: repeated string ref_specs = 3;
+   */
+  refSpecs?: string[]
+  /**
+   * Depth limits to the specific number of commits.
+   * If zero, fetches all of the commits.
+   *
+   * @generated from field: uint32 depth = 4;
+   */
+  depth?: number
+  /**
+   * TagMode controls the fetching of tags.
+   *
+   * @generated from field: git.block.TagMode tag_mode = 5;
+   */
+  tagMode?: TagMode
+  /**
+   * Force allows the fetch to update a local branch even when the remote
+   * branch does not descend from it.
+   *
+   * @generated from field: bool force = 6;
+   */
+  force?: boolean
+  /**
+   * Insecure indicates that TLS checks should be skipped.
+   *
+   * @generated from field: bool insecure = 7;
+   */
+  insecure?: boolean
+  /**
+   * CaBundle contains additional CA certificates to trust.
+   *
+   * @generated from field: string ca_bundle = 8;
+   */
+  caBundle?: string
+  /**
+   * Prune indicates that local refs matching RefSpecs that do not exist
+   * remotely will be removed.
+   *
+   * @generated from field: bool prune = 9;
+   */
+  prune?: boolean
+}
+
+// FetchOpts contains the message type declaration for FetchOpts.
+export const FetchOpts: MessageType<FetchOpts> = createMessageType({
+  typeName: 'git.block.FetchOpts',
+  fields: [
+    { no: 1, name: 'remote_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'remote_url', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 3,
+      name: 'ref_specs',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 4, name: 'depth', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 5, name: 'tag_mode', kind: 'enum', T: TagMode_Enum },
+    { no: 6, name: 'force', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'insecure', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'ca_bundle', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'prune', kind: 'scalar', T: ScalarType.BOOL },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * CheckoutOpts are options when checking out a repo.
  *
  * @generated from message git.block.CheckoutOpts

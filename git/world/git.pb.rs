@@ -73,6 +73,16 @@ pub struct GitCreateWorktreeOp {
     #[prost(message, optional, tag="7")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// GitFetchOp is an operation to fetch updates into an existing repo.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GitFetchOp {
+    /// ObjectKey is the object key of the existing Repo to fetch into.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// FetchOpts contains the fetch options.
+    #[prost(message, optional, tag="2")]
+    pub fetch_opts: ::core::option::Option<super::block::FetchOpts>,
+}
 /// GitWorktreeCheckoutOp checks out a git revision in a worktree.
 /// Note: cannot be run as a Object-specific op.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
-import { CheckoutOpts, Index, Reference } from '../block/git.pb.js'
+import { CheckoutOpts, FetchOpts, Index, Reference } from '../block/git.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -204,6 +204,36 @@ export const Worktree: MessageType<Worktree> = createMessageType({
   fields: [
     { no: 1, name: 'git_index', kind: 'message', T: () => Index },
     { no: 2, name: 'head_ref_store', kind: 'message', T: () => HeadRefStore },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * GitFetchOp is an operation to fetch updates into an existing repo.
+ *
+ * @generated from message git.world.GitFetchOp
+ */
+export interface GitFetchOp {
+  /**
+   * ObjectKey is the object key of the existing Repo to fetch into.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * FetchOpts contains the fetch options.
+   *
+   * @generated from field: git.block.FetchOpts fetch_opts = 2;
+   */
+  fetchOpts?: FetchOpts
+}
+
+// GitFetchOp contains the message type declaration for GitFetchOp.
+export const GitFetchOp: MessageType<GitFetchOp> = createMessageType({
+  typeName: 'git.world.GitFetchOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'fetch_opts', kind: 'message', T: () => FetchOpts },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

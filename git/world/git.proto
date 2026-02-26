@@ -63,6 +63,14 @@ message GitCreateWorktreeOp {
   google.protobuf.Timestamp timestamp = 7;
 }
 
+// GitFetchOp is an operation to fetch updates into an existing repo.
+message GitFetchOp {
+  // ObjectKey is the object key of the existing Repo to fetch into.
+  string object_key = 1;
+  // FetchOpts contains the fetch options.
+  .git.block.FetchOpts fetch_opts = 2;
+}
+
 // GitWorktreeCheckoutOp checks out a git revision in a worktree.
 // Note: cannot be run as a Object-specific op.
 message GitWorktreeCheckoutOp {

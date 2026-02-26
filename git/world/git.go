@@ -42,6 +42,8 @@ func LookupGitOp(ctx context.Context, opTypeID string) (world.Operation, error) 
 		return &GitInitOp{}, nil
 	case GitCreateWorktreeOpId:
 		return &GitCreateWorktreeOp{}, nil
+	case GitFetchOpId:
+		return &GitFetchOp{}, nil
 	}
 	return nil, nil
 }

@@ -894,6 +894,102 @@ func (x *CloneOpts) GetCaBundle() string {
 	return ""
 }
 
+// FetchOpts are options for a Git fetch.
+type FetchOpts struct {
+	unknownFields []byte
+	// RemoteName is the name of the remote to fetch from, by default "origin."
+	RemoteName string `protobuf:"bytes,1,opt,name=remote_name,json=remoteName,proto3" json:"remoteName,omitempty"`
+	// RemoteUrl overrides the remote repo address with a custom URL.
+	RemoteUrl string `protobuf:"bytes,2,opt,name=remote_url,json=remoteUrl,proto3" json:"remoteUrl,omitempty"`
+	// RefSpecs are the refspecs to use for the fetch.
+	// If empty, uses the default refspecs for the remote.
+	RefSpecs []string `protobuf:"bytes,3,rep,name=ref_specs,json=refSpecs,proto3" json:"refSpecs,omitempty"`
+	// Depth limits to the specific number of commits.
+	// If zero, fetches all of the commits.
+	Depth uint32 `protobuf:"varint,4,opt,name=depth,proto3" json:"depth,omitempty"`
+	// TagMode controls the fetching of tags.
+	TagMode TagMode `protobuf:"varint,5,opt,name=tag_mode,json=tagMode,proto3" json:"tagMode,omitempty"`
+	// Force allows the fetch to update a local branch even when the remote
+	// branch does not descend from it.
+	Force bool `protobuf:"varint,6,opt,name=force,proto3" json:"force,omitempty"`
+	// Insecure indicates that TLS checks should be skipped.
+	Insecure bool `protobuf:"varint,7,opt,name=insecure,proto3" json:"insecure,omitempty"`
+	// CaBundle contains additional CA certificates to trust.
+	CaBundle string `protobuf:"bytes,8,opt,name=ca_bundle,json=caBundle,proto3" json:"caBundle,omitempty"`
+	// Prune indicates that local refs matching RefSpecs that do not exist
+	// remotely will be removed.
+	Prune bool `protobuf:"varint,9,opt,name=prune,proto3" json:"prune,omitempty"`
+}
+
+func (x *FetchOpts) Reset() {
+	*x = FetchOpts{}
+}
+
+func (*FetchOpts) ProtoMessage() {}
+
+func (x *FetchOpts) GetRemoteName() string {
+	if x != nil {
+		return x.RemoteName
+	}
+	return ""
+}
+
+func (x *FetchOpts) GetRemoteUrl() string {
+	if x != nil {
+		return x.RemoteUrl
+	}
+	return ""
+}
+
+func (x *FetchOpts) GetRefSpecs() []string {
+	if x != nil {
+		return x.RefSpecs
+	}
+	return nil
+}
+
+func (x *FetchOpts) GetDepth() uint32 {
+	if x != nil {
+		return x.Depth
+	}
+	return 0
+}
+
+func (x *FetchOpts) GetTagMode() TagMode {
+	if x != nil {
+		return x.TagMode
+	}
+	return TagMode_TagMode_DEFAULT
+}
+
+func (x *FetchOpts) GetForce() bool {
+	if x != nil {
+		return x.Force
+	}
+	return false
+}
+
+func (x *FetchOpts) GetInsecure() bool {
+	if x != nil {
+		return x.Insecure
+	}
+	return false
+}
+
+func (x *FetchOpts) GetCaBundle() string {
+	if x != nil {
+		return x.CaBundle
+	}
+	return ""
+}
+
+func (x *FetchOpts) GetPrune() bool {
+	if x != nil {
+		return x.Prune
+	}
+	return false
+}
+
 // CheckoutOpts are options when checking out a repo.
 type CheckoutOpts struct {
 	unknownFields []byte
@@ -988,8 +1084,10 @@ func (m *Repo) CloneVT() *Repo {
 	r.ReferencesStore = m.ReferencesStore.CloneVT()
 	r.ModuleReferencesStore = m.ModuleReferencesStore.CloneVT()
 	r.EncodedObjectStore = m.EncodedObjectStore.CloneVT()
-	r.ShallowRefsStoreRef = m.ShallowRefsStoreRef.CloneVT()
 	r.GitConfig = m.GitConfig
+	if rhs := m.ShallowRefsStoreRef; rhs != nil {
+		r.ShallowRefsStoreRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1005,8 +1103,12 @@ func (m *EncodedObjectStore) CloneVT() *EncodedObjectStore {
 		return (*EncodedObjectStore)(nil)
 	}
 	r := new(EncodedObjectStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
-	r.ChunkerArgs = m.ChunkerArgs.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
+	if rhs := m.ChunkerArgs; rhs != nil {
+		r.ChunkerArgs = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1022,7 +1124,9 @@ func (m *ReferencesStore) CloneVT() *ReferencesStore {
 		return (*ReferencesStore)(nil)
 	}
 	r := new(ReferencesStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1038,7 +1142,9 @@ func (m *ModuleReferencesStore) CloneVT() *ModuleReferencesStore {
 		return (*ModuleReferencesStore)(nil)
 	}
 	r := new(ModuleReferencesStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1076,7 +1182,9 @@ func (m *Submodule) CloneVT() *Submodule {
 	}
 	r := new(Submodule)
 	r.Name = m.Name
-	r.RepoRef = m.RepoRef.CloneVT()
+	if rhs := m.RepoRef; rhs != nil {
+		r.RepoRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1113,8 +1221,10 @@ func (m *EncodedObject) CloneVT() *EncodedObject {
 		return (*EncodedObject)(nil)
 	}
 	r := new(EncodedObject)
-	r.DataBlob = m.DataBlob.CloneVT()
 	r.EncodedObjectType = m.EncodedObjectType
+	if rhs := m.DataBlob; rhs != nil {
+		r.DataBlob = rhs.CloneVT()
+	}
 	if rhs := m.DataHash; rhs != nil {
 		r.DataHash = rhs.CloneVT()
 	}
@@ -1330,6 +1440,32 @@ func (m *CloneOpts) CloneVT() *CloneOpts {
 }
 
 func (m *CloneOpts) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FetchOpts) CloneVT() *FetchOpts {
+	if m == nil {
+		return (*FetchOpts)(nil)
+	}
+	r := new(FetchOpts)
+	r.RemoteName = m.RemoteName
+	r.RemoteUrl = m.RemoteUrl
+	r.Depth = m.Depth
+	r.TagMode = m.TagMode
+	r.Force = m.Force
+	r.Insecure = m.Insecure
+	r.CaBundle = m.CaBundle
+	r.Prune = m.Prune
+	if rhs := m.RefSpecs; rhs != nil {
+		r.RefSpecs = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FetchOpts) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1888,6 +2024,56 @@ func (this *CloneOpts) EqualVT(that *CloneOpts) bool {
 
 func (this *CloneOpts) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CloneOpts)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FetchOpts) EqualVT(that *FetchOpts) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RemoteName != that.RemoteName {
+		return false
+	}
+	if this.RemoteUrl != that.RemoteUrl {
+		return false
+	}
+	if len(this.RefSpecs) != len(that.RefSpecs) {
+		return false
+	}
+	for i, vx := range this.RefSpecs {
+		vy := that.RefSpecs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Depth != that.Depth {
+		return false
+	}
+	if this.TagMode != that.TagMode {
+		return false
+	}
+	if this.Force != that.Force {
+		return false
+	}
+	if this.Insecure != that.Insecure {
+		return false
+	}
+	if this.CaBundle != that.CaBundle {
+		return false
+	}
+	if this.Prune != that.Prune {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FetchOpts) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FetchOpts)
 	if !ok {
 		return false
 	}
@@ -3330,6 +3516,116 @@ func (x *CloneOpts) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FetchOpts message to JSON.
+func (x *FetchOpts) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RemoteName != "" || s.HasField("remoteName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("remoteName")
+		s.WriteString(x.RemoteName)
+	}
+	if x.RemoteUrl != "" || s.HasField("remoteUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("remoteUrl")
+		s.WriteString(x.RemoteUrl)
+	}
+	if len(x.RefSpecs) > 0 || s.HasField("refSpecs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refSpecs")
+		s.WriteStringArray(x.RefSpecs)
+	}
+	if x.Depth != 0 || s.HasField("depth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("depth")
+		s.WriteUint32(x.Depth)
+	}
+	if x.TagMode != 0 || s.HasField("tagMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tagMode")
+		x.TagMode.MarshalProtoJSON(s)
+	}
+	if x.Force || s.HasField("force") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("force")
+		s.WriteBool(x.Force)
+	}
+	if x.Insecure || s.HasField("insecure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("insecure")
+		s.WriteBool(x.Insecure)
+	}
+	if x.CaBundle != "" || s.HasField("caBundle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("caBundle")
+		s.WriteString(x.CaBundle)
+	}
+	if x.Prune || s.HasField("prune") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prune")
+		s.WriteBool(x.Prune)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FetchOpts to JSON.
+func (x *FetchOpts) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FetchOpts message from JSON.
+func (x *FetchOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "remote_name", "remoteName":
+			s.AddField("remote_name")
+			x.RemoteName = s.ReadString()
+		case "remote_url", "remoteUrl":
+			s.AddField("remote_url")
+			x.RemoteUrl = s.ReadString()
+		case "ref_specs", "refSpecs":
+			s.AddField("ref_specs")
+			if s.ReadNil() {
+				x.RefSpecs = nil
+				return
+			}
+			x.RefSpecs = s.ReadStringArray()
+		case "depth":
+			s.AddField("depth")
+			x.Depth = s.ReadUint32()
+		case "tag_mode", "tagMode":
+			s.AddField("tag_mode")
+			x.TagMode.UnmarshalProtoJSON(s)
+		case "force":
+			s.AddField("force")
+			x.Force = s.ReadBool()
+		case "insecure":
+			s.AddField("insecure")
+			x.Insecure = s.ReadBool()
+		case "ca_bundle", "caBundle":
+			s.AddField("ca_bundle")
+			x.CaBundle = s.ReadString()
+		case "prune":
+			s.AddField("prune")
+			x.Prune = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FetchOpts from JSON.
+func (x *FetchOpts) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the CheckoutOpts message to JSON.
 func (x *CheckoutOpts) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -4463,6 +4759,109 @@ func (m *CloneOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *FetchOpts) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FetchOpts) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FetchOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Prune {
+		i--
+		if m.Prune {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.CaBundle) > 0 {
+		i -= len(m.CaBundle)
+		copy(dAtA[i:], m.CaBundle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CaBundle)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Insecure {
+		i--
+		if m.Insecure {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Force {
+		i--
+		if m.Force {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.TagMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TagMode))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Depth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Depth))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.RefSpecs) > 0 {
+		for iNdEx := len(m.RefSpecs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RefSpecs[iNdEx])
+			copy(dAtA[i:], m.RefSpecs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RefSpecs[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.RemoteUrl) > 0 {
+		i -= len(m.RemoteUrl)
+		copy(dAtA[i:], m.RemoteUrl)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RemoteUrl)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RemoteName) > 0 {
+		i -= len(m.RemoteName)
+		copy(dAtA[i:], m.RemoteName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RemoteName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CheckoutOpts) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4940,6 +5339,49 @@ func (m *CloneOpts) SizeVT() (n int) {
 	l = len(m.CaBundle)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FetchOpts) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RemoteName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RemoteUrl)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.RefSpecs) > 0 {
+		for _, s := range m.RefSpecs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Depth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Depth))
+	}
+	if m.TagMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TagMode))
+	}
+	if m.Force {
+		n += 2
+	}
+	if m.Insecure {
+		n += 2
+	}
+	l = len(m.CaBundle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Prune {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5643,6 +6085,88 @@ func (x *CloneOpts) MarshalProtoText() string {
 }
 
 func (x *CloneOpts) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FetchOpts) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FetchOpts {")
+	if x.RemoteName != "" {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("remote_name: ")
+		sb.WriteString(strconv.Quote(x.RemoteName))
+	}
+	if x.RemoteUrl != "" {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("remote_url: ")
+		sb.WriteString(strconv.Quote(x.RemoteUrl))
+	}
+	if len(x.RefSpecs) > 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ref_specs: [")
+		for i, v := range x.RefSpecs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Depth != 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("depth: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Depth), 10))
+	}
+	if x.TagMode != 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tag_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(TagMode(x.TagMode).String())
+		sb.WriteString("\"")
+	}
+	if x.Force != false {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("force: ")
+		sb.WriteString(strconv.FormatBool(x.Force))
+	}
+	if x.Insecure != false {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("insecure: ")
+		sb.WriteString(strconv.FormatBool(x.Insecure))
+	}
+	if x.CaBundle != "" {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ca_bundle: ")
+		sb.WriteString(strconv.Quote(x.CaBundle))
+	}
+	if x.Prune != false {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("prune: ")
+		sb.WriteString(strconv.FormatBool(x.Prune))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *FetchOpts) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -7642,6 +8166,193 @@ func (m *CloneOpts) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CaBundle = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FetchOpts) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FetchOpts: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FetchOpts: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RemoteName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteUrl", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RemoteUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefSpecs", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RefSpecs = append(m.RefSpecs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Depth", wireType)
+			}
+			m.Depth = 0
+			m.Depth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TagMode", wireType)
+			}
+			m.TagMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.TagMode = TagMode(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Force", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Force = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Insecure", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Insecure = bool(v != 0)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CaBundle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CaBundle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prune", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Prune = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
