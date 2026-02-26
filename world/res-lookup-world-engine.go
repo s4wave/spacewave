@@ -24,7 +24,7 @@ func (r *WorldEngineResolver) Resolve(ctx context.Context, handler directive.Res
 		return err
 	}
 
-	var v LookupWorldEngineValue = eng
+	v := eng
 	_, _ = handler.AddValue(v)
 	return nil
 }

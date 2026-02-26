@@ -826,7 +826,7 @@ func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 	if parent == nil || parent.pos == nil || c == nil || c.pos == nil {
 		return nil
 	}
-	if parent.pos == c.pos || parent.pos.Node.ID() == c.pos.Node.ID() {
+	if parent.pos == c.pos || parent.pos.ID() == c.pos.ID() {
 		// self edge: not allowed
 		return nil
 	}

@@ -42,7 +42,7 @@ func main() {
 	app := cli.NewApp()
 	app.Usage = "unixfs filesystem demo"
 
-	dflags := (&daemonFlags.hDaemonArgs).BuildFlags()
+	dflags := daemonFlags.BuildFlags()
 	dflags = append(
 		dflags,
 		&cli.BoolFlag{
@@ -89,7 +89,7 @@ func execute(rctx context.Context) error {
 		go prof.ListenProf(le, profListen)
 	}
 
-	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume("", nil)
+	volConfig := daemonFlags.BuildSingleVolume("", nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
 		le,

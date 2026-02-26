@@ -243,7 +243,7 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 		return err
 	}
 
-	err = writer.Truncate(ctx, npath, int64(nsize), ts)
+	err = writer.Truncate(ctx, npath, int64(nsize), ts) //nolint:gosec
 	if err != nil {
 		f.release()
 		return err
@@ -292,7 +292,7 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 		return nil
 	}
 	if skip > 0 {
-		dirStream.Skip(int(skip))
+		dirStream.Skip(int(skip)) //nolint:gosec
 	}
 	for dirStream.Next() {
 		ent := dirStream.GetEntry()

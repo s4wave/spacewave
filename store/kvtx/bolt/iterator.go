@@ -6,8 +6,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/bbolt"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Iterator iterates over a bbolt cursor.

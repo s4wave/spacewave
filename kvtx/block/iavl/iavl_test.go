@@ -339,7 +339,7 @@ func TestIavl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	trs := int(ns)
+	trs := int(ns) //nolint:gosec
 	if trs != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}

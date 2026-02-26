@@ -1,9 +1,9 @@
 package volume_rpc
 
 import (
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	"github.com/aperturerobotics/bifrost/crypto"
 )
 
 // NewGetPeerPrivResponse builds a new GetPeerPriv response object.

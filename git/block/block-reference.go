@@ -45,7 +45,7 @@ func (r *Reference) Validate() error {
 	if err := ValidateRefName(r.GetName(), false); err != nil {
 		return err
 	}
-	rt := plumbing.ReferenceType(r.GetReferenceType())
+	rt := plumbing.ReferenceType(r.GetReferenceType()) //nolint:gosec
 	if err := ValidateReferenceType(rt); err != nil {
 		return err
 	}

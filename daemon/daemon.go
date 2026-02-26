@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/bifrost/peer"
 	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -12,7 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/core"
 	core_all "github.com/aperturerobotics/hydra/core/all"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
-	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/sirupsen/logrus"
 )
 

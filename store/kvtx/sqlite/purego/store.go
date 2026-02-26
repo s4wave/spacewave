@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/common"
 	"modernc.org/sqlite"
-	_ "modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 

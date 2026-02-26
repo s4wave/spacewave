@@ -538,7 +538,7 @@ func TestWorldState_Basic(t *testing.T) {
 			}
 			return nil
 		})
-		if int(ent.GetSeqno()) != 3-i {
+		if int(ent.GetSeqno()) != 3-i { //nolint:gosec
 			t.Fatalf("%d: seqno expected %d but got %d", i, 3-i, ent.GetSeqno())
 		}
 		chn := len(ent.GetChangeBatch().GetChanges())

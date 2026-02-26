@@ -131,9 +131,9 @@ func (r *NamedSubBlockSet) Swap(i, j int) {
 	}
 	// swap block cursor graph references
 	if bcs := r.bcs; bcs != nil {
-		ii := uint32(i)
+		ii := uint32(i) //nolint:gosec
 		ir := bcs.FollowSubBlock(ii)
-		jj := uint32(j)
+		jj := uint32(j) //nolint:gosec
 		jr := bcs.FollowSubBlock(jj)
 		_ = ir.SetAsSubBlock(jj, bcs)
 		_ = jr.SetAsSubBlock(ii, bcs)
@@ -205,7 +205,7 @@ func (r *NamedSubBlockSet) LookupByName(name string) (NamedSubBlock, *block.Curs
 	}
 	var nbcs *block.Cursor
 	if r.bcs != nil {
-		nbcs = r.bcs.FollowSubBlock(uint32(idx))
+		nbcs = r.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	}
 	return v, nbcs, true
 }
@@ -222,7 +222,7 @@ func (r *NamedSubBlockSet) LookupByNameCaseInsensitive(name string) (NamedSubBlo
 	}
 	var nbcs *block.Cursor
 	if r.bcs != nil {
-		nbcs = r.bcs.FollowSubBlock(uint32(idx))
+		nbcs = r.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	}
 	return v, nbcs, true
 }
@@ -239,15 +239,15 @@ func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Curs
 	}
 	var ncs *block.Cursor
 	if r.bcs != nil {
-		ncs = r.bcs.FollowSubBlock(uint32(idx))
+		ncs = r.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	}
 	// to delete: swap last index into index, decrement len, re-sort
 	slLen := r.sl.Len()
 	if slLen > 1 && idx != slLen-1 {
 		if r.bcs != nil {
-			iecs := r.bcs.FollowSubBlock(uint32(slLen - 1))
-			r.bcs.ClearRef(uint32(slLen - 1))
-			_ = iecs.SetAsSubBlock(uint32(idx), r.bcs)
+			iecs := r.bcs.FollowSubBlock(uint32(slLen - 1)) //nolint:gosec
+			r.bcs.ClearRef(uint32(slLen - 1))               //nolint:gosec
+			_ = iecs.SetAsSubBlock(uint32(idx), r.bcs)      //nolint:gosec
 		}
 		ie := r.sl.Get(slLen - 1)
 		r.sl.Set(idx, ie)
@@ -283,7 +283,7 @@ func (r *NamedSubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
 	ln := r.sl.Len()
 	m := make(map[uint32]block.SubBlock, ln)
 	for i := range ln {
-		m[uint32(i)] = r.sl.Get(i)
+		m[uint32(i)] = r.sl.Get(i) //nolint:gosec
 	}
 	return m
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/bifrost/peer"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_block_client "github.com/aperturerobotics/hydra/block/rpc/client"
@@ -16,7 +17,6 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	volume_store "github.com/aperturerobotics/hydra/volume/store"
-	"github.com/aperturerobotics/bifrost/crypto"
 )
 
 // ProxyVolume implements a volume backed by a ProxyVolume service.

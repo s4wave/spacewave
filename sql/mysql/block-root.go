@@ -32,9 +32,9 @@ func LoadRoot(ctx context.Context, cursor *block.Cursor) (*Root, error) {
 }
 
 // Validate validates the root block.
-func (r *Root) Validate() error {
+func (n *Root) Validate() error {
 	var prevName string
-	for i, ent := range r.GetDatabases() {
+	for i, ent := range n.GetDatabases() {
 		if err := ent.Validate(); err != nil {
 			return errors.Wrapf(err, "root databases[%s]", ent.GetName())
 		}
@@ -54,14 +54,14 @@ func (r *Root) Validate() error {
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
-func (r *Root) MarshalBlock() ([]byte, error) {
-	return r.MarshalVT()
+func (n *Root) MarshalBlock() ([]byte, error) {
+	return n.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
-func (r *Root) UnmarshalBlock(data []byte) error {
-	return r.UnmarshalVT(data)
+func (n *Root) UnmarshalBlock(data []byte) error {
+	return n.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
@@ -125,7 +125,7 @@ func (n *Root) InsertDatabase(name string, ref *block.BlockRef, bcs *block.Curso
 	n.Databases = append(n.Databases, rd)
 	var ebcs *block.Cursor
 	if bcs != nil {
-		ebcs = set.GetCursor().FollowSubBlock(uint32(len(n.Databases) - 1))
+		ebcs = set.GetCursor().FollowSubBlock(uint32(len(n.Databases) - 1)) //nolint:gosec
 	}
 	set.SortNamedRefs()
 	return rd, ebcs

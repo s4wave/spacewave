@@ -302,22 +302,23 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	e2k := "test2"
 	e3k := "test3"
 	for i := range len(NumberSequence2) {
-		if NumberSequence2[i] == Seq2DecreaseKey1Orig {
+		switch NumberSequence2[i] {
+		case Seq2DecreaseKey1Orig:
 			err := heap.Enqueue(ctx, []byte(e1k), NumberSequence2[i])
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-		} else if NumberSequence2[i] == Seq2DecreaseKey2Orig {
+		case Seq2DecreaseKey2Orig:
 			err := heap.Enqueue(ctx, []byte(e2k), NumberSequence2[i])
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-		} else if NumberSequence2[i] == Seq2DecreaseKey3Orig {
+		case Seq2DecreaseKey3Orig:
 			err := heap.Enqueue(ctx, []byte(e3k), NumberSequence2[i])
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-		} else {
+		default:
 			err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence2[i])
 			if err != nil {
 				t.Fatal(err.Error())
@@ -383,13 +384,14 @@ func TestEnqueueDelete(t *testing.T) {
 	e3k := "test3"
 	for i := range len(NumberSequence2) {
 		var err error
-		if NumberSequence2[i] == Seq2DecreaseKey1Orig {
+		switch NumberSequence2[i] {
+		case Seq2DecreaseKey1Orig:
 			err = heap.Enqueue(ctx, []byte(e1k), NumberSequence2[i])
-		} else if NumberSequence2[i] == Seq2DecreaseKey2Orig {
+		case Seq2DecreaseKey2Orig:
 			err = heap.Enqueue(ctx, []byte(e2k), NumberSequence2[i])
-		} else if NumberSequence2[i] == Seq2DecreaseKey3Orig {
+		case Seq2DecreaseKey3Orig:
 			err = heap.Enqueue(ctx, []byte(e3k), NumberSequence2[i])
-		} else {
+		default:
 			err = heap.Enqueue(ctx, []byte(strconv.Itoa(i)), NumberSequence2[i])
 		}
 		assertNoError(t, err)
@@ -467,7 +469,7 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 		panic(err)
 	}
 	for i := 0; i < b.N; i++ {
-		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), 2*1e10*(rand.Float64()-0.5))
+		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), 2*1e10*(rand.Float64()-0.5)) //nolint:gosec
 		if err != nil {
 			b.Fatal(err.Error())
 		}
@@ -487,7 +489,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 
 	slice := make([]float64, 0, N)
 	for i := range N {
-		slice = append(slice, 2*1e10*(rand.Float64()-0.5))
+		slice = append(slice, 2*1e10*(rand.Float64()-0.5)) //nolint:gosec
 		err := heap.Enqueue(ctx, []byte(strconv.Itoa(i)), slice[i])
 		if err != nil {
 			b.Fatal(err.Error())

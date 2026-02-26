@@ -191,7 +191,7 @@ func (f *FSCursorService) releaseFSCursorLocked(
 					delete(parentCursor.children, cursorName)
 					f.maybeReleaseFSCursorLocked(parentCursorID, parentCursor)
 				}
-			} else if parentCursor.proxyHandleID != nil && *parentCursor.proxyHandleID == int64(cursorHandleID) {
+			} else if parentCursor.proxyHandleID != nil && *parentCursor.proxyHandleID == int64(cursorHandleID) { //nolint:gosec
 				parentCursor.proxyHandleID = nil
 			}
 		}
@@ -315,23 +315,23 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 			}
 
 			// proxyHandleID contains the ID of the proxy cursor handle.
-			proxyCursor := f.handleIDToCursor[uint64(proxyHandleID)]
+			proxyCursor := f.handleIDToCursor[uint64(proxyHandleID)] //nolint:gosec
 			if proxyCursor == nil {
 				// the proxy cursor was released somewhere else.
 				parentCursor.proxyHandleID = nil
 			} else if proxyCursor.cursor != nil {
 				if proxyCursor.cursor.CheckReleased() {
 					// the cursor was already released, drop it.
-					f.releaseFSCursorLocked(uint64(proxyHandleID), proxyCursor, nil)
+					f.releaseFSCursorLocked(uint64(proxyHandleID), proxyCursor, nil) //nolint:gosec
 					parentCursor.proxyHandleID = nil
 				} else {
 					// the proxy cursor is good. add our client & return it
 					if !slices.Contains(parentCursor.clients, clientID) {
 						parentCursor.clients = append(parentCursor.clients, clientID)
-						clientObj.cursors = append(clientObj.cursors, uint64(proxyHandleID))
+						clientObj.cursors = append(clientObj.cursors, uint64(proxyHandleID)) //nolint:gosec
 					}
 					f.mtx.Unlock()
-					return proxyCursor.cursor, uint64(proxyHandleID), nil
+					return proxyCursor.cursor, uint64(proxyHandleID), nil //nolint:gosec
 				}
 			} else {
 				// wait for the cursor to be resolved.
@@ -367,7 +367,7 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 		} else if err != nil {
 			parentCursor.proxyHandleID = nil
 		} else {
-			*parentCursor.proxyHandleID = int64(retHandleID)
+			*parentCursor.proxyHandleID = int64(retHandleID) //nolint:gosec
 			if !slices.Contains(clientObj.cursors, retHandleID) {
 				clientObj.cursors = append(clientObj.cursors, retHandleID)
 			}

@@ -66,14 +66,14 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			headers,
 			conf.GetDisableCache(),
 			kvk,
-			int64(conf.GetMinRequestSize()),
+			int64(conf.GetMinRequestSize()), //nolint:gosec
 			verbose,
 		)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		var blockStore block_store.Store = block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock)
+		blockStore := block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock)
 
 		/*
 			if verbose {

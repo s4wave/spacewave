@@ -30,14 +30,14 @@ func TestKvfile(t *testing.T) {
 			return 0, err
 		}
 		index++
-		return uint64(nw), nil
+		return uint64(nw), nil //nolint:gosec
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	bufReader := bytes.NewReader(buf.Bytes())
-	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len()))
+	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len())) //nolint:gosec
 	if err != nil {
 		t.Fatal(err.Error())
 	}

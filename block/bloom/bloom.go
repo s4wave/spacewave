@@ -13,8 +13,8 @@ func NewBloom(bl *bbloom.BloomFilter) *BloomFilter {
 		return nil
 	}
 	return &BloomFilter{
-		K:      uint32(bl.K()),
-		M:      uint32(bl.Cap()),
+		K:      uint32(bl.K()),   //nolint:gosec
+		M:      uint32(bl.Cap()), //nolint:gosec
 		BitSet: bitset.NewBitset(bl.BitSet()),
 	}
 }

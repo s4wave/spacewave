@@ -21,7 +21,7 @@ func (r *lookupWorldOpResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
-	var val LookupWorldOpValue = r.lookupOp
+	val := r.lookupOp
 	if val != nil {
 		_, _ = handler.AddValue(val)
 	}

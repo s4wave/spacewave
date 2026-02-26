@@ -5,16 +5,15 @@ package volume_bolt
 import (
 	"context"
 
+	bdb "github.com/aperturerobotics/bbolt"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbolt "github.com/aperturerobotics/hydra/store/kvtx/bolt"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/volume"
-	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
-	bdb "github.com/aperturerobotics/bbolt"
 )
 
 // ControllerID identifies the Bolt volume controller.
@@ -91,6 +90,6 @@ func NewBolt(
 
 // _ is a type assertion
 var (
-	_ volume.Volume          = ((*Bolt)(nil))
-	_ common_kvtx.KvtxVolume = ((*Bolt)(nil))
+	_ volume.Volume   = ((*Bolt)(nil))
+	_ kvtx.KvtxVolume = ((*Bolt)(nil))
 )

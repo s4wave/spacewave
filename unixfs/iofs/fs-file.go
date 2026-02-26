@@ -84,7 +84,7 @@ func (f *FSFile) ReadDir(count int) ([]fs.DirEntry, error) {
 		count = 0
 	}
 
-	ents, err := unixfs.ReaddirAllToDirEntries(f.ctx, idx, uint64(count), f.handle)
+	ents, err := unixfs.ReaddirAllToDirEntries(f.ctx, idx, uint64(count), f.handle) //nolint:gosec
 	if err == nil {
 		nents := len(ents)
 		if nents == 0 {
@@ -129,7 +129,7 @@ func (f *FSFile) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		out = int64(size) + offset
+		out = int64(size) + offset //nolint:gosec
 		f.idx.Store(out)
 	}
 	if out < 0 {

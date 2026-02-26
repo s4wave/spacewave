@@ -70,28 +70,28 @@ func (d *ListBucketsRequest) GetValueOptions() directive.ValueOptions {
 
 // ListBucketsBucketId returns the desired bucket id.
 // Can be empty.
-func (a *ListBucketsRequest) ListBucketsBucketId() string {
-	return a.GetBucketId()
+func (d *ListBucketsRequest) ListBucketsBucketId() string {
+	return d.GetBucketId()
 }
 
 // ListBucketsVolumeIDRe returns the volume ID constraint.
 // Can be empty.
 // Cannot be specified if VolumeIDList is set.
-func (a *ListBucketsRequest) ListBucketsVolumeIDRe() *regexp.Regexp {
-	re, _ := confparse.ParseRegexp(a.GetVolumeIdRe())
+func (d *ListBucketsRequest) ListBucketsVolumeIDRe() *regexp.Regexp {
+	re, _ := confparse.ParseRegexp(d.GetVolumeIdRe())
 	return re
 }
 
 // ParseVolumeIDRe parses the volume id regex field.
-func (a *ListBucketsRequest) ParseVolumeIDRe() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(a.GetVolumeIdRe())
+func (d *ListBucketsRequest) ParseVolumeIDRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(d.GetVolumeIdRe())
 }
 
 // ListBucketsVolumeIDList returns a specific list of volumes to list.
 // If empty, uses the VolumeIDRe field instead.
 // Cannot be specified if VolumeIDRe is set.
-func (a *ListBucketsRequest) ListBucketsVolumeIDList() []string {
-	ids := a.GetVolumeIdList()
+func (d *ListBucketsRequest) ListBucketsVolumeIDList() []string {
+	ids := d.GetVolumeIdList()
 	out := make([]string, len(ids))
 	copy(out, ids)
 	return out

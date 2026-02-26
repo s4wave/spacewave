@@ -23,7 +23,7 @@ func NewSqlTx(ctx context.Context, tx *Tx, dsn string) (*SqlTx, error) {
 
 // GetReadOnly returns if the transaction is read-only.
 func (r *SqlTx) GetReadOnly() bool {
-	return !r.Tx.write
+	return !r.write
 }
 
 // GetSqlOps returns the sql operations interface

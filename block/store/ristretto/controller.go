@@ -47,7 +47,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 			return nil, nil, err
 		}
 		kvtxBlk := NewRistrettoBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
-		var store block_store.Store = block_store.NewStore(conf.GetBlockStoreId(), kvtxBlk)
+		store := block_store.NewStore(conf.GetBlockStoreId(), kvtxBlk)
 		return store, st.Close, nil
 	}
 }

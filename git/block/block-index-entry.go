@@ -30,7 +30,7 @@ func NewIndexEntry(e *index.Entry) (*IndexEntry, error) {
 		Uid:          e.UID,
 		Gid:          e.GID,
 		Size:         e.Size,
-		Stage:        uint32(e.Stage),
+		Stage:        uint32(e.Stage), //nolint:gosec
 		SkipWorktree: e.SkipWorktree,
 		IntentToAdd:  e.IntentToAdd,
 	}, nil

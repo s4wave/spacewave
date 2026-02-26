@@ -71,10 +71,10 @@ func (h *handle) DOTID() string {
 }
 
 // Attributes returns the graph attributes
-func (r *handle) Attributes() []encoding.Attribute {
+func (h *handle) Attributes() []encoding.Attribute {
 	var res []encoding.Attribute
-	if r.blk != nil {
-		attrs, ok := r.blk.(BlockWithAttributes)
+	if h.blk != nil {
+		attrs, ok := h.blk.(BlockWithAttributes)
 		if ok {
 			res = append(res, attrs.GetBlockGraphAttributes()...)
 		}

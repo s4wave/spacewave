@@ -58,7 +58,7 @@ func (r *SubBlockSet) Get(idx int) (block.SubBlock, *block.Cursor) {
 	}
 	var nbcs *block.Cursor
 	if r.bcs != nil {
-		nbcs = r.bcs.FollowSubBlock(uint32(idx))
+		nbcs = r.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	}
 	return r.sl.Get(idx), nbcs
 }
@@ -90,9 +90,9 @@ func (r *SubBlockSet) Swap(i, j int) {
 	}
 	// swap block cursor graph references
 	if bcs := r.bcs; bcs != nil {
-		ii := uint32(i)
+		ii := uint32(i) //nolint:gosec
 		ir := bcs.FollowSubBlock(ii)
-		jj := uint32(j)
+		jj := uint32(j) //nolint:gosec
 		jr := bcs.FollowSubBlock(jj)
 		_ = ir.SetAsSubBlock(jj, bcs)
 		_ = jr.SetAsSubBlock(ii, bcs)
@@ -117,8 +117,8 @@ func (r *SubBlockSet) Delete(i, j int) {
 		return
 	}
 	for o := range nremove {
-		destIdx := uint32(i + o)
-		srcIdx := uint32(j + o)
+		destIdx := uint32(i + o) //nolint:gosec
+		srcIdx := uint32(j + o)  //nolint:gosec
 		r.bcs.ClearRef(destIdx)
 		if int(srcIdx) < ls {
 			fromBcs := r.bcs.GetExistingRef(srcIdx)
@@ -154,7 +154,7 @@ func (r *SubBlockSet) GetSubBlocks() map[uint32]block.SubBlock {
 	ln := r.sl.Len()
 	m := make(map[uint32]block.SubBlock, ln)
 	for i := range ln {
-		m[uint32(i)] = r.sl.Get(i)
+		m[uint32(i)] = r.sl.Get(i) //nolint:gosec
 	}
 	return m
 }

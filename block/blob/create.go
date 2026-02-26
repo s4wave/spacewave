@@ -47,7 +47,7 @@ func BuildBlob(
 		hwm = DefRawHighWaterMark
 	}
 
-	if dataLen <= int64(hwm) {
+	if dataLen <= int64(hwm) { //nolint:gosec
 		buf := make([]byte, dataLen)
 		if _, err := io.ReadFull(rdr, buf); err != nil {
 			return nil, err
@@ -90,13 +90,13 @@ func BuildBlobWithReader(
 
 	// Read at least the high water mark from the reader first.
 	var buf bytes.Buffer
-	nn, err := buf.ReadFrom(io.LimitReader(rdr, int64(hwm)))
+	nn, err := buf.ReadFrom(io.LimitReader(rdr, int64(hwm))) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
 
 	// If we read less than high water mark, we can use a single block.
-	if nn < int64(hwm) {
+	if nn < int64(hwm) { //nolint:gosec
 		rb := NewRawBlob(buf.Bytes())
 		bcs.SetBlock(rb, true)
 		return rb, nil

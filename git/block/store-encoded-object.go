@@ -311,7 +311,7 @@ func (o *StoreEncodedObject) Size() int64 {
 	if err != nil {
 		return 0
 	}
-	return int64(encObjBlk.GetDataBlob().GetTotalSize())
+	return int64(encObjBlk.GetDataBlob().GetTotalSize()) //nolint:gosec
 }
 
 // SetSize sets the total expected size of the object data.
@@ -369,8 +369,8 @@ func (r *Store) buildEncodedObjectKey(ot plumbing.ObjectType, h plumbing.Hash) (
 
 // unmarshalEncodedObject unmarshals the EncodedObject block.
 // returns nil, nil, if empty
-func (e *StoreEncodedObject) unmarshalEncodedObject() (*EncodedObject, error) {
-	return block.UnmarshalBlock[*EncodedObject](e.r.ctx, e.bcs, NewEncodedObjectBlock)
+func (o *StoreEncodedObject) unmarshalEncodedObject() (*EncodedObject, error) {
+	return block.UnmarshalBlock[*EncodedObject](o.r.ctx, o.bcs, NewEncodedObjectBlock)
 }
 
 // lookupEncodedObject tries to build the EncodedObject from a key.

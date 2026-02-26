@@ -59,9 +59,9 @@ func (r *TableRow) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 // FetchSqlRow fetches columns into a sql.Row structure.
 // This converts the values using proto.Any into Go types.
 // The resulting sql.Row should be checked against a schema.
-func (i *TableRow) FetchSqlRow(ctx context.Context, bcs *block.Cursor) (sql.Row, error) {
-	colSet := newTableRowColumnSetContainer(i, bcs)
-	rowCols := i.GetColumns()
+func (r *TableRow) FetchSqlRow(ctx context.Context, bcs *block.Cursor) (sql.Row, error) {
+	colSet := newTableRowColumnSetContainer(r, bcs)
+	rowCols := r.GetColumns()
 	cols := make(sql.Row, len(rowCols))
 	for i, col := range rowCols {
 		_, colcs := colSet.Get(i)

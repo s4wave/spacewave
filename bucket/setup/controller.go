@@ -64,7 +64,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	bucketConfs := c.conf.GetApplyBucketConfigs()
 	refs := make([]func(), 0, len(bucketConfs)*2)
 	var running atomic.Int32
-	running.Store(int32(len(bucketConfs)))
+	running.Store(int32(len(bucketConfs))) //nolint:gosec
 
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {

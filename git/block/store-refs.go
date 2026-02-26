@@ -106,7 +106,7 @@ func (r *Store) RemoveReference(ref plumbing.ReferenceName) error {
 // CountLooseRefs counts refs without any parent ref.
 func (r *Store) CountLooseRefs() (int, error) {
 	s, err := r.refTree.Size(r.ctx)
-	return int(s), err
+	return int(s), err //nolint:gosec
 }
 
 // PackRefs packs references.

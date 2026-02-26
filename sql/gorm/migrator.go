@@ -24,7 +24,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) clause.Expr {
 	expr := m.Migrator.FullDataTypeOf(field)
 
 	if value, ok := field.TagSettings["COMMENT"]; ok {
-		expr.SQL += " COMMENT " + m.Dialector.Explain("?", value)
+		expr.SQL += " COMMENT " + m.Explain("?", value)
 	}
 
 	return expr

@@ -124,7 +124,7 @@ func WriteAt(
 	defer fh.Close()
 
 	writer := file.NewWriter(fh, nil, blobOpts)
-	err = writer.WriteFrom(uint64(offset), writeLen, dataRdr)
+	err = writer.WriteFrom(uint64(offset), writeLen, dataRdr) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func WriteBlob(
 		if err != nil {
 			return err
 		}
-		err = writer.WriteFrom(uint64(offset), int64(totalSize), br)
+		err = writer.WriteFrom(uint64(offset), int64(totalSize), br) //nolint:gosec
 		_ = br.Close()
 		return err
 	}
@@ -305,13 +305,13 @@ func TruncateFile(
 	}
 	defer fh.Close()
 
-	if fh.Size() == uint64(nsize) {
+	if fh.Size() == uint64(nsize) { //nolint:gosec
 		// no-op
 		return nil
 	}
 
 	writer := file.NewWriter(fh, nil, nil)
-	err = writer.Truncate(uint64(nsize))
+	err = writer.Truncate(uint64(nsize)) //nolint:gosec
 	if err != nil {
 		return err
 	}

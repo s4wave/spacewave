@@ -29,8 +29,8 @@ func NewEndOfIndexEntryBlock() block.Block {
 }
 
 // IsNil returns if the object is nil.
-func (i *EndOfIndexEntry) IsNil() bool {
-	return i == nil
+func (r *EndOfIndexEntry) IsNil() bool {
+	return r == nil
 }
 
 // ToGitEndOfIndexEntry converts to the git EndOfIndexEntry object.

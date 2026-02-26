@@ -27,7 +27,7 @@ func ReaddirAllToFileInfo(ctx context.Context, skip, limit uint64, h *FSHandle) 
 	var children []string
 	err := h.ReaddirAll(ctx, skip, func(ent FSCursorDirent) error {
 		children = append(children, ent.GetName())
-		if limit != 0 && len(children) >= int(limit) {
+		if limit != 0 && len(children) >= int(limit) { //nolint:gosec
 			return io.EOF
 		}
 		return nil
@@ -62,7 +62,7 @@ func ReaddirAllToDirEntries(ctx context.Context, skip, limit uint64, h *FSHandle
 	var children []FSCursorDirent
 	err := h.ReaddirAll(ctx, skip, func(ent FSCursorDirent) error {
 		children = append(children, ent)
-		if limit != 0 && len(children) >= int(limit) {
+		if limit != 0 && len(children) >= int(limit) { //nolint:gosec
 			return io.EOF
 		}
 		return nil
@@ -281,8 +281,8 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 	}
 
 	// Write data in chunks
-	for offset := int64(0); offset < int64(len(data)); offset += int64(optimalWriteSize) {
-		end := min(offset+int64(optimalWriteSize), int64(len(data)))
+	for offset := int64(0); offset < int64(len(data)); offset += optimalWriteSize {
+		end := min(offset+optimalWriteSize, int64(len(data)))
 		chunk := data[offset:end]
 
 		err = fsh.WriteAt(ctx, offset, chunk, ts)

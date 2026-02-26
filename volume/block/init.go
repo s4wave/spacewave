@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
-	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/sirupsen/logrus"
 )
 

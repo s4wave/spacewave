@@ -58,7 +58,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	httpStore := block_store_http.NewHTTPBlock(c.le, false, http.DefaultClient, baseURL, 0, c.conf.GetVerbose())
-	var store block_store.Store = block_store.NewStore(c.conf.GetBucketId(), httpStore)
+	store := block_store.NewStore(c.conf.GetBucketId(), httpStore)
 	if c.conf.GetVerbose() {
 		store = block_store_vlogger.NewVLoggerStore(c.le, store)
 	}

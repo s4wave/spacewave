@@ -57,8 +57,8 @@ func (f *FSTree) GetCursor() *block.Cursor {
 }
 
 // GetCursorRef returns the reference to the node.
-func (t *FSTree) GetCursorRef() *block.BlockRef {
-	return t.bcs.GetRef()
+func (f *FSTree) GetCursorRef() *block.BlockRef {
+	return f.bcs.GetRef()
 }
 
 // GetFSNode returns the node object at f.
@@ -193,7 +193,7 @@ func (f *FSTree) Symlink(
 		}
 
 		// clear old dirent refs
-		dcs := dslice.bcs.FollowSubBlock(uint32(direntIdx))
+		dcs := dslice.bcs.FollowSubBlock(uint32(direntIdx)) //nolint:gosec
 		dirent.NodeRef = nil
 		dcs.ClearAllRefs()
 
@@ -316,7 +316,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 		}
 		if match || (i != 0 && dirs[i] == dirs[i-1]) {
 			// dir exists or is a dupe of previous entry
-			skipBitset.Set(uint(i + 1))
+			skipBitset.Set(uint(i + 1)) //nolint:gosec
 			continue
 		}
 		skipBitset.Set(0)
@@ -360,7 +360,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 	}
 
 	for i := range dirs {
-		if skipBitset.Test(uint(i + 1)) {
+		if skipBitset.Test(uint(i + 1)) { //nolint:gosec
 			// already created
 			continue
 		}
@@ -431,7 +431,7 @@ func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) er
 	if dirent != nil {
 		dirent.NodeRef = bcs.GetRef().Clone()
 		dirent.NodeType = nodeType
-		direntCs = ds.bcs.FollowSubBlock(uint32(idx))
+		direntCs = ds.bcs.FollowSubBlock(uint32(idx)) //nolint:gosec
 	} else {
 		direntCs = ds.AppendDirent(&Dirent{
 			Name:     name,

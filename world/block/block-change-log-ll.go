@@ -83,7 +83,7 @@ func AppendChangeLogLL(
 	}
 
 	// build bloom filter if necessary
-	bloomCapacity := int(storeKeyCount)
+	bloomCapacity := int(storeKeyCount) //nolint:gosec
 	if len(worldChangesBcs) <= HeadChangeCountLimit {
 		bloomCapacity = 0
 	} else if bloomCapacity > maxChangeLogLLBloomCapacity {

@@ -28,7 +28,7 @@ func (t EncodedObjectType) ToObjectType() plumbing.ObjectType {
 		return plumbing.REFDeltaObject
 	case 5:
 		// no-op
-		return plumbing.ObjectType(t)
+		return plumbing.ObjectType(t) //nolint:gosec
 	default:
 		return plumbing.InvalidObject
 	}

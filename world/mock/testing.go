@@ -368,7 +368,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return false, err
 		}
 
-		nextMsg := "Hello from rev: " + strconv.Itoa(int(rev))
+		nextMsg := "Hello from rev: " + strconv.Itoa(int(rev)) //nolint:gosec
 		if rev < targetRev {
 			if rev%2 != 0 || prevMsg == "" {
 				// odd numbers

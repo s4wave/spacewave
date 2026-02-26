@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"io"
+	"math"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
@@ -91,7 +92,7 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 	// iterate over ranges
 	rangesBcs := r.bcs.FollowSubBlock(4)
 	for i, r := range ranges {
-		rangeBcs := rangesBcs.FollowSubBlock(uint32(i))
+		rangeBcs := rangesBcs.FollowSubBlock(uint32(i)) //nolint:gosec
 		blobBcs := r.FollowBlob(rangeBcs)
 		bl, err := blob.UnmarshalBlob(ctx, blobBcs)
 		if err != nil {
@@ -136,7 +137,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 			readEnd = zeroEnd
 		}
 		// read up to min(readEnd, zeroEnd)
-		readN := int(readEnd - idx)
+		readN := int(readEnd - idx) //nolint:gosec
 		// this is optimized by compiler to memset
 		for i := range readN {
 			p[i] = 0
@@ -162,7 +163,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	nextIdx := min(r.idx+uint64(blobReadN), blobEnd)
+	nextIdx := min(r.idx+uint64(blobReadN), blobEnd) //nolint:gosec
 	r.idx = nextIdx
 	return blobReadN, nil
 }
@@ -180,6 +181,12 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 // Seeking to any positive offset is legal, but the behavior of subsequent
 // Read and Seek are not concurrent safe.
 func (r *Handle) Seek(offset int64, whence int) (int64, error) {
+	if r.idx > math.MaxInt64 {
+		return 0, errors.New("file position exceeds maximum")
+	}
+	if r.root.GetTotalSize() > math.MaxInt64 {
+		return 0, errors.New("total size exceeds maximum")
+	}
 	nextIdx := offset
 	switch whence {
 	case io.SeekCurrent:
@@ -194,13 +201,17 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 	if nextIdx == currIdx {
 		return nextIdx, nil
 	}
-	nextEval := int64(r.nextEval)
+	nextEval := int64(r.nextEval) //nolint:gosec
 	if nextIdx < currIdx || (nextEval != 0 && nextEval <= nextIdx) {
 		// if rewinding or if next idx > nextEval, clear read state.
 		r.clearReadState()
 	} else if nextIdx > currIdx {
 		// fast-forward the blob reader if necessary
 		if r.currentBlob != nil {
+			if r.currentRange.GetStart() > math.MaxInt64 || r.currentRange.GetLength() > math.MaxInt64 {
+				r.clearReadState()
+				return 0, errors.New("range bounds exceed maximum")
+			}
 			rangeStart := int64(r.currentRange.GetStart())
 			rangeLen := int64(r.currentRange.GetLength())
 			if rangeStart+rangeLen <= nextIdx {
@@ -243,6 +254,10 @@ func (r *Handle) evaluateCurrentRange() error {
 		// say we are at index 100
 		// blob might start at index 50
 		// we need to seek 100-50 = 50 past the start
+		if r.idx > math.MaxInt64 || r.currentRange.GetStart() > math.MaxInt64 {
+			r.clearReadState()
+			return errors.New("position exceeds maximum")
+		}
 		seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
 		if seekPos < 0 {
 			r.clearReadState()
@@ -389,7 +404,7 @@ func (r *Handle) followRootRangeBlobRef(
 	idx int,
 	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
-	ncs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)).FollowRef(4, blobRef)
+	ncs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)).FollowRef(4, blobRef) //nolint:gosec
 	blobi, err := ncs.Unmarshal(r.ctx, blob.NewBlobBlock)
 	if err != nil {
 		return nil, nil, err

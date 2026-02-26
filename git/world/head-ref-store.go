@@ -88,7 +88,7 @@ func (h *HeadRefStore) GetSubmoduleStore(bcs *block.Cursor, name string) (*HeadR
 		// alloc new head ref store set for the submodule
 		nsbHrs = &HeadRefStore{SubmoduleName: name}
 		h.Submodules = append(h.Submodules, nsbHrs)
-		nsbCs = subStoreBcs.FollowSubBlock(uint32(len(h.Submodules) - 1))
+		nsbCs = subStoreBcs.FollowSubBlock(uint32(len(h.Submodules) - 1)) //nolint:gosec
 		hrsSet.SortNamedRefs()
 	}
 

@@ -2,7 +2,9 @@ package file
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"math"
 	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -80,6 +82,9 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 
 	// optimization: if start=0 and len >= size, fully overwrite the entire file
 	rootTotalSize := w.root.GetTotalSize()
+	if rootTotalSize > math.MaxInt64 {
+		return errors.New("total size exceeds maximum")
+	}
 	if index == 0 && dataLen >= int64(rootTotalSize) {
 		// clear file contents
 		w.Reset()
@@ -124,7 +129,9 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 	ranges := w.root.Ranges
 	rlen = len(ranges)
 	if rlen != 0 && index != 0 {
-		// locate the range covering index-1
+		if index > math.MaxInt {
+			return errors.New("write index exceeds maximum")
+		}
 		rangeSlice := RangeSlice(ranges)
 		rng, rngIdx, rngFound := rangeSlice.LocatePosition(int(index) - 1)
 		writeEnd := index + uint64(dataLen)
@@ -305,7 +312,7 @@ func (w *Writer) Truncate(size uint64) error {
 			irangeStart := irange.GetStart()
 			if irangeStart >= size {
 				removeFrom = i
-				rangesBcs.ClearRef(uint32(i))
+				rangesBcs.ClearRef(uint32(i)) //nolint:gosec
 				w.root.Ranges[i] = nil
 				continue
 			}
@@ -316,7 +323,7 @@ func (w *Writer) Truncate(size uint64) error {
 				continue
 			}
 			// shorten range to end of file
-			irangeBcs := rangesBcs.FollowSubBlock(uint32(i))
+			irangeBcs := rangesBcs.FollowSubBlock(uint32(i)) //nolint:gosec
 			if irangeEnd > size {
 				// truncate the range + blob
 				irangeBlobBcs := irange.FollowBlob(irangeBcs)
@@ -326,6 +333,9 @@ func (w *Writer) Truncate(size uint64) error {
 				}
 				irangeLen = size - irangeStart
 				if irangeBlob != nil {
+					if irangeLen > math.MaxInt64 {
+						return errors.New("range length exceeds maximum")
+					}
 					err = irangeBlob.Truncate(w.ctx, irangeBlobBcs, w.buildBlobOpts, int64(irangeLen))
 					if err != nil {
 						return err
@@ -355,7 +365,9 @@ func (w *Writer) Truncate(size uint64) error {
 			rootBlobSize := rootBlob.GetTotalSize()
 			if rootBlobSize > oldSize {
 				rootBlobBcs := w.bcs.FollowSubBlock(2)
-				// truncate root blob to old total size
+				if oldSize > math.MaxInt64 {
+					return errors.New("total size exceeds maximum")
+				}
 				err := rootBlob.Truncate(w.ctx, rootBlobBcs, w.buildBlobOpts, int64(oldSize))
 				if err != nil {
 					return err
@@ -366,6 +378,9 @@ func (w *Writer) Truncate(size uint64) error {
 			lastRangeStart := lastRange.GetStart()
 			lastRangeEnd := lastRangeStart + lastRange.GetLength()
 			if lastRangeEnd > oldSize {
+				if oldSize > math.MaxInt || lastRangeEnd > math.MaxInt {
+					return errors.New("file size exceeds maximum")
+				}
 				zeroFrom = int(oldSize)
 				zeroTo = int(lastRangeEnd)
 			}
@@ -373,7 +388,7 @@ func (w *Writer) Truncate(size uint64) error {
 
 		if zeroFrom >= 0 && zeroTo > zeroFrom {
 			// write a zeroed range
-			err := w.WriteBlob(uint64(zeroFrom), uint64(zeroTo-zeroFrom), nil)
+			err := w.WriteBlob(uint64(zeroFrom), uint64(zeroTo-zeroFrom), nil) //nolint:gosec
 			if err != nil {
 				return err
 			}

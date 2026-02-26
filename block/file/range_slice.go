@@ -1,6 +1,9 @@
 package file
 
-import "sort"
+import (
+	"math"
+	"sort"
+)
 
 // RangeSlice is a sortable slice of ranges.
 type RangeSlice []*Range
@@ -35,21 +38,24 @@ func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
 	// find lowest index where start > pos
 	// if not found, returns n
 	idxAfter := sort.Search(rlen, func(i int) bool {
+		if r[i].GetStart() > math.MaxInt {
+			return true
+		}
 		return int(r[i].GetStart()) > pos
 	})
 
 	foundNonce, foundIdx := -1, -1
-	// iterate backwards from that position
-	// find range with highest nonce that is in range
 	for i := idxAfter - 1; i >= 0; i-- {
-		// check in range
 		rng := r[i]
+		if rng.GetStart() > math.MaxInt || rng.GetLength() > math.MaxInt {
+			continue
+		}
 		rStart := int(rng.GetStart())
 		rEnd := rStart + int(rng.GetLength())
 		if pos < rStart || pos >= rEnd {
 			continue
 		}
-		rNonce := int(rng.GetNonce())
+		rNonce := int(rng.GetNonce()) //nolint:gosec
 		if rNonce < foundNonce {
 			continue
 		}

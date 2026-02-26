@@ -123,7 +123,7 @@ func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return underlyingN + uint64(setN) - uint64(removeN), nil
+	return underlyingN + uint64(setN) - uint64(removeN), nil //nolint:gosec
 }
 
 // Set sets the value of a key.

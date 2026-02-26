@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
-	"github.com/aperturerobotics/cli"
 	ucli "github.com/aperturerobotics/cli"
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -33,11 +32,11 @@ type ClientArgs struct {
 	// ApplyBucketConfigReq configures applying a bucket config.
 	ApplyBucketConfigReq api.ApplyBucketConfigRequest
 	// ApplyBucketConfigReqVolumeIDs is the list of volume IDs to apply to.
-	ApplyBucketConfigReqVolumeIDs cli.StringSlice
+	ApplyBucketConfigReqVolumeIDs ucli.StringSlice
 	// ListBucketsRequest configures listing buckets.
 	ListBucketsReq volume.ListBucketsRequest
 	// ListBucketsReqVolumeIDs is the list of volume IDs to list.
-	ListBucketsReqVolumeIDs cli.StringSlice
+	ListBucketsReqVolumeIDs ucli.StringSlice
 	// CbusConf is the controller-bus configuration.
 	CbusConf cbus_cli.ClientArgs
 	// BifrostConf is the controller-bus configuration.
@@ -118,9 +117,9 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 }
 
 // BuildHydraCommand returns the hydra sub-command set.
-func (a *ClientArgs) BuildHydraCommand() *cli.Command {
+func (a *ClientArgs) BuildHydraCommand() *ucli.Command {
 	hydraCmds := a.BuildCommands()
-	return &cli.Command{
+	return &ucli.Command{
 		Name:        "hydra",
 		Usage:       "Hydra storage sub-commands.",
 		Subcommands: hydraCmds,

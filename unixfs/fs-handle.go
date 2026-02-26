@@ -167,7 +167,7 @@ func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 		if err != nil {
 			return err
 		}
-		fileInfo = NewFileInfo(ops.GetName(), int64(size), mode, modTime)
+		fileInfo = NewFileInfo(ops.GetName(), int64(size), mode, modTime) //nolint:gosec
 		return nil
 	})
 	return fileInfo, err

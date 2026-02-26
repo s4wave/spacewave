@@ -53,7 +53,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	var valExists bool
 	if t.write {
 		// if the value was deleted, return early.
-		if val, valExists = t.deleted.Get(searchItem); valExists {
+		if _, valExists = t.deleted.Get(searchItem); valExists {
 			return nil, false, nil
 		}
 		// if the value was added, use that value.
@@ -81,7 +81,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	if t.write {
 		count += t.added.Len() - t.deleted.Len()
 	}
-	return uint64(count), nil
+	return uint64(count), nil //nolint:gosec
 }
 
 // Set sets the value of a key.

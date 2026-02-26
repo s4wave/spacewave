@@ -29,9 +29,10 @@ func NewFSHandleReadWriter(ctx context.Context, h *FSHandle, ts func() time.Time
 func (w *FSHandleReadWriter) Read(p []byte) (n int, err error) {
 	nr, err := w.h.ReadAt(w.ctx, w.idx, p)
 	if nr > 0 {
-		if err == io.EOF {
+		switch err {
+		case io.EOF:
 			err = nil
-		} else if err == nil {
+		case nil:
 			w.idx += nr
 		}
 	}
@@ -51,20 +52,17 @@ func (w *FSHandleReadWriter) Write(p []byte) (n int, err error) {
 
 // Seek moves the read/writer to a location in the file.
 func (w *FSHandleReadWriter) Seek(offset int64, whence int) (int64, error) {
-	if whence == io.SeekCurrent {
+	switch whence {
+	case io.SeekCurrent:
 		w.idx += offset
-		return w.idx, nil
-	}
-	if whence == io.SeekStart {
+	case io.SeekStart:
 		w.idx = offset
-		return w.idx, nil
-	}
-	if whence == io.SeekEnd {
+	case io.SeekEnd:
 		size, err := w.getSize()
 		if err != nil {
 			return 0, err
 		}
-		w.idx = int64(size) + offset
+		w.idx = int64(size) + offset //nolint:gosec
 	}
 	return w.idx, nil
 }

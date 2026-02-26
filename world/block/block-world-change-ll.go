@@ -46,14 +46,14 @@ func AppendWorldChangeLL(
 
 	// build next entry
 	w := &WorldChangeLL{
-		TotalSize: uint32(len(worldChangesBcs)),
+		TotalSize: uint32(len(worldChangesBcs)), //nolint:gosec
 		Changes:   make([]*WorldChange, len(worldChangesBcs)),
 	}
 	nextBcs.SetBlock(w, true)
 	nextBcs.ClearAllRefs()
 	changesBcs := nextBcs.FollowSubBlock(4)
 	for i, chBcs := range worldChangesBcs {
-		err = chBcs.SetAsSubBlock(uint32(i), changesBcs)
+		err = chBcs.SetAsSubBlock(uint32(i), changesBcs) //nolint:gosec
 		if err != nil {
 			return nil, err
 		}

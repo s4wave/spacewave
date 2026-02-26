@@ -149,7 +149,7 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 		return nil, ErrMaxSize
 	}
 
-	c := &JC{minSize: int(minSize), maxSize: int(maxSize), targetSize: int(targetSize)}
+	c := &JC{minSize: int(minSize), maxSize: int(maxSize), targetSize: int(targetSize)} //nolint:gosec
 	bits := uint64(math.Log2(float64(targetSize)))
 
 	cOnes := bits - 1
@@ -158,7 +158,7 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 	denominator := (1 << cOnes) - (1 << jOnes)
 	c.jumpLength = numerator / denominator
 
-	c.maskC = generateSpacedMask(int(cOnes), 64)
+	c.maskC = generateSpacedMask(int(cOnes), 64) //nolint:gosec
 	c.maskJ = embedMask(c.maskC)
 
 	// the key can be len(0) here and this will still be acceptable.
@@ -325,7 +325,7 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 
 	// Update state
 	c.bufPos += chunkSize
-	c.pos += uint64(chunkSize)
+	c.pos += uint64(chunkSize) //nolint:gosec
 
 	return chunk, nil
 }

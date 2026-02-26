@@ -3,6 +3,7 @@ package blob
 import (
 	"context"
 	"io"
+	"math"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
@@ -69,6 +70,9 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
+	if r.root.GetTotalSize() > math.MaxInt {
+		return 0, errors.New("total size exceeds maximum")
+	}
 	blobSize := int(r.root.GetTotalSize())
 	readSize := len(p)
 	readEnd := min(r.idx+readSize, blobSize)
@@ -134,6 +138,9 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 // Read and Seek are not concurrent safe.
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	blobSize := r.root.GetTotalSize()
+	if blobSize > math.MaxInt64 {
+		return 0, errors.New("total size exceeds maximum")
+	}
 	nextPos := offset
 	switch whence {
 	case io.SeekCurrent:

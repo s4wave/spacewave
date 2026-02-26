@@ -102,7 +102,7 @@ func BuildTable(
 	}
 	tr.PrimaryKeyOrdinals = make([]int32, len(schema.PkOrdinals))
 	for i, v := range schema.PkOrdinals {
-		tr.PrimaryKeyOrdinals[i] = int32(v)
+		tr.PrimaryKeyOrdinals[i] = int32(v) //nolint:gosec
 	}
 	tr.TablePartitions = make([]*TablePartitionRoot, numPartitions)
 	for i := 0; i < numPartitions; i++ {
@@ -191,15 +191,15 @@ func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
 		return nil, io.EOF
 	}
 	pt := pts[ix]
-	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix))
-	var indexLookup sql.IndexLookup // TODO lookup from index
+	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix)) //nolint:gosec
+	var indexLookup sql.IndexLookup                        // TODO lookup from index
 	// TODO: pkSchema here?
 	return NewTablePartition(ix, pt, bcs, t.schema.Schema, indexLookup)
 }
 
 // Collation returns the collation type ID.
 func (t *Table) Collation() sql.CollationID {
-	return sql.CollationID(t.root.GetCollationId())
+	return sql.CollationID(t.root.GetCollationId()) //nolint:gosec
 }
 
 // Partitions returns an iterator for the table partitions.
@@ -222,7 +222,7 @@ func (t *Table) SelectPartition(nonce uint64) (*TablePartition, int, error) {
 	if numPts == 0 {
 		return nil, 0, errors.New("no partitions")
 	}
-	sel := int(nonce % uint64(numPts))
+	sel := int(nonce % uint64(numPts)) //nolint:gosec
 	pt, err := t.PartitionAtIndex(sel)
 	return pt, sel, err
 }

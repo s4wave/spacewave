@@ -308,7 +308,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.Ob
 	}
 
 	// handleWorldChange is called when the fs object changes in the world.
-	var handleWorldChange control.WatchLoopHandler = func(
+	handleWorldChange := func(
 		ctx context.Context,
 		le *logrus.Entry,
 		world world.WorldState,

@@ -13,8 +13,8 @@ func NewTreeEntry(t *index.TreeEntry) (*TreeEntry, error) {
 	}
 	out := &TreeEntry{
 		Path:    t.Path,
-		Entries: int32(t.Entries),
-		Trees:   int32(t.Trees),
+		Entries: int32(t.Entries), //nolint:gosec
+		Trees:   int32(t.Trees),   //nolint:gosec
 	}
 	var err error
 	out.Hash, err = NewHash(t.Hash)

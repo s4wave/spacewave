@@ -76,7 +76,7 @@ func (o *BillyFSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, err
 
 // GetSize implements FSCursorOps.
 func (o *BillyFSCursorOps) GetSize(ctx context.Context) (uint64, error) {
-	return uint64(o.fi.Size()), nil
+	return uint64(o.fi.Size()), nil //nolint:gosec
 }
 
 // Lookup implements FSCursorOps.
@@ -369,8 +369,8 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return err
 	}
 
-	o.released.Store(true) // release the cursor just before filesystem modification
-	if err := f.Truncate(int64(nsize)); err != nil {
+	o.released.Store(true)                           // release the cursor just before filesystem modification
+	if err := f.Truncate(int64(nsize)); err != nil { //nolint:gosec
 		_ = f.Close()
 		return err
 	}

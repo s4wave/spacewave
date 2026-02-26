@@ -3,6 +3,7 @@ package blob
 import (
 	"context"
 	"io"
+	"math"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -53,8 +54,8 @@ func BuildChunkIndex(
 }
 
 // AppendChunk appends a chunk with the given data.
-func (i *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start uint64, data []byte) {
-	i.Chunks = append(i.Chunks, &Chunk{
+func (r *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start uint64, data []byte) {
+	r.Chunks = append(r.Chunks, &Chunk{
 		Size:  size,
 		Start: start,
 	})
@@ -93,6 +94,9 @@ func ReadFromChunks(
 		}
 		currChunkStart, currChunkSize := currChunk.GetStart(), currChunk.GetSize()
 		currChunkEnd := currChunkStart + currChunkSize
+		if currChunkStart > math.MaxInt || currChunkEnd > math.MaxInt || currChunkSize > math.MaxInt {
+			return n, outChunkIdx, errors.New("chunk bounds exceed maximum")
+		}
 		if int(currChunkStart) > start {
 			chunkIdx--
 			continue
@@ -101,7 +105,6 @@ func ReadFromChunks(
 			chunkIdx++
 			continue
 		}
-		// note: start always >= currChunkStart
 		readStartPos := start - int(currChunkStart)
 		readEndPos := min(readStartPos+len(buf), int(currChunkSize))
 

@@ -9,9 +9,10 @@ import (
 	"slices"
 	"sync"
 
+	bdb "github.com/aperturerobotics/bbolt"
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/hydra/kvtx"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
-	bdb "github.com/aperturerobotics/bbolt"
 )
 
 // Tx is a bolt transaction.
@@ -19,12 +20,6 @@ type Tx struct {
 	txn         *bdb.Tx
 	bucket      []byte
 	discardOnce sync.Once
-}
-
-// pendingValue is a pending write value
-type pendingValue struct {
-	key   []byte
-	value []byte
 }
 
 // NewTx constructs a new bolt transaction.
@@ -39,7 +34,7 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 	}
 	bk := t.txn.Bucket(t.bucket)
 	if bk == nil {
-		return nil, bdb.ErrBucketNotFound
+		return nil, bdberrors.ErrBucketNotFound
 	}
 	return bk, nil
 }
@@ -51,7 +46,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	}
 
 	bkt, err := t.getBucket()
-	if err == bdb.ErrBucketNotFound {
+	if err == bdberrors.ErrBucketNotFound {
 		return nil, false, nil
 	}
 	if err != nil {
@@ -75,7 +70,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 	stats := bkt.Stats()
-	return uint64(stats.KeyN), nil
+	return uint64(stats.KeyN), nil //nolint:gosec
 }
 
 // Set sets the value of a key.
@@ -191,7 +186,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	}
 	bkt, err := t.getBucket()
 	if err != nil {
-		if err == bdb.ErrBucketNotFound {
+		if err == bdberrors.ErrBucketNotFound {
 			return false, nil
 		}
 		return false, err

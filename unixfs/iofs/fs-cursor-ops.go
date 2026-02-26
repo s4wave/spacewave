@@ -79,7 +79,7 @@ func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
-	return uint64(f.fileInfo.Size()), nil
+	return uint64(f.fileInfo.Size()), nil //nolint:gosec
 }
 
 // GetModTimestamp returns the modification timestamp.
@@ -211,7 +211,7 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 	if !f.GetIsDirectory() {
 		return unixfs_errors.ErrNotDirectory
 	}
-	for i := int(skip); i < len(f.dirents); i++ {
+	for i := int(skip); i < len(f.dirents); i++ { //nolint:gosec
 		if err := cb(NewFSCursorDirent(f.dirents[i])); err != nil {
 			return err
 		}

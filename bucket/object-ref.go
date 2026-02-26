@@ -2,7 +2,6 @@ package bucket
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform "github.com/aperturerobotics/hydra/block/transform"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
@@ -68,8 +67,8 @@ func MarshalObjectRefJSON(ref *ObjectRef) ([]byte, error) {
 }
 
 // IsNil returns if the object is nil.
-func (r *ObjectRef) IsNil() bool {
-	return r == nil
+func (o *ObjectRef) IsNil() bool {
+	return o == nil
 }
 
 // ParseFromB58 parses the object ref from a base58 string.
@@ -245,54 +244,54 @@ func (o *ObjectRef) GetBlockRefCtor(id uint32) block.Ctor {
 	case 1:
 		// unknown
 	case 3:
-		return block_transform.NewTransformConfigBlock
+		return transform.NewTransformConfigBlock
 	}
 	return nil
 }
 
 // MarshalProtoJSON marshals the ObjectRef message to JSON.
-func (x *ObjectRef) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
+func (o *ObjectRef) MarshalProtoJSON(s *json.MarshalState) {
+	if o == nil {
 		s.WriteNil()
 		return
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.RootRef != nil || s.HasField("rootRef") {
+	if o.RootRef != nil || s.HasField("rootRef") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("rootRef")
-		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+		o.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
 	}
-	if x.BucketId != "" || s.HasField("bucketId") {
+	if o.BucketId != "" || s.HasField("bucketId") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("bucketId")
-		s.WriteString(x.BucketId)
+		s.WriteString(o.BucketId)
 	}
-	if x.TransformConfRef != nil || s.HasField("transformConfRef") {
+	if o.TransformConfRef != nil || s.HasField("transformConfRef") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("transformConfRef")
-		x.TransformConfRef.MarshalProtoJSON(s.WithField("transformConfRef"))
+		o.TransformConfRef.MarshalProtoJSON(s.WithField("transformConfRef"))
 	}
-	if x.TransformConf != nil || s.HasField("transformConf") {
+	if o.TransformConf != nil || s.HasField("transformConf") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("transformConf")
-		x.TransformConf.MarshalProtoJSON(s.WithField("transformConf"))
+		o.TransformConf.MarshalProtoJSON(s.WithField("transformConf"))
 	}
 	s.WriteObjectEnd()
 }
 
 // MarshalJSON marshals the ObjectRef to JSON.
-func (x *ObjectRef) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
+func (o *ObjectRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(o)
 }
 
 // UnmarshalProtoJSON unmarshals the ObjectRef message from JSON.
-func (x *ObjectRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+func (o *ObjectRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
 	if s.WhatIsNext() == jsoniter.StringValue {
-		if err := x.UnmarshalB58(s.ReadString()); err != nil {
+		if err := o.UnmarshalB58(s.ReadString()); err != nil {
 			s.SetError(err)
 		}
 		return
@@ -303,35 +302,35 @@ func (x *ObjectRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.Skip() // ignore unknown field
 		case "root_ref", "rootRef":
 			if s.ReadNil() {
-				x.RootRef = nil
+				o.RootRef = nil
 				return
 			}
-			x.RootRef = &block.BlockRef{}
-			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+			o.RootRef = &block.BlockRef{}
+			o.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
 		case "bucket_id", "bucketId":
 			s.AddField("bucket_id")
-			x.BucketId = s.ReadString()
+			o.BucketId = s.ReadString()
 		case "transform_conf_ref", "transformConfRef":
 			if s.ReadNil() {
-				x.TransformConfRef = nil
+				o.TransformConfRef = nil
 				return
 			}
-			x.TransformConfRef = &block.BlockRef{}
-			x.TransformConfRef.UnmarshalProtoJSON(s.WithField("transform_conf_ref", true))
+			o.TransformConfRef = &block.BlockRef{}
+			o.TransformConfRef.UnmarshalProtoJSON(s.WithField("transform_conf_ref", true))
 		case "transform_conf", "transformConf":
 			if s.ReadNil() {
-				x.TransformConf = nil
+				o.TransformConf = nil
 				return
 			}
-			x.TransformConf = &transform.Config{}
-			x.TransformConf.UnmarshalProtoJSON(s.WithField("transform_conf", true))
+			o.TransformConf = &transform.Config{}
+			o.TransformConf.UnmarshalProtoJSON(s.WithField("transform_conf", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ObjectRef from JSON.
-func (x *ObjectRef) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+func (o *ObjectRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, o)
 }
 
 // _ is a type assertion

@@ -3,8 +3,8 @@ package store_kvtx
 import (
 	"context"
 
-	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/crypto"
+	"github.com/aperturerobotics/bifrost/keypem"
 )
 
 // LoadPeerPriv attempts to load the peer private key from the volume.

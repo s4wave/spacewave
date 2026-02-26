@@ -59,7 +59,7 @@ func NewVolume(
 		closeFn:   closeFn,
 	}
 
-	peerPriv, err := v.Store.LoadPeerPriv(ctx)
+	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func NewVolume(
 		return nil, err
 	}
 
-	npriv, err := v.Peer.GetPrivKey(ctx)
+	npriv, err := v.GetPrivKey(ctx)
 	if err != nil {
 		return nil, err
 	}

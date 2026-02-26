@@ -58,12 +58,12 @@ func (r *DatabaseRoot) Validate() error {
 }
 
 // Validate performs cursory validation.
-func (t *DatabaseRootTable) Validate() error {
-	if len(t.GetName()) == 0 {
+func (r *DatabaseRootTable) Validate() error {
+	if len(r.GetName()) == 0 {
 		return ErrEmptyTableName
 	}
 	// allow empty root table
-	if err := t.GetRef().Validate(true); err != nil {
+	if err := r.GetRef().Validate(true); err != nil {
 		return err
 	}
 	return nil
@@ -133,7 +133,7 @@ func (r *DatabaseRoot) InsertTable(name string, ref *block.BlockRef, bcs *block.
 	r.Tables = append(r.Tables, &DatabaseRootTable{Name: name, Ref: ref})
 	var ebcs *block.Cursor
 	if bcs != nil {
-		ebcs = set.GetCursor().FollowSubBlock(uint32(len(r.Tables) - 1))
+		ebcs = set.GetCursor().FollowSubBlock(uint32(len(r.Tables) - 1)) //nolint:gosec
 	}
 	set.SortNamedRefs()
 	return ebcs, true

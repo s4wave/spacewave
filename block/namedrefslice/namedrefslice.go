@@ -48,8 +48,8 @@ func NewNamedBlockRefSet(sl NamedBlockRefSetContainer, bcs *block.Cursor) *Named
 }
 
 // IsNil checks if the object is nil.
-func (n *NamedBlockRefSet) IsNil() bool {
-	return n == nil
+func (r *NamedBlockRefSet) IsNil() bool {
+	return r == nil
 }
 
 // GetCursor returns the sub-block cursor located at r, if set.
@@ -108,9 +108,9 @@ func (r *NamedBlockRefSet) Swap(i, j int) {
 	}
 	// swap block cursor graph references
 	if bcs := r.bcs; bcs != nil {
-		ii := uint32(i)
+		ii := uint32(i) //nolint:gosec
 		ir := bcs.FollowRef(ii, iv.GetRef())
-		jj := uint32(j)
+		jj := uint32(j) //nolint:gosec
 		jr := bcs.FollowRef(jj, jv.GetRef())
 		bcs.SetRef(jj, ir)
 		bcs.SetRef(ii, jr)
@@ -151,7 +151,7 @@ func (r *NamedBlockRefSet) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 		if sv == nil {
 			return nil, errors.Errorf("entry at index %d was nil", i)
 		}
-		m[uint32(i)] = sv.GetRef()
+		m[uint32(i)] = sv.GetRef() //nolint:gosec
 	}
 	return m, nil
 }
@@ -163,7 +163,7 @@ func (r *NamedBlockRefSet) GetBlockRefCtor(id uint32) block.Ctor {
 		return nil
 	}
 	ls := r.sl.Len()
-	if id >= uint32(ls) {
+	if id >= uint32(ls) { //nolint:gosec
 		return nil
 	}
 	return r.sl.GetBlockRefCtor(int(id))
@@ -211,7 +211,7 @@ func (r *NamedBlockRefSet) LookupByName(name string) (NamedBlockRef, *block.Curs
 	}
 	var nbcs *block.Cursor
 	if r.bcs != nil {
-		nbcs = r.bcs.FollowRef(uint32(idx), v.GetRef())
+		nbcs = r.bcs.FollowRef(uint32(idx), v.GetRef()) //nolint:gosec
 	}
 	return v, nbcs, true
 }

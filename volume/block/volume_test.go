@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -18,7 +19,6 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_test "github.com/aperturerobotics/hydra/volume/test"
-	"github.com/aperturerobotics/bifrost/crypto"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"

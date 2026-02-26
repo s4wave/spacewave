@@ -89,11 +89,11 @@ func (d *BlockRefSlice) Swap(i, j int) {
 	refs := *d.refs
 
 	if d.bcs != nil {
-		iref := d.bcs.FollowRef(uint32(i), refs[i])
-		jref := d.bcs.FollowRef(uint32(j), refs[j])
+		iref := d.bcs.FollowRef(uint32(i), refs[i]) //nolint:gosec
+		jref := d.bcs.FollowRef(uint32(j), refs[j]) //nolint:gosec
 		// swap
-		d.bcs.SetRef(uint32(i), jref)
-		d.bcs.SetRef(uint32(j), iref)
+		d.bcs.SetRef(uint32(i), jref) //nolint:gosec
+		d.bcs.SetRef(uint32(j), iref) //nolint:gosec
 	}
 
 	// swap slice positions
@@ -155,10 +155,10 @@ func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error 
 
 	if bcs == nil {
 		refs[idx] = nil
-		d.bcs.ClearRef(uint32(idx))
+		d.bcs.ClearRef(uint32(idx)) //nolint:gosec
 	} else {
 		refs[idx] = bcs.GetRef()
-		d.bcs.SetRef(uint32(idx), bcs)
+		d.bcs.SetRef(uint32(idx), bcs) //nolint:gosec
 	}
 	return nil
 }
@@ -176,7 +176,7 @@ func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.B
 	}
 
 	ref := refs[idx]
-	subRef := d.bcs.FollowRef(uint32(idx), ref)
+	subRef := d.bcs.FollowRef(uint32(idx), ref) //nolint:gosec
 	return subRef, ref, nil
 }
 
@@ -207,14 +207,14 @@ BlockRefLoop:
 			rmRefs = rmRefs[1:]
 			// clear old reference
 			if d.bcs != nil {
-				d.bcs.ClearRef(uint32(di))
+				d.bcs.ClearRef(uint32(di)) //nolint:gosec
 			}
 			if di+1 < len(refs) {
 				// update block graph with pre-remove swap
 				swapIdx := len(refs) - 1
 				if d.bcs != nil {
-					sb := d.bcs.FollowSubBlock(uint32(swapIdx))
-					d.bcs.SetRef(uint32(di), sb)
+					sb := d.bcs.FollowSubBlock(uint32(swapIdx)) //nolint:gosec
+					d.bcs.SetRef(uint32(di), sb)                //nolint:gosec
 				}
 				refs[di] = refs[swapIdx]
 			}
@@ -250,7 +250,7 @@ func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 		return nil
 	}
 
-	subBlk := d.bcs.FollowRef(uint32(nextIdx), nent)
+	subBlk := d.bcs.FollowRef(uint32(nextIdx), nent) //nolint:gosec
 	subBlk.SetRefAtCursor(nent, true)
 	return subBlk
 }
@@ -293,7 +293,7 @@ func (d *BlockRefSlice) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
 	for i, r := range refSlice {
 		if r != nil {
-			m[uint32(i)] = r
+			m[uint32(i)] = r //nolint:gosec
 		}
 	}
 	if len(m) == 0 {

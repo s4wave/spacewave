@@ -76,7 +76,7 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 	}
 
 	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
-		knownSize := int64(*knownSizePtr)
+		knownSize := int64(*knownSizePtr) //nolint:gosec
 		if offset >= knownSize {
 			return offset, nil, io.EOF
 		}
@@ -177,7 +177,7 @@ func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
 			}
 		}
 
-		seek = int64(length) + offset
+		seek = int64(length) + offset //nolint:gosec
 	default:
 		return 0, errors.New("invalid whence")
 	}

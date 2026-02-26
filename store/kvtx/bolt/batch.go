@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // flushInterval is how long unflushed writes can sit before a periodic commit.
@@ -169,7 +169,7 @@ func (t *batchTx) Size(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint64(bkt.Stats().KeyN), nil
+	return uint64(bkt.Stats().KeyN), nil //nolint:gosec
 }
 
 // Set sets the value of a key.

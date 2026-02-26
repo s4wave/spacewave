@@ -115,19 +115,18 @@ func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			if s.ReadNil() {
 				break
 			}
-			nextTok := s.WhatIsNext()
-			if nextTok == jsoniter.StringValue {
-				// Expect base58 encoded string
+			switch s.WhatIsNext() {
+			case jsoniter.StringValue:
 				var err error
 				c.Config, err = base64.RawStdEncoding.DecodeString(s.ReadString())
 				if err != nil {
 					s.SetError(errors.Wrap(err, "unmarshal config value as base58 string"))
 					return
 				}
-			} else if nextTok == jsoniter.ObjectValue {
+			case jsoniter.ObjectValue:
 				c.Config = s.SkipAndReturnBytes()
-			} else {
-				s.SetError(errors.Errorf("invalid json value for config: type %v", nextTok))
+			default:
+				s.SetError(errors.New("invalid json value for config"))
 				return
 			}
 		default:

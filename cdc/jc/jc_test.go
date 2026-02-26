@@ -131,8 +131,8 @@ func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
 	}
 
 	// Generate reproducible data
-	rng := rand.New(rand.NewSource(1))
-	total := 2 * 1024 * 1024 // 2 MiB
+	rng := rand.New(rand.NewSource(1)) //nolint:gosec
+	total := 2 * 1024 * 1024           // 2 MiB
 	data := make([]byte, total)
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
@@ -173,8 +173,8 @@ func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
 
 func TestStreamingChunker_DefaultKey(t *testing.T) {
 	// Generate reproducible data
-	rng := rand.New(rand.NewSource(1))
-	total := 2 * 1024 * 1024 // 2 MiB
+	rng := rand.New(rand.NewSource(1)) //nolint:gosec
+	total := 2 * 1024 * 1024           // 2 MiB
 	data := make([]byte, total)
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
@@ -239,8 +239,8 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 	}
 
 	// Generate reproducible data larger than maxSize to test chunking behavior
-	rng := rand.New(rand.NewSource(42))
-	total := 2 * int(maxSize) // 2x maxSize to ensure multiple chunks
+	rng := rand.New(rand.NewSource(42)) //nolint:gosec
+	total := 2 * int(maxSize)           // 2x maxSize to ensure multiple chunks
 	data := make([]byte, total)
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
@@ -336,7 +336,7 @@ func TestKeyAffectsGAndChunking(t *testing.T) {
 	}
 
 	// Also verify chunking still respects invariants with different keys
-	data := bytes.Repeat([]byte{0xAB}, int(3*maxSize+1234))
+	data := bytes.Repeat([]byte{0xAB}, int(3*maxSize+1234)) //nolint:gosec
 	chunks := chunkAll(cC, data)
 	total := 0
 	for i, sz := range chunks {
@@ -384,7 +384,7 @@ func BenchmarkChunking_DefaultKey(b *testing.B) {
 	}
 	size := 8 * 1024 * 1024 // 8 MiB
 	data := make([]byte, size)
-	rng := rand.New(rand.NewSource(42))
+	rng := rand.New(rand.NewSource(42)) //nolint:gosec
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
 	}
@@ -476,7 +476,7 @@ func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
 	}
 	size := 32 * 1024 * 1024 // 32 MiB
 	data := make([]byte, size)
-	rng := rand.New(rand.NewSource(1337))
+	rng := rand.New(rand.NewSource(1337)) //nolint:gosec
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
 	}

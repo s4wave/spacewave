@@ -65,7 +65,7 @@ func TestKvfile(t *testing.T) {
 	writeKtxCancel()
 
 	bufReader := bytes.NewReader(buf.Bytes())
-	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len()))
+	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len())) //nolint:gosec
 	if err != nil {
 		t.Fatal(err.Error())
 	}

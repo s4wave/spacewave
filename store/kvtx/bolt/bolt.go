@@ -7,8 +7,8 @@ import (
 	"errors"
 	"os"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Store is a bolt database key-value store.

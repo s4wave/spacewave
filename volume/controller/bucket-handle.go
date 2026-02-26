@@ -28,11 +28,11 @@ type bucketHandle struct {
 }
 
 // clone copies the bucketHandle
-func (h *bucketHandle) clone() *bucketHandle {
-	if h == nil {
-		return h
+func (b *bucketHandle) clone() *bucketHandle {
+	if b == nil {
+		return b
 	}
-	x := *h
+	x := *b
 	return &x
 }
 

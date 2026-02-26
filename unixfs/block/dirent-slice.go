@@ -60,10 +60,10 @@ func (d *DirentSlice) Swap(i, j int) {
 
 	if d.bcs != nil {
 		// swap via setting sub-block
-		iref := d.bcs.FollowSubBlock(uint32(i))
-		jref := d.bcs.FollowSubBlock(uint32(j))
-		_ = iref.SetAsSubBlock(uint32(j), d.bcs)
-		_ = jref.SetAsSubBlock(uint32(i), d.bcs)
+		iref := d.bcs.FollowSubBlock(uint32(i))  //nolint:gosec
+		jref := d.bcs.FollowSubBlock(uint32(j))  //nolint:gosec
+		_ = iref.SetAsSubBlock(uint32(j), d.bcs) //nolint:gosec
+		_ = jref.SetAsSubBlock(uint32(i), d.bcs) //nolint:gosec
 	} else {
 		// swap slice positions directly
 		p := dirents[i]
@@ -102,7 +102,7 @@ func (d *DirentSlice) GetSubBlocks() map[uint32]block.SubBlock {
 		if dirent == nil {
 			continue
 		}
-		m[uint32(idx)] = dirent
+		m[uint32(idx)] = dirent //nolint:gosec
 	}
 	return m
 }
@@ -197,7 +197,7 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 	}
 
 	dirent := dirents[didx]
-	subRef := d.bcs.FollowSubBlock(uint32(didx))
+	subRef := d.bcs.FollowSubBlock(uint32(didx)) //nolint:gosec
 	nodeRef := subRef.FollowRef(2, dirent.GetNodeRef())
 	return nodeRef, dirent, nil
 }
@@ -291,7 +291,7 @@ DirentLoop:
 
 		// swap the last position of target slice to removeIdx
 		var oldSubBlockCs *block.Cursor
-		oldLastIdx := uint32(currNlen - 1)
+		oldLastIdx := uint32(currNlen - 1) //nolint:gosec
 		if d.bcs != nil {
 			oldSubBlockCs = d.bcs.FollowSubBlock(oldLastIdx)
 			d.bcs.ClearRef(oldLastIdx)
@@ -300,9 +300,9 @@ DirentLoop:
 		dirents[oldLastIdx] = nil
 		dirents = dirents[:len(dirents)-1]
 		*d.dirents = dirents
-		if d.bcs != nil && uint32(removeIdx) != oldLastIdx {
+		if d.bcs != nil && uint32(removeIdx) != oldLastIdx { //nolint:gosec
 			// note: ignoring error here
-			_ = oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs)
+			_ = oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs) //nolint:gosec
 		}
 		if len(names) == 0 {
 			break
@@ -330,7 +330,7 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 
 	nextIdx := len(*d.dirents)
 	if d.bcs != nil {
-		d.bcs.ClearRef(uint32(nextIdx))
+		d.bcs.ClearRef(uint32(nextIdx)) //nolint:gosec
 	}
 	*d.dirents = append(*d.dirents, nent)
 	if d.bcs == nil {
@@ -338,7 +338,7 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 	}
 
 	// we already appended to the slice: mark the block as dirty
-	subBlk := d.bcs.FollowSubBlock(uint32(nextIdx))
+	subBlk := d.bcs.FollowSubBlock(uint32(nextIdx)) //nolint:gosec
 	subBlk.MarkDirty()
 	// subBlk.SetBlock(nent, true)
 	return subBlk

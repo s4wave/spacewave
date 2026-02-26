@@ -228,7 +228,7 @@ func (s *Store[T]) tryNewTransaction(ctx context.Context, write bool) (kvtx.Tx, 
 		}
 
 		// Dummy non-modifying DELETE to acquire RESERVED lock early.
-		_, err = txn.ExecContext(ctx, "DELETE FROM "+s.table+" WHERE 1=0")
+		_, err = txn.ExecContext(ctx, "DELETE FROM "+s.table+" WHERE 1=0") //nolint:gosec
 		if err == nil {
 			// Success: RESERVED acquired, proceed.
 			return NewTx(txn, s.table, write), nil

@@ -12,7 +12,7 @@ func NewBitset(bitSet *bb.BitSet) *BitSet {
 		return nil
 	}
 	return &BitSet{
-		Len: uint32(bitSet.Len()),
+		Len: uint32(bitSet.Len()), //nolint:gosec
 		Set: bitSet.Bytes(),
 	}
 }

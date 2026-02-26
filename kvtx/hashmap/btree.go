@@ -49,7 +49,7 @@ func (m *BTreeMap[V]) Get(ctx context.Context, key []byte) (val V, ok bool, err 
 
 // Size returns the number of keys in the map.
 func (m *BTreeMap[V]) Size(ctx context.Context) (uint64, error) {
-	return uint64(m.tree.Len()), nil
+	return uint64(m.tree.Len()), nil //nolint:gosec
 }
 
 // Set sets an item in the hash map.

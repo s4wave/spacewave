@@ -40,7 +40,7 @@ func (i *Iterator) Err() error {
 //
 // If err is set, returns false.
 func (i *Iterator) Valid() bool {
-	return i.err == nil && !i.oob && !i.end && i.idx >= 0 && i.idx < int(i.rdr.Size())
+	return i.err == nil && !i.oob && !i.end && i.idx >= 0 && i.idx < int(i.rdr.Size()) //nolint:gosec
 }
 
 // Key returns the current entry key, or nil if not valid.
@@ -62,7 +62,7 @@ func (i *Iterator) Value() ([]byte, error) {
 		return *i.val, nil
 	}
 	if i.entry == nil {
-		entry, err := i.rdr.ReadIndexEntry(uint64(i.idx))
+		entry, err := i.rdr.ReadIndexEntry(uint64(i.idx)) //nolint:gosec
 		if err != nil {
 			return nil, err
 		}
@@ -117,11 +117,11 @@ func (i *Iterator) Next() bool {
 			}
 		} else {
 			if i.reverse {
-				i.idx = int(size) - 1
-				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+				i.idx = int(size) - 1                                //nolint:gosec
+				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx)) //nolint:gosec
 			} else {
 				i.idx = 0
-				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx)) //nolint:gosec
 			}
 		}
 	} else {
@@ -130,10 +130,10 @@ func (i *Iterator) Next() bool {
 			i.oob = i.idx < 0
 		} else {
 			i.idx++
-			i.oob = i.idx >= int(size)
+			i.oob = i.idx >= int(size) //nolint:gosec
 		}
 		if !i.oob {
-			i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+			i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx)) //nolint:gosec
 			i.oob = i.entry == nil
 		}
 		if i.err == nil && !i.oob && i.entry != nil && len(i.prefix) != 0 {

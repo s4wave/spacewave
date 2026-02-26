@@ -43,7 +43,7 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 	var quads []world.GraphQuad
 	err = world.FilterIterateQuads(ctx, t.graphHd, cq, func(q quad.Quad) error {
 		quads = append(quads, world.CayleyQuadToGraphQuad(q))
-		if limit != 0 && uint32(len(quads)) >= limit {
+		if limit != 0 && uint32(len(quads)) >= limit { //nolint:gosec
 			return io.EOF
 		}
 		return nil

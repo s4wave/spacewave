@@ -1,8 +1,9 @@
 package volume
 
-import "slices"
-
-import "regexp"
+import (
+	"regexp"
+	"slices"
+)
 
 // CheckIDMatchesList checks if the ID matches the list or regex.
 // If the ID matches the regex OR matches the list, returns true.

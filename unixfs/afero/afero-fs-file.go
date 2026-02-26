@@ -89,7 +89,7 @@ func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
 		count = 0
 	}
 
-	fi, err := unixfs.ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h)
+	fi, err := unixfs.ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h) //nolint:gosec
 	if err == nil {
 		f.idx.Add(int64(len(fi)))
 	}
@@ -179,7 +179,7 @@ func (f *AferoFSFile) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		out = int64(size) + offset
+		out = int64(size) + offset //nolint:gosec
 		f.idx.Store(out)
 	}
 	if out < 0 {
@@ -207,7 +207,7 @@ func (f *AferoFSFile) Truncate(size int64) error {
 	if size < 0 {
 		size = 0
 	}
-	return f.h.Truncate(f.ctx, uint64(size), f.timestamp())
+	return f.h.Truncate(f.ctx, uint64(size), f.timestamp()) //nolint:gosec
 }
 
 // Close closes the file handle.

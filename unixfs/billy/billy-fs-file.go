@@ -113,7 +113,7 @@ func SyncToBillyFSFile(
 	if err != nil {
 		return err
 	}
-	if err := destFile.Truncate(int64(srcSize)); err != nil {
+	if err := destFile.Truncate(int64(srcSize)); err != nil { //nolint:gosec
 		return err
 	}
 
@@ -126,7 +126,7 @@ func SyncToBillyFSFile(
 			return err
 		}
 		if nreadIn == 0 {
-			if offset != int64(srcSize) {
+			if offset != int64(srcSize) { //nolint:gosec
 				return errors.Wrapf(unixfs_errors.ErrInvalidWrite, "wrote %d but expected %d", offset, srcSize)
 			}
 			break
@@ -290,7 +290,7 @@ func (f *BillyFSFile) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		out = int64(size) + offset
+		out = int64(size) + offset //nolint:gosec
 		f.idx.Store(out)
 	}
 	if out < 0 {
@@ -307,7 +307,7 @@ func (f *BillyFSFile) Truncate(size int64) error {
 	if size < 0 {
 		size = 0
 	}
-	return f.h.Truncate(f.ctx, uint64(size), f.timestamp())
+	return f.h.Truncate(f.ctx, uint64(size), f.timestamp()) //nolint:gosec
 }
 
 // Close closes the file handle.

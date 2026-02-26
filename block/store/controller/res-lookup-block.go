@@ -48,7 +48,7 @@ func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler di
 	}
 	handler.ClearValues()
 	if found || !r.c.skipNotFound || err != nil {
-		var val dex.LookupBlockFromNetworkValue = dex.NewLookupBlockFromNetworkValue(data, err)
+		val := dex.NewLookupBlockFromNetworkValue(data, err)
 		_, _ = handler.AddValue(val)
 	}
 	return err

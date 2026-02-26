@@ -79,14 +79,14 @@ func (d *LookupBlockFromNetworkRequest) GetValueOptions() directive.ValueOptions
 
 // LookupBlockFromNetworkBucketId returns the desired bucket id.
 // Can be empty.
-func (a *LookupBlockFromNetworkRequest) LookupBlockFromNetworkBucketId() string {
-	return a.GetBucketId()
+func (d *LookupBlockFromNetworkRequest) LookupBlockFromNetworkBucketId() string {
+	return d.GetBucketId()
 }
 
 // LookupBlockFromNetworkVolumeIDRe returns the volume ID constraint.
 // Can be empty.
-func (a *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *block.BlockRef {
-	return a.GetRef()
+func (d *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *block.BlockRef {
+	return d.GetRef()
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two

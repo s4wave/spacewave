@@ -38,7 +38,7 @@ func NewDexSession(stream io.ReadWriteCloser, chunkSize int, maxBlockSize uint64
 	}
 	// maxMessageSize must accommodate a single chunk plus proto framing overhead.
 	// We always chunk, so the largest single message is chunkSize + BlockTransfer fields.
-	maxMsg := uint32(chunkSize) + 1024
+	maxMsg := uint32(chunkSize) + 1024 //nolint:gosec
 	return &DexSession{
 		sess:      stream_packet.NewSession(stream, maxMsg),
 		chunkSize: chunkSize,
@@ -155,7 +155,7 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 
 	// Read chunks into a buffer.
 	var buf bytes.Buffer
-	buf.Grow(int(totalSize))
+	buf.Grow(int(totalSize)) //nolint:gosec
 	for {
 		msg, rerr := d.ReadMessage()
 		if rerr != nil {
@@ -171,10 +171,10 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 		chunk := msg.GetData()
 		if len(chunk) > 0 {
 			buf.Write(chunk)
-			if uint64(buf.Len()) > totalSize {
+			if uint64(buf.Len()) > totalSize { //nolint:gosec
 				return requestID, ref, nil, errors.Errorf(
 					"accumulated data %s exceeds declared size %s",
-					strconv.FormatUint(uint64(buf.Len()), 10),
+					strconv.FormatUint(uint64(buf.Len()), 10), //nolint:gosec
 					strconv.FormatUint(totalSize, 10),
 				)
 			}

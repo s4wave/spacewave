@@ -231,26 +231,26 @@ func (b *BlockRef) ParseFromB58(ref string) error {
 }
 
 // MarshalProtoJSON marshals the BlockRef message to JSON.
-func (x *BlockRef) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil || x.SizeVT() == 0 {
+func (b *BlockRef) MarshalProtoJSON(s *json.MarshalState) {
+	if b == nil || b.SizeVT() == 0 {
 		s.WriteNil()
 		return
 	}
-	s.WriteString(x.MarshalString())
+	s.WriteString(b.MarshalString())
 }
 
 // MarshalJSON marshals the BlockRef to JSON.
-func (x *BlockRef) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
+func (b *BlockRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(b)
 }
 
 // UnmarshalProtoJSON unmarshals the BlockRef message from JSON.
-func (x *BlockRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+func (b *BlockRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
 	if s.WhatIsNext() == jsoniter.StringValue {
-		if err := x.ParseFromB58(s.ReadString()); err != nil {
+		if err := b.ParseFromB58(s.ReadString()); err != nil {
 			s.SetError(err)
 		}
 		return
@@ -261,18 +261,18 @@ func (x *BlockRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.Skip() // ignore unknown field
 		case "hash":
 			if s.ReadNil() {
-				x.Hash = nil
+				b.Hash = nil
 				return
 			}
-			x.Hash = &hash.Hash{}
-			x.Hash.UnmarshalProtoJSON(s.WithField("hash", true))
+			b.Hash = &hash.Hash{}
+			b.Hash.UnmarshalProtoJSON(s.WithField("hash", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the BlockRef from JSON.
-func (x *BlockRef) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+func (b *BlockRef) UnmarshalJSON(dat []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(dat, b)
 }
 
 // _ is a type assertion

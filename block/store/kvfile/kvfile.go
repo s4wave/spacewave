@@ -50,7 +50,7 @@ func NewBlockStoreBuilder(
 		}
 
 		kvfileBlock := NewKvfileBlock(ctx, kvkey, rdr)
-		var blockStore block_store.Store = block_store.NewStore(blockStoreID, kvfileBlock)
+		blockStore := block_store.NewStore(blockStoreID, kvfileBlock)
 		if verbose {
 			blockStore = block_store_vlogger.NewVLoggerStore(le, blockStore)
 		}

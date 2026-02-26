@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -65,6 +66,9 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 
 	switch root.GetBlobType() {
 	case BlobType_BlobType_RAW:
+		if root.GetTotalSize() > math.MaxInt {
+			return errors.New("total size exceeds maximum")
+		}
 		if len(root.GetRawData()) != int(root.GetTotalSize()) {
 			return errors.Errorf(
 				"raw blob size mismatch: %d != actual %d",
@@ -121,6 +125,9 @@ func (b *Blob) Validate() error {
 		}
 	}
 	if blobType == BlobType_BlobType_RAW {
+		if b.GetTotalSize() > math.MaxInt {
+			return errors.New("total size exceeds maximum")
+		}
 		if len(b.GetRawData()) != int(b.GetTotalSize()) {
 			return ErrRawBlobSizeMismatch
 		}
@@ -197,6 +204,9 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	}
 
 	blobType := b.GetBlobType()
+	if b.GetTotalSize() > math.MaxInt64 {
+		return errors.New("total size exceeds maximum")
+	}
 	totalSize := int64(b.GetTotalSize())
 	if totalSize == 0 {
 		if blobType != BlobType_BlobType_RAW {
@@ -283,7 +293,7 @@ func (b *Blob) AppendData(
 	}
 
 	oldLen := b.GetTotalSize()
-	nextLen := oldLen + uint64(dataLen)
+	nextLen := oldLen + uint64(dataLen) //nolint:gosec
 	if b.GetBlobType() == BlobType_BlobType_RAW {
 		if nextLen <= hwm {
 			// append to existing raw data blob
@@ -334,7 +344,7 @@ func (b *Blob) AppendData(
 	lastChunkIdx := len(chunks) - 1
 	lastChunk := chunks[lastChunkIdx]
 	_, lastChunkBcs := chunksSet.Get(lastChunkIdx)
-	chunksSet.GetCursor().ClearRef(uint32(lastChunkIdx))
+	chunksSet.GetCursor().ClearRef(uint32(lastChunkIdx)) //nolint:gosec
 	chunks = chunks[:lastChunkIdx]
 	b.ChunkIndex.Chunks = chunks
 
@@ -361,6 +371,9 @@ func (b *Blob) AppendData(
 
 // Truncate changes the length of the blob.
 func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildBlobOpts, nsize int64) error {
+	if b.GetTotalSize() > math.MaxInt64 {
+		return errors.New("total size exceeds maximum")
+	}
 	oldSize := int64(b.GetTotalSize())
 	if oldSize == nsize {
 		return nil
@@ -383,10 +396,10 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 
 	if b.GetBlobType() == BlobType_BlobType_RAW {
 		oldSize = int64(len(b.RawData))
-		b.TotalSize = uint64(nsize)
+		b.TotalSize = uint64(nsize) //nolint:gosec
 		if oldSize < nsize {
 			b.RawData = b.RawData[:nsize]
-		} else if nsize > int64(hwm) {
+		} else if nsize > int64(hwm) { //nolint:gosec
 			// create a chunk index with the raw data
 			// the TotalSize will be used as a limit for reading RawData.
 			if err := b.TransformToChunked(ctx, bcs, blobOpts); err != nil {
@@ -416,8 +429,8 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	}
 
 	// if new size is below high water mark, move to raw blob.
-	if hwm >= uint64(nsize) {
-		return b.TransformToRaw(ctx, bcs, uint64(nsize))
+	if hwm >= uint64(nsize) { //nolint:gosec
+		return b.TransformToRaw(ctx, bcs, uint64(nsize)) //nolint:gosec
 	}
 
 	// chunk index
@@ -434,12 +447,12 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	// delete any chunks that start outside the new size
 	for i := len(ciChunks) - 1; i >= 0; i-- {
 		chk := ciChunks[i]
-		if chk.GetStart() < uint64(nsize) {
+		if chk.GetStart() < uint64(nsize) { //nolint:gosec
 			break
 		}
 		ciChunks[i] = nil
 		ciChunks = ciChunks[:i]
-		ciChunksBcs.ClearRef(uint32(i))
+		ciChunksBcs.ClearRef(uint32(i)) //nolint:gosec
 	}
 	if len(ciChunks) != len(ci.Chunks) {
 		if len(ciChunks) == 0 {
@@ -455,9 +468,12 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 		lastChunk := ciChunks[lastChunkIdx]
 		lastChunkStart, lastChunkSize := lastChunk.GetStart(), lastChunk.GetSize()
 		lastChunkEnd := lastChunkStart + lastChunkSize
-		if lastChunkEnd > uint64(nsize) {
+		if lastChunkEnd > uint64(nsize) { //nolint:gosec
+			if lastChunkStart > math.MaxInt64 {
+				return errors.New("chunk start exceeds maximum")
+			}
 			nlastChkLen := nsize - int64(lastChunkStart)
-			lastChkBcs := ciChunksBcs.FollowSubBlock(uint32(lastChunkIdx))
+			lastChkBcs := ciChunksBcs.FollowSubBlock(uint32(lastChunkIdx)) //nolint:gosec
 			// fetch last chunk data
 			lastChkData, err := lastChunk.FetchData(ctx, lastChkBcs, false)
 			if err != nil {
@@ -470,13 +486,13 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 				lastChkDataBcs.SetBlock(byteslice.NewByteSlice(&lastChkData), true)
 			}
 			// update the length
-			lastChunk.Size = uint64(nlastChkLen)
+			lastChunk.Size = uint64(nlastChkLen) //nolint:gosec
 			lastChkBcs.MarkDirty()
 		}
 	}
 
 	// update total size
-	b.TotalSize = uint64(nsize)
+	b.TotalSize = uint64(nsize) //nolint:gosec
 	return nil
 }
 
@@ -491,6 +507,9 @@ func (b *Blob) TransformToChunked(ctx context.Context, bcs *block.Cursor, blobOp
 
 	// create a chunk index with the raw data with at most totalSize bytes
 	totalSize := b.TotalSize
+	if totalSize > math.MaxInt64 {
+		return errors.New("total size exceeds maximum")
+	}
 	data := b.RawData
 	b.RawData = nil
 	return b.WriteChunkIndex(ctx, bcs, blobOpts, io.LimitReader(bytes.NewReader(data), int64(totalSize)))

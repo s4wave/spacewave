@@ -133,12 +133,12 @@ func TestMultiRangeReader(t *testing.T) {
 			},
 			{
 				Nonce:  1,
-				Start:  uint64(r2Start),
+				Start:  uint64(r2Start), //nolint:gosec
 				Length: uint64(len(r2Data)),
 			},
 			{
 				Nonce:  2,
-				Start:  uint64(r3Start),
+				Start:  uint64(r3Start), //nolint:gosec
 				Length: uint64(len(r3Data)),
 			},
 		},
@@ -243,7 +243,7 @@ func TestRandomReads(t *testing.T) {
 	buf := make([]byte, 4096)
 	for i := range 10000 {
 		// get random location (fails)
-		loc := int64(prand.Uint64() % uint64(len(expectedData)))
+		loc := int64(prand.Uint64() % uint64(len(expectedData))) //nolint:gosec
 		// sequential: works perfectly
 		// loc := int64(i * 4096)
 		if int(loc) >= len(expectedData) {

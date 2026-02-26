@@ -2,6 +2,7 @@ package blob
 
 import (
 	"context"
+	"math"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -64,6 +65,9 @@ func (r *Chunk) FetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool) 
 		)
 	}
 	currChunkSize := r.GetSize()
+	if currChunkSize > math.MaxInt {
+		return nil, errors.New("chunk size exceeds maximum")
+	}
 	if len(data) != int(currChunkSize) {
 		return nil, errors.Errorf(
 			"expected chunk %s data len %d but got %d",

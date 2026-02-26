@@ -15,7 +15,7 @@ func NewResolveUndoEntry(e *index.ResolveUndoEntry) (*ResolveUndoEntry, error) {
 	st := make(map[uint32]*hash.Hash, len(e.Stages))
 	for k, v := range e.Stages {
 		var err error
-		st[uint32(k)], err = NewHash(v)
+		st[uint32(k)], err = NewHash(v) //nolint:gosec
 		if err != nil {
 			return nil, err
 		}

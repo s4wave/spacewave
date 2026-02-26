@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/common"
 	"github.com/mattn/go-sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // CGOConfig implements the SQLiteDriverConfig interface for CGO SQLite driver.

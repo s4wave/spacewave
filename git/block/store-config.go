@@ -13,9 +13,9 @@ func ApplyConfigPatches(c *config.Config) {
 }
 
 // Config parses and returns the Git config associated with the repo.
-func (s *Store) Config() (*config.Config, error) {
+func (r *Store) Config() (*config.Config, error) {
 	conf := config.NewConfig()
-	if err := conf.Unmarshal([]byte(s.root.GetGitConfig())); err != nil {
+	if err := conf.Unmarshal([]byte(r.root.GetGitConfig())); err != nil {
 		return nil, err
 	}
 	ApplyConfigPatches(conf)
@@ -23,7 +23,7 @@ func (s *Store) Config() (*config.Config, error) {
 }
 
 // SetConfig marshals and sets the Git config associated with the repo.
-func (s *Store) SetConfig(c *config.Config) error {
+func (r *Store) SetConfig(c *config.Config) error {
 	if c == nil {
 		c = config.NewConfig()
 	}
@@ -33,9 +33,9 @@ func (s *Store) SetConfig(c *config.Config) error {
 		return err
 	}
 	nextConf := string(dat)
-	if s.bcs != nil && nextConf != s.root.GetGitConfig() {
-		s.root.GitConfig = nextConf
-		s.bcs.SetBlock(s.root, true)
+	if r.bcs != nil && nextConf != r.root.GetGitConfig() {
+		r.root.GitConfig = nextConf
+		r.bcs.SetBlock(r.root, true)
 	}
 	return nil
 }

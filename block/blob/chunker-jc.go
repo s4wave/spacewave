@@ -85,9 +85,9 @@ func buildChunkIndexJC(
 			copy(dataSlice, nchk.Data)
 		}
 
-		totalSize += uint64(nchk.Length)
-		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice)
-		chkStart += uint64(nchk.Length)
+		totalSize += uint64(nchk.Length)                                      //nolint:gosec
+		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice) //nolint:gosec
+		chkStart += uint64(nchk.Length)                                       //nolint:gosec
 		idx++
 
 		if err := ctx.Err(); err != nil {

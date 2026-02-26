@@ -126,8 +126,7 @@ func (c *Controller) HandleDirective(
 					if store == nil {
 						return nil, nil
 					}
-					var val block_store.LookupBlockStoreValue = store
-					return val, nil
+					return store, nil
 				},
 			),
 			nil,

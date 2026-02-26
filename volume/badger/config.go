@@ -32,7 +32,7 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.NumVersionsToKeep = int(nvc)
 	}
 	if bts := c.GetBaseTableSize(); bts != 0 {
-		o.BaseTableSize = int64(bts)
+		o.BaseTableSize = int64(bts) //nolint:gosec
 	}
 	if lsm := c.GetLevelSizeMultiplier(); lsm != 0 {
 		o.LevelSizeMultiplier = int(lsm)
@@ -41,7 +41,7 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.MaxLevels = int(ml)
 	}
 	if vt := c.GetValueThreshold(); vt != 0 {
-		o.ValueThreshold = int64(vt)
+		o.ValueThreshold = int64(vt) //nolint:gosec
 	}
 	if nmt := c.GetNumMemtables(); nmt != 0 {
 		o.NumMemtables = int(nmt)
@@ -53,10 +53,10 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.NumLevelZeroTablesStall = int(nlzts)
 	}
 	if los := c.GetBaseLevelSize(); los != 0 {
-		o.BaseLevelSize = int64(los)
+		o.BaseLevelSize = int64(los) //nolint:gosec
 	}
 	if vlfs := c.GetValueLogFileSize(); vlfs != 0 {
-		o.ValueLogFileSize = int64(vlfs)
+		o.ValueLogFileSize = int64(vlfs) //nolint:gosec
 	}
 	if vlme := c.GetValueLogMaxEntries(); vlme != 0 {
 		o.ValueLogMaxEntries = vlme

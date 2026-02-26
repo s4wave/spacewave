@@ -25,12 +25,12 @@ func NewStoreWithCache(db *ristretto.Cache[[]byte, []byte], ttl time.Duration) *
 func NewStore(conf *Config) (*Store, error) {
 	numCounters := int64(1e5)
 	if cn := conf.GetNumCounters(); cn != 0 {
-		numCounters = int64(cn)
+		numCounters = int64(cn) //nolint:gosec
 	}
 
 	maxCost := int64(1e9)
 	if cn := conf.GetMaxCost(); cn != 0 {
-		maxCost = int64(cn)
+		maxCost = int64(cn) //nolint:gosec
 	}
 
 	bufferItems := int64(64)

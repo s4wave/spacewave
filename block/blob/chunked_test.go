@@ -89,7 +89,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if len(dat) != int(b1.GetTotalSize()) {
+	if len(dat) != int(b1.GetTotalSize()) { //nolint:gosec
 		t.Fatalf("expected to read %d but got %d", b1.GetTotalSize(), len(dat))
 	}
 	opDur = t2.Sub(t1)
@@ -106,7 +106,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
 		t.Fatal(err.Error())
 	}
-	if bbuf.Len() != int(b1.GetTotalSize()) {
+	if bbuf.Len() != int(b1.GetTotalSize()) { //nolint:gosec
 		t.Fail()
 	}
 
@@ -170,7 +170,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
 		t.Fatal(err.Error())
 	}
-	if b1.GetBlobType() != BlobType_BlobType_CHUNKED || b1.GetTotalSize() != uint64(truncateSize) {
+	if b1.GetBlobType() != BlobType_BlobType_CHUNKED || b1.GetTotalSize() != uint64(truncateSize) { //nolint:gosec
 		t.Fail()
 	}
 	fetched, err := FetchToBytes(ctx, bcs)
@@ -183,7 +183,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	chunks := b1.GetChunkIndex().GetChunks()
 	lastChk := chunks[len(chunks)-1]
 	lastChkEnd := lastChk.GetStart() + lastChk.GetSize()
-	if lastChkEnd != uint64(truncateSize) {
+	if lastChkEnd != uint64(truncateSize) { //nolint:gosec
 		t.Fail()
 	}
 	if err := b1.ValidateFull(ctx, bcs); err != nil {
@@ -218,7 +218,7 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 	buf := make([]byte, 4096)
 	for range 10000 {
 		// get random location
-		loc := int64(prand.Uint64() % uint64(len(expectedData)))
+		loc := int64(prand.Uint64() % uint64(len(expectedData))) //nolint:gosec
 		// read from that location
 		seekPos, err := blobReader.Seek(loc, io.SeekStart)
 		if err == nil && seekPos != loc {

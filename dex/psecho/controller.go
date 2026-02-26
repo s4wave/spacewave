@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/bifrost/link"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/protocol"
@@ -18,7 +19,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
-	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
