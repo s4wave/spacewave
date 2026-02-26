@@ -96,14 +96,12 @@ require (
 	github.com/aperturerobotics/util v1.32.4 // latest
 )
 
-// aperture: use compatibility forks
-replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260224001138-7e9b62cc47d9 // master
-
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.14
 	github.com/klauspost/compress v1.18.4
+	github.com/libp2p/go-yamux/v4 v4.0.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -112,7 +110,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.9 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.9.5-0.20260226151524-34027eac4204
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.48.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
@@ -131,7 +129,6 @@ require (
 	github.com/hack-pad/safejs v0.1.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
