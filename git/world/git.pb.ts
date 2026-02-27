@@ -3,7 +3,13 @@
 /* eslint-disable */
 
 import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
-import { CheckoutOpts, FetchOpts, Index, Reference } from '../block/git.pb.js'
+import {
+  CheckoutOpts,
+  CloneOpts,
+  FetchOpts,
+  Index,
+  Reference,
+} from '../block/git.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -234,6 +240,58 @@ export const GitFetchOp: MessageType<GitFetchOp> = createMessageType({
   fields: [
     { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'fetch_opts', kind: 'message', T: () => FetchOpts },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * GitCloneOp is an operation to clone a git repo into the world.
+ * Clones objects from a remote, then runs GitInitOp to register the repo.
+ *
+ * @generated from message git.world.GitCloneOp
+ */
+export interface GitCloneOp {
+  /**
+   * ObjectKey is the object key to create as a Repo.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * CloneOpts contains the clone options (URL, ref, etc).
+   *
+   * @generated from field: git.block.CloneOpts clone_opts = 2;
+   */
+  cloneOpts?: CloneOpts
+  /**
+   * DisableCheckout disables creating a worktree after clone.
+   *
+   * @generated from field: bool disable_checkout = 3;
+   */
+  disableCheckout?: boolean
+  /**
+   * CreateWorktree configures creating the worktree.
+   * If unset, uses object_key + "/worktree"
+   * If disable_checkout is set, worktree is not created.
+   *
+   * @generated from field: git.world.GitCreateWorktreeOp create_worktree = 4;
+   */
+  createWorktree?: GitCreateWorktreeOp
+}
+
+// GitCloneOp contains the message type declaration for GitCloneOp.
+export const GitCloneOp: MessageType<GitCloneOp> = createMessageType({
+  typeName: 'git.world.GitCloneOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
+    { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 4,
+      name: 'create_worktree',
+      kind: 'message',
+      T: () => GitCreateWorktreeOp,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

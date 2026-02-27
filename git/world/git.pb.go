@@ -245,6 +245,56 @@ func (x *GitFetchOp) GetFetchOpts() *block.FetchOpts {
 	return nil
 }
 
+// GitCloneOp is an operation to clone a git repo into the world.
+// Clones objects from a remote, then runs GitInitOp to register the repo.
+type GitCloneOp struct {
+	unknownFields []byte
+	// ObjectKey is the object key to create as a Repo.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// CloneOpts contains the clone options (URL, ref, etc).
+	CloneOpts *block.CloneOpts `protobuf:"bytes,2,opt,name=clone_opts,json=cloneOpts,proto3" json:"cloneOpts,omitempty"`
+	// DisableCheckout disables creating a worktree after clone.
+	DisableCheckout bool `protobuf:"varint,3,opt,name=disable_checkout,json=disableCheckout,proto3" json:"disableCheckout,omitempty"`
+	// CreateWorktree configures creating the worktree.
+	// If unset, uses object_key + "/worktree"
+	// If disable_checkout is set, worktree is not created.
+	CreateWorktree *GitCreateWorktreeOp `protobuf:"bytes,4,opt,name=create_worktree,json=createWorktree,proto3" json:"createWorktree,omitempty"`
+}
+
+func (x *GitCloneOp) Reset() {
+	*x = GitCloneOp{}
+}
+
+func (*GitCloneOp) ProtoMessage() {}
+
+func (x *GitCloneOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *GitCloneOp) GetCloneOpts() *block.CloneOpts {
+	if x != nil {
+		return x.CloneOpts
+	}
+	return nil
+}
+
+func (x *GitCloneOp) GetDisableCheckout() bool {
+	if x != nil {
+		return x.DisableCheckout
+	}
+	return false
+}
+
+func (x *GitCloneOp) GetCreateWorktree() *GitCreateWorktreeOp {
+	if x != nil {
+		return x.CreateWorktree
+	}
+	return nil
+}
+
 // GitWorktreeCheckoutOp checks out a git revision in a worktree.
 // Note: cannot be run as a Object-specific op.
 type GitWorktreeCheckoutOp struct {
@@ -319,8 +369,10 @@ func (m *Worktree) CloneVT() *Worktree {
 		return (*Worktree)(nil)
 	}
 	r := new(Worktree)
-	r.GitIndex = m.GitIndex.CloneVT()
 	r.HeadRefStore = m.HeadRefStore.CloneVT()
+	if rhs := m.GitIndex; rhs != nil {
+		r.GitIndex = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -337,7 +389,9 @@ func (m *HeadRefStore) CloneVT() *HeadRefStore {
 	}
 	r := new(HeadRefStore)
 	r.SubmoduleName = m.SubmoduleName
-	r.HeadRef = m.HeadRef.CloneVT()
+	if rhs := m.HeadRef; rhs != nil {
+		r.HeadRef = rhs.CloneVT()
+	}
 	if rhs := m.Submodules; rhs != nil {
 		r.Submodules = make([]*HeadRefStore, len(rhs))
 		for k, v := range rhs {
@@ -362,10 +416,12 @@ func (m *GitCreateWorktreeOp) CloneVT() *GitCreateWorktreeOp {
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
 	r.CreateWorkdir = m.CreateWorkdir
-	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	if rhs := m.WorkdirRef; rhs != nil {
 		r.WorkdirRef = rhs.CloneVT()
+	}
+	if rhs := m.CheckoutOpts; rhs != nil {
+		r.CheckoutOpts = rhs.CloneVT()
 	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
@@ -386,7 +442,9 @@ func (m *GitFetchOp) CloneVT() *GitFetchOp {
 	}
 	r := new(GitFetchOp)
 	r.ObjectKey = m.ObjectKey
-	r.FetchOpts = m.FetchOpts.CloneVT()
+	if rhs := m.FetchOpts; rhs != nil {
+		r.FetchOpts = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -397,6 +455,27 @@ func (m *GitFetchOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *GitCloneOp) CloneVT() *GitCloneOp {
+	if m == nil {
+		return (*GitCloneOp)(nil)
+	}
+	r := new(GitCloneOp)
+	r.ObjectKey = m.ObjectKey
+	r.DisableCheckout = m.DisableCheckout
+	r.CreateWorktree = m.CreateWorktree.CloneVT()
+	if rhs := m.CloneOpts; rhs != nil {
+		r.CloneOpts = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GitCloneOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 	if m == nil {
 		return (*GitWorktreeCheckoutOp)(nil)
@@ -404,7 +483,9 @@ func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 	r := new(GitWorktreeCheckoutOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
-	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
+	if rhs := m.CheckoutOpts; rhs != nil {
+		r.CheckoutOpts = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -565,6 +646,35 @@ func (this *GitFetchOp) EqualVT(that *GitFetchOp) bool {
 
 func (this *GitFetchOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GitFetchOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GitCloneOp) EqualVT(that *GitCloneOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !this.CloneOpts.EqualVT(that.CloneOpts) {
+		return false
+	}
+	if this.DisableCheckout != that.DisableCheckout {
+		return false
+	}
+	if !this.CreateWorktree.EqualVT(that.CreateWorktree) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GitCloneOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GitCloneOp)
 	if !ok {
 		return false
 	}
@@ -968,6 +1078,80 @@ func (x *GitFetchOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the GitFetchOp from JSON.
 func (x *GitFetchOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GitCloneOp message to JSON.
+func (x *GitCloneOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.CloneOpts != nil || s.HasField("cloneOpts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cloneOpts")
+		x.CloneOpts.MarshalProtoJSON(s.WithField("cloneOpts"))
+	}
+	if x.DisableCheckout || s.HasField("disableCheckout") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableCheckout")
+		s.WriteBool(x.DisableCheckout)
+	}
+	if x.CreateWorktree != nil || s.HasField("createWorktree") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createWorktree")
+		x.CreateWorktree.MarshalProtoJSON(s.WithField("createWorktree"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GitCloneOp to JSON.
+func (x *GitCloneOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GitCloneOp message from JSON.
+func (x *GitCloneOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "clone_opts", "cloneOpts":
+			if s.ReadNil() {
+				x.CloneOpts = nil
+				return
+			}
+			x.CloneOpts = &block.CloneOpts{}
+			x.CloneOpts.UnmarshalProtoJSON(s.WithField("clone_opts", true))
+		case "disable_checkout", "disableCheckout":
+			s.AddField("disable_checkout")
+			x.DisableCheckout = s.ReadBool()
+		case "create_worktree", "createWorktree":
+			if s.ReadNil() {
+				x.CreateWorktree = nil
+				return
+			}
+			x.CreateWorktree = &GitCreateWorktreeOp{}
+			x.CreateWorktree.UnmarshalProtoJSON(s.WithField("create_worktree", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GitCloneOp from JSON.
+func (x *GitCloneOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1377,6 +1561,76 @@ func (m *GitFetchOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *GitCloneOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GitCloneOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GitCloneOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CreateWorktree != nil {
+		size, err := m.CreateWorktree.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.DisableCheckout {
+		i--
+		if m.DisableCheckout {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.CloneOpts != nil {
+		size, err := m.CloneOpts.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GitWorktreeCheckoutOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1559,6 +1813,31 @@ func (m *GitFetchOp) SizeVT() (n int) {
 	}
 	if m.FetchOpts != nil {
 		l = m.FetchOpts.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GitCloneOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CloneOpts != nil {
+		l = m.CloneOpts.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.DisableCheckout {
+		n += 2
+	}
+	if m.CreateWorktree != nil {
+		l = m.CreateWorktree.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1775,6 +2054,45 @@ func (x *GitFetchOp) MarshalProtoText() string {
 }
 
 func (x *GitFetchOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GitCloneOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GitCloneOp {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.CloneOpts != nil {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("clone_opts: ")
+		sb.WriteString(x.CloneOpts.MarshalProtoText())
+	}
+	if x.DisableCheckout != false {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("disable_checkout: ")
+		sb.WriteString(strconv.FormatBool(x.DisableCheckout))
+	}
+	if x.CreateWorktree != nil {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("create_worktree: ")
+		sb.WriteString(x.CreateWorktree.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GitCloneOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2430,6 +2748,139 @@ func (m *GitFetchOp) UnmarshalVT(dAtA []byte) error {
 				m.FetchOpts = &block.FetchOpts{}
 			}
 			if err := m.FetchOpts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GitCloneOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GitCloneOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GitCloneOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CloneOpts", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CloneOpts == nil {
+				m.CloneOpts = &block.CloneOpts{}
+			}
+			if err := m.CloneOpts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableCheckout", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.DisableCheckout = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreateWorktree", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CreateWorktree == nil {
+				m.CreateWorktree = &GitCreateWorktreeOp{}
+			}
+			if err := m.CreateWorktree.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

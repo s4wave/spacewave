@@ -633,7 +633,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/git/world": {
-      "hash": "9af39eb7a42ea3f13e4faa5ce928e86c009a037c619026d06004b9c742fc5c5d",
+      "hash": "fbd528da78f1433524579dc5ad7a598e9df50187680620cdb3c646515ca0e854",
       "generatedFiles": [
         "git/world/git.pb.cc",
         "git/world/git.pb.go",

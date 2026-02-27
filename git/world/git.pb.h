@@ -60,6 +60,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace git {
 namespace world {
+class GitCloneOp;
+struct GitCloneOpDefaultTypeInternal;
+extern GitCloneOpDefaultTypeInternal _GitCloneOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GitCloneOp_class_data_;
 class GitCreateWorktreeOp;
 struct GitCreateWorktreeOpDefaultTypeInternal;
 extern GitCreateWorktreeOpDefaultTypeInternal _GitCreateWorktreeOp_default_instance_;
@@ -597,7 +601,7 @@ class GitWorktreeCheckoutOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const GitWorktreeCheckoutOp*>(
         &_GitWorktreeCheckoutOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(GitWorktreeCheckoutOp& a, GitWorktreeCheckoutOp& b) { a.Swap(&b); }
   inline void Swap(GitWorktreeCheckoutOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1314,6 +1318,247 @@ class GitInitOp final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GitInitOp_class_data_;
+// -------------------------------------------------------------------
+
+class GitCloneOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:git.world.GitCloneOp) */ {
+ public:
+  inline GitCloneOp() : GitCloneOp(nullptr) {}
+  ~GitCloneOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GitCloneOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GitCloneOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GitCloneOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline GitCloneOp(const GitCloneOp& from) : GitCloneOp(nullptr, from) {}
+  inline GitCloneOp(GitCloneOp&& from) noexcept
+      : GitCloneOp(nullptr, ::std::move(from)) {}
+  inline GitCloneOp& operator=(const GitCloneOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GitCloneOp& operator=(GitCloneOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GitCloneOp& default_instance() {
+    return *reinterpret_cast<const GitCloneOp*>(
+        &_GitCloneOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(GitCloneOp& a, GitCloneOp& b) { a.Swap(&b); }
+  inline void Swap(GitCloneOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GitCloneOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GitCloneOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GitCloneOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GitCloneOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GitCloneOp& from) { GitCloneOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GitCloneOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "git.world.GitCloneOp"; }
+
+  explicit GitCloneOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GitCloneOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GitCloneOp& from);
+  GitCloneOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GitCloneOp&& from) noexcept
+      : GitCloneOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kCloneOptsFieldNumber = 2,
+    kCreateWorktreeFieldNumber = 4,
+    kDisableCheckoutFieldNumber = 3,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // .git.block.CloneOpts clone_opts = 2;
+  bool has_clone_opts() const;
+  void clear_clone_opts() ;
+  const ::git::block::CloneOpts& clone_opts() const;
+  [[nodiscard]] ::git::block::CloneOpts* PROTOBUF_NULLABLE release_clone_opts();
+  ::git::block::CloneOpts* PROTOBUF_NONNULL mutable_clone_opts();
+  void set_allocated_clone_opts(::git::block::CloneOpts* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_clone_opts(::git::block::CloneOpts* PROTOBUF_NULLABLE value);
+  ::git::block::CloneOpts* PROTOBUF_NULLABLE unsafe_arena_release_clone_opts();
+
+  private:
+  const ::git::block::CloneOpts& _internal_clone_opts() const;
+  ::git::block::CloneOpts* PROTOBUF_NONNULL _internal_mutable_clone_opts();
+
+  public:
+  // .git.world.GitCreateWorktreeOp create_worktree = 4;
+  bool has_create_worktree() const;
+  void clear_create_worktree() ;
+  const ::git::world::GitCreateWorktreeOp& create_worktree() const;
+  [[nodiscard]] ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE release_create_worktree();
+  ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL mutable_create_worktree();
+  void set_allocated_create_worktree(::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_create_worktree(::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE value);
+  ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE unsafe_arena_release_create_worktree();
+
+  private:
+  const ::git::world::GitCreateWorktreeOp& _internal_create_worktree() const;
+  ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL _internal_mutable_create_worktree();
+
+  public:
+  // bool disable_checkout = 3;
+  void clear_disable_checkout() ;
+  bool disable_checkout() const;
+  void set_disable_checkout(bool value);
+
+  private:
+  bool _internal_disable_checkout() const;
+  void _internal_set_disable_checkout(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:git.world.GitCloneOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   2, 39,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GitCloneOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::git::block::CloneOpts* PROTOBUF_NULLABLE clone_opts_;
+    ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE create_worktree_;
+    bool disable_checkout_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GitCloneOp_class_data_;
 // -------------------------------------------------------------------
 
 class Worktree final : public ::google::protobuf::Message
@@ -2862,6 +3107,292 @@ inline void GitFetchOp::set_allocated_fetch_opts(::git::block::FetchOpts* PROTOB
 
   _impl_.fetch_opts_ = reinterpret_cast<::git::block::FetchOpts*>(value);
   // @@protoc_insertion_point(field_set_allocated:git.world.GitFetchOp.fetch_opts)
+}
+
+// -------------------------------------------------------------------
+
+// GitCloneOp
+
+// string object_key = 1;
+inline void GitCloneOp::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& GitCloneOp::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitCloneOp.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GitCloneOp::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.world.GitCloneOp.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GitCloneOp::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:git.world.GitCloneOp.object_key)
+  return _s;
+}
+inline const ::std::string& GitCloneOp::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void GitCloneOp::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GitCloneOp::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GitCloneOp::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitCloneOp.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GitCloneOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitCloneOp.object_key)
+}
+
+// .git.block.CloneOpts clone_opts = 2;
+inline bool GitCloneOp::has_clone_opts() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.clone_opts_ != nullptr);
+  return value;
+}
+inline const ::git::block::CloneOpts& GitCloneOp::_internal_clone_opts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::git::block::CloneOpts* p = _impl_.clone_opts_;
+  return p != nullptr ? *p : reinterpret_cast<const ::git::block::CloneOpts&>(::git::block::_CloneOpts_default_instance_);
+}
+inline const ::git::block::CloneOpts& GitCloneOp::clone_opts() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitCloneOp.clone_opts)
+  return _internal_clone_opts();
+}
+inline void GitCloneOp::unsafe_arena_set_allocated_clone_opts(
+    ::git::block::CloneOpts* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.clone_opts_);
+  }
+  _impl_.clone_opts_ = reinterpret_cast<::git::block::CloneOpts*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitCloneOp.clone_opts)
+}
+inline ::git::block::CloneOpts* PROTOBUF_NULLABLE GitCloneOp::release_clone_opts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::git::block::CloneOpts* released = _impl_.clone_opts_;
+  _impl_.clone_opts_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::git::block::CloneOpts* PROTOBUF_NULLABLE GitCloneOp::unsafe_arena_release_clone_opts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitCloneOp.clone_opts)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::git::block::CloneOpts* temp = _impl_.clone_opts_;
+  _impl_.clone_opts_ = nullptr;
+  return temp;
+}
+inline ::git::block::CloneOpts* PROTOBUF_NONNULL GitCloneOp::_internal_mutable_clone_opts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.clone_opts_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::git::block::CloneOpts>(GetArena());
+    _impl_.clone_opts_ = reinterpret_cast<::git::block::CloneOpts*>(p);
+  }
+  return _impl_.clone_opts_;
+}
+inline ::git::block::CloneOpts* PROTOBUF_NONNULL GitCloneOp::mutable_clone_opts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::git::block::CloneOpts* _msg = _internal_mutable_clone_opts();
+  // @@protoc_insertion_point(field_mutable:git.world.GitCloneOp.clone_opts)
+  return _msg;
+}
+inline void GitCloneOp::set_allocated_clone_opts(::git::block::CloneOpts* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.clone_opts_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.clone_opts_ = reinterpret_cast<::git::block::CloneOpts*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitCloneOp.clone_opts)
+}
+
+// bool disable_checkout = 3;
+inline void GitCloneOp::clear_disable_checkout() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.disable_checkout_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool GitCloneOp::disable_checkout() const {
+  // @@protoc_insertion_point(field_get:git.world.GitCloneOp.disable_checkout)
+  return _internal_disable_checkout();
+}
+inline void GitCloneOp::set_disable_checkout(bool value) {
+  _internal_set_disable_checkout(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:git.world.GitCloneOp.disable_checkout)
+}
+inline bool GitCloneOp::_internal_disable_checkout() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.disable_checkout_;
+}
+inline void GitCloneOp::_internal_set_disable_checkout(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.disable_checkout_ = value;
+}
+
+// .git.world.GitCreateWorktreeOp create_worktree = 4;
+inline bool GitCloneOp::has_create_worktree() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.create_worktree_ != nullptr);
+  return value;
+}
+inline void GitCloneOp::clear_create_worktree() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.create_worktree_ != nullptr) _impl_.create_worktree_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::git::world::GitCreateWorktreeOp& GitCloneOp::_internal_create_worktree() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::git::world::GitCreateWorktreeOp* p = _impl_.create_worktree_;
+  return p != nullptr ? *p : reinterpret_cast<const ::git::world::GitCreateWorktreeOp&>(::git::world::_GitCreateWorktreeOp_default_instance_);
+}
+inline const ::git::world::GitCreateWorktreeOp& GitCloneOp::create_worktree() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitCloneOp.create_worktree)
+  return _internal_create_worktree();
+}
+inline void GitCloneOp::unsafe_arena_set_allocated_create_worktree(
+    ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.create_worktree_);
+  }
+  _impl_.create_worktree_ = reinterpret_cast<::git::world::GitCreateWorktreeOp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitCloneOp.create_worktree)
+}
+inline ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE GitCloneOp::release_create_worktree() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::git::world::GitCreateWorktreeOp* released = _impl_.create_worktree_;
+  _impl_.create_worktree_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE GitCloneOp::unsafe_arena_release_create_worktree() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitCloneOp.create_worktree)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::git::world::GitCreateWorktreeOp* temp = _impl_.create_worktree_;
+  _impl_.create_worktree_ = nullptr;
+  return temp;
+}
+inline ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL GitCloneOp::_internal_mutable_create_worktree() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.create_worktree_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::git::world::GitCreateWorktreeOp>(GetArena());
+    _impl_.create_worktree_ = reinterpret_cast<::git::world::GitCreateWorktreeOp*>(p);
+  }
+  return _impl_.create_worktree_;
+}
+inline ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL GitCloneOp::mutable_create_worktree()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::git::world::GitCreateWorktreeOp* _msg = _internal_mutable_create_worktree();
+  // @@protoc_insertion_point(field_mutable:git.world.GitCloneOp.create_worktree)
+  return _msg;
+}
+inline void GitCloneOp::set_allocated_create_worktree(::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.create_worktree_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.create_worktree_ = reinterpret_cast<::git::world::GitCreateWorktreeOp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitCloneOp.create_worktree)
 }
 
 // -------------------------------------------------------------------

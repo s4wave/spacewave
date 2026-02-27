@@ -83,6 +83,25 @@ pub struct GitFetchOp {
     #[prost(message, optional, tag="2")]
     pub fetch_opts: ::core::option::Option<super::block::FetchOpts>,
 }
+/// GitCloneOp is an operation to clone a git repo into the world.
+/// Clones objects from a remote, then runs GitInitOp to register the repo.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GitCloneOp {
+    /// ObjectKey is the object key to create as a Repo.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// CloneOpts contains the clone options (URL, ref, etc).
+    #[prost(message, optional, tag="2")]
+    pub clone_opts: ::core::option::Option<super::block::CloneOpts>,
+    /// DisableCheckout disables creating a worktree after clone.
+    #[prost(bool, tag="3")]
+    pub disable_checkout: bool,
+    /// CreateWorktree configures creating the worktree.
+    /// If unset, uses object_key + "/worktree"
+    /// If disable_checkout is set, worktree is not created.
+    #[prost(message, optional, tag="4")]
+    pub create_worktree: ::core::option::Option<GitCreateWorktreeOp>,
+}
 /// GitWorktreeCheckoutOp checks out a git revision in a worktree.
 /// Note: cannot be run as a Object-specific op.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
