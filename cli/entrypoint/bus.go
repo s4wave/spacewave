@@ -5,6 +5,7 @@ package cli_entrypoint
 import (
 	"context"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -110,7 +111,9 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
 		StorageId:       storageID,
 		StorageVolumeId: "cli",
-		VolumeConfig:    &volume_controller.Config{},
+		VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
+		},
 	})
 	if err != nil {
 		rel()
