@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v5/storage/memory"
 )
 
 // SetModuleReference sets the module reference to the Repo rooted at bcs.
@@ -93,7 +94,7 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		}
 	}
 
-	return NewStore(r.ctx, r.btx, repoRootCs, r.IndexStorer, refStore)
+	return NewStore(r.ctx, r.btx, repoRootCs, &memory.IndexStorage{}, refStore)
 }
 
 // _ is a type assertion
