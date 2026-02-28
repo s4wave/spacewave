@@ -4,13 +4,13 @@ go 1.25.0
 
 require github.com/satori/go.uuid v1.2.0
 
-require github.com/aperturerobotics/hydra v0.0.0-20260224072647-ce10cb7c5508 // drop-libp2p
+require github.com/aperturerobotics/hydra v0.0.0-20260228110705-2eeae40fdb3b // drop-libp2p
 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // drop-libp2p
-	github.com/aperturerobotics/cayley v0.11.0 // latest
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260228110619-b9ea3e91b05f // drop-libp2p
+	github.com/aperturerobotics/cayley v0.11.1 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
 )
 
@@ -38,11 +38,11 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.31.0 // latest
-	github.com/aperturerobotics/controllerbus v0.52.4 // latest
+	github.com/aperturerobotics/common v0.31.2-0.20260228110227-ce5507ba2a1c // latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260228110225-41e149a72e38 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.47.1 // latest
+	github.com/aperturerobotics/starpc v0.47.2-0.20260228105112-f1337c4314e9 // latest
 	github.com/aperturerobotics/util v1.32.4 // latest
 )
 
@@ -62,9 +62,9 @@ require github.com/blang/semver/v4 v4.0.0
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/coder/websocket v1.8.14 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	golang.org/x/net v0.50.0 // indirect
