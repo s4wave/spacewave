@@ -21,7 +21,7 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
-	"github.com/coder/websocket"
+	"github.com/aperturerobotics/go-websocket"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )

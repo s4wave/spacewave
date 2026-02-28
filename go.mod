@@ -8,9 +8,6 @@ require (
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e // master
 )
 
-// This fork avoids importing net/http on wasm.
-replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
-
 // https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
 // https://github.com/wazero/wazero/pull/2476
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28 // master
@@ -20,12 +17,12 @@ require (
 	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.3.1 // master
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.31.1 // latest
+	github.com/aperturerobotics/common v0.31.2-0.20260228110227-ce5507ba2a1c // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260210211602-17940b831f59 // master
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260228102427-86f16c8ce270 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260228110705-2eeae40fdb3b // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 // indirect
@@ -47,7 +44,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260226200404-e9a2a03ae528 // master
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260228110619-b9ea3e91b05f // master
 	github.com/aperturerobotics/cayley v0.11.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.4 // master
@@ -90,16 +87,15 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.52.5-0.20260226200410-c75289dbaa92 // latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260228110225-41e149a72e38 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.47.1 // latest
+	github.com/aperturerobotics/starpc v0.47.2-0.20260228105112-f1337c4314e9 // latest
 	github.com/aperturerobotics/util v1.32.4 // latest
 )
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/blang/semver/v4 v4.0.0
-	github.com/coder/websocket v1.8.14
 	github.com/klauspost/compress v1.18.4
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0
@@ -116,6 +112,8 @@ require (
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 )
+
+require github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c
 
 require (
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
