@@ -3,11 +3,11 @@ module github.com/aperturerobotics/hydra
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // master
-	github.com/aperturerobotics/cayley v0.11.0 // latest
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260226200404-e9a2a03ae528 // master
+	github.com/aperturerobotics/cayley v0.11.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
-	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
-	github.com/aperturerobotics/go-kvfile v0.7.3 // master
+	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
+	github.com/aperturerobotics/go-kvfile v0.9.4 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // latest
 )
 
@@ -60,7 +60,7 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.31.0 // latest
-	github.com/aperturerobotics/controllerbus v0.52.4 // latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260226200410-c75289dbaa92 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
@@ -92,7 +92,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
 	github.com/gomodule/redigo v1.9.3
-	github.com/hack-pad/safejs v0.1.0
+	github.com/hack-pad/safejs v0.1.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/tidwall/btree v1.8.1
 	gotest.tools/v3 v3.5.2
