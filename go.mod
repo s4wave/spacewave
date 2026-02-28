@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/bldr
 
-go 1.25.0
+go 1.26
 
 // This uses wasi-reactor
 require (
@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260226204638-b8110623bd9d // master
+	github.com/aperturerobotics/hydra v0.0.0-20260228005135-fd5a787ab5cf // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 // indirect
@@ -48,9 +48,9 @@ require (
 
 require (
 	github.com/aperturerobotics/bifrost v0.46.2-0.20260226200404-e9a2a03ae528 // master
-	github.com/aperturerobotics/cayley v0.11.0 // latest
+	github.com/aperturerobotics/cayley v0.11.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
-	github.com/aperturerobotics/go-kvfile v0.9.2 // master
+	github.com/aperturerobotics/go-kvfile v0.9.4 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
 )
 
@@ -90,7 +90,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.52.4 // latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260226200410-c75289dbaa92 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.47.1 // latest
 	github.com/aperturerobotics/util v1.32.4 // latest
