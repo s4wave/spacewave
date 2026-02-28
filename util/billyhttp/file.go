@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v6"
 )
 
 // File implements the HTTP file.

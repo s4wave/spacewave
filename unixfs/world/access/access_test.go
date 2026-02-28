@@ -12,7 +12,7 @@ import (
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

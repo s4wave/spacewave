@@ -13,7 +13,7 @@ import (
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

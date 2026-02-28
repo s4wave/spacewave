@@ -1,6 +1,6 @@
 package git_block
 
-import "github.com/go-git/go-git/v5/plumbing"
+import "github.com/go-git/go-git/v6/plumbing"
 
 // ReferenceStore stores and retrieves references, overriding the default store.
 type ReferenceStore interface {

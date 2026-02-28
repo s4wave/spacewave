@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"io/fs"
 	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v6"
 	"github.com/pkg/errors"
 )
 
@@ -314,6 +315,11 @@ func (f *BillyFSFile) Truncate(size int64) error {
 func (f *BillyFSFile) Close() error {
 	f.h.Release()
 	return nil
+}
+
+// Stat returns the FileInfo for the file.
+func (f *BillyFSFile) Stat() (fs.FileInfo, error) {
+	return f.h.GetFileInfo(f.ctx)
 }
 
 // Lock locks the file like e.g. flock. It protects against access from

@@ -3,7 +3,7 @@ package git_block
 import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/go-git/go-git/v5/plumbing/format/index"
+	"github.com/go-git/go-git/v6/plumbing/format/index"
 )
 
 // NewResolveUndoEntry constructs a new resolve undo entry.

@@ -12,8 +12,8 @@ import (
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/billyhttp"
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/helper/chroot"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-billy/v6/helper/chroot"
 	"github.com/pkg/errors"
 )
 

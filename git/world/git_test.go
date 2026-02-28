@@ -21,8 +21,8 @@ import (
 	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )

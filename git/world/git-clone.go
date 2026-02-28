@@ -9,11 +9,11 @@ import (
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/world"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
+	"github.com/go-git/go-git/v6/plumbing/transport"
+	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +40,7 @@ func GitClone(
 
 	// we need to check out to recurse submodules
 	// go-git could be adjusted to remove this requirement
-	// see go-git/v5/repository.go:844
+	// see go-git/v6/repository.go:844
 	cloneArgs.NoCheckout = false
 	// write progress if necessary
 	cloneArgs.Progress = progress

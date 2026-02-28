@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v6"
 )
 
 // BillyFSCursor is an FSCursor implementation backed by a BillyFS.

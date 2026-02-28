@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	billy "github.com/go-git/go-billy/v5"
+	billy "github.com/go-git/go-billy/v6"
 )
 
 // CreateFromBillyFS creates a unixfs_block FSNode from the billy FS.
@@ -81,7 +81,7 @@ func CopyBillyFSToFSTree(
 			for _, entInfo := range dirents {
 				_, entName := path.Split(entInfo.Name())
 				entPath := path.Join(srcPath, entName)
-				entType := entInfo.Mode().Type()
+				entType := entInfo.Type()
 				nodeType := FileModeToNodeType(entType)
 				if nodeType == NodeType_NodeType_UNKNOWN {
 					// Only directory, file, symlink supported.
@@ -115,7 +115,11 @@ func CopyBillyFSToFSTree(
 				}
 
 				// NOTE: "embed" for io/fs strips permissions info & mod time
-				entPerm := entInfo.Mode().Perm()
+				entFileInfo, err := entInfo.Info()
+				if err != nil {
+					return &fs.PathError{Op: "stat", Path: entPath, Err: err}
+				}
+				entPerm := entFileInfo.Mode().Perm()
 				entNode, err := destNode.Mknod(entName, nodeType, nil, entPerm, writeTs)
 				if err != nil {
 					return &fs.PathError{Op: "mknod", Path: entPath, Err: err}

@@ -29,10 +29,18 @@ func (f *Dir) Readdir(count int) ([]fs.FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	if count > 0 && count > len(ents) {
+	if count > 0 && count < len(ents) {
 		ents = ents[:count]
 	}
-	return ents, err
+	fis := make([]fs.FileInfo, 0, len(ents))
+	for _, ent := range ents {
+		fi, err := ent.Info()
+		if err != nil {
+			return nil, err
+		}
+		fis = append(fis, fi)
+	}
+	return fis, nil
 }
 
 func (f *Dir) Read(p []byte) (n int, err error) {

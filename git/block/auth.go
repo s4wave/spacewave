@@ -7,8 +7,8 @@ import (
 	peer_ssh "github.com/aperturerobotics/bifrost/peer/ssh"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	transport_ssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v6/plumbing/transport"
+	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 )
 
 // ResolveAuth resolves authentication on a bus from the config.

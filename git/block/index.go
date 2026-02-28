@@ -1,8 +1,8 @@
 package git_block
 
 import (
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/format/index"
+	"github.com/go-git/go-git/v6/plumbing/filemode"
+	"github.com/go-git/go-git/v6/plumbing/format/index"
 )
 
 // NewIndex constructs a new Index from a git index.

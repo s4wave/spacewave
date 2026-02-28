@@ -7,9 +7,9 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	hydra_git "github.com/aperturerobotics/hydra/git"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/storer"
+	"github.com/go-git/go-git/v6/storage"
 )
 
 // Store contains a open handle to a git repository.

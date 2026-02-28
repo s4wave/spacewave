@@ -16,9 +16,9 @@ import (
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/go-git/go-billy/v5"
-	memfs "github.com/go-git/go-billy/v5/memfs"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-billy/v6"
+	memfs "github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

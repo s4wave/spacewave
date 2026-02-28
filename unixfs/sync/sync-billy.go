@@ -13,8 +13,8 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/mbuffer"
 	"github.com/aperturerobotics/util/scrub"
-	"github.com/go-git/go-billy/v5"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-billy/v6"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/pkg/errors"
 )
 
@@ -206,7 +206,7 @@ func syncToBillyOnce(
 						}
 						if filterCb != nil {
 							filterPath := path.Join(srcPath, entryName)
-							nodeType, err := unixfs.FileModeToNodeType(entry.Mode())
+							nodeType, err := unixfs.FileModeToNodeType(entry.Type())
 							if err != nil {
 								return err
 							}

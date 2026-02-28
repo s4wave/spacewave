@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,11 +44,13 @@ func TestStorage_EncodedObject(t *testing.T) {
 	defer store.Close()
 
 	// check not exists
-	var ohash plumbing.Hash
-	copy(ohash[:], []byte("notfound"))
+	ohash, ok := plumbing.FromBytes([]byte("notfound000000000000"))
+	if !ok {
+		t.Fatal("FromBytes failed")
+	}
 	_, err = store.EncodedObject(plumbing.BlobObject, ohash)
 	if err != plumbing.ErrObjectNotFound {
-		t.Fail()
+		t.Fatalf("expected ErrObjectNotFound, got: %v", err)
 	}
 
 	objData := []byte("hello world")
@@ -64,7 +66,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		if n != len(objData) {
-			t.Fail()
+			t.Fatalf("wrote %d bytes, expected %d", n, len(objData))
 		}
 
 		ph, err := store.SetEncodedObject(encObj)
@@ -90,7 +92,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 		}
 		_ = rc.Close()
 		if len(objData) != 0 && !bytes.Equal(data, objData) {
-			t.Fail()
+			t.Fatalf("data mismatch: got %q, want %q", data, objData)
 		}
 		le.Infof("read & validated encoded object %s", encObj.Hash().String())
 		return encObj
@@ -127,7 +129,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if int(size) != len(objData) {
-		t.Fail()
+		t.Fatalf("size mismatch: got %d, want %d", size, len(objData))
 	}
 
 	// success

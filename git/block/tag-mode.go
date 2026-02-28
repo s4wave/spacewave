@@ -1,15 +1,15 @@
 package git_block
 
-import "github.com/go-git/go-git/v5"
+import "github.com/go-git/go-git/v6/plumbing"
 
 // ToGitTagMode converts the tag mode to a git tag mode.
-func (t TagMode) ToGitTagMode() git.TagMode {
+func (t TagMode) ToGitTagMode() plumbing.TagMode {
 	switch t {
 	case TagMode_TagMode_NONE:
-		return git.NoTags
+		return plumbing.NoTags
 	case TagMode_TagMode_FOLLOWING:
-		return git.TagFollowing
+		return plumbing.TagFollowing
 	default:
-		return git.AllTags
+		return plumbing.AllTags
 	}
 }

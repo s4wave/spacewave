@@ -8,9 +8,9 @@ import (
 	"os"
 	"path"
 
-	// billy "github.com/go-git/go-billy/v5"
+	// billy "github.com/go-git/go-billy/v6"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v6/osfs"
 )
 
 func main() {
@@ -54,11 +54,16 @@ func main() {
 	}
 
 	for _, entry := range fi {
+		info, err := entry.Info()
+		if err != nil {
+			fmt.Printf("Error getting info for %v: %v\n", entry.Name(), err)
+			continue
+		}
 		fmt.Printf(
 			"Entry: %v %v -> symlink(%v) dir(%v)\n",
 			entry.Name(),
-			entry.Mode().String(),
-			entry.Mode().Type()&ifs.ModeSymlink != 0,
+			info.Mode().String(),
+			info.Mode().Type()&ifs.ModeSymlink != 0,
 			entry.IsDir(),
 		)
 	}

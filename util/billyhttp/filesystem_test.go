@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/go-git/go-billy/v6/util"
 )
 
 // TestFileSystem tests the HTTP filesystem.

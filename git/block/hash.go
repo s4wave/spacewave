@@ -2,28 +2,31 @@ package git_block
 
 import (
 	"github.com/aperturerobotics/bifrost/hash"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
 )
 
 // GitHashType is the hash type used in Git.
 const GitHashType = hash.HashType_HashType_SHA1
 
+// gitObjectHasher is a SHA1 object hasher for computing git object hashes.
+var gitObjectHasher = plumbing.FromObjectFormat("")
+
 // NewHash builds a new hash from a plumbing.Hash.
 //
 // Returns nil if the hash is empty.
 func NewHash(pt plumbing.Hash) (*hash.Hash, error) {
-	if pt == plumbing.ZeroHash {
+	if pt.IsZero() {
 		return nil, nil
 	}
 
 	// expect sha1 hash only (as of 01/2021)
-	if len(pt) != 20 {
-		return nil, errors.Errorf("unexpected hash length: %d", len(pt))
+	if pt.Size() != 20 {
+		return nil, errors.Errorf("unexpected hash length: %d", pt.Size())
 	}
 
-	dat := make([]byte, len(pt))
-	copy(dat, pt[:])
+	dat := make([]byte, pt.Size())
+	copy(dat, pt.Bytes())
 	return hash.NewHash(GitHashType, dat), nil
 }
 
@@ -33,7 +36,7 @@ func FromHash(h *hash.Hash) (plumbing.Hash, error) {
 	if err := ValidateHash(h); err != nil {
 		return out, err
 	}
-	copy(out[:], h.GetHash())
+	out, _ = plumbing.FromBytes(h.GetHash())
 	return out, nil
 }
 

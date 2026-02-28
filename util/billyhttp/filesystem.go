@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v6"
 )
 
 // BillyFs is the set of required billy filesystem interfaces.

@@ -10,8 +10,8 @@ import (
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	testbed0 "github.com/aperturerobotics/hydra/world/testbed"
-	memfs "github.com/go-git/go-billy/v5/memfs"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	memfs "github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 
 	// TestCheckout tests checking out a UnixFS to the disk.

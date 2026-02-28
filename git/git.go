@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/tx"
-	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v6/storage"
 )
 
 // Storer is the interface for storing Git repository data.

@@ -1,8 +1,8 @@
 package git_block
 
 import (
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // IsEmpty checks if there are no clone URL set.
@@ -25,7 +25,7 @@ func (c *CloneOpts) BuildCloneOpts() *git.CloneOptions {
 	if c.GetRecursive() {
 		recurseSubmodules = git.DefaultSubmoduleRecursionDepth
 		if d := c.GetRecursionDepth(); d != 0 {
-			recurseSubmodules = git.SubmoduleRescursivity(d)
+			recurseSubmodules = git.SubmoduleRecursivity(d)
 		}
 	}
 

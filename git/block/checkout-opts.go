@@ -2,8 +2,8 @@ package git_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
 )
 

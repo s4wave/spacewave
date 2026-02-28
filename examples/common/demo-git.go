@@ -13,8 +13,8 @@ import (
 	git "github.com/aperturerobotics/hydra/git/block"
 	git_examples "github.com/aperturerobotics/hydra/git/example"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/sirupsen/logrus"
 )
 

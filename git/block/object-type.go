@@ -1,6 +1,6 @@
 package git_block
 
-import "github.com/go-git/go-git/v5/plumbing"
+import "github.com/go-git/go-git/v6/plumbing"
 
 // EncodedObjectType_EncodedObjectType_MAX is the maximum value.
 const EncodedObjectType_EncodedObjectType_MAX = EncodedObjectType_EncodedObjectType_REF_DELTA

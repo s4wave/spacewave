@@ -1,6 +1,6 @@
 package git_block
 
-import "github.com/go-git/go-git/v5/config"
+import "github.com/go-git/go-git/v6/config"
 
 // ApplyConfigPatches applies mandatory modifications to a Git config.
 func ApplyConfigPatches(c *config.Config) {

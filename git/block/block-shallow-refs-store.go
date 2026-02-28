@@ -2,7 +2,7 @@ package git_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // NewShallowRefsStore constructs a shallow refs store from a list of hashes.

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	billy_test "github.com/go-git/go-billy/v5/test"
+	billy_test "github.com/go-git/go-billy/v6/test"
 	check "gopkg.in/check.v1"
 )
 

@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
 )
 
@@ -47,9 +47,8 @@ func (i *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(encObjHash[:], keyHash[:]) {
-		var keyh plumbing.Hash
-		copy(keyh[:], keyHash)
+	if !bytes.Equal(encObjHash.Bytes(), keyHash) {
+		keyh, _ := plumbing.FromBytes(keyHash)
 		return nil, errors.Wrapf(
 			ErrHashMismatch,
 			"key has hash %s but got %s",

@@ -4,9 +4,9 @@ import (
 	"bytes"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/storer"
+	"github.com/go-git/go-git/v6/storage"
 )
 
 // SetReference sets the reference in the block graph.
@@ -78,7 +78,7 @@ func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 		if oldRef != nil {
 			oldHash := oldRef.Hash()
 			expectedHash := old.Hash()
-			if !bytes.Equal(oldHash[:], expectedHash[:]) {
+			if !bytes.Equal(oldHash.Bytes(), expectedHash.Bytes()) {
 				return storage.ErrReferenceHasChanged
 			}
 		}

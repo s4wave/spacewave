@@ -11,8 +11,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-billy/v6/util"
 )
 
 // BillyFS implements the Billy filesystem interface with a FSHandle.
@@ -231,22 +231,33 @@ func (f *BillyFS) TempFile(dir, prefix string) (billy.File, error) {
 
 // ReadDir reads the directory named by dirname and returns a list of
 // directory entries sorted by filename.
-func (f *BillyFS) ReadDir(mpath string) ([]os.FileInfo, error) {
+func (f *BillyFS) ReadDir(mpath string) ([]fs.DirEntry, error) {
 	mpath = path.Clean(mpath)
+
+	var h *unixfs.FSHandle
 	if mpath == "" || mpath == "." || mpath == "/" {
-		return unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, f.h)
+		h = f.h
+	} else {
+		ch, _, err := f.h.LookupPath(f.ctx, mpath)
+		if err != nil {
+			if ch != nil {
+				ch.Release()
+			}
+			return nil, err
+		}
+		defer ch.Release()
+		h = ch
 	}
 
-	ch, _, err := f.h.LookupPath(f.ctx, mpath)
+	fis, err := unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, h)
 	if err != nil {
-		if ch != nil {
-			ch.Release()
-		}
 		return nil, err
 	}
-	defer ch.Release()
-
-	return unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, ch)
+	entries := make([]fs.DirEntry, len(fis))
+	for i, fi := range fis {
+		entries[i] = fs.FileInfoToDirEntry(fi)
+	}
+	return entries, nil
 }
 
 // MkdirAll creates a directory named path, along with any necessary

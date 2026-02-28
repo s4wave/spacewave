@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_e2e "github.com/aperturerobotics/hydra/unixfs/e2e"
-	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-billy/v6/memfs"
 )
 
 func TestBillyFSCursor(t *testing.T) {

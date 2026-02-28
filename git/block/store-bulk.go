@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	kvtx_block_iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // bulkEntry is a key-value pair for bulk IAVL tree construction.

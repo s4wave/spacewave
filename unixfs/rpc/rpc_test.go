@@ -21,7 +21,7 @@ import (
 	unixfs_rpc_server "github.com/aperturerobotics/hydra/unixfs/rpc/server"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

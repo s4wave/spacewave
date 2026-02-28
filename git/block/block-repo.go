@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
-	gconfig "github.com/go-git/go-git/v5/config"
+	gconfig "github.com/go-git/go-git/v6/config"
 	"github.com/pkg/errors"
 )
 

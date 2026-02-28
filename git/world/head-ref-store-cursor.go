@@ -3,7 +3,7 @@ package git_world
 import (
 	"github.com/aperturerobotics/hydra/block"
 	git_block "github.com/aperturerobotics/hydra/git/block"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // HeadRefStoreCursor implements ReferencesStore with a HeadRefStore.

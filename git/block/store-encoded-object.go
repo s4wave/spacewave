@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/util/iocloser"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
 )
 
@@ -43,6 +43,40 @@ func (r *Store) NewEncodedObject() plumbing.EncodedObject {
 	return NewStoreEncodedObject(r, nil)
 }
 
+// rawObjectCloser wraps a writer to store the object on close.
+type rawObjectCloser struct {
+	store  *Store
+	obj    plumbing.EncodedObject
+	closer io.Closer
+}
+
+// Close closes the writer and stores the object.
+func (c *rawObjectCloser) Close() error {
+	if err := c.closer.Close(); err != nil {
+		return err
+	}
+	_, err := c.store.SetEncodedObject(c.obj)
+	return err
+}
+
+// RawObjectWriter returns a writer for writing a raw object.
+func (r *Store) RawObjectWriter(typ plumbing.ObjectType, sz int64) (io.WriteCloser, error) {
+	obj := r.NewEncodedObject()
+	obj.SetType(typ)
+	obj.SetSize(sz)
+	w, err := obj.Writer()
+	if err != nil {
+		return nil, err
+	}
+	return &struct {
+		io.Writer
+		io.Closer
+	}{
+		Writer: w,
+		Closer: &rawObjectCloser{store: r, obj: obj, closer: w},
+	}, nil
+}
+
 // SetEncodedObject saves an object into the storage.
 func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, error) {
 	var h plumbing.Hash
@@ -69,7 +103,7 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 
 	h = eo.Hash()
 	if origHash != nil {
-		if !bytes.Equal(h[:], (*origHash)[:]) {
+		if !bytes.Equal(h.Bytes(), origHash.Bytes()) {
 			return h, errors.Errorf(
 				"hash mismatch when converting: %v != expected %v",
 				(*origHash).String(),
@@ -227,7 +261,7 @@ func (r *Store) EncodedObject(ot plumbing.ObjectType, oh plumbing.Hash) (plumbin
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(ph[:], oh[:]) {
+	if !bytes.Equal(ph.Bytes(), oh.Bytes()) {
 		return nil, errors.Wrapf(
 			ErrHashMismatch,
 			"expected %v got %v",
@@ -323,7 +357,7 @@ func (o *StoreEncodedObject) StoreHash() (*hash.Hash, error) {
 	if o.fetched || o.bcs == nil {
 		// hash the data
 		data := (&o.buf).Bytes()
-		oh := plumbing.ComputeHash(o.objType, data)
+		oh, _ := gitObjectHasher.Compute(o.objType, data)
 		return NewHash(oh)
 	}
 	encObj, err := o.unmarshalEncodedObject()
@@ -406,18 +440,11 @@ func (r *Store) buildEncodedObjectKey(ot plumbing.ObjectType, h plumbing.Hash) (
 	if ot == 0 || ot > 7 {
 		return nil, errors.Wrapf(ErrObjectTypeInvalid, "%v", ot)
 	}
-	any := false
-	for _, v := range h {
-		if v != 0 {
-			any = true
-			break
-		}
-	}
-	if !any {
+	if h.IsZero() {
 		return nil, errors.New("encoded object hash cannot be empty")
 	}
 	// prefix with hash type
-	return append([]byte{byte(ot)}, h[:]...), nil
+	return append([]byte{byte(ot)}, h.Bytes()...), nil
 }
 
 // unmarshalEncodedObject unmarshals the EncodedObject block.

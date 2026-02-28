@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
-	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v6/osfs"
 )
 
 // Checkout recursively copies the contents of the UnixFS to disk.

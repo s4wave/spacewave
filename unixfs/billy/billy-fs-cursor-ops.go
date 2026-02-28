@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
-	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v6"
 )
 
 // BillyFSCursorOps is an FSCursor ops implementation backed by a BillyFS.
@@ -228,8 +228,7 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 	}
 
 	for _, fi := range fis {
-		fsDirent := fs.FileInfoToDirEntry(fi)
-		dirent := unixfs_iofs.NewFSCursorDirent(fsDirent)
+		dirent := unixfs_iofs.NewFSCursorDirent(fi)
 		if err := cb(dirent); err != nil {
 			return err
 		}

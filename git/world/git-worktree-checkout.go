@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

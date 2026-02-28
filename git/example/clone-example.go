@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/storage"
 	"github.com/sirupsen/logrus"
 )
 
@@ -63,9 +63,13 @@ func RunCloneExample(
 		return err
 	}
 	for _, f := range files {
+		info, err := f.Info()
+		if err != nil {
+			continue
+		}
 		le.Debugf(
 			"%v %s",
-			f.Mode().String(),
+			info.Mode().String(),
 			f.Name(),
 		)
 	}

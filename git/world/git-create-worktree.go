@@ -10,7 +10,7 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v6"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

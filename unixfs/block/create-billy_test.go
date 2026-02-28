@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/hydra/testbed"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v6/osfs"
 )
 
 func TestCreateBilly(t *testing.T) {
