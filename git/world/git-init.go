@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
+	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
@@ -54,7 +55,7 @@ func (o *GitInitOp) Validate() error {
 			return errors.Wrap(err, "repo_ref")
 		}
 	}
-	if !o.GetDisableCheckout() {
+	if !o.GetDisableCheckout() && o.GetCreateWorktree() != nil {
 		if err := o.GetCreateWorktree().Validate(); err != nil {
 			return errors.Wrap(err, "create_worktree")
 		}
@@ -93,7 +94,13 @@ func (o *GitInitOp) ApplyWorldOp(
 	if !o.GetDisableCheckout() {
 		op := o.GetCreateWorktree()
 		if op == nil {
-			op = &GitCreateWorktreeOp{}
+			op = &GitCreateWorktreeOp{
+				ObjectKey:     objKey + "/worktree",
+				CreateWorkdir: true,
+				WorkdirRef: &unixfs_world.UnixfsRef{
+					ObjectKey: objKey + "/workdir",
+				},
+			}
 		}
 		op.RepoObjectKey = objKey
 		_, sysErr, err = worldHandle.ApplyWorldOp(ctx, op, sender)
