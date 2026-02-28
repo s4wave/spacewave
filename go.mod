@@ -3,14 +3,14 @@ module github.com/aperturerobotics/forge
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20260228110705-2eeae40fdb3b // master
+	github.com/aperturerobotics/hydra v0.0.0-20260228113018-399f9d4e09f9 // master
 	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260228110619-b9ea3e91b05f // master
+	github.com/aperturerobotics/bifrost v0.47.0 // master
 	github.com/aperturerobotics/cayley v0.11.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.4 // indirect; master
@@ -60,17 +60,14 @@ require (
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.31.2-0.20260228110227-ce5507ba2a1c // indirect; latest
-	github.com/aperturerobotics/controllerbus v0.52.5-0.20260228110225-41e149a72e38 // latest
+	github.com/aperturerobotics/common v0.32.0 // indirect; latest
+	github.com/aperturerobotics/controllerbus v0.52.5 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.47.2-0.20260228105112-f1337c4314e9 // latest
-	github.com/aperturerobotics/util v1.32.4 // latest
+	github.com/aperturerobotics/starpc v0.48.0 // latest
+	github.com/aperturerobotics/util v1.32.5 // latest
 )
-
-// local: WatchLoop wake debounce
-replace github.com/aperturerobotics/hydra => ../hydra
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
@@ -83,7 +80,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.9 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.59.0 // indirect; latest
-	github.com/sirupsen/logrus v1.9.5-0.20260226151524-34027eac4204
+	github.com/sirupsen/logrus v1.9.5-0.20260227125846-00992ca6ba06
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.48.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
