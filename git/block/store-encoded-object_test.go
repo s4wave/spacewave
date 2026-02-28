@@ -6,7 +6,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/sirupsen/logrus"
@@ -104,14 +103,14 @@ func TestStorage_EncodedObject(t *testing.T) {
 	encObj := getObject(store, ph)
 	_ = encObj
 
-	// commit the tx
-	var storeRef *block.BlockRef
-	storeRef, _, err = btx.Write(ctx, true)
+	// commit via Store (builds IAVL trees from bulk-written objects)
+	err = store.Commit()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// re-build the store
+	// re-build the store from the committed ref
+	storeRef := store.GetRef()
 	oc.SetRootRef(storeRef)
 	btx, bcs = oc.BuildTransaction(nil)
 	store, err = NewStore(ctx, btx, bcs, nil, nil)

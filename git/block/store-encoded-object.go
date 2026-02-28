@@ -103,22 +103,51 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 		return h, err
 	}
 
-	// 1. NewEncodedObject, or some other EncodedObject is built
-	// 2. eo.Writer() -> returns the bytes.Buffer and sets fetched=true
-	// 3. Write() -> stores into in-memory buffer
-	// 4. SetEncodedObject:
-	//   - transfer data to a EncodedObject w/ Buffer if necessary
-	//   - use Set() to create the node for the key in the graph
-	//   - use GetWithCursor() to return the cursor at the sub-block
-	//   - flush the buffer to a blob with BuildBlob rooted at the sub-block
-	//   - (the data is written to the block graph)
-	//   - clear the buffer (future Reader() calls will use the block graph)
-
 	ctx := r.ctx
+
+	// Bulk mode: write each object via a per-object mini-transaction,
+	// accumulate refs for deferred IAVL tree construction at Commit.
+	if r.storeOps != nil {
+		tx, encObjCs := block.NewTransaction(r.storeOps, nil, nil, nil)
+		encObjCs.ClearAllRefs()
+		encObjBlk := &EncodedObject{}
+		encObjBlk.DataHash, err = NewHash(h)
+		if err != nil {
+			return h, err
+		}
+		encObjBlk.EncodedObjectType = NewEncodedObjectType(eo.Type())
+		if err = encObjBlk.Validate(); err != nil {
+			return h, err
+		}
+		encObjCs.SetBlock(encObjBlk, true)
+
+		dataBlobCs := encObjCs.FollowRef(1, nil)
+		encObjBlk.DataBlob, err = blob.BuildBlob(ctx, writeLen, writeBuf, dataBlobCs, buildBlobOpts)
+		if err != nil {
+			return h, err
+		}
+		if ci := encObjBlk.DataBlob.ChunkIndex; ci != nil {
+			encObjBlk.DataBlob.ChunkIndex.ChunkerArgs = nil
+		}
+
+		ref, _, err := tx.Write(ctx, true)
+		if err != nil {
+			return h, err
+		}
+
+		r.objIndex[h] = ref
+		r.objKeys = append(r.objKeys, bulkEntry{key: key, ref: ref})
+
+		eo.bcs = nil
+		eo.fetched = false
+		eo.buf.Reset()
+		return h, nil
+	}
+
+	// Non-bulk mode: write into the IAVL tree directly via btx.
 	encTree := r.objTree
 	rootCursor := r.objTree.GetCursor()
 
-	// write EncodedObject to storage
 	encObjCs := rootCursor.Detach(false)
 	encObjCs.ClearAllRefs()
 	encObjBlk := &EncodedObject{}
@@ -133,7 +162,6 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 	}
 	encObjCs.SetBlock(encObjBlk, true)
 
-	// append to the tree
 	err = encTree.SetCursorAtKey(ctx, key, encObjCs, false)
 	if err != nil {
 		return h, err
@@ -151,7 +179,6 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 		return h, err
 	}
 	if ci := encObjBlk.DataBlob.ChunkIndex; ci != nil {
-		// clear chunker args since we store them in EncodedObjectStore.
 		encObjBlk.DataBlob.ChunkIndex.ChunkerArgs = nil
 	}
 
@@ -172,6 +199,20 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 func (r *Store) EncodedObject(ot plumbing.ObjectType, oh plumbing.Hash) (plumbing.EncodedObject, error) {
 	if ot == plumbing.AnyObject || ot == 0 {
 		return r.EncodedObjectByHash(oh)
+	}
+
+	// Check bulk index for objects written but not yet committed to IAVL.
+	if r.objIndex != nil {
+		if cs := r.lookupBulkObject(oh); cs != nil {
+			encObj, err := block.UnmarshalBlock[*EncodedObject](r.ctx, cs, NewEncodedObjectBlock)
+			if err != nil {
+				return nil, err
+			}
+			if EncodedObjectType(ot) != encObj.GetEncodedObjectType() {
+				return nil, plumbing.ErrObjectNotFound
+			}
+			return NewStoreEncodedObject(r, cs), nil
+		}
 	}
 
 	key, err := r.buildEncodedObjectKey(ot, oh)
@@ -208,6 +249,13 @@ func (r *Store) EncodedObject(ot plumbing.ObjectType, oh plumbing.Hash) (plumbin
 // EncodedObjectByHash looks up an encoded object by hash only.
 // Returns plumbing.ErrObjectNotFound if not found.
 func (r *Store) EncodedObjectByHash(ph plumbing.Hash) (plumbing.EncodedObject, error) {
+	// Check bulk index for objects written but not yet committed to IAVL.
+	if r.objIndex != nil {
+		if cs := r.lookupBulkObject(ph); cs != nil {
+			return NewStoreEncodedObject(r, cs), nil
+		}
+	}
+
 	for i := EncodedObjectType(1); i <= EncodedObjectType_EncodedObjectType_MAX; i++ {
 		encObj, err := r.EncodedObject(i.ToObjectType(), ph)
 		if err != nil {
@@ -238,6 +286,11 @@ func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObject
 // HasEncodedObject returns ErrObjNotFound if the object doesn't
 // exist.  If the object does exist, it returns nil.
 func (r *Store) HasEncodedObject(ph plumbing.Hash) error {
+	if r.objIndex != nil {
+		if _, ok := r.objIndex[ph]; ok {
+			return nil
+		}
+	}
 	_, err := r.EncodedObjectByHash(ph)
 	return err
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	hydra_git "github.com/aperturerobotics/hydra/git"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
 )
@@ -25,6 +26,19 @@ type Store struct {
 	refTree kvtx.BlockTx
 	modTree kvtx.BlockTx
 	objTree kvtx.BlockTx
+
+	// Bulk mode state: objects are written to KV via per-object
+	// mini-transactions, then IAVL trees are built bottom-up at Commit.
+	// Active when storeOps is non-nil (i.e., write mode).
+
+	// storeOps is the block store for creating mini-transactions.
+	storeOps block.StoreOps
+	// objIndex maps git hash -> persisted BlockRef for bulk-written objects.
+	objIndex map[plumbing.Hash]*block.BlockRef
+	// objKeys accumulates (iavl_key, BlockRef) for the object IAVL tree.
+	objKeys []bulkEntry
+	// subStores tracks sub-stores created via Module() for ordered commit.
+	subStores []*Store
 }
 
 // NewStore constructs a new repo handle.
@@ -70,9 +84,15 @@ func (r *Store) GetRef() *block.BlockRef {
 
 // Commit commits the current pending changes to the block transaction.
 func (r *Store) Commit() error {
-	// no need to commit if btx is nil
 	if r.btx == nil {
 		return nil
+	}
+
+	// Build IAVL trees from bulk-written objects and wire into Repo.
+	if r.storeOps != nil {
+		if err := r.bulkCommit(); err != nil {
+			return err
+		}
 	}
 
 	_, bcs, err := r.btx.Write(r.ctx, true)
@@ -147,6 +167,9 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 		return err
 	}
 	r.btx, r.bcs = btx, bcs
+	if btx != nil {
+		r.initBulkMode()
+	}
 	return nil
 }
 

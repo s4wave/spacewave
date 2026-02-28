@@ -94,7 +94,12 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		}
 	}
 
-	return NewStore(r.ctx, r.btx, repoRootCs, &memory.IndexStorage{}, refStore)
+	sub, err := NewStore(r.ctx, r.btx, repoRootCs, &memory.IndexStorage{}, refStore)
+	if err != nil {
+		return nil, err
+	}
+	r.subStores = append(r.subStores, sub)
+	return sub, nil
 }
 
 // _ is a type assertion
