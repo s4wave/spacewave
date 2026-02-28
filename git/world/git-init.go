@@ -9,6 +9,7 @@ import (
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -17,12 +18,13 @@ import (
 var GitInitOpId = "hydra/git/init"
 
 // NewGitInitOp constructs a new GitInitOp block.
-// repoRef, worktreeArgs can be empty
+// repoRef, worktreeArgs, ts can be empty
 func NewGitInitOp(
 	objKey string,
 	repoRef *bucket.ObjectRef,
 	disableCheckout bool,
 	worktreeArgs *GitCreateWorktreeOp,
+	ts *timestamppb.Timestamp,
 ) *GitInitOp {
 	if disableCheckout {
 		worktreeArgs = nil
@@ -32,6 +34,7 @@ func NewGitInitOp(
 		RepoRef:         repoRef,
 		DisableCheckout: disableCheckout,
 		CreateWorktree:  worktreeArgs,
+		Timestamp:       ts,
 	}
 }
 
@@ -100,6 +103,7 @@ func (o *GitInitOp) ApplyWorldOp(
 				WorkdirRef: &unixfs_world.UnixfsRef{
 					ObjectKey: objKey + "/workdir",
 				},
+				Timestamp: o.GetTimestamp(),
 			}
 		}
 		op.RepoObjectKey = objKey

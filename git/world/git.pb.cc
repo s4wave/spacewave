@@ -161,6 +161,7 @@ inline constexpr GitInitOp::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         repo_ref_{nullptr},
         create_worktree_{nullptr},
+        timestamp_{nullptr},
         disable_checkout_{false} {}
 
 template <typename>
@@ -191,6 +192,7 @@ inline constexpr GitCloneOp::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         clone_opts_{nullptr},
         create_worktree_{nullptr},
+        timestamp_{nullptr},
         disable_checkout_{false} {}
 
 template <typename>
@@ -249,15 +251,17 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_.object_key_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_.repo_ref_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_.disable_checkout_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_.create_worktree_),
+        PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_.timestamp_),
         0,
         1,
-        3,
+        4,
         2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::Worktree, _impl_._has_bits_),
         5, // hasbit index offset
@@ -300,15 +304,17 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_.object_key_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_.clone_opts_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_.disable_checkout_),
         PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_.create_worktree_),
+        PROTOBUF_FIELD_OFFSET(::git::world::GitCloneOp, _impl_.timestamp_),
         0,
         1,
-        3,
+        4,
         2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::GitWorktreeCheckoutOp, _impl_._has_bits_),
         7, // hasbit index offset
@@ -325,12 +331,12 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::git::world::GitInitOp)},
-        {11, sizeof(::git::world::Worktree)},
-        {18, sizeof(::git::world::HeadRefStore)},
-        {27, sizeof(::git::world::GitCreateWorktreeOp)},
-        {44, sizeof(::git::world::GitFetchOp)},
-        {51, sizeof(::git::world::GitCloneOp)},
-        {62, sizeof(::git::world::GitWorktreeCheckoutOp)},
+        {13, sizeof(::git::world::Worktree)},
+        {20, sizeof(::git::world::HeadRefStore)},
+        {29, sizeof(::git::world::GitCreateWorktreeOp)},
+        {46, sizeof(::git::world::GitFetchOp)},
+        {53, sizeof(::git::world::GitCloneOp)},
+        {66, sizeof(::git::world::GitWorktreeCheckoutOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::world::_GitInitOp_default_instance_._instance,
@@ -349,33 +355,36 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fg
     "o\0325github.com/aperturerobotics/hydra/git"
     "/block/git.proto\032;github.com/aperturerob"
     "otics/hydra/unixfs/world/unixfs.proto\032\037g"
-    "oogle/protobuf/timestamp.proto\"\227\001\n\tGitIn"
+    "oogle/protobuf/timestamp.proto\"\306\001\n\tGitIn"
     "itOp\022\022\n\nobject_key\030\001 \001(\t\022#\n\010repo_ref\030\002 \001"
     "(\0132\021.bucket.ObjectRef\022\030\n\020disable_checkou"
     "t\030\003 \001(\010\0227\n\017create_worktree\030\004 \001(\0132\036.git.w"
-    "orld.GitCreateWorktreeOp\"`\n\010Worktree\022#\n\t"
-    "git_index\030\001 \001(\0132\020.git.block.Index\022/\n\016hea"
-    "d_ref_store\030\002 \001(\0132\027.git.world.HeadRefSto"
-    "re\"{\n\014HeadRefStore\022\026\n\016submodule_name\030\001 \001"
-    "(\t\022&\n\010head_ref\030\002 \001(\0132\024.git.block.Referen"
-    "ce\022+\n\nsubmodules\030\003 \003(\0132\027.git.world.HeadR"
-    "efStore\"\201\002\n\023GitCreateWorktreeOp\022\022\n\nobjec"
-    "t_key\030\001 \001(\t\022\027\n\017repo_object_key\030\002 \001(\t\022,\n\013"
-    "workdir_ref\030\003 \001(\0132\027.unixfs.world.UnixfsR"
-    "ef\022\026\n\016create_workdir\030\004 \001(\010\022.\n\rcheckout_o"
-    "pts\030\005 \001(\0132\027.git.block.CheckoutOpts\022\030\n\020di"
-    "sable_checkout\030\006 \001(\010\022-\n\ttimestamp\030\007 \001(\0132"
-    "\032.google.protobuf.Timestamp\"J\n\nGitFetchO"
-    "p\022\022\n\nobject_key\030\001 \001(\t\022(\n\nfetch_opts\030\002 \001("
-    "\0132\024.git.block.FetchOpts\"\235\001\n\nGitCloneOp\022\022"
-    "\n\nobject_key\030\001 \001(\t\022(\n\nclone_opts\030\002 \001(\0132\024"
-    ".git.block.CloneOpts\022\030\n\020disable_checkout"
-    "\030\003 \001(\010\0227\n\017create_worktree\030\004 \001(\0132\036.git.wo"
-    "rld.GitCreateWorktreeOp\"\243\001\n\025GitWorktreeC"
-    "heckoutOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017repo_ob"
-    "ject_key\030\002 \001(\t\022.\n\rcheckout_opts\030\003 \001(\0132\027."
-    "git.block.CheckoutOpts\022-\n\ttimestamp\030\004 \001("
-    "\0132\032.google.protobuf.Timestampb\006proto3"
+    "orld.GitCreateWorktreeOp\022-\n\ttimestamp\030\005 "
+    "\001(\0132\032.google.protobuf.Timestamp\"`\n\010Workt"
+    "ree\022#\n\tgit_index\030\001 \001(\0132\020.git.block.Index"
+    "\022/\n\016head_ref_store\030\002 \001(\0132\027.git.world.Hea"
+    "dRefStore\"{\n\014HeadRefStore\022\026\n\016submodule_n"
+    "ame\030\001 \001(\t\022&\n\010head_ref\030\002 \001(\0132\024.git.block."
+    "Reference\022+\n\nsubmodules\030\003 \003(\0132\027.git.worl"
+    "d.HeadRefStore\"\201\002\n\023GitCreateWorktreeOp\022\022"
+    "\n\nobject_key\030\001 \001(\t\022\027\n\017repo_object_key\030\002 "
+    "\001(\t\022,\n\013workdir_ref\030\003 \001(\0132\027.unixfs.world."
+    "UnixfsRef\022\026\n\016create_workdir\030\004 \001(\010\022.\n\rche"
+    "ckout_opts\030\005 \001(\0132\027.git.block.CheckoutOpt"
+    "s\022\030\n\020disable_checkout\030\006 \001(\010\022-\n\ttimestamp"
+    "\030\007 \001(\0132\032.google.protobuf.Timestamp\"J\n\nGi"
+    "tFetchOp\022\022\n\nobject_key\030\001 \001(\t\022(\n\nfetch_op"
+    "ts\030\002 \001(\0132\024.git.block.FetchOpts\"\314\001\n\nGitCl"
+    "oneOp\022\022\n\nobject_key\030\001 \001(\t\022(\n\nclone_opts\030"
+    "\002 \001(\0132\024.git.block.CloneOpts\022\030\n\020disable_c"
+    "heckout\030\003 \001(\010\0227\n\017create_worktree\030\004 \001(\0132\036"
+    ".git.world.GitCreateWorktreeOp\022-\n\ttimest"
+    "amp\030\005 \001(\0132\032.google.protobuf.Timestamp\"\243\001"
+    "\n\025GitWorktreeCheckoutOp\022\022\n\nobject_key\030\001 "
+    "\001(\t\022\027\n\017repo_object_key\030\002 \001(\t\022.\n\rcheckout"
+    "_opts\030\003 \001(\0132\027.git.block.CheckoutOpts\022-\n\t"
+    "timestamp\030\004 \001(\0132\032.google.protobuf.Timest"
+    "ampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_deps[4] = {
@@ -388,7 +397,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto = {
     false,
     false,
-    1317,
+    1411,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
     "github.com/aperturerobotics/hydra/git/world/git.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_once,
@@ -418,6 +427,12 @@ void GitInitOp::clear_repo_ref() {
   if (_impl_.repo_ref_ != nullptr) _impl_.repo_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
+}
+void GitInitOp::clear_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
 }
 GitInitOp::GitInitOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -456,6 +471,9 @@ GitInitOp::GitInitOp(
   _impl_.create_worktree_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.create_worktree_)
                 : nullptr;
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
+                : nullptr;
   _impl_.disable_checkout_ = from._impl_.disable_checkout_;
 
   // @@protoc_insertion_point(copy_constructor:git.world.GitInitOp)
@@ -489,6 +507,7 @@ inline void GitInitOp::SharedDtor(MessageLite& self) {
   this_._impl_.object_key_.Destroy();
   delete this_._impl_.repo_ref_;
   delete this_._impl_.create_worktree_;
+  delete this_._impl_.timestamp_;
   this_._impl_.~Impl_();
 }
 
@@ -535,17 +554,17 @@ GitInitOp::GetClassData() const {
   return GitInitOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 2, 38, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 38, 2>
 GitInitOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    2,  // num_aux_entries
+    5,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     GitInitOp_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -554,10 +573,7 @@ GitInitOp::_table_ = {
     ::_pbi::TcParser::GetTable<::git::world::GitInitOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .git.world.GitCreateWorktreeOp create_worktree = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
-      PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.create_worktree_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string object_key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -567,9 +583,19 @@ GitInitOp::_table_ = {
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.repo_ref_)}},
     // bool disable_checkout = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GitInitOp, _impl_.disable_checkout_), 3>(),
-     {24, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GitInitOp, _impl_.disable_checkout_), 4>(),
+     {24, 4, 0,
       PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.disable_checkout_)}},
+    // .git.world.GitCreateWorktreeOp create_worktree = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 2, 1,
+      PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.create_worktree_)}},
+    // .google.protobuf.Timestamp timestamp = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 3, 2,
+      PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.timestamp_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -578,13 +604,16 @@ GitInitOp::_table_ = {
     // .bucket.ObjectRef repo_ref = 2;
     {PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.repo_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool disable_checkout = 3;
-    {PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.disable_checkout_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.disable_checkout_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .git.world.GitCreateWorktreeOp create_worktree = 4;
     {PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.create_worktree_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .google.protobuf.Timestamp timestamp = 5;
+    {PROTOBUF_FIELD_OFFSET(GitInitOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
       {::_pbi::TcParser::GetTable<::git::world::GitCreateWorktreeOp>()},
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
     "\23\12\0\0\0\0\0\0"
@@ -600,7 +629,7 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.object_key_.ClearNonDefaultToEmpty();
     }
@@ -611,6 +640,10 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.create_worktree_ != nullptr);
       _impl_.create_worktree_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.timestamp_ != nullptr);
+      _impl_.timestamp_->Clear();
     }
   }
   _impl_.disable_checkout_ = false;
@@ -655,7 +688,7 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
   }
 
   // bool disable_checkout = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_disable_checkout() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -667,6 +700,13 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.create_worktree_, this_._impl_.create_worktree_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .google.protobuf.Timestamp timestamp = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
         stream);
   }
 
@@ -695,7 +735,7 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // string object_key = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_object_key().empty()) {
@@ -713,8 +753,13 @@ PROTOBUF_NOINLINE void GitInitOp::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.create_worktree_);
     }
-    // bool disable_checkout = 3;
+    // .google.protobuf.Timestamp timestamp = 5;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
+    }
+    // bool disable_checkout = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_disable_checkout() != 0) {
         total_size += 2;
       }
@@ -739,7 +784,7 @@ void GitInitOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_object_key().empty()) {
         _this->_internal_set_object_key(from._internal_object_key());
@@ -766,6 +811,14 @@ void GitInitOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
+      if (_this->_impl_.timestamp_ == nullptr) {
+        _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
+      } else {
+        _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_disable_checkout() != 0) {
         _this->_impl_.disable_checkout_ = from._impl_.disable_checkout_;
       }
@@ -2369,6 +2422,12 @@ void GitCloneOp::clear_clone_opts() {
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
+void GitCloneOp::clear_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
 GitCloneOp::GitCloneOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, GitCloneOp_class_data_.base()) {
@@ -2406,6 +2465,9 @@ GitCloneOp::GitCloneOp(
   _impl_.create_worktree_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.create_worktree_)
                 : nullptr;
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
+                : nullptr;
   _impl_.disable_checkout_ = from._impl_.disable_checkout_;
 
   // @@protoc_insertion_point(copy_constructor:git.world.GitCloneOp)
@@ -2439,6 +2501,7 @@ inline void GitCloneOp::SharedDtor(MessageLite& self) {
   this_._impl_.object_key_.Destroy();
   delete this_._impl_.clone_opts_;
   delete this_._impl_.create_worktree_;
+  delete this_._impl_.timestamp_;
   this_._impl_.~Impl_();
 }
 
@@ -2485,17 +2548,17 @@ GitCloneOp::GetClassData() const {
   return GitCloneOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 2, 39, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 39, 2>
 GitCloneOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    2,  // num_aux_entries
+    5,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     GitCloneOp_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -2504,10 +2567,7 @@ GitCloneOp::_table_ = {
     ::_pbi::TcParser::GetTable<::git::world::GitCloneOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .git.world.GitCreateWorktreeOp create_worktree = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
-      PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.create_worktree_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string object_key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -2517,9 +2577,19 @@ GitCloneOp::_table_ = {
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.clone_opts_)}},
     // bool disable_checkout = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GitCloneOp, _impl_.disable_checkout_), 3>(),
-     {24, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(GitCloneOp, _impl_.disable_checkout_), 4>(),
+     {24, 4, 0,
       PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.disable_checkout_)}},
+    // .git.world.GitCreateWorktreeOp create_worktree = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 2, 1,
+      PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.create_worktree_)}},
+    // .google.protobuf.Timestamp timestamp = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 3, 2,
+      PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.timestamp_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2528,13 +2598,16 @@ GitCloneOp::_table_ = {
     // .git.block.CloneOpts clone_opts = 2;
     {PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.clone_opts_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool disable_checkout = 3;
-    {PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.disable_checkout_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.disable_checkout_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .git.world.GitCreateWorktreeOp create_worktree = 4;
     {PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.create_worktree_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .google.protobuf.Timestamp timestamp = 5;
+    {PROTOBUF_FIELD_OFFSET(GitCloneOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::git::block::CloneOpts>()},
       {::_pbi::TcParser::GetTable<::git::world::GitCreateWorktreeOp>()},
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
     "\24\12\0\0\0\0\0\0"
@@ -2550,7 +2623,7 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.object_key_.ClearNonDefaultToEmpty();
     }
@@ -2561,6 +2634,10 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.create_worktree_ != nullptr);
       _impl_.create_worktree_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.timestamp_ != nullptr);
+      _impl_.timestamp_->Clear();
     }
   }
   _impl_.disable_checkout_ = false;
@@ -2605,7 +2682,7 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
   }
 
   // bool disable_checkout = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_disable_checkout() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -2617,6 +2694,13 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.create_worktree_, this_._impl_.create_worktree_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .google.protobuf.Timestamp timestamp = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
         stream);
   }
 
@@ -2645,7 +2729,7 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // string object_key = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_object_key().empty()) {
@@ -2663,8 +2747,13 @@ PROTOBUF_NOINLINE void GitCloneOp::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.create_worktree_);
     }
-    // bool disable_checkout = 3;
+    // .google.protobuf.Timestamp timestamp = 5;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
+    }
+    // bool disable_checkout = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_disable_checkout() != 0) {
         total_size += 2;
       }
@@ -2689,7 +2778,7 @@ void GitCloneOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_object_key().empty()) {
         _this->_internal_set_object_key(from._internal_object_key());
@@ -2716,6 +2805,14 @@ void GitCloneOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
+      if (_this->_impl_.timestamp_ == nullptr) {
+        _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
+      } else {
+        _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_disable_checkout() != 0) {
         _this->_impl_.disable_checkout_ = from._impl_.disable_checkout_;
       }

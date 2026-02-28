@@ -21,6 +21,9 @@ message GitInitOp {
   // If disable_checkout is set, worktree is not created.
   // Applying as an object op implies disable_checkout.
   GitCreateWorktreeOp create_worktree = 4;
+  // Timestamp is the modification time for the workdir ops.
+  // Used when creating a default worktree.
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // Worktree refers to a location where a repo is checked out.
@@ -84,6 +87,9 @@ message GitCloneOp {
   // If unset, uses object_key + "/worktree"
   // If disable_checkout is set, worktree is not created.
   GitCreateWorktreeOp create_worktree = 4;
+  // Timestamp is the modification time for the workdir ops.
+  // Passed to GitInitOp when creating the repo.
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // GitWorktreeCheckoutOp checks out a git revision in a worktree.

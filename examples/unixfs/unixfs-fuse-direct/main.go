@@ -199,7 +199,7 @@ func execute(rctx context.Context) error {
 				},
 				Timestamp: &ts,
 			}
-			_, err := git_world.GitClone(ctx, ws, gitRepoKey, sender.GetPeerID(), cloneOpts, nil, os.Stderr, createWtOp)
+			_, err := git_world.GitClone(ctx, ws, gitRepoKey, sender.GetPeerID(), cloneOpts, nil, os.Stderr, createWtOp, nil)
 			if err != nil {
 				return err
 			}

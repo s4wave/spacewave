@@ -35,6 +35,9 @@ type GitInitOp struct {
 	// If disable_checkout is set, worktree is not created.
 	// Applying as an object op implies disable_checkout.
 	CreateWorktree *GitCreateWorktreeOp `protobuf:"bytes,4,opt,name=create_worktree,json=createWorktree,proto3" json:"createWorktree,omitempty"`
+	// Timestamp is the modification time for the workdir ops.
+	// Used when creating a default worktree.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 }
 
 func (x *GitInitOp) Reset() {
@@ -67,6 +70,13 @@ func (x *GitInitOp) GetDisableCheckout() bool {
 func (x *GitInitOp) GetCreateWorktree() *GitCreateWorktreeOp {
 	if x != nil {
 		return x.CreateWorktree
+	}
+	return nil
+}
+
+func (x *GitInitOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
 	}
 	return nil
 }
@@ -259,6 +269,9 @@ type GitCloneOp struct {
 	// If unset, uses object_key + "/worktree"
 	// If disable_checkout is set, worktree is not created.
 	CreateWorktree *GitCreateWorktreeOp `protobuf:"bytes,4,opt,name=create_worktree,json=createWorktree,proto3" json:"createWorktree,omitempty"`
+	// Timestamp is the modification time for the workdir ops.
+	// Passed to GitInitOp when creating the repo.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 }
 
 func (x *GitCloneOp) Reset() {
@@ -291,6 +304,13 @@ func (x *GitCloneOp) GetDisableCheckout() bool {
 func (x *GitCloneOp) GetCreateWorktree() *GitCreateWorktreeOp {
 	if x != nil {
 		return x.CreateWorktree
+	}
+	return nil
+}
+
+func (x *GitCloneOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
 	}
 	return nil
 }
@@ -353,6 +373,9 @@ func (m *GitInitOp) CloneVT() *GitInitOp {
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
 	if rhs := m.RepoRef; rhs != nil {
 		r.RepoRef = rhs.CloneVT()
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -466,6 +489,9 @@ func (m *GitCloneOp) CloneVT() *GitCloneOp {
 	if rhs := m.CloneOpts; rhs != nil {
 		r.CloneOpts = rhs.CloneVT()
 	}
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -515,6 +541,9 @@ func (this *GitInitOp) EqualVT(that *GitInitOp) bool {
 		return false
 	}
 	if !this.CreateWorktree.EqualVT(that.CreateWorktree) {
+		return false
+	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -670,6 +699,9 @@ func (this *GitCloneOp) EqualVT(that *GitCloneOp) bool {
 	if !this.CreateWorktree.EqualVT(that.CreateWorktree) {
 		return false
 	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -738,6 +770,11 @@ func (x *GitInitOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("createWorktree")
 		x.CreateWorktree.MarshalProtoJSON(s.WithField("createWorktree"))
 	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -775,6 +812,13 @@ func (x *GitInitOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CreateWorktree = &GitCreateWorktreeOp{}
 			x.CreateWorktree.UnmarshalProtoJSON(s.WithField("create_worktree", true))
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
 		}
 	})
 }
@@ -1109,6 +1153,11 @@ func (x *GitCloneOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("createWorktree")
 		x.CreateWorktree.MarshalProtoJSON(s.WithField("createWorktree"))
 	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1146,6 +1195,13 @@ func (x *GitCloneOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CreateWorktree = &GitCreateWorktreeOp{}
 			x.CreateWorktree.UnmarshalProtoJSON(s.WithField("create_worktree", true))
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
 		}
 	})
 }
@@ -1258,6 +1314,16 @@ func (m *GitInitOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.CreateWorktree != nil {
 		size, err := m.CreateWorktree.MarshalToSizedBufferVT(dAtA[:i])
@@ -1591,6 +1657,16 @@ func (m *GitCloneOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.CreateWorktree != nil {
 		size, err := m.CreateWorktree.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1719,6 +1795,10 @@ func (m *GitInitOp) SizeVT() (n int) {
 		l = m.CreateWorktree.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1840,6 +1920,10 @@ func (m *GitCloneOp) SizeVT() (n int) {
 		l = m.CreateWorktree.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1900,6 +1984,13 @@ func (x *GitInitOp) MarshalProtoText() string {
 		}
 		sb.WriteString("create_worktree: ")
 		sb.WriteString(x.CreateWorktree.MarshalProtoText())
+	}
+	if x.Timestamp != nil {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2088,6 +2179,13 @@ func (x *GitCloneOp) MarshalProtoText() string {
 		sb.WriteString("create_worktree: ")
 		sb.WriteString(x.CreateWorktree.MarshalProtoText())
 	}
+	if x.Timestamp != nil {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -2242,6 +2340,34 @@ func (m *GitInitOp) UnmarshalVT(dAtA []byte) error {
 				m.CreateWorktree = &GitCreateWorktreeOp{}
 			}
 			if err := m.CreateWorktree.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2881,6 +3007,34 @@ func (m *GitCloneOp) UnmarshalVT(dAtA []byte) error {
 				m.CreateWorktree = &GitCreateWorktreeOp{}
 			}
 			if err := m.CreateWorktree.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -8,6 +8,7 @@ import (
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/world"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
@@ -22,7 +23,7 @@ import (
 // tree is built bottom-up at commit time.
 // If DisableCheckout is set, disables creating the worktree.
 // Returns the object ref to the Repo.
-// authMethod, progress, worktreeArgs can be empty.
+// authMethod, progress, worktreeArgs, ts can be empty.
 func GitClone(
 	ctx context.Context,
 	ws world.WorldState,
@@ -32,6 +33,7 @@ func GitClone(
 	authMethod transport.AuthMethod,
 	progress sideband.Progress,
 	worktreeArgs *GitCreateWorktreeOp,
+	ts *timestamppb.Timestamp,
 ) (*bucket.ObjectRef, error) {
 	cloneArgs := cloneOpts.BuildCloneOpts()
 	enableCheckout := !cloneOpts.GetDisableCheckout()
@@ -75,7 +77,7 @@ func GitClone(
 	}
 
 	// we cloned the repo to repoRef, now create repo and worktree
-	initOp := NewGitInitOp(objKey, repoRef, !enableCheckout, worktreeArgs)
+	initOp := NewGitInitOp(objKey, repoRef, !enableCheckout, worktreeArgs, ts)
 	_, _, err = ws.ApplyWorldOp(ctx, initOp, sender)
 	if err != nil {
 		return nil, err

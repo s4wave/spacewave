@@ -1224,6 +1224,7 @@ class GitInitOp final : public ::google::protobuf::Message
     kObjectKeyFieldNumber = 1,
     kRepoRefFieldNumber = 2,
     kCreateWorktreeFieldNumber = 4,
+    kTimestampFieldNumber = 5,
     kDisableCheckoutFieldNumber = 3,
   };
   // string object_key = 1;
@@ -1271,6 +1272,21 @@ class GitInitOp final : public ::google::protobuf::Message
   ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL _internal_mutable_create_worktree();
 
   public:
+  // .google.protobuf.Timestamp timestamp = 5;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
   // bool disable_checkout = 3;
   void clear_disable_checkout() ;
   bool disable_checkout() const;
@@ -1285,8 +1301,8 @@ class GitInitOp final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   2, 38,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   3, 38,
                                    2>
       _table_;
 
@@ -1310,6 +1326,7 @@ class GitInitOp final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr object_key_;
     ::bucket::ObjectRef* PROTOBUF_NULLABLE repo_ref_;
     ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE create_worktree_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
     bool disable_checkout_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1465,6 +1482,7 @@ class GitCloneOp final : public ::google::protobuf::Message
     kObjectKeyFieldNumber = 1,
     kCloneOptsFieldNumber = 2,
     kCreateWorktreeFieldNumber = 4,
+    kTimestampFieldNumber = 5,
     kDisableCheckoutFieldNumber = 3,
   };
   // string object_key = 1;
@@ -1512,6 +1530,21 @@ class GitCloneOp final : public ::google::protobuf::Message
   ::git::world::GitCreateWorktreeOp* PROTOBUF_NONNULL _internal_mutable_create_worktree();
 
   public:
+  // .google.protobuf.Timestamp timestamp = 5;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
   // bool disable_checkout = 3;
   void clear_disable_checkout() ;
   bool disable_checkout() const;
@@ -1526,8 +1559,8 @@ class GitCloneOp final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   2, 39,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   3, 39,
                                    2>
       _table_;
 
@@ -1551,6 +1584,7 @@ class GitCloneOp final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr object_key_;
     ::git::block::CloneOpts* PROTOBUF_NULLABLE clone_opts_;
     ::git::world::GitCreateWorktreeOp* PROTOBUF_NULLABLE create_worktree_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
     bool disable_checkout_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1951,7 +1985,7 @@ inline void GitInitOp::clear_disable_checkout() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_checkout_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool GitInitOp::disable_checkout() const {
   // @@protoc_insertion_point(field_get:git.world.GitInitOp.disable_checkout)
@@ -1959,7 +1993,7 @@ inline bool GitInitOp::disable_checkout() const {
 }
 inline void GitInitOp::set_disable_checkout(bool value) {
   _internal_set_disable_checkout(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:git.world.GitInitOp.disable_checkout)
 }
 inline bool GitInitOp::_internal_disable_checkout() const {
@@ -2068,6 +2102,99 @@ inline void GitInitOp::set_allocated_create_worktree(::git::world::GitCreateWork
 
   _impl_.create_worktree_ = reinterpret_cast<::git::world::GitCreateWorktreeOp*>(value);
   // @@protoc_insertion_point(field_set_allocated:git.world.GitInitOp.create_worktree)
+}
+
+// .google.protobuf.Timestamp timestamp = 5;
+inline bool GitInitOp::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& GitInitOp::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& GitInitOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitInitOp.timestamp)
+  return _internal_timestamp();
+}
+inline void GitInitOp::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitInitOp.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitInitOp::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitInitOp::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitInitOp.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitInitOp::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitInitOp::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:git.world.GitInitOp.timestamp)
+  return _msg;
+}
+inline void GitInitOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitInitOp.timestamp)
 }
 
 // -------------------------------------------------------------------
@@ -3276,7 +3403,7 @@ inline void GitCloneOp::clear_disable_checkout() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_checkout_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool GitCloneOp::disable_checkout() const {
   // @@protoc_insertion_point(field_get:git.world.GitCloneOp.disable_checkout)
@@ -3284,7 +3411,7 @@ inline bool GitCloneOp::disable_checkout() const {
 }
 inline void GitCloneOp::set_disable_checkout(bool value) {
   _internal_set_disable_checkout(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:git.world.GitCloneOp.disable_checkout)
 }
 inline bool GitCloneOp::_internal_disable_checkout() const {
@@ -3393,6 +3520,99 @@ inline void GitCloneOp::set_allocated_create_worktree(::git::world::GitCreateWor
 
   _impl_.create_worktree_ = reinterpret_cast<::git::world::GitCreateWorktreeOp*>(value);
   // @@protoc_insertion_point(field_set_allocated:git.world.GitCloneOp.create_worktree)
+}
+
+// .google.protobuf.Timestamp timestamp = 5;
+inline bool GitCloneOp::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& GitCloneOp::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& GitCloneOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitCloneOp.timestamp)
+  return _internal_timestamp();
+}
+inline void GitCloneOp::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitCloneOp.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitCloneOp::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitCloneOp::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitCloneOp.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitCloneOp::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitCloneOp::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:git.world.GitCloneOp.timestamp)
+  return _msg;
+}
+inline void GitCloneOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitCloneOp.timestamp)
 }
 
 // -------------------------------------------------------------------

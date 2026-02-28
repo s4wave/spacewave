@@ -20,6 +20,10 @@ pub struct GitInitOp {
     /// Applying as an object op implies disable_checkout.
     #[prost(message, optional, tag="4")]
     pub create_worktree: ::core::option::Option<GitCreateWorktreeOp>,
+    /// Timestamp is the modification time for the workdir ops.
+    /// Used when creating a default worktree.
+    #[prost(message, optional, tag="5")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Worktree refers to a location where a repo is checked out.
 /// Contains an index and an attached working directory.
@@ -101,6 +105,10 @@ pub struct GitCloneOp {
     /// If disable_checkout is set, worktree is not created.
     #[prost(message, optional, tag="4")]
     pub create_worktree: ::core::option::Option<GitCreateWorktreeOp>,
+    /// Timestamp is the modification time for the workdir ops.
+    /// Passed to GitInitOp when creating the repo.
+    #[prost(message, optional, tag="5")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// GitWorktreeCheckoutOp checks out a git revision in a worktree.
 /// Note: cannot be run as a Object-specific op.

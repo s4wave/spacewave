@@ -61,6 +61,7 @@ func (o *GitCloneOp) ApplyWorldOp(
 		nil,
 		nil,
 		o.GetCreateWorktree(),
+		o.GetTimestamp(),
 	)
 	return false, err
 }

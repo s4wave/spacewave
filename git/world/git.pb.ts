@@ -119,6 +119,13 @@ export interface GitInitOp {
    * @generated from field: git.world.GitCreateWorktreeOp create_worktree = 4;
    */
   createWorktree?: GitCreateWorktreeOp
+  /**
+   * Timestamp is the modification time for the workdir ops.
+   * Used when creating a default worktree.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 5;
+   */
+  timestamp?: Date
 }
 
 // GitInitOp contains the message type declaration for GitInitOp.
@@ -134,6 +141,7 @@ export const GitInitOp: MessageType<GitInitOp> = createMessageType({
       kind: 'message',
       T: () => GitCreateWorktreeOp,
     },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -277,6 +285,13 @@ export interface GitCloneOp {
    * @generated from field: git.world.GitCreateWorktreeOp create_worktree = 4;
    */
   createWorktree?: GitCreateWorktreeOp
+  /**
+   * Timestamp is the modification time for the workdir ops.
+   * Passed to GitInitOp when creating the repo.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 5;
+   */
+  timestamp?: Date
 }
 
 // GitCloneOp contains the message type declaration for GitCloneOp.
@@ -292,6 +307,7 @@ export const GitCloneOp: MessageType<GitCloneOp> = createMessageType({
       kind: 'message',
       T: () => GitCreateWorktreeOp,
     },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

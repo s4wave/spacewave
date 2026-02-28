@@ -127,6 +127,7 @@ func TestGitClone(t *testing.T) {
 			},
 			Timestamp: opTs,
 		},
+		opTs,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
