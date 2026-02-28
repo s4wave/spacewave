@@ -83,16 +83,19 @@ func (r *Store) GetRef() *block.BlockRef {
 }
 
 // Commit commits the current pending changes to the block transaction.
+// When btx is nil (cursor owned by external transaction), Commit still
+// builds IAVL trees from bulk-written objects on the cursor. The caller
+// is responsible for writing the external transaction.
 func (r *Store) Commit() error {
-	if r.btx == nil {
-		return nil
-	}
-
 	// Build IAVL trees from bulk-written objects and wire into Repo.
 	if r.storeOps != nil {
 		if err := r.bulkCommit(); err != nil {
 			return err
 		}
+	}
+
+	if r.btx == nil {
+		return nil
 	}
 
 	_, bcs, err := r.btx.Write(r.ctx, true)
@@ -167,9 +170,7 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 		return err
 	}
 	r.btx, r.bcs = btx, bcs
-	if btx != nil {
-		r.initBulkMode()
-	}
+	r.initBulkMode()
 	return nil
 }
 

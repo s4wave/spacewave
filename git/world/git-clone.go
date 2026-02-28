@@ -10,16 +10,16 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/pkg/errors"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/pkg/errors"
 )
 
 // GitClone performs a git clone operation against a world.
-// Clones the repo to in-memory storage first (no world lock), then copies
-// objects to world storage under a brief write lock.
+// Clones the repo directly into a bulk-mode hydra Store. Objects stream
+// to KV via per-object mini-transactions during the clone, and the IAVL
+// tree is built bottom-up at commit time.
 // If DisableCheckout is set, disables creating the worktree.
 // Returns the object ref to the Repo.
 // authMethod, progress, worktreeArgs can be empty.
@@ -45,16 +45,9 @@ func GitClone(
 	// override auth method
 	cloneArgs.Auth = authMethod
 
-	// Phase 1: clone into in-memory storage (no world lock held).
-	// This performs all network I/O and packfile delta resolution in memory.
-	memStore := memory.NewStorage()
-	tmpWorktree := memfs.New()
-	_, err := git.CloneContext(ctx, memStore, tmpWorktree, cloneArgs)
-	if err != nil {
-		return nil, errors.Wrap(err, "clone to memory")
-	}
-
-	// Phase 2: copy from memory to hydra storage under world write lock.
+	// Clone directly into hydra storage under world write lock.
+	// The bulk-mode Store streams objects to KV via mini-transactions,
+	// then builds the IAVL tree bottom-up at Commit.
 	repoRef, err := world.AccessObject(
 		ctx,
 		ws.AccessWorldState,
@@ -67,10 +60,14 @@ func GitClone(
 				return err
 			}
 			defer store.Close()
-			if err := copyMemStoreToHydra(ctx, memStore, store); err != nil {
-				return errors.Wrap(err, "copy to hydra")
+
+			worktree := memfs.New()
+			_, err = git.CloneContext(ctx, store, worktree, cloneArgs)
+			if err != nil {
+				return errors.Wrap(err, "clone")
 			}
-			return nil
+
+			return store.Commit()
 		},
 	)
 	if err != nil {
@@ -85,51 +82,3 @@ func GitClone(
 	}
 	return repoRef, nil
 }
-
-// copyMemStoreToHydra copies all git objects, references, and submodules
-// from an in-memory storage to a hydra git block store.
-func copyMemStoreToHydra(ctx context.Context, src *memory.Storage, dst *git_block.Store) error {
-	// copy encoded objects
-	iter, err := src.IterEncodedObjects(plumbing.AnyObject)
-	if err != nil {
-		return err
-	}
-	if err := iter.ForEach(func(obj plumbing.EncodedObject) error {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		_, err := dst.SetEncodedObject(obj)
-		return err
-	}); err != nil {
-		return err
-	}
-
-	// copy references
-	refIter, err := src.IterReferences()
-	if err != nil {
-		return err
-	}
-	if err := refIter.ForEach(func(ref *plumbing.Reference) error {
-		return dst.SetReference(ref)
-	}); err != nil {
-		return err
-	}
-
-	// copy submodules
-	for name, subStore := range src.ModuleStorage {
-		subStorer, err := dst.Module(name)
-		if err != nil {
-			return errors.Wrapf(err, "create submodule %s", name)
-		}
-		subDst, ok := subStorer.(*git_block.Store)
-		if !ok {
-			continue
-		}
-		if err := copyMemStoreToHydra(ctx, subStore, subDst); err != nil {
-			return errors.Wrapf(err, "copy submodule %s", name)
-		}
-	}
-
-	return nil
-}
-
