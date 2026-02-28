@@ -810,6 +810,9 @@ type CloneOpts struct {
 	Depth uint32 `protobuf:"varint,6,opt,name=depth,proto3" json:"depth,omitempty"`
 	// Recursive indicates submodules will be fetched as well.
 	Recursive bool `protobuf:"varint,7,opt,name=recursive,proto3" json:"recursive,omitempty"`
+	// RecursionDepth overrides the default submodule recursion depth (10).
+	// Only used when recursive is true. Zero means use the default.
+	RecursionDepth uint32 `protobuf:"varint,11,opt,name=recursion_depth,json=recursionDepth,proto3" json:"recursionDepth,omitempty"`
 	// TagMode controls the fetching of tags.
 	TagMode TagMode `protobuf:"varint,8,opt,name=tag_mode,json=tagMode,proto3" json:"tagMode,omitempty"`
 	// Insecure indicates that TLS checks should be skipped.
@@ -871,6 +874,13 @@ func (x *CloneOpts) GetRecursive() bool {
 		return x.Recursive
 	}
 	return false
+}
+
+func (x *CloneOpts) GetRecursionDepth() uint32 {
+	if x != nil {
+		return x.RecursionDepth
+	}
+	return 0
 }
 
 func (x *CloneOpts) GetTagMode() TagMode {
@@ -1430,6 +1440,7 @@ func (m *CloneOpts) CloneVT() *CloneOpts {
 	r.DisableCheckout = m.DisableCheckout
 	r.Depth = m.Depth
 	r.Recursive = m.Recursive
+	r.RecursionDepth = m.RecursionDepth
 	r.TagMode = m.TagMode
 	r.Insecure = m.Insecure
 	r.CaBundle = m.CaBundle
@@ -2017,6 +2028,9 @@ func (this *CloneOpts) EqualVT(that *CloneOpts) bool {
 		return false
 	}
 	if this.CaBundle != that.CaBundle {
+		return false
+	}
+	if this.RecursionDepth != that.RecursionDepth {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3460,6 +3474,11 @@ func (x *CloneOpts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("caBundle")
 		s.WriteString(x.CaBundle)
 	}
+	if x.RecursionDepth != 0 || s.HasField("recursionDepth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("recursionDepth")
+		s.WriteUint32(x.RecursionDepth)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3507,6 +3526,9 @@ func (x *CloneOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ca_bundle", "caBundle":
 			s.AddField("ca_bundle")
 			x.CaBundle = s.ReadString()
+		case "recursion_depth", "recursionDepth":
+			s.AddField("recursion_depth")
+			x.RecursionDepth = s.ReadUint32()
 		}
 	})
 }
@@ -4678,6 +4700,11 @@ func (m *CloneOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RecursionDepth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RecursionDepth))
+		i--
+		dAtA[i] = 0x58
+	}
 	if len(m.CaBundle) > 0 {
 		i -= len(m.CaBundle)
 		copy(dAtA[i:], m.CaBundle)
@@ -5339,6 +5366,9 @@ func (m *CloneOpts) SizeVT() (n int) {
 	l = len(m.CaBundle)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RecursionDepth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.RecursionDepth))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6079,6 +6109,13 @@ func (x *CloneOpts) MarshalProtoText() string {
 		}
 		sb.WriteString("ca_bundle: ")
 		sb.WriteString(strconv.Quote(x.CaBundle))
+	}
+	if x.RecursionDepth != 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("recursion_depth: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.RecursionDepth), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -8166,6 +8203,15 @@ func (m *CloneOpts) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CaBundle = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecursionDepth", wireType)
+			}
+			m.RecursionDepth = 0
+			m.RecursionDepth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

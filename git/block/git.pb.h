@@ -757,6 +757,7 @@ class CloneOpts final : public ::google::protobuf::Message
     kRecursiveFieldNumber = 7,
     kInsecureFieldNumber = 9,
     kTagModeFieldNumber = 8,
+    kRecursionDepthFieldNumber = 11,
   };
   // string url = 1;
   void clear_url() ;
@@ -878,11 +879,21 @@ class CloneOpts final : public ::google::protobuf::Message
   void _internal_set_tag_mode(::git::block::TagMode value);
 
   public:
+  // uint32 recursion_depth = 11;
+  void clear_recursion_depth() ;
+  ::uint32_t recursion_depth() const;
+  void set_recursion_depth(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_recursion_depth() const;
+  void _internal_set_recursion_depth(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:git.block.CloneOpts)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
                                    0, 62,
                                    2>
       _table_;
@@ -914,6 +925,7 @@ class CloneOpts final : public ::google::protobuf::Message
     bool recursive_;
     bool insecure_;
     int tag_mode_;
+    ::uint32_t recursion_depth_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -8301,6 +8313,31 @@ inline bool CloneOpts::_internal_recursive() const {
 inline void CloneOpts::_internal_set_recursive(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.recursive_ = value;
+}
+
+// uint32 recursion_depth = 11;
+inline void CloneOpts::clear_recursion_depth() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recursion_depth_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::uint32_t CloneOpts::recursion_depth() const {
+  // @@protoc_insertion_point(field_get:git.block.CloneOpts.recursion_depth)
+  return _internal_recursion_depth();
+}
+inline void CloneOpts::set_recursion_depth(::uint32_t value) {
+  _internal_set_recursion_depth(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:git.block.CloneOpts.recursion_depth)
+}
+inline ::uint32_t CloneOpts::_internal_recursion_depth() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.recursion_depth_;
+}
+inline void CloneOpts::_internal_set_recursion_depth(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recursion_depth_ = value;
 }
 
 // .git.block.TagMode tag_mode = 8;

@@ -88,7 +88,8 @@ inline constexpr CloneOpts::Impl_::Impl_(
         disable_checkout_{false},
         recursive_{false},
         insecure_{false},
-        tag_mode_{static_cast< ::git::block::TagMode >(0)} {}
+        tag_mode_{static_cast< ::git::block::TagMode >(0)},
+        recursion_depth_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR CloneOpts::CloneOpts(::_pbi::ConstantInitialized)
@@ -773,7 +774,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_._has_bits_),
-        13, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.url_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.remote_name_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.ref_),
@@ -781,6 +782,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.disable_checkout_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.depth_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.recursive_),
+        PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.recursion_depth_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.tag_mode_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.insecure_),
         PROTOBUF_FIELD_OFFSET(::git::block::CloneOpts, _impl_.ca_bundle_),
@@ -791,6 +793,7 @@ const ::uint32_t
         6,
         4,
         7,
+        10,
         9,
         8,
         3,
@@ -850,8 +853,8 @@ static const ::_pbi::MigrationSchema
         {117, sizeof(::git::block::IndexEntry)},
         {146, sizeof(::git::block::AuthOpts)},
         {153, sizeof(::git::block::CloneOpts)},
-        {176, sizeof(::git::block::FetchOpts)},
-        {197, sizeof(::git::block::CheckoutOpts)},
+        {178, sizeof(::git::block::FetchOpts)},
+        {199, sizeof(::git::block::CheckoutOpts)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::block::_Repo_default_instance_._instance,
@@ -931,30 +934,31 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fg
     "\003gid\030\t \001(\r\022\014\n\004size\030\n \001(\r\022\r\n\005stage\030\013 \001(\r\022"
     "\025\n\rskip_worktree\030\014 \001(\010\022\025\n\rintent_to_add\030"
     "\r \001(\010\"-\n\010AuthOpts\022\020\n\010username\030\001 \001(\t\022\017\n\007p"
-    "eer_id\030\002 \001(\t\"\330\001\n\tCloneOpts\022\013\n\003url\030\001 \001(\t\022"
+    "eer_id\030\002 \001(\t\"\361\001\n\tCloneOpts\022\013\n\003url\030\001 \001(\t\022"
     "\023\n\013remote_name\030\002 \001(\t\022\013\n\003ref\030\003 \001(\t\022\025\n\rsin"
     "gle_branch\030\004 \001(\010\022\030\n\020disable_checkout\030\005 \001"
-    "(\010\022\r\n\005depth\030\006 \001(\r\022\021\n\trecursive\030\007 \001(\010\022$\n\010"
-    "tag_mode\030\010 \001(\0162\022.git.block.TagMode\022\020\n\010in"
-    "secure\030\t \001(\010\022\021\n\tca_bundle\030\n \001(\t\"\277\001\n\tFetc"
-    "hOpts\022\023\n\013remote_name\030\001 \001(\t\022\022\n\nremote_url"
-    "\030\002 \001(\t\022\021\n\tref_specs\030\003 \003(\t\022\r\n\005depth\030\004 \001(\r"
-    "\022$\n\010tag_mode\030\005 \001(\0162\022.git.block.TagMode\022\r"
-    "\n\005force\030\006 \001(\010\022\020\n\010insecure\030\007 \001(\010\022\021\n\tca_bu"
-    "ndle\030\010 \001(\t\022\r\n\005prune\030\t \001(\010\"g\n\014CheckoutOpt"
-    "s\022\032\n\006commit\030\001 \001(\0132\n.hash.Hash\022\016\n\006branch\030"
-    "\002 \001(\t\022\016\n\006create\030\003 \001(\010\022\r\n\005force\030\004 \001(\010\022\014\n\004"
-    "keep\030\005 \001(\010*^\n\rReferenceType\022\031\n\025Reference"
-    "Type_INVALID\020\000\022\026\n\022ReferenceType_HASH\020\001\022\032"
-    "\n\026ReferenceType_SYMBOLIC\020\002*\345\001\n\021EncodedOb"
-    "jectType\022\035\n\031EncodedObjectType_INVALID\020\000\022"
-    "\034\n\030EncodedObjectType_COMMIT\020\001\022\032\n\026Encoded"
-    "ObjectType_TREE\020\002\022\032\n\026EncodedObjectType_B"
-    "LOB\020\003\022\031\n\025EncodedObjectType_TAG\020\004\022\037\n\033Enco"
-    "dedObjectType_OFS_DELTA\020\006\022\037\n\033EncodedObje"
-    "ctType_REF_DELTA\020\007*X\n\007TagMode\022\023\n\017TagMode"
-    "_DEFAULT\020\000\022\020\n\014TagMode_NONE\020\001\022\017\n\013TagMode_"
-    "ALL\020\002\022\025\n\021TagMode_FOLLOWING\020\003b\006proto3"
+    "(\010\022\r\n\005depth\030\006 \001(\r\022\021\n\trecursive\030\007 \001(\010\022\027\n\017"
+    "recursion_depth\030\013 \001(\r\022$\n\010tag_mode\030\010 \001(\0162"
+    "\022.git.block.TagMode\022\020\n\010insecure\030\t \001(\010\022\021\n"
+    "\tca_bundle\030\n \001(\t\"\277\001\n\tFetchOpts\022\023\n\013remote"
+    "_name\030\001 \001(\t\022\022\n\nremote_url\030\002 \001(\t\022\021\n\tref_s"
+    "pecs\030\003 \003(\t\022\r\n\005depth\030\004 \001(\r\022$\n\010tag_mode\030\005 "
+    "\001(\0162\022.git.block.TagMode\022\r\n\005force\030\006 \001(\010\022\020"
+    "\n\010insecure\030\007 \001(\010\022\021\n\tca_bundle\030\010 \001(\t\022\r\n\005p"
+    "rune\030\t \001(\010\"g\n\014CheckoutOpts\022\032\n\006commit\030\001 \001"
+    "(\0132\n.hash.Hash\022\016\n\006branch\030\002 \001(\t\022\016\n\006create"
+    "\030\003 \001(\010\022\r\n\005force\030\004 \001(\010\022\014\n\004keep\030\005 \001(\010*^\n\rR"
+    "eferenceType\022\031\n\025ReferenceType_INVALID\020\000\022"
+    "\026\n\022ReferenceType_HASH\020\001\022\032\n\026ReferenceType"
+    "_SYMBOLIC\020\002*\345\001\n\021EncodedObjectType\022\035\n\031Enc"
+    "odedObjectType_INVALID\020\000\022\034\n\030EncodedObjec"
+    "tType_COMMIT\020\001\022\032\n\026EncodedObjectType_TREE"
+    "\020\002\022\032\n\026EncodedObjectType_BLOB\020\003\022\031\n\025Encode"
+    "dObjectType_TAG\020\004\022\037\n\033EncodedObjectType_O"
+    "FS_DELTA\020\006\022\037\n\033EncodedObjectType_REF_DELT"
+    "A\020\007*X\n\007TagMode\022\023\n\017TagMode_DEFAULT\020\000\022\020\n\014T"
+    "agMode_NONE\020\001\022\017\n\013TagMode_ALL\020\002\022\025\n\021TagMod"
+    "e_FOLLOWING\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps[5] = {
@@ -968,7 +972,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto = {
     false,
     false,
-    3116,
+    3141,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
     "github.com/aperturerobotics/hydra/git/block/git.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_once,
@@ -6935,9 +6939,9 @@ CloneOpts::CloneOpts(
                offsetof(Impl_, depth_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, depth_),
-           offsetof(Impl_, tag_mode_) -
+           offsetof(Impl_, recursion_depth_) -
                offsetof(Impl_, depth_) +
-               sizeof(Impl_::tag_mode_));
+               sizeof(Impl_::recursion_depth_));
 
   // @@protoc_insertion_point(copy_constructor:git.block.CloneOpts)
 }
@@ -6955,9 +6959,9 @@ inline void CloneOpts::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, depth_),
            0,
-           offsetof(Impl_, tag_mode_) -
+           offsetof(Impl_, recursion_depth_) -
                offsetof(Impl_, depth_) +
-               sizeof(Impl_::tag_mode_));
+               sizeof(Impl_::recursion_depth_));
 }
 CloneOpts::~CloneOpts() {
   // @@protoc_insertion_point(destructor:git.block.CloneOpts)
@@ -7020,16 +7024,16 @@ CloneOpts::GetClassData() const {
   return CloneOpts_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 0, 62, 2>
+const ::_pbi::TcParseTable<4, 11, 0, 62, 2>
 CloneOpts::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    11,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     CloneOpts_class_data_.base(),
@@ -7080,7 +7084,10 @@ CloneOpts::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {82, 3, 0,
       PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.ca_bundle_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // uint32 recursion_depth = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CloneOpts, _impl_.recursion_depth_), 10>(),
+     {88, 10, 0,
+      PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.recursion_depth_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -7108,6 +7115,8 @@ CloneOpts::_table_ = {
     {PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.insecure_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string ca_bundle = 10;
     {PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.ca_bundle_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 recursion_depth = 11;
+    {PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.recursion_depth_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   // no aux_entries
   {{
@@ -7146,10 +7155,10 @@ PROTOBUF_NOINLINE void CloneOpts::Clear() {
         reinterpret_cast<char*>(&_impl_.recursive_) -
         reinterpret_cast<char*>(&_impl_.depth_)) + sizeof(_impl_.recursive_));
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     ::memset(&_impl_.insecure_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.tag_mode_) -
-        reinterpret_cast<char*>(&_impl_.insecure_)) + sizeof(_impl_.tag_mode_));
+        reinterpret_cast<char*>(&_impl_.recursion_depth_) -
+        reinterpret_cast<char*>(&_impl_.insecure_)) + sizeof(_impl_.recursion_depth_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -7268,6 +7277,15 @@ PROTOBUF_NOINLINE void CloneOpts::Clear() {
     }
   }
 
+  // uint32 recursion_depth = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_recursion_depth() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          11, this_._internal_recursion_depth(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -7348,7 +7366,7 @@ PROTOBUF_NOINLINE void CloneOpts::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // bool insecure = 9;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_insecure() != 0) {
@@ -7360,6 +7378,13 @@ PROTOBUF_NOINLINE void CloneOpts::Clear() {
       if (this_._internal_tag_mode() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_tag_mode());
+      }
+    }
+    // uint32 recursion_depth = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_recursion_depth() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_recursion_depth());
       }
     }
   }
@@ -7439,7 +7464,7 @@ void CloneOpts::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_insecure() != 0) {
         _this->_impl_.insecure_ = from._impl_.insecure_;
@@ -7448,6 +7473,11 @@ void CloneOpts::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_tag_mode() != 0) {
         _this->_impl_.tag_mode_ = from._impl_.tag_mode_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_recursion_depth() != 0) {
+        _this->_impl_.recursion_depth_ = from._impl_.recursion_depth_;
       }
     }
   }
@@ -7475,8 +7505,8 @@ void CloneOpts::InternalSwap(CloneOpts* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ref_, &other->_impl_.ref_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ca_bundle_, &other->_impl_.ca_bundle_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.tag_mode_)
-      + sizeof(CloneOpts::_impl_.tag_mode_)
+      PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.recursion_depth_)
+      + sizeof(CloneOpts::_impl_.recursion_depth_)
       - PROTOBUF_FIELD_OFFSET(CloneOpts, _impl_.depth_)>(
           reinterpret_cast<char*>(&_impl_.depth_),
           reinterpret_cast<char*>(&other->_impl_.depth_));

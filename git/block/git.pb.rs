@@ -256,6 +256,10 @@ pub struct CloneOpts {
     /// Recursive indicates submodules will be fetched as well.
     #[prost(bool, tag="7")]
     pub recursive: bool,
+    /// RecursionDepth overrides the default submodule recursion depth (10).
+    /// Only used when recursive is true. Zero means use the default.
+    #[prost(uint32, tag="11")]
+    pub recursion_depth: u32,
     /// TagMode controls the fetching of tags.
     #[prost(enumeration="TagMode", tag="8")]
     pub tag_mode: i32,

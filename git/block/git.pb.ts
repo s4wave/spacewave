@@ -887,6 +887,13 @@ export interface CloneOpts {
    */
   recursive?: boolean
   /**
+   * RecursionDepth overrides the default submodule recursion depth (10).
+   * Only used when recursive is true. Zero means use the default.
+   *
+   * @generated from field: uint32 recursion_depth = 11;
+   */
+  recursionDepth?: number
+  /**
    * TagMode controls the fetching of tags.
    *
    * @generated from field: git.block.TagMode tag_mode = 8;
@@ -917,6 +924,7 @@ export const CloneOpts: MessageType<CloneOpts> = createMessageType({
     { no: 5, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'depth', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 7, name: 'recursive', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 11, name: 'recursion_depth', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 8, name: 'tag_mode', kind: 'enum', T: TagMode_Enum },
     { no: 9, name: 'insecure', kind: 'scalar', T: ScalarType.BOOL },
     { no: 10, name: 'ca_bundle', kind: 'scalar', T: ScalarType.STRING },

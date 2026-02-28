@@ -24,6 +24,9 @@ func (c *CloneOpts) BuildCloneOpts() *git.CloneOptions {
 	recurseSubmodules := git.NoRecurseSubmodules
 	if c.GetRecursive() {
 		recurseSubmodules = git.DefaultSubmoduleRecursionDepth
+		if d := c.GetRecursionDepth(); d != 0 {
+			recurseSubmodules = git.SubmoduleRescursivity(d)
+		}
 	}
 
 	tagMode := c.GetTagMode().ToGitTagMode()
