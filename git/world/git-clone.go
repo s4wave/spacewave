@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/pkg/errors"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
@@ -50,7 +51,7 @@ func GitClone(
 	tmpWorktree := memfs.New()
 	_, err := git.CloneContext(ctx, memStore, tmpWorktree, cloneArgs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "clone to memory")
 	}
 
 	// Phase 2: copy from memory to hydra storage under world write lock.
@@ -66,7 +67,10 @@ func GitClone(
 				return err
 			}
 			defer store.Close()
-			return copyMemStoreToHydra(ctx, memStore, store)
+			if err := copyMemStoreToHydra(ctx, memStore, store); err != nil {
+				return errors.Wrap(err, "copy to hydra")
+			}
+			return nil
 		},
 	)
 	if err != nil {
@@ -115,14 +119,14 @@ func copyMemStoreToHydra(ctx context.Context, src *memory.Storage, dst *git_bloc
 	for name, subStore := range src.ModuleStorage {
 		subStorer, err := dst.Module(name)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "create submodule %s", name)
 		}
 		subDst, ok := subStorer.(*git_block.Store)
 		if !ok {
 			continue
 		}
 		if err := copyMemStoreToHydra(ctx, subStore, subDst); err != nil {
-			return err
+			return errors.Wrapf(err, "copy submodule %s", name)
 		}
 	}
 
