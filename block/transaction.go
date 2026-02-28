@@ -94,6 +94,22 @@ func (t *Transaction) GetBlockGraph() graph.Graph {
 	return t.blockGraph
 }
 
+// GetTransformer returns the transaction's block transformer.
+func (t *Transaction) GetTransformer() Transformer {
+	if t == nil {
+		return nil
+	}
+	return t.xfrm
+}
+
+// GetPutOpts returns the transaction's put options.
+func (t *Transaction) GetPutOpts() *PutOpts {
+	if t == nil {
+		return nil
+	}
+	return t.putOpts
+}
+
 // SetRoot sets the root of the transaction to a different position.
 // Clears all parent blocks from the new root.
 func (t *Transaction) SetRoot(cursor *Cursor) error {

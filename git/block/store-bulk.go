@@ -17,11 +17,17 @@ type bulkEntry struct {
 }
 
 // initBulkMode initializes the bulk write state on the store.
-// Called from NewStore when a write transaction is available.
+// Called from setBlockTransaction.
 func (r *Store) initBulkMode() {
 	storeOps, _ := r.bcs.GetBlockStore()
 	r.storeOps = storeOps
 	r.objIndex = make(map[plumbing.Hash]*block.BlockRef)
+	// Capture the transformer and putOpts from the cursor's transaction
+	// so mini-transactions use the same encryption config.
+	if tx := r.bcs.GetTransaction(); tx != nil {
+		r.bulkXfrm = tx.GetTransformer()
+		r.bulkPutOpts = tx.GetPutOpts()
+	}
 }
 
 // lookupBulkObject looks up an object by hash in the bulk index.
@@ -32,7 +38,7 @@ func (r *Store) lookupBulkObject(h plumbing.Hash) *block.Cursor {
 		return nil
 	}
 	// Create a lightweight read-only transaction to follow the persisted object.
-	_, cs := block.NewTransaction(r.storeOps, nil, ref, nil)
+	_, cs := block.NewTransaction(r.storeOps, r.bulkXfrm, ref, r.bulkPutOpts)
 	return cs
 }
 
@@ -57,7 +63,7 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 		return nil, nil
 	}
 
-	tx, rootCs, err := kvtx_block_iavl.BuildTree(r.storeOps, nil, bulkSortedIter(entries))
+	tx, rootCs, err := kvtx_block_iavl.BuildTree(r.storeOps, r.bulkXfrm, r.bulkPutOpts, bulkSortedIter(entries))
 	if err != nil {
 		return nil, err
 	}

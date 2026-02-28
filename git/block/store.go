@@ -33,6 +33,10 @@ type Store struct {
 
 	// storeOps is the block store for creating mini-transactions.
 	storeOps block.StoreOps
+	// bulkXfrm is the block transformer for mini-transactions.
+	bulkXfrm block.Transformer
+	// bulkPutOpts is the put options for mini-transactions.
+	bulkPutOpts *block.PutOpts
 	// objIndex maps git hash -> persisted BlockRef for bulk-written objects.
 	objIndex map[plumbing.Hash]*block.BlockRef
 	// objKeys accumulates (iavl_key, BlockRef) for the object IAVL tree.

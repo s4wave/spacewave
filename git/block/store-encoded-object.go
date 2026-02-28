@@ -108,7 +108,7 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 	// Bulk mode: write each object via a per-object mini-transaction,
 	// accumulate refs for deferred IAVL tree construction at Commit.
 	if r.storeOps != nil {
-		tx, encObjCs := block.NewTransaction(r.storeOps, nil, nil, nil)
+		tx, encObjCs := block.NewTransaction(r.storeOps, r.bulkXfrm, nil, r.bulkPutOpts)
 		encObjCs.ClearAllRefs()
 		encObjBlk := &EncodedObject{}
 		encObjBlk.DataHash, err = NewHash(h)

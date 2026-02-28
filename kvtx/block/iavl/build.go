@@ -19,6 +19,7 @@ import (
 // Returns (nil, nil, nil) if the iterator yields no entries.
 func BuildTree(
 	store block.StoreOps,
+	xfrm block.Transformer,
 	putOpts *block.PutOpts,
 	entries iter.Seq2[[]byte, *block.BlockRef],
 ) (*block.Transaction, *block.Cursor, error) {
@@ -36,7 +37,7 @@ func BuildTree(
 	}
 
 	// Create a transaction for the tree nodes.
-	tx, rootCs := block.NewTransaction(store, nil, nil, putOpts)
+	tx, rootCs := block.NewTransaction(store, xfrm, nil, putOpts)
 
 	// Build leaf layer: one cursor per entry.
 	//

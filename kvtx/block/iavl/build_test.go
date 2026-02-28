@@ -80,7 +80,7 @@ func readTreeViaAVL(t *testing.T, oc *bucket_lookup.Cursor, rootRef *block.Block
 func TestBuildTreeEmpty(t *testing.T) {
 	tb, _ := buildTestEnv(t)
 	empty := func(yield func([]byte, *block.BlockRef) bool) {}
-	tx, cs, err := BuildTree(tb.Volume, nil, empty)
+	tx, cs, err := BuildTree(tb.Volume, nil, nil, empty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestBuildTreeSingle(t *testing.T) {
 	keys := [][]byte{[]byte("key-a")}
 	refs := []*block.BlockRef{valRef}
 
-	tx, _, err := BuildTree(tb.Volume, nil, sortedEntries(keys, refs))
+	tx, _, err := BuildTree(tb.Volume, nil, nil, sortedEntries(keys, refs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestBuildTreeTwo(t *testing.T) {
 		writeValue(t, tb.Volume, []byte("val-b")),
 	}
 
-	tx, _, err := BuildTree(tb.Volume, nil, sortedEntries(keys, refs))
+	tx, _, err := BuildTree(tb.Volume, nil, nil, sortedEntries(keys, refs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestBuildTree100(t *testing.T) {
 		refs[i] = writeValue(t, tb.Volume, fmt.Appendf(nil, "val-%04d", i))
 	}
 
-	tx, _, err := BuildTree(tb.Volume, nil, sortedEntries(keys, refs))
+	tx, _, err := BuildTree(tb.Volume, nil, nil, sortedEntries(keys, refs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +279,7 @@ func TestBuildTreeCompareWithIncremental(t *testing.T) {
 	for i := range n {
 		valRefs[i] = writeValue(t, tb.Volume, vals[i])
 	}
-	btx, _, err := BuildTree(tb.Volume, nil, sortedEntries(keys, valRefs))
+	btx, _, err := BuildTree(tb.Volume, nil, nil, sortedEntries(keys, valRefs))
 	if err != nil {
 		t.Fatal(err)
 	}
