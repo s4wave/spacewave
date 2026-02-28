@@ -11,8 +11,8 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
 	git_world "github.com/aperturerobotics/hydra/git/world"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
-	transport_ssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
+	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
 
@@ -170,6 +170,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			authMethod,
 			progress,
 			worktreeOpts,
+			ts,
 		)
 		if err != nil {
 			return err

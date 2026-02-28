@@ -2,6 +2,9 @@ package forge_lib_git_clone
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	forge_target "github.com/aperturerobotics/forge/target"
@@ -11,7 +14,20 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
-const testYAML = `
+// buildTestYAML returns the test YAML with an absolute clone URL.
+// go-billy/v6 enforces chroot boundaries, so relative paths like
+// "../../../" are rejected.
+func buildTestYAML(t *testing.T) string {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	repoRoot, err := filepath.Abs(filepath.Join(wd, "..", "..", ".."))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return strings.ReplaceAll(`
 # note: this test is just for Execution controller.
 # the inputs / outputs listed in the Target are not used.
 exec:
@@ -20,14 +36,15 @@ exec:
     config:
       objectKey: "my-repo"
       cloneOpts:
-        url: "../../../"
+        url: "REPO_ROOT"
       worktreeOpts:
         objectKey: "my-worktree"
         workdirRef:
           objectKey: "my-workdir"
         createWorkdir: true
     id: forge/lib/git/clone
-`
+`, "REPO_ROOT", repoRoot)
+}
 
 // TestGitClone tests the git clone controller.
 func TestGitClone(t *testing.T) {
@@ -38,7 +55,7 @@ func TestGitClone(t *testing.T) {
 	ctx := tb.Context
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
-	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(testYAML))
+	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(buildTestYAML(t)))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

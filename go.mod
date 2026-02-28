@@ -3,17 +3,17 @@ module github.com/aperturerobotics/forge
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20260224230459-72a38a641fc2 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260228110705-2eeae40fdb3b // master
 	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // master
-	github.com/aperturerobotics/cayley v0.11.0 // latest
-	github.com/aperturerobotics/go-indexeddb v0.2.2 // indirect; master
-	github.com/aperturerobotics/go-kvfile v0.7.3 // indirect; master
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260228110619-b9ea3e91b05f // master
+	github.com/aperturerobotics/cayley v0.11.1 // latest
+	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
+	github.com/aperturerobotics/go-kvfile v0.9.4 // indirect; master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
 )
 
@@ -43,8 +43,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.6.0 // indirect
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f // indirect
+	github.com/go-git/go-git/v6 v6.0.0-20260227233803-efde8c49a5e2
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/minio/minio-go/v7 v7.0.79 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
@@ -60,12 +60,12 @@ require (
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.31.0 // indirect; latest
-	github.com/aperturerobotics/controllerbus v0.52.4 // latest
+	github.com/aperturerobotics/common v0.31.2-0.20260228110227-ce5507ba2a1c // indirect; latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260228110225-41e149a72e38 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.47.1 // latest
+	github.com/aperturerobotics/starpc v0.47.2-0.20260228105112-f1337c4314e9 // latest
 	github.com/aperturerobotics/util v1.32.4 // latest
 )
 
@@ -75,7 +75,6 @@ replace github.com/aperturerobotics/hydra => ../hydra
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // latest
-	github.com/coder/websocket v1.8.14 // indirect; master
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -109,29 +108,28 @@ require (
 )
 
 require (
-	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // indirect
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e // indirect
 	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
-	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
+	github.com/go-git/gcfg/v2 v2.0.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/kevinburke/ssh_config v1.5.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
@@ -152,18 +150,16 @@ require (
 	github.com/pion/stun/v3 v3.1.1 // indirect
 	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/pion/turn/v4 v4.1.4 // indirect
-	github.com/pjbgf/sha1cd v0.3.0 // indirect
+	github.com/pjbgf/sha1cd v0.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20251117164519-53813c36cc1b // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
@@ -176,7 +172,6 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
-	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
