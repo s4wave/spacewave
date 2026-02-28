@@ -323,6 +323,14 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 						putOpts.HashType = hashType
 						putOpts.ForceBlockRef = blkRef
 
+						// Extract block refs before enqueuing write, since
+						// bn.blk may be cleared by clearTree after this point.
+						var blockTargets []*BlockRef
+						recorder, hasRecorder := t.store.(BlockRefRecorder)
+						if hasRecorder {
+							blockTargets = ExtractBlockRefs(bn.blk)
+						}
+
 						writeQueue.Enqueue(func() {
 							// ensure that the wrote ref == the expected.
 							wroteRef, _, err := t.store.PutBlock(ctx, dat, putOpts)
@@ -331,6 +339,13 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 							}
 							if err != nil {
 								handleErr(err)
+								return
+							}
+							// Record block refs in the GC graph after successful write.
+							if hasRecorder && len(blockTargets) > 0 {
+								if err := recorder.RecordBlockRefs(ctx, blkRef, blockTargets); err != nil {
+									handleErr(err)
+								}
 							}
 						})
 					}

@@ -1,0 +1,54 @@
+package block_gc
+
+import (
+	"strings"
+
+	"github.com/aperturerobotics/hydra/block"
+)
+
+// IRI prefix constants for constructing graph node identifiers.
+const (
+	prefixBlock  = "block:"
+	prefixObject = "object:"
+)
+
+// Well-known node IRIs (permanent roots).
+const (
+	NodeGCRoot       = "gcroot"
+	NodeUnreferenced = "unreferenced"
+)
+
+// PredGCRef is the single predicate for all GC reference edges.
+const PredGCRef = "gc/ref"
+
+// BlockIRI returns the IRI for a block reference: "block:{b58hash}".
+func BlockIRI(ref *block.BlockRef) string {
+	if ref == nil || ref.GetEmpty() {
+		return ""
+	}
+	return prefixBlock + ref.MarshalString()
+}
+
+// ParseBlockIRI parses a "block:{b58}" IRI back to a BlockRef.
+// Returns nil, false if not a valid block IRI.
+func ParseBlockIRI(iri string) (*block.BlockRef, bool) {
+	rest, ok := strings.CutPrefix(iri, prefixBlock)
+	if !ok || rest == "" {
+		return nil, false
+	}
+	ref, err := block.UnmarshalBlockRefB58(rest)
+	if err != nil {
+		return nil, false
+	}
+	return ref, true
+}
+
+// ObjectIRI returns "object:{key}" for a world object.
+func ObjectIRI(key string) string {
+	return prefixObject + key
+}
+
+// IsPermanentRoot returns true if the IRI is a well-known permanent root.
+func IsPermanentRoot(iri string) bool {
+	return iri == NodeGCRoot || iri == NodeUnreferenced
+}
