@@ -14,8 +14,8 @@ import (
 	starpc_mock "github.com/aperturerobotics/starpc/mock"
 	"github.com/aperturerobotics/util/promise"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/go-git/go-billy/v5/memfs"
-	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 
