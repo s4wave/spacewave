@@ -192,8 +192,6 @@ github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f h1:Uvbx7nITO3Sd
 github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f/go.mod h1:ZW9JC5gionMP1kv5uiaOaV23q0FFmNrVOV8VW+y/acc=
 github.com/go-git/go-git-fixtures/v5 v5.1.2-0.20260122163445-0622d7459a67 h1:3hutPZF+/FBjR/9MdsLJ7e1mlt9pwHgwxMW7CrbmWII=
 github.com/go-git/go-git-fixtures/v5 v5.1.2-0.20260122163445-0622d7459a67/go.mod h1:xKt0pNHST9tYHvbiLxSY27CQWFwgIxBJuDrOE0JvbZw=
-github.com/go-git/go-git/v6 v6.0.0-20260227233803-efde8c49a5e2 h1:9uUVitmoQdYfisfca0tddNyx4Ifhm5XLxdDQ/kdROAI=
-github.com/go-git/go-git/v6 v6.0.0-20260227233803-efde8c49a5e2/go.mod h1:V/qoTD4qCYizR+fKFA9++d2APoE8Yheci7dXALaSeuI=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
@@ -414,6 +412,8 @@ github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJ
 github.com/openzipkin/zipkin-go v0.2.1/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/pact-foundation/pact-go v1.0.4/go.mod h1:uExwJY4kCzNPcHRj+hCR/HBbOOIwwtUjcrb0b5/5kLM=
+github.com/paralin/go-git/v6 v6.0.0-20260228101950-0669db225649 h1:WPXt8k1IdDInMRiJfn0U8LQkXTg+qGyCK5r6VZph/gA=
+github.com/paralin/go-git/v6 v6.0.0-20260228101950-0669db225649/go.mod h1:V/qoTD4qCYizR+fKFA9++d2APoE8Yheci7dXALaSeuI=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=

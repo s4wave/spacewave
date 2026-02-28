@@ -19,6 +19,9 @@ replace (
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 
+// aperture: use forks with local clone + packwindow improvements
+replace github.com/go-git/go-git/v6 => github.com/paralin/go-git/v6 v6.0.0-20260228101950-0669db225649 // aperture-1
+
 // aperture: use compatibility forks
 replace (
 	// https://github.com/dgraph-io/badger/pull/2048
