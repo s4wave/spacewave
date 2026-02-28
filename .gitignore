@@ -28,3 +28,4 @@ __debug*
 .aider*
 *.test
 /.tools/
+/.tmp/

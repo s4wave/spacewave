@@ -4,15 +4,15 @@ go 1.25.0
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bifrost v0.46.2-0.20260224071637-81cbd862282a // master
-	github.com/aperturerobotics/common v0.31.1 // latest
-	github.com/aperturerobotics/controllerbus v0.52.4 // latest
+	github.com/aperturerobotics/bifrost v0.46.2-0.20260228110619-b9ea3e91b05f // master
+	github.com/aperturerobotics/common v0.31.2-0.20260228110227-ce5507ba2a1c // latest
+	github.com/aperturerobotics/controllerbus v0.52.5-0.20260228110225-41e149a72e38 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.47.1 // indirect
+	github.com/aperturerobotics/starpc v0.47.2-0.20260228105112-f1337c4314e9 // indirect
 	github.com/aperturerobotics/util v1.32.4 // indirect
 )
 
@@ -29,11 +29,12 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
@@ -48,7 +49,7 @@ require (
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20260224072647-ce10cb7c5508 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20260228110705-2eeae40fdb3b // indirect; master
 
 // Note: The below is from the Hydra go.mod
 
@@ -68,7 +69,4 @@ replace (
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
-require (
-	github.com/blang/semver/v4 v4.0.0
-	github.com/coder/websocket v1.8.14 // indirect
-)
+require github.com/blang/semver/v4 v4.0.0
