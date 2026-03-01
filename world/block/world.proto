@@ -28,6 +28,10 @@ message World {
   // If set, last_change will be empty, except for the seqno field.
   // NOTE: the seqno field will not be empty on LastChange.
   bool last_change_disable = 4;
+  // GcGraph is the gc reference graph key/value store.
+  // Stores gc/ref quads for garbage collection of unreferenced blocks.
+  // Backed by Cayley in a separate IAVL tree (SubBlock 5).
+  .kvtx.block.KeyValueStore gc_graph = 5;
 }
 
 // Object is an atomic unit for a object in a World graph.

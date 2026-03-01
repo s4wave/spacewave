@@ -300,6 +300,14 @@ export interface World {
    * @generated from field: bool last_change_disable = 4;
    */
   lastChangeDisable?: boolean
+  /**
+   * GcGraph is the gc reference graph key/value store.
+   * Stores gc/ref quads for garbage collection of unreferenced blocks.
+   * Backed by Cayley in a separate IAVL tree (SubBlock 5).
+   *
+   * @generated from field: kvtx.block.KeyValueStore gc_graph = 5;
+   */
+  gcGraph?: KeyValueStore
 }
 
 // World contains the message type declaration for World.
@@ -315,6 +323,7 @@ export const World: MessageType<World> = createMessageType({
     { no: 2, name: 'graph_key_value', kind: 'message', T: () => KeyValueStore },
     { no: 3, name: 'last_change', kind: 'message', T: () => ChangeLogLL },
     { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'gc_graph', kind: 'message', T: () => KeyValueStore },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
