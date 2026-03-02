@@ -1,11 +1,11 @@
 package logfile
 
 import (
-	"errors"
-	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,7 +65,7 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 				result.Path = ExpandTemplate(field, ts)
 				continue
 			}
-			return LogFileSpec{}, fmt.Errorf("invalid field %q: missing '='", field)
+			return LogFileSpec{}, errors.New("invalid field " + strconv.Quote(field) + ": missing '='")
 		}
 
 		key := strings.TrimSpace(before)
@@ -75,18 +75,18 @@ func ParseLogFileSpec(spec string, ts time.Time) (LogFileSpec, error) {
 		case "level":
 			lvl, err := logrus.ParseLevel(val)
 			if err != nil {
-				return LogFileSpec{}, fmt.Errorf("invalid level %q: %w", val, err)
+				return LogFileSpec{}, errors.Wrap(err, "invalid level "+strconv.Quote(val))
 			}
 			result.Level = lvl
 		case "format":
 			if val != "text" && val != "json" {
-				return LogFileSpec{}, fmt.Errorf("invalid format %q: must be \"text\" or \"json\"", val)
+				return LogFileSpec{}, errors.New("invalid format " + strconv.Quote(val) + ": must be \"text\" or \"json\"")
 			}
 			result.Format = val
 		case "path":
 			result.Path = ExpandTemplate(val, ts)
 		default:
-			return LogFileSpec{}, fmt.Errorf("unknown key %q", key)
+			return LogFileSpec{}, errors.New("unknown key " + strconv.Quote(key))
 		}
 	}
 

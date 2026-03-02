@@ -1,7 +1,7 @@
 package logfile
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,12 +17,12 @@ import (
 //   - {mm} -> 2-digit minute (zero-padded)
 //   - {ss} -> 2-digit second (zero-padded)
 func ExpandTemplate(path string, ts time.Time) string {
-	y := fmt.Sprintf("%04d", ts.Year())
-	mo := fmt.Sprintf("%02d", ts.Month())
-	d := fmt.Sprintf("%02d", ts.Day())
-	h := fmt.Sprintf("%02d", ts.Hour())
-	mi := fmt.Sprintf("%02d", ts.Minute())
-	s := fmt.Sprintf("%02d", ts.Second())
+	y := zeroPad(ts.Year(), 4)
+	mo := zeroPad(int(ts.Month()), 2)
+	d := zeroPad(ts.Day(), 2)
+	h := zeroPad(ts.Hour(), 2)
+	mi := zeroPad(ts.Minute(), 2)
+	s := zeroPad(ts.Second(), 2)
 
 	path = strings.ReplaceAll(path, "{ts}", y+mo+d+"-"+h+mi+s)
 	path = strings.ReplaceAll(path, "{YYYY}", y)
@@ -33,4 +33,13 @@ func ExpandTemplate(path string, ts time.Time) string {
 	path = strings.ReplaceAll(path, "{ss}", s)
 
 	return path
+}
+
+// zeroPad pads n with leading zeros to the given width.
+func zeroPad(n int, width int) string {
+	s := strconv.Itoa(n)
+	for len(s) < width {
+		s = "0" + s
+	}
+	return s
 }
