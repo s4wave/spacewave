@@ -1,7 +1,7 @@
 package bloom
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	boom "github.com/bits-and-blooms/bloom/v3"
@@ -16,7 +16,7 @@ func TestBloom(t *testing.T) {
 	bl := boom.NewWithEstimates(n, fpRate)
 	var datas [][]byte
 	for i := range 1000 {
-		msgData := fmt.Appendf(nil, "hello world #%v", i)
+		msgData := append([]byte("hello world #"), strconv.Itoa(i)...)
 		bl.Add(msgData)
 		datas = append(
 			datas,

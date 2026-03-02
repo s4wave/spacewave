@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
@@ -81,7 +81,7 @@ func runDemo() error {
 		return err
 	}
 	for i := range 5 {
-		key := fmt.Appendf(nil, "key-%d", i)
+		key := append([]byte("key-"), strconv.Itoa(i)...)
 		err := atx.Set(ctx, key, key)
 		if err != nil {
 			return err

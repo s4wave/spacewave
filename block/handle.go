@@ -1,7 +1,7 @@
 package block
 
 import (
-	"fmt"
+	"strconv"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding"
@@ -64,7 +64,7 @@ func (h *handle) DOTID() string {
 			parentid = h.parents[0].src.DOTID()
 			subBlockId = h.parents[0].id
 		}
-		return fmt.Sprintf("%s@%d", parentid, subBlockId)
+		return parentid + "@" + strconv.FormatUint(uint64(subBlockId), 10)
 	}
 
 	return h.ref.MarshalString()
