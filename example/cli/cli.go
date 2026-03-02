@@ -6,10 +6,11 @@
 package example_cli
 
 import (
-	"fmt"
+	"os"
 
 	cli_entrypoint "github.com/aperturerobotics/bldr/cli/entrypoint"
 	"github.com/aperturerobotics/cli"
+	"github.com/pkg/errors"
 )
 
 // NewCliCommands builds the example CLI commands.
@@ -27,7 +28,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 				name := c.String("name")
-				fmt.Printf("hello, %s!\n", name)
+				os.Stdout.WriteString("hello, " + name + "!\n")
 				b := getBus()
 				if b != nil {
 					b.GetLogger().Infof("greeted %s via CLI", name)
@@ -41,10 +42,10 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 			Action: func(c *cli.Context) error {
 				b := getBus()
 				if b == nil {
-					return fmt.Errorf("bus not initialized")
+					return errors.New("bus not initialized")
 				}
 				b.GetLogger().Info("bus is running")
-				fmt.Printf("world engine: %s\n", b.GetWorldEngineID())
+				os.Stdout.WriteString("world engine: " + b.GetWorldEngineID() + "\n")
 				return nil
 			},
 		},
