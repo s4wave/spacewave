@@ -4,14 +4,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/aperturerobotics/bldr/web/plugin/saucer"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 )
 
 const maxWalkDepth = 10
@@ -49,13 +50,13 @@ func buildDebugEvalCommand() *cli.Command {
 			if filePath != "" {
 				data, err := os.ReadFile(filePath)
 				if err != nil {
-					return fmt.Errorf("read %s: %w", filePath, err)
+					return errors.Wrap(err, "read "+filePath)
 				}
 				code = string(data)
 			} else if c.NArg() > 0 {
 				code = c.Args().First()
 			} else {
-				return fmt.Errorf("provide code as argument or use --file")
+				return errors.New("provide code as argument or use --file")
 			}
 			return runDebugEval(c.Context, code)
 		},
@@ -68,7 +69,7 @@ func findDebugSocket() (string, error) {
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}
-		return "", fmt.Errorf("socket not found at BLDR_DEBUG_SOCK=%s", p)
+		return "", errors.New("socket not found at BLDR_DEBUG_SOCK=" + p)
 	}
 
 	dir, err := os.Getwd()
@@ -86,7 +87,7 @@ func findDebugSocket() (string, error) {
 		}
 		dir = parent
 	}
-	return "", fmt.Errorf("saucer-debug.sock not found (searched %d levels up from cwd)", maxWalkDepth)
+	return "", errors.New("saucer-debug.sock not found (searched " + strconv.Itoa(maxWalkDepth) + " levels up from cwd)")
 }
 
 func dialDebug() (srpc.Client, error) {
@@ -96,7 +97,7 @@ func dialDebug() (srpc.Client, error) {
 	}
 	conn, err := net.Dial("unix", sockPath)
 	if err != nil {
-		return nil, fmt.Errorf("connect to %s: %w", sockPath, err)
+		return nil, errors.Wrap(err, "connect to "+sockPath)
 	}
 	client, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
@@ -117,11 +118,11 @@ func runDebugEval(ctx context.Context, code string) error {
 		return err
 	}
 	if resp.GetError() != "" {
-		return fmt.Errorf("eval: %s", resp.GetError())
+		return errors.New("eval: " + resp.GetError())
 	}
 	result := resp.GetResult()
 	if result != "" {
-		fmt.Println(result)
+		os.Stdout.WriteString(result + "\n")
 	}
 	return nil
 }
