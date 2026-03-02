@@ -4,7 +4,6 @@ package cli_entrypoint
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/logfile"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -158,7 +158,7 @@ func Main(
 		Usage: "start the daemon and block until interrupted",
 		Action: func(c *cli.Context) error {
 			if dtBus == nil {
-				return fmt.Errorf("bus not initialized")
+				return errors.New("bus not initialized")
 			}
 			dtBus.GetLogger().Info("started, press ctrl+c to stop")
 			<-dtBus.GetContext().Done()
@@ -174,7 +174,7 @@ func Main(
 	}
 
 	if err := app.RunContext(ctx, os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
 }
