@@ -36,9 +36,6 @@ const maxMessageSize = 10 * 1024 * 1024
 // requestTimeout is the per-peer request timeout.
 const requestTimeout = 5 * time.Second
 
-// retryInterval is how often the resolver retries peers when no new
-// sessions appear. Handles late-arriving solicitation matches.
-const retryInterval = time.Second
 
 // Controller is the solicitation-based DEX controller.
 type Controller struct {
@@ -245,14 +242,11 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 			return nil
 		}
 
-		// Wait for session changes or periodic retry. The retry handles
-		// late-arriving solicitation matches and blocks that appear on
-		// peers after the initial query.
+		// Wait for session changes (new peer connections / disconnections).
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ch:
-		case <-time.After(retryInterval):
 		}
 	}
 }
