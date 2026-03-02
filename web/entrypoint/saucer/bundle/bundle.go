@@ -4,7 +4,6 @@ package entrypoint_saucer_bundle
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +19,7 @@ import (
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,7 +95,7 @@ func BuildSaucerJSBundle(
 
 	entrypointRes := esbuild.Build(entrypointOpts)
 	if err := bldr_esbuild_build.BuildResultToErr(entrypointRes); err != nil {
-		return nil, fmt.Errorf("building entrypoint: %w", err)
+		return nil, errors.Wrap(err, "building entrypoint")
 	}
 
 	// Read the built JS file
@@ -168,14 +168,14 @@ func BuildSaucerFromSource(
 		"-DYAMUX_SOURCE_DIR="+yamuxDir,
 	)
 	if err := exec.StartAndWait(ctx, le, configure); err != nil {
-		return fmt.Errorf("cmake configure failed: %w", err)
+		return errors.Wrap(err, "cmake configure failed")
 	}
 
 	// cmake build
 	le.Info("building saucer from source")
 	build := exec.NewCmd(ctx, "cmake", "--build", buildDir)
 	if err := exec.StartAndWait(ctx, le, build); err != nil {
-		return fmt.Errorf("cmake build failed: %w", err)
+		return errors.Wrap(err, "cmake build failed")
 	}
 
 	// Copy binary to output directory.
@@ -228,18 +228,18 @@ func ResolveSaucerBinary(
 		return err
 	}
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
-		return fmt.Errorf("bun add %s failed: %w", npmPkg, err)
+		return errors.Wrap(err, "bun add "+npmPkg+" failed")
 	}
 
 	// Find the binary in node_modules.
 	npmBinPath := findSaucerBinary(npmDir, platform)
 	if npmBinPath == "" {
-		return fmt.Errorf("saucer binary not found in %s after npm install", npmPkg)
+		return errors.New("saucer binary not found in " + npmPkg + " after npm install")
 	}
 
 	// Copy to output directory.
 	if err := fsutil.CopyFile(destBinPath, npmBinPath, 0o755); err != nil {
-		return fmt.Errorf("failed to copy saucer binary: %w", err)
+		return errors.Wrap(err, "copy saucer binary")
 	}
 
 	// Cache the binary.
