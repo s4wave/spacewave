@@ -2,38 +2,40 @@ package block_gc
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
 
+// pendingRef is a buffered ref graph operation.
+type pendingRef struct {
+	source, target string
+}
+
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.
 //
-// On PutBlock, new blocks are registered as unreferenced in the ref
-// graph (unreferenced -> block gc/ref edge). When RecordBlockRefs is
-// called (by Transaction.Write), the unreferenced edge is removed from
-// each target that gains a real reference. RmBlock cleans up graph
-// edges and cascades orphan detection. AddGCRef/RemoveGCRef manage
-// arbitrary subject -> object gc/ref edges.
+// PutBlock and RecordBlockRefs are called from Transaction.Write's
+// concurrent worker goroutines. Since the RefGraph shares the block
+// cursor's mutex, writing to the RefGraph inside those goroutines
+// would deadlock. Instead, GCStoreOps buffers the operations and
+// they are flushed via FlushPending after Transaction.Write returns.
 type GCStoreOps struct {
 	store    block.StoreOps
 	refGraph *RefGraph
-	onSwept  func(ctx context.Context, iri string) error
+
+	mu             sync.Mutex
+	pendingUnref   []string     // block IRIs needing unreferenced -> block edges
+	pendingRefs    []pendingRef // source -> target block ref edges
+	pendingUnunref []string     // block IRIs to remove from unreferenced
 }
 
 // NewGCStoreOps wraps a StoreOps with GC ref graph tracking.
-// The onSwept callback is optional; if non-nil it is called for each
-// node swept during orphan cascade (before physical delete).
-func NewGCStoreOps(
-	store block.StoreOps,
-	refGraph *RefGraph,
-	onSwept func(context.Context, string) error,
-) *GCStoreOps {
+func NewGCStoreOps(store block.StoreOps, refGraph *RefGraph) *GCStoreOps {
 	return &GCStoreOps{
 		store:    store,
 		refGraph: refGraph,
-		onSwept:  onSwept,
 	}
 }
 
@@ -42,20 +44,18 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 	return g.store.GetHashType()
 }
 
-// PutBlock puts a block into the store and records an unreferenced
-// gc/ref edge in the ref graph if the block is new.
+// PutBlock puts a block into the store and buffers an unreferenced
+// gc/ref edge for later flush if the block is new.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ref, existed, err := g.store.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
 	if !existed && ref != nil && !ref.GetEmpty() {
-		if err := g.refGraph.AddRef(ctx, NodeUnreferenced, BlockIRI(ref)); err != nil {
-			if ctx.Err() != nil {
-				return ref, existed, context.Canceled
-			}
-			return ref, existed, errors.Wrap(err, "record unreferenced edge")
-		}
+		iri := BlockIRI(ref)
+		g.mu.Lock()
+		g.pendingUnref = append(g.pendingUnref, iri)
+		g.mu.Unlock()
 	}
 	return ref, existed, nil
 }
@@ -88,26 +88,57 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return g.refGraph.RemoveRef(ctx, NodeUnreferenced, iri)
 }
 
-// RecordBlockRefs records block-to-block reference edges and removes
-// the unreferenced edge from each target that gains a reference.
-func (g *GCStoreOps) RecordBlockRefs(ctx context.Context, source *block.BlockRef, targets []*block.BlockRef) error {
+// RecordBlockRefs buffers block-to-block reference edges for later flush.
+func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, targets []*block.BlockRef) error {
 	sourceIRI := BlockIRI(source)
+	g.mu.Lock()
 	for _, t := range targets {
 		if t == nil || t.GetEmpty() {
 			continue
 		}
 		targetIRI := BlockIRI(t)
-		if err := g.refGraph.AddRef(ctx, sourceIRI, targetIRI); err != nil {
+		g.pendingRefs = append(g.pendingRefs, pendingRef{sourceIRI, targetIRI})
+		g.pendingUnunref = append(g.pendingUnunref, targetIRI)
+	}
+	g.mu.Unlock()
+	return nil
+}
+
+// FlushPending writes all buffered PutBlock and RecordBlockRefs
+// operations to the RefGraph. Must be called after Transaction.Write
+// completes and the cursor mutex is no longer held.
+func (g *GCStoreOps) FlushPending(ctx context.Context) error {
+	g.mu.Lock()
+	unrefs := g.pendingUnref
+	refs := g.pendingRefs
+	ununrefs := g.pendingUnunref
+	g.pendingUnref = nil
+	g.pendingRefs = nil
+	g.pendingUnunref = nil
+	g.mu.Unlock()
+
+	for _, iri := range unrefs {
+		if err := g.refGraph.AddRef(ctx, NodeUnreferenced, iri); err != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
 			}
-			return errors.Wrap(err, "add block ref")
+			return errors.Wrap(err, "flush unreferenced edge")
 		}
-		if err := g.refGraph.RemoveRef(ctx, NodeUnreferenced, targetIRI); err != nil {
+	}
+	for _, r := range refs {
+		if err := g.refGraph.AddRef(ctx, r.source, r.target); err != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
 			}
-			return errors.Wrap(err, "remove unreferenced edge from target")
+			return errors.Wrap(err, "flush block ref")
+		}
+	}
+	for _, iri := range ununrefs {
+		if err := g.refGraph.RemoveRef(ctx, NodeUnreferenced, iri); err != nil {
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+			return errors.Wrap(err, "flush remove unreferenced edge")
 		}
 	}
 	return nil

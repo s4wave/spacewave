@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -35,9 +36,18 @@ type WorldState struct {
 	verbose   bool
 	discarded atomic.Bool
 
+	// store is the raw block store (unwrapped).
+	store block.StoreOps
+	// xfrm is the block transformer.
+	xfrm block.Transformer
+	// onSwept is called for each node swept during GC (optional).
+	onSwept func(context.Context, string) error
+
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
+	gcTree    kvtx.BlockTx
+	refGraph  *block_gc.RefGraph
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
@@ -54,7 +64,9 @@ type WorldState struct {
 // btx can be nil to not write during Commit()
 // bcs is located at the root of the world (the World block).
 // if bcs is empty, creates a new empty world.
-// world and object op handlers manage applying batch operations.
+// store is the raw block store (for GC wrapping).
+// xfrm is the block transformer (may be nil).
+// onSwept is called per swept node during GC (may be nil).
 // if verbose is true, verbose logging of the graph key/value is enabled.
 func NewWorldState(
 	ctx context.Context,
@@ -62,6 +74,9 @@ func NewWorldState(
 	write bool,
 	btx *block.Transaction,
 	bcs *block.Cursor,
+	store block.StoreOps,
+	xfrm block.Transformer,
+	onSwept func(context.Context, string) error,
 	storage world.WorldStorage,
 	lookupOp world.LookupOp,
 	verbose bool,
@@ -72,6 +87,10 @@ func NewWorldState(
 		le:      le,
 		write:   write,
 		verbose: verbose,
+
+		store:   store,
+		xfrm:    xfrm,
+		onSwept: onSwept,
 
 		storage:  storage,
 		lookupOp: lookupOp,
@@ -92,8 +111,10 @@ func BuildWorldStateFromCursor(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	store := bls.GetBucket()
+	xfrm := bls.GetTransformer()
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp, verbose)
+	return NewWorldState(ctx, le, write, btx, bcs, store, xfrm, nil, storage, lookupOp, verbose)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -258,6 +279,9 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		t.write,
 		bcs.GetTransaction(),
 		bcs,
+		t.store,
+		t.xfrm,
+		t.onSwept,
 		t.storage,
 		t.lookupOp,
 		t.verbose,
@@ -282,6 +306,25 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	if err != nil {
 		return err
 	}
+
+	// Build GC ref graph for writable transactions with a store.
+	var gcTree kvtx.BlockTx
+	var refGraph *block_gc.RefGraph
+	if t.write && t.store != nil {
+		gcTree, refGraph, err = t.buildGCTree(ctx, bcs)
+		if err != nil {
+			_ = graphHandle.Close()
+			graphTree.Discard()
+			objTree.Discard()
+			return err
+		}
+		// Wrap the transaction's store with GCStoreOps.
+		if btx != nil {
+			gcOps := block_gc.NewGCStoreOps(t.store, refGraph)
+			btx.SetStoreOps(gcOps)
+		}
+	}
+
 	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
 		_ = t.graphHd.Close()
@@ -292,7 +335,22 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	if t.objTree != nil {
 		t.objTree.Discard()
 	}
+	if t.refGraph != nil {
+		_ = t.refGraph.Close()
+	}
+	if t.gcTree != nil {
+		t.gcTree.Discard()
+	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
+	t.gcTree, t.refGraph = gcTree, refGraph
+
+	// Ensure gcroot -> world edge exists (idempotent).
+	if refGraph != nil {
+		if err := refGraph.AddRef(ctx, block_gc.NodeGCRoot, "world"); err != nil {
+			return err
+		}
+	}
+
 	t.updateSeqno(root)
 	return nil
 }
@@ -307,6 +365,12 @@ func (t *WorldState) Discard() {
 	}
 	if t.graphTree != nil {
 		t.graphTree.Discard()
+	}
+	if t.refGraph != nil {
+		_ = t.refGraph.Close()
+	}
+	if t.gcTree != nil {
+		t.gcTree.Discard()
 	}
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
@@ -339,12 +403,48 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Flush buffered GC ref graph operations after Write releases the cursor mutex.
+	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
+		if err := gcOps.FlushPending(ctx); err != nil {
+			return err
+		}
+	}
 	return t.SetBlockTransaction(ctx, t.btx, bcs)
+}
+
+// GetRefGraph returns the GC reference graph, or nil if not initialized.
+func (t *WorldState) GetRefGraph() *block_gc.RefGraph {
+	return t.refGraph
+}
+
+// GarbageCollect sweeps unreferenced nodes from the GC ref graph.
+// Only valid on writable WorldState instances with GC enabled.
+// Returns nil stats if GC is not enabled.
+func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error) {
+	if t.refGraph == nil {
+		return nil, nil
+	}
+	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
+	return c.Collect(ctx)
 }
 
 // buildObjectTree builds the object tree handle.
 func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
 	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
+}
+
+// buildGCTree builds the GC reference graph tree and RefGraph handle.
+func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, error) {
+	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(5), true)
+	if err != nil {
+		return nil, nil, err
+	}
+	rg, err := block_gc.NewRefGraph(ctx, kvtx.NewTxStore(ktx), nil)
+	if err != nil {
+		ktx.Discard()
+		return nil, nil, err
+	}
+	return ktx, rg, nil
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "54f8c8430675990a8f3200339d5485569fa992fbcbf70810d3fbcf4eb002e140",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.1,starpc=v0.46.1,protobuf-es-lite=^1.0.1",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.1",
   "packages": {
     "github.com/aperturerobotics/hydra/block": {
       "hash": "c205759a1f70fb40e46c97cdb9edbe7b3e2d998b2de09b78c1c5f1976f337538",
@@ -1204,7 +1204,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/world/block": {
-      "hash": "5c640fafa107226ea20b6142a1d4cde2cc991d144981526b5ae422e459d2fcb1",
+      "hash": "33e87acda4943fde0e7356d697114e8046f7bd379d63bf597d29b5ec53052cbd",
       "generatedFiles": [
         "world/block/world.pb.cc",
         "world/block/world.pb.go",

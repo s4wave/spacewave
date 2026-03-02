@@ -110,12 +110,30 @@ func (t *Transaction) GetPutOpts() *PutOpts {
 	return t.putOpts
 }
 
+// GetStoreOps returns the transaction's store operations.
+func (t *Transaction) GetStoreOps() StoreOps {
+	if t == nil {
+		return nil
+	}
+	return t.store
+}
+
+// SetStoreOps replaces the transaction's store implementation.
+// Used to swap in GCStoreOps after the RefGraph is available.
+func (t *Transaction) SetStoreOps(store StoreOps) {
+	if t == nil {
+		return
+	}
+	t.store = store
+}
+
 // SetRoot sets the root of the transaction to a different position.
 // Clears all parent blocks from the new root.
 func (t *Transaction) SetRoot(cursor *Cursor) error {
 	if t == nil {
 		return nil
-	} else if cursor.t != nil && cursor.t != t {
+	}
+	if cursor.t != nil && cursor.t != t {
 		return errors.New("cursor block transaction mismatch")
 	}
 	t.mtx.Lock()

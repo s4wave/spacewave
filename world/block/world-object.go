@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -49,6 +50,22 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		return nil, err
 	}
 	changeBcs.SetRef(5, nbcs)
+
+	// GC: world -> object, object -> root block.
+	if rg := t.refGraph; rg != nil {
+		objIRI := block_gc.ObjectIRI(key)
+		if err := rg.AddRef(ctx, "world", objIRI); err != nil {
+			return nil, err
+		}
+		rootBlockRef := rootRef.GetRootRef()
+		if err := rg.AddObjectRoot(ctx, key, rootBlockRef); err != nil {
+			return nil, err
+		}
+		if rootBlockRef != nil && !rootBlockRef.GetEmpty() {
+			_ = rg.RemoveRef(ctx, block_gc.NodeUnreferenced, block_gc.BlockIRI(rootBlockRef))
+		}
+	}
+
 	return objState, nil
 }
 
@@ -132,6 +149,17 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return false, block.ErrUnexpectedType
 	}
 	nbcs := objs.bcs
+
+	// GC: remove world -> object edge, mark object unreferenced.
+	if rg := t.refGraph; rg != nil {
+		objIRI := block_gc.ObjectIRI(key)
+		if err := rg.RemoveRef(ctx, "world", objIRI); err != nil {
+			return false, err
+		}
+		if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, objIRI); err != nil {
+			return false, err
+		}
+	}
 
 	// delete any graph links with the object as subject or object
 	err = t.DeleteGraphObject(ctx, key)

@@ -37,7 +37,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 	t.Cleanup(func() { rg.Close() })
 
-	gcStore := NewGCStoreOps(rawStore, rg, nil)
+	gcStore := NewGCStoreOps(rawStore, rg)
 	env := &testEnv{
 		ctx:      ctx,
 		kvStore:  kvStore,
@@ -53,6 +53,7 @@ func newTestEnv(t *testing.T) *testEnv {
 }
 
 // putBlock stores a mock block via GCStoreOps and returns its ref.
+// Flushes pending gc operations so the ref graph is up to date.
 func (e *testEnv) putBlock(t *testing.T, msg string) *block.BlockRef {
 	t.Helper()
 	ex := block_mock.NewExample(msg)
@@ -60,7 +61,18 @@ func (e *testEnv) putBlock(t *testing.T, msg string) *block.BlockRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if err := e.gcStore.FlushPending(e.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 	return ref
+}
+
+// flush writes buffered GCStoreOps operations to the ref graph.
+func (e *testEnv) flush(t *testing.T) {
+	t.Helper()
+	if err := e.gcStore.FlushPending(e.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 // blockExists checks if a block exists in the raw store.
@@ -109,6 +121,7 @@ func TestCollector_AllRooted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	stats, err := env.gc.Collect(env.ctx)
 	if err != nil {
@@ -137,6 +150,7 @@ func TestCollector_OrphanBlocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	stats, err := env.gc.Collect(env.ctx)
 	if err != nil {
@@ -179,6 +193,7 @@ func TestCollector_CascadingOrphans(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	// All alive.
 	stats, err := env.gc.Collect(env.ctx)
@@ -236,6 +251,7 @@ func TestCollector_DiamondDAG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	stats, err := env.gc.Collect(env.ctx)
 	if err != nil {
@@ -279,6 +295,7 @@ func TestCollector_DiamondPartialRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	// Remove b via GCStoreOps.RmBlock: d should survive via c's reference.
 	err = env.gcStore.RmBlock(env.ctx, b)
@@ -327,6 +344,7 @@ func TestCollector_MultipleRoots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	stats, err := env.gc.Collect(env.ctx)
 	if err != nil {
@@ -357,6 +375,7 @@ func TestCollector_Idempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	stats1, err := env.gc.Collect(env.ctx)
 	if err != nil {
@@ -389,6 +408,7 @@ func TestCollector_SweepCleansGraph(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(rooted))
 	if err != nil {
 		t.Fatal(err.Error())

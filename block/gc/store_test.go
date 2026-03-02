@@ -35,7 +35,7 @@ func newGCTestEnv(t *testing.T) *gcTestEnv {
 	}
 	t.Cleanup(func() { rg.Close() })
 
-	gcStore := NewGCStoreOps(rawStore, rg, nil)
+	gcStore := NewGCStoreOps(rawStore, rg)
 	return &gcTestEnv{
 		ctx:      ctx,
 		kvStore:  kvStore,
@@ -46,6 +46,7 @@ func newGCTestEnv(t *testing.T) *gcTestEnv {
 }
 
 // putBlock stores a mock block via GCStoreOps and returns its ref.
+// Flushes pending gc operations so the ref graph is up to date.
 func (e *gcTestEnv) putBlock(t *testing.T, msg string) *block.BlockRef {
 	t.Helper()
 	ex := block_mock.NewExample(msg)
@@ -53,7 +54,18 @@ func (e *gcTestEnv) putBlock(t *testing.T, msg string) *block.BlockRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if err := e.gcStore.FlushPending(e.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 	return ref
+}
+
+// flush writes buffered GCStoreOps operations to the ref graph.
+func (e *gcTestEnv) flush(t *testing.T) {
+	t.Helper()
+	if err := e.gcStore.FlushPending(e.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 // blockExists checks if a block exists in the raw store.
@@ -79,6 +91,7 @@ func TestGCStoreOps_PutBlockAddsUnrefEdge(t *testing.T) {
 	if existed {
 		t.Fatal("block should not have existed")
 	}
+	env.flush(t)
 
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
@@ -115,6 +128,7 @@ func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
@@ -149,6 +163,7 @@ func TestGCStoreOps_DuplicatePutNoNewUnrefEdge(t *testing.T) {
 	if !existed {
 		t.Fatal("duplicate block should report existed=true")
 	}
+	env.flush(t)
 
 	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
 	if err != nil {
@@ -172,6 +187,7 @@ func TestGCStoreOps_RmBlockCleansGraph(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	env.flush(t)
 
 	// RmBlock on a should clean its outgoing edges and cascade.
 	err = env.gcStore.RmBlock(env.ctx, aRef)
@@ -299,6 +315,7 @@ func TestGCStoreOps_TransactionRecordsRefs(t *testing.T) {
 	if rootRef == nil {
 		t.Fatal("expected non-nil root ref")
 	}
+	env.flush(t)
 
 	// The transaction should have recorded block ref edges.
 	rootIRI := BlockIRI(rootRef)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
@@ -100,6 +101,35 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
 		prevBcs.SetBlock(prevBlk, true)
 		changeBcs.SetRef(7, prevBcs)
+	}
+
+	// GC: swap object -> block edge (old -> new).
+	if rg := o.w.refGraph; rg != nil {
+		oldBlockRef := prevBlk.GetRootRef().GetRootRef()
+		newBlockRef := nref.GetRootRef()
+		if err := rg.RemoveObjectRoot(ctx, o.key, oldBlockRef); err != nil {
+			return r, err
+		}
+		if err := rg.AddObjectRoot(ctx, o.key, newBlockRef); err != nil {
+			return r, err
+		}
+		// Mark old block unreferenced if it lost all incoming refs.
+		if oldBlockRef != nil && !oldBlockRef.GetEmpty() {
+			oldIRI := block_gc.BlockIRI(oldBlockRef)
+			has, err := rg.HasIncomingRefs(ctx, oldIRI)
+			if err != nil {
+				return r, err
+			}
+			if !has {
+				if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, oldIRI); err != nil {
+					return r, err
+				}
+			}
+		}
+		// Remove unreferenced edge from new block.
+		if newBlockRef != nil && !newBlockRef.GetEmpty() {
+			_ = rg.RemoveRef(ctx, block_gc.NodeUnreferenced, block_gc.BlockIRI(newBlockRef))
+		}
 	}
 
 	return r, nil

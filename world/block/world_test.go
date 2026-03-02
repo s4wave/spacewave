@@ -5,9 +5,11 @@ import (
 	"strconv"
 	"testing"
 
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/filters"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -561,5 +563,337 @@ func TestWorldState_Basic(t *testing.T) {
 	}
 	if changelogEntries[0].GetPrevRef().GetEmpty() {
 		t.Fatal("expected prev_ref on last change")
+	}
+}
+
+// buildGCTestWorld creates a writable WorldState for GC testing.
+func buildGCTestWorld(t *testing.T) (*world_block.WorldState, *testbed.Testbed) {
+	t.Helper()
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ws, tb
+}
+
+// TestWorldState_GC_RefGraphInit verifies that a writable WorldState
+// initializes the RefGraph with a gcroot -> world edge.
+func TestWorldState_GC_RefGraphInit(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("expected RefGraph to be initialized for writable WorldState")
+	}
+
+	outgoing, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	found := false
+	for _, ref := range outgoing {
+		if ref == "world" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected gcroot -> world edge, got outgoing: %v", outgoing)
+	}
+}
+
+// TestWorldState_GC_CreateObject verifies that CreateObject adds
+// world -> object and object -> block gc/ref edges.
+func TestWorldState_GC_CreateObject(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("no refgraph")
+	}
+
+	_, err := world_block.BuildMockObject(ctx, ws, "gc-test-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objIRI := block_gc.ObjectIRI("gc-test-obj")
+
+	// world -> object edge should exist
+	outgoing, err := rg.GetOutgoingRefs(ctx, "world")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	found := false
+	for _, ref := range outgoing {
+		if ref == objIRI {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected world -> %s edge, got: %v", objIRI, outgoing)
+	}
+
+	// object -> block edge should exist
+	objOutgoing, err := rg.GetOutgoingRefs(ctx, objIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(objOutgoing) == 0 {
+		t.Fatal("expected object -> block gc/ref edge after CreateObject")
+	}
+	for _, ref := range objOutgoing {
+		if len(ref) < len("block:") {
+			t.Fatalf("expected block IRI, got: %s", ref)
+		}
+	}
+}
+
+// TestWorldState_GC_DeleteObject verifies that DeleteObject marks the
+// object unreferenced and GarbageCollect sweeps it.
+func TestWorldState_GC_DeleteObject(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("no refgraph")
+	}
+
+	_, err := world_block.BuildMockObject(ctx, ws, "gc-del-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objIRI := block_gc.ObjectIRI("gc-del-obj")
+
+	// Verify object is referenced before delete.
+	has, err := rg.HasIncomingRefs(ctx, objIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !has {
+		t.Fatal("object should have incoming refs before delete")
+	}
+
+	// Delete the object.
+	deleted, err := ws.DeleteObject(ctx, "gc-del-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected object to be deleted")
+	}
+
+	// Object should now be unreferenced.
+	unrefs, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	found := false
+	for _, n := range unrefs {
+		if n == objIRI {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected %s in unreferenced nodes, got: %v", objIRI, unrefs)
+	}
+
+	// GarbageCollect should sweep the object and its blocks.
+	stats, err := ws.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept == 0 {
+		t.Fatal("expected GarbageCollect to sweep at least the object node")
+	}
+
+	// After GC, no unreferenced nodes should remain.
+	unrefs, err = rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(unrefs) != 0 {
+		t.Fatalf("expected 0 unreferenced after GC, got: %v", unrefs)
+	}
+}
+
+// TestWorldState_GC_SetRootRef verifies that SetRootRef swaps the
+// object -> block gc/ref edge from old to new root.
+func TestWorldState_GC_SetRootRef(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("no refgraph")
+	}
+
+	objState, err := world_block.BuildMockObject(ctx, ws, "gc-swap-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objIRI := block_gc.ObjectIRI("gc-swap-obj")
+
+	// Record initial object -> block edges.
+	oldOutgoing, err := rg.GetOutgoingRefs(ctx, objIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(oldOutgoing) == 0 {
+		t.Fatal("expected object -> block edge after create")
+	}
+
+	// Build a new root block and set it.
+	err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		oref := bls.GetRef()
+		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)
+		obcs.SetBlock(&block_mock.Example{Msg: "updated root"}, true)
+		var err error
+		oref.RootRef, _, err = obtx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+		_, err = objState.SetRootRef(ctx, oref)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// New outgoing should differ from old.
+	newOutgoing, err := rg.GetOutgoingRefs(ctx, objIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(newOutgoing) == 0 {
+		t.Fatal("expected object -> block edge after SetRootRef")
+	}
+
+	// Check that the old block IRI was replaced.
+	oldSet := make(map[string]bool, len(oldOutgoing))
+	for _, o := range oldOutgoing {
+		oldSet[o] = true
+	}
+	newSet := make(map[string]bool, len(newOutgoing))
+	for _, n := range newOutgoing {
+		newSet[n] = true
+	}
+	if len(oldSet) == len(newSet) {
+		same := true
+		for k := range oldSet {
+			if !newSet[k] {
+				same = false
+				break
+			}
+		}
+		if same {
+			t.Fatal("expected object -> block edges to change after SetRootRef")
+		}
+	}
+}
+
+// TestWorldState_GC_FullLifecycle tests create, update, delete, collect
+// end-to-end: two objects, delete one, GC, verify the other survives.
+func TestWorldState_GC_FullLifecycle(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("no refgraph")
+	}
+
+	// Create two objects.
+	_, err := world_block.BuildMockObject(ctx, ws, "obj-keep")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = world_block.BuildMockObject(ctx, ws, "obj-delete")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	keepIRI := block_gc.ObjectIRI("obj-keep")
+	delIRI := block_gc.ObjectIRI("obj-delete")
+
+	// Both should be referenced by world.
+	for _, iri := range []string{keepIRI, delIRI} {
+		has, err := rg.HasIncomingRefs(ctx, iri)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !has {
+			t.Fatalf("expected %s to have incoming refs", iri)
+		}
+	}
+
+	// Delete one.
+	deleted, err := ws.DeleteObject(ctx, "obj-delete")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected delete to succeed")
+	}
+
+	// GC sweeps the deleted object and its blocks.
+	stats, err := ws.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept == 0 {
+		t.Fatal("expected GC to sweep deleted object")
+	}
+
+	// Kept object should still be referenced.
+	has, err := rg.HasIncomingRefs(ctx, keepIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !has {
+		t.Fatal("kept object lost its gc/ref edges after GC")
+	}
+
+	// Kept object should still have outgoing block refs.
+	keepOut, err := rg.GetOutgoingRefs(ctx, keepIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(keepOut) == 0 {
+		t.Fatal("kept object should still have block refs")
+	}
+
+	// Deleted object should have no refs at all.
+	delOut, err := rg.GetOutgoingRefs(ctx, delIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(delOut) != 0 {
+		t.Fatalf("deleted object should have no outgoing refs, got: %v", delOut)
+	}
+	delIn, err := rg.GetIncomingRefs(ctx, delIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(delIn) != 0 {
+		t.Fatalf("deleted object should have no incoming refs, got: %v", delIn)
 	}
 }

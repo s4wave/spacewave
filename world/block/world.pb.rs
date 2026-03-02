@@ -24,6 +24,11 @@ pub struct World {
     /// NOTE: the seqno field will not be empty on LastChange.
     #[prost(bool, tag="4")]
     pub last_change_disable: bool,
+    /// GcGraph is the gc reference graph key/value store.
+    /// Stores gc/ref quads for garbage collection of unreferenced blocks.
+    /// Backed by Cayley in a separate IAVL tree (SubBlock 5).
+    #[prost(message, optional, tag="5")]
+    pub gc_graph: ::core::option::Option<super::super::kvtx::block::KeyValueStore>,
 }
 /// Object is an atomic unit for a object in a World graph.
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -275,6 +275,8 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 // buildWorldState builds the world state transaction and cursor fields.
 // expects caller to hold rmtx
 func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldState, error) {
+	store := e.root.GetBucket()
+	xfrm := e.root.GetTransformer()
 	btx, bcs := e.root.BuildTransaction(nil)
 	if readOnly {
 		btx = nil
@@ -284,6 +286,9 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		e.le,
 		!readOnly,
 		btx, bcs,
+		store,
+		xfrm,
+		nil, // onSwept: wired in Phase 3
 		e,
 		e.lookupOp,
 		e.verbose,

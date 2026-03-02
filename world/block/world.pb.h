@@ -1291,6 +1291,7 @@ class World final : public ::google::protobuf::Message
     kObjectKeyValueFieldNumber = 1,
     kGraphKeyValueFieldNumber = 2,
     kLastChangeFieldNumber = 3,
+    kGcGraphFieldNumber = 5,
     kLastChangeDisableFieldNumber = 4,
   };
   // .kvtx.block.KeyValueStore object_key_value = 1;
@@ -1338,6 +1339,21 @@ class World final : public ::google::protobuf::Message
   ::world::block::ChangeLogLL* PROTOBUF_NONNULL _internal_mutable_last_change();
 
   public:
+  // .kvtx.block.KeyValueStore gc_graph = 5;
+  bool has_gc_graph() const;
+  void clear_gc_graph() ;
+  const ::kvtx::block::KeyValueStore& gc_graph() const;
+  [[nodiscard]] ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE release_gc_graph();
+  ::kvtx::block::KeyValueStore* PROTOBUF_NONNULL mutable_gc_graph();
+  void set_allocated_gc_graph(::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_gc_graph(::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE value);
+  ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE unsafe_arena_release_gc_graph();
+
+  private:
+  const ::kvtx::block::KeyValueStore& _internal_gc_graph() const;
+  ::kvtx::block::KeyValueStore* PROTOBUF_NONNULL _internal_mutable_gc_graph();
+
+  public:
   // bool last_change_disable = 4;
   void clear_last_change_disable() ;
   bool last_change_disable() const;
@@ -1352,8 +1368,8 @@ class World final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   3, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   4, 0,
                                    2>
       _table_;
 
@@ -1377,6 +1393,7 @@ class World final : public ::google::protobuf::Message
     ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE object_key_value_;
     ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE graph_key_value_;
     ::world::block::ChangeLogLL* PROTOBUF_NULLABLE last_change_;
+    ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE gc_graph_;
     bool last_change_disable_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1692,7 +1709,7 @@ inline void World::clear_last_change_disable() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.last_change_disable_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool World::last_change_disable() const {
   // @@protoc_insertion_point(field_get:world.block.World.last_change_disable)
@@ -1700,7 +1717,7 @@ inline bool World::last_change_disable() const {
 }
 inline void World::set_last_change_disable(bool value) {
   _internal_set_last_change_disable(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:world.block.World.last_change_disable)
 }
 inline bool World::_internal_last_change_disable() const {
@@ -1710,6 +1727,99 @@ inline bool World::_internal_last_change_disable() const {
 inline void World::_internal_set_last_change_disable(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.last_change_disable_ = value;
+}
+
+// .kvtx.block.KeyValueStore gc_graph = 5;
+inline bool World::has_gc_graph() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.gc_graph_ != nullptr);
+  return value;
+}
+inline const ::kvtx::block::KeyValueStore& World::_internal_gc_graph() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::kvtx::block::KeyValueStore* p = _impl_.gc_graph_;
+  return p != nullptr ? *p : reinterpret_cast<const ::kvtx::block::KeyValueStore&>(::kvtx::block::_KeyValueStore_default_instance_);
+}
+inline const ::kvtx::block::KeyValueStore& World::gc_graph() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:world.block.World.gc_graph)
+  return _internal_gc_graph();
+}
+inline void World::unsafe_arena_set_allocated_gc_graph(
+    ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.gc_graph_);
+  }
+  _impl_.gc_graph_ = reinterpret_cast<::kvtx::block::KeyValueStore*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:world.block.World.gc_graph)
+}
+inline ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE World::release_gc_graph() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::kvtx::block::KeyValueStore* released = _impl_.gc_graph_;
+  _impl_.gc_graph_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE World::unsafe_arena_release_gc_graph() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:world.block.World.gc_graph)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::kvtx::block::KeyValueStore* temp = _impl_.gc_graph_;
+  _impl_.gc_graph_ = nullptr;
+  return temp;
+}
+inline ::kvtx::block::KeyValueStore* PROTOBUF_NONNULL World::_internal_mutable_gc_graph() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.gc_graph_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::kvtx::block::KeyValueStore>(GetArena());
+    _impl_.gc_graph_ = reinterpret_cast<::kvtx::block::KeyValueStore*>(p);
+  }
+  return _impl_.gc_graph_;
+}
+inline ::kvtx::block::KeyValueStore* PROTOBUF_NONNULL World::mutable_gc_graph()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::kvtx::block::KeyValueStore* _msg = _internal_mutable_gc_graph();
+  // @@protoc_insertion_point(field_mutable:world.block.World.gc_graph)
+  return _msg;
+}
+inline void World::set_allocated_gc_graph(::kvtx::block::KeyValueStore* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.gc_graph_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.gc_graph_ = reinterpret_cast<::kvtx::block::KeyValueStore*>(value);
+  // @@protoc_insertion_point(field_set_allocated:world.block.World.gc_graph)
 }
 
 // -------------------------------------------------------------------
