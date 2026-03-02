@@ -3,16 +3,17 @@ package saucer
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -109,12 +110,12 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 	defer waitCancel()
 	conn, err := d.mc.WaitConn(waitCtx)
 	if err != nil {
-		return "", fmt.Errorf("wait yamux conn: %w", err)
+		return "", errors.Wrap(err, "wait yamux conn")
 	}
 	d.le.Infof("got yamux conn (closed: %v), opening stream", conn.IsClosed())
 	stream, err := conn.OpenStream(ctx)
 	if err != nil {
-		return "", fmt.Errorf("open yamux stream: %w", err)
+		return "", errors.Wrap(err, "open yamux stream")
 	}
 	d.le.Info("yamux stream opened, writing request")
 	defer stream.Close()
@@ -123,43 +124,43 @@ func (d *debugBridge) evalViaYamux(ctx context.Context, code string) (string, er
 	req := &EvalJSRequest{Code: wrapped}
 	reqData, err := req.MarshalVT()
 	if err != nil {
-		return "", fmt.Errorf("marshal eval request: %w", err)
+		return "", errors.Wrap(err, "marshal eval request")
 	}
 	if uint64(len(reqData)) > uint64(MaxFrameSize) {
-		return "", fmt.Errorf("request too large: %d bytes (max %d)", len(reqData), MaxFrameSize)
+		return "", errors.Errorf("request too large: %s bytes (max %s)", strconv.Itoa(len(reqData)), strconv.Itoa(int(MaxFrameSize)))
 	}
 
 	// Write length-prefixed protobuf request.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(reqData))) // #nosec G115 -- bounded by MaxFrameSize check above
 	if _, err := stream.Write(lenBuf); err != nil {
-		return "", fmt.Errorf("write request length: %w", err)
+		return "", errors.Wrap(err, "write request length")
 	}
 	if _, err := stream.Write(reqData); err != nil {
-		return "", fmt.Errorf("write request: %w", err)
+		return "", errors.Wrap(err, "write request")
 	}
 	d.le.Info("request written, reading response")
 
 	// Read length-prefixed protobuf response from C++.
 	if _, err := io.ReadFull(stream, lenBuf); err != nil {
-		return "", fmt.Errorf("read response length: %w", err)
+		return "", errors.Wrap(err, "read response length")
 	}
 	respLen := binary.LittleEndian.Uint32(lenBuf)
 	if respLen > MaxFrameSize {
-		return "", fmt.Errorf("response too large: %d", respLen)
+		return "", errors.New("response too large: " + strconv.FormatUint(uint64(respLen), 10))
 	}
 	respData := make([]byte, respLen)
 	if _, err := io.ReadFull(stream, respData); err != nil {
-		return "", fmt.Errorf("read response: %w", err)
+		return "", errors.Wrap(err, "read response")
 	}
 
 	// Unmarshal the EvalJSResponse protobuf.
 	var resp EvalJSResponse
 	if err := resp.UnmarshalVT(respData); err != nil {
-		return "", fmt.Errorf("unmarshal eval response: %w", err)
+		return "", errors.Wrap(err, "unmarshal eval response")
 	}
 	if resp.GetError() != "" {
-		return "", fmt.Errorf("%s", resp.GetError())
+		return "", errors.New(resp.GetError())
 	}
 	return resp.GetResult(), nil
 }
@@ -175,7 +176,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 
 	sockDir := filepath.Join(workdir, ".bldr")
 	if err := os.MkdirAll(sockDir, 0o755); err != nil {
-		return fmt.Errorf("create .bldr dir: %w", err)
+		return errors.Wrap(err, "create .bldr dir")
 	}
 	sockPath := filepath.Join(sockDir, debugSocketName)
 
@@ -184,7 +185,7 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 
 	lis, err := net.Listen("unix", sockPath)
 	if err != nil {
-		return fmt.Errorf("listen unix: %w", err)
+		return errors.Wrap(err, "listen unix")
 	}
 	defer func() {
 		lis.Close()

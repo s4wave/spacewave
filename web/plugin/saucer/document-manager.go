@@ -3,7 +3,6 @@ package saucer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"maps"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -655,7 +655,7 @@ func (dm *DocumentManager) HandleWebDocumentRpc(
 	// Wait for the document to exist.
 	doc := dm.waitForDoc(ctx, componentID)
 	if doc == nil {
-		return nil, nil, fmt.Errorf("document %s not found", componentID)
+		return nil, nil, errors.New("document " + componentID + " not found")
 	}
 
 	// Return an invoker that opens streams via the document manager.
@@ -729,7 +729,7 @@ func (dm *DocumentManager) RemoveWebDocument(_ context.Context, _ *web_runtime.R
 
 // WebWorkerRpc is not supported for saucer.
 func (dm *DocumentManager) WebWorkerRpc(_ web_runtime.SRPCWebRuntime_WebWorkerRpcStream) error {
-	return fmt.Errorf("web workers not supported in saucer")
+	return errors.New("web workers not supported in saucer")
 }
 
 // _ is a type assertion

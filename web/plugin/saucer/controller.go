@@ -2,7 +2,6 @@ package saucer
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -150,7 +150,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 			// DocumentManager and everything else to the runtime controller.
 			rtCtrl, ok := handler.(*runtime_controller.Controller)
 			if !ok {
-				return nil, fmt.Errorf("expected runtime controller handler, got %T", handler)
+				return nil, errors.Errorf("expected runtime controller handler, got %T", handler)
 			}
 			httpHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				if strings.HasPrefix(req.URL.Path, "/b/saucer/") {
