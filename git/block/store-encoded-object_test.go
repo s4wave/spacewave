@@ -119,6 +119,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer store.Close()
 
 	// read the object back
 	encObj = getObject(store, ph)

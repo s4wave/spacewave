@@ -72,6 +72,7 @@ func TestStorage_References(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer store.Close()
 
 	// check exists
 	ref, err := store.Reference(testRef)
