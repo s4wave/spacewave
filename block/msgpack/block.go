@@ -28,12 +28,7 @@ func UnmarshalMsgpackBlock[T any](ctx context.Context, bcs *block.Cursor, ctor f
 			var empty T
 			return NewMsgpackBlock(empty)
 		}
-		if ctor == nil {
-			var empty T
-			return NewMsgpackBlock(empty)
-		} else {
-			return NewMsgpackBlock(ctor())
-		}
+		return NewMsgpackBlock(ctor())
 	})
 }
 
