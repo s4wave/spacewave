@@ -79,7 +79,11 @@ func TestGitCloneOp(t *testing.T) {
 	go func() {
 		_ = tb.Bus.ExecuteController(ctx, opc)
 	}()
-	<-time.After(time.Millisecond * 100)
+	select {
+	case <-ctx.Done():
+		t.Fatal("context canceled waiting for controller")
+	case <-time.After(time.Millisecond * 100):
+	}
 
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
 	ws := world.NewEngineWorldState(busEngine, true)
