@@ -1,12 +1,10 @@
 package saucer
 
 import (
-	"context"
 	"encoding/binary"
 	"io"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 )
@@ -74,8 +72,7 @@ func TestYamuxBidirectional(t *testing.T) {
 	}()
 
 	// Server opens a stream to the client (simulates debug bridge).
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx := t.Context()
 
 	t.Log("[server] opening stream to client")
 	stream, err := serverMC.OpenStream(ctx)
