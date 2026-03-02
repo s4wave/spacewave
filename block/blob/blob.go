@@ -135,17 +135,13 @@ func (b *Blob) Validate() error {
 		return errors.New("raw_data field must be empty for non-raw blob")
 	}
 
-	if blobType == BlobType_BlobType_CHUNKED {
-		if err := b.GetChunkIndex().Validate(); err != nil {
-			return err
-		}
-	} else {
+	if blobType != BlobType_BlobType_CHUNKED {
 		if len(b.GetChunkIndex().GetChunks()) != 0 {
 			return errors.New("expected empty chunks field for non-chunked blob type")
 		}
+		return nil
 	}
-
-	return nil
+	return b.GetChunkIndex().Validate()
 }
 
 // ComputeStorageSize computes the total size of all blocks making up the Blob.
