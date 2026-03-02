@@ -2,6 +2,7 @@ package blob
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestRawBlobReadSeek(t *testing.T) {
 	b1 := buildMockRawBlob()
 	testData := make([]byte, len(b1.RawData))
 	copy(testData, b1.RawData)
-	rdr := NewRawReader(b1)
+	rdr := NewRawReader(context.Background(), b1)
 	dat, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())

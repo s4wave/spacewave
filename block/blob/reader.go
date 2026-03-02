@@ -52,13 +52,11 @@ func NewReader(
 }
 
 // NewRawReader reads blobs of type raw only.
-func NewRawReader(blob *Blob) *Reader {
+func NewRawReader(ctx context.Context, blob *Blob) *Reader {
 	return &Reader{
-		ctx: context.Background(),
-		ctxCancel: func() {
-			// no-op
-		},
-		root: blob,
+		ctx:       ctx,
+		ctxCancel: func() {},
+		root:      blob,
 	}
 }
 
