@@ -17,9 +17,9 @@ func TestParseNativePlatform(t *testing.T) {
 		{"native/windows", "windows", runtime.GOARCH, nil, false},
 		{"native/linux", "linux", runtime.GOARCH, nil, false},
 		{"native/linux/arm64", "linux", "arm64", nil, false},
-		{"native/linux/arm", "linux", "arm", newInt(7), false},
-		{"native/linux/armv6", "linux", "arm", newInt(6), false},
-		{"native/linux/armv7", "linux", "arm", newInt(7), false},
+		{"native/linux/arm", "linux", "arm", new(7), false},
+		{"native/linux/armv6", "linux", "arm", new(6), false},
+		{"native/linux/armv7", "linux", "arm", new(7), false},
 		{"native/darwin", "darwin", runtime.GOARCH, nil, false},
 		{"native/js/wasm", "js", "wasm", nil, false},
 		{"native/wasi/wasm", "wasi", "wasm", nil, false},
@@ -57,27 +57,19 @@ func TestParseNativePlatform(t *testing.T) {
 	}
 }
 
-func newInt(val int) *int {
-	return &val
-}
-
-func newStr(str string) *string {
-	return &str
-}
-
 // TestNativePlatform_GetPlatformID tests building the native platform ID.
 func TestNativePlatform_GetPlatformID(t *testing.T) {
 	testCases := []struct {
 		input          *NativePlatform
 		expectedOutput string
 	}{
-		{&NativePlatform{GOOS: newStr("windows"), GOARCH: newStr("amd64")}, "native/windows/amd64"},
-		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm"), GOARM: newInt(6)}, "native/linux/armv6"},
-		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm64")}, "native/linux/arm64"},
-		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm")}, "native/linux/armv7"},
-		{&NativePlatform{GOOS: newStr("darwin"), GOARCH: newStr("386")}, "native/darwin/386"},
-		{&NativePlatform{GOOS: newStr("js"), GOARCH: newStr("wasm")}, "native/js/wasm"},
-		{&NativePlatform{GOOS: newStr("wasi"), GOARCH: newStr("wasm")}, "native/wasi/wasm"},
+		{&NativePlatform{GOOS: new("windows"), GOARCH: new("amd64")}, "native/windows/amd64"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm"), GOARM: new(6)}, "native/linux/armv6"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm64")}, "native/linux/arm64"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm")}, "native/linux/armv7"},
+		{&NativePlatform{GOOS: new("darwin"), GOARCH: new("386")}, "native/darwin/386"},
+		{&NativePlatform{GOOS: new("js"), GOARCH: new("wasm")}, "native/js/wasm"},
+		{&NativePlatform{GOOS: new("wasi"), GOARCH: new("wasm")}, "native/wasi/wasm"},
 	}
 
 	for _, tc := range testCases {
