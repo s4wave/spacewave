@@ -106,6 +106,7 @@ func (c *StepConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, c)
 }
 
+// UnmarshalProtoJSON unmarshals the StepConfig from a ProtoJSON state.
 func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	for key := s.ReadObjectField(); key != ""; key = s.ReadObjectField() {
 		switch key {
