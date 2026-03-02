@@ -87,10 +87,17 @@ func (t *pluginInstance) processManifestWorldState(
 		le.WithError(manifestErr).Warn("skipping manifest due to error")
 	}
 	if len(manifests) == 0 {
-		_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
-		_, changed2, _, _ := t.executePluginRoutine.SetState(nil)
-		if changed1 || changed2 || !t.loggedNotFound.Swap(true) {
-			le.Infof("no manifests for plugin found in world")
+		// When store is disabled, the fetch handler may drive
+		// execute/download directly from fetched ManifestRefs.
+		// Don't clear states that the fetch handler set.
+		if !t.c.conf.GetDisableStoreManifest() {
+			_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
+			_, changed2, _, _ := t.executePluginRoutine.SetState(nil)
+			if changed1 || changed2 || !t.loggedNotFound.Swap(true) {
+				le.Infof("no manifests for plugin found in world")
+			}
+		} else if !t.loggedNotFound.Swap(true) {
+			le.Debugf("no manifests for plugin in world (store disabled, fetch may provide)")
 		}
 		return true, nil
 	}

@@ -2,9 +2,11 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"sync"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/util/backoff"
@@ -68,6 +70,8 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 			nil, // func() {},
 			nil,
 		)
+	} else {
+		handler = t.newDirectFetchHandler(hosts)
 	}
 
 	_, ref, err := t.c.bus.AddDirective(
@@ -169,4 +173,75 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 
 	le.Info("successfully fetched and stored manifest ref")
 	return nil
+}
+
+// newDirectFetchHandler builds a handler that drives execute/download directly
+// from fetched ManifestRefs when store is disabled (e.g., Space plugins in devtool mode).
+func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.ReferenceHandler {
+	var mtx sync.Mutex
+	allRefs := make(map[uint32][]*bldr_manifest.ManifestRef)
+	platformIDsMap := hosts.toPlatformIDsMap()
+
+	selectBest := func() {
+		var bestRef *bldr_manifest.ManifestRef
+		var bestHost bldr_plugin_host.PluginHost
+		for _, refs := range allRefs {
+			for _, ref := range refs {
+				meta := ref.GetMeta()
+				host, ok := platformIDsMap[meta.GetPlatformId()]
+				if !ok || host == nil {
+					continue
+				}
+				if bestRef == nil || meta.GetRev() > bestRef.GetMeta().GetRev() {
+					bestRef = ref
+					bestHost = host
+				}
+			}
+		}
+
+		if bestRef != nil {
+			snapshot := &bldr_manifest.ManifestSnapshot{
+				ManifestRef: bestRef.GetManifestRef(),
+			}
+			if !t.c.conf.GetDisableCopyManifest() {
+				t.downloadManifestRoutine.SetState(snapshot)
+			}
+			t.executePluginRoutine.SetState(&executePluginArgs{
+				manifestSnapshot: snapshot,
+				pluginHost:       bestHost,
+			})
+			t.loggedNotFound.Store(false)
+			return
+		}
+
+		t.executePluginRoutine.SetState(nil)
+		if !t.c.conf.GetDisableCopyManifest() {
+			t.downloadManifestRoutine.SetState(nil)
+		}
+	}
+
+	return directive.NewTypedCallbackHandler(
+		func(av directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+			mtx.Lock()
+			defer mtx.Unlock()
+			refs := av.GetValue().GetManifestRefs()
+			validRefs := make([]*bldr_manifest.ManifestRef, 0, len(refs))
+			for _, ref := range refs {
+				if err := ref.Validate(); err != nil {
+					t.le.WithError(err).Warn("skipping invalid manifest ref")
+					continue
+				}
+				validRefs = append(validRefs, ref)
+			}
+			allRefs[av.GetValueID()] = validRefs
+			selectBest()
+		},
+		func(av directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+			mtx.Lock()
+			defer mtx.Unlock()
+			delete(allRefs, av.GetValueID())
+			selectBest()
+		},
+		nil, nil,
+	)
 }
