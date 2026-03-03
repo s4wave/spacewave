@@ -2,6 +2,7 @@ package world_block_test
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -606,14 +607,7 @@ func TestWorldState_GC_RefGraphInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	found := false
-	for _, ref := range outgoing {
-		if ref == "world" {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !slices.Contains(outgoing, "world") {
 		t.Fatalf("expected gcroot -> world edge, got outgoing: %v", outgoing)
 	}
 }
@@ -640,14 +634,7 @@ func TestWorldState_GC_CreateObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	found := false
-	for _, ref := range outgoing {
-		if ref == objIRI {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !slices.Contains(outgoing, objIRI) {
 		t.Fatalf("expected world -> %s edge, got: %v", objIRI, outgoing)
 	}
 
@@ -706,14 +693,7 @@ func TestWorldState_GC_DeleteObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	found := false
-	for _, n := range unrefs {
-		if n == objIRI {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !slices.Contains(unrefs, objIRI) {
 		t.Fatalf("expected %s in unreferenced nodes, got: %v", objIRI, unrefs)
 	}
 
@@ -808,6 +788,212 @@ func TestWorldState_GC_SetRootRef(t *testing.T) {
 		if same {
 			t.Fatal("expected object -> block edges to change after SetRootRef")
 		}
+	}
+}
+
+// TestWorldState_GC_SetRootRef_OrphanBlock verifies that SetRootRef marks
+// the old block unreferenced when no other object references it, and that
+// GarbageCollect sweeps the orphaned block.
+func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
+	ctx := context.Background()
+	ws, _ := buildGCTestWorld(t)
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("no refgraph")
+	}
+
+	objState, err := world_block.BuildMockObject(ctx, ws, "gc-orphan-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Get the old block IRI before SetRootRef.
+	oref, _, err := objState.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oldBlockIRI := block_gc.BlockIRI(oref.GetRootRef())
+	if oldBlockIRI == "" {
+		t.Fatal("expected non-empty old block IRI")
+	}
+
+	// Old block should NOT be unreferenced (it's referenced by the object).
+	unrefs, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(unrefs, oldBlockIRI) {
+		t.Fatal("old block should not be unreferenced before SetRootRef")
+	}
+
+	// SetRootRef to a new block.
+	err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		nref := bls.GetRef()
+		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)
+		obcs.SetBlock(&block_mock.Example{Msg: "new root block"}, true)
+		var err error
+		nref.RootRef, _, err = obtx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+		_, err = objState.SetRootRef(ctx, nref)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Old block should now be unreferenced.
+	unrefs, err = rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Contains(unrefs, oldBlockIRI) {
+		t.Fatalf("expected old block %s in unreferenced nodes after SetRootRef, got: %v", oldBlockIRI, unrefs)
+	}
+
+	// GarbageCollect should sweep the orphaned old block.
+	stats, err := ws.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept == 0 {
+		t.Fatal("expected GC to sweep the orphaned old block")
+	}
+
+	// Old block should no longer be unreferenced (it was swept).
+	unrefs, err = rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(unrefs, oldBlockIRI) {
+		t.Fatal("old block should have been swept by GC")
+	}
+}
+
+// TestWorldState_GC_Fork verifies that forking a WorldState preserves
+// GC tracking: the forked state has a RefGraph, existing GC edges are
+// visible, new objects get GC edges, and GarbageCollect works.
+func TestWorldState_GC_Fork(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create an object before fork.
+	_, err = world_block.BuildMockObject(ctx, ws, "pre-fork-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Commit so block data is persisted for fork.
+	err = ws.Commit(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(ws.GetRootRef())
+
+	// Reload state to pick up committed data.
+	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Fork.
+	forkedWs, err := ws.Fork(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	forked := forkedWs.(*world_block.WorldState)
+
+	// Forked state should have a RefGraph.
+	rg := forked.GetRefGraph()
+	if rg == nil {
+		t.Fatal("forked WorldState should have a RefGraph")
+	}
+
+	// gcroot -> world edge should exist in forked state.
+	outgoing, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Contains(outgoing, "world") {
+		t.Fatalf("forked state: expected gcroot -> world edge, got: %v", outgoing)
+	}
+
+	// Pre-fork object should have world -> object edge.
+	preForkIRI := block_gc.ObjectIRI("pre-fork-obj")
+	worldOut, err := rg.GetOutgoingRefs(ctx, "world")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Contains(worldOut, preForkIRI) {
+		t.Fatalf("forked state: expected world -> %s edge, got: %v", preForkIRI, worldOut)
+	}
+
+	// Pre-fork object should have object -> block edges.
+	objOut, err := rg.GetOutgoingRefs(ctx, preForkIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(objOut) == 0 {
+		t.Fatal("forked state: pre-fork object should have block refs")
+	}
+
+	// Create a new object in the forked state.
+	_, err = world_block.BuildMockObject(ctx, forked, "post-fork-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// New object should have GC edges in forked state.
+	postForkIRI := block_gc.ObjectIRI("post-fork-obj")
+	has, err := rg.HasIncomingRefs(ctx, postForkIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !has {
+		t.Fatal("forked state: post-fork object should have incoming refs")
+	}
+
+	// Delete post-fork object and GC in forked state.
+	deleted, err := forked.DeleteObject(ctx, "post-fork-obj")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected delete to succeed in forked state")
+	}
+	stats, err := forked.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept == 0 {
+		t.Fatal("forked state: expected GC to sweep deleted object")
+	}
+
+	// Pre-fork object should still be intact after GC.
+	has, err = rg.HasIncomingRefs(ctx, preForkIRI)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !has {
+		t.Fatal("forked state: pre-fork object should survive GC of post-fork object")
 	}
 }
 
