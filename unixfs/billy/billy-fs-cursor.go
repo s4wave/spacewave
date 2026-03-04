@@ -56,7 +56,7 @@ func (c *BillyFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, e
 		return nil, unixfs_errors.ErrReleased
 	}
 
-	fi, err := c.bfs.Stat(c.path)
+	fi, err := billyLstat(c.bfs, c.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -86,6 +86,15 @@ func (c *BillyFSCursor) buildChildPath(name string) (string, error) {
 		return "", errors.New("lookup with empty name not supported")
 	}
 	return npath, nil
+}
+
+// billyLstat uses Lstat if available, otherwise falls back to Stat.
+// Lstat does not follow symlinks, allowing symlink nodes to be resolved.
+func billyLstat(bfs billy.Basic, fpath string) (os.FileInfo, error) {
+	if sl, ok := bfs.(billy.Symlink); ok {
+		return sl.Lstat(fpath)
+	}
+	return bfs.Stat(fpath)
 }
 
 // _ is a type assertion

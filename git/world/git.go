@@ -340,12 +340,18 @@ func CreateWorldObjectWorktree(
 						// checkout the HEAD
 						href, err := repo.Head()
 						if err != nil {
-							return err
+							return errors.Wrap(err, "head")
 						}
 						checkoutOpts.Branch = href.Name()
 					}
 
-					return wt.Checkout(checkoutOpts)
+					if le != nil {
+						le.Infof("checkout: branch=%s hash=%s", checkoutOpts.Branch, checkoutOpts.Hash)
+					}
+					if err := wt.Checkout(checkoutOpts); err != nil {
+						return errors.Wrapf(err, "checkout branch %s", checkoutOpts.Branch)
+					}
+					return nil
 				},
 			)
 			if err != nil {

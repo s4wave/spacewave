@@ -102,7 +102,7 @@ func (f *BillyFS) Open(filepath string) (billy.File, error) {
 		if fileHandle != nil {
 			fileHandle.Release()
 		}
-		return nil, err
+		return nil, &os.PathError{Op: "open", Path: filepath, Err: err}
 	}
 	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.timestamp()), nil
 }
@@ -119,7 +119,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		// billyfs expects: create directories as needed
 		if len(filedir) != 0 && filedir != "." {
 			if err := f.MkdirAll(filedir, 0o755); err != nil {
-				return nil, err
+				return nil, &os.PathError{Op: "openfile-mkdirall", Path: filedir, Err: err}
 			}
 		}
 	}
@@ -133,7 +133,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			if dirHandle != nil {
 				dirHandle.Release()
 			}
-			return nil, err
+			return nil, &os.PathError{Op: "openfile-lookupdir", Path: filedir, Err: err}
 		}
 		defer dirHandle.Release()
 		h = dirHandle
@@ -147,7 +147,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, unixfs_errors.ErrExist
 		}
 		if err != unixfs_errors.ErrNotExist {
-			return nil, err
+			return nil, &os.PathError{Op: "openfile-lookup-excl", Path: filepath, Err: err}
 		}
 	}
 	// TODO: resolve symlink
@@ -159,7 +159,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
 		if !unixfs.FlagIsCreate(flag) {
-			return nil, err
+			return nil, &os.PathError{Op: "openfile", Path: filepath, Err: err}
 		}
 
 		// create the file
@@ -172,7 +172,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			f.timestamp(),
 		)
 		if err != nil {
-			return nil, err
+			return nil, &os.PathError{Op: "openfile-mknod", Path: filepath, Err: err}
 		}
 
 		// re-open the file again
@@ -186,14 +186,18 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		if fileHandle != nil {
 			fileHandle.Release()
 		}
-		return nil, err
+		return nil, &os.PathError{Op: "openfile-reopen", Path: filepath, Err: err}
 	}
 	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, flag, f.timestamp()), nil
 }
 
 // Stat returns a FileInfo describing the named file.
 func (f *BillyFS) Stat(filepath string) (os.FileInfo, error) {
-	return unixfs.StatWithPath(f.ctx, f.h, filepath)
+	fi, err := unixfs.StatWithPath(f.ctx, f.h, filepath)
+	if err != nil {
+		return nil, &os.PathError{Op: "stat", Path: filepath, Err: err}
+	}
+	return fi, nil
 }
 
 // Rename renames (moves) oldpath to newpath. If newpath already exists and
@@ -205,7 +209,14 @@ func (f *BillyFS) Rename(oldpath, newpath string) error {
 
 // Remove removes the named file or directory.
 func (f *BillyFS) Remove(filepath string) error {
-	return unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
+	_, err := unixfs.StatWithPath(f.ctx, f.h, filepath)
+	if err != nil {
+		return &os.PathError{Op: "remove", Path: filepath, Err: err}
+	}
+	if err := unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp()); err != nil {
+		return &os.PathError{Op: "remove", Path: filepath, Err: err}
+	}
+	return nil
 }
 
 // Join joins any number of path elements into a single path, adding a
@@ -243,7 +254,7 @@ func (f *BillyFS) ReadDir(mpath string) ([]fs.DirEntry, error) {
 			if ch != nil {
 				ch.Release()
 			}
-			return nil, err
+			return nil, &os.PathError{Op: "readdir", Path: mpath, Err: err}
 		}
 		defer ch.Release()
 		h = ch
@@ -251,7 +262,7 @@ func (f *BillyFS) ReadDir(mpath string) ([]fs.DirEntry, error) {
 
 	fis, err := unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, h)
 	if err != nil {
-		return nil, err
+		return nil, &os.PathError{Op: "readdir", Path: mpath, Err: err}
 	}
 	entries := make([]fs.DirEntry, len(fis))
 	for i, fi := range fis {
@@ -307,7 +318,11 @@ func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) err
 // makes no attempt to follow the link.
 func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
 	// TODO TODO: this will traverse symbolic links: Lstat should not.
-	return unixfs.StatWithPath(f.ctx, f.h, filepath)
+	fi, err := unixfs.StatWithPath(f.ctx, f.h, filepath)
+	if err != nil {
+		return nil, &os.PathError{Op: "lstat", Path: filepath, Err: err}
+	}
+	return fi, nil
 }
 
 // Symlink creates a symbolic-link from link to target. target may be an
@@ -316,12 +331,17 @@ func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
 func (f *BillyFS) Symlink(target, link string) error {
 	filepath := path.Clean(link)
 	filedir, filename := path.Split(filepath)
+	if len(filedir) != 0 && filedir != "." {
+		if err := f.MkdirAll(filedir, 0o755); err != nil {
+			return &os.PathError{Op: "symlink-mkdirall", Path: filedir, Err: err}
+		}
+	}
 	ch, _, err := f.h.LookupPath(f.ctx, filedir)
 	if err != nil {
 		if ch != nil {
 			ch.Release()
 		}
-		return err
+		return &os.PathError{Op: "symlink", Path: link, Err: err}
 	}
 	defer ch.Release()
 
@@ -336,12 +356,12 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 		if ch != nil {
 			ch.Release()
 		}
-		return "", err
+		return "", &os.PathError{Op: "readlink", Path: link, Err: err}
 	}
 	defer ch.Release()
 	nt, err := ch.GetNodeType(f.ctx)
 	if err != nil {
-		return "", err
+		return "", &os.PathError{Op: "readlink-nodetype", Path: link, Err: err}
 	}
 	if !nt.GetIsSymlink() {
 		return "", &os.PathError{
@@ -352,7 +372,7 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 	}
 	lnkd, lnkdAbsolute, err := ch.Readlink(f.ctx, "")
 	if err != nil {
-		return "", err
+		return "", &os.PathError{Op: "readlink-read", Path: link, Err: err}
 	}
 	return unixfs.JoinPath(lnkd, lnkdAbsolute), nil
 }
@@ -366,7 +386,7 @@ func (f *BillyFS) Chroot(p string) (billy.Filesystem, error) {
 		if lh != nil {
 			lh.Release()
 		}
-		return nil, err
+		return nil, &os.PathError{Op: "chroot", Path: p, Err: err}
 	}
 	nextBasePath := path.Join(f.basePath, p)
 	return NewBillyFS(f.ctx, lh, nextBasePath, f.timestamp()), nil

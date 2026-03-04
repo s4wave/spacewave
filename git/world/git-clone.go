@@ -38,10 +38,11 @@ func GitClone(
 	cloneArgs := cloneOpts.BuildCloneOpts()
 	enableCheckout := !cloneOpts.GetDisableCheckout()
 
-	// we need to check out to recurse submodules
-	// go-git could be adjusted to remove this requirement
-	// see go-git/v6/repository.go:844
-	cloneArgs.NoCheckout = false
+	// Skip checkout during clone. Phase 2 (CreateWorldObjectWorktree)
+	// handles the real checkout on the hydra-backed filesystem.
+	// Cloning with checkout builds a git index in the Store that leaks
+	// into Phase 2 and confuses the MergeReset diff logic.
+	cloneArgs.NoCheckout = true
 	// write progress if necessary
 	cloneArgs.Progress = progress
 	// override auth method

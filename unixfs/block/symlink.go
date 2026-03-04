@@ -15,9 +15,13 @@ func (s *FSSymlink) IsNil() bool {
 }
 
 // Validate checks the symlink data for validity.
+// Symlink targets allow "." and ".." path components (relative symlinks).
 func (s *FSSymlink) Validate() error {
-	if err := s.GetTargetPath().Validate(true, true); err != nil {
-		return err
+	tp := s.GetTargetPath()
+	for _, node := range tp.GetNodes() {
+		if node == "" {
+			return ErrDirectoryNameEmpty
+		}
 	}
 	return nil
 }

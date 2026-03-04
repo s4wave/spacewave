@@ -93,7 +93,7 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, err
 	}
 
-	_, err = o.c.bfs.Stat(npath)
+	_, err = billyLstat(o.c.bfs, npath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
