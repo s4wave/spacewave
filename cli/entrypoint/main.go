@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bldr/util/logfile"
@@ -38,6 +39,7 @@ func Main(
 	app.Name = appName
 	app.HideVersion = true
 	app.Usage = appName + " CLI"
+	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "state-path",
@@ -55,6 +57,19 @@ func Main(
 			Destination: &logLevel,
 		},
 		logfile.BuildLogFileFlag(&logFiles),
+		&cli.StringFlag{
+			Name:    "output",
+			Aliases: []string{"o"},
+			Usage:   "output format (json, text, yaml)",
+			EnvVars: []string{envPrefix + "_OUTPUT"},
+			Value:   "text",
+		},
+		&cli.StringFlag{
+			Name:    "color",
+			Usage:   "color mode (auto, always, never)",
+			EnvVars: []string{envPrefix + "_COLOR"},
+			Value:   "auto",
+		},
 	}
 
 	app.Before = func(c *cli.Context) error {
