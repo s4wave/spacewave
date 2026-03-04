@@ -8,9 +8,9 @@ require (
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e // master
 )
 
-// https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
-// https://github.com/wazero/wazero/pull/2476
-replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260216034438-ad84e6308a28 // master
+// https://github.com/wazero/wazero/pull/2479
+// https://github.com/wazero/wazero/pull/2481
+replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
