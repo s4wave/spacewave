@@ -103,6 +103,9 @@ func AccessRepoWithCursor(
 	}
 	defer store.Close()
 	repo, err := git.Open(store, workdir)
+	if errors.Is(err, git.ErrRepositoryNotExists) {
+		repo, err = git.Init(store, git.WithWorkTree(workdir))
+	}
 	if err != nil {
 		return err
 	}
