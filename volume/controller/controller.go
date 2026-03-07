@@ -182,6 +182,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	})
 	c.bucketHandles.SetContext(ctx, true)
 
+	// Start GC sweep goroutine.
+	go func() {
+		if err := c.runGCSweep(volCtx); err != nil {
+			pushErr(err)
+		}
+	}()
+
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()

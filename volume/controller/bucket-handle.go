@@ -5,9 +5,11 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/volume"
+	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 )
@@ -25,6 +27,7 @@ type bucketHandle struct {
 	err        error
 	v          volume.Volume
 	bucketConf *bucket.Config
+	gcOps      *block_gc.GCStoreOps
 }
 
 // clone copies the bucketHandle
@@ -71,11 +74,24 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 		return err
 	}
 
-	b.handleCtr.SetValue(&bucketHandle{
+	handle := &bucketHandle{
 		t:          b,
 		v:          vol,
 		bucketConf: bc,
-	})
+	}
+
+	// Wrap block operations with GC tracking if the volume has a RefGraph.
+	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
+		if rg := kvVol.GetRefGraph(); rg != nil {
+			handle.gcOps = block_gc.NewGCStoreOpsWithParent(
+				vol,
+				rg,
+				block_gc.BucketIRI(b.bucketID),
+			)
+		}
+	}
+
+	b.handleCtr.SetValue(handle)
 
 	return nil
 }
@@ -173,8 +189,17 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		}
 	}
 
-	// store will hash the data
-	br, existed, err := b.v.PutBlock(ctx, data, opts)
+	// store will hash the data, route through GCStoreOps if available
+	var (
+		br      *block.BlockRef
+		existed bool
+		err     error
+	)
+	if b.gcOps != nil {
+		br, existed, err = b.gcOps.PutBlock(ctx, data, opts)
+	} else {
+		br, existed, err = b.v.PutBlock(ctx, data, opts)
+	}
 	if err != nil {
 		return nil, false, err
 	}
@@ -262,8 +287,15 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		}
 	}
 
-	if err := b.v.RmBlock(ctx, ref); err != nil || b.t.c.config.GetDisableEventBlockRm() {
-		return err
+	// Route through GCStoreOps if available for ref graph cleanup.
+	var rmErr error
+	if b.gcOps != nil {
+		rmErr = b.gcOps.RmBlock(ctx, ref)
+	} else {
+		rmErr = b.v.RmBlock(ctx, ref)
+	}
+	if rmErr != nil || b.t.c.config.GetDisableEventBlockRm() {
+		return rmErr
 	}
 
 	var eventData []byte

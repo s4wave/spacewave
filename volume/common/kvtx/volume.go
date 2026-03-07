@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/kvtx"
 	hstore "github.com/aperturerobotics/hydra/store"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
@@ -24,6 +25,8 @@ type Volume struct {
 	kvtxStore kvtx.Store
 	// kvKey is the underlying kvkey
 	kvKey *store_kvkey.KVKey
+	// refGraph is the volume's GC reference graph.
+	refGraph *block_gc.RefGraph
 	// closeFn is the close func, may be nil
 	closeFn func() error
 }
@@ -37,6 +40,8 @@ type KvtxVolume interface {
 	GetKvtxStore() kvtx.Store
 	// GetKvKey returns the instance of KvKey used to build keys.
 	GetKvKey() *store_kvkey.KVKey
+	// GetRefGraph returns the volume's GC reference graph.
+	GetRefGraph() *block_gc.RefGraph
 }
 
 // NewVolume builds a new key/value volume.
@@ -89,6 +94,12 @@ func NewVolume(
 	// calcuate the volume id based on the peer id
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
+	rg, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		return nil, err
+	}
+	v.refGraph = rg
+
 	return v, nil
 }
 
@@ -122,8 +133,18 @@ func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 	return v.kvKey
 }
 
+// GetRefGraph returns the volume's GC reference graph.
+func (v *Volume) GetRefGraph() *block_gc.RefGraph {
+	return v.refGraph
+}
+
 // Close closes the volume, returning any errors.
 func (v *Volume) Close() error {
+	if v.refGraph != nil {
+		if err := v.refGraph.Close(); err != nil {
+			return err
+		}
+	}
 	if v.closeFn != nil {
 		return v.closeFn()
 	}

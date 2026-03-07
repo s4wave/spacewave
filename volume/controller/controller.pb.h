@@ -30,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../block/block.pb.h"
 // @@protoc_insertion_point(includes)
@@ -57,6 +58,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace volume {
 namespace controller {
+enum GCBootstrapMode : int;
+extern const uint32_t GCBootstrapMode_internal_data_[];
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
@@ -65,11 +68,51 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 }  // namespace volume
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::volume::controller::GCBootstrapMode_internal_data_>
+    internal::EnumTraitsImpl::value<::volume::controller::GCBootstrapMode>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace volume {
 namespace controller {
+enum GCBootstrapMode : int {
+  GC_LEGACY = 0,
+  GC_EXISTING = 1,
+  GC_IGNORE = 2,
+  GCBootstrapMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  GCBootstrapMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t GCBootstrapMode_internal_data_[];
+inline constexpr GCBootstrapMode GCBootstrapMode_MIN =
+    static_cast<GCBootstrapMode>(0);
+inline constexpr GCBootstrapMode GCBootstrapMode_MAX =
+    static_cast<GCBootstrapMode>(2);
+inline bool GCBootstrapMode_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int GCBootstrapMode_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GCBootstrapMode_descriptor();
+template <typename T>
+const ::std::string& GCBootstrapMode_Name(T value) {
+  static_assert(::std::is_same<T, GCBootstrapMode>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to GCBootstrapMode_Name().");
+  return GCBootstrapMode_Name(static_cast<GCBootstrapMode>(value));
+}
+template <>
+inline const ::std::string& GCBootstrapMode_Name(GCBootstrapMode value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<GCBootstrapMode_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool GCBootstrapMode_Parse(
+    ::absl::string_view name, GCBootstrapMode* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<GCBootstrapMode>(GCBootstrapMode_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -221,12 +264,14 @@ class Config final : public ::google::protobuf::Message
     kVolumeIdAliasFieldNumber = 2,
     kBlockStoreIdFieldNumber = 5,
     kBlockStoreWritebackTimeoutDurFieldNumber = 8,
+    kGcIntervalDurFieldNumber = 10,
     kBlockStoreWritebackPutOptsFieldNumber = 9,
     kDisableEventBlockRmFieldNumber = 1,
     kDisableReconcilerQueuesFieldNumber = 3,
     kDisablePeerFieldNumber = 4,
     kDisableLookupBlockStoreFieldNumber = 7,
     kBlockStoreOverlayModeFieldNumber = 6,
+    kGcBootstrapModeFieldNumber = 11,
   };
   // repeated string volume_id_alias = 2;
   int volume_id_alias_size() const;
@@ -278,6 +323,21 @@ class Config final : public ::google::protobuf::Message
   const ::std::string& _internal_block_store_writeback_timeout_dur() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_block_store_writeback_timeout_dur(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_block_store_writeback_timeout_dur();
+
+  public:
+  // string gc_interval_dur = 10;
+  void clear_gc_interval_dur() ;
+  const ::std::string& gc_interval_dur() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_gc_interval_dur(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_gc_interval_dur();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_gc_interval_dur();
+  void set_allocated_gc_interval_dur(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_gc_interval_dur() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_gc_interval_dur(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_gc_interval_dur();
 
   public:
   // .block.PutOpts block_store_writeback_put_opts = 9;
@@ -345,12 +405,22 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_block_store_overlay_mode(::block::OverlayMode value);
 
   public:
+  // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+  void clear_gc_bootstrap_mode() ;
+  ::volume::controller::GCBootstrapMode gc_bootstrap_mode() const;
+  void set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value);
+
+  private:
+  ::volume::controller::GCBootstrapMode _internal_gc_bootstrap_mode() const;
+  void _internal_set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value);
+
+  public:
   // @@protoc_insertion_point(class_scope:volume.controller.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
-                                   1, 103,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   1, 118,
                                    2>
       _table_;
 
@@ -374,12 +444,14 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> volume_id_alias_;
     ::google::protobuf::internal::ArenaStringPtr block_store_id_;
     ::google::protobuf::internal::ArenaStringPtr block_store_writeback_timeout_dur_;
+    ::google::protobuf::internal::ArenaStringPtr gc_interval_dur_;
     ::block::PutOpts* PROTOBUF_NULLABLE block_store_writeback_put_opts_;
     bool disable_event_block_rm_;
     bool disable_reconciler_queues_;
     bool disable_peer_;
     bool disable_lookup_block_store_;
     int block_store_overlay_mode_;
+    int gc_bootstrap_mode_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -409,7 +481,7 @@ inline void Config::clear_disable_event_block_rm() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_event_block_rm_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline bool Config::disable_event_block_rm() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_event_block_rm)
@@ -417,7 +489,7 @@ inline bool Config::disable_event_block_rm() const {
 }
 inline void Config::set_disable_event_block_rm(bool value) {
   _internal_set_disable_event_block_rm(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_event_block_rm)
 }
 inline bool Config::_internal_disable_event_block_rm() const {
@@ -506,7 +578,7 @@ inline void Config::clear_disable_reconciler_queues() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_reconciler_queues_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline bool Config::disable_reconciler_queues() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_reconciler_queues)
@@ -514,7 +586,7 @@ inline bool Config::disable_reconciler_queues() const {
 }
 inline void Config::set_disable_reconciler_queues(bool value) {
   _internal_set_disable_reconciler_queues(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_reconciler_queues)
 }
 inline bool Config::_internal_disable_reconciler_queues() const {
@@ -531,7 +603,7 @@ inline void Config::clear_disable_peer() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_peer_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline bool Config::disable_peer() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_peer)
@@ -539,7 +611,7 @@ inline bool Config::disable_peer() const {
 }
 inline void Config::set_disable_peer(bool value) {
   _internal_set_disable_peer(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_peer)
 }
 inline bool Config::_internal_disable_peer() const {
@@ -556,7 +628,7 @@ inline void Config::clear_disable_lookup_block_store() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_lookup_block_store_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline bool Config::disable_lookup_block_store() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.disable_lookup_block_store)
@@ -564,7 +636,7 @@ inline bool Config::disable_lookup_block_store() const {
 }
 inline void Config::set_disable_lookup_block_store(bool value) {
   _internal_set_disable_lookup_block_store(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.disable_lookup_block_store)
 }
 inline bool Config::_internal_disable_lookup_block_store() const {
@@ -646,7 +718,7 @@ inline void Config::clear_block_store_overlay_mode() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_store_overlay_mode_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline ::block::OverlayMode Config::block_store_overlay_mode() const {
   // @@protoc_insertion_point(field_get:volume.controller.Config.block_store_overlay_mode)
@@ -654,7 +726,7 @@ inline ::block::OverlayMode Config::block_store_overlay_mode() const {
 }
 inline void Config::set_block_store_overlay_mode(::block::OverlayMode value) {
   _internal_set_block_store_overlay_mode(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:volume.controller.Config.block_store_overlay_mode)
 }
 inline ::block::OverlayMode Config::_internal_block_store_overlay_mode() const {
@@ -733,7 +805,7 @@ inline void Config::set_allocated_block_store_writeback_timeout_dur(::std::strin
 
 // .block.PutOpts block_store_writeback_put_opts = 9;
 inline bool Config::has_block_store_writeback_put_opts() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.block_store_writeback_put_opts_ != nullptr);
   return value;
 }
@@ -754,16 +826,16 @@ inline void Config::unsafe_arena_set_allocated_block_store_writeback_put_opts(
   }
   _impl_.block_store_writeback_put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.controller.Config.block_store_writeback_put_opts)
 }
 inline ::block::PutOpts* PROTOBUF_NULLABLE Config::release_block_store_writeback_put_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::PutOpts* released = _impl_.block_store_writeback_put_opts_;
   _impl_.block_store_writeback_put_opts_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -783,7 +855,7 @@ inline ::block::PutOpts* PROTOBUF_NULLABLE Config::unsafe_arena_release_block_st
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:volume.controller.Config.block_store_writeback_put_opts)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::PutOpts* temp = _impl_.block_store_writeback_put_opts_;
   _impl_.block_store_writeback_put_opts_ = nullptr;
   return temp;
@@ -798,7 +870,7 @@ inline ::block::PutOpts* PROTOBUF_NONNULL Config::_internal_mutable_block_store_
 }
 inline ::block::PutOpts* PROTOBUF_NONNULL Config::mutable_block_store_writeback_put_opts()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::PutOpts* _msg = _internal_mutable_block_store_writeback_put_opts();
   // @@protoc_insertion_point(field_mutable:volume.controller.Config.block_store_writeback_put_opts)
   return _msg;
@@ -815,13 +887,103 @@ inline void Config::set_allocated_block_store_writeback_put_opts(::block::PutOpt
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.block_store_writeback_put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
   // @@protoc_insertion_point(field_set_allocated:volume.controller.Config.block_store_writeback_put_opts)
+}
+
+// string gc_interval_dur = 10;
+inline void Config::clear_gc_interval_dur() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.gc_interval_dur_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& Config::gc_interval_dur() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.controller.Config.gc_interval_dur)
+  return _internal_gc_interval_dur();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_gc_interval_dur(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.gc_interval_dur_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.controller.Config.gc_interval_dur)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_gc_interval_dur()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_gc_interval_dur();
+  // @@protoc_insertion_point(field_mutable:volume.controller.Config.gc_interval_dur)
+  return _s;
+}
+inline const ::std::string& Config::_internal_gc_interval_dur() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.gc_interval_dur_.Get();
+}
+inline void Config::_internal_set_gc_interval_dur(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.gc_interval_dur_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_gc_interval_dur() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.gc_interval_dur_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_gc_interval_dur() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.controller.Config.gc_interval_dur)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.gc_interval_dur_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.gc_interval_dur_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_gc_interval_dur(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.gc_interval_dur_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.gc_interval_dur_.IsDefault()) {
+    _impl_.gc_interval_dur_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.controller.Config.gc_interval_dur)
+}
+
+// .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+inline void Config::clear_gc_bootstrap_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.gc_bootstrap_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::volume::controller::GCBootstrapMode Config::gc_bootstrap_mode() const {
+  // @@protoc_insertion_point(field_get:volume.controller.Config.gc_bootstrap_mode)
+  return _internal_gc_bootstrap_mode();
+}
+inline void Config::set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value) {
+  _internal_set_gc_bootstrap_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:volume.controller.Config.gc_bootstrap_mode)
+}
+inline ::volume::controller::GCBootstrapMode Config::_internal_gc_bootstrap_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::volume::controller::GCBootstrapMode>(_impl_.gc_bootstrap_mode_);
+}
+inline void Config::_internal_set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.gc_bootstrap_mode_ = value;
 }
 
 #ifdef __GNUC__
@@ -832,6 +994,19 @@ inline void Config::set_allocated_block_store_writeback_put_opts(::block::PutOpt
 }  // namespace controller
 }  // namespace volume
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::volume::controller::GCBootstrapMode> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::volume::controller::GCBootstrapMode>() {
+  return ::volume::controller::GCBootstrapMode_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

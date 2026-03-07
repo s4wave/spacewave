@@ -1069,7 +1069,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume/controller": {
-      "hash": "833355c4f7484b9e3e1dda8d3516bb1b1d601341b96235901273312b348e762c",
+      "hash": "05846e6854d03c1b260909c4c9e2e963d5b84cf339d3b4046ec274938b1085fd",
       "generatedFiles": [
         "volume/controller/controller.pb.cc",
         "volume/controller/controller.pb.go",

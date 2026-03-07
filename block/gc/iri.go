@@ -10,6 +10,7 @@ import (
 const (
 	prefixBlock  = "block:"
 	prefixObject = "object:"
+	prefixBucket = "bucket:"
 )
 
 // Well-known node IRIs (permanent roots).
@@ -46,6 +47,21 @@ func ParseBlockIRI(iri string) (*block.BlockRef, bool) {
 // ObjectIRI returns "object:{key}" for a world object.
 func ObjectIRI(key string) string {
 	return prefixObject + key
+}
+
+// BucketIRI returns the IRI for a bucket node: "bucket:{bucketID}".
+func BucketIRI(bucketID string) string {
+	return prefixBucket + bucketID
+}
+
+// ParseBucketIRI parses a "bucket:{id}" IRI back to a bucket ID.
+// Returns the bucket ID and true if valid.
+func ParseBucketIRI(iri string) (string, bool) {
+	rest, ok := strings.CutPrefix(iri, prefixBucket)
+	if !ok || rest == "" {
+		return "", false
+	}
+	return rest, true
 }
 
 // IsPermanentRoot returns true if the IRI is a well-known permanent root.

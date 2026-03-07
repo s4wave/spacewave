@@ -605,3 +605,37 @@ func TestObjectRootNilRef(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBucketIRI(t *testing.T) {
+	iri := BucketIRI("my-bucket-123")
+	if iri != "bucket:my-bucket-123" {
+		t.Fatalf("expected bucket:my-bucket-123, got %s", iri)
+	}
+}
+
+func TestParseBucketIRI(t *testing.T) {
+	id, ok := ParseBucketIRI("bucket:my-bucket-123")
+	if !ok {
+		t.Fatal("expected parse to succeed")
+	}
+	if id != "my-bucket-123" {
+		t.Fatalf("expected my-bucket-123, got %s", id)
+	}
+}
+
+func TestParseBucketIRIInvalid(t *testing.T) {
+	_, ok := ParseBucketIRI("not-a-bucket")
+	if ok {
+		t.Fatal("expected parse to fail for non-bucket IRI")
+	}
+
+	_, ok = ParseBucketIRI("bucket:")
+	if ok {
+		t.Fatal("expected parse to fail for empty bucket IRI")
+	}
+
+	_, ok = ParseBucketIRI("")
+	if ok {
+		t.Fatal("expected parse to fail for empty string")
+	}
+}

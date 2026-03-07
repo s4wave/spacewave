@@ -381,3 +381,135 @@ func TestGCStoreOps_CollectWithGCStore(t *testing.T) {
 		t.Fatal("rooted block should survive")
 	}
 }
+
+// newGCTestEnvWithParent creates a test environment with parentIRI set.
+func newGCTestEnvWithParent(t *testing.T, parentIRI string) *gcTestEnv {
+	t.Helper()
+	ctx := context.Background()
+	kvStore := store_kvtx_inmem.NewStore()
+	kvKey := store_kvkey.NewDefaultKVKey()
+	rawStore := block_store_kvtx.NewKVTxBlock(kvKey, kvStore, 0, false)
+
+	rg, err := NewRefGraph(ctx, kvStore, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { rg.Close() })
+
+	gcStore := NewGCStoreOpsWithParent(rawStore, rg, parentIRI)
+	return &gcTestEnv{
+		ctx:      ctx,
+		kvStore:  kvStore,
+		rawStore: rawStore,
+		gcStore:  gcStore,
+		refGraph: rg,
+	}
+}
+
+// TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge tests that PutBlock
+// adds a parentIRI -> block edge when parentIRI is set.
+func TestGCStoreOps_ParentIRI_PutBlockAddsParentEdge(t *testing.T) {
+	parent := BucketIRI("my-bucket")
+	env := newGCTestEnvWithParent(t, parent)
+
+	ref := env.putBlock(t, "parent-block")
+	blockIRI := BlockIRI(ref)
+
+	// Should have parent -> block edge, not unreferenced -> block.
+	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 1 || outgoing[0] != blockIRI {
+		t.Fatalf("expected parent -> %s, got %v", blockIRI, outgoing)
+	}
+
+	// Should NOT be in unreferenced.
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(nodes) != 0 {
+		t.Fatalf("expected 0 unreferenced nodes, got %d", len(nodes))
+	}
+}
+
+// TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge tests that
+// RmBlock removes the parentIRI -> block edge when parentIRI is set.
+func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
+	parent := BucketIRI("my-bucket")
+	env := newGCTestEnvWithParent(t, parent)
+
+	ref := env.putBlock(t, "rm-parent-block")
+	blockIRI := BlockIRI(ref)
+
+	// Verify parent -> block edge exists.
+	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 1 || outgoing[0] != blockIRI {
+		t.Fatalf("expected parent -> %s before rm, got %v", blockIRI, outgoing)
+	}
+
+	// RmBlock should remove parent -> block edge.
+	if err := env.gcStore.RmBlock(env.ctx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	outgoing, err = env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 0 {
+		t.Fatalf("expected 0 outgoing from parent after rm, got %d", len(outgoing))
+	}
+}
+
+// TestGCStoreOps_ParentIRI_FlushPending tests that FlushPending
+// works correctly with parentIRI mode.
+func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
+	parent := BucketIRI("test-bucket")
+	env := newGCTestEnvWithParent(t, parent)
+
+	// Put two blocks without flushing.
+	ex1 := block_mock.NewExample("flush-a")
+	ref1, _, err := block.PutBlock(env.ctx, env.gcStore, ex1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ex2 := block_mock.NewExample("flush-b")
+	ref2, _, err := block.PutBlock(env.ctx, env.gcStore, ex2)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Before flush, no edges should exist.
+	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 0 {
+		t.Fatalf("expected 0 outgoing before flush, got %d", len(outgoing))
+	}
+
+	// Flush.
+	env.flush(t)
+
+	// After flush, parent should point to both blocks.
+	outgoing, err = env.refGraph.GetOutgoingRefs(env.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 2 {
+		t.Fatalf("expected 2 outgoing after flush, got %d", len(outgoing))
+	}
+	sorted := sortedStrings(outgoing)
+	iri1 := BlockIRI(ref1)
+	iri2 := BlockIRI(ref2)
+	expected := sortedStrings([]string{iri1, iri2})
+	if sorted[0] != expected[0] || sorted[1] != expected[1] {
+		t.Fatalf("expected %v, got %v", expected, sorted)
+	}
+}

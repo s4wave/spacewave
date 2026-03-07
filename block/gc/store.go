@@ -21,21 +21,38 @@ type pendingRef struct {
 // cursor's mutex, writing to the RefGraph inside those goroutines
 // would deadlock. Instead, GCStoreOps buffers the operations and
 // they are flushed via FlushPending after Transaction.Write returns.
+//
+// When parentIRI is set, new blocks are tracked under parentIRI
+// instead of the "unreferenced" staging node. This allows
+// bucket-level ownership of blocks.
 type GCStoreOps struct {
-	store    block.StoreOps
-	refGraph *RefGraph
+	store     block.StoreOps
+	refGraph  *RefGraph
+	parentIRI string
 
 	mu             sync.Mutex
-	pendingUnref   []string     // block IRIs needing unreferenced -> block edges
+	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
 	pendingRefs    []pendingRef // source -> target block ref edges
 	pendingUnunref []string     // block IRIs to remove from unreferenced
 }
 
 // NewGCStoreOps wraps a StoreOps with GC ref graph tracking.
+// New blocks are added under the "unreferenced" staging node.
 func NewGCStoreOps(store block.StoreOps, refGraph *RefGraph) *GCStoreOps {
 	return &GCStoreOps{
 		store:    store,
 		refGraph: refGraph,
+	}
+}
+
+// NewGCStoreOpsWithParent wraps a StoreOps with GC ref graph tracking
+// using a specific parent IRI. New blocks are tracked under parentIRI
+// instead of the "unreferenced" staging node.
+func NewGCStoreOpsWithParent(store block.StoreOps, refGraph *RefGraph, parentIRI string) *GCStoreOps {
+	return &GCStoreOps{
+		store:     store,
+		refGraph:  refGraph,
+		parentIRI: parentIRI,
 	}
 }
 
@@ -44,8 +61,9 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 	return g.store.GetHashType()
 }
 
-// PutBlock puts a block into the store and buffers an unreferenced
-// gc/ref edge for later flush if the block is new.
+// PutBlock puts a block into the store and buffers a gc/ref edge for
+// later flush if the block is new. When parentIRI is set, the edge
+// is parentIRI -> block; otherwise unreferenced -> block.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ref, existed, err := g.store.PutBlock(ctx, data, opts)
 	if err != nil {
@@ -73,8 +91,12 @@ func (g *GCStoreOps) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 // RmBlock cleans up the ref graph for a block without performing a
 // physical delete. The Collector handles physical deletion. This
 // removes all outgoing gc/ref edges from the block, removes the
-// unreferenced -> block edge, and cascades orphan detection to any
-// targets that lost their last incoming reference.
+// parent/unreferenced -> block edge, and cascades orphan detection
+// to any targets that lost their last incoming reference.
+//
+// When parentIRI is set, the parentIRI -> block edge is buffered as
+// a pending unref removal. When parentIRI is empty, the unreferenced
+// -> block edge is removed directly.
 func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	iri := BlockIRI(ref)
 
@@ -85,7 +107,11 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return errors.Wrap(err, "remove outgoing refs")
 	}
 
-	return g.refGraph.RemoveRef(ctx, NodeUnreferenced, iri)
+	parent := g.parentIRI
+	if parent == "" {
+		parent = NodeUnreferenced
+	}
+	return g.refGraph.RemoveRef(ctx, parent, iri)
 }
 
 // RecordBlockRefs buffers block-to-block reference edges for later flush.
@@ -117,12 +143,16 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	g.pendingUnunref = nil
 	g.mu.Unlock()
 
+	parent := g.parentIRI
+	if parent == "" {
+		parent = NodeUnreferenced
+	}
 	for _, iri := range unrefs {
-		if err := g.refGraph.AddRef(ctx, NodeUnreferenced, iri); err != nil {
+		if err := g.refGraph.AddRef(ctx, parent, iri); err != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
 			}
-			return errors.Wrap(err, "flush unreferenced edge")
+			return errors.Wrap(err, "flush parent edge")
 		}
 	}
 	for _, r := range refs {

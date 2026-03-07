@@ -39,12 +39,16 @@ inline constexpr Config::Impl_::Impl_(
         block_store_writeback_timeout_dur_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        gc_interval_dur_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         block_store_writeback_put_opts_{nullptr},
         disable_event_block_rm_{false},
         disable_reconciler_queues_{false},
         disable_peer_{false},
         disable_lookup_block_store_{false},
-        block_store_overlay_mode_{static_cast< ::block::OverlayMode >(0)} {}
+        block_store_overlay_mode_{static_cast< ::block::OverlayMode >(0)},
+        gc_bootstrap_mode_{static_cast< ::volume::controller::GCBootstrapMode >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -67,8 +71,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ConfigDefaultTypeInternal _Config_default_instance_;
 }  // namespace controller
 }  // namespace volume
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto = nullptr;
 const ::uint32_t
@@ -76,7 +80,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_._has_bits_),
-        12, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_event_block_rm_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.volume_id_alias_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.disable_reconciler_queues_),
@@ -86,15 +90,19 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.block_store_overlay_mode_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.block_store_writeback_timeout_dur_),
         PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.block_store_writeback_put_opts_),
-        4,
-        0,
+        PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.gc_interval_dur_),
+        PROTOBUF_FIELD_OFFSET(::volume::controller::Config, _impl_.gc_bootstrap_mode_),
         5,
+        0,
         6,
         7,
-        1,
         8,
+        1,
+        9,
         2,
+        4,
         3,
+        10,
 };
 
 static const ::_pbi::MigrationSchema
@@ -109,7 +117,7 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fv
     "\nDgithub.com/aperturerobotics/hydra/volu"
     "me/controller/controller.proto\022\021volume.c"
     "ontroller\0323github.com/aperturerobotics/h"
-    "ydra/block/block.proto\"\317\002\n\006Config\022\036\n\026dis"
+    "ydra/block/block.proto\"\247\003\n\006Config\022\036\n\026dis"
     "able_event_block_rm\030\001 \001(\010\022\027\n\017volume_id_a"
     "lias\030\002 \003(\t\022!\n\031disable_reconciler_queues\030"
     "\003 \001(\010\022\024\n\014disable_peer\030\004 \001(\010\022\"\n\032disable_l"
@@ -118,7 +126,11 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fv
     "\0162\022.block.OverlayMode\022)\n!block_store_wri"
     "teback_timeout_dur\030\010 \001(\t\0226\n\036block_store_"
     "writeback_put_opts\030\t \001(\0132\016.block.PutOpts"
-    "b\006proto3"
+    "\022\027\n\017gc_interval_dur\030\n \001(\t\022=\n\021gc_bootstra"
+    "p_mode\030\013 \001(\0162\".volume.controller.GCBoots"
+    "trapMode*@\n\017GCBootstrapMode\022\r\n\tGC_LEGACY"
+    "\020\000\022\017\n\013GC_EXISTING\020\001\022\r\n\tGC_IGNORE\020\002b\006prot"
+    "o3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto_deps[1] = {
@@ -128,7 +140,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto = {
     false,
     false,
-    488,
+    642,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto,
     "github.com/aperturerobotics/hydra/volume/controller/controller.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto_once,
@@ -143,6 +155,12 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace volume {
 namespace controller {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GCBootstrapMode_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t GCBootstrapMode_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class Config::_Internal {
@@ -157,7 +175,7 @@ void Config::clear_block_store_writeback_put_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.block_store_writeback_put_opts_ != nullptr) _impl_.block_store_writeback_put_opts_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -176,7 +194,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         _cached_size_{0},
         volume_id_alias_{visibility, arena, from.volume_id_alias_},
         block_store_id_(arena, from.block_store_id_),
-        block_store_writeback_timeout_dur_(arena, from.block_store_writeback_timeout_dur_) {}
+        block_store_writeback_timeout_dur_(arena, from.block_store_writeback_timeout_dur_),
+        gc_interval_dur_(arena, from.gc_interval_dur_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -192,16 +211,16 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.block_store_writeback_put_opts_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.block_store_writeback_put_opts_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.block_store_writeback_put_opts_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, disable_event_block_rm_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, disable_event_block_rm_),
-           offsetof(Impl_, block_store_overlay_mode_) -
+           offsetof(Impl_, gc_bootstrap_mode_) -
                offsetof(Impl_, disable_event_block_rm_) +
-               sizeof(Impl_::block_store_overlay_mode_));
+               sizeof(Impl_::gc_bootstrap_mode_));
 
   // @@protoc_insertion_point(copy_constructor:volume.controller.Config)
 }
@@ -211,16 +230,17 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
       : _cached_size_{0},
         volume_id_alias_{visibility, arena},
         block_store_id_(arena),
-        block_store_writeback_timeout_dur_(arena) {}
+        block_store_writeback_timeout_dur_(arena),
+        gc_interval_dur_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, block_store_writeback_put_opts_),
            0,
-           offsetof(Impl_, block_store_overlay_mode_) -
+           offsetof(Impl_, gc_bootstrap_mode_) -
                offsetof(Impl_, block_store_writeback_put_opts_) +
-               sizeof(Impl_::block_store_overlay_mode_));
+               sizeof(Impl_::gc_bootstrap_mode_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:volume.controller.Config)
@@ -235,6 +255,7 @@ inline void Config::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.block_store_id_.Destroy();
   this_._impl_.block_store_writeback_timeout_dur_.Destroy();
+  this_._impl_.gc_interval_dur_.Destroy();
   delete this_._impl_.block_store_writeback_put_opts_;
   this_._impl_.~Impl_();
 }
@@ -294,16 +315,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 1, 103, 2>
+const ::_pbi::TcParseTable<4, 11, 1, 118, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    11,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -315,32 +336,32 @@ Config::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // bool disable_event_block_rm = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_event_block_rm_), 4>(),
-     {8, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_event_block_rm_), 5>(),
+     {8, 5, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_event_block_rm_)}},
     // repeated string volume_id_alias = 2;
     {::_pbi::TcParser::FastUR1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_id_alias_)}},
     // bool disable_reconciler_queues = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_reconciler_queues_), 5>(),
-     {24, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_reconciler_queues_), 6>(),
+     {24, 6, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_reconciler_queues_)}},
     // bool disable_peer = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_peer_), 6>(),
-     {32, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_peer_), 7>(),
+     {32, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_)}},
     // string block_store_id = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 1, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_id_)}},
     // .block.OverlayMode block_store_overlay_mode = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_store_overlay_mode_), 8>(),
-     {48, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_store_overlay_mode_), 9>(),
+     {48, 9, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_)}},
     // bool disable_lookup_block_store = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_lookup_block_store_), 7>(),
-     {56, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_lookup_block_store_), 8>(),
+     {56, 8, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_)}},
     // string block_store_writeback_timeout_dur = 8;
     {::_pbi::TcParser::FastUS1,
@@ -348,10 +369,16 @@ Config::_table_ = {
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_timeout_dur_)}},
     // .block.PutOpts block_store_writeback_put_opts = 9;
     {::_pbi::TcParser::FastMtS1,
-     {74, 3, 0,
+     {74, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_put_opts_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string gc_interval_dur = 10;
+    {::_pbi::TcParser::FastUS1,
+     {82, 3, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.gc_interval_dur_)}},
+    // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.gc_bootstrap_mode_), 10>(),
+     {88, 10, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.gc_bootstrap_mode_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -360,33 +387,38 @@ Config::_table_ = {
     65535, 65535
   }}, {{
     // bool disable_event_block_rm = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_event_block_rm_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_event_block_rm_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // repeated string volume_id_alias = 2;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_id_alias_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // bool disable_reconciler_queues = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_reconciler_queues_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_reconciler_queues_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool disable_peer = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_peer_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string block_store_id = 5;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .block.OverlayMode block_store_overlay_mode = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bool disable_lookup_block_store = 7;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_lookup_block_store_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string block_store_writeback_timeout_dur = 8;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_timeout_dur_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .block.PutOpts block_store_writeback_put_opts = 9;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_put_opts_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_put_opts_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string gc_interval_dur = 10;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.gc_interval_dur_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.gc_bootstrap_mode_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::block::PutOpts>()},
   }},
   {{
-    "\30\0\17\0\0\16\0\0\41\0\0\0\0\0\0\0"
+    "\30\0\17\0\0\16\0\0\41\0\17\0\0\0\0\0"
     "volume.controller.Config"
     "volume_id_alias"
     "block_store_id"
     "block_store_writeback_timeout_dur"
+    "gc_interval_dur"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -397,7 +429,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.volume_id_alias_.Clear();
     }
@@ -408,16 +440,23 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.block_store_writeback_timeout_dur_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.gc_interval_dur_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.block_store_writeback_put_opts_ != nullptr);
       _impl_.block_store_writeback_put_opts_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000f0U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
     ::memset(&_impl_.disable_event_block_rm_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.disable_lookup_block_store_) -
-        reinterpret_cast<char*>(&_impl_.disable_event_block_rm_)) + sizeof(_impl_.disable_lookup_block_store_));
+        reinterpret_cast<char*>(&_impl_.disable_peer_) -
+        reinterpret_cast<char*>(&_impl_.disable_event_block_rm_)) + sizeof(_impl_.disable_peer_));
   }
-  _impl_.block_store_overlay_mode_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    ::memset(&_impl_.disable_lookup_block_store_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.gc_bootstrap_mode_) -
+        reinterpret_cast<char*>(&_impl_.disable_lookup_block_store_)) + sizeof(_impl_.gc_bootstrap_mode_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -442,7 +481,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // bool disable_event_block_rm = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_disable_event_block_rm() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -461,7 +500,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool disable_reconciler_queues = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_disable_reconciler_queues() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -470,7 +509,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool disable_peer = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_disable_peer() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -489,7 +528,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .block.OverlayMode block_store_overlay_mode = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_block_store_overlay_mode() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -498,7 +537,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool disable_lookup_block_store = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_disable_lookup_block_store() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -517,10 +556,29 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .block.PutOpts block_store_writeback_put_opts = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         9, *this_._impl_.block_store_writeback_put_opts_, this_._impl_.block_store_writeback_put_opts_->GetCachedSize(), target,
         stream);
+  }
+
+  // string gc_interval_dur = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_gc_interval_dur().empty()) {
+      const ::std::string& _s = this_._internal_gc_interval_dur();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.controller.Config.gc_interval_dur");
+      target = stream->WriteStringMaybeAliased(10, _s, target);
+    }
+  }
+
+  // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_gc_bootstrap_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          11, this_._internal_gc_bootstrap_mode(), target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -572,42 +630,56 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_block_store_writeback_timeout_dur());
       }
     }
-    // .block.PutOpts block_store_writeback_put_opts = 9;
+    // string gc_interval_dur = 10;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_gc_interval_dur().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_gc_interval_dur());
+      }
+    }
+    // .block.PutOpts block_store_writeback_put_opts = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.block_store_writeback_put_opts_);
     }
     // bool disable_event_block_rm = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_disable_event_block_rm() != 0) {
         total_size += 2;
       }
     }
     // bool disable_reconciler_queues = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_disable_reconciler_queues() != 0) {
         total_size += 2;
       }
     }
     // bool disable_peer = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_disable_peer() != 0) {
         total_size += 2;
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // bool disable_lookup_block_store = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_disable_lookup_block_store() != 0) {
         total_size += 2;
       }
     }
-  }
-   {
     // .block.OverlayMode block_store_overlay_mode = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_block_store_overlay_mode() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_block_store_overlay_mode());
+      }
+    }
+    // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_gc_bootstrap_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_gc_bootstrap_mode());
       }
     }
   }
@@ -655,6 +727,15 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_gc_interval_dur().empty()) {
+        _this->_internal_set_gc_interval_dur(from._internal_gc_interval_dur());
+      } else {
+        if (_this->_impl_.gc_interval_dur_.IsDefault()) {
+          _this->_internal_set_gc_interval_dur("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.block_store_writeback_put_opts_ != nullptr);
       if (_this->_impl_.block_store_writeback_put_opts_ == nullptr) {
         _this->_impl_.block_store_writeback_put_opts_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.block_store_writeback_put_opts_);
@@ -662,30 +743,37 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.block_store_writeback_put_opts_->MergeFrom(*from._impl_.block_store_writeback_put_opts_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_disable_event_block_rm() != 0) {
         _this->_impl_.disable_event_block_rm_ = from._impl_.disable_event_block_rm_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_disable_reconciler_queues() != 0) {
         _this->_impl_.disable_reconciler_queues_ = from._impl_.disable_reconciler_queues_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_disable_peer() != 0) {
         _this->_impl_.disable_peer_ = from._impl_.disable_peer_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_disable_lookup_block_store() != 0) {
         _this->_impl_.disable_lookup_block_store_ = from._impl_.disable_lookup_block_store_;
       }
     }
-  }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_block_store_overlay_mode() != 0) {
-      _this->_impl_.block_store_overlay_mode_ = from._impl_.block_store_overlay_mode_;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_block_store_overlay_mode() != 0) {
+        _this->_impl_.block_store_overlay_mode_ = from._impl_.block_store_overlay_mode_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_gc_bootstrap_mode() != 0) {
+        _this->_impl_.gc_bootstrap_mode_ = from._impl_.gc_bootstrap_mode_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -710,9 +798,10 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _impl_.volume_id_alias_.InternalSwap(&other->_impl_.volume_id_alias_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_store_id_, &other->_impl_.block_store_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_store_writeback_timeout_dur_, &other->_impl_.block_store_writeback_timeout_dur_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.gc_interval_dur_, &other->_impl_.gc_interval_dur_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_overlay_mode_)
-      + sizeof(Config::_impl_.block_store_overlay_mode_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.gc_bootstrap_mode_)
+      + sizeof(Config::_impl_.gc_bootstrap_mode_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.block_store_writeback_put_opts_)>(
           reinterpret_cast<char*>(&_impl_.block_store_writeback_put_opts_),
           reinterpret_cast<char*>(&other->_impl_.block_store_writeback_put_opts_));
