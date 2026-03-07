@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.0 // master
+	github.com/aperturerobotics/bifrost v0.47.1-0.20260302033808-4e866d3cb575 // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
@@ -19,8 +19,8 @@ replace (
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 
-// aperture: use forks with local clone + packwindow improvements
-replace github.com/go-git/go-git/v6 => github.com/paralin/go-git/v6 v6.0.0-20260228101950-0669db225649 // aperture-1
+// aperture: use paralin/go-git fork with local clone + packwindow improvements
+replace github.com/go-git/go-git/v6 => github.com/paralin/go-git/v6 v6.0.0-20260307050103-151494f0b94e // main
 
 // aperture: use compatibility forks
 replace (
@@ -31,7 +31,7 @@ replace (
 )
 
 require (
-	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
+	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5 // master
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // master
 	github.com/bits-and-blooms/bitset v1.14.3
@@ -42,7 +42,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f
+	github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f // main
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/minio/minio-go/v7 v7.0.79
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
@@ -62,8 +62,10 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.32.0 // latest
-	github.com/aperturerobotics/controllerbus v0.52.5 // latest
+	github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
+	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
 	github.com/aperturerobotics/starpc v0.48.0 // latest
@@ -73,7 +75,14 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // latest
+	github.com/cloudflare/circl v1.6.3 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.2.0
+	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
+	github.com/go-git/go-git/v6 v6.0.0-20260305211659-2083cf940afa // main
+	github.com/gomodule/redigo v1.9.3
+	github.com/hack-pad/safejs v0.1.1
 	github.com/klauspost/compress v1.18.4
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.2.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
@@ -81,32 +90,19 @@ require (
 	github.com/pion/webrtc/v4 v4.2.9 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.59.0 // indirect; latest
-	github.com/sirupsen/logrus v1.9.5-0.20260227125846-00992ca6ba06
+	github.com/sirupsen/logrus v1.9.5-0.20260307071758-43e3c5e203bc
+	github.com/tidwall/btree v1.8.1
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.48.0
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	gonum.org/v1/gonum v0.17.0
-)
-
-require (
-	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/dgraph-io/ristretto/v2 v2.2.0
-	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
-	github.com/gomodule/redigo v1.9.3
-	github.com/hack-pad/safejs v0.1.1
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/tidwall/btree v1.8.1
 	gotest.tools/v3 v3.5.2
 	modernc.org/sqlite v1.45.0
 )
 
-require github.com/go-git/go-git/v6 v6.0.0-20260227233803-efde8c49a5e2
-
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
-	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
