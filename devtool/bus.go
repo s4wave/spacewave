@@ -29,12 +29,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
+	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -218,6 +220,19 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
+	// Register GC hierarchy: gcroot -> bucket
+	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
+		if rg := kvVol.GetRefGraph(); rg != nil {
+			if err := block_gc.RegisterEntityChain(ctx, rg,
+				block_gc.NodeGCRoot,
+				block_gc.BucketIRI(engineBucketID),
+			); err != nil {
+				rel()
+				return nil, err
+			}
+		}
+	}
+
 	transformConf, err := block_transform.NewConfig(devtoolTransformConf)
 	if err != nil {
 		rel()
@@ -313,6 +328,18 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		}
 	} else {
 		cleanupTx.Discard()
+	}
+
+	// Run GC collection after cleanup to reclaim blocks from deleted manifests.
+	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
+		if rg := kvVol.GetRefGraph(); rg != nil {
+			collector := block_gc.NewCollector(rg, vol, nil)
+			if stats, err := collector.Collect(ctx); err != nil {
+				le.WithError(err).Warn("gc collect after cleanup failed")
+			} else if stats.NodesSwept > 0 {
+				le.WithField("swept", stats.NodesSwept).Info("gc collected after cleanup")
+			}
+		}
 	}
 
 	// distSrcDir is the path to the dist sources dir
