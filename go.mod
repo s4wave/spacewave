@@ -22,7 +22,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260228113018-399f9d4e09f9 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260307080942-c08191dc11b7 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 // indirect
@@ -44,8 +44,8 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.0 // master
-	github.com/aperturerobotics/cayley v0.11.1 // latest
+	github.com/aperturerobotics/bifrost v0.47.1-0.20260302033808-4e866d3cb575 // master
+	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.4 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
@@ -87,7 +87,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.52.5 // latest
+	github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.48.0 // latest
 	github.com/aperturerobotics/util v1.32.5 // latest
@@ -106,10 +106,10 @@ require (
 	github.com/pion/webrtc/v4 v4.2.9 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/sirupsen/logrus v1.9.5-0.20260227125846-00992ca6ba06
+	github.com/sirupsen/logrus v1.9.5-0.20260307071758-43e3c5e203bc
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.48.0
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 )
 
