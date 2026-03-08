@@ -335,7 +335,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 
 	// install dist deps (cached: skips if package.json unchanged)
 	// Use stateDir (not buildDir) so the cache survives CleanCreateDir on the build output.
-	buildPkgsDir := filepath.Join(stateDir, "build-web-pkgs")
+	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
 	if err := npm.EnsureBunInstall(ctx, le, stateDir, filepath.Join(bldrDistRoot, "dist/deps/package.json"), buildPkgsDir); err != nil {
 		return err
 	}
