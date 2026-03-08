@@ -123,7 +123,7 @@ enum WebRuntimeClientType {
 
 // WebRenderer is the type of web renderer to use for native applications.
 enum WebRenderer {
-  // WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+  // WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
   WEB_RENDERER_DEFAULT = 0;
   // WEB_RENDERER_ELECTRON uses Electron as the native runtime.
   WEB_RENDERER_ELECTRON = 1;

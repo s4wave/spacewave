@@ -11,7 +11,7 @@ import (
 const WebRendererEnvVar = "BLDR_WEB_RENDERER"
 
 // DefaultWebRenderer is the default web renderer for native applications.
-const DefaultWebRenderer = WebRenderer_WEB_RENDERER_SAUCER
+const DefaultWebRenderer = WebRenderer_WEB_RENDERER_ELECTRON
 
 // ParseWebRenderer parses a web renderer string.
 // Returns an error if the renderer is invalid.
@@ -45,7 +45,7 @@ func GetWebRendererFromEnv() WebRenderer {
 	return r
 }
 
-// Resolve resolves the web renderer, defaulting to saucer if DEFAULT.
+// Resolve resolves the web renderer, defaulting to electron if DEFAULT.
 func (r WebRenderer) Resolve() WebRenderer {
 	if r == WebRenderer_WEB_RENDERER_DEFAULT {
 		return DefaultWebRenderer
