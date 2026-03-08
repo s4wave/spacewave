@@ -62,6 +62,11 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 		Loader: map[string]esbuild.Loader{
 			".woff":  esbuild.LoaderFile,
 			".woff2": esbuild.LoaderFile,
+			".png":   esbuild.LoaderFile,
+			".jpg":   esbuild.LoaderFile,
+			".jpeg":  esbuild.LoaderFile,
+			".svg":   esbuild.LoaderFile,
+			".gif":   esbuild.LoaderFile,
 		},
 		OutExtension: map[string]string{
 			".js": ".mjs",
@@ -79,6 +84,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
 	buildOpts := BrowserBuildOpts(bldrDistRoot, minify)
 	buildOpts.External = slices.Clone(web_pkg_external.BldrExternal)
+	buildOpts.External = append(buildOpts.External, "tailwindcss")
 	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
 		InputPath:  "web/entrypoint/entrypoint.tsx",
 		OutputPath: "entrypoint",
