@@ -197,6 +197,12 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	)
 	if b.gcOps != nil {
 		br, existed, err = b.gcOps.PutBlock(ctx, data, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		if err := b.gcOps.FlushPending(ctx); err != nil {
+			return nil, false, err
+		}
 	} else {
 		br, existed, err = b.v.PutBlock(ctx, data, opts)
 	}
