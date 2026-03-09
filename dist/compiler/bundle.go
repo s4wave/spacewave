@@ -23,12 +23,14 @@ import (
 	browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	cbc "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/go-kvfile"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
-	hydra_core "github.com/aperturerobotics/hydra/core"
+	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
+	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
@@ -117,13 +119,15 @@ func BuildDistBundle(
 		}
 	}
 
-	// construct a new bus to hold our working volume
+	// construct a minimal bus with only the factories needed for dist builds
 	le.Info("initializing embedded volume")
-	// TODO: this includes all the volume providers, we probably just need the ones we actually use!
-	workBus, workSr, err := hydra_core.NewCoreBus(ctx, le)
+	workBus, workSr, err := cbc.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
 	}
+	workSr.AddFactory(node_controller.NewFactory(workBus))
+	workSr.AddFactory(bucket_setup.NewFactory(workBus))
+	workSr.AddFactory(lookup_concurrent.NewFactory(workBus))
 	workSr.AddFactory(world_block_engine.NewFactory(workBus))
 
 	workingDbDir := filepath.Join(workingPath, "dist-vol")
@@ -427,21 +431,16 @@ func BuildDistBundle(
 		return err
 	}
 
-	// We must use gzip compression here since DecompressStream does not support brotli.
+	// Gzip compress the wasm binary for web distribution.
+	// The browser decompresses via DecompressionStream('gzip').
+	// Brotli is not supported by DecompressionStream.
 	if isWebPlatform && enableCompression {
-		gzPath, err := bldr_compress.CompressGzip(ctx, le, workingPath, outBinPath)
-		if err != nil {
+		if _, err := bldr_compress.CompressGzip(ctx, le, workingPath, outBinPath); err != nil {
 			return err
 		}
-		err = os.Remove(outBinPath)
-		if err != nil {
+		if err := os.Remove(outBinPath); err != nil {
 			return err
 		}
-
-		// TODO: these values should be used?
-		outBinName = filepath.Base(gzPath)
-		outBinPath = gzPath
-		_, _ = outBinName, outBinPath
 	}
 
 	return nil
