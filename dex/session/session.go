@@ -17,7 +17,7 @@ import (
 const defaultChunkSize = 1024
 
 // defaultMaxBlockSize is the default maximum block size in bytes (10MB).
-const defaultMaxBlockSize = 10485760
+const defaultMaxBlockSize = block.MaxBlockSize
 
 // DexSession wraps a stream/packet.Session for chunked block transfer.
 type DexSession struct {

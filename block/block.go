@@ -10,6 +10,9 @@ import (
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
+// MaxBlockSize is the default maximum block size in bytes (10MB).
+const MaxBlockSize = 10485760
+
 // Ctor is a block constructor.
 type Ctor func() Block
 

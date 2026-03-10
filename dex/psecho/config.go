@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +18,7 @@ const defaultMaxConcurrentStreams = 4
 const defaultPublishDebounceMs = 100
 
 // defaultMaxBlockSize is the default maximum block size in bytes (10MB).
-const defaultMaxBlockSize = 10485760
+const defaultMaxBlockSize = block.MaxBlockSize
 
 // defaultChunkSize is the default chunk size in bytes (1KB).
 const defaultChunkSize = 1024
