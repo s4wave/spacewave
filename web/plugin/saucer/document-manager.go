@@ -2,16 +2,13 @@ package saucer
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/binary"
 	"io"
 	"maps"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
-	"github.com/aperturerobotics/bldr/util/framedstream"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -21,97 +18,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// controlMessage is a JSON message sent on the control stream to JS.
-type controlMessage struct {
-	Type string `json:"type"`
-	ID   int32  `json:"id,omitempty"`
-}
-
-// streamState tracks a single RPC stream between JS and Go.
-type streamState struct {
-	// serverOnce ensures the SRPC server handler is started exactly once
-	// for JS-initiated streams.
-	serverOnce sync.Once
-
-	// toJS is data going to JS.
-	toJS chan []byte
-	// fromJS is data coming from JS.
-	fromJS chan []byte
-
-	// goInitiated indicates this stream was initiated by Go.
-	goInitiated bool
-	// closed indicates the stream is closed.
-	closed atomic.Bool
-	// closeCh is closed when the stream is closed.
-	closeCh chan struct{}
-}
-
-// Close closes the stream state.
-func (s *streamState) Close() {
-	if s.closed.Swap(true) {
-		return
-	}
-	close(s.closeCh)
-}
-
-// documentState tracks all streams for a single web document.
+// documentState tracks the yamux mux connection for a single web document.
 type documentState struct {
 	id        string
-	connected atomic.Bool
+	connected bool
 
-	mtx     sync.Mutex
-	streams map[int32]*streamState
+	// mux is the yamux mux connection to JS.
+	// Set when JS connects via /b/saucer/{docId}/mux GET.
+	mux srpc.MuxedConn
 
-	// controlCh receives messages for the control stream.
-	controlCh chan controlMessage
-
-	// nextIncomingID is the next stream ID for Go-initiated streams (negative).
-	nextIncomingID atomic.Int32
+	// mc is the underlying muxConn for posting data from JS.
+	mc *muxConn
 }
 
-// newDocumentState constructs a new documentState.
-func newDocumentState(id string) *documentState {
-	d := &documentState{
-		id:        id,
-		streams:   make(map[int32]*streamState),
-		controlCh: make(chan controlMessage, 64),
-	}
-	d.nextIncomingID.Store(-1)
-	return d
-}
-
-// getOrCreateStream returns or creates a stream.
-func (d *documentState) getOrCreateStream(id int32) *streamState {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	s, ok := d.streams[id]
-	if !ok {
-		s = &streamState{
-			toJS:    make(chan []byte, 64),
-			fromJS:  make(chan []byte, 64),
-			closeCh: make(chan struct{}),
-		}
-		d.streams[id] = s
-	}
-	return s
-}
-
-// closeAll closes all streams and the control channel.
-func (d *documentState) closeAll() {
-	d.mtx.Lock()
-	streams := d.streams
-	d.streams = make(map[int32]*streamState)
-	close(d.controlCh)
-	d.controlCh = make(chan controlMessage, 64)
-	d.mtx.Unlock()
-	for _, s := range streams {
-		s.Close()
-	}
-	d.connected.Store(false)
-}
-
-// DocumentManager tracks connected web documents and manages RPC streams.
-// Replaces the C++ ConnectionManager.
+// DocumentManager tracks connected web documents and manages RPC streams
+// via yamux multiplexed over a single HTTP streaming connection per document.
 type DocumentManager struct {
 	le *logrus.Entry
 
@@ -126,7 +47,6 @@ type DocumentManager struct {
 	snapshotCtr *ccontainer.CContainer[*web_runtime.WebRuntimeStatus]
 
 	// server is the SRPC server for handling JS-initiated RPC streams.
-	// Set via SetServer after Remote creation.
 	server *srpc.Server
 }
 
@@ -156,18 +76,9 @@ func (dm *DocumentManager) getOrCreateDoc(id string) *documentState {
 		var ok bool
 		d, ok = dm.docs[id]
 		if !ok {
-			d = newDocumentState(id)
+			d = &documentState{id: id}
 			dm.docs[id] = d
 		}
-	})
-	return d
-}
-
-// getDoc returns an existing document state.
-func (dm *DocumentManager) getDoc(id string) *documentState {
-	var d *documentState
-	dm.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		d = dm.docs[id]
 	})
 	return d
 }
@@ -178,7 +89,7 @@ func (dm *DocumentManager) updateStatusSnapshot() {
 	dm.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		status = &web_runtime.WebRuntimeStatus{Snapshot: true}
 		for _, doc := range dm.docs {
-			if doc.connected.Load() {
+			if doc.connected {
 				status.WebDocuments = append(status.WebDocuments, &web_runtime.WebDocumentStatus{
 					Id:        doc.id,
 					Permanent: true,
@@ -197,7 +108,9 @@ func (dm *DocumentManager) Close() {
 		dm.docs = make(map[string]*documentState)
 	})
 	for _, d := range docs {
-		d.closeAll()
+		if d.mux != nil {
+			_ = d.mux.Close()
+		}
 	}
 }
 
@@ -205,7 +118,6 @@ func (dm *DocumentManager) Close() {
 func (dm *DocumentManager) ServeSaucerHTTP(rw http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 
-	// Parse /b/saucer/{docId}/{remainder}
 	docID, remainder, ok := parseSaucerPath(path)
 	if !ok {
 		rw.WriteHeader(404)
@@ -214,143 +126,187 @@ func (dm *DocumentManager) ServeSaucerHTTP(rw http.ResponseWriter, req *http.Req
 	}
 
 	switch remainder {
-	case "connect":
-		dm.handleConnect(rw, docID)
-	case "control":
-		dm.handleControl(rw, req, docID)
-	default:
-		// Check for stream routes: stream/{streamId}/{operation}
-		streamID, operation, ok := parseStreamPath(remainder)
-		if !ok {
-			rw.WriteHeader(404)
-			_, _ = rw.Write([]byte("unknown saucer route"))
-			return
-		}
-
-		switch operation {
-		case "read":
-			dm.handleStreamRead(rw, req, docID, streamID)
-		case "write":
-			dm.handleStreamWrite(rw, req, docID, streamID)
+	case "mux":
+		switch req.Method {
+		case "GET":
+			dm.handleMuxRead(rw, req, docID)
+		case "POST":
+			dm.handleMuxWrite(rw, req, docID)
 		default:
-			rw.WriteHeader(404)
-			_, _ = rw.Write([]byte("unknown stream operation"))
+			rw.WriteHeader(405)
 		}
+	default:
+		rw.WriteHeader(404)
+		_, _ = rw.Write([]byte("unknown saucer route"))
 	}
 }
 
-// handleConnect handles /b/saucer/{docId}/connect.
-func (dm *DocumentManager) handleConnect(rw http.ResponseWriter, docID string) {
+// muxConn bridges the mux read (GET streaming response) and mux write (POST data)
+// into a single io.ReadWriteCloser for yamux.
+type muxConn struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// writeCh receives data from JS (POST bodies) to be read by yamux.
+	writeCh chan []byte
+
+	// flushCh receives data from yamux to be written to the JS response.
+	flushCh chan []byte
+
+	// pending holds leftover data from a previous writeCh read.
+	pendingMu sync.Mutex
+	pending   []byte
+}
+
+// Read returns data posted by JS to the mux write endpoint.
+func (mc *muxConn) Read(p []byte) (int, error) {
+	mc.pendingMu.Lock()
+	if len(mc.pending) > 0 {
+		n := copy(p, mc.pending)
+		mc.pending = mc.pending[n:]
+		if len(mc.pending) == 0 {
+			mc.pending = nil
+		}
+		mc.pendingMu.Unlock()
+		return n, nil
+	}
+	mc.pendingMu.Unlock()
+
+	select {
+	case <-mc.ctx.Done():
+		return 0, mc.ctx.Err()
+	case data, ok := <-mc.writeCh:
+		if !ok {
+			return 0, io.EOF
+		}
+		n := copy(p, data)
+		if n < len(data) {
+			mc.pendingMu.Lock()
+			mc.pending = data[n:]
+			mc.pendingMu.Unlock()
+		}
+		return n, nil
+	}
+}
+
+// Write sends data from yamux to JS via the streaming GET response.
+func (mc *muxConn) Write(p []byte) (int, error) {
+	data := make([]byte, len(p))
+	copy(data, p)
+	select {
+	case mc.flushCh <- data:
+		return len(p), nil
+	case <-mc.ctx.Done():
+		return 0, mc.ctx.Err()
+	}
+}
+
+// Close closes the mux connection.
+func (mc *muxConn) Close() error {
+	mc.cancel()
+	return nil
+}
+
+// handleMuxRead handles GET /b/saucer/{docId}/mux.
+// This is a long-lived streaming response that carries yamux frames from Go to JS.
+func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Request, docID string) {
 	doc := dm.getOrCreateDoc(docID)
 
-	// If already connected, close old streams (page reload).
-	if doc.connected.Load() {
-		doc.closeAll()
-	}
-
-	doc.connected.Store(true)
-
+	// Close old mux if reconnecting (page reload).
 	dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		dm.defaultDocID = docID
+		if doc.mux != nil {
+			_ = doc.mux.Close()
+			doc.mux = nil
+		}
+		doc.connected = false
 		broadcast()
 	})
 
+	muxCtx, muxCancel := context.WithCancel(req.Context())
+	mc := &muxConn{
+		ctx:     muxCtx,
+		cancel:  muxCancel,
+		writeCh: make(chan []byte, 64),
+		flushCh: make(chan []byte, 64),
+	}
+
+	// JS is inbound (connects to us), we are outbound (open streams to JS).
+	// In yamux terms: JS=client, Go=server. So Go side is outbound=false.
+	yamuxConn, err := srpc.NewMuxedConnWithRwc(muxCtx, mc, false, nil)
+	if err != nil {
+		muxCancel()
+		dm.le.WithError(err).Error("failed to create yamux mux conn")
+		rw.WriteHeader(500)
+		_, _ = rw.Write([]byte("yamux init failed"))
+		return
+	}
+
+	// Register the mux and mark connected.
+	dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		doc.mux = yamuxConn
+		doc.mc = mc
+		doc.connected = true
+		dm.defaultDocID = docID
+		broadcast()
+	})
 	dm.updateStatusSnapshot()
-	dm.le.WithField("doc-id", docID).Debug("document connected")
+	dm.le.WithField("doc-id", docID).Debug("document mux connected")
 
-	rw.WriteHeader(200)
-	_, _ = rw.Write([]byte("OK"))
-}
+	// Accept JS-initiated streams in the background.
+	go dm.acceptMuxStreams(muxCtx, yamuxConn)
 
-// handleControl handles GET /b/saucer/{docId}/control.
-func (dm *DocumentManager) handleControl(rw http.ResponseWriter, req *http.Request, docID string) {
-	doc := dm.getDoc(docID)
-	if doc == nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("document not found"))
-		return
-	}
-
-	rw.Header().Set("Cache-Control", "no-cache")
-	rw.Header().Set("X-Content-Type-Options", "nosniff")
-	rw.Header().Set("Content-Type", "application/x-ndjson")
-	rw.WriteHeader(200)
-
-	ctx := req.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg, ok := <-doc.controlCh:
-			if !ok {
-				return
-			}
-			data, err := json.Marshal(msg)
-			if err != nil {
-				continue
-			}
-			data = append(data, '\n')
-			_, err = rw.Write(data)
-			if err != nil {
-				return
-			}
-		}
-	}
-}
-
-// handleStreamRead handles GET /b/saucer/{docId}/stream/{id}/read.
-func (dm *DocumentManager) handleStreamRead(rw http.ResponseWriter, req *http.Request, docID string, streamID int32) {
-	doc := dm.getDoc(docID)
-	if doc == nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("document not found"))
-		return
-	}
-
-	ss := doc.getOrCreateStream(streamID)
-
-	// For JS-initiated streams, start the local SRPC server handler.
-	// The read request is long-lived, so its context controls the stream lifetime.
-	if !ss.goInitiated {
-		ss.serverOnce.Do(func() {
-			if dm.server == nil {
-				dm.le.Error("SRPC server not set, cannot handle JS-initiated stream")
-				return
-			}
-			bridge := &streamBridge{ss: ss, ctx: req.Context()}
-			go dm.server.HandleStream(req.Context(), bridge)
-		})
-	}
-
+	// Stream yamux output to JS via the HTTP response.
 	rw.Header().Set("Cache-Control", "no-cache")
 	rw.Header().Set("X-Content-Type-Options", "nosniff")
 	rw.Header().Set("Content-Type", "application/octet-stream")
 	rw.WriteHeader(200)
 
-	ctx := req.Context()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-muxCtx.Done():
+			dm.disconnectDoc(doc)
 			return
-		case data, ok := <-ss.toJS:
-			if !ok || ss.closed.Load() {
+		case <-req.Context().Done():
+			muxCancel()
+			dm.disconnectDoc(doc)
+			return
+		case data, ok := <-mc.flushCh:
+			if !ok {
+				dm.disconnectDoc(doc)
 				return
 			}
-			_, err := rw.Write(data)
-			if err != nil {
+			if _, err := rw.Write(data); err != nil {
+				dm.le.WithField("doc-id", docID).WithError(err).Debug("mux read write error")
+				muxCancel()
+				dm.disconnectDoc(doc)
 				return
 			}
 		}
 	}
 }
 
-// handleStreamWrite handles POST /b/saucer/{docId}/stream/{id}/write.
-func (dm *DocumentManager) handleStreamWrite(rw http.ResponseWriter, req *http.Request, docID string, streamID int32) {
-	doc := dm.getDoc(docID)
-	if doc == nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("document not found"))
-		return
+// handleMuxWrite handles POST /b/saucer/{docId}/mux.
+// Receives yamux frames from JS and queues them for the mux reader.
+func (dm *DocumentManager) handleMuxWrite(rw http.ResponseWriter, req *http.Request, docID string) {
+	// Wait for the mux connection to be ready.
+	// JS may POST before the GET handler finishes creating the muxConn.
+	var mc *muxConn
+	for {
+		var ch <-chan struct{}
+		dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			ch = getWaitCh()
+			if doc, ok := dm.docs[docID]; ok && doc.connected {
+				mc = doc.mc
+			}
+		})
+		if mc != nil {
+			break
+		}
+		select {
+		case <-req.Context().Done():
+			return
+		case <-ch:
+		}
 	}
 
 	body, err := io.ReadAll(req.Body)
@@ -360,122 +316,185 @@ func (dm *DocumentManager) handleStreamWrite(rw http.ResponseWriter, req *http.R
 		return
 	}
 
-	ss := doc.getOrCreateStream(streamID)
-
-	// If the stream is already closed (e.g. server finished a unary RPC before
-	// the client sent its final completion packet), silently discard the data.
-	if ss.closed.Load() {
+	if len(body) == 0 {
 		rw.WriteHeader(204)
 		return
 	}
 
-	// Route data to fromJS channel.
-	// For Go-initiated streams, directReadPump reads this.
-	// For JS-initiated streams, Server.HandleStream reads this.
 	select {
-	case ss.fromJS <- body:
-	case <-ss.closeCh:
-		// Stream closed while we were waiting to send - discard data.
+	case mc.writeCh <- body:
 		rw.WriteHeader(204)
-		return
+	case <-mc.ctx.Done():
+		rw.WriteHeader(503)
+		_, _ = rw.Write([]byte("mux closed"))
 	case <-req.Context().Done():
 		return
 	}
-
-	rw.WriteHeader(204)
 }
 
-// WebDocumentOpenStream opens an RPC stream with the given WebDocument.
-// This is called by Go when it wants to talk to JS.
+// disconnectDoc marks a document as disconnected and cleans up.
+func (dm *DocumentManager) disconnectDoc(doc *documentState) {
+	dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if doc.mux != nil {
+			_ = doc.mux.Close()
+			doc.mux = nil
+		}
+		doc.mc = nil
+		doc.connected = false
+		broadcast()
+	})
+	dm.updateStatusSnapshot()
+}
+
+// acceptMuxStreams accepts yamux streams from JS and routes them to the SRPC server.
+func (dm *DocumentManager) acceptMuxStreams(ctx context.Context, mc srpc.MuxedConn) {
+	for {
+		stream, err := mc.AcceptStream()
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			dm.le.WithError(err).Debug("mux accept stream error")
+			return
+		}
+		if dm.server == nil {
+			dm.le.Error("SRPC server not set, cannot handle JS-initiated stream")
+			_ = stream.Close()
+			continue
+		}
+		go dm.server.HandleStream(ctx, stream)
+	}
+}
+
+// WebDocumentOpenStream opens an RPC stream with the given WebDocument via yamux.
 func (dm *DocumentManager) WebDocumentOpenStream(
 	ctx context.Context,
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	webDocumentID string,
 ) (srpc.PacketWriter, error) {
-	// Wait for the document to be connected.
 	doc := dm.waitForDoc(ctx, webDocumentID)
 	if doc == nil {
 		return nil, ctx.Err()
 	}
 
-	// Allocate a negative stream ID for Go-initiated stream.
-	streamID := doc.nextIncomingID.Add(-1) + 1
-	ss := doc.getOrCreateStream(streamID)
-	ss.goInitiated = true
-
-	// Notify JS about the new stream.
-	select {
-	case doc.controlCh <- controlMessage{Type: "stream", ID: streamID}:
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	var mc srpc.MuxedConn
+	dm.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		mc = doc.mux
+	})
+	if mc == nil {
+		return nil, errors.New("document mux not connected")
 	}
 
-	// Create a bridge that converts fromJS/toJS channels to an io.ReadWriteCloser.
-	bridge := &streamBridge{ss: ss, ctx: ctx}
-	stream := framedstream.New(ctx, bridge)
+	stream, err := mc.OpenStream(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	// Use direct SRPC packet framing (no RpcStreamPacket wrapper).
-	// JS sends/receives raw SRPC packets with length-prefix framing,
-	// not wrapped in RpcStreamPacket protobuf messages.
-	go directReadPump(stream, msgHandler, closeHandler)
+	// Wrap the yamux stream as an SRPC packet stream.
+	// Use direct framing: length-prefixed SRPC packets.
+	bridge := &yamuxStreamBridge{stream: stream}
+	go func() {
+		var pumpErr error
+		var count int
+		for {
+			data, err := bridge.RecvRaw()
+			if err != nil {
+				pumpErr = err
+				break
+			}
+			if len(data) == 0 {
+				continue
+			}
+			count++
+			if err = msgHandler(data); err != nil {
+				pumpErr = err
+				break
+			}
+		}
+		dm.le.
+			WithField("packets", count).
+			WithError(pumpErr).
+			Debug("WebDocumentOpenStream: read pump exited")
+		if closeHandler != nil {
+			closeHandler(pumpErr)
+		}
+	}()
 
-	return &directPacketWriter{stream: stream}, nil
+	return &yamuxPacketWriter{ctx: ctx, bridge: bridge}, nil
 }
 
-// directPacketWriter writes SRPC packets directly with length-prefix framing.
-// Bypasses the RpcStreamPacket layer that JS does not use.
-type directPacketWriter struct {
-	stream *framedstream.Stream
+// yamuxStreamBridge wraps a yamux stream with length-prefix framing.
+type yamuxStreamBridge struct {
+	stream io.ReadWriteCloser
+	readMu sync.Mutex
+}
+
+// RecvRaw reads a length-prefixed frame from the yamux stream.
+func (b *yamuxStreamBridge) RecvRaw() ([]byte, error) {
+	b.readMu.Lock()
+	defer b.readMu.Unlock()
+
+	lenBuf := make([]byte, 4)
+	if _, err := io.ReadFull(b.stream, lenBuf); err != nil {
+		return nil, err
+	}
+	msgLen := binary.LittleEndian.Uint32(lenBuf)
+	if msgLen > MaxFrameSize {
+		return nil, io.ErrShortBuffer
+	}
+	data := make([]byte, msgLen)
+	if _, err := io.ReadFull(b.stream, data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// SendRaw writes a length-prefixed frame to the yamux stream.
+func (b *yamuxStreamBridge) SendRaw(data []byte) error {
+	lenBuf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec
+	if _, err := b.stream.Write(lenBuf); err != nil {
+		return err
+	}
+	_, err := b.stream.Write(data)
+	return err
+}
+
+// Close closes the underlying yamux stream.
+func (b *yamuxStreamBridge) Close() error {
+	return b.stream.Close()
+}
+
+// yamuxPacketWriter writes SRPC packets over a yamux stream with length-prefix framing.
+type yamuxPacketWriter struct {
+	ctx    context.Context
+	bridge *yamuxStreamBridge
 }
 
 // WritePacket writes a packet to the remote.
-func (w *directPacketWriter) WritePacket(p *srpc.Packet) error {
+func (w *yamuxPacketWriter) WritePacket(p *srpc.Packet) error {
 	data, err := p.MarshalVT()
 	if err != nil {
 		return err
 	}
-	return w.stream.SendRaw(data)
+	return w.bridge.SendRaw(data)
 }
 
 // Close signals that the writer will no longer send data.
-// Does not close the underlying stream - the read pump may still
-// be receiving responses from JS.
-func (w *directPacketWriter) Close() error {
+func (w *yamuxPacketWriter) Close() error {
 	return nil
 }
 
 // Context returns the stream context.
-func (w *directPacketWriter) Context() context.Context {
-	return w.stream.Context()
-}
-
-// directReadPump reads length-prefixed SRPC packets from the stream.
-// Bypasses the RpcStreamPacket layer that JS does not use.
-func directReadPump(stream *framedstream.Stream, cb srpc.PacketDataHandler, closed srpc.CloseHandler) {
-	var err error
-	for {
-		var data []byte
-		data, err = stream.RecvRaw()
-		if err != nil {
-			break
-		}
-		if len(data) == 0 {
-			continue
-		}
-		if err = cb(data); err != nil {
-			break
-		}
-	}
-	if closed != nil {
-		closed(err)
-	}
+func (w *yamuxPacketWriter) Context() context.Context {
+	return w.ctx
 }
 
 // _ is a type assertion
-var _ srpc.PacketWriter = ((*directPacketWriter)(nil))
+var _ srpc.PacketWriter = ((*yamuxPacketWriter)(nil))
 
-// waitForDoc waits for a document to exist and be connected.
+// waitForDoc waits for a document to exist and be connected with a mux.
 func (dm *DocumentManager) waitForDoc(ctx context.Context, docID string) *documentState {
 	for {
 		var doc *documentState
@@ -485,7 +504,7 @@ func (dm *DocumentManager) waitForDoc(ctx context.Context, docID string) *docume
 			doc = dm.docs[docID]
 		})
 
-		if doc != nil && doc.connected.Load() {
+		if doc != nil && doc.connected && doc.mux != nil {
 			return doc
 		}
 
@@ -495,61 +514,6 @@ func (dm *DocumentManager) waitForDoc(ctx context.Context, docID string) *docume
 		case <-ch:
 		}
 	}
-}
-
-// streamBridge bridges a streamState to io.ReadWriteCloser for framedstream.
-type streamBridge struct {
-	ss      *streamState
-	ctx     context.Context
-	pending []byte
-}
-
-// Read reads data from JS (fromJS channel).
-func (b *streamBridge) Read(p []byte) (int, error) {
-	// Return buffered data from a previous oversized read first.
-	if len(b.pending) > 0 {
-		n := copy(p, b.pending)
-		b.pending = b.pending[n:]
-		if len(b.pending) == 0 {
-			b.pending = nil
-		}
-		return n, nil
-	}
-
-	select {
-	case <-b.ctx.Done():
-		return 0, b.ctx.Err()
-	case data, ok := <-b.ss.fromJS:
-		if !ok || b.ss.closed.Load() {
-			return 0, io.EOF
-		}
-		n := copy(p, data)
-		if n < len(data) {
-			b.pending = data[n:]
-		}
-		return n, nil
-	}
-}
-
-// Write writes data to JS (toJS channel).
-func (b *streamBridge) Write(p []byte) (int, error) {
-	if b.ss.closed.Load() {
-		return 0, io.EOF
-	}
-	data := make([]byte, len(p))
-	copy(data, p)
-	select {
-	case b.ss.toJS <- data:
-		return len(p), nil
-	case <-b.ctx.Done():
-		return 0, b.ctx.Err()
-	}
-}
-
-// Close closes the bridge.
-func (b *streamBridge) Close() error {
-	b.ss.Close()
-	return nil
 }
 
 // parseSaucerPath parses /b/saucer/{docId}/{remainder}.
@@ -568,29 +532,6 @@ func parseSaucerPath(path string) (docID, remainder string, ok bool) {
 	return docID, remainder, docID != ""
 }
 
-// parseStreamPath parses stream/{streamId}/{operation}.
-func parseStreamPath(remainder string) (streamID int32, operation string, ok bool) {
-	prefix := "stream/"
-	if !strings.HasPrefix(remainder, prefix) {
-		return 0, "", false
-	}
-	rest := remainder[len(prefix):]
-	before, after, ok0 := strings.Cut(rest, "/")
-	if !ok0 {
-		return 0, "", false
-	}
-	idStr := before
-	operation = after
-	id, err := strconv.ParseInt(idStr, 10, 32)
-	if err != nil {
-		return 0, "", false
-	}
-	if operation != "read" && operation != "write" {
-		return 0, "", false
-	}
-	return int32(id), operation, true
-}
-
 // GetWebDocuments returns the current snapshot of active WebDocuments.
 func (dm *DocumentManager) GetWebDocuments() map[string]*documentState {
 	var out map[string]*documentState
@@ -606,7 +547,7 @@ func (dm *DocumentManager) GetDocumentIDs() []string {
 	var ids []string
 	dm.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, doc := range dm.docs {
-			if doc.connected.Load() {
+			if doc.connected {
 				ids = append(ids, doc.id)
 			}
 		}
@@ -646,19 +587,16 @@ func (dm *DocumentManager) WaitDefaultDoc(ctx context.Context) (string, error) {
 }
 
 // HandleWebDocumentRpc handles a Go->JS RPC stream via the document manager.
-// Bridges the RpcStream from Go to JS via the control stream notification mechanism.
 func (dm *DocumentManager) HandleWebDocumentRpc(
 	ctx context.Context,
 	componentID string,
 	_ func(),
 ) (srpc.Invoker, func(), error) {
-	// Wait for the document to exist.
 	doc := dm.waitForDoc(ctx, componentID)
 	if doc == nil {
 		return nil, nil, errors.New("document " + componentID + " not found")
 	}
 
-	// Return an invoker that opens streams via the document manager.
 	openStreamFn := func(
 		ctx context.Context,
 		msgHandler srpc.PacketDataHandler,
@@ -678,14 +616,13 @@ func (dm *DocumentManager) WatchWebRuntimeStatus(_ *web_runtime.WatchWebRuntimeS
 
 	var initial bool
 	for {
-		// Build snapshot and get wait channel atomically to avoid missed wakeups.
 		var ch <-chan struct{}
 		var status *web_runtime.WebRuntimeStatus
 		dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 			status = &web_runtime.WebRuntimeStatus{Snapshot: true}
 			for _, doc := range dm.docs {
-				if doc.connected.Load() {
+				if doc.connected {
 					status.WebDocuments = append(status.WebDocuments, &web_runtime.WebDocumentStatus{
 						Id:        doc.id,
 						Permanent: true,

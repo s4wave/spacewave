@@ -39,6 +39,7 @@
     "debug:web:wasm": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web --wasm",
     "debug:release:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false --build-type=debug build -b release-web",
     "build": "bun run bldr -- --build-type=debug build -b native",
+    "build:cli": "bun run bldr -- start cli bldr-demo-cli -- --help > /dev/null 2>&1 && mkdir -p bin && cp .bldr/cli/bldr-demo-cli/dist/bldr-demo-cli bin/bldr-demo-cli",
     "build:web": "bun run bldr -- --build-type=debug build -b web",
     "build:release": "bun run bldr -- --build-type=release build -b release",
     "build:release:web": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web",
@@ -107,7 +108,8 @@
     "quickjs-wasi-reactor": "^0.12.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "starpc": "^0.48.0",
+    "starpc": "^0.49.0",
+    "ulid": "^3.0.2",
     "workbox-window": "^7.4.0"
   },
   "resolutions": {

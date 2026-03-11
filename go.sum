@@ -14,8 +14,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 h1:d0WhyJkN
 github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1/go.mod h1:Hcs0czu8ZTqit90wUjdgaKcRlm22+Oe9DcNDN6Sx8Zs=
 github.com/aperturerobotics/bifrost v0.47.1-0.20260302033808-4e866d3cb575 h1:eNGAk9zdsEJC1NsSqlU5kcuduz43rfPOYo1yFGH3jKI=
 github.com/aperturerobotics/bifrost v0.47.1-0.20260302033808-4e866d3cb575/go.mod h1:b/Rq8nbudjh5IVnMpbzK5l64k4a7ynaDtcxTqolJ+Ms=
-github.com/aperturerobotics/bldr-saucer v0.3.1 h1:CO21sMcgbM3Z57Mk1JBSrUyEEdEQehGX5KjkQvYwNcI=
-github.com/aperturerobotics/bldr-saucer v0.3.1/go.mod h1:rwkXIRRWshFUUYJBOr0q75IRG8Iazyr1dm+3L5A4w8k=
+github.com/aperturerobotics/bldr-saucer v0.3.2-0.20260311225841-73b97f9b4592 h1:HfwKSAnWr8X0mH55nSTH5V4f0oy2Je5+RPRXv0mSeSw=
+github.com/aperturerobotics/bldr-saucer v0.3.2-0.20260311225841-73b97f9b4592/go.mod h1:cTo0z2KZyRBIaxF42HVcOtGMHK1J/dMiEf8YN0bRyRo=
 github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 h1:/GtpPF0AtzK06Ymtl6ybMZaWJwbtWr/1lrHlQ7YxFe0=
 github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20/go.mod h1:XSzKC1ihG//p+wH93rfeIfWgBPiuRvKjtKHcXOW905E=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
@@ -24,8 +24,8 @@ github.com/aperturerobotics/common v0.32.0 h1:wKKKUMGs8HZC2exPGVNtj81zqW687mf/rh
 github.com/aperturerobotics/common v0.32.0/go.mod h1:m46OxaMDdhPjsWBSdIwkPPCmuFVMuJiRc8/DvC0wStM=
 github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b h1:04q9T8dXWqTj2y6KELuaek0IdnGTWTCu4taUVBoGnA8=
 github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b/go.mod h1:1HJoMwc4IlzwGs3UIwdqCR9CGFU1iy4MCQ4ls0yu4x0=
-github.com/aperturerobotics/cpp-yamux v0.0.0-20260210211602-17940b831f59 h1:poYkT3TIaho78fYEjQ2w7oLkarSkkdK1EKdJvw9D3Z0=
-github.com/aperturerobotics/cpp-yamux v0.0.0-20260210211602-17940b831f59/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
+github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
+github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
@@ -54,10 +54,10 @@ github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3B
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
 github.com/aperturerobotics/protobuf-go-lite v0.12.2 h1:ujwTKgpIYAVsv8VljB6PPMY5SI8i8m/NlIHAkkuxQcU=
 github.com/aperturerobotics/protobuf-go-lite v0.12.2/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
-github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1 h1:M8Y+CjQ0gFNWAAItuop12kT+Ap86pu1q4wC6rOhDdo0=
-github.com/aperturerobotics/saucer v0.0.0-20260212060101-72af1d7813e1/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.48.0 h1:js2LVxnxR9wNblIU+Tyh8JnHg1hkgP7rcHY/+zWM0BA=
-github.com/aperturerobotics/starpc v0.48.0/go.mod h1:WQTxkj5kfUkEfG+ewFC7OggKqgKQkutL76vTTZeXCwM=
+github.com/aperturerobotics/saucer v0.0.0-20260311225800-067ba3fcb8ab h1:bbn9cCPtUKsxH6gmGGecFg5BwUXJj5YBzP79XWGNFeQ=
+github.com/aperturerobotics/saucer v0.0.0-20260311225800-067ba3fcb8ab/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
+github.com/aperturerobotics/starpc v0.49.0 h1:b3uRx2HF/OMEM47zzPFQumqR42PaOYvQQIhWMUU9RDQ=
+github.com/aperturerobotics/starpc v0.49.0/go.mod h1:WQTxkj5kfUkEfG+ewFC7OggKqgKQkutL76vTTZeXCwM=
 github.com/aperturerobotics/util v1.32.5 h1:5gr2Ft1rYGFA5yrSm3n18Ghu5Al2uyg7DTtljh1wLHI=
 github.com/aperturerobotics/util v1.32.5/go.mod h1:jXVTz1OQqM3VSrjy06qiCmJLaUm80NxVuKgweaRs5dg=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=

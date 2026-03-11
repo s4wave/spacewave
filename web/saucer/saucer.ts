@@ -1,30 +1,27 @@
 /**
- * saucer.ts provides the interface for JS to communicate with the C++ Saucer process.
- * Uses HTTP endpoints routed through the bldr:// custom scheme:
+ * saucer.ts provides the interface for JS to communicate with the Go runtime
+ * via the C++ Saucer process. Uses a single yamux-multiplexed connection over
+ * two HTTP endpoints routed through the bldr:// custom scheme:
  *
- *   /b/saucer/{docId}/connect          - GET: Register document
- *   /b/saucer/{docId}/control          - GET: Persistent control stream
- *   /b/saucer/{docId}/stream/{id}/read - GET: Stream data from C++ to JS
- *   /b/saucer/{docId}/stream/{id}/write - POST: Send data from JS to C++
+ *   /b/saucer/{docId}/mux  - GET: streaming response (Go -> JS yamux frames)
+ *   /b/saucer/{docId}/mux  - POST: send yamux frames (JS -> Go)
  *
  * The page URL contains the webDocumentId as a query parameter:
  *   bldr:///index.html?webDocumentId={uuid}
  */
 
-import { Pushable, pushable } from 'it-pushable'
-import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'
 import {
   Client,
-  PacketStream,
   HandleStreamFunc,
+  StreamConn,
   openRpcStream,
-  parseLengthPrefixTransform,
-  prependLengthPrefixTransform,
   combineUint8ArrayListTransform,
 } from 'starpc'
+import { Uint8ArrayList } from 'uint8arraylist'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { WebRuntimeHostClient } from '../runtime/runtime_srpc.pb.js'
+import browserReadableStreamToIt from '../fetch/readablestream-to-it.js'
 
 declare global {
   const BLDR_SAUCER: boolean | undefined
@@ -36,9 +33,6 @@ declare global {
 export const isSaucer =
   typeof BLDR_SAUCER !== 'undefined' ||
   (typeof window !== 'undefined' && window.location?.protocol === 'bldr:')
-
-// IncomingStreamHandler handles an incoming stream from Go.
-type IncomingStreamHandler = (streamId: number, stream: PacketStream) => void
 
 /**
  * getDocId returns the web document ID from the URL query parameters.
@@ -53,18 +47,18 @@ export function getDocId(): string {
 }
 
 /**
- * SaucerRuntimeClient provides the same interface as WebRuntimeClient
- * but uses HTTP-based PacketStreams instead of MessagePorts.
+ * SaucerRuntimeClient communicates with the Go runtime via a yamux-multiplexed
+ * connection over a single pair of HTTP endpoints. All RPC streams are
+ * multiplexed over this single connection instead of using per-stream HTTP requests.
  */
 export class SaucerRuntimeClient {
   public readonly rpcClient: Client
   public readonly runtimeHost: WebRuntimeHostClient
 
-  private nextStreamId = 1
   private documentConnected = false
   private connectPromise: Promise<void> | null = null
-  private controlAbortController: AbortController | null = null
-  private incomingStreamHandler: IncomingStreamHandler | null = null
+  private muxConn: StreamConn | null = null
+  private abortController: AbortController | null = null
   private unloadHandler: (() => void) | null = null
 
   constructor(
@@ -75,17 +69,6 @@ export class SaucerRuntimeClient {
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
     this.runtimeHost = new WebRuntimeHostClient(this.rpcClient)
-
-    // Set up handler for incoming streams from Go.
-    this.incomingStreamHandler = (streamId, stream) => {
-      if (!this.handleIncomingStream) {
-        console.warn('[saucer] No handler for incoming stream:', streamId)
-        return
-      }
-      this.handleIncomingStream(stream).catch((err) => {
-        console.error('[saucer] Incoming stream error:', err)
-      })
-    }
 
     if (typeof window !== 'undefined') {
       this.unloadHandler = () => this.resetState()
@@ -98,14 +81,17 @@ export class SaucerRuntimeClient {
     await this.connectDocument()
   }
 
-  // openStream opens an RPC stream to the Go runtime.
-  public async openStream(): Promise<PacketStream> {
-    return this.openSaucerStream()
+  // openStream opens an RPC stream to the Go runtime via yamux.
+  public async openStream() {
+    await this.connectDocument()
+    if (!this.muxConn) {
+      throw new Error('saucer: mux not connected')
+    }
+    return this.muxConn.openStream()
   }
 
   // openWebDocumentHostStream opens a stream wrapped in WebRuntimeHost.WebDocumentRpc rpcstream.
-  // This allows Go to route the inner call to the per-document mux.
-  public openWebDocumentHostStream(docUuid: string): Promise<PacketStream> {
+  public openWebDocumentHostStream(docUuid: string) {
     return openRpcStream(
       docUuid,
       this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost),
@@ -113,7 +99,7 @@ export class SaucerRuntimeClient {
   }
 
   // openWebWorkerHostStream opens a stream wrapped in WebRuntimeHost.WebWorkerRpc rpcstream.
-  public openWebWorkerHostStream(workerUuid: string): Promise<PacketStream> {
+  public openWebWorkerHostStream(workerUuid: string) {
     return openRpcStream(
       workerUuid,
       this.runtimeHost.WebWorkerRpc.bind(this.runtimeHost),
@@ -133,13 +119,13 @@ export class SaucerRuntimeClient {
   private resetState(): void {
     this.documentConnected = false
     this.connectPromise = null
-    this.nextStreamId = 1
-    this.controlAbortController?.abort()
-    this.controlAbortController = null
+    this.muxConn?.close()
+    this.muxConn = null
+    this.abortController?.abort()
+    this.abortController = null
   }
 
-  // connectDocument connects the document to the C++ runtime.
-  // Safe to call multiple times - will only connect once.
+  // connectDocument establishes the yamux mux connection to Go.
   private async connectDocument(): Promise<void> {
     if (this.documentConnected) return
     if (this.connectPromise) return this.connectPromise
@@ -148,32 +134,76 @@ export class SaucerRuntimeClient {
     if (!docId) throw new Error('saucer: webDocumentId not found in URL')
 
     this.connectPromise = (async () => {
-      console.log('[saucer] Connecting document:', docId)
+      console.log('[saucer] Connecting mux:', docId)
+      this.abortController = new AbortController()
 
-      // Retry with backoff: Go may not be ready to accept yamux streams yet.
+      // Open the streaming GET for reading yamux frames from Go.
+      const muxUrl = `/b/saucer/${docId}/mux`
       const maxAttempts = 20
       const baseDelay = 100
+      let resp: Response | null = null
+
       for (let attempt = 0; ; attempt++) {
-        const resp = await fetch(`/b/saucer/${docId}/connect`).catch(
-          () => null,
-        )
-        if (resp?.ok) break
+        resp = await fetch(muxUrl, {
+          signal: this.abortController?.signal,
+        }).catch(() => null)
+        if (resp?.ok && resp.body) break
         if (attempt >= maxAttempts - 1) {
           throw new Error(
-            `saucer: connect failed after ${maxAttempts} attempts`,
+            `saucer: mux connect failed after ${maxAttempts} attempts`,
           )
         }
         const delay = Math.min(baseDelay * Math.pow(2, attempt), 5000)
         console.log(
-          `[saucer] Connect attempt ${attempt + 1} failed, retrying in ${delay}ms`,
+          `[saucer] Mux connect attempt ${attempt + 1} failed, retrying in ${delay}ms`,
         )
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
 
-      this.documentConnected = true
-      console.log('[saucer] Document connected:', docId)
+      if (!resp?.body) {
+        throw new Error('saucer: mux response has no body')
+      }
 
-      this.startControlStream(docId)
+      // Build a server handler for incoming streams from Go.
+      const incomingHandler = this.handleIncomingStream
+      const server = incomingHandler
+        ? {
+            handlePacketStream: (strm: Parameters<HandleStreamFunc>[0]) => {
+              incomingHandler(strm).catch((err: Error) => {
+                console.error('[saucer] Incoming stream error:', err)
+              })
+            },
+          }
+        : undefined
+
+      // Create the yamux StreamConn.
+      // JS is outbound (client), Go is inbound (server).
+      const conn = new StreamConn(server, {
+        direction: 'outbound',
+        yamuxParams: {
+          enableKeepAlive: false,
+          maxMessageSize: 32 * 1024,
+        },
+      })
+      this.muxConn = conn
+
+      // Build a duplex from the streaming GET (source) and POST sink.
+      const readSource = browserReadableStreamToIt(resp.body)
+
+      // The sink sends yamux frames to Go via POST requests.
+      const writeSink = this.buildPostSink(muxUrl, this.abortController)
+
+      // readSource -> conn.sink (feed yamux input)
+      // conn.source -> combineUint8ArrayListTransform -> writeSink (send yamux output)
+      pipe(readSource, conn, combineUint8ArrayListTransform(), writeSink)
+        .catch((err: Error) => {
+          if (err.name !== 'AbortError') {
+            console.error('[saucer] Mux pipe error:', err)
+          }
+        })
+
+      this.documentConnected = true
+      console.log('[saucer] Mux connected:', docId)
     })()
 
     try {
@@ -183,143 +213,29 @@ export class SaucerRuntimeClient {
     }
   }
 
-  // startControlStream starts the control stream to receive notifications from C++.
-  private startControlStream(docId: string): void {
-    this.controlAbortController = new AbortController()
-    const controlUrl = `/b/saucer/${docId}/control`
-
-    ;(async () => {
-      try {
-        const resp = await fetch(controlUrl, {
-          signal: this.controlAbortController?.signal,
+  // buildPostSink returns an async sink that sends chunks to Go via POST.
+  private buildPostSink(
+    muxUrl: string,
+    abortController: AbortController,
+  ): (source: AsyncIterable<Uint8Array | Uint8ArrayList>) => Promise<void> {
+    return async (source) => {
+      for await (const chunk of source) {
+        if (abortController.signal.aborted) break
+        const data =
+          chunk instanceof Uint8Array
+            ? chunk
+            : chunk instanceof Uint8ArrayList
+              ? chunk.subarray()
+              : new Uint8Array(chunk as ArrayBuffer)
+        const resp = await fetch(muxUrl, {
+          method: 'POST',
+          body: data as unknown as BodyInit,
+          signal: abortController.signal,
         })
-        if (!resp.ok || !resp.body) {
-          console.error('[saucer] Control stream failed:', resp.status)
-          return
+        if (!resp.ok) {
+          throw new Error(`POST ${muxUrl} failed: ${resp.status}`)
         }
-
-        const reader = resp.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            if (!line.trim()) continue
-            try {
-              const msg = JSON.parse(line)
-              if (msg.type === 'stream' && typeof msg.id === 'number') {
-                console.log('[saucer] Incoming stream:', msg.id)
-                if (this.incomingStreamHandler) {
-                  this.incomingStreamHandler(
-                    msg.id,
-                    this.createPacketStream(docId, msg.id),
-                  )
-                }
-              }
-            } catch (err) {
-              console.error('[saucer] Control parse error:', err)
-            }
-          }
-        }
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error('[saucer] Control stream error:', err)
-        }
-      }
-    })()
-  }
-
-  // openSaucerStream opens a bidirectional PacketStream to the Go runtime via C++.
-  private async openSaucerStream(): Promise<PacketStream> {
-    const docId = getDocId()
-    if (!docId) throw new Error('saucer: webDocumentId not found in URL')
-
-    await this.connectDocument()
-    return this.createPacketStream(docId, this.nextStreamId++)
-  }
-
-  // createPacketStream creates a PacketStream from HTTP endpoints with proper length-prefix framing.
-  private createPacketStream(
-    docId: string,
-    streamId: number,
-  ): PacketStream {
-    const readUrl = `/b/saucer/${docId}/stream/${streamId}/read`
-    const writeUrl = `/b/saucer/${docId}/stream/${streamId}/write`
-
-    const state = { closed: false }
-
-    // Raw byte source from HTTP
-    const rawSource: Pushable<Uint8Array> = pushable()
-
-    // Start reading from HTTP endpoint
-    ;(async () => {
-      try {
-        const resp = await fetch(readUrl)
-        if (!resp.ok || !resp.body) {
-          rawSource.end(new Error(`Read failed: ${resp.status}`))
-          return
-        }
-
-        const reader = resp.body.getReader()
-        while (!state.closed) {
-          const { done, value } = await reader.read()
-          if (done) break
-          if (value?.byteLength) rawSource.push(value)
-        }
-      } catch (err) {
-        if (!state.closed) rawSource.end(err as Error)
-        return
-      }
-      rawSource.end()
-    })()
-
-    // Parse length-prefixed packets from raw bytes
-    const source = pipe(
-      rawSource,
-      parseLengthPrefixTransform(),
-      combineUint8ArrayListTransform(),
-    )
-
-    // Sink: prepend length prefix and send via HTTP
-    const sink = async (packets: Source<Uint8Array>): Promise<void> => {
-      try {
-        const framed = pipe(
-          packets,
-          prependLengthPrefixTransform(),
-          combineUint8ArrayListTransform(),
-        )
-        for await (const chunk of framed) {
-          if (state.closed) break
-          await this.postData(writeUrl, chunk)
-        }
-      } catch (err) {
-        if (!state.closed) console.error('[saucer] Sink error:', err)
-      } finally {
-        state.closed = true
       }
     }
-
-    return { source, sink }
   }
-
-  // postData posts binary data to an endpoint.
-  private async postData(url: string, data: Uint8Array): Promise<void> {
-    // Cast to BodyInit - fetch() accepts Uint8Array at runtime but TypeScript's
-    // DOM typings are stricter. This avoids an unnecessary ArrayBuffer.slice() copy.
-    const resp = await fetch(url, {
-      method: 'POST',
-      body: data as unknown as BodyInit,
-    })
-    if (!resp.ok) {
-      throw new Error(`POST ${url} failed: ${resp.status}`)
-    }
-  }
-
 }

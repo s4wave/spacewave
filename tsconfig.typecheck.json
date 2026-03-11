@@ -5,6 +5,7 @@
     "skipLibCheck": true
   },
   "include": [
+    "global.d.ts",
     "types/**/*",
     "web/**/*",
     "sdk/**/*",
