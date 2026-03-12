@@ -141,8 +141,6 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	}
 }
 
-var debugInst atomic.Int32
-
 // WatchDirectiveViaStream resolves a directive by watching a value stream.
 //
 // T is the type of the value and R is the type of the response message.
@@ -164,10 +162,6 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 		}
 	}()
 
-	instID := debugInst.Add(1)
-	le.Infof("WatchDirectiveViaStream: starting %v", instID)
-	defer le.Infof("WatchDirectiveViaStream: exiting %v", instID)
-
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -177,8 +171,6 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 		if err != nil {
 			return err
 		}
-
-		le.Infof("WatchDirectiveViaStream: got msg %v: valueID(%v) removed(%v) idle(%v)", instID, msg.GetValueId(), msg.GetRemoved(), msg.GetIdle())
 
 		valueID := msg.GetValueId()
 		if valueID != 0 {
