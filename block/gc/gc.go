@@ -77,7 +77,7 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 			break
 		}
 
-		swept := 0
+		var swept int
 		for _, node := range nodes {
 			if err := ctx.Err(); err != nil {
 				return stats, context.Canceled

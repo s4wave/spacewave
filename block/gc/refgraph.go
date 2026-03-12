@@ -1,15 +1,3 @@
-// Package block_gc implements a unified reference graph for garbage collection.
-//
-// The graph uses a single predicate ("gc/ref") for all edges. The meaning of
-// an edge from subject to object is: "subject alive implies object should not
-// be collected." Nodes are identified by string IRIs that can represent blocks,
-// entities, or permanent roots.
-//
-// Two permanent root IRIs exist: "gcroot" (top of the hierarchy) and
-// "unreferenced" (staging area for orphaned nodes). These are never collected.
-// When a node loses all incoming gc/ref edges (excluding edges from
-// "unreferenced"), its outgoing gc/ref edges are removed and it is linked
-// from "unreferenced".
 package block_gc
 
 import (
@@ -45,6 +33,22 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 		return nil, errors.Wrap(err, "new ref graph")
 	}
 	return &RefGraph{handle: h}, nil
+}
+
+// RegisterEntityChain registers a chain of gc/ref edges between nodes.
+// Each adjacent pair gets an AddRef call: nodes[0]->nodes[1],
+// nodes[1]->nodes[2], etc. At least 2 nodes required. Idempotent
+// (Cayley ignore_duplicate).
+func RegisterEntityChain(ctx context.Context, rg *RefGraph, nodes ...string) error {
+	if len(nodes) < 2 {
+		return errors.New("RegisterEntityChain requires at least 2 nodes")
+	}
+	for i := 0; i < len(nodes)-1; i++ {
+		if err := rg.AddRef(ctx, nodes[i], nodes[i+1]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
@@ -177,7 +181,6 @@ func (rg *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref 
 	}
 	return rg.RemoveRef(ctx, ObjectIRI(objectKey), t)
 }
-
 
 // filterIterateQuads iterates over quads matching the input quad.
 // Empty fields in the filter quad are ignored (wildcard).

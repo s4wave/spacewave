@@ -362,7 +362,11 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 						var blockTargets []*BlockRef
 						recorder, hasRecorder := t.store.(BlockRefRecorder)
 						if hasRecorder {
-							blockTargets = ExtractBlockRefs(bn.blk)
+							blockTargets, err = ExtractBlockRefs(bn.blk)
+							if err != nil {
+								handleErr(err)
+								return
+							}
 						}
 
 						writeQueue.Enqueue(func() {

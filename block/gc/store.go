@@ -61,6 +61,16 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 	return g.store.GetHashType()
 }
 
+// GetRefGraph returns the underlying ref graph.
+func (g *GCStoreOps) GetRefGraph() *RefGraph {
+	return g.refGraph
+}
+
+// GetStore returns the underlying store.
+func (g *GCStoreOps) GetStore() block.StoreOps {
+	return g.store
+}
+
 // PutBlock puts a block into the store and buffers a gc/ref edge for
 // later flush if the block is new. When parentIRI is set, the edge
 // is parentIRI -> block; otherwise unreferenced -> block.
@@ -209,16 +219,6 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 		return g.refGraph.AddRef(ctx, NodeUnreferenced, object)
 	}
 	return nil
-}
-
-// GetRefGraph returns the underlying ref graph.
-func (g *GCStoreOps) GetRefGraph() *RefGraph {
-	return g.refGraph
-}
-
-// GetStore returns the underlying store.
-func (g *GCStoreOps) GetStore() block.StoreOps {
-	return g.store
 }
 
 // _ is a type assertion
