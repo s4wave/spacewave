@@ -44,7 +44,6 @@ func NewRequestHandler(
 
 // AcceptStreams accepts yamux streams from the muxed connection and handles each.
 func (h *RequestHandler) AcceptStreams(ctx context.Context, mc srpc.MuxedConn) error {
-	h.le.Debug("accepting yamux streams from C++")
 	for {
 		stream, err := mc.AcceptStream()
 		if err != nil {
@@ -53,7 +52,6 @@ func (h *RequestHandler) AcceptStreams(ctx context.Context, mc srpc.MuxedConn) e
 			}
 			return err
 		}
-		h.le.Debug("accepted yamux stream from C++")
 		go h.handleStream(ctx, stream)
 	}
 }
@@ -83,8 +81,6 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 		h.le.Debug("first fetch request frame missing request_info")
 		return
 	}
-
-	h.le.Debugf("handling stream: %s %s", info.GetMethod(), info.GetUrl())
 
 	// Build a streaming body reader if the request has a body.
 	var body io.Reader
