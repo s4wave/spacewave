@@ -37,19 +37,4 @@ message Config {
   // Default: 1m. Set to 0s to disable periodic GC.
   // Example: 1m
   string gc_interval_dur = 10;
-  // GcBootstrapMode controls how existing blocks are handled
-  // on first GC-enabled startup (when no GC graph exists).
-  GCBootstrapMode gc_bootstrap_mode = 11;
-}
-
-// GCBootstrapMode controls initialization of the GC graph for existing volumes.
-enum GCBootstrapMode {
-  // GC_LEGACY marks existing blocks with "unknown" -> block root.
-  // Prevents deletion until user removes the "unknown" root.
-  GC_LEGACY = 0;
-  // GC_EXISTING marks existing blocks as unreferenced for
-  // immediate collection on next sweep.
-  GC_EXISTING = 1;
-  // GC_IGNORE skips bootstrap. Old blocks persist. Only new blocks tracked.
-  GC_IGNORE = 2;
 }

@@ -36,7 +36,6 @@ const maxMessageSize = 10 * 1024 * 1024
 // requestTimeout is the per-peer request timeout.
 const requestTimeout = 5 * time.Second
 
-
 // Controller is the solicitation-based DEX controller.
 type Controller struct {
 	le *logrus.Entry

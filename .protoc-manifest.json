@@ -562,7 +562,6 @@
         "dex/psecho/psecho.pb.cc",
         "dex/psecho/psecho.pb.go",
         "dex/psecho/psecho.pb.h",
-        "dex/psecho/psecho.pb.rs",
         "dex/psecho/psecho.pb.ts",
         "dex/psecho/sync.pb.cc",
         "dex/psecho/sync.pb.go",
@@ -1069,7 +1068,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume/controller": {
-      "hash": "05846e6854d03c1b260909c4c9e2e963d5b84cf339d3b4046ec274938b1085fd",
+      "hash": "6b6f4c1dc035d72eefb72a5dec8332f9bc17505d9d24df0d8ae4d5b3b1cbd9e8",
       "generatedFiles": [
         "volume/controller/controller.pb.cc",
         "volume/controller/controller.pb.go",
@@ -1204,7 +1203,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/world/block": {
-      "hash": "33e87acda4943fde0e7356d697114e8046f7bd379d63bf597d29b5ec53052cbd",
+      "hash": "a693fab7750a8ab4e99b731c5afb8b7e72655fde4eef7ddf49b644c9e68f70dd",
       "generatedFiles": [
         "world/block/world.pb.cc",
         "world/block/world.pb.go",

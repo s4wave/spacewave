@@ -152,5 +152,4 @@ func TestGitCloneOp(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t.Logf("fetch complete, seqno=%d", seqno2)
-
 }

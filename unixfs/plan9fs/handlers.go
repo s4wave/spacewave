@@ -57,7 +57,7 @@ func (s *Server) handleVersion(tag uint16, payload []byte) ([]byte, error) {
 func (s *Server) handleAttach(ctx context.Context, tag uint16, payload []byte) ([]byte, error) {
 	buf := NewReadBuffer(payload)
 	fidID := buf.ReadU32()
-	_ = buf.ReadU32() // afid (unused, no auth)
+	_ = buf.ReadU32()    // afid (unused, no auth)
 	_ = buf.ReadString() // uname
 	_ = buf.ReadString() // aname
 	uid := buf.ReadU32()
@@ -421,14 +421,14 @@ func (s *Server) handleGetattr(ctx context.Context, tag uint16, payload []byte) 
 	resp := NewWriteBuffer(160)
 	resp.WriteU64(GetattrBasic) // valid mask
 	resp.WriteQID(qid)
-	resp.WriteU32(mode)   // mode
-	resp.WriteU32(fid.uid) // uid
-	resp.WriteU32(fid.uid) // gid
-	resp.WriteU64(1)       // nlink
-	resp.WriteU64(0)       // rdev
-	resp.WriteU64(size)    // size
-	resp.WriteU64(4096)    // blksize
-	resp.WriteU64(blocks)  // blocks
+	resp.WriteU32(mode)      // mode
+	resp.WriteU32(fid.uid)   // uid
+	resp.WriteU32(fid.uid)   // gid
+	resp.WriteU64(1)         // nlink
+	resp.WriteU64(0)         // rdev
+	resp.WriteU64(size)      // size
+	resp.WriteU64(4096)      // blksize
+	resp.WriteU64(blocks)    // blocks
 	resp.WriteU64(mtimeSec)  // atime_sec
 	resp.WriteU64(mtimeNsec) // atime_nsec
 	resp.WriteU64(mtimeSec)  // mtime_sec
@@ -806,8 +806,8 @@ func (s *Server) handleStatfs(tag uint16, _ []byte) ([]byte, error) {
 	totalBlocks := uint64(tb / blockSize)
 
 	resp := NewWriteBuffer(60)
-	resp.WriteU32(0x01021997) // type: V9FS_MAGIC
-	resp.WriteU32(blockSize)  // bsize
+	resp.WriteU32(0x01021997)  // type: V9FS_MAGIC
+	resp.WriteU32(blockSize)   // bsize
 	resp.WriteU64(totalBlocks) // blocks
 	resp.WriteU64(totalBlocks) // bfree
 	resp.WriteU64(totalBlocks) // bavail

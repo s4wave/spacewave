@@ -44,44 +44,5 @@ pub struct Config {
     /// Example: 1m
     #[prost(string, tag="10")]
     pub gc_interval_dur: ::prost::alloc::string::String,
-    /// GcBootstrapMode controls how existing blocks are handled
-    /// on first GC-enabled startup (when no GC graph exists).
-    #[prost(enumeration="GcBootstrapMode", tag="11")]
-    pub gc_bootstrap_mode: i32,
-}
-/// GCBootstrapMode controls initialization of the GC graph for existing volumes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum GcBootstrapMode {
-    /// GC_LEGACY marks existing blocks with "unknown" -> block root.
-    /// Prevents deletion until user removes the "unknown" root.
-    GcLegacy = 0,
-    /// GC_EXISTING marks existing blocks as unreferenced for
-    /// immediate collection on next sweep.
-    GcExisting = 1,
-    /// GC_IGNORE skips bootstrap. Old blocks persist. Only new blocks tracked.
-    GcIgnore = 2,
-}
-impl GcBootstrapMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::GcLegacy => "GC_LEGACY",
-            Self::GcExisting => "GC_EXISTING",
-            Self::GcIgnore => "GC_IGNORE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "GC_LEGACY" => Some(Self::GcLegacy),
-            "GC_EXISTING" => Some(Self::GcExisting),
-            "GC_IGNORE" => Some(Self::GcIgnore),
-            _ => None,
-        }
-    }
 }
 // @@protoc_insertion_point(module)

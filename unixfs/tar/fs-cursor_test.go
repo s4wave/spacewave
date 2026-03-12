@@ -30,10 +30,10 @@ func newTarBuilder() *tarBuilder {
 
 func (b *tarBuilder) addFile(name string, content string, mode int64) {
 	b.tw.WriteHeader(&tar.Header{
-		Name:    name,
-		Size:    int64(len(content)),
-		Mode:    mode,
-		ModTime: testTime,
+		Name:     name,
+		Size:     int64(len(content)),
+		Mode:     mode,
+		ModTime:  testTime,
 		Typeflag: tar.TypeReg,
 	})
 	b.tw.Write([]byte(content))

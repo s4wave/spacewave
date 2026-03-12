@@ -291,5 +291,7 @@ func (t *batchTx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*BatchStore)(nil))
-var _ kvtx.Tx = ((*batchTx)(nil))
+var (
+	_ kvtx.Store = ((*BatchStore)(nil))
+	_ kvtx.Tx    = ((*batchTx)(nil))
+)

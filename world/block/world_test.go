@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/filters"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"

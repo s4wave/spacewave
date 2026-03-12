@@ -593,7 +593,6 @@ func TestBlockIRINilRef(t *testing.T) {
 	}
 }
 
-
 func TestObjectRootNilRef(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)

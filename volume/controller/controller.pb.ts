@@ -2,56 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/controller/controller.proto (package volume.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
 import type { OverlayMode } from '../../block/block.pb.js'
 import { OverlayMode_Enum, PutOpts } from '../../block/block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.controller'
-
-/**
- * GCBootstrapMode controls initialization of the GC graph for existing volumes.
- *
- * @generated from enum volume.controller.GCBootstrapMode
- */
-export enum GCBootstrapMode {
-  /**
-   * GC_LEGACY marks existing blocks with "unknown" -> block root.
-   * Prevents deletion until user removes the "unknown" root.
-   *
-   * @generated from enum value: GC_LEGACY = 0;
-   */
-  GC_LEGACY = 0,
-
-  /**
-   * GC_EXISTING marks existing blocks as unreferenced for
-   * immediate collection on next sweep.
-   *
-   * @generated from enum value: GC_EXISTING = 1;
-   */
-  GC_EXISTING = 1,
-
-  /**
-   * GC_IGNORE skips bootstrap. Old blocks persist. Only new blocks tracked.
-   *
-   * @generated from enum value: GC_IGNORE = 2;
-   */
-  GC_IGNORE = 2,
-}
-
-// GCBootstrapMode_Enum is the enum type for GCBootstrapMode.
-export const GCBootstrapMode_Enum = createEnumType(
-  'volume.controller.GCBootstrapMode',
-  [
-    { no: 0, name: 'GC_LEGACY' },
-    { no: 1, name: 'GC_EXISTING' },
-    { no: 2, name: 'GC_IGNORE' },
-  ],
-)
 
 /**
  * Config configures the generic volume controller.
@@ -130,13 +86,6 @@ export interface Config {
    * @generated from field: string gc_interval_dur = 10;
    */
   gcIntervalDur?: string
-  /**
-   * GcBootstrapMode controls how existing blocks are handled
-   * on first GC-enabled startup (when no GC graph exists).
-   *
-   * @generated from field: volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
-   */
-  gcBootstrapMode?: GCBootstrapMode
 }
 
 // Config contains the message type declaration for Config.
@@ -189,12 +138,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: () => PutOpts,
     },
     { no: 10, name: 'gc_interval_dur', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 11,
-      name: 'gc_bootstrap_mode',
-      kind: 'enum',
-      T: GCBootstrapMode_Enum,
-    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

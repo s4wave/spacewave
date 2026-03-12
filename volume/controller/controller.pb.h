@@ -30,7 +30,6 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
-#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../block/block.pb.h"
 // @@protoc_insertion_point(includes)
@@ -58,8 +57,6 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace volume {
 namespace controller {
-enum GCBootstrapMode : int;
-extern const uint32_t GCBootstrapMode_internal_data_[];
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
@@ -68,51 +65,11 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 }  // namespace volume
 namespace google {
 namespace protobuf {
-template <>
-internal::EnumTraitsT<::volume::controller::GCBootstrapMode_internal_data_>
-    internal::EnumTraitsImpl::value<::volume::controller::GCBootstrapMode>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace volume {
 namespace controller {
-enum GCBootstrapMode : int {
-  GC_LEGACY = 0,
-  GC_EXISTING = 1,
-  GC_IGNORE = 2,
-  GCBootstrapMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::min(),
-  GCBootstrapMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::max(),
-};
-
-extern const uint32_t GCBootstrapMode_internal_data_[];
-inline constexpr GCBootstrapMode GCBootstrapMode_MIN =
-    static_cast<GCBootstrapMode>(0);
-inline constexpr GCBootstrapMode GCBootstrapMode_MAX =
-    static_cast<GCBootstrapMode>(2);
-inline bool GCBootstrapMode_IsValid(int value) {
-  return 0 <= value && value <= 2;
-}
-inline constexpr int GCBootstrapMode_ARRAYSIZE = 2 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GCBootstrapMode_descriptor();
-template <typename T>
-const ::std::string& GCBootstrapMode_Name(T value) {
-  static_assert(::std::is_same<T, GCBootstrapMode>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to GCBootstrapMode_Name().");
-  return GCBootstrapMode_Name(static_cast<GCBootstrapMode>(value));
-}
-template <>
-inline const ::std::string& GCBootstrapMode_Name(GCBootstrapMode value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<GCBootstrapMode_descriptor, 0, 2>(
-      static_cast<int>(value));
-}
-inline bool GCBootstrapMode_Parse(
-    ::absl::string_view name, GCBootstrapMode* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<GCBootstrapMode>(GCBootstrapMode_descriptor(), name,
-                                           value);
-}
 
 // ===================================================================
 
@@ -271,7 +228,6 @@ class Config final : public ::google::protobuf::Message
     kDisablePeerFieldNumber = 4,
     kDisableLookupBlockStoreFieldNumber = 7,
     kBlockStoreOverlayModeFieldNumber = 6,
-    kGcBootstrapModeFieldNumber = 11,
   };
   // repeated string volume_id_alias = 2;
   int volume_id_alias_size() const;
@@ -405,21 +361,11 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_block_store_overlay_mode(::block::OverlayMode value);
 
   public:
-  // .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
-  void clear_gc_bootstrap_mode() ;
-  ::volume::controller::GCBootstrapMode gc_bootstrap_mode() const;
-  void set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value);
-
-  private:
-  ::volume::controller::GCBootstrapMode _internal_gc_bootstrap_mode() const;
-  void _internal_set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value);
-
-  public:
   // @@protoc_insertion_point(class_scope:volume.controller.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 11,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
                                    1, 118,
                                    2>
       _table_;
@@ -451,7 +397,6 @@ class Config final : public ::google::protobuf::Message
     bool disable_peer_;
     bool disable_lookup_block_store_;
     int block_store_overlay_mode_;
-    int gc_bootstrap_mode_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -961,31 +906,6 @@ inline void Config::set_allocated_gc_interval_dur(::std::string* PROTOBUF_NULLAB
   // @@protoc_insertion_point(field_set_allocated:volume.controller.Config.gc_interval_dur)
 }
 
-// .volume.controller.GCBootstrapMode gc_bootstrap_mode = 11;
-inline void Config::clear_gc_bootstrap_mode() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.gc_bootstrap_mode_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
-}
-inline ::volume::controller::GCBootstrapMode Config::gc_bootstrap_mode() const {
-  // @@protoc_insertion_point(field_get:volume.controller.Config.gc_bootstrap_mode)
-  return _internal_gc_bootstrap_mode();
-}
-inline void Config::set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value) {
-  _internal_set_gc_bootstrap_mode(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
-  // @@protoc_insertion_point(field_set:volume.controller.Config.gc_bootstrap_mode)
-}
-inline ::volume::controller::GCBootstrapMode Config::_internal_gc_bootstrap_mode() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::volume::controller::GCBootstrapMode>(_impl_.gc_bootstrap_mode_);
-}
-inline void Config::_internal_set_gc_bootstrap_mode(::volume::controller::GCBootstrapMode value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.gc_bootstrap_mode_ = value;
-}
-
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -994,19 +914,6 @@ inline void Config::_internal_set_gc_bootstrap_mode(::volume::controller::GCBoot
 }  // namespace controller
 }  // namespace volume
 
-
-namespace google {
-namespace protobuf {
-
-template <>
-struct is_proto_enum<::volume::controller::GCBootstrapMode> : std::true_type {};
-template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::volume::controller::GCBootstrapMode>() {
-  return ::volume::controller::GCBootstrapMode_descriptor();
-}
-
-}  // namespace protobuf
-}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

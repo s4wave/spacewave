@@ -293,6 +293,8 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 }
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
+//
+// The block transaction store is overridden with one wrapped with the GC store ops.
 func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
 	root, err := block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
 	if err != nil {

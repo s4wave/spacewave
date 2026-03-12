@@ -193,10 +193,10 @@ func TestReaddirAllNodeTypes(t *testing.T) {
 	}
 
 	type entInfo struct {
-		name    string
-		isDir   bool
-		isFile  bool
-		isLink  bool
+		name   string
+		isDir  bool
+		isFile bool
+		isLink bool
 	}
 
 	var entries []entInfo

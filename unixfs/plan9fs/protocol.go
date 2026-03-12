@@ -5,62 +5,62 @@ package plan9fs
 // 9p2000.L message types.
 const (
 	// TLERROR is not sent by clients but used for RLERROR responses.
-	TLERROR  = 6
-	RLERROR  = 7
-	TSTATFS  = 8
-	RSTATFS  = 9
-	TLOPEN   = 12
-	RLOPEN   = 13
-	TLCREATE = 14
-	RLCREATE = 15
-	TSYMLINK = 16
-	RSYMLINK = 17
-	TMKNOD   = 18
-	RMKNOD   = 19
-	TREADLINK  = 22
-	RREADLINK  = 23
-	TGETATTR   = 24
-	RGETATTR   = 25
-	TSETATTR   = 26
-	RSETATTR   = 27
+	TLERROR      = 6
+	RLERROR      = 7
+	TSTATFS      = 8
+	RSTATFS      = 9
+	TLOPEN       = 12
+	RLOPEN       = 13
+	TLCREATE     = 14
+	RLCREATE     = 15
+	TSYMLINK     = 16
+	RSYMLINK     = 17
+	TMKNOD       = 18
+	RMKNOD       = 19
+	TREADLINK    = 22
+	RREADLINK    = 23
+	TGETATTR     = 24
+	RGETATTR     = 25
+	TSETATTR     = 26
+	RSETATTR     = 27
 	TXATTRWALK   = 30
 	RXATTRWALK   = 31
 	TXATTRCREATE = 32
 	RXATTRCREATE = 33
-	TREADDIR = 40
-	RREADDIR = 41
-	TFSYNC  = 50
-	RFSYNC  = 51
-	TLOCK   = 52
-	RLOCK   = 53
-	TGETLOCK = 54
-	RGETLOCK = 55
-	TLINK    = 70
-	RLINK    = 71
-	TMKDIR   = 72
-	RMKDIR   = 73
-	TRENAMEAT  = 74
-	RRENAMEAT  = 75
-	TUNLINKAT  = 76
-	RUNLINKAT  = 77
-	TVERSION = 100
-	RVERSION = 101
-	TAUTH    = 102
-	RAUTH    = 103
-	TATTACH  = 104
-	RATTACH  = 105
-	TFLUSH   = 108
-	RFLUSH   = 109
-	TWALK    = 110
-	RWALK    = 111
-	TREAD    = 116
-	RREAD    = 117
-	TWRITE   = 118
-	RWRITE   = 119
-	TCLUNK   = 120
-	RCLUNK   = 121
-	TREMOVE  = 122
-	RREMOVE  = 123
+	TREADDIR     = 40
+	RREADDIR     = 41
+	TFSYNC       = 50
+	RFSYNC       = 51
+	TLOCK        = 52
+	RLOCK        = 53
+	TGETLOCK     = 54
+	RGETLOCK     = 55
+	TLINK        = 70
+	RLINK        = 71
+	TMKDIR       = 72
+	RMKDIR       = 73
+	TRENAMEAT    = 74
+	RRENAMEAT    = 75
+	TUNLINKAT    = 76
+	RUNLINKAT    = 77
+	TVERSION     = 100
+	RVERSION     = 101
+	TAUTH        = 102
+	RAUTH        = 103
+	TATTACH      = 104
+	RATTACH      = 105
+	TFLUSH       = 108
+	RFLUSH       = 109
+	TWALK        = 110
+	RWALK        = 111
+	TREAD        = 116
+	RREAD        = 117
+	TWRITE       = 118
+	RWRITE       = 119
+	TCLUNK       = 120
+	RCLUNK       = 121
+	TREMOVE      = 122
+	RREMOVE      = 123
 )
 
 // QID type flags.
@@ -115,13 +115,13 @@ const (
 
 // SETATTR request mask bits.
 const (
-	SetattrMode  = 0x00000001
-	SetattrUid   = 0x00000002
-	SetattrGid   = 0x00000004
-	SetattrSize  = 0x00000008
-	SetattrAtime = 0x00000010
-	SetattrMtime = 0x00000020
-	SetattrCtime = 0x00000040
+	SetattrMode     = 0x00000001
+	SetattrUid      = 0x00000002
+	SetattrGid      = 0x00000004
+	SetattrSize     = 0x00000008
+	SetattrAtime    = 0x00000010
+	SetattrMtime    = 0x00000020
+	SetattrCtime    = 0x00000040
 	SetattrAtimeSet = 0x00000100
 	SetattrMtimeSet = 0x00000200
 )
@@ -148,22 +148,22 @@ const (
 
 // Linux errno values (own definitions for WASM compatibility).
 const (
-	EPERM   = 1
-	ENOENT  = 2
-	EINTR   = 4
-	EIO     = 5
-	EBADF   = 9
-	ENOMEM  = 12
-	EACCES  = 13
-	EEXIST  = 17
-	ENOTDIR = 20
-	EINVAL  = 22
-	ENOSPC  = 28
-	ERANGE  = 34
-	ENOSYS  = 38
-	ENOTEMPTY  = 39
-	ENOTSUP    = 95
-	EROFS      = 30
+	EPERM     = 1
+	ENOENT    = 2
+	EINTR     = 4
+	EIO       = 5
+	EBADF     = 9
+	ENOMEM    = 12
+	EACCES    = 13
+	EEXIST    = 17
+	ENOTDIR   = 20
+	EINVAL    = 22
+	ENOSPC    = 28
+	ERANGE    = 34
+	ENOSYS    = 38
+	ENOTEMPTY = 39
+	ENOTSUP   = 95
+	EROFS     = 30
 )
 
 // headerSize is the size of the 9p message header.

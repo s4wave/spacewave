@@ -6,7 +6,6 @@ import (
 
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
-	"github.com/aperturerobotics/hydra/volume"
 )
 
 // runGCSweep runs the periodic GC sweep goroutine.
@@ -40,13 +39,8 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		return nil
 	}
 
-	// Check if bootstrap is needed (empty ref graph).
-	if err := c.maybeBootstrapGC(ctx, rg, vol); err != nil {
-		c.le.WithError(err).Warn("gc bootstrap failed")
-	}
-
 	collector := block_gc.NewCollector(rg, vol, nil)
-	c.le.WithField("interval", interval.String()).Info("gc sweep started")
+	c.le.WithField("interval", interval.String()).Debug("gc sweep routine started")
 
 	for {
 		select {
@@ -70,29 +64,4 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				Info("gc sweep completed")
 		}
 	}
-}
-
-// maybeBootstrapGC checks if the ref graph is empty and runs bootstrap
-// according to the configured GcBootstrapMode.
-func (c *Controller) maybeBootstrapGC(ctx context.Context, rg *block_gc.RefGraph, vol volume.Volume) error {
-	// Check if the ref graph has any edges from gcroot.
-	refs, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-	if err != nil {
-		return err
-	}
-	if len(refs) > 0 {
-		return nil
-	}
-
-	// Also check unreferenced edges to see if there is any state at all.
-	unrefs, err := rg.GetUnreferencedNodes(ctx)
-	if err != nil {
-		return err
-	}
-	if len(unrefs) > 0 {
-		return nil
-	}
-
-	c.le.Info("gc ref graph is empty, running bootstrap")
-	return c.bootstrapGC(ctx, rg, vol, c.config.GetGcBootstrapMode())
 }

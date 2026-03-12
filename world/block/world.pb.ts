@@ -303,7 +303,6 @@ export interface World {
   /**
    * GcGraph is the gc reference graph key/value store.
    * Stores gc/ref quads for garbage collection of unreferenced blocks.
-   * Backed by Cayley in a separate IAVL tree (SubBlock 5).
    *
    * @generated from field: kvtx.block.KeyValueStore gc_graph = 5;
    */

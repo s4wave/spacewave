@@ -16,48 +16,6 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// GCBootstrapMode controls initialization of the GC graph for existing volumes.
-type GCBootstrapMode int32
-
-const (
-	// GC_LEGACY marks existing blocks with "unknown" -> block root.
-	// Prevents deletion until user removes the "unknown" root.
-	GCBootstrapMode_GC_LEGACY GCBootstrapMode = 0
-	// GC_EXISTING marks existing blocks as unreferenced for
-	// immediate collection on next sweep.
-	GCBootstrapMode_GC_EXISTING GCBootstrapMode = 1
-	// GC_IGNORE skips bootstrap. Old blocks persist. Only new blocks tracked.
-	GCBootstrapMode_GC_IGNORE GCBootstrapMode = 2
-)
-
-// Enum value maps for GCBootstrapMode.
-var (
-	GCBootstrapMode_name = map[int32]string{
-		0: "GC_LEGACY",
-		1: "GC_EXISTING",
-		2: "GC_IGNORE",
-	}
-	GCBootstrapMode_value = map[string]int32{
-		"GC_LEGACY":   0,
-		"GC_EXISTING": 1,
-		"GC_IGNORE":   2,
-	}
-)
-
-func (x GCBootstrapMode) Enum() *GCBootstrapMode {
-	p := new(GCBootstrapMode)
-	*p = x
-	return p
-}
-
-func (x GCBootstrapMode) String() string {
-	name, valid := GCBootstrapMode_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
 // Config configures the generic volume controller.
 type Config struct {
 	unknownFields []byte
@@ -92,9 +50,6 @@ type Config struct {
 	// Default: 1m. Set to 0s to disable periodic GC.
 	// Example: 1m
 	GcIntervalDur string `protobuf:"bytes,10,opt,name=gc_interval_dur,json=gcIntervalDur,proto3" json:"gcIntervalDur,omitempty"`
-	// GcBootstrapMode controls how existing blocks are handled
-	// on first GC-enabled startup (when no GC graph exists).
-	GcBootstrapMode GCBootstrapMode `protobuf:"varint,11,opt,name=gc_bootstrap_mode,json=gcBootstrapMode,proto3" json:"gcBootstrapMode,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -173,13 +128,6 @@ func (x *Config) GetGcIntervalDur() string {
 	return ""
 }
 
-func (x *Config) GetGcBootstrapMode() GCBootstrapMode {
-	if x != nil {
-		return x.GcBootstrapMode
-	}
-	return GCBootstrapMode_GC_LEGACY
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -192,13 +140,10 @@ func (m *Config) CloneVT() *Config {
 	r.BlockStoreId = m.BlockStoreId
 	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
 	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
+	r.BlockStoreWritebackPutOpts = m.BlockStoreWritebackPutOpts.CloneVT()
 	r.GcIntervalDur = m.GcIntervalDur
-	r.GcBootstrapMode = m.GcBootstrapMode
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		r.VolumeIdAlias = slices.Clone(rhs)
-	}
-	if rhs := m.BlockStoreWritebackPutOpts; rhs != nil {
-		r.BlockStoreWritebackPutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -252,9 +197,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.GcIntervalDur != that.GcIntervalDur {
 		return false
 	}
-	if this.GcBootstrapMode != that.GcBootstrapMode {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -264,46 +206,6 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-// MarshalProtoJSON marshals the GCBootstrapMode to JSON.
-func (x GCBootstrapMode) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), GCBootstrapMode_name)
-}
-
-// MarshalText marshals the GCBootstrapMode to text.
-func (x GCBootstrapMode) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), GCBootstrapMode_name)), nil
-}
-
-// MarshalJSON marshals the GCBootstrapMode to JSON.
-func (x GCBootstrapMode) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the GCBootstrapMode from JSON.
-func (x *GCBootstrapMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(GCBootstrapMode_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read GCBootstrapMode enum: %v", err)
-		return
-	}
-	*x = GCBootstrapMode(v)
-}
-
-// UnmarshalText unmarshals the GCBootstrapMode from text.
-func (x *GCBootstrapMode) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), GCBootstrapMode_value)
-	if err != nil {
-		return err
-	}
-	*x = GCBootstrapMode(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the GCBootstrapMode from JSON.
-func (x *GCBootstrapMode) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -364,11 +266,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("gcIntervalDur")
 		s.WriteString(x.GcIntervalDur)
 	}
-	if x.GcBootstrapMode != 0 || s.HasField("gcBootstrapMode") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcBootstrapMode")
-		x.GcBootstrapMode.MarshalProtoJSON(s)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -424,9 +321,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "gc_interval_dur", "gcIntervalDur":
 			s.AddField("gc_interval_dur")
 			x.GcIntervalDur = s.ReadString()
-		case "gc_bootstrap_mode", "gcBootstrapMode":
-			s.AddField("gc_bootstrap_mode")
-			x.GcBootstrapMode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -465,11 +359,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.GcBootstrapMode != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GcBootstrapMode))
-		i--
-		dAtA[i] = 0x58
 	}
 	if len(m.GcIntervalDur) > 0 {
 		i -= len(m.GcIntervalDur)
@@ -602,15 +491,8 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.GcBootstrapMode != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GcBootstrapMode))
-	}
 	n += len(m.unknownFields)
 	return n
-}
-
-func (x GCBootstrapMode) MarshalProtoText() string {
-	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -693,15 +575,6 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("gc_interval_dur: ")
 		sb.WriteString(strconv.Quote(x.GcIntervalDur))
-	}
-	if x.GcBootstrapMode != 0 {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("gc_bootstrap_mode: ")
-		sb.WriteString("\"")
-		sb.WriteString(GCBootstrapMode(x.GcBootstrapMode).String())
-		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -906,17 +779,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GcIntervalDur = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 11:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcBootstrapMode", wireType)
-			}
-			m.GcBootstrapMode = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.GcBootstrapMode = GCBootstrapMode(_v)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
