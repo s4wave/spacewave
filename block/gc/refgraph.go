@@ -39,7 +39,7 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 // Each adjacent pair gets an AddRef call: nodes[0]->nodes[1],
 // nodes[1]->nodes[2], etc. At least 2 nodes required. Idempotent
 // (Cayley ignore_duplicate).
-func RegisterEntityChain(ctx context.Context, rg *RefGraph, nodes ...string) error {
+func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) error {
 	if len(nodes) < 2 {
 		return errors.New("RegisterEntityChain requires at least 2 nodes")
 	}
