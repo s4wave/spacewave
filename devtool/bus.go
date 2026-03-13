@@ -36,7 +36,6 @@ import (
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
-	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -221,15 +220,13 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// Register GC hierarchy: gcroot -> bucket
-	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			if err := block_gc.RegisterEntityChain(ctx, rg,
-				block_gc.NodeGCRoot,
-				block_gc.BucketIRI(engineBucketID),
-			); err != nil {
-				rel()
-				return nil, err
-			}
+	if rg := vol.GetRefGraph(); rg != nil {
+		if err := block_gc.RegisterEntityChain(ctx, rg,
+			block_gc.NodeGCRoot,
+			block_gc.BucketIRI(engineBucketID),
+		); err != nil {
+			rel()
+			return nil, err
 		}
 	}
 
@@ -331,14 +328,12 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// Run GC collection after cleanup to reclaim blocks from deleted manifests.
-	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			collector := block_gc.NewCollector(rg, vol, nil)
-			if stats, err := collector.Collect(ctx); err != nil {
-				le.WithError(err).Warn("gc collect after cleanup failed")
-			} else if stats.NodesSwept > 0 {
-				le.WithField("swept", stats.NodesSwept).Info("gc collected after cleanup")
-			}
+	if rg := vol.GetRefGraph(); rg != nil {
+		collector := block_gc.NewCollector(rg, vol, nil)
+		if stats, err := collector.Collect(ctx); err != nil {
+			le.WithError(err).Warn("gc collect after cleanup failed")
+		} else if stats.NodesSwept > 0 {
+			le.WithField("swept", stats.NodesSwept).Info("gc collected after cleanup")
 		}
 	}
 
