@@ -6,6 +6,9 @@ import (
 
 	"github.com/aperturerobotics/bifrost/crypto"
 	"github.com/aperturerobotics/bifrost/peer"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
+	rpc_gc "github.com/aperturerobotics/hydra/block/gc/rpc"
+	rpc_gc_client "github.com/aperturerobotics/hydra/block/gc/rpc/client"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_block_client "github.com/aperturerobotics/hydra/block/rpc/client"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
@@ -28,6 +31,8 @@ type ProxyVolume struct {
 
 	// client is the client to use
 	client volume_rpc.SRPCProxyVolumeClient
+	// refGraph is the GC reference graph RPC client
+	refGraph *rpc_gc_client.RefGraph
 	// volInfo is the volume info
 	volInfo *volume.VolumeInfo
 	// volPeer is the parsed volume peer public key & id
@@ -42,10 +47,16 @@ func NewProxyVolume(
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient,
+	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) (*ProxyVolume, error) {
 	volPeer, err := volInfo.ParseToPeer()
 	if err != nil {
 		return nil, err
+	}
+
+	var refGraph *rpc_gc_client.RefGraph
+	if refGraphClient != nil {
+		refGraph = rpc_gc_client.NewRefGraph(refGraphClient)
 	}
 
 	return &ProxyVolume{
@@ -54,9 +65,10 @@ func NewProxyVolume(
 		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
 		MqueueStore: rpc_mqueue_client.NewMqueueStore(mqueueStoreClient),
 
-		client:  proxyVolumeClient,
-		volInfo: volInfo,
-		volPeer: volPeer,
+		client:   proxyVolumeClient,
+		refGraph: refGraph,
+		volInfo:  volInfo,
+		volPeer:  volPeer,
 	}, nil
 }
 
@@ -68,6 +80,14 @@ func (v *ProxyVolume) GetID() string {
 // GetPeerID returns the volume peer ID.
 func (v *ProxyVolume) GetPeerID() peer.ID {
 	return v.volPeer.GetPeerID()
+}
+
+// GetRefGraph returns the volume's GC reference graph.
+func (v *ProxyVolume) GetRefGraph() block_gc.RefGraphOps {
+	if v.refGraph == nil {
+		return nil
+	}
+	return v.refGraph
 }
 
 // GetVolumeClient returns the proxy volume client.

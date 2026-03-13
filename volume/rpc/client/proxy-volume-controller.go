@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	rpc_gc "github.com/aperturerobotics/hydra/block/gc/rpc"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
@@ -32,6 +33,8 @@ type ProxyVolumeController struct {
 	objectStoreClient rpc_object.SRPCObjectStoreClient
 	// mqueueStoreClient is the client for the MqueueStore
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient
+	// refGraphClient is the client for the RefGraph
+	refGraphClient rpc_gc.SRPCRefGraphClient
 }
 
 // NewProxyVolumeController constructs a new ProxyVolumeController.
@@ -45,6 +48,7 @@ func NewProxyVolumeController(
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient,
+	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) *ProxyVolumeController {
 	return &ProxyVolumeController{
 		Controller: volume_controller.NewController(
@@ -73,6 +77,7 @@ func NewProxyVolumeController(
 					bucketStoreClient,
 					objectStoreClient,
 					mqueueStoreClient,
+					refGraphClient,
 				)
 			},
 		),
@@ -83,6 +88,7 @@ func NewProxyVolumeController(
 		bucketStoreClient: bucketStoreClient,
 		objectStoreClient: objectStoreClient,
 		mqueueStoreClient: mqueueStoreClient,
+		refGraphClient:    refGraphClient,
 	}
 }
 
@@ -119,6 +125,10 @@ func NewProxyVolumeControllerWithClient(
 		rpc_mqueue.NewSRPCMqueueStoreClientWithServiceID(
 			cc,
 			serviceIDPrefix+rpc_mqueue.SRPCMqueueStoreServiceID,
+		),
+		rpc_gc.NewSRPCRefGraphClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_gc.SRPCRefGraphServiceID,
 		),
 	)
 }

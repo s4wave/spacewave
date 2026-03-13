@@ -211,7 +211,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		w.buildBlobOpts,
 	)
 	if err != nil {
-		w.rangeSet.GetCursor().ClearRef(uint32(rlen))
+		w.rangeSet.GetCursor().ClearRef(uint32(rlen)) //nolint:gosec
 		w.root.Ranges = w.root.Ranges[:len(w.root.Ranges)-1]
 		w.root.RangeNonce -= 1
 		return err

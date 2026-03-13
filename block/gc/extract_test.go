@@ -21,7 +21,10 @@ func putMockBlock(t *testing.T, ctx context.Context, store block.StoreOps, msg s
 
 // TestExtractBlockRefs_Nil tests that nil returns nil.
 func TestExtractBlockRefs_Nil(t *testing.T) {
-	refs := block.ExtractBlockRefs(nil)
+	refs, err := block.ExtractBlockRefs(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 0 {
 		t.Fatalf("expected 0 refs from nil, got %d", len(refs))
 	}
@@ -30,7 +33,10 @@ func TestExtractBlockRefs_Nil(t *testing.T) {
 // TestExtractBlockRefs_NoRefs tests a block with no refs.
 func TestExtractBlockRefs_NoRefs(t *testing.T) {
 	ex := block_mock.NewExample("hello")
-	refs := block.ExtractBlockRefs(ex)
+	refs, err := block.ExtractBlockRefs(ex)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 0 {
 		t.Fatalf("expected 0 refs from Example, got %d", len(refs))
 	}
@@ -43,7 +49,10 @@ func TestExtractBlockRefs_DirectRefs(t *testing.T) {
 
 	target := putMockBlock(t, ctx, mockStore, "target")
 	sub := &block_mock.SubBlock{ExamplePtr: target}
-	refs := block.ExtractBlockRefs(sub)
+	refs, err := block.ExtractBlockRefs(sub)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref from SubBlock, got %d", len(refs))
 	}
@@ -63,7 +72,11 @@ func TestExtractBlockRefs_SubBlockRefs(t *testing.T) {
 		ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: target},
 	}
 
-	refs := block.ExtractBlockRefs(root)
+	refs, err := block.ExtractBlockRefs(root)
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 ref from Root with SubBlock, got %d", len(refs))
 	}
@@ -77,7 +90,10 @@ func TestExtractBlockRefs_EmptySubBlock(t *testing.T) {
 	root := &block_mock.Root{
 		ExampleSubBlock: &block_mock.SubBlock{},
 	}
-	refs := block.ExtractBlockRefs(root)
+	refs, err := block.ExtractBlockRefs(root)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 0 {
 		t.Fatalf("expected 0 refs from Root with empty SubBlock, got %d", len(refs))
 	}
@@ -88,7 +104,10 @@ func TestExtractBlockRefs_NilSubBlockRef(t *testing.T) {
 	root := &block_mock.Root{
 		ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: nil},
 	}
-	refs := block.ExtractBlockRefs(root)
+	refs, err := block.ExtractBlockRefs(root)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if len(refs) != 0 {
 		t.Fatalf("expected 0 refs from SubBlock with nil ptr, got %d", len(refs))
 	}

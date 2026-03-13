@@ -5,7 +5,6 @@ import (
 	"time"
 
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
-	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
 )
 
 // runGCSweep runs the periodic GC sweep goroutine.
@@ -27,13 +26,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		return err
 	}
 
-	kvVol, ok := vol.(kvtx_volume.KvtxVolume)
-	if !ok {
-		c.le.Debug("volume does not implement KvtxVolume, gc sweep disabled")
-		return nil
-	}
-
-	rg := kvVol.GetRefGraph()
+	rg := vol.GetRefGraph()
 	if rg == nil {
 		c.le.Debug("volume has no ref graph, gc sweep disabled")
 		return nil

@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	rpc_gc "github.com/aperturerobotics/hydra/block/gc/rpc"
+	rpc_gc_server "github.com/aperturerobotics/hydra/block/gc/rpc/server"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_block_server "github.com/aperturerobotics/hydra/block/rpc/server"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
@@ -23,6 +25,7 @@ type ProxyVolume struct {
 	*rpc_bucket_server.BucketStore
 	*rpc_object_server.ObjectStore
 	*rpc_mqueue_server.MqueueStore
+	*rpc_gc_server.RefGraph
 
 	// vol is the volume
 	vol volume.Volume
@@ -37,6 +40,7 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 		BucketStore: rpc_bucket_server.NewBucketStore(vol),
 		ObjectStore: rpc_object_server.NewObjectStore(ctx, vol),
 		MqueueStore: rpc_mqueue_server.NewMqueueStore(vol),
+		RefGraph:    rpc_gc_server.NewRefGraph(vol.GetRefGraph()),
 
 		vol:           vol,
 		exposePrivKey: exposePrivKey,
@@ -82,6 +86,13 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 	if err := mux.Register(rpc_mqueue.NewSRPCMqueueStoreHandler(
 		proxyVol,
 		prefix+rpc_mqueue.SRPCMqueueStoreServiceID,
+	)); err != nil {
+		return err
+	}
+	// register RefGraph
+	if err := mux.Register(rpc_gc.NewSRPCRefGraphHandler(
+		proxyVol,
+		prefix+rpc_gc.SRPCRefGraphServiceID,
 	)); err != nil {
 		return err
 	}
@@ -134,4 +145,5 @@ var (
 	_ rpc_bucket.SRPCBucketStoreServer = ((*ProxyVolume)(nil))
 	_ rpc_object.SRPCObjectStoreServer = ((*ProxyVolume)(nil))
 	_ rpc_mqueue.SRPCMqueueStoreServer = ((*ProxyVolume)(nil))
+	_ rpc_gc.SRPCRefGraphServer        = ((*ProxyVolume)(nil))
 )

@@ -69,7 +69,7 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 		if root.GetTotalSize() > math.MaxInt {
 			return errors.New("total size exceeds maximum")
 		}
-		if len(root.GetRawData()) != int(root.GetTotalSize()) {
+		if len(root.GetRawData()) != int(root.GetTotalSize()) { //nolint:gosec
 			return errors.Errorf(
 				"raw blob size mismatch: %d != actual %d",
 				len(root.GetRawData()),
@@ -128,7 +128,7 @@ func (b *Blob) Validate() error {
 		if b.GetTotalSize() > math.MaxInt {
 			return errors.New("total size exceeds maximum")
 		}
-		if len(b.GetRawData()) != int(b.GetTotalSize()) {
+		if len(b.GetRawData()) != int(b.GetTotalSize()) { //nolint:gosec
 			return ErrRawBlobSizeMismatch
 		}
 	} else if len(b.GetRawData()) != 0 {
@@ -203,7 +203,7 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	if b.GetTotalSize() > math.MaxInt64 {
 		return errors.New("total size exceeds maximum")
 	}
-	totalSize := int64(b.GetTotalSize())
+	totalSize := int64(b.GetTotalSize()) //nolint:gosec
 	if totalSize == 0 {
 		if blobType != BlobType_BlobType_RAW {
 			return errors.New("empty blobs must be of raw type")
@@ -370,7 +370,7 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	if b.GetTotalSize() > math.MaxInt64 {
 		return errors.New("total size exceeds maximum")
 	}
-	oldSize := int64(b.GetTotalSize())
+	oldSize := int64(b.GetTotalSize()) //nolint:gosec
 	if oldSize == nsize {
 		return nil
 	}

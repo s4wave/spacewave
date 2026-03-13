@@ -82,7 +82,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	checkMethod := func(expected string) bool {
 		if req.Method != expected {
 			rw.WriteHeader(405)
-			_, _ = rw.Write([]byte("method not allowed: " + req.Method))
+			_, _ = rw.Write([]byte("method not allowed: " + req.Method)) //nolint:gosec
 			return false
 		}
 		return true
@@ -229,9 +229,9 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 	if h.forceHashType != 0 && reqHashType != h.forceHashType {
 		rw.WriteHeader(400)
 		_, _ = rw.Write([]byte("cannot write block using "))
-		_, _ = rw.Write([]byte(reqHashType.String()))
+		_, _ = rw.Write([]byte(reqHashType.String())) //nolint:gosec
 		_, _ = rw.Write([]byte(": service requires "))
-		_, _ = rw.Write([]byte(h.forceHashType.String()))
+		_, _ = rw.Write([]byte(h.forceHashType.String())) //nolint:gosec
 		_, _ = rw.Write([]byte("\n"))
 		return
 	}

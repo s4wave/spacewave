@@ -122,10 +122,8 @@ func (s *Store[T]) GetDB() *sql.DB {
 
 // initTable creates the key-value table if it doesn't exist.
 func (s *Store[T]) initTable() error {
-	query := `CREATE TABLE IF NOT EXISTS ` + s.table + ` (
-		key BLOB PRIMARY KEY,
-		value BLOB
-	)`
+	query := `CREATE TABLE IF NOT EXISTS ` + s.table + ` ( ` + //nolint:gosec
+		`key BLOB PRIMARY KEY, value BLOB)`
 	_, err := s.db.Exec(query)
 	return err
 }

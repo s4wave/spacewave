@@ -6,6 +6,7 @@ import (
 	"time"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	rpc_gc "github.com/aperturerobotics/hydra/block/gc/rpc"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
@@ -207,6 +208,7 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 		rpc_bucket.NewSRPCBucketStoreClient(volClient),
 		rpc_object.NewSRPCObjectStoreClient(volClient),
 		rpc_mqueue.NewSRPCMqueueStoreClient(volClient),
+		rpc_gc.NewSRPCRefGraphClient(volClient),
 	)
 
 	select {

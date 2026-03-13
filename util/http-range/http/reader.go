@@ -235,7 +235,7 @@ func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 		for {
 			n, err := resp.Body.Read(buffer)
 			if n > 0 {
-				totalSize += uint64(n)
+				totalSize += uint64(n) //nolint:gosec
 			}
 			if err == io.EOF {
 				break

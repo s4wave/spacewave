@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/controller"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/object"
@@ -31,6 +32,11 @@ type Volume interface {
 	// GetPeer returns the Peer object.
 	// If withPriv=false ensure that the Peer returned does not have the private key.
 	GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error)
+
+	// GetRefGraph returns the volume's GC reference graph.
+	//
+	// NOTE: May return nil if the volume does not support Garbage Collection.
+	GetRefGraph() block_gc.RefGraphOps
 
 	// Store indicates the volume is a hydra store.
 	store.Store

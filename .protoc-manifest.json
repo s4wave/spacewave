@@ -81,6 +81,24 @@
         "block/filters/filters.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/block/gc/rpc": {
+      "hash": "b519ab7cacaf53ec0b8e180d5427d421514ec4a2d23812e6222421b66ecfe9bf",
+      "generatedFiles": [
+        "block/gc/rpc/refgraph.pb.cc",
+        "block/gc/rpc/refgraph.pb.go",
+        "block/gc/rpc/refgraph.pb.h",
+        "block/gc/rpc/refgraph.pb.rs",
+        "block/gc/rpc/refgraph.pb.ts",
+        "block/gc/rpc/refgraph_srpc.pb.cpp",
+        "block/gc/rpc/refgraph_srpc.pb.go",
+        "block/gc/rpc/refgraph_srpc.pb.hpp",
+        "block/gc/rpc/refgraph_srpc.pb.rs",
+        "block/gc/rpc/refgraph_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "block/gc/rpc/refgraph.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/block/mock": {
       "hash": "7eb5cf645a5d3f4550d13fe9929be28dc0f2b1326933c8a87f849d3b22fe1f33",
       "generatedFiles": [

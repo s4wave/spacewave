@@ -310,7 +310,7 @@ func (r *Store) EncodedObjectByHash(ph plumbing.Hash) (plumbing.EncodedObject, e
 func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObjectIter, error) {
 	var prefix []byte
 	if ph != plumbing.AnyObject && ph != plumbing.InvalidObject {
-		prefix = []byte{byte(ph)}
+		prefix = []byte{byte(ph)} //nolint:gosec
 	}
 	treeTx := r.objTree
 	ktxIterator := treeTx.BlockIterate(r.ctx, prefix, false, false)
@@ -444,7 +444,7 @@ func (r *Store) buildEncodedObjectKey(ot plumbing.ObjectType, h plumbing.Hash) (
 		return nil, errors.New("encoded object hash cannot be empty")
 	}
 	// prefix with hash type
-	return append([]byte{byte(ot)}, h.Bytes()...), nil
+	return append([]byte{byte(ot)}, h.Bytes()...), nil //nolint:gosec
 }
 
 // unmarshalEncodedObject unmarshals the EncodedObject block.

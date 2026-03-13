@@ -46,7 +46,7 @@ func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
 		// Print node info
 		sb.WriteString(string(node.GetKey()))
 		sb.WriteString(" (h:")
-		sb.WriteString(fmt.Sprint(node.GetHeight()))
+		fmt.Fprint(&sb, node.GetHeight())
 		sb.WriteString(")")
 		sb.WriteString("\n")
 

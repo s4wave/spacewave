@@ -142,7 +142,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		for i := range readN {
 			p[i] = 0
 		}
-		r.idx += uint64(readN)
+		r.idx += uint64(readN) //nolint:gosec
 		return readN, nil
 	}
 
@@ -192,7 +192,7 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		nextIdx += int64(r.idx)
 	case io.SeekEnd:
-		nextIdx += int64(r.root.GetTotalSize())
+		nextIdx += int64(r.root.GetTotalSize()) //nolint:gosec
 	}
 	if nextIdx < 0 {
 		return 0, errors.New("seek to before start of file")
@@ -212,8 +212,8 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 				r.clearReadState()
 				return 0, errors.New("range bounds exceed maximum")
 			}
-			rangeStart := int64(r.currentRange.GetStart())
-			rangeLen := int64(r.currentRange.GetLength())
+			rangeStart := int64(r.currentRange.GetStart()) //nolint:gosec
+			rangeLen := int64(r.currentRange.GetLength())  //nolint:gosec
 			if rangeStart+rangeLen <= nextIdx {
 				// passed end of blob
 				r.clearReadState()
@@ -258,7 +258,7 @@ func (r *Handle) evaluateCurrentRange() error {
 			r.clearReadState()
 			return errors.New("position exceeds maximum")
 		}
-		seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
+		seekPos := int64(r.idx) - int64(r.currentRange.GetStart()) //nolint:gosec
 		if seekPos < 0 {
 			r.clearReadState()
 			return errors.New("inconsistent range start position")

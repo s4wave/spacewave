@@ -143,7 +143,7 @@ func (b *Buffer) WriteU64(v uint64) {
 
 // WriteString appends a 2-byte length-prefixed UTF-8 string.
 func (b *Buffer) WriteString(s string) {
-	b.WriteU16(uint16(len(s)))
+	b.WriteU16(uint16(len(s))) //nolint:gosec
 	b.data = append(b.data, s...)
 }
 
@@ -161,7 +161,7 @@ func (b *Buffer) WriteQID(q QID) {
 
 // buildMessage wraps a payload with the 9p header [size:u32][type:u8][tag:u16].
 func buildMessage(msgType uint8, tag uint16, payload []byte) []byte {
-	size := uint32(headerSize + len(payload))
+	size := uint32(headerSize + len(payload)) //nolint:gosec
 	msg := make([]byte, size)
 	binary.LittleEndian.PutUint32(msg[0:], size)
 	msg[4] = msgType

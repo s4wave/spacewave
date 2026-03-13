@@ -1572,12 +1572,12 @@ func TestConcurrentHandleMessage(t *testing.T) {
 		go func(fidID int) {
 			defer wg.Done()
 			payload := NewWriteBuffer(32)
-			payload.WriteU32(uint32(fidID))
+			payload.WriteU32(uint32(fidID)) //nolint:gosec
 			payload.WriteU32(0xFFFFFFFF)
 			payload.WriteString("user")
 			payload.WriteString("")
 			payload.WriteU32(1000)
-			resp, err := srv.HandleMessage(ctx, buildMessage(TATTACH, uint16(fidID), payload.Bytes()))
+			resp, err := srv.HandleMessage(ctx, buildMessage(TATTACH, uint16(fidID), payload.Bytes())) //nolint:gosec
 			if err != nil {
 				errs[fidID] = err
 				return
@@ -1601,8 +1601,8 @@ func TestConcurrentHandleMessage(t *testing.T) {
 		go func(fidID int) {
 			defer wg.Done()
 			payload := NewWriteBuffer(4)
-			payload.WriteU32(uint32(fidID))
-			_, err := srv.HandleMessage(ctx, buildMessage(TCLUNK, uint16(fidID+100), payload.Bytes()))
+			payload.WriteU32(uint32(fidID))                                                            //nolint:gosec
+			_, err := srv.HandleMessage(ctx, buildMessage(TCLUNK, uint16(fidID+100), payload.Bytes())) //nolint:gosec
 			if err != nil {
 				errs[fidID] = err
 			}

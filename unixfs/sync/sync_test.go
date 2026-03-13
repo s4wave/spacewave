@@ -213,7 +213,7 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.WriteFile(tempFile.Name(), appendData, os.ModeAppend)
+	err = os.WriteFile(tempFile.Name(), appendData, os.ModeAppend) //nolint:gosec
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 	syncedFile := unixfs_iofs.NewFSFile(ctx, tmpFileFsh)
 	defer syncedFile.Close()
 
-	originalData, err := os.ReadFile(tempFile.Name())
+	originalData, err := os.ReadFile(tempFile.Name()) //nolint:gosec
 	if err != nil {
 		t.Fatal(err)
 	}

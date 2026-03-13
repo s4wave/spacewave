@@ -34,7 +34,7 @@ type Stats struct {
 // them. Deletion cascades: removing a node may orphan its children,
 // which get marked unreferenced for the next iteration.
 type Collector struct {
-	refGraph *RefGraph
+	refGraph RefGraphOps
 	store    block.StoreOps
 	onSwept  func(ctx context.Context, iri string) error
 }
@@ -44,7 +44,7 @@ type Collector struct {
 // The onSwept callback is optional; if non-nil it is called for each
 // node before physical deletion.
 func NewCollector(
-	refGraph *RefGraph,
+	refGraph RefGraphOps,
 	store block.StoreOps,
 	onSwept func(context.Context, string) error,
 ) *Collector {

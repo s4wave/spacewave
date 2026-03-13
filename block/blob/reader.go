@@ -71,7 +71,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	if r.root.GetTotalSize() > math.MaxInt {
 		return 0, errors.New("total size exceeds maximum")
 	}
-	blobSize := int(r.root.GetTotalSize())
+	blobSize := int(r.root.GetTotalSize()) //nolint:gosec
 	readSize := len(p)
 	readEnd := min(r.idx+readSize, blobSize)
 	if readStart >= readEnd {

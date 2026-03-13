@@ -27,7 +27,7 @@ type pendingRef struct {
 // bucket-level ownership of blocks.
 type GCStoreOps struct {
 	store     block.StoreOps
-	refGraph  *RefGraph
+	refGraph  RefGraphOps
 	parentIRI string
 
 	mu             sync.Mutex
@@ -38,7 +38,7 @@ type GCStoreOps struct {
 
 // NewGCStoreOps wraps a StoreOps with GC ref graph tracking.
 // New blocks are added under the "unreferenced" staging node.
-func NewGCStoreOps(store block.StoreOps, refGraph *RefGraph) *GCStoreOps {
+func NewGCStoreOps(store block.StoreOps, refGraph RefGraphOps) *GCStoreOps {
 	return &GCStoreOps{
 		store:    store,
 		refGraph: refGraph,
@@ -48,7 +48,7 @@ func NewGCStoreOps(store block.StoreOps, refGraph *RefGraph) *GCStoreOps {
 // NewGCStoreOpsWithParent wraps a StoreOps with GC ref graph tracking
 // using a specific parent IRI. New blocks are tracked under parentIRI
 // instead of the "unreferenced" staging node.
-func NewGCStoreOpsWithParent(store block.StoreOps, refGraph *RefGraph, parentIRI string) *GCStoreOps {
+func NewGCStoreOpsWithParent(store block.StoreOps, refGraph RefGraphOps, parentIRI string) *GCStoreOps {
 	return &GCStoreOps{
 		store:     store,
 		refGraph:  refGraph,
@@ -62,7 +62,7 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 }
 
 // GetRefGraph returns the underlying ref graph.
-func (g *GCStoreOps) GetRefGraph() *RefGraph {
+func (g *GCStoreOps) GetRefGraph() RefGraphOps {
 	return g.refGraph
 }
 

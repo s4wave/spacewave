@@ -208,7 +208,7 @@ func TestBuildTree100(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(sz) != n {
+	if int(sz) != n { //nolint:gosec
 		t.Fatalf("expected size %d, got %d", n, sz)
 	}
 

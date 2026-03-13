@@ -142,11 +142,6 @@ func (s *Server) handleWalk(ctx context.Context, tag uint16, payload []byte) ([]
 		qids = append(qids, QID{Type: qidType, Version: 0, Path: qidPath})
 	}
 
-	// zero-length walk: clone fid
-	if nwname == 0 {
-		// just clone the fid
-	}
-
 	newFid := &Fid{
 		id:     newFidID,
 		handle: handle,
@@ -167,7 +162,7 @@ func (s *Server) handleWalk(ctx context.Context, tag uint16, payload []byte) ([]
 	}
 
 	resp := NewWriteBuffer(2 + len(qids)*13)
-	resp.WriteU16(uint16(len(qids)))
+	resp.WriteU16(uint16(len(qids))) //nolint:gosec
 	for _, q := range qids {
 		resp.WriteQID(q)
 	}
@@ -267,14 +262,14 @@ func (s *Server) handleRead(ctx context.Context, tag uint16, payload []byte) ([]
 
 	// check if offset is past file size
 	fsize, sizeErr := fid.handle.GetSize(ctx)
-	if sizeErr == nil && int64(offset) >= int64(fsize) {
+	if sizeErr == nil && int64(offset) >= int64(fsize) { //nolint:gosec
 		resp := NewWriteBuffer(4)
 		resp.WriteU32(0)
 		return buildMessage(RREAD, tag, resp.Bytes()), nil
 	}
 
 	data := make([]byte, count)
-	n, readErr := fid.handle.ReadAt(ctx, int64(offset), data)
+	n, readErr := fid.handle.ReadAt(ctx, int64(offset), data) //nolint:gosec
 	if readErr != nil && n == 0 {
 		// EOF at offset is normal in 9p — return empty read.
 		if isEOF(readErr) {
@@ -316,7 +311,7 @@ func (s *Server) handleWrite(ctx context.Context, tag uint16, payload []byte) ([
 	}
 
 	now := time.Now()
-	if err := fid.handle.WriteAt(ctx, int64(offset), data, now); err != nil {
+	if err := fid.handle.WriteAt(ctx, int64(offset), data, now); err != nil { //nolint:gosec
 		return nil, err
 	}
 
@@ -409,8 +404,8 @@ func (s *Server) handleGetattr(ctx context.Context, tag uint16, payload []byte) 
 	qidPath := s.fids.AllocQIDPath(fid.handle)
 	qid := QID{Type: qidType, Version: 0, Path: qidPath}
 
-	mtimeSec := uint64(mtime.Unix())
-	mtimeNsec := uint64(mtime.Nanosecond())
+	mtimeSec := uint64(mtime.Unix())        //nolint:gosec
+	mtimeNsec := uint64(mtime.Nanosecond()) //nolint:gosec
 
 	// blocks = ceil(size / 512)
 	blocks := size / 512
@@ -482,7 +477,7 @@ func (s *Server) handleSetattr(ctx context.Context, tag uint16, payload []byte) 
 	}
 
 	if valid&SetattrMtimeSet != 0 {
-		mtime := time.Unix(int64(mtimeSec), int64(mtimeNsec))
+		mtime := time.Unix(int64(mtimeSec), int64(mtimeNsec)) //nolint:gosec
 		if err := fid.handle.SetModTimestamp(ctx, mtime); err != nil {
 			return nil, err
 		}
@@ -541,12 +536,12 @@ func (s *Server) handleReaddir(ctx context.Context, tag uint16, payload []byte) 
 		}
 	}
 
-	if uint32(len(result)) > count {
+	if uint32(len(result)) > count { //nolint:gosec
 		result = truncateEntries(result, count)
 	}
 
 	resp := NewWriteBuffer(4 + len(result))
-	resp.WriteU32(uint32(len(result)))
+	resp.WriteU32(uint32(len(result))) //nolint:gosec
 	resp.WriteBytes(result)
 	return buildMessage(RREADDIR, tag, resp.Bytes()), nil
 }
@@ -582,7 +577,7 @@ func truncateEntries(entries []byte, maxBytes uint32) []byte {
 		if r.Err() != nil {
 			break
 		}
-		if uint32(r.off) > maxBytes {
+		if uint32(r.off) > maxBytes { //nolint:gosec
 			break
 		}
 		lastEnd = r.off

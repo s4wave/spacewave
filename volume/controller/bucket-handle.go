@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/volume"
-	kvtx_volume "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 )
@@ -81,14 +80,12 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 	}
 
 	// Wrap block operations with GC tracking if the volume has a RefGraph.
-	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			handle.gcOps = block_gc.NewGCStoreOpsWithParent(
-				vol,
-				rg,
-				block_gc.BucketIRI(b.bucketID),
-			)
-		}
+	if rg := vol.GetRefGraph(); rg != nil {
+		handle.gcOps = block_gc.NewGCStoreOpsWithParent(
+			vol,
+			rg,
+			block_gc.BucketIRI(b.bucketID),
+		)
 	}
 
 	b.handleCtr.SetValue(handle)

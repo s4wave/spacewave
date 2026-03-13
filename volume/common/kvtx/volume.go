@@ -40,8 +40,6 @@ type KvtxVolume interface {
 	GetKvtxStore() kvtx.Store
 	// GetKvKey returns the instance of KvKey used to build keys.
 	GetKvKey() *store_kvkey.KVKey
-	// GetRefGraph returns the volume's GC reference graph.
-	GetRefGraph() *block_gc.RefGraph
 }
 
 // NewVolume builds a new key/value volume.
@@ -134,7 +132,10 @@ func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 }
 
 // GetRefGraph returns the volume's GC reference graph.
-func (v *Volume) GetRefGraph() *block_gc.RefGraph {
+func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
+	if v.refGraph == nil {
+		return nil
+	}
 	return v.refGraph
 }
 

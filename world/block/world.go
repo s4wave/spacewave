@@ -415,7 +415,10 @@ func (t *WorldState) Commit(ctx context.Context) error {
 }
 
 // GetRefGraph returns the GC reference graph, or nil if not initialized.
-func (t *WorldState) GetRefGraph() *block_gc.RefGraph {
+func (t *WorldState) GetRefGraph() block_gc.RefGraphOps {
+	if t.refGraph == nil {
+		return nil
+	}
 	return t.refGraph
 }
 

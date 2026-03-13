@@ -41,7 +41,7 @@ func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
 		if r[i].GetStart() > math.MaxInt {
 			return true
 		}
-		return int(r[i].GetStart()) > pos
+		return int(r[i].GetStart()) > pos //nolint:gosec
 	})
 
 	foundNonce, foundIdx := -1, -1
@@ -50,8 +50,8 @@ func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
 		if rng.GetStart() > math.MaxInt || rng.GetLength() > math.MaxInt {
 			continue
 		}
-		rStart := int(rng.GetStart())
-		rEnd := rStart + int(rng.GetLength())
+		rStart := int(rng.GetStart())         //nolint:gosec
+		rEnd := rStart + int(rng.GetLength()) //nolint:gosec
 		if pos < rStart || pos >= rEnd {
 			continue
 		}

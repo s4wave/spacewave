@@ -135,7 +135,7 @@ func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
 	total := 2 * 1024 * 1024           // 2 MiB
 	data := make([]byte, total)
 	for i := range data {
-		data[i] = byte(rng.Intn(256))
+		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 
 	chunks1 := chunkAll(c, data)
@@ -177,7 +177,7 @@ func TestStreamingChunker_DefaultKey(t *testing.T) {
 	total := 2 * 1024 * 1024           // 2 MiB
 	data := make([]byte, total)
 	for i := range data {
-		data[i] = byte(rng.Intn(256))
+		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 
 	// Test streaming chunker
@@ -243,7 +243,7 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 	total := 2 * int(maxSize)           // 2x maxSize to ensure multiple chunks
 	data := make([]byte, total)
 	for i := range data {
-		data[i] = byte(rng.Intn(256))
+		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 
 	// Test non-streaming chunker
@@ -386,7 +386,7 @@ func BenchmarkChunking_DefaultKey(b *testing.B) {
 	data := make([]byte, size)
 	rng := rand.New(rand.NewSource(42)) //nolint:gosec
 	for i := range data {
-		data[i] = byte(rng.Intn(256))
+		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 	// Reusable slice to avoid reallocation noise
 	chunks := make([]int, 0, size/c.targetSize)
@@ -478,7 +478,7 @@ func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
 	data := make([]byte, size)
 	rng := rand.New(rand.NewSource(1337)) //nolint:gosec
 	for i := range data {
-		data[i] = byte(rng.Intn(256))
+		data[i] = byte(rng.Intn(256)) //nolint:gosec
 	}
 	chunks := make([]int, 0, size/c.targetSize)
 
