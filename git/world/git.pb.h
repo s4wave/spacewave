@@ -76,6 +76,14 @@ class GitInitOp;
 struct GitInitOpDefaultTypeInternal;
 extern GitInitOpDefaultTypeInternal _GitInitOp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GitInitOp_class_data_;
+class GitStageOp;
+struct GitStageOpDefaultTypeInternal;
+extern GitStageOpDefaultTypeInternal _GitStageOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GitStageOp_class_data_;
+class GitUnstageOp;
+struct GitUnstageOpDefaultTypeInternal;
+extern GitUnstageOpDefaultTypeInternal _GitUnstageOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GitUnstageOp_class_data_;
 class GitWorktreeCheckoutOp;
 struct GitWorktreeCheckoutOpDefaultTypeInternal;
 extern GitWorktreeCheckoutOpDefaultTypeInternal _GitWorktreeCheckoutOp_default_instance_;
@@ -101,6 +109,512 @@ namespace world {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class GitUnstageOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:git.world.GitUnstageOp) */ {
+ public:
+  inline GitUnstageOp() : GitUnstageOp(nullptr) {}
+  ~GitUnstageOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GitUnstageOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GitUnstageOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GitUnstageOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline GitUnstageOp(const GitUnstageOp& from) : GitUnstageOp(nullptr, from) {}
+  inline GitUnstageOp(GitUnstageOp&& from) noexcept
+      : GitUnstageOp(nullptr, ::std::move(from)) {}
+  inline GitUnstageOp& operator=(const GitUnstageOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GitUnstageOp& operator=(GitUnstageOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GitUnstageOp& default_instance() {
+    return *reinterpret_cast<const GitUnstageOp*>(
+        &_GitUnstageOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(GitUnstageOp& a, GitUnstageOp& b) { a.Swap(&b); }
+  inline void Swap(GitUnstageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GitUnstageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GitUnstageOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GitUnstageOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GitUnstageOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GitUnstageOp& from) { GitUnstageOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GitUnstageOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "git.world.GitUnstageOp"; }
+
+  explicit GitUnstageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GitUnstageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GitUnstageOp& from);
+  GitUnstageOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GitUnstageOp&& from) noexcept
+      : GitUnstageOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathsFieldNumber = 3,
+    kObjectKeyFieldNumber = 1,
+    kRepoObjectKeyFieldNumber = 2,
+    kTimestampFieldNumber = 4,
+  };
+  // repeated string paths = 3;
+  int paths_size() const;
+  private:
+  int _internal_paths_size() const;
+
+  public:
+  void clear_paths() ;
+  const ::std::string& paths(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_paths(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_paths(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_paths();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_paths(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_paths();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_paths();
+
+  public:
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string repo_object_key = 2;
+  void clear_repo_object_key() ;
+  const ::std::string& repo_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_repo_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_repo_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_repo_object_key();
+  void set_allocated_repo_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_repo_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_repo_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_repo_object_key();
+
+  public:
+  // .google.protobuf.Timestamp timestamp = 4;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
+  // @@protoc_insertion_point(class_scope:git.world.GitUnstageOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 61,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GitUnstageOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> paths_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr repo_object_key_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GitUnstageOp_class_data_;
+// -------------------------------------------------------------------
+
+class GitStageOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:git.world.GitStageOp) */ {
+ public:
+  inline GitStageOp() : GitStageOp(nullptr) {}
+  ~GitStageOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GitStageOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GitStageOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GitStageOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline GitStageOp(const GitStageOp& from) : GitStageOp(nullptr, from) {}
+  inline GitStageOp(GitStageOp&& from) noexcept
+      : GitStageOp(nullptr, ::std::move(from)) {}
+  inline GitStageOp& operator=(const GitStageOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GitStageOp& operator=(GitStageOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GitStageOp& default_instance() {
+    return *reinterpret_cast<const GitStageOp*>(
+        &_GitStageOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(GitStageOp& a, GitStageOp& b) { a.Swap(&b); }
+  inline void Swap(GitStageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GitStageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GitStageOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GitStageOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GitStageOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GitStageOp& from) { GitStageOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GitStageOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "git.world.GitStageOp"; }
+
+  explicit GitStageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GitStageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GitStageOp& from);
+  GitStageOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GitStageOp&& from) noexcept
+      : GitStageOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathsFieldNumber = 3,
+    kObjectKeyFieldNumber = 1,
+    kRepoObjectKeyFieldNumber = 2,
+    kTimestampFieldNumber = 4,
+  };
+  // repeated string paths = 3;
+  int paths_size() const;
+  private:
+  int _internal_paths_size() const;
+
+  public:
+  void clear_paths() ;
+  const ::std::string& paths(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_paths(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_paths(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_paths();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_paths(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_paths();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_paths();
+
+  public:
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string repo_object_key = 2;
+  void clear_repo_object_key() ;
+  const ::std::string& repo_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_repo_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_repo_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_repo_object_key();
+  void set_allocated_repo_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_repo_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_repo_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_repo_object_key();
+
+  public:
+  // .google.protobuf.Timestamp timestamp = 4;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
+  // @@protoc_insertion_point(class_scope:git.world.GitStageOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 59,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GitStageOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> paths_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr repo_object_key_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GitStageOp_class_data_;
 // -------------------------------------------------------------------
 
 class GitFetchOp final : public ::google::protobuf::Message
@@ -3933,6 +4447,604 @@ inline void GitWorktreeCheckoutOp::set_allocated_timestamp(::google::protobuf::T
 
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   // @@protoc_insertion_point(field_set_allocated:git.world.GitWorktreeCheckoutOp.timestamp)
+}
+
+// -------------------------------------------------------------------
+
+// GitStageOp
+
+// string object_key = 1;
+inline void GitStageOp::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& GitStageOp::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitStageOp.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GitStageOp::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.world.GitStageOp.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:git.world.GitStageOp.object_key)
+  return _s;
+}
+inline const ::std::string& GitStageOp::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void GitStageOp::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GitStageOp::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitStageOp.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GitStageOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitStageOp.object_key)
+}
+
+// string repo_object_key = 2;
+inline void GitStageOp::clear_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repo_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& GitStageOp::repo_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitStageOp.repo_object_key)
+  return _internal_repo_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GitStageOp::set_repo_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.repo_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.world.GitStageOp.repo_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::mutable_repo_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_repo_object_key();
+  // @@protoc_insertion_point(field_mutable:git.world.GitStageOp.repo_object_key)
+  return _s;
+}
+inline const ::std::string& GitStageOp::_internal_repo_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.repo_object_key_.Get();
+}
+inline void GitStageOp::_internal_set_repo_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repo_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::_internal_mutable_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.repo_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GitStageOp::release_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitStageOp.repo_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.repo_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.repo_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GitStageOp::set_allocated_repo_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.repo_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.repo_object_key_.IsDefault()) {
+    _impl_.repo_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitStageOp.repo_object_key)
+}
+
+// repeated string paths = 3;
+inline int GitStageOp::_internal_paths_size() const {
+  return _internal_paths().size();
+}
+inline int GitStageOp::paths_size() const {
+  return _internal_paths_size();
+}
+inline void GitStageOp::clear_paths() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.paths_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::add_paths()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_paths()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:git.world.GitStageOp.paths)
+  return _s;
+}
+inline const ::std::string& GitStageOp::paths(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitStageOp.paths)
+  return _internal_paths().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL GitStageOp::mutable_paths(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:git.world.GitStageOp.paths)
+  return _internal_mutable_paths()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void GitStageOp::set_paths(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_paths()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:git.world.GitStageOp.paths)
+}
+template <typename Arg_, typename... Args_>
+inline void GitStageOp::add_paths(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_paths(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:git.world.GitStageOp.paths)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& GitStageOp::paths()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:git.world.GitStageOp.paths)
+  return _internal_paths();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GitStageOp::mutable_paths() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:git.world.GitStageOp.paths)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_paths();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+GitStageOp::_internal_paths() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.paths_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GitStageOp::_internal_mutable_paths() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.paths_;
+}
+
+// .google.protobuf.Timestamp timestamp = 4;
+inline bool GitStageOp::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& GitStageOp::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& GitStageOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitStageOp.timestamp)
+  return _internal_timestamp();
+}
+inline void GitStageOp::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitStageOp.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitStageOp::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitStageOp::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitStageOp.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitStageOp::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitStageOp::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:git.world.GitStageOp.timestamp)
+  return _msg;
+}
+inline void GitStageOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitStageOp.timestamp)
+}
+
+// -------------------------------------------------------------------
+
+// GitUnstageOp
+
+// string object_key = 1;
+inline void GitUnstageOp::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& GitUnstageOp::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitUnstageOp.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GitUnstageOp::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.world.GitUnstageOp.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:git.world.GitUnstageOp.object_key)
+  return _s;
+}
+inline const ::std::string& GitUnstageOp::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void GitUnstageOp::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GitUnstageOp::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitUnstageOp.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GitUnstageOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitUnstageOp.object_key)
+}
+
+// string repo_object_key = 2;
+inline void GitUnstageOp::clear_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repo_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& GitUnstageOp::repo_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitUnstageOp.repo_object_key)
+  return _internal_repo_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GitUnstageOp::set_repo_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.repo_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:git.world.GitUnstageOp.repo_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::mutable_repo_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_repo_object_key();
+  // @@protoc_insertion_point(field_mutable:git.world.GitUnstageOp.repo_object_key)
+  return _s;
+}
+inline const ::std::string& GitUnstageOp::_internal_repo_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.repo_object_key_.Get();
+}
+inline void GitUnstageOp::_internal_set_repo_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repo_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::_internal_mutable_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.repo_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GitUnstageOp::release_repo_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitUnstageOp.repo_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.repo_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.repo_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GitUnstageOp::set_allocated_repo_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.repo_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.repo_object_key_.IsDefault()) {
+    _impl_.repo_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitUnstageOp.repo_object_key)
+}
+
+// repeated string paths = 3;
+inline int GitUnstageOp::_internal_paths_size() const {
+  return _internal_paths().size();
+}
+inline int GitUnstageOp::paths_size() const {
+  return _internal_paths_size();
+}
+inline void GitUnstageOp::clear_paths() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.paths_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::add_paths()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_paths()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:git.world.GitUnstageOp.paths)
+  return _s;
+}
+inline const ::std::string& GitUnstageOp::paths(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitUnstageOp.paths)
+  return _internal_paths().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL GitUnstageOp::mutable_paths(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:git.world.GitUnstageOp.paths)
+  return _internal_mutable_paths()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void GitUnstageOp::set_paths(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_paths()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:git.world.GitUnstageOp.paths)
+}
+template <typename Arg_, typename... Args_>
+inline void GitUnstageOp::add_paths(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_paths(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:git.world.GitUnstageOp.paths)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& GitUnstageOp::paths()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:git.world.GitUnstageOp.paths)
+  return _internal_paths();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GitUnstageOp::mutable_paths() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:git.world.GitUnstageOp.paths)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_paths();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+GitUnstageOp::_internal_paths() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.paths_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GitUnstageOp::_internal_mutable_paths() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.paths_;
+}
+
+// .google.protobuf.Timestamp timestamp = 4;
+inline bool GitUnstageOp::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& GitUnstageOp::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& GitUnstageOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:git.world.GitUnstageOp.timestamp)
+  return _internal_timestamp();
+}
+inline void GitUnstageOp::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:git.world.GitUnstageOp.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitUnstageOp::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE GitUnstageOp::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:git.world.GitUnstageOp.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitUnstageOp::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL GitUnstageOp::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:git.world.GitUnstageOp.timestamp)
+  return _msg;
+}
+inline void GitUnstageOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:git.world.GitUnstageOp.timestamp)
 }
 
 #ifdef __GNUC__

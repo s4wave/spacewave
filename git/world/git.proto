@@ -104,3 +104,27 @@ message GitWorktreeCheckoutOp {
   // Timestamp is the modification time for the workdir ops.
   google.protobuf.Timestamp timestamp = 4;
 }
+
+// GitStageOp stages files in a worktree's git index.
+message GitStageOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // Paths is the list of file paths to stage.
+  repeated string paths = 3;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// GitUnstageOp unstages files from a worktree's git index.
+message GitUnstageOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // Paths is the list of file paths to unstage.
+  repeated string paths = 3;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 4;
+}

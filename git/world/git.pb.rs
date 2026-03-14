@@ -127,4 +127,36 @@ pub struct GitWorktreeCheckoutOp {
     #[prost(message, optional, tag="4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// GitStageOp stages files in a worktree's git index.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GitStageOp {
+    /// ObjectKey is the object key of the Worktree.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// RepoObjectKey is the key of the repository object.
+    #[prost(string, tag="2")]
+    pub repo_object_key: ::prost::alloc::string::String,
+    /// Paths is the list of file paths to stage.
+    #[prost(string, repeated, tag="3")]
+    pub paths: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Timestamp is the modification time for the workdir ops.
+    #[prost(message, optional, tag="4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// GitUnstageOp unstages files from a worktree's git index.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GitUnstageOp {
+    /// ObjectKey is the object key of the Worktree.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// RepoObjectKey is the key of the repository object.
+    #[prost(string, tag="2")]
+    pub repo_object_key: ::prost::alloc::string::String,
+    /// Paths is the list of file paths to unstage.
+    #[prost(string, repeated, tag="3")]
+    pub paths: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Timestamp is the modification time for the workdir ops.
+    #[prost(message, optional, tag="4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+}
 // @@protoc_insertion_point(module)

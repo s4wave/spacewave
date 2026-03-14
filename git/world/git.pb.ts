@@ -357,3 +357,103 @@ export const GitWorktreeCheckoutOp: MessageType<GitWorktreeCheckoutOp> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * GitStageOp stages files in a worktree's git index.
+ *
+ * @generated from message git.world.GitStageOp
+ */
+export interface GitStageOp {
+  /**
+   * ObjectKey is the object key of the Worktree.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RepoObjectKey is the key of the repository object.
+   *
+   * @generated from field: string repo_object_key = 2;
+   */
+  repoObjectKey?: string
+  /**
+   * Paths is the list of file paths to stage.
+   *
+   * @generated from field: repeated string paths = 3;
+   */
+  paths?: string[]
+  /**
+   * Timestamp is the modification time for the workdir ops.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 4;
+   */
+  timestamp?: Date
+}
+
+// GitStageOp contains the message type declaration for GitStageOp.
+export const GitStageOp: MessageType<GitStageOp> = createMessageType({
+  typeName: 'git.world.GitStageOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 3,
+      name: 'paths',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * GitUnstageOp unstages files from a worktree's git index.
+ *
+ * @generated from message git.world.GitUnstageOp
+ */
+export interface GitUnstageOp {
+  /**
+   * ObjectKey is the object key of the Worktree.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RepoObjectKey is the key of the repository object.
+   *
+   * @generated from field: string repo_object_key = 2;
+   */
+  repoObjectKey?: string
+  /**
+   * Paths is the list of file paths to unstage.
+   *
+   * @generated from field: repeated string paths = 3;
+   */
+  paths?: string[]
+  /**
+   * Timestamp is the modification time for the workdir ops.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 4;
+   */
+  timestamp?: Date
+}
+
+// GitUnstageOp contains the message type declaration for GitUnstageOp.
+export const GitUnstageOp: MessageType<GitUnstageOp> = createMessageType({
+  typeName: 'git.world.GitUnstageOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 3,
+      name: 'paths',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

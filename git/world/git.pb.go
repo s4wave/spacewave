@@ -363,15 +363,111 @@ func (x *GitWorktreeCheckoutOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// GitStageOp stages files in a worktree's git index.
+type GitStageOp struct {
+	unknownFields []byte
+	// ObjectKey is the object key of the Worktree.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RepoObjectKey is the key of the repository object.
+	RepoObjectKey string `protobuf:"bytes,2,opt,name=repo_object_key,json=repoObjectKey,proto3" json:"repoObjectKey,omitempty"`
+	// Paths is the list of file paths to stage.
+	Paths []string `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Timestamp is the modification time for the workdir ops.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+}
+
+func (x *GitStageOp) Reset() {
+	*x = GitStageOp{}
+}
+
+func (*GitStageOp) ProtoMessage() {}
+
+func (x *GitStageOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *GitStageOp) GetRepoObjectKey() string {
+	if x != nil {
+		return x.RepoObjectKey
+	}
+	return ""
+}
+
+func (x *GitStageOp) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
+func (x *GitStageOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+// GitUnstageOp unstages files from a worktree's git index.
+type GitUnstageOp struct {
+	unknownFields []byte
+	// ObjectKey is the object key of the Worktree.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RepoObjectKey is the key of the repository object.
+	RepoObjectKey string `protobuf:"bytes,2,opt,name=repo_object_key,json=repoObjectKey,proto3" json:"repoObjectKey,omitempty"`
+	// Paths is the list of file paths to unstage.
+	Paths []string `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Timestamp is the modification time for the workdir ops.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+}
+
+func (x *GitUnstageOp) Reset() {
+	*x = GitUnstageOp{}
+}
+
+func (*GitUnstageOp) ProtoMessage() {}
+
+func (x *GitUnstageOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *GitUnstageOp) GetRepoObjectKey() string {
+	if x != nil {
+		return x.RepoObjectKey
+	}
+	return ""
+}
+
+func (x *GitUnstageOp) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
+func (x *GitUnstageOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
 func (m *GitInitOp) CloneVT() *GitInitOp {
 	if m == nil {
 		return (*GitInitOp)(nil)
 	}
 	r := new(GitInitOp)
 	r.ObjectKey = m.ObjectKey
-	r.RepoRef = m.RepoRef.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
+	if rhs := m.RepoRef; rhs != nil {
+		r.RepoRef = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -390,8 +486,10 @@ func (m *Worktree) CloneVT() *Worktree {
 		return (*Worktree)(nil)
 	}
 	r := new(Worktree)
-	r.GitIndex = m.GitIndex.CloneVT()
 	r.HeadRefStore = m.HeadRefStore.CloneVT()
+	if rhs := m.GitIndex; rhs != nil {
+		r.GitIndex = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -408,7 +506,9 @@ func (m *HeadRefStore) CloneVT() *HeadRefStore {
 	}
 	r := new(HeadRefStore)
 	r.SubmoduleName = m.SubmoduleName
-	r.HeadRef = m.HeadRef.CloneVT()
+	if rhs := m.HeadRef; rhs != nil {
+		r.HeadRef = rhs.CloneVT()
+	}
 	if rhs := m.Submodules; rhs != nil {
 		r.Submodules = make([]*HeadRefStore, len(rhs))
 		for k, v := range rhs {
@@ -432,10 +532,14 @@ func (m *GitCreateWorktreeOp) CloneVT() *GitCreateWorktreeOp {
 	r := new(GitCreateWorktreeOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
-	r.WorkdirRef = m.WorkdirRef.CloneVT()
 	r.CreateWorkdir = m.CreateWorkdir
-	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
+	if rhs := m.WorkdirRef; rhs != nil {
+		r.WorkdirRef = rhs.CloneVT()
+	}
+	if rhs := m.CheckoutOpts; rhs != nil {
+		r.CheckoutOpts = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -455,7 +559,9 @@ func (m *GitFetchOp) CloneVT() *GitFetchOp {
 	}
 	r := new(GitFetchOp)
 	r.ObjectKey = m.ObjectKey
-	r.FetchOpts = m.FetchOpts.CloneVT()
+	if rhs := m.FetchOpts; rhs != nil {
+		r.FetchOpts = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -472,9 +578,11 @@ func (m *GitCloneOp) CloneVT() *GitCloneOp {
 	}
 	r := new(GitCloneOp)
 	r.ObjectKey = m.ObjectKey
-	r.CloneOpts = m.CloneOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
+	if rhs := m.CloneOpts; rhs != nil {
+		r.CloneOpts = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -495,7 +603,9 @@ func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 	r := new(GitWorktreeCheckoutOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
-	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
+	if rhs := m.CheckoutOpts; rhs != nil {
+		r.CheckoutOpts = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -506,6 +616,52 @@ func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 }
 
 func (m *GitWorktreeCheckoutOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GitStageOp) CloneVT() *GitStageOp {
+	if m == nil {
+		return (*GitStageOp)(nil)
+	}
+	r := new(GitStageOp)
+	r.ObjectKey = m.ObjectKey
+	r.RepoObjectKey = m.RepoObjectKey
+	if rhs := m.Paths; rhs != nil {
+		r.Paths = slices.Clone(rhs)
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GitStageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GitUnstageOp) CloneVT() *GitUnstageOp {
+	if m == nil {
+		return (*GitUnstageOp)(nil)
+	}
+	r := new(GitUnstageOp)
+	r.ObjectKey = m.ObjectKey
+	r.RepoObjectKey = m.RepoObjectKey
+	if rhs := m.Paths; rhs != nil {
+		r.Paths = slices.Clone(rhs)
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GitUnstageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -720,6 +876,76 @@ func (this *GitWorktreeCheckoutOp) EqualVT(that *GitWorktreeCheckoutOp) bool {
 
 func (this *GitWorktreeCheckoutOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GitWorktreeCheckoutOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GitStageOp) EqualVT(that *GitStageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.RepoObjectKey != that.RepoObjectKey {
+		return false
+	}
+	if len(this.Paths) != len(that.Paths) {
+		return false
+	}
+	for i, vx := range this.Paths {
+		vy := that.Paths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GitStageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GitStageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GitUnstageOp) EqualVT(that *GitUnstageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.RepoObjectKey != that.RepoObjectKey {
+		return false
+	}
+	if len(this.Paths) != len(that.Paths) {
+		return false
+	}
+	for i, vx := range this.Paths {
+		vy := that.Paths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GitUnstageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GitUnstageOp)
 	if !ok {
 		return false
 	}
@@ -1269,6 +1495,154 @@ func (x *GitWorktreeCheckoutOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the GitStageOp message to JSON.
+func (x *GitStageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RepoObjectKey != "" || s.HasField("repoObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repoObjectKey")
+		s.WriteString(x.RepoObjectKey)
+	}
+	if len(x.Paths) > 0 || s.HasField("paths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("paths")
+		s.WriteStringArray(x.Paths)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GitStageOp to JSON.
+func (x *GitStageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GitStageOp message from JSON.
+func (x *GitStageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "repo_object_key", "repoObjectKey":
+			s.AddField("repo_object_key")
+			x.RepoObjectKey = s.ReadString()
+		case "paths":
+			s.AddField("paths")
+			if s.ReadNil() {
+				x.Paths = nil
+				return
+			}
+			x.Paths = s.ReadStringArray()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GitStageOp from JSON.
+func (x *GitStageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GitUnstageOp message to JSON.
+func (x *GitUnstageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RepoObjectKey != "" || s.HasField("repoObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repoObjectKey")
+		s.WriteString(x.RepoObjectKey)
+	}
+	if len(x.Paths) > 0 || s.HasField("paths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("paths")
+		s.WriteStringArray(x.Paths)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GitUnstageOp to JSON.
+func (x *GitUnstageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GitUnstageOp message from JSON.
+func (x *GitUnstageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "repo_object_key", "repoObjectKey":
+			s.AddField("repo_object_key")
+			x.RepoObjectKey = s.ReadString()
+		case "paths":
+			s.AddField("paths")
+			if s.ReadNil() {
+				x.Paths = nil
+				return
+			}
+			x.Paths = s.ReadStringArray()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GitUnstageOp from JSON.
+func (x *GitUnstageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *GitInitOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1758,6 +2132,138 @@ func (m *GitWorktreeCheckoutOp) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *GitStageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GitStageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GitStageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Paths) > 0 {
+		for iNdEx := len(m.Paths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Paths[iNdEx])
+			copy(dAtA[i:], m.Paths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Paths[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.RepoObjectKey) > 0 {
+		i -= len(m.RepoObjectKey)
+		copy(dAtA[i:], m.RepoObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RepoObjectKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GitUnstageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GitUnstageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GitUnstageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Paths) > 0 {
+		for iNdEx := len(m.Paths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Paths[iNdEx])
+			copy(dAtA[i:], m.Paths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Paths[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.RepoObjectKey) > 0 {
+		i -= len(m.RepoObjectKey)
+		copy(dAtA[i:], m.RepoObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RepoObjectKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GitInitOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1929,6 +2435,62 @@ func (m *GitWorktreeCheckoutOp) SizeVT() (n int) {
 	if m.CheckoutOpts != nil {
 		l = m.CheckoutOpts.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GitStageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RepoObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Paths) > 0 {
+		for _, s := range m.Paths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GitUnstageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RepoObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Paths) > 0 {
+		for _, s := range m.Paths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
@@ -2214,6 +2776,96 @@ func (x *GitWorktreeCheckoutOp) MarshalProtoText() string {
 }
 
 func (x *GitWorktreeCheckoutOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GitStageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GitStageOp {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.RepoObjectKey != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("repo_object_key: ")
+		sb.WriteString(strconv.Quote(x.RepoObjectKey))
+	}
+	if len(x.Paths) > 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("paths: [")
+		for i, v := range x.Paths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Timestamp != nil {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GitStageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GitUnstageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GitUnstageOp {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.RepoObjectKey != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("repo_object_key: ")
+		sb.WriteString(strconv.Quote(x.RepoObjectKey))
+	}
+	if len(x.Paths) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("paths: [")
+		for i, v := range x.Paths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Timestamp != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GitUnstageOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3136,6 +3788,280 @@ func (m *GitWorktreeCheckoutOp) UnmarshalVT(dAtA []byte) error {
 			if err := m.CheckoutOpts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GitStageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GitStageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GitStageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RepoObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RepoObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Paths", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Paths = append(m.Paths, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GitUnstageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GitUnstageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GitUnstageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RepoObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RepoObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Paths", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Paths = append(m.Paths, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
