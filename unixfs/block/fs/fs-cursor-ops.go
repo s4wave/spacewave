@@ -79,12 +79,18 @@ func (f *FSCursorOps) GetIsSymlink() bool {
 }
 
 // GetSize returns the size of the inode (in bytes).
-// Usually applicable only if this is a FILE.
+// For files, returns the total file size.
+// For symlinks, returns the length of the target path string.
 func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
-	return f.fsTree.GetFSNode().GetFile().GetTotalSize(), nil
+	node := f.fsTree.GetFSNode()
+	if node.GetNodeType().GetIsSymlink() {
+		tp := node.GetSymlink().GetTargetPath()
+		return uint64(len(unixfs.JoinPath(tp.GetNodes(), tp.GetAbsolute()))), nil
+	}
+	return node.GetFile().GetTotalSize(), nil
 }
 
 // GetModTimestamp returns the modification timestamp.

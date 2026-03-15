@@ -181,9 +181,14 @@ func TestGitClone(t *testing.T) {
 			}
 			le.Debugf("workdir contains %d files", len(files))
 			for _, f := range files {
+				fi, fiErr := f.Info()
+				if fiErr != nil {
+					le.Debugf("? %s (info err: %v)", f.Name(), fiErr)
+					continue
+				}
 				le.Debugf(
 					"%v %s",
-					f.Mode().String(),
+					fi.Mode().String(),
 					f.Name(),
 				)
 			}
@@ -192,11 +197,32 @@ func TestGitClone(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			statusStr := status.String()
-			if statusStr == "" {
+
+			// Log and check for symlink-related modifications.
+			var modifiedCount int
+			for path, fs := range status {
+				if fs.Staging != git.Unmodified || fs.Worktree != git.Unmodified {
+					le.Debugf("status: %c%c %s", fs.Staging, fs.Worktree, path)
+					modifiedCount++
+				}
+			}
+			if modifiedCount == 0 {
 				le.Debug("status: clean")
 			} else {
-				le.Debug(status.String())
+				le.Debugf("status: %d files modified", modifiedCount)
+			}
+
+			// Check symlinks via Lstat.
+			for path, fs := range status {
+				if fs.Worktree == git.Modified {
+					lfi, lErr := workDir.Lstat(path)
+					if lErr != nil {
+						le.Debugf("lstat %s: %v", path, lErr)
+						continue
+					}
+					le.Debugf("lstat %s: mode=%v symlink=%v",
+						path, lfi.Mode(), lfi.Mode()&os.ModeSymlink != 0)
+				}
 			}
 			return nil
 		},

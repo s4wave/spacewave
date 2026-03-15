@@ -12,6 +12,9 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing/object"
+	"github.com/go-git/go-git/v6/storage/memory"
 )
 
 // newTestBillyFS creates a BillyFS backed by memfs for testing.
@@ -306,4 +309,215 @@ func TestBillyFS_OpenFileExclusive(t *testing.T) {
 			t.Errorf("expected *os.PathError, got %T", err)
 		}
 	})
+}
+
+func TestBillyFS_LstatSymlink(t *testing.T) {
+	billyFS, _ := newTestBillyFS(t)
+
+	// Create a regular file as the symlink target.
+	f, err := billyFS.OpenFile("target.txt", os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("create target: %v", err)
+	}
+	f.Write([]byte("target content"))
+	f.Close()
+
+	// Create a symlink pointing to the target.
+	if err := billyFS.Symlink("target.txt", "link.txt"); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	// Lstat does NOT follow the symlink: should return ModeSymlink.
+	lstatInfo, err := billyFS.Lstat("link.txt")
+	if err != nil {
+		t.Fatalf("Lstat symlink: %v", err)
+	}
+	if lstatInfo.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("Lstat mode = %v, want ModeSymlink set", lstatInfo.Mode())
+	}
+
+	// Lstat on the target itself should return a regular file.
+	lstatTarget, err := billyFS.Lstat("target.txt")
+	if err != nil {
+		t.Fatalf("Lstat target: %v", err)
+	}
+	if !lstatTarget.Mode().IsRegular() {
+		t.Errorf("Lstat target mode = %v, want regular file", lstatTarget.Mode())
+	}
+
+	// Readlink round-trip: target should match what was passed to Symlink.
+	target, err := billyFS.Readlink("link.txt")
+	if err != nil {
+		t.Fatalf("Readlink: %v", err)
+	}
+	if target != "target.txt" {
+		t.Errorf("Readlink = %q, want %q", target, "target.txt")
+	}
+
+	// Size must equal len(target) for go-git hash compatibility.
+	if lstatInfo.Size() != int64(len(target)) {
+		t.Errorf("Lstat Size = %d, want %d (len of readlink target)", lstatInfo.Size(), len(target))
+	}
+
+	// Symlink in a subdirectory with relative target.
+	if err := billyFS.MkdirAll("sub", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := billyFS.Symlink("../target.txt", "sub/nested-link"); err != nil {
+		t.Fatalf("Symlink nested: %v", err)
+	}
+
+	lstatNested, err := billyFS.Lstat("sub/nested-link")
+	if err != nil {
+		t.Fatalf("Lstat nested symlink: %v", err)
+	}
+	if lstatNested.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("Lstat nested mode = %v, want ModeSymlink set", lstatNested.Mode())
+	}
+
+	nestedTarget, err := billyFS.Readlink("sub/nested-link")
+	if err != nil {
+		t.Fatalf("Readlink nested: %v", err)
+	}
+	if nestedTarget != "../target.txt" {
+		t.Errorf("Readlink nested = %q, want %q", nestedTarget, "../target.txt")
+	}
+
+	// Verify a directory Lstat returns ModeDir, not ModeSymlink.
+	lstatDir, err := billyFS.Lstat("sub")
+	if err != nil {
+		t.Fatalf("Lstat dir: %v", err)
+	}
+	if !lstatDir.IsDir() {
+		t.Errorf("Lstat dir mode = %v, want ModeDir set", lstatDir.Mode())
+	}
+}
+
+// TestBillyFS_GitStatusSymlink tests that go-git's worktree.Status() reports
+// a clean status after checking out a commit that contains symlinks into a
+// BillyFS-backed worktree. This reproduces the production bug where all
+// symlinks showed as Modified after checkout.
+func TestBillyFS_GitStatusSymlink(t *testing.T) {
+	// Create a BillyFS backed by memfs for the worktree.
+	wtBfs := memfs.New()
+	if err := wtBfs.MkdirAll("./", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fsc := unixfs_billy.NewBillyFSCursor(wtBfs, "")
+	t.Cleanup(fsc.Release)
+	fsh, err := unixfs.NewFSHandle(fsc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(fsh.Release)
+	ctx := context.Background()
+	ts := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	billyFS := unixfs_billy.NewBillyFS(ctx, fsh, "", ts)
+
+	// Create an in-memory git storage and init a repo with BillyFS as worktree.
+	gitStore := memory.NewStorage()
+	repo, err := git.Init(
+		gitStore,
+		git.WithWorkTree(billyFS),
+	)
+	if err != nil {
+		t.Fatalf("git.Init: %v", err)
+	}
+
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("Worktree: %v", err)
+	}
+
+	// Create a regular file and a symlink in the worktree.
+	f, err := billyFS.OpenFile("hello.txt", os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("create hello.txt: %v", err)
+	}
+	f.Write([]byte("hello world\n"))
+	f.Close()
+
+	if err := billyFS.Symlink("hello.txt", "link.txt"); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	if err := billyFS.Symlink("../../some/relative/path", "deep-link"); err != nil {
+		t.Fatalf("Symlink deep: %v", err)
+	}
+
+	// Stage and commit everything.
+	if _, err := wt.Add("hello.txt"); err != nil {
+		t.Fatalf("Add hello.txt: %v", err)
+	}
+	if _, err := wt.Add("link.txt"); err != nil {
+		t.Fatalf("Add link.txt: %v", err)
+	}
+	if _, err := wt.Add("deep-link"); err != nil {
+		t.Fatalf("Add deep-link: %v", err)
+	}
+
+	commitHash, err := wt.Commit("initial commit with symlinks", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "test",
+			Email: "test@test.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+	t.Logf("committed: %s", commitHash)
+
+	// Check status immediately after commit: should be clean.
+	status, err := wt.Status()
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+
+	for path, fs := range status {
+		if fs.Staging != git.Unmodified || fs.Worktree != git.Unmodified {
+			t.Errorf("file %q not clean: staging=%c worktree=%c", path, fs.Staging, fs.Worktree)
+		}
+	}
+
+	if !status.IsClean() {
+		t.Errorf("status not clean after commit:\n%s", status.String())
+	}
+
+	// Now simulate what happens in production: open the repo again with
+	// a fresh BillyFS pointing to the same underlying storage, and check
+	// status. This tests the Lstat/Readlink round-trip.
+	fsc2 := unixfs_billy.NewBillyFSCursor(wtBfs, "")
+	t.Cleanup(fsc2.Release)
+	fsh2, err := unixfs.NewFSHandle(fsc2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(fsh2.Release)
+	billyFS2 := unixfs_billy.NewBillyFS(ctx, fsh2, "", ts)
+
+	repo2, err := git.Open(gitStore, billyFS2)
+	if err != nil {
+		t.Fatalf("git.Open: %v", err)
+	}
+
+	wt2, err := repo2.Worktree()
+	if err != nil {
+		t.Fatalf("Worktree2: %v", err)
+	}
+
+	status2, err := wt2.Status()
+	if err != nil {
+		t.Fatalf("Status2: %v", err)
+	}
+
+	for path, fs := range status2 {
+		if fs.Staging != git.Unmodified || fs.Worktree != git.Unmodified {
+			t.Errorf("re-opened: file %q not clean: staging=%c worktree=%c", path, fs.Staging, fs.Worktree)
+		}
+	}
+
+	if !status2.IsClean() {
+		t.Errorf("status not clean after re-open:\n%s", status2.String())
+	}
 }

@@ -173,6 +173,93 @@ func TestFSCursor(t *testing.T) {
 	}
 }
 
+// TestFSCursorSymlinkSize verifies that GetSize returns the symlink target
+// path length, not 0. This is critical for go-git hash compatibility: the
+// blob header uses the size, so a mismatch causes all symlinks to show as
+// modified in worktree.Status().
+func TestFSCursorSymlinkSize(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+	_ = le
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Build a directory with a symlink.
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+
+	root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	symlinkTarget := "../../some/relative/target.md"
+	targetParts, targetAbsolute := unixfs.SplitPath(symlinkTarget)
+	_, err = root.Symlink(true, "mylink", &unixfs_block.FSSymlink{
+		TargetPath: &unixfs_block.FSPath{
+			Nodes:    targetParts,
+			Absolute: targetAbsolute,
+		},
+	}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	res, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc.SetRootRef(res)
+
+	// Open via FS cursor and check GetSize.
+	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, nil)
+	pc, err := fs.GetProxyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ops, err := pc.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	linkCs, err := ops.Lookup(ctx, "mylink")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	linkOps, err := linkCs.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if !linkOps.GetIsSymlink() {
+		t.Fatal("expected symlink node")
+	}
+
+	size, err := linkOps.GetSize(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	reconstructed := unixfs.JoinPath(targetParts, targetAbsolute)
+	expectedSize := uint64(len(reconstructed))
+	if size != expectedSize {
+		t.Errorf("GetSize = %d, want %d (len of %q)", size, expectedSize, reconstructed)
+	}
+	t.Logf("symlink size=%d target=%q", size, reconstructed)
+}
+
 // TestFSHandle performs the test suite on the cursor.
 func TestFSHandle(t *testing.T) {
 	ctx := context.Background()
