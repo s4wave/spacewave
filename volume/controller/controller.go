@@ -175,7 +175,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
-	le.WithField("volume-id", v.GetID()).Info("volume ready")
+	le.WithField("volume-id", v.GetID()).Debug("volume ready")
 	c.volume.SetValue(&volumeCtxPair{
 		ctx: volCtx,
 		vol: v,

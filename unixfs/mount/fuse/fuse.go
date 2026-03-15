@@ -102,7 +102,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer rfs.Close()
 	defer func() {
-		le.Info("unmounting UnixFS FUSE mount")
+		le.Debug("unmounting UnixFS FUSE mount")
 		if err := fuse.Unmount(mountPath); err != nil {
 			le.WithError(err).Error("unable to unmount FUSE fs")
 		}
