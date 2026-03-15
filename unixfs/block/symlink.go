@@ -1,6 +1,8 @@
 package unixfs_block
 
 import (
+	"slices"
+
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -18,10 +20,8 @@ func (s *FSSymlink) IsNil() bool {
 // Symlink targets allow "." and ".." path components (relative symlinks).
 func (s *FSSymlink) Validate() error {
 	tp := s.GetTargetPath()
-	for _, node := range tp.GetNodes() {
-		if node == "" {
-			return ErrDirectoryNameEmpty
-		}
+	if slices.Contains(tp.GetNodes(), "") {
+		return ErrDirectoryNameEmpty
 	}
 	return nil
 }

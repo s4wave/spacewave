@@ -317,8 +317,7 @@ func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) err
 // symbolic link, the returned FileInfo describes the symbolic link. Lstat
 // makes no attempt to follow the link.
 func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
-	// TODO TODO: this will traverse symbolic links: Lstat should not.
-	fi, err := unixfs.StatWithPath(f.ctx, f.h, filepath)
+	fi, err := unixfs.LstatWithPath(f.ctx, f.h, filepath)
 	if err != nil {
 		return nil, &os.PathError{Op: "lstat", Path: filepath, Err: err}
 	}

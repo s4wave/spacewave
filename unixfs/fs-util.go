@@ -137,7 +137,6 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldPath, newPath string, 
 
 // StatWithPath calls Stat on a path in a FSHandle.
 // Note: this will traverse Symbolic links.
-// TODO: LStat (don't traverse symbolic links.)
 func StatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, error) {
 	name = path.Clean(name)
 	if name == "." || name == "/" || name == "" {
@@ -154,6 +153,47 @@ func StatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, e
 	defer fh.Release()
 
 	return fh.GetFileInfo(ctx)
+}
+
+// LstatWithPath calls Lstat on a path in a FSHandle.
+// Unlike StatWithPath, the final path component is not followed if it is a symlink.
+// Intermediate path components are still resolved (symlinks in parent dirs are followed).
+func LstatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, error) {
+	name = path.Clean(name)
+	if name == "." || name == "/" || name == "" {
+		return h.GetFileInfo(ctx)
+	}
+
+	dir, base := path.Split(name)
+
+	// Look up the parent directory (follows symlinks for intermediate components).
+	var parentHandle *FSHandle
+	if dir == "" || dir == "." || dir == "/" {
+		var err error
+		parentHandle, err = h.Clone(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		parentHandle, _, err = h.LookupPath(ctx, dir)
+		if err != nil {
+			if parentHandle != nil {
+				parentHandle.Release()
+			}
+			return nil, err
+		}
+	}
+	defer parentHandle.Release()
+
+	// Single Lookup on the final component does NOT follow symlinks.
+	childHandle, err := parentHandle.Lookup(ctx, base)
+	if err != nil {
+		return nil, err
+	}
+	defer childHandle.Release()
+
+	return childHandle.GetFileInfo(ctx)
 }
 
 // RemoveAllWithPath calls Remove on the given path.
