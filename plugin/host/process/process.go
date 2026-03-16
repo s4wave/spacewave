@@ -16,6 +16,7 @@ import (
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/bldr/util/pipesock"
+	"github.com/aperturerobotics/bldr/util/tailwriter"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -210,10 +211,11 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	// stderr: contains any logs
+	// stderr: pipe to debug log and capture last lines for error reporting.
 	le := h.le.WithField("plugin-id", pluginID)
 	debugWriter := le.WriterLevel(logrus.DebugLevel)
-	entrypointProc.Stderr = debugWriter
+	stderrTail := tailwriter.New(debugWriter, 20)
+	entrypointProc.Stderr = stderrTail
 	// entrypointProc.Stdout = debugWriter
 
 	// call any os-specific pre-start adjustment
@@ -310,6 +312,14 @@ func (h *ProcessHost) ExecutePlugin(
 	case <-ctx.Done():
 		return context.Canceled
 	case err := <-errCh:
+		if err != nil {
+			if lines := stderrTail.Lines(); len(lines) > 0 {
+				le.WithError(err).Error("plugin stderr (last lines):")
+				for _, line := range lines {
+					le.Error("  | " + line)
+				}
+			}
+		}
 		return err
 	}
 }
