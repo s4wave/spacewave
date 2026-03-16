@@ -356,6 +356,51 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 	return any, nil
 }
 
+// MknodWithContent creates a file at the given path and writes blob content to it.
+// This is an atomic operation: the file is fully formed after this call.
+// path must include the file name as the last element.
+// blobRef is the reference to a pre-built blob containing the file data.
+func MknodWithContent(
+	ctx context.Context,
+	root *FSTree,
+	path []string,
+	nodeType NodeType,
+	permissions fs.FileMode,
+	ts *timestamp.Timestamp,
+	blobRef *block.BlockRef,
+) error {
+	if len(path) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	ts = FillPlaceholderTimestamp(ts)
+
+	// Step 1: navigate to the parent directory.
+	parentPath := path[:len(path)-1]
+	parentNode, _, err := LookupFSTreePath(root, parentPath)
+	if err != nil {
+		return err
+	}
+
+	// Step 2: create the file entry.
+	fileName := path[len(path)-1]
+	childFtree, err := parentNode.Mknod(fileName, nodeType, nil, permissions, ts)
+	if err != nil {
+		return err
+	}
+
+	// Step 3: write pre-built blob content into the file.
+	// forceUseBlob=true: reference the blob directly, don't re-read and re-chunk.
+	// fullValidate=false: we just built this blob, no need to validate again.
+	if !blobRef.GetEmpty() {
+		return WriteBlob(ctx, root, path, 0, blobRef, false, true, ts)
+	}
+
+	// Empty blob: just mark the file node dirty.
+	childFtree.bcs.MarkDirty()
+	return nil
+}
+
 // LookupFSTreePath repeatedly calls LookupFollowDirent to traverse to a path.
 // Returns the parent FSNode and ErrNotExist if path does not exist.
 //

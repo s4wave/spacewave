@@ -348,6 +348,31 @@ func (f *FSCursorOps) Mknod(
 	return nil
 }
 
+// MknodWithContent creates a file entry and writes content atomically.
+func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	if f.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+
+	writer := f.cursor.fs.writer
+	if writer == nil {
+		return unixfs_errors.ErrReadOnly
+	}
+
+	paths, err := f.buildChildPaths(ctx, []string{name})
+	if err != nil {
+		return err
+	}
+
+	err = writer.MknodWithContent(ctx, paths[0], nodeType, dataLen, rdr, permissions, ts)
+	if err != nil {
+		f.release()
+		return err
+	}
+
+	return nil
+}
+
 // Symlink creates a symbolic link from a location to a path.
 func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if f.CheckReleased() {

@@ -1,7 +1,9 @@
 package unixfs_world_testbed
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -178,6 +180,223 @@ func TestFs_SingleTxn(t *testing.T) {
 		return wtx.Commit(ctx)
 	}(); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestMknodWithContent tests creating a file with content atomically.
+func TestMknodWithContent(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	watchWorldChanges := true
+	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	// create a file with content using MknodWithContent
+	content := []byte("Hello, MknodWithContent! This is a test file with atomic content.")
+	err = fsHandle.MknodWithContent(
+		ctx,
+		"test-file.txt",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		bytes.NewReader(content),
+		0o644,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// verify: look up the file and read it back
+	fileHandle, err := fsHandle.Lookup(ctx, "test-file.txt")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fileHandle.Release()
+
+	// check file size
+	size, err := fileHandle.GetSize(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size != uint64(len(content)) {
+		t.Fatalf("expected size %d but got %d", len(content), size)
+	}
+
+	// read file content
+	buf := make([]byte, len(content))
+	n, err := fileHandle.ReadAt(ctx, 0, buf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if int(n) != len(content) {
+		t.Fatalf("expected to read %d bytes but got %d", len(content), n)
+	}
+	if !bytes.Equal(buf[:n], content) {
+		t.Fatalf("content mismatch: %q != %q", buf[:n], content)
+	}
+}
+
+// TestMknodWithContent_LargeFile tests creating a larger file that requires chunking.
+func TestMknodWithContent_LargeFile(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	watchWorldChanges := true
+	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	// create a large file (2MB -- above the raw blob high water mark)
+	content := []byte(strings.Repeat("abcdefghij", 200000))
+	err = fsHandle.MknodWithContent(
+		ctx,
+		"large-file.bin",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		bytes.NewReader(content),
+		0o644,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// verify file size
+	fileHandle, err := fsHandle.Lookup(ctx, "large-file.bin")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fileHandle.Release()
+
+	size, err := fileHandle.GetSize(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size != uint64(len(content)) {
+		t.Fatalf("expected size %d but got %d", len(content), size)
+	}
+
+	// read beginning and end to verify content
+	headBuf := make([]byte, 100)
+	n, err := fileHandle.ReadAt(ctx, 0, headBuf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(headBuf[:n], content[:100]) {
+		t.Fatal("head content mismatch")
+	}
+
+	tailBuf := make([]byte, 100)
+	tailOffset := int64(len(content) - 100)
+	n, err = fileHandle.ReadAt(ctx, tailOffset, tailBuf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(tailBuf[:n], content[len(content)-100:]) {
+		t.Fatal("tail content mismatch")
+	}
+}
+
+// TestMknodWithContent_InSubdir tests creating a file in a subdirectory.
+func TestMknodWithContent_InSubdir(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	watchWorldChanges := true
+	fsHandle, err := InitTestbed(wtb, objKey, watchWorldChanges)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	// create subdirectory
+	err = fsHandle.MkdirAll(ctx, []string{"docs", "notes"}, 0o755, time.Now())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// navigate to the subdirectory
+	subHandle, err := fsHandle.Lookup(ctx, "docs")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	notesHandle, err := subHandle.Lookup(ctx, "notes")
+	subHandle.Release()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer notesHandle.Release()
+
+	// create a file with content in the subdirectory
+	content := []byte("notes content in subdir")
+	err = notesHandle.MknodWithContent(
+		ctx,
+		"readme.txt",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		bytes.NewReader(content),
+		0o644,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// verify via path lookup from root
+	fileHandle, _, err := fsHandle.LookupPathPts(ctx, []string{"docs", "notes", "readme.txt"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fileHandle.Release()
+
+	size, err := fileHandle.GetSize(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size != uint64(len(content)) {
+		t.Fatalf("expected size %d but got %d", len(content), size)
 	}
 }
 

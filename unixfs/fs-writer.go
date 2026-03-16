@@ -2,6 +2,7 @@ package unixfs
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"time"
 )
@@ -63,4 +64,12 @@ type FSWriter interface {
 	// Non-existent paths may not return an error.
 	// Paths must be relative.
 	Remove(ctx context.Context, paths [][]string, ts time.Time) error
+
+	// MknodWithContent creates a file and writes its content atomically.
+	// The file appears fully formed in a single operation.
+	// path is the full relative path to the new file.
+	// dataLen is the total file size in bytes.
+	// rdr provides the file content.
+	// Path must be relative.
+	MknodWithContent(ctx context.Context, path []string, nodeType FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error
 }

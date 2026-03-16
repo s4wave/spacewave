@@ -2,6 +2,7 @@ package unixfs_block_fs
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"time"
 
@@ -118,6 +119,13 @@ func (f *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts tim
 func (f *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) error {
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
 		return wr.Remove(ctx, paths, ts)
+	})
+}
+
+// MknodWithContent creates a file and writes its content atomically.
+func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+		return wr.MknodWithContent(ctx, path, nodeType, dataLen, rdr, permissions, ts)
 	})
 }
 

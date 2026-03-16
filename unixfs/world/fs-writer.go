@@ -2,6 +2,7 @@ package unixfs_world
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"sync/atomic"
 	"time"
@@ -144,6 +145,14 @@ func (w *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts tim
 func (w *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) error {
 	return w.applyConfirmOp(ctx, func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error) {
 		return FsRemove(ctx, wobj, w.sender, w.fsType, paths, ts)
+	})
+}
+
+// MknodWithContent creates a file and writes content atomically.
+// Pre-builds the blob, then applies the mknod+content op in a single commit.
+func (w *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	return w.applyConfirmOp(ctx, func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error) {
+		return FsMknodWithContent(ctx, wobj, w.sender, w.fsType, path, nodeType, dataLen, rdr, permissions, ts)
 	})
 }
 

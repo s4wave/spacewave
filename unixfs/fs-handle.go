@@ -2,6 +2,7 @@ package unixfs
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"slices"
 	"sync"
@@ -887,6 +888,15 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 
 	// done
 	return nil
+}
+
+// MknodWithContent creates a file entry with content written atomically.
+// The inode at h must be a directory.
+// The new file appears fully formed with all content written.
+func (h *FSHandle) MknodWithContent(ctx context.Context, name string, nodeType FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+		return ops.MknodWithContent(ctx, name, nodeType, dataLen, rdr, permissions, ts)
+	})
 }
 
 // Remove removes entries from a directory.

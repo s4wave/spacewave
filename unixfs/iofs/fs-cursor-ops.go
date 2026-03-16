@@ -315,5 +315,13 @@ func (f *FSCursorOps) release() {
 	f.isReleased.Store(true)
 }
 
+// MknodWithContent returns ErrReadOnly.
+func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	if f.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	return unixfs_errors.ErrReadOnly
+}
+
 // _ is a type assertion
 var _ unixfs.FSCursorOps = ((*FSCursorOps)(nil))

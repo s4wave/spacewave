@@ -416,5 +416,32 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 	return f.Close()
 }
 
+// MknodWithContent creates a file entry and writes content atomically.
+func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	if o.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	if !o.fi.IsDir() {
+		return unixfs_errors.ErrNotDirectory
+	}
+
+	fpath, err := o.c.buildChildPath(name)
+	if err != nil {
+		return err
+	}
+
+	o.released.Store(true) // release the cursor just before filesystem modification
+	f, err := o.c.bfs.OpenFile(fpath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(f, rdr)
+	closeErr := f.Close()
+	if err != nil {
+		return err
+	}
+	return closeErr
+}
+
 // _ is a type assertion
 var _ unixfs.FSCursorOps = ((*BillyFSCursorOps)(nil))

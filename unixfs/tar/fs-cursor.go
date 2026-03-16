@@ -326,6 +326,14 @@ func (o *TarFSCursorOps) Remove(ctx context.Context, names []string, ts time.Tim
 	return unixfs_errors.ErrReadOnly
 }
 
+// MknodWithContent returns ErrReadOnly.
+func (o *TarFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	if o.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	return unixfs_errors.ErrReadOnly
+}
+
 // _ is a type assertion
 var _ unixfs.FSCursorOps = ((*TarFSCursorOps)(nil))
 

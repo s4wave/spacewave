@@ -75,6 +75,10 @@ class FsMknodOp;
 struct FsMknodOpDefaultTypeInternal;
 extern FsMknodOpDefaultTypeInternal _FsMknodOp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull FsMknodOp_class_data_;
+class FsMknodWithContentOp;
+struct FsMknodWithContentOpDefaultTypeInternal;
+extern FsMknodWithContentOpDefaultTypeInternal _FsMknodWithContentOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull FsMknodWithContentOp_class_data_;
 class FsRemoveOp;
 struct FsRemoveOpDefaultTypeInternal;
 extern FsRemoveOpDefaultTypeInternal _FsRemoveOp_default_instance_;
@@ -226,7 +230,7 @@ class MountValue final : public ::google::protobuf::Message
     return *reinterpret_cast<const MountValue*>(
         &_MountValue_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(MountValue& a, MountValue& b) { a.Swap(&b); }
   inline void Swap(MountValue* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -662,7 +666,7 @@ class RefValue final : public ::google::protobuf::Message
     return *reinterpret_cast<const RefValue*>(
         &_RefValue_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(RefValue& a, RefValue& b) { a.Swap(&b); }
   inline void Swap(RefValue* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1878,7 +1882,7 @@ class FsRemoveOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const FsRemoveOp*>(
         &_FsRemoveOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(FsRemoveOp& a, FsRemoveOp& b) { a.Swap(&b); }
   inline void Swap(FsRemoveOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3117,6 +3121,288 @@ class FsSymlinkOp final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsSymlinkOp_class_data_;
+// -------------------------------------------------------------------
+
+class FsMknodWithContentOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:unixfs.world.FsMknodWithContentOp) */ {
+ public:
+  inline FsMknodWithContentOp() : FsMknodWithContentOp(nullptr) {}
+  ~FsMknodWithContentOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(FsMknodWithContentOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(FsMknodWithContentOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR FsMknodWithContentOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline FsMknodWithContentOp(const FsMknodWithContentOp& from) : FsMknodWithContentOp(nullptr, from) {}
+  inline FsMknodWithContentOp(FsMknodWithContentOp&& from) noexcept
+      : FsMknodWithContentOp(nullptr, ::std::move(from)) {}
+  inline FsMknodWithContentOp& operator=(const FsMknodWithContentOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline FsMknodWithContentOp& operator=(FsMknodWithContentOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const FsMknodWithContentOp& default_instance() {
+    return *reinterpret_cast<const FsMknodWithContentOp*>(
+        &_FsMknodWithContentOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(FsMknodWithContentOp& a, FsMknodWithContentOp& b) { a.Swap(&b); }
+  inline void Swap(FsMknodWithContentOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(FsMknodWithContentOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  FsMknodWithContentOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<FsMknodWithContentOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const FsMknodWithContentOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const FsMknodWithContentOp& from) { FsMknodWithContentOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(FsMknodWithContentOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "unixfs.world.FsMknodWithContentOp"; }
+
+  explicit FsMknodWithContentOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  FsMknodWithContentOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const FsMknodWithContentOp& from);
+  FsMknodWithContentOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, FsMknodWithContentOp&& from) noexcept
+      : FsMknodWithContentOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kPathFieldNumber = 3,
+    kTimestampFieldNumber = 6,
+    kBlobRefFieldNumber = 7,
+    kFsTypeFieldNumber = 2,
+    kPermissionsFieldNumber = 4,
+    kNodeTypeFieldNumber = 5,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // .unixfs.block.FSPath path = 3;
+  bool has_path() const;
+  void clear_path() ;
+  const ::unixfs::block::FSPath& path() const;
+  [[nodiscard]] ::unixfs::block::FSPath* PROTOBUF_NULLABLE release_path();
+  ::unixfs::block::FSPath* PROTOBUF_NONNULL mutable_path();
+  void set_allocated_path(::unixfs::block::FSPath* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_path(::unixfs::block::FSPath* PROTOBUF_NULLABLE value);
+  ::unixfs::block::FSPath* PROTOBUF_NULLABLE unsafe_arena_release_path();
+
+  private:
+  const ::unixfs::block::FSPath& _internal_path() const;
+  ::unixfs::block::FSPath* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // .google.protobuf.Timestamp timestamp = 6;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
+  // .block.BlockRef blob_ref = 7;
+  bool has_blob_ref() const;
+  void clear_blob_ref() ;
+  const ::block::BlockRef& blob_ref() const;
+  [[nodiscard]] ::block::BlockRef* PROTOBUF_NULLABLE release_blob_ref();
+  ::block::BlockRef* PROTOBUF_NONNULL mutable_blob_ref();
+  void set_allocated_blob_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_blob_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
+  ::block::BlockRef* PROTOBUF_NULLABLE unsafe_arena_release_blob_ref();
+
+  private:
+  const ::block::BlockRef& _internal_blob_ref() const;
+  ::block::BlockRef* PROTOBUF_NONNULL _internal_mutable_blob_ref();
+
+  public:
+  // .unixfs.world.FSType fs_type = 2;
+  void clear_fs_type() ;
+  ::unixfs::world::FSType fs_type() const;
+  void set_fs_type(::unixfs::world::FSType value);
+
+  private:
+  ::unixfs::world::FSType _internal_fs_type() const;
+  void _internal_set_fs_type(::unixfs::world::FSType value);
+
+  public:
+  // uint32 permissions = 4;
+  void clear_permissions() ;
+  ::uint32_t permissions() const;
+  void set_permissions(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_permissions() const;
+  void _internal_set_permissions(::uint32_t value);
+
+  public:
+  // .unixfs.block.NodeType node_type = 5;
+  void clear_node_type() ;
+  ::unixfs::block::NodeType node_type() const;
+  void set_node_type(::unixfs::block::NodeType value);
+
+  private:
+  ::unixfs::block::NodeType _internal_node_type() const;
+  void _internal_set_node_type(::unixfs::block::NodeType value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:unixfs.world.FsMknodWithContentOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   3, 52,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const FsMknodWithContentOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::unixfs::block::FSPath* PROTOBUF_NULLABLE path_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
+    ::block::BlockRef* PROTOBUF_NULLABLE blob_ref_;
+    int fs_type_;
+    ::uint32_t permissions_;
+    int node_type_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull FsMknodWithContentOp_class_data_;
 // -------------------------------------------------------------------
 
 class FsInitOp final : public ::google::protobuf::Message
@@ -6481,6 +6767,429 @@ inline void FsRenameOp::set_allocated_timestamp(::google::protobuf::Timestamp* P
 
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   // @@protoc_insertion_point(field_set_allocated:unixfs.world.FsRenameOp.timestamp)
+}
+
+// -------------------------------------------------------------------
+
+// FsMknodWithContentOp
+
+// string object_key = 1;
+inline void FsMknodWithContentOp::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& FsMknodWithContentOp::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void FsMknodWithContentOp::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:unixfs.world.FsMknodWithContentOp.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL FsMknodWithContentOp::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:unixfs.world.FsMknodWithContentOp.object_key)
+  return _s;
+}
+inline const ::std::string& FsMknodWithContentOp::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void FsMknodWithContentOp::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL FsMknodWithContentOp::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE FsMknodWithContentOp::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:unixfs.world.FsMknodWithContentOp.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void FsMknodWithContentOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:unixfs.world.FsMknodWithContentOp.object_key)
+}
+
+// .unixfs.world.FSType fs_type = 2;
+inline void FsMknodWithContentOp::clear_fs_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fs_type_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::unixfs::world::FSType FsMknodWithContentOp::fs_type() const {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.fs_type)
+  return _internal_fs_type();
+}
+inline void FsMknodWithContentOp::set_fs_type(::unixfs::world::FSType value) {
+  _internal_set_fs_type(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:unixfs.world.FsMknodWithContentOp.fs_type)
+}
+inline ::unixfs::world::FSType FsMknodWithContentOp::_internal_fs_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::unixfs::world::FSType>(_impl_.fs_type_);
+}
+inline void FsMknodWithContentOp::_internal_set_fs_type(::unixfs::world::FSType value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fs_type_ = value;
+}
+
+// .unixfs.block.FSPath path = 3;
+inline bool FsMknodWithContentOp::has_path() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.path_ != nullptr);
+  return value;
+}
+inline const ::unixfs::block::FSPath& FsMknodWithContentOp::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::unixfs::block::FSPath* p = _impl_.path_;
+  return p != nullptr ? *p : reinterpret_cast<const ::unixfs::block::FSPath&>(::unixfs::block::_FSPath_default_instance_);
+}
+inline const ::unixfs::block::FSPath& FsMknodWithContentOp::path() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.path)
+  return _internal_path();
+}
+inline void FsMknodWithContentOp::unsafe_arena_set_allocated_path(
+    ::unixfs::block::FSPath* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.path_);
+  }
+  _impl_.path_ = reinterpret_cast<::unixfs::block::FSPath*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:unixfs.world.FsMknodWithContentOp.path)
+}
+inline ::unixfs::block::FSPath* PROTOBUF_NULLABLE FsMknodWithContentOp::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::unixfs::block::FSPath* released = _impl_.path_;
+  _impl_.path_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::unixfs::block::FSPath* PROTOBUF_NULLABLE FsMknodWithContentOp::unsafe_arena_release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:unixfs.world.FsMknodWithContentOp.path)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::unixfs::block::FSPath* temp = _impl_.path_;
+  _impl_.path_ = nullptr;
+  return temp;
+}
+inline ::unixfs::block::FSPath* PROTOBUF_NONNULL FsMknodWithContentOp::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.path_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::unixfs::block::FSPath>(GetArena());
+    _impl_.path_ = reinterpret_cast<::unixfs::block::FSPath*>(p);
+  }
+  return _impl_.path_;
+}
+inline ::unixfs::block::FSPath* PROTOBUF_NONNULL FsMknodWithContentOp::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::unixfs::block::FSPath* _msg = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:unixfs.world.FsMknodWithContentOp.path)
+  return _msg;
+}
+inline void FsMknodWithContentOp::set_allocated_path(::unixfs::block::FSPath* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.path_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.path_ = reinterpret_cast<::unixfs::block::FSPath*>(value);
+  // @@protoc_insertion_point(field_set_allocated:unixfs.world.FsMknodWithContentOp.path)
+}
+
+// uint32 permissions = 4;
+inline void FsMknodWithContentOp::clear_permissions() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.permissions_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::uint32_t FsMknodWithContentOp::permissions() const {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.permissions)
+  return _internal_permissions();
+}
+inline void FsMknodWithContentOp::set_permissions(::uint32_t value) {
+  _internal_set_permissions(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:unixfs.world.FsMknodWithContentOp.permissions)
+}
+inline ::uint32_t FsMknodWithContentOp::_internal_permissions() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.permissions_;
+}
+inline void FsMknodWithContentOp::_internal_set_permissions(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.permissions_ = value;
+}
+
+// .unixfs.block.NodeType node_type = 5;
+inline void FsMknodWithContentOp::clear_node_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.node_type_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::unixfs::block::NodeType FsMknodWithContentOp::node_type() const {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.node_type)
+  return _internal_node_type();
+}
+inline void FsMknodWithContentOp::set_node_type(::unixfs::block::NodeType value) {
+  _internal_set_node_type(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:unixfs.world.FsMknodWithContentOp.node_type)
+}
+inline ::unixfs::block::NodeType FsMknodWithContentOp::_internal_node_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::unixfs::block::NodeType>(_impl_.node_type_);
+}
+inline void FsMknodWithContentOp::_internal_set_node_type(::unixfs::block::NodeType value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.node_type_ = value;
+}
+
+// .google.protobuf.Timestamp timestamp = 6;
+inline bool FsMknodWithContentOp::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& FsMknodWithContentOp::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& FsMknodWithContentOp::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.timestamp)
+  return _internal_timestamp();
+}
+inline void FsMknodWithContentOp::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:unixfs.world.FsMknodWithContentOp.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE FsMknodWithContentOp::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE FsMknodWithContentOp::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:unixfs.world.FsMknodWithContentOp.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL FsMknodWithContentOp::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL FsMknodWithContentOp::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:unixfs.world.FsMknodWithContentOp.timestamp)
+  return _msg;
+}
+inline void FsMknodWithContentOp::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:unixfs.world.FsMknodWithContentOp.timestamp)
+}
+
+// .block.BlockRef blob_ref = 7;
+inline bool FsMknodWithContentOp::has_blob_ref() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.blob_ref_ != nullptr);
+  return value;
+}
+inline const ::block::BlockRef& FsMknodWithContentOp::_internal_blob_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::block::BlockRef* p = _impl_.blob_ref_;
+  return p != nullptr ? *p : reinterpret_cast<const ::block::BlockRef&>(::block::_BlockRef_default_instance_);
+}
+inline const ::block::BlockRef& FsMknodWithContentOp::blob_ref() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:unixfs.world.FsMknodWithContentOp.blob_ref)
+  return _internal_blob_ref();
+}
+inline void FsMknodWithContentOp::unsafe_arena_set_allocated_blob_ref(
+    ::block::BlockRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.blob_ref_);
+  }
+  _impl_.blob_ref_ = reinterpret_cast<::block::BlockRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:unixfs.world.FsMknodWithContentOp.blob_ref)
+}
+inline ::block::BlockRef* PROTOBUF_NULLABLE FsMknodWithContentOp::release_blob_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::block::BlockRef* released = _impl_.blob_ref_;
+  _impl_.blob_ref_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::block::BlockRef* PROTOBUF_NULLABLE FsMknodWithContentOp::unsafe_arena_release_blob_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:unixfs.world.FsMknodWithContentOp.blob_ref)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::block::BlockRef* temp = _impl_.blob_ref_;
+  _impl_.blob_ref_ = nullptr;
+  return temp;
+}
+inline ::block::BlockRef* PROTOBUF_NONNULL FsMknodWithContentOp::_internal_mutable_blob_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.blob_ref_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::block::BlockRef>(GetArena());
+    _impl_.blob_ref_ = reinterpret_cast<::block::BlockRef*>(p);
+  }
+  return _impl_.blob_ref_;
+}
+inline ::block::BlockRef* PROTOBUF_NONNULL FsMknodWithContentOp::mutable_blob_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::block::BlockRef* _msg = _internal_mutable_blob_ref();
+  // @@protoc_insertion_point(field_mutable:unixfs.world.FsMknodWithContentOp.blob_ref)
+  return _msg;
+}
+inline void FsMknodWithContentOp::set_allocated_blob_ref(::block::BlockRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.blob_ref_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.blob_ref_ = reinterpret_cast<::block::BlockRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:unixfs.world.FsMknodWithContentOp.blob_ref)
 }
 
 // -------------------------------------------------------------------

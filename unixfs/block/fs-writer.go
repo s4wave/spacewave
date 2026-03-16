@@ -3,9 +3,12 @@ package unixfs_block
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/fs"
 	"time"
 
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/unixfs"
 )
 
@@ -91,6 +94,27 @@ func (f *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) e
 	tts := ToTimestamp(ts, true)
 	_, err := Remove(f.fsTree, paths, tts)
 	return err
+}
+
+// MknodWithContent creates a file and writes content atomically.
+// Builds the blob inline and writes it to the new file entry.
+func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	nt := FSCursorNodeTypeToNodeType(nodeType)
+	tts := ToTimestamp(ts, true)
+
+	// Build blob inline using the fsTree's cursor.
+	blobCs := f.fsTree.GetCursor().DetachTransaction()
+	blobCs.SetRefAtCursor(nil, true)
+	_, err := blob.BuildBlob(ctx, dataLen, rdr, blobCs, nil)
+	if err != nil {
+		return err
+	}
+	blobRef := blobCs.GetRef()
+	if blobRef == nil {
+		blobRef = &block.BlockRef{}
+	}
+
+	return MknodWithContent(ctx, f.fsTree, path, nt, permissions, tts, blobRef)
 }
 
 // _ is a type assertion

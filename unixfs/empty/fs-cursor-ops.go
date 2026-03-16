@@ -2,6 +2,7 @@ package unixfs_empty
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"time"
 
@@ -107,5 +108,9 @@ func (e *FSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorOps un
 }
 
 func (e *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+	return unixfs_errors.ErrReadOnly
+}
+
+func (e *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
 	return unixfs_errors.ErrReadOnly
 }

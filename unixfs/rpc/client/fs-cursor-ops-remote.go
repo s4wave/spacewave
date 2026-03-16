@@ -672,6 +672,14 @@ func (o *remoteFSCursorOps) Remove(ctx context.Context, names []string, ts time.
 	return nil
 }
 
+// MknodWithContent returns ErrReadOnly (RPC support not yet implemented).
+func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	if o.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	return unixfs_errors.ErrReadOnly
+}
+
 // handleErr handles when an operations function returns an error.
 func (o *remoteFSCursorOps) handleErr(err error, lock bool) {
 	// mark the ops as released if we return ErrReleased.

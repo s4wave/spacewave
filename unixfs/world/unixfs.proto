@@ -204,6 +204,31 @@ message FsRenameOp {
   google.protobuf.Timestamp timestamp = 5;
 }
 
+// FsMknodWithContentOp creates a file and writes content atomically.
+// The blob must be pre-built in an isolated object before applying this op.
+// The op creates the file entry and writes the blob content in a single commit.
+// Can be applied as either an object op or a world op.
+message FsMknodWithContentOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Path is the path to the new file.
+  .unixfs.block.FSPath path = 3;
+  // Permissions is the permissions bitset.
+  // If zero uses defaults.
+  uint32 permissions = 4;
+  // NodeType is the node type to create.
+  .unixfs.block.NodeType node_type = 5;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 6;
+  // BlobRef is the reference to the pre-built Blob containing the file content.
+  .block.BlockRef blob_ref = 7;
+}
+
 // FsRemoveOp is an operation to delete inodes from the tree.
 // Can be applied as either an object op or a world op.
 message FsRemoveOp {

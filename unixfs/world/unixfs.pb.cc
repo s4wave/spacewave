@@ -393,6 +393,39 @@ struct FsSymlinkOpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FsSymlinkOpDefaultTypeInternal _FsSymlinkOp_default_instance_;
 
+inline constexpr FsMknodWithContentOp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        path_{nullptr},
+        timestamp_{nullptr},
+        blob_ref_{nullptr},
+        fs_type_{static_cast< ::unixfs::world::FSType >(0)},
+        permissions_{0u},
+        node_type_{static_cast< ::unixfs::block::NodeType >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR FsMknodWithContentOp::FsMknodWithContentOp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(FsMknodWithContentOp_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct FsMknodWithContentOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR FsMknodWithContentOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~FsMknodWithContentOpDefaultTypeInternal() {}
+  union {
+    FsMknodWithContentOp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FsMknodWithContentOpDefaultTypeInternal _FsMknodWithContentOp_default_instance_;
+
 inline constexpr FsInitOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -561,6 +594,23 @@ const ::uint32_t
         2,
         3,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_._has_bits_),
+        10, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.fs_type_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.path_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.permissions_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.node_type_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.timestamp_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::world::FsMknodWithContentOp, _impl_.blob_ref_),
+        0,
+        4,
+        1,
+        5,
+        6,
+        2,
+        3,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::world::FsRemoveOp, _impl_._has_bits_),
         7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::unixfs::world::FsRemoveOp, _impl_.object_key_),
@@ -599,9 +649,10 @@ static const ::_pbi::MigrationSchema
         {89, sizeof(::unixfs::world::FsTruncateOp)},
         {102, sizeof(::unixfs::world::FsCopyOp)},
         {115, sizeof(::unixfs::world::FsRenameOp)},
-        {128, sizeof(::unixfs::world::FsRemoveOp)},
-        {139, sizeof(::unixfs::world::MountValue)},
-        {146, sizeof(::unixfs::world::RefValue)},
+        {128, sizeof(::unixfs::world::FsMknodWithContentOp)},
+        {145, sizeof(::unixfs::world::FsRemoveOp)},
+        {156, sizeof(::unixfs::world::MountValue)},
+        {163, sizeof(::unixfs::world::RefValue)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::world::_UnixfsRef_default_instance_._instance,
@@ -614,6 +665,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::world::_FsTruncateOp_default_instance_._instance,
     &::unixfs::world::_FsCopyOp_default_instance_._instance,
     &::unixfs::world::_FsRenameOp_default_instance_._instance,
+    &::unixfs::world::_FsMknodWithContentOp_default_instance_._instance,
     &::unixfs::world::_FsRemoveOp_default_instance_._instance,
     &::unixfs::world::_MountValue_default_instance_._instance,
     &::unixfs::world::_RefValue_default_instance_._instance,
@@ -673,17 +725,23 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fu
     "\010src_path\030\003 \001(\0132\024.unixfs.block.FSPath\022\'\n"
     "\tdest_path\030\004 \001(\0132\024.unixfs.block.FSPath\022-"
     "\n\ttimestamp\030\005 \001(\0132\032.google.protobuf.Time"
-    "stamp\"\233\001\n\nFsRemoveOp\022\022\n\nobject_key\030\001 \001(\t"
-    "\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.world.FSType\022"
-    "#\n\005paths\030\003 \003(\0132\024.unixfs.block.FSPath\022-\n\t"
-    "timestamp\030\004 \001(\0132\032.google.protobuf.Timest"
-    "amp\"0\n\nMountValue\022\022\n\nmountpoint\030\001 \001(\t\022\016\n"
-    "\006prefix\030\002 \001(\t\"U\n\010RefValue\022%\n\007fs_type\030\001 \001"
-    "(\0162\024.unixfs.world.FSType\022\"\n\004path\030\002 \001(\0132\024"
-    ".unixfs.block.FSPath*a\n\006FSType\022\022\n\016FSType"
-    "_UNKNOWN\020\000\022\022\n\016FSType_FS_NODE\020\001\022\024\n\020FSType"
-    "_FS_OBJECT\020\002\022\031\n\025FSType_FS_HOST_VOLUME\020\003b"
-    "\006proto3"
+    "stamp\"\207\002\n\024FsMknodWithContentOp\022\022\n\nobject"
+    "_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.wor"
+    "ld.FSType\022\"\n\004path\030\003 \001(\0132\024.unixfs.block.F"
+    "SPath\022\023\n\013permissions\030\004 \001(\r\022)\n\tnode_type\030"
+    "\005 \001(\0162\026.unixfs.block.NodeType\022-\n\ttimesta"
+    "mp\030\006 \001(\0132\032.google.protobuf.Timestamp\022!\n\010"
+    "blob_ref\030\007 \001(\0132\017.block.BlockRef\"\233\001\n\nFsRe"
+    "moveOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 "
+    "\001(\0162\024.unixfs.world.FSType\022#\n\005paths\030\003 \003(\013"
+    "2\024.unixfs.block.FSPath\022-\n\ttimestamp\030\004 \001("
+    "\0132\032.google.protobuf.Timestamp\"0\n\nMountVa"
+    "lue\022\022\n\nmountpoint\030\001 \001(\t\022\016\n\006prefix\030\002 \001(\t\""
+    "U\n\010RefValue\022%\n\007fs_type\030\001 \001(\0162\024.unixfs.wo"
+    "rld.FSType\022\"\n\004path\030\002 \001(\0132\024.unixfs.block."
+    "FSPath*a\n\006FSType\022\022\n\016FSType_UNKNOWN\020\000\022\022\n\016"
+    "FSType_FS_NODE\020\001\022\024\n\020FSType_FS_OBJECT\020\002\022\031"
+    "\n\025FSType_FS_HOST_VOLUME\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_deps[4] = {
@@ -696,13 +754,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto = {
     false,
     false,
-    2527,
+    2793,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
     "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_deps,
     4,
-    13,
+    14,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto::offsets,
@@ -5177,6 +5235,518 @@ void FsRenameOp::InternalSwap(FsRenameOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL oth
 }
 
 ::google::protobuf::Metadata FsRenameOp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class FsMknodWithContentOp::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<FsMknodWithContentOp>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_._has_bits_);
+};
+
+void FsMknodWithContentOp::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.path_ != nullptr) _impl_.path_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+void FsMknodWithContentOp::clear_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+void FsMknodWithContentOp::clear_blob_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.blob_ref_ != nullptr) _impl_.blob_ref_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+FsMknodWithContentOp::FsMknodWithContentOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FsMknodWithContentOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:unixfs.world.FsMknodWithContentOp)
+}
+PROTOBUF_NDEBUG_INLINE FsMknodWithContentOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::unixfs::world::FsMknodWithContentOp& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_) {}
+
+FsMknodWithContentOp::FsMknodWithContentOp(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const FsMknodWithContentOp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FsMknodWithContentOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  FsMknodWithContentOp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.path_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.path_)
+                : nullptr;
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
+                : nullptr;
+  _impl_.blob_ref_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.blob_ref_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, fs_type_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, fs_type_),
+           offsetof(Impl_, node_type_) -
+               offsetof(Impl_, fs_type_) +
+               sizeof(Impl_::node_type_));
+
+  // @@protoc_insertion_point(copy_constructor:unixfs.world.FsMknodWithContentOp)
+}
+PROTOBUF_NDEBUG_INLINE FsMknodWithContentOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena) {}
+
+inline void FsMknodWithContentOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, path_),
+           0,
+           offsetof(Impl_, node_type_) -
+               offsetof(Impl_, path_) +
+               sizeof(Impl_::node_type_));
+}
+FsMknodWithContentOp::~FsMknodWithContentOp() {
+  // @@protoc_insertion_point(destructor:unixfs.world.FsMknodWithContentOp)
+  SharedDtor(*this);
+}
+inline void FsMknodWithContentOp::SharedDtor(MessageLite& self) {
+  FsMknodWithContentOp& this_ = static_cast<FsMknodWithContentOp&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  delete this_._impl_.path_;
+  delete this_._impl_.timestamp_;
+  delete this_._impl_.blob_ref_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL FsMknodWithContentOp::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) FsMknodWithContentOp(arena);
+}
+constexpr auto FsMknodWithContentOp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(FsMknodWithContentOp),
+                                            alignof(FsMknodWithContentOp));
+}
+constexpr auto FsMknodWithContentOp::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_FsMknodWithContentOp_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &FsMknodWithContentOp::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<FsMknodWithContentOp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &FsMknodWithContentOp::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<FsMknodWithContentOp>(), &FsMknodWithContentOp::ByteSizeLong,
+              &FsMknodWithContentOp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_._cached_size_),
+          false,
+      },
+      &FsMknodWithContentOp::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull FsMknodWithContentOp_class_data_ =
+        FsMknodWithContentOp::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+FsMknodWithContentOp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&FsMknodWithContentOp_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(FsMknodWithContentOp_class_data_.tc_table);
+  return FsMknodWithContentOp_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 7, 3, 52, 2>
+FsMknodWithContentOp::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_._has_bits_),
+    0, // no _extensions_
+    7, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967168,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    7,  // num_field_entries
+    3,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    FsMknodWithContentOp_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::unixfs::world::FsMknodWithContentOp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.object_key_)}},
+    // .unixfs.world.FSType fs_type = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FsMknodWithContentOp, _impl_.fs_type_), 4>(),
+     {16, 4, 0,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.fs_type_)}},
+    // .unixfs.block.FSPath path = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.path_)}},
+    // uint32 permissions = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FsMknodWithContentOp, _impl_.permissions_), 5>(),
+     {32, 5, 0,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.permissions_)}},
+    // .unixfs.block.NodeType node_type = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FsMknodWithContentOp, _impl_.node_type_), 6>(),
+     {40, 6, 0,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.node_type_)}},
+    // .google.protobuf.Timestamp timestamp = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 2, 1,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.timestamp_)}},
+    // .block.BlockRef blob_ref = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 3, 2,
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.blob_ref_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .unixfs.world.FSType fs_type = 2;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.fs_type_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .unixfs.block.FSPath path = 3;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.path_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 permissions = 4;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.permissions_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .unixfs.block.NodeType node_type = 5;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.node_type_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .google.protobuf.Timestamp timestamp = 6;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .block.BlockRef blob_ref = 7;
+    {PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.blob_ref_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::unixfs::block::FSPath>()},
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
+  }},
+  {{
+    "\41\12\0\0\0\0\0\0"
+    "unixfs.world.FsMknodWithContentOp"
+    "object_key"
+  }},
+};
+PROTOBUF_NOINLINE void FsMknodWithContentOp::Clear() {
+// @@protoc_insertion_point(message_clear_start:unixfs.world.FsMknodWithContentOp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.path_ != nullptr);
+      _impl_.path_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.timestamp_ != nullptr);
+      _impl_.timestamp_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.blob_ref_ != nullptr);
+      _impl_.blob_ref_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
+    ::memset(&_impl_.fs_type_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.node_type_) -
+        reinterpret_cast<char*>(&_impl_.fs_type_)) + sizeof(_impl_.node_type_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL FsMknodWithContentOp::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const FsMknodWithContentOp& this_ = static_cast<const FsMknodWithContentOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL FsMknodWithContentOp::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const FsMknodWithContentOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:unixfs.world.FsMknodWithContentOp)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "unixfs.world.FsMknodWithContentOp.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .unixfs.world.FSType fs_type = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_fs_type() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_fs_type(), target);
+    }
+  }
+
+  // .unixfs.block.FSPath path = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.path_, this_._impl_.path_->GetCachedSize(), target,
+        stream);
+  }
+
+  // uint32 permissions = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_permissions() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_permissions(), target);
+    }
+  }
+
+  // .unixfs.block.NodeType node_type = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_node_type() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_node_type(), target);
+    }
+  }
+
+  // .google.protobuf.Timestamp timestamp = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .block.BlockRef blob_ref = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.blob_ref_, this_._impl_.blob_ref_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:unixfs.world.FsMknodWithContentOp)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t FsMknodWithContentOp::ByteSizeLong(const MessageLite& base) {
+  const FsMknodWithContentOp& this_ = static_cast<const FsMknodWithContentOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t FsMknodWithContentOp::ByteSizeLong() const {
+  const FsMknodWithContentOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:unixfs.world.FsMknodWithContentOp)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // .unixfs.block.FSPath path = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.path_);
+    }
+    // .google.protobuf.Timestamp timestamp = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
+    }
+    // .block.BlockRef blob_ref = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.blob_ref_);
+    }
+    // .unixfs.world.FSType fs_type = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_fs_type() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_fs_type());
+      }
+    }
+    // uint32 permissions = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_permissions() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_permissions());
+      }
+    }
+    // .unixfs.block.NodeType node_type = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_node_type() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_node_type());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void FsMknodWithContentOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<FsMknodWithContentOp*>(&to_msg);
+  auto& from = static_cast<const FsMknodWithContentOp&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:unixfs.world.FsMknodWithContentOp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.path_ != nullptr);
+      if (_this->_impl_.path_ == nullptr) {
+        _this->_impl_.path_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.path_);
+      } else {
+        _this->_impl_.path_->MergeFrom(*from._impl_.path_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
+      if (_this->_impl_.timestamp_ == nullptr) {
+        _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
+      } else {
+        _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.blob_ref_ != nullptr);
+      if (_this->_impl_.blob_ref_ == nullptr) {
+        _this->_impl_.blob_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.blob_ref_);
+      } else {
+        _this->_impl_.blob_ref_->MergeFrom(*from._impl_.blob_ref_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_fs_type() != 0) {
+        _this->_impl_.fs_type_ = from._impl_.fs_type_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_permissions() != 0) {
+        _this->_impl_.permissions_ = from._impl_.permissions_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_node_type() != 0) {
+        _this->_impl_.node_type_ = from._impl_.node_type_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void FsMknodWithContentOp::CopyFrom(const FsMknodWithContentOp& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:unixfs.world.FsMknodWithContentOp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void FsMknodWithContentOp::InternalSwap(FsMknodWithContentOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.node_type_)
+      + sizeof(FsMknodWithContentOp::_impl_.node_type_)
+      - PROTOBUF_FIELD_OFFSET(FsMknodWithContentOp, _impl_.path_)>(
+          reinterpret_cast<char*>(&_impl_.path_),
+          reinterpret_cast<char*>(&other->_impl_.path_));
+}
+
+::google::protobuf::Metadata FsMknodWithContentOp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

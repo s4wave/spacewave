@@ -223,6 +223,37 @@ pub struct FsRenameOp {
     #[prost(message, optional, tag="5")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// FsMknodWithContentOp creates a file and writes content atomically.
+/// The blob must be pre-built in an isolated object before applying this op.
+/// The op creates the file entry and writes the blob content in a single commit.
+/// Can be applied as either an object op or a world op.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FsMknodWithContentOp {
+    /// ObjectKey is the object key to start at.
+    /// Ignored if applied as an object op.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// FsType is the type of object located at ObjectKey.
+    /// Defaults to FsType_FS_NODE.
+    #[prost(enumeration="FsType", tag="2")]
+    pub fs_type: i32,
+    /// Path is the path to the new file.
+    #[prost(message, optional, tag="3")]
+    pub path: ::core::option::Option<super::block::FsPath>,
+    /// Permissions is the permissions bitset.
+    /// If zero uses defaults.
+    #[prost(uint32, tag="4")]
+    pub permissions: u32,
+    /// NodeType is the node type to create.
+    #[prost(enumeration="super::block::NodeType", tag="5")]
+    pub node_type: i32,
+    /// Timestamp is the modification time.
+    #[prost(message, optional, tag="6")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    /// BlobRef is the reference to the pre-built Blob containing the file content.
+    #[prost(message, optional, tag="7")]
+    pub blob_ref: ::core::option::Option<super::super::block::BlockRef>,
+}
 /// FsRemoveOp is an operation to delete inodes from the tree.
 /// Can be applied as either an object op or a world op.
 #[derive(Clone, PartialEq, ::prost::Message)]

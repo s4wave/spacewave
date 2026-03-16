@@ -614,6 +614,78 @@ export const FsRenameOp: MessageType<FsRenameOp> = createMessageType({
 })
 
 /**
+ * FsMknodWithContentOp creates a file and writes content atomically.
+ * The blob must be pre-built in an isolated object before applying this op.
+ * The op creates the file entry and writes the blob content in a single commit.
+ * Can be applied as either an object op or a world op.
+ *
+ * @generated from message unixfs.world.FsMknodWithContentOp
+ */
+export interface FsMknodWithContentOp {
+  /**
+   * ObjectKey is the object key to start at.
+   * Ignored if applied as an object op.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * FsType is the type of object located at ObjectKey.
+   * Defaults to FsType_FS_NODE.
+   *
+   * @generated from field: unixfs.world.FSType fs_type = 2;
+   */
+  fsType?: FSType
+  /**
+   * Path is the path to the new file.
+   *
+   * @generated from field: unixfs.block.FSPath path = 3;
+   */
+  path?: FSPath
+  /**
+   * Permissions is the permissions bitset.
+   * If zero uses defaults.
+   *
+   * @generated from field: uint32 permissions = 4;
+   */
+  permissions?: number
+  /**
+   * NodeType is the node type to create.
+   *
+   * @generated from field: unixfs.block.NodeType node_type = 5;
+   */
+  nodeType?: NodeType
+  /**
+   * Timestamp is the modification time.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 6;
+   */
+  timestamp?: Date
+  /**
+   * BlobRef is the reference to the pre-built Blob containing the file content.
+   *
+   * @generated from field: block.BlockRef blob_ref = 7;
+   */
+  blobRef?: BlockRef
+}
+
+// FsMknodWithContentOp contains the message type declaration for FsMknodWithContentOp.
+export const FsMknodWithContentOp: MessageType<FsMknodWithContentOp> =
+  createMessageType({
+    typeName: 'unixfs.world.FsMknodWithContentOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 7, name: 'blob_ref', kind: 'message', T: () => BlockRef },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * FsRemoveOp is an operation to delete inodes from the tree.
  * Can be applied as either an object op or a world op.
  *

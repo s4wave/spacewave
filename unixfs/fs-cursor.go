@@ -2,6 +2,7 @@ package unixfs
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"time"
 )
@@ -201,7 +202,16 @@ type FSCursorOps interface {
 	// Does not return an error if they did not exist.
 	Remove(ctx context.Context, names []string, ts time.Time) error
 
-	// TODO
+	// MknodWithContent creates a file entry and writes content atomically.
+	// The inode must be a directory.
+	// The new file appears fully formed with all content written.
+	// dataLen is the total file size in bytes.
+	// rdr provides the file content to write.
+	// Each backend implements this differently:
+	//   - Block backend: pre-builds blob, then atomic Mknod+WriteBlob in one commit.
+	//   - Other backends: create file, then io.Copy the content.
+	// Returns ErrReadOnly if the filesystem is read-only.
+	MknodWithContent(ctx context.Context, name string, nodeType FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error
 }
 
 // FSCursorChangeCb is a callback function for a cursor change.

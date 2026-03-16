@@ -26,6 +26,8 @@ func LookupFsOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 		return &FsRemoveOp{}, nil
 	case FsWriteAtOpId:
 		return &FsWriteAtOp{}, nil
+	case FsMknodWithContentOpId:
+		return &FsMknodWithContentOp{}, nil
 	}
 	return nil, nil
 }

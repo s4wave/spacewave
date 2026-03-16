@@ -651,6 +651,86 @@ func (x *FsRenameOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// FsMknodWithContentOp creates a file and writes content atomically.
+// The blob must be pre-built in an isolated object before applying this op.
+// The op creates the file entry and writes the blob content in a single commit.
+// Can be applied as either an object op or a world op.
+type FsMknodWithContentOp struct {
+	unknownFields []byte
+	// ObjectKey is the object key to start at.
+	// Ignored if applied as an object op.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// FsType is the type of object located at ObjectKey.
+	// Defaults to FsType_FS_NODE.
+	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3" json:"fsType,omitempty"`
+	// Path is the path to the new file.
+	Path *block.FSPath `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	// Permissions is the permissions bitset.
+	// If zero uses defaults.
+	Permissions uint32 `protobuf:"varint,4,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// NodeType is the node type to create.
+	NodeType block.NodeType `protobuf:"varint,5,opt,name=node_type,json=nodeType,proto3" json:"nodeType,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// BlobRef is the reference to the pre-built Blob containing the file content.
+	BlobRef *block1.BlockRef `protobuf:"bytes,7,opt,name=blob_ref,json=blobRef,proto3" json:"blobRef,omitempty"`
+}
+
+func (x *FsMknodWithContentOp) Reset() {
+	*x = FsMknodWithContentOp{}
+}
+
+func (*FsMknodWithContentOp) ProtoMessage() {}
+
+func (x *FsMknodWithContentOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *FsMknodWithContentOp) GetFsType() FSType {
+	if x != nil {
+		return x.FsType
+	}
+	return FSType_FSType_UNKNOWN
+}
+
+func (x *FsMknodWithContentOp) GetPath() *block.FSPath {
+	if x != nil {
+		return x.Path
+	}
+	return nil
+}
+
+func (x *FsMknodWithContentOp) GetPermissions() uint32 {
+	if x != nil {
+		return x.Permissions
+	}
+	return 0
+}
+
+func (x *FsMknodWithContentOp) GetNodeType() block.NodeType {
+	if x != nil {
+		return x.NodeType
+	}
+	return block.NodeType(0)
+}
+
+func (x *FsMknodWithContentOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *FsMknodWithContentOp) GetBlobRef() *block1.BlockRef {
+	if x != nil {
+		return x.BlobRef
+	}
+	return nil
+}
+
 // FsRemoveOp is an operation to delete inodes from the tree.
 // Can be applied as either an object op or a world op.
 type FsRemoveOp struct {
@@ -773,7 +853,9 @@ func (m *UnixfsRef) CloneVT() *UnixfsRef {
 	r := new(UnixfsRef)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.Path = m.Path.CloneVT()
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -791,8 +873,10 @@ func (m *FsInitOp) CloneVT() *FsInitOp {
 	r := new(FsInitOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.FsRef = m.FsRef.CloneVT()
 	r.FsOverwrite = m.FsOverwrite
+	if rhs := m.FsRef; rhs != nil {
+		r.FsRef = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -841,8 +925,12 @@ func (m *FsSymlinkOp) CloneVT() *FsSymlinkOp {
 	r := new(FsSymlinkOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.Path = m.Path.CloneVT()
-	r.Symlink = m.Symlink.CloneVT()
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
+	if rhs := m.Symlink; rhs != nil {
+		r.Symlink = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -916,9 +1004,13 @@ func (m *FsWriteAtOp) CloneVT() *FsWriteAtOp {
 	r := new(FsWriteAtOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.Path = m.Path.CloneVT()
 	r.Offset = m.Offset
-	r.BlobRef = m.BlobRef.CloneVT()
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
+	if rhs := m.BlobRef; rhs != nil {
+		r.BlobRef = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -939,8 +1031,10 @@ func (m *FsTruncateOp) CloneVT() *FsTruncateOp {
 	r := new(FsTruncateOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.Path = m.Path.CloneVT()
 	r.FileSize = m.FileSize
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -961,8 +1055,12 @@ func (m *FsCopyOp) CloneVT() *FsCopyOp {
 	r := new(FsCopyOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.SrcPath = m.SrcPath.CloneVT()
-	r.DestPath = m.DestPath.CloneVT()
+	if rhs := m.SrcPath; rhs != nil {
+		r.SrcPath = rhs.CloneVT()
+	}
+	if rhs := m.DestPath; rhs != nil {
+		r.DestPath = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -983,8 +1081,12 @@ func (m *FsRenameOp) CloneVT() *FsRenameOp {
 	r := new(FsRenameOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.SrcPath = m.SrcPath.CloneVT()
-	r.DestPath = m.DestPath.CloneVT()
+	if rhs := m.SrcPath; rhs != nil {
+		r.SrcPath = rhs.CloneVT()
+	}
+	if rhs := m.DestPath; rhs != nil {
+		r.DestPath = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -995,6 +1097,34 @@ func (m *FsRenameOp) CloneVT() *FsRenameOp {
 }
 
 func (m *FsRenameOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FsMknodWithContentOp) CloneVT() *FsMknodWithContentOp {
+	if m == nil {
+		return (*FsMknodWithContentOp)(nil)
+	}
+	r := new(FsMknodWithContentOp)
+	r.ObjectKey = m.ObjectKey
+	r.FsType = m.FsType
+	r.Permissions = m.Permissions
+	r.NodeType = m.NodeType
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
+	}
+	if rhs := m.BlobRef; rhs != nil {
+		r.BlobRef = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FsMknodWithContentOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1047,7 +1177,9 @@ func (m *RefValue) CloneVT() *RefValue {
 	}
 	r := new(RefValue)
 	r.FsType = m.FsType
-	r.Path = m.Path.CloneVT()
+	if rhs := m.Path; rhs != nil {
+		r.Path = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1411,6 +1543,44 @@ func (this *FsRenameOp) EqualVT(that *FsRenameOp) bool {
 
 func (this *FsRenameOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FsRenameOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FsMknodWithContentOp) EqualVT(that *FsMknodWithContentOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.FsType != that.FsType {
+		return false
+	}
+	if !this.Path.EqualVT(that.Path) {
+		return false
+	}
+	if this.Permissions != that.Permissions {
+		return false
+	}
+	if this.NodeType != that.NodeType {
+		return false
+	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
+	if !this.BlobRef.EqualVT(that.BlobRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FsMknodWithContentOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FsMknodWithContentOp)
 	if !ok {
 		return false
 	}
@@ -2421,6 +2591,108 @@ func (x *FsRenameOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FsMknodWithContentOp message to JSON.
+func (x *FsMknodWithContentOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.FsType != 0 || s.HasField("fsType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fsType")
+		x.FsType.MarshalProtoJSON(s)
+	}
+	if x.Path != nil || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		x.Path.MarshalProtoJSON(s.WithField("path"))
+	}
+	if x.Permissions != 0 || s.HasField("permissions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("permissions")
+		s.WriteUint32(x.Permissions)
+	}
+	if x.NodeType != 0 || s.HasField("nodeType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nodeType")
+		x.NodeType.MarshalProtoJSON(s)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if x.BlobRef != nil || s.HasField("blobRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blobRef")
+		x.BlobRef.MarshalProtoJSON(s.WithField("blobRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FsMknodWithContentOp to JSON.
+func (x *FsMknodWithContentOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FsMknodWithContentOp message from JSON.
+func (x *FsMknodWithContentOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "fs_type", "fsType":
+			s.AddField("fs_type")
+			x.FsType.UnmarshalProtoJSON(s)
+		case "path":
+			if s.ReadNil() {
+				x.Path = nil
+				return
+			}
+			x.Path = &block.FSPath{}
+			x.Path.UnmarshalProtoJSON(s.WithField("path", true))
+		case "permissions":
+			s.AddField("permissions")
+			x.Permissions = s.ReadUint32()
+		case "node_type", "nodeType":
+			s.AddField("node_type")
+			x.NodeType.UnmarshalProtoJSON(s)
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "blob_ref", "blobRef":
+			if s.ReadNil() {
+				x.BlobRef = nil
+				return
+			}
+			x.BlobRef = &block1.BlockRef{}
+			x.BlobRef.UnmarshalProtoJSON(s.WithField("blob_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FsMknodWithContentOp from JSON.
+func (x *FsMknodWithContentOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the FsRemoveOp message to JSON.
 func (x *FsRemoveOp) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3337,6 +3609,91 @@ func (m *FsRenameOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *FsMknodWithContentOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FsMknodWithContentOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FsMknodWithContentOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BlobRef != nil {
+		size, err := m.BlobRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.NodeType != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NodeType))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Permissions != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Permissions))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Path != nil {
+		size, err := m.Path.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.FsType != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FsType))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *FsRemoveOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3779,6 +4136,41 @@ func (m *FsRenameOp) SizeVT() (n int) {
 	}
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FsMknodWithContentOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.FsType != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.FsType))
+	}
+	if m.Path != nil {
+		l = m.Path.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Permissions != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Permissions))
+	}
+	if m.NodeType != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.NodeType))
+	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.BlobRef != nil {
+		l = m.BlobRef.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -4341,6 +4733,70 @@ func (x *FsRenameOp) MarshalProtoText() string {
 }
 
 func (x *FsRenameOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FsMknodWithContentOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FsMknodWithContentOp {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.FsType != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("fs_type: ")
+		sb.WriteString("\"")
+		sb.WriteString(FSType(x.FsType).String())
+		sb.WriteString("\"")
+	}
+	if x.Path != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(x.Path.MarshalProtoText())
+	}
+	if x.Permissions != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("permissions: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Permissions), 10))
+	}
+	if x.NodeType != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("node_type: ")
+		sb.WriteString("\"")
+		sb.WriteString(block.NodeType(x.NodeType).String())
+		sb.WriteString("\"")
+	}
+	if x.Timestamp != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
+	if x.BlobRef != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("blob_ref: ")
+		sb.WriteString(x.BlobRef.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *FsMknodWithContentOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5874,6 +6330,186 @@ func (m *FsRenameOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FsMknodWithContentOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FsMknodWithContentOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FsMknodWithContentOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FsType", wireType)
+			}
+			m.FsType = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.FsType = FSType(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Path == nil {
+				m.Path = &block.FSPath{}
+			}
+			if err := m.Path.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Permissions", wireType)
+			}
+			m.Permissions = 0
+			m.Permissions, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeType", wireType)
+			}
+			m.NodeType = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.NodeType = block.NodeType(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlobRef", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BlobRef == nil {
+				m.BlobRef = &block1.BlockRef{}
+			}
+			if err := m.BlobRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
