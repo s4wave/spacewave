@@ -157,23 +157,47 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 	rcursor *Cursor,
 	rerr error,
 ) {
+	return t.WriteAtRoot(ctx, clearTree, nil)
+}
+
+// WriteAtRoot writes dirty blocks to the store starting from a sub-tree root.
+// If subRoot is nil, writes from the transaction root (same as Write).
+// If subRoot is non-nil, writes only the sub-tree rooted at that cursor.
+// Blocks outside the sub-tree are not touched. After writing, the sub-tree
+// nodes are non-dirty with refs set, and their block data is freed if
+// clearTree is set. The parent transaction's Write() will skip these nodes.
+func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *Cursor) (
+	res *BlockRef,
+	rcursor *Cursor,
+	rerr error,
+) {
 	if t == nil {
 		return nil, nil, tx.ErrNotWrite
+	}
+
+	// determine the write root
+	writeRoot := t.root
+	if subRoot != nil {
+		if subRoot.t != nil && subRoot.t != t {
+			return nil, nil, errors.New("cursor block transaction mismatch")
+		}
+		writeRoot = subRoot.pos
 	}
 
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
-		if clearTree {
+		// only clear the full tree and reset root when writing from the tx root
+		if clearTree && subRoot == nil {
 			t.clearData()
 		}
 		if rcursor == nil {
-			rcursor = newCursor(t, t.root, nil)
+			rcursor = newCursor(t, writeRoot, nil)
 		}
 	}()
 
 	if !t.dirty {
-		return t.root.ref, nil, nil
+		return writeRoot.ref, nil, nil
 	}
 
 	// create a sub-context
@@ -188,11 +212,11 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 		encodeDone chan struct{}
 	}
 
-	// mark blocks reachable from root. we will drop (cut) unreachable blocks.
-	// create a channel for each that is closed when we've written the block.
+	// mark blocks reachable from the write root.
+	// when writing the full tree, unreachable blocks are dropped (cut).
 	reachable := make(map[int64]reachableNode, 1)
 	{
-		nodStack := []graph.Node{t.root}
+		nodStack := []graph.Node{writeRoot}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
@@ -245,9 +269,9 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 		}
 	}
 
-	// collect unreachable nodes for later cleanup
+	// collect unreachable nodes for later cleanup (only for full-tree writes)
 	var unreachableNodes []*handle
-	if clearTree {
+	if clearTree && subRoot == nil {
 		for ni := len(nods) - 1; ni >= 0; ni-- {
 			nod := nods[ni]
 			nodID := nod.ID()
@@ -276,7 +300,7 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 			continue
 		}
 
-		// skip if not reachable
+		// skip if not reachable from the write root
 		reachableNod, blkReachable := reachable[nodID]
 		if !blkReachable {
 			// we can skip closing encodeDone here since nobody waits on this node.
@@ -460,8 +484,8 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 	default:
 	}
 
-	// clean up unreachable nodes after all workers complete
-	if clearTree {
+	// clean up unreachable nodes after all workers complete (full-tree writes only)
+	if clearTree && subRoot == nil {
 		for _, bn := range unreachableNodes {
 			bn.blk = nil
 			bn.ref = nil
@@ -470,7 +494,7 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 	}
 
 	// note: defer func builds new root cursor (second field)
-	return t.root.ref, nil, nil
+	return writeRoot.ref, nil, nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.

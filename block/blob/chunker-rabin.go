@@ -92,6 +92,11 @@ func buildChunkIndexRabin(
 		totalSize += uint64(nchk.Length)
 		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice)
 		chkStart += uint64(nchk.Length)
+
+		// flush chunk data to storage immediately to free memory
+		if err := flushChunkData(ctx, chkSet, idx); err != nil {
+			return 0, err
+		}
 		idx++
 	}
 	if len(ci.Chunks) <= 1 && rabinArgs.Pol == uint64(defRabinPol) {

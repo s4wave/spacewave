@@ -88,6 +88,11 @@ func buildChunkIndexJC(
 		totalSize += uint64(nchk.Length)                                      //nolint:gosec
 		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice) //nolint:gosec
 		chkStart += uint64(nchk.Length)                                       //nolint:gosec
+
+		// flush chunk data to storage immediately to free memory
+		if err := flushChunkData(ctx, chkSet, idx); err != nil {
+			return 0, err
+		}
 		idx++
 
 		if err := ctx.Err(); err != nil {
