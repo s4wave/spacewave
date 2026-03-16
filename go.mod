@@ -3,11 +3,11 @@ module github.com/aperturerobotics/hydra
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.1 // master
+	github.com/aperturerobotics/bifrost v0.47.2 // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
-	github.com/aperturerobotics/go-kvfile v0.9.4 // master
+	github.com/aperturerobotics/go-kvfile v0.10.0 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // latest
 )
 
