@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/auth/examples/common"
 	auth_method "github.com/aperturerobotics/auth/method"
-	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
+	auth_method_password "github.com/aperturerobotics/auth/method/password"
 	"github.com/aperturerobotics/bifrost/peer"
 	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
@@ -41,11 +41,11 @@ func runAuthTester(c *cli.Context) error {
 
 	le.Info("scrypt...")
 	var handler auth_method.Handler // TODO
-	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
+	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
 	if err != nil {
 		return err
 	}
-	params, _, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(4, username, []byte(password))
+	params, _, err := auth_method_password.BuildParametersWithUsernamePassword(username, []byte(password))
 	if err != nil {
 		return err
 	}

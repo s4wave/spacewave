@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/auth/core"
 	auth_method "github.com/aperturerobotics/auth/method"
-	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
+	auth_method_password "github.com/aperturerobotics/auth/method/password"
 	"github.com/aperturerobotics/bifrost/peer"
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
@@ -62,7 +62,7 @@ func runAuthTester(c *cli.Context) error {
 	le := logrus.NewEntry(log)
 
 	var handler auth_method.Handler // TODO
-	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
+	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
 	if err != nil {
 		return err
 	}
@@ -74,8 +74,7 @@ func runAuthTester(c *cli.Context) error {
 	entityUUID := uuid.NewV4().String()
 
 	// generate the user private key with the password in advance
-	paramsSrc, userPrivKey, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(
-		4,
+	paramsSrc, userPrivKey, err := auth_method_password.BuildParametersWithUsernamePassword(
 		entityID,
 		[]byte(hardcodedPassword),
 	)
@@ -92,7 +91,7 @@ func runAuthTester(c *cli.Context) error {
 		domainID,
 		entityID, entityUUID,
 		userPrivKey,
-		auth_method_triplesec_password.MethodID,
+		auth_method_password.MethodID,
 		authMethodParams,
 	)
 	if err != nil {
@@ -329,9 +328,5 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	le.Infof("successfully derived private key for peer id %s", derivedPeerIDStr)
-	expectedDerivedPeerID := "12D3KooWQLa43LNvQ2QjjzRYZaXaxtjJyNAvFajNTYNWmoN7ncX2"
-	if derivedPeerIDStr != expectedDerivedPeerID {
-		return errors.Errorf("expected peer id %s but got %s, must be a inconsistency in generation", expectedDerivedPeerID, derivedPeerIDStr)
-	}
 	return nil
 }

@@ -1,4 +1,4 @@
-package auth_method_triplesec
+package auth_method_password
 
 import (
 	"context"
@@ -10,13 +10,12 @@ import (
 	"github.com/blang/semver/v4"
 )
 
-// Factory constructs a triplesec-password auth handler.
+// Factory constructs a password auth handler.
 type Factory struct {
-	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a triplesec-password factory.
+// NewFactory builds a password auth factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -37,16 +36,12 @@ func (t *Factory) ConstructConfig() config.Config {
 }
 
 // Construct constructs the associated controller given configuration.
-// The transport's identity (private key) comes from a GetNode lookup.
 func (t *Factory) Construct(
 	ctx context.Context,
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
-	// cc := conf.(*Config)
-
-	// Construct the auth handler controller.
 	return auth_method_controller.NewController(
 		le,
 		t.bus,
@@ -61,5 +56,5 @@ func (t *Factory) GetVersion() semver.Version {
 	return Version
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ controller.Factory = ((*Factory)(nil))

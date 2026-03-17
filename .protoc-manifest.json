@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "2478d6f1f8ab4ed029107d379c967d7ae20ecd5ccc1e365c036b3e6194cc5c85",
+  "protocFlagsHash": "2a42bad2123b625ff8d80147ad7494b1dc40f0e60c1d3a711243505bd73366ff",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.1",
   "packages": {
     "github.com/aperturerobotics/auth/derive": {
@@ -27,6 +27,19 @@
       ],
       "protoFiles": [
         "method/controller/controller.proto"
+      ]
+    },
+    "github.com/aperturerobotics/auth/method/password": {
+      "hash": "face64b065c5652a625b927bcfb2d7d9b208fa6566987ae6e04e540372f255b8",
+      "generatedFiles": [
+        "method/password/password.pb.cc",
+        "method/password/password.pb.go",
+        "method/password/password.pb.h",
+        "method/password/password.pb.rs",
+        "method/password/password.pb.ts"
+      ],
+      "protoFiles": [
+        "method/password/password.proto"
       ]
     },
     "github.com/aperturerobotics/auth/method/triplesec": {

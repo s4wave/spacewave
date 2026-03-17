@@ -1,18 +1,14 @@
-package auth_method_triplesec
+package auth_method_password
 
-import (
-	"github.com/aperturerobotics/controllerbus/config"
-)
+import "github.com/aperturerobotics/controllerbus/config"
 
 // ConfigID is the string used to identify this config object.
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error { return nil }
 
 // GetConfigID returns the unique string for this configuration type.
-// This string is stored with the encoded config.
 func (c *Config) GetConfigID() string {
 	return ConfigID
 }
@@ -22,5 +18,5 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig(c, other)
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ config.Config = ((*Config)(nil))

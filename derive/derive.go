@@ -3,7 +3,7 @@ package auth_derive
 import (
 	"context"
 
-	auth_method_triplesec "github.com/aperturerobotics/auth/method/triplesec"
+	auth_method_password "github.com/aperturerobotics/auth/method/password"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -39,7 +39,7 @@ func NewController(b bus.Bus, le *logrus.Entry, c *Config) (*Controller, error) 
 
 // AuthMethodIdSupported checks if the auth method id is known.
 func AuthMethodIdSupported(id string) bool {
-	return id == auth_method_triplesec.MethodID
+	return id == auth_method_password.MethodID
 }
 
 // Execute executes the controller goroutine.

@@ -17,7 +17,6 @@ require (
 )
 
 require (
-	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0 // latest
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -32,7 +31,6 @@ require (
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
-	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
@@ -41,7 +39,6 @@ require (
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
@@ -69,4 +66,7 @@ replace (
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
-require github.com/blang/semver/v4 v4.0.0
+require (
+	github.com/blang/semver/v4 v4.0.0
+	golang.org/x/crypto v0.48.0
+)

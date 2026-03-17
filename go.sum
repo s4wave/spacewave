@@ -43,10 +43,6 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
-github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 h1:cTxwSmnaqLoo+4tLukHoB9iqHOu3LmLhRmgUxZo6Vp4=
-github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4/go.mod h1:ghbZscTyKdM07+Fw3KSi0hcJm+AlEUWj8QLlPtijN/M=
-github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e h1:gq30zfpBFPOp84ZrUFrJ/0o3T8d39kqdmS6f51wURYo=
-github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e/go.mod h1:qgaIwulBeySrYGk5RF9eMxzchKMVnI8BPBwqK5O5j8c=
 github.com/klauspost/compress v1.18.4 h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE9a2c=
 github.com/klauspost/compress v1.18.4/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
