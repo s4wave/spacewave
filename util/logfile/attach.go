@@ -2,11 +2,13 @@ package logfile
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/mattn/go-isatty"
 	"github.com/sirupsen/logrus"
 )
 
@@ -60,6 +62,58 @@ func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) 
 		}
 	}
 	return cleanup, nil
+}
+
+// EnsureLoggerLevel raises the logger level to the most verbose hook level.
+// If the logger level is already sufficient, this is a no-op. Otherwise it
+// redirects the logger's console output through a level-filtered hook so
+// that --log-level controls console verbosity independently of file hooks.
+func EnsureLoggerLevel(logger *logrus.Logger, specs []LogFileSpec) {
+	maxLevel := logger.GetLevel()
+	for _, spec := range specs {
+		if spec.Level > maxLevel {
+			maxLevel = spec.Level
+		}
+	}
+	if maxLevel <= logger.GetLevel() {
+		return
+	}
+
+	// Preserve color output: logrus TextFormatter detects TTY via
+	// entry.Logger.Out, which will be io.Discard after the swap. Build
+	// a new formatter with ForceColors when the original output is a TTY.
+	formatter := logger.Formatter
+	if tf, ok := formatter.(*logrus.TextFormatter); ok && !tf.DisableColors && writerIsTerminal(logger.Out) {
+		formatter = &logrus.TextFormatter{
+			ForceColors:               true,
+			ForceQuote:                tf.ForceQuote,
+			DisableQuote:              tf.DisableQuote,
+			EnvironmentOverrideColors: tf.EnvironmentOverrideColors,
+			DisableTimestamp:          tf.DisableTimestamp,
+			FullTimestamp:             tf.FullTimestamp,
+			TimestampFormat:           tf.TimestampFormat,
+			DisableSorting:            tf.DisableSorting,
+			SortingFunc:               tf.SortingFunc,
+			DisableLevelTruncation:    tf.DisableLevelTruncation,
+			PadLevelText:              tf.PadLevelText,
+			QuoteEmptyFields:          tf.QuoteEmptyFields,
+			FieldMap:                  tf.FieldMap,
+			CallerPrettyfier:          tf.CallerPrettyfier,
+		}
+	}
+
+	consoleHook := NewConsoleHook(logger.Out, formatter, logger.GetLevel())
+	logger.AddHook(consoleHook)
+	logger.SetOutput(io.Discard)
+	logger.SetLevel(maxLevel)
+}
+
+// writerIsTerminal reports whether w is connected to a terminal.
+func writerIsTerminal(w io.Writer) bool {
+	if f, ok := w.(interface{ Fd() uintptr }); ok {
+		return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
+	}
+	return false
 }
 
 // BuildLogFileFlag returns a CLI flag for --log-file / --log-files.

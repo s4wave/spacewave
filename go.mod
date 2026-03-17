@@ -113,7 +113,10 @@ require (
 	gonum.org/v1/gonum v0.17.0 // indirect
 )
 
-require github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
+require (
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
+	github.com/mattn/go-isatty v0.0.20
+)
 
 require (
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
@@ -129,7 +132,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect

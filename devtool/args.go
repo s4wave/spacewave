@@ -500,6 +500,7 @@ func (a *DevtoolArgs) InitRepoRoot() (
 				return
 			}
 			a.logFileCleanup = cleanup
+			logfile.EnsureLoggerLevel(a.Logger.Logger, specs)
 		}
 	}
 
