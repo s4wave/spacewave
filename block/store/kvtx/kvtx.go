@@ -145,6 +145,34 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	return tx.Exists(ctx, key)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return nil, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+
+	tx, err := k.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	exists, err := tx.Exists(ctx, key)
+	if err != nil || !exists {
+		return nil, err
+	}
+
+	data, found, err := tx.Get(ctx, key)
+	if err != nil || !found {
+		return nil, err
+	}
+
+	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+}
+
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {

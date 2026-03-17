@@ -35,6 +35,12 @@ func (k *KVTx) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, e
 	return k.blk.GetBlockExists(ctx, ref)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (k *KVTx) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return k.blk.StatBlock(ctx, ref)
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.

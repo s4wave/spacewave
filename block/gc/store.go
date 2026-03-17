@@ -98,6 +98,12 @@ func (g *GCStoreOps) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 	return g.store.GetBlockExists(ctx, ref)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (g *GCStoreOps) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return g.store.StatBlock(ctx, ref)
+}
+
 // RmBlock cleans up the ref graph for a block without performing a
 // physical delete. The Collector handles physical deletion. This
 // removes all outgoing gc/ref edges from the block, removes the

@@ -31,6 +31,18 @@ type StoreOps interface {
 	// Does not return an error if the block was not present.
 	// In some cases, will return before confirming delete.
 	RmBlock(ctx context.Context, ref *BlockRef) error
+	// StatBlock returns metadata about a block without reading its data.
+	// Returns nil, nil if the block does not exist.
+	StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error)
+}
+
+// BlockStat contains metadata about a stored block.
+type BlockStat struct {
+	// Ref is the block reference.
+	Ref *BlockRef
+	// Size is the block data size in bytes.
+	// May be -1 if the size is unknown.
+	Size int64
 }
 
 // PutBlock marshals & puts a block into a bucket.

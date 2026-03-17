@@ -86,6 +86,16 @@ func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	return ok, err
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (l *lookupBucket) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	found, err := l.GetBlockExists(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: -1}, nil
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.

@@ -170,6 +170,37 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 	}
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (o *StoreOverlay) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
+	cacheMode := func(primary, secondary StoreOps) (*BlockStat, error) {
+		stat, err := primary.StatBlock(ctx, ref)
+		if err != nil || stat != nil {
+			return stat, err
+		}
+		return secondary.StatBlock(ctx, ref)
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return o.upper.StatBlock(ctx, ref)
+	case OverlayMode_LOWER_ONLY:
+		return o.lower.StatBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return cacheMode(o.lower, o.upper)
+	}
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.

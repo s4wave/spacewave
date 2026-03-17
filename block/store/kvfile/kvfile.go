@@ -95,6 +95,23 @@ func (k *KvfileBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (
 	return k.store.Exists(key)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (k *KvfileBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return nil, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+
+	size, err := k.store.GetValueSize(key)
+	if err != nil || size < 0 {
+		return nil, nil
+	}
+
+	return &block.BlockStat{Ref: ref, Size: size}, nil
+}
+
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (k *KvfileBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {

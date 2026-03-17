@@ -58,6 +58,12 @@ func (b *StoreRW) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, erro
 	return b.readHandle.GetBlockExists(ctx, ref)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (b *StoreRW) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
+	return b.readHandle.StatBlock(ctx, ref)
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.

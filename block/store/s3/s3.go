@@ -137,6 +137,27 @@ func (b *S3Block) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool
 	return b.getKeyExists(ctx, objectKey)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (b *S3Block) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	if ref.GetEmpty() {
+		return nil, block.ErrEmptyBlockRef
+	}
+
+	refB58 := ref.MarshalString()
+	objectKey := b.objectPrefix + refB58
+
+	info, err := b.client.StatObject(ctx, b.bucketName, objectKey, minio.StatObjectOptions{})
+	if err != nil {
+		if isNotFoundErr(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &block.BlockStat{Ref: ref, Size: info.Size}, nil
+}
+
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {

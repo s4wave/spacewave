@@ -258,6 +258,17 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	return existsResp.GetExists(), nil
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Falls back to GetBlockExists and returns Size=-1 (unknown).
+// Returns nil, nil if the block does not exist.
+func (b *HTTPBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	found, err := b.GetBlockExists(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: -1}, nil
+}
+
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {

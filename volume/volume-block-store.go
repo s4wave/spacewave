@@ -39,6 +39,12 @@ func (v *VolumeBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockR
 	return v.store.GetBlockExists(ctx, ref)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (v *VolumeBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return v.store.StatBlock(ctx, ref)
+}
+
 // RmBlock deletes a block from the bucket.
 func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return v.store.RmBlock(ctx, ref)

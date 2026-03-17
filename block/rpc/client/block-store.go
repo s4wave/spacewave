@@ -96,6 +96,17 @@ func (v *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 	return resp.GetExists(), nil
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Falls back to GetBlockExists and returns Size=-1 (unknown).
+// Returns nil, nil if the block does not exist.
+func (v *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	found, err := v.GetBlockExists(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: -1}, nil
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.

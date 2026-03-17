@@ -89,6 +89,27 @@ func (s *VLoggerStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	return s.st.GetBlockExists(ctx, ref)
 }
 
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (s *VLoggerStore) StatBlock(ctx context.Context, ref *block.BlockRef) (stat *block.BlockStat, err error) {
+	t1 := time.Now()
+	defer func() {
+		var size int64
+		if stat != nil {
+			size = stat.Size
+		}
+		s.le.Debugf(
+			"StatBlock(%v) => dur(%v) size(%d) found(%v) err(%v)",
+			ref.MarshalString(),
+			time.Since(t1).String(),
+			size,
+			stat != nil,
+			err,
+		)
+	}()
+	return s.st.StatBlock(ctx, ref)
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
