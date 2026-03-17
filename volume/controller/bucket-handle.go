@@ -303,13 +303,13 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		}
 	}
 
-	// Route through GCStoreOps if available for ref graph cleanup.
-	var rmErr error
+	// Clean up GC ref graph if available, then physically delete.
 	if b.gcOps != nil {
-		rmErr = b.gcOps.RmBlock(ctx, ref)
-	} else {
-		rmErr = b.v.RmBlock(ctx, ref)
+		if err := b.gcOps.RmBlock(ctx, ref); err != nil {
+			return err
+		}
 	}
+	rmErr := b.v.RmBlock(ctx, ref)
 	if rmErr != nil || b.t.c.config.GetDisableEventBlockRm() {
 		return rmErr
 	}
