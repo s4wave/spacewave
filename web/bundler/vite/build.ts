@@ -1,21 +1,31 @@
 import { loadConfigFromFile, mergeConfig, build as viteBuild } from 'vite'
-import type { InlineConfig, UserConfig } from 'vite'
+import type { InlineConfig, Rollup, UserConfig } from 'vite'
 import { existsSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'path'
 import type { ConfigEnv } from 'vitest/config'
-import type { OutputChunk, RollupOutput, OutputAsset } from 'rollup'
-import type { RollupError } from 'rollup'
 
 /**
  * Checks if an unknown error is a RollupError by checking for the watchFiles property
  */
-export function isRollupError(err: unknown): err is RollupError {
+// isBundleError checks if an unknown error is a Vite 8 BundleError with an errors array.
+export function isBundleError(
+  err: unknown,
+): err is Error & { errors: Rollup.RollupError[] } {
+  return (
+    err instanceof Error &&
+    'errors' in err &&
+    Array.isArray((err as Record<string, unknown>).errors)
+  )
+}
+
+// isRollupError checks if an unknown error is a RollupError by checking for the watchFiles property.
+export function isRollupError(err: unknown): err is Rollup.RollupError {
   return (
     typeof err === 'object' &&
     err !== null &&
     'watchFiles' in err &&
-    Array.isArray((err as RollupError).watchFiles)
+    Array.isArray((err as Rollup.RollupError).watchFiles)
   )
 }
 
@@ -109,7 +119,7 @@ function normalizeModuleId(id: string, rootDir: string): string | null {
  * This allows us to traverse the chunk dependency graph.
  */
 function buildChunkImportsMap(
-  outputChunks: (OutputChunk | OutputAsset)[],
+  outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[],
 ): Map<string, string[]> {
   const chunkImports = new Map<string, string[]>()
   for (const chunk of outputChunks) {
@@ -158,7 +168,7 @@ function collectAllModulesForChunk(
 // analyzeManifest extracts entrypoints and their corresponding files from the build output.
 export async function analyzeManifest(
   outDir: string,
-  outputChunks: (OutputChunk | OutputAsset)[],
+  outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[],
   rootDir: string,
 ) {
   const manifestPath = path.join(outDir, '.vite/manifest.json')
@@ -324,9 +334,9 @@ export async function buildAndAnalyze(
   }
 
   const viteOutput = (await viteBuild(buildOptions)) as
-    | RollupOutput[]
-    | RollupOutput
-  const rollupOutputs: RollupOutput[] =
+    | Rollup.RollupOutput[]
+    | Rollup.RollupOutput
+  const rollupOutputs: Rollup.RollupOutput[] =
     Array.isArray(viteOutput) ? viteOutput : [viteOutput]
 
   // merge the output chunks into one array

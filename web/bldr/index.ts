@@ -3,25 +3,24 @@ export { compareUint8Arrays } from './binary.js'
 export {
   Retry,
   retryWithAbort,
-  RetryWithAbortOpts,
-  RetryOpts,
-  BackoffFn,
   constantBackoff,
 } from './retry.js'
-export {
-  WebRuntime,
+export type { RetryWithAbortOpts, RetryOpts, BackoffFn } from './retry.js'
+export { WebRuntime } from './web-runtime.js'
+export type {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
 } from './web-runtime.js'
 export type { WebView, WebViewRegistration } from './web-view.js'
-export {
-  WebDocument,
+export { WebDocument } from './web-document.js'
+export type {
   WebDocumentOptions,
   CreateWebViewFunc,
   RemoveWebViewFunc,
 } from './web-document.js'
 export { randomId } from './random-id.js'
-export { ItState, ItStateOpts } from './it-state.js'
+export { ItState } from './it-state.js'
+export type { ItStateOpts } from './it-state.js'
 export { isElectron, isMac, isLinux, isWindows } from '../electron/electron.js'
 export {
   pathSeparator,

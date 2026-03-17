@@ -1,6 +1,6 @@
 import path from 'path'
+import type { Rollup } from 'vite'
 import { Plugin } from 'vite'
-import type { ResolveIdResult } from 'rollup'
 
 // List of file extensions that should be remapped to .mjs
 const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
@@ -29,7 +29,7 @@ export function createWebPkgRemapPlugin(
     enforce: 'pre',
     apply: 'build',
 
-    async resolveId(importId, importer, options): Promise<ResolveIdResult> {
+    async resolveId(importId, importer, options): Promise<Rollup.ResolveIdResult> {
       // Skip self-resolution or relative imports
       if (importer === 'bldr-pkg-resolve' || importId?.startsWith('.')) {
         return null

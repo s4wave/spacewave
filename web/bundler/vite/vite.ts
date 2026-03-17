@@ -9,7 +9,12 @@ import {
 } from '../../../util/pipesock/pipesock.js'
 import { ViteBundler, ViteBundlerDefinition } from './vite_srpc.pb.js'
 import { BuildRequest, BuildResponse } from './vite.pb.js'
-import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
+import {
+  buildAndAnalyze,
+  buildConfig,
+  isBundleError,
+  isRollupError,
+} from './build.js'
 import { createWebPkgRemapPlugin } from './plugin.js'
 import { UserConfig } from 'vite'
 
@@ -76,6 +81,11 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // set node env
     process.env['NODE_ENV'] = mode
 
+    // disable colors
+    process.env['NO_COLOR'] = '1'
+    process.env['NODE_DISABLE_COLORS'] = '1'
+    process.env['CI'] = '1'
+
     // configPaths are relative to rootDir, make them absolute paths.
     const absoluteConfigPaths = configPaths.map((configPath) =>
       path.resolve(rootDir, configPath),
@@ -109,13 +119,27 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       mergedConfig.cacheDir = request.cacheDir
     }
 
-    // Add bldr external (importmap) packages.
-    if (!mergedConfig.build.rollupOptions) {
-      mergedConfig.build.rollupOptions = {}
+    if (!mergedConfig.build.rolldownOptions) {
+      mergedConfig.build.rolldownOptions = {}
     }
-    mergedConfig.build.rollupOptions.external = request.externalPkgs ?? []
 
-    // Add external packages for web pkg remapping
+    // Externalize BldrExternal packages (react, react-dom, etc.) with
+    // subpath matching. These are served via import map at runtime.
+    // Use a function to match subpaths (e.g. "react/jsx-dev-runtime")
+    // so Rolldown leaves them as bare specifiers for the import map.
+    // The import map must have entries for all used subpaths.
+    const externalPkgs = request.externalPkgs ?? []
+    if (externalPkgs.length > 0) {
+      mergedConfig.build.rolldownOptions.external = (id: string) => {
+        return externalPkgs.some(
+          (pkg) => id === pkg || id.startsWith(pkg + '/'),
+        )
+      }
+    }
+
+    // webPkgs are separate -- handled by the bldr-pkg-resolve plugin
+    // which remaps imports to /b/pkg/ URLs. Do NOT include externalPkgs
+    // here as they use the import map at a different URL prefix.
     const webPkgIDs: string[] = (request.webPkgs ?? [])
       .map((pkg) => pkg.id)
       .filter((pkg): pkg is string => !!pkg)
@@ -156,18 +180,18 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         }
       }
 
-      // Ensure rollupOptions exists
-      if (!mergedConfig.build.rollupOptions) {
-        mergedConfig.build.rollupOptions = {}
+      // Ensure rolldownOptions exists
+      if (!mergedConfig.build.rolldownOptions) {
+        mergedConfig.build.rolldownOptions = {}
       }
 
-      // Merge the input map and guarantee we output ES-modules
-      mergedConfig.build.rollupOptions = {
-        ...mergedConfig.build.rollupOptions,
+      // Merge the input map and guarantee we output ES-modules.
+      mergedConfig.build.rolldownOptions = {
+        ...mergedConfig.build.rolldownOptions,
         input,
         preserveEntrySignatures: 'strict',
         output: {
-          ...(mergedConfig.build.rollupOptions.output ?? {}),
+          ...(mergedConfig.build.rolldownOptions.output ?? {}),
           format: 'es',
           entryFileNames: (chunkInfo) => {
             // Preserve source directory structure for entry files
@@ -224,10 +248,29 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     return result
   } catch (err) {
     console.error(`[vite] build error:`, err)
+
+    let errorMessage: string
+    let inputFiles: string[] = []
+    if (isBundleError(err)) {
+      // Vite 8 BundleError: extract structured errors from the errors array
+      const messages = err.errors.map((e) => {
+        const loc = e.loc
+          ? ` (${e.loc.file}:${e.loc.line}:${e.loc.column})`
+          : ''
+        return `${e.message}${loc}`
+      })
+      errorMessage = messages.join('\n')
+    } else if (isRollupError(err)) {
+      errorMessage = err.message
+      inputFiles = err.watchFiles ?? []
+    } else {
+      errorMessage = err instanceof Error ? err.message : String(err)
+    }
+
     const failureResp = {
       success: false,
-      error: err instanceof Error ? err.message : String(err),
-      inputFiles: isRollupError(err) ? err.watchFiles : [],
+      error: errorMessage,
+      inputFiles,
       webPkgRefs: [],
     }
 

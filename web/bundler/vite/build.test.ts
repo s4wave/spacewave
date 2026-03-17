@@ -3,7 +3,7 @@ import { analyzeManifest } from './build.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 import os from 'os'
-import type { OutputChunk, OutputAsset } from 'rollup'
+import type { Rollup } from 'vite'
 
 describe('Vite Build - Transitive Dependency Tracking', () => {
   let testDir: string
@@ -55,7 +55,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
 
       // Create mock output chunks simulating what Rollup would produce
       // The key test: moduleIds should include A.tsx, B.tsx, AND C.tsx
-      const outputChunks: (OutputChunk | OutputAsset)[] = [
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
         {
           type: 'chunk',
           fileName: 'assets/A-hash123.mjs',
@@ -82,7 +82,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
           referencedFiles: [],
           sourcemapFileName: null,
           preliminaryFileName: 'assets/A-hash123.mjs',
-        } as OutputChunk,
+        } as unknown as Rollup.OutputChunk,
       ]
 
       const analysis = await analyzeManifest(distDir, outputChunks, testDir)
@@ -124,7 +124,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
         JSON.stringify(manifest, null, 2),
       )
 
-      const outputChunks: (OutputChunk | OutputAsset)[] = [
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
         {
           type: 'chunk',
           fileName: 'assets/A-hash123.mjs',
@@ -149,7 +149,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
           referencedFiles: [],
           sourcemapFileName: null,
           preliminaryFileName: 'assets/A-hash123.mjs',
-        } as OutputChunk,
+        } as unknown as Rollup.OutputChunk,
         {
           type: 'chunk',
           fileName: 'assets/D-hash456.mjs',
@@ -173,7 +173,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
           referencedFiles: [],
           sourcemapFileName: null,
           preliminaryFileName: 'assets/D-hash456.mjs',
-        } as OutputChunk,
+        } as unknown as Rollup.OutputChunk,
       ]
 
       const analysis = await analyzeManifest(distDir, outputChunks, testDir)
@@ -215,7 +215,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
         JSON.stringify(manifest, null, 2),
       )
 
-      const outputChunks: (OutputChunk | OutputAsset)[] = [
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
         {
           type: 'chunk',
           fileName: 'assets/A-hash123.mjs',
@@ -236,21 +236,21 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
           referencedFiles: [],
           sourcemapFileName: null,
           preliminaryFileName: 'assets/A-hash123.mjs',
-        } as OutputChunk,
+        } as unknown as Rollup.OutputChunk,
         {
           type: 'asset',
           fileName: 'assets/A-hash123.css',
           name: 'A.css',
           source: '',
           needsCodeReference: false,
-        } as OutputAsset,
+        } as unknown as Rollup.OutputAsset,
         {
           type: 'asset',
           fileName: 'assets/B-hash456.css',
           name: 'B.css',
           source: '',
           needsCodeReference: false,
-        } as OutputAsset,
+        } as unknown as Rollup.OutputAsset,
       ]
 
       const analysis = await analyzeManifest(distDir, outputChunks, testDir)

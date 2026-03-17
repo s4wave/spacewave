@@ -19,7 +19,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 export default defineConfig({
   build: {
     outDir: './vite-dist',
-    rollupOptions: {
+    rolldownOptions: {
       output: {},
     },
     minify: false,
