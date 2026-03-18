@@ -102,14 +102,20 @@ func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType
 	nt := FSCursorNodeTypeToNodeType(nodeType)
 	tts := ToTimestamp(ts, true)
 
-	// Build blob inline using the fsTree's cursor.
+	// Build blob in a detached transaction.
 	blobCs := f.fsTree.GetCursor().DetachTransaction()
 	blobCs.SetRefAtCursor(nil, true)
 	_, err := blob.BuildBlob(ctx, dataLen, rdr, blobCs, nil)
 	if err != nil {
 		return err
 	}
-	blobRef := blobCs.GetRef()
+
+	// Write the detached transaction to flush blocks and compute the blob ref.
+	// Without this, GetRef() returns nil because the block has not been hashed.
+	blobRef, _, err := blobCs.GetTransaction().Write(ctx, true)
+	if err != nil {
+		return err
+	}
 	if blobRef == nil {
 		blobRef = &block.BlockRef{}
 	}

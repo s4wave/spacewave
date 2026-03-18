@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -300,5 +301,84 @@ func TestFSHandle(t *testing.T) {
 
 	if err := unixfs_e2e.TestUnixFS(ctx, handle); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestFS_MknodWithContent tests MknodWithContent through the block-level FSWriter.
+// This exercises the unixfs_block.FSWriter.MknodWithContent path which builds
+// the blob in a detached transaction and must flush it before extracting the ref.
+func TestFS_MknodWithContent(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+
+	res, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc.SetRootRef(res)
+
+	writer := NewFSWriter()
+	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
+	writer.SetFS(fs)
+
+	handle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handle.Release()
+
+	content := []byte("block-level MknodWithContent test: verifies blob ref is computed after detached tx write")
+	err = handle.MknodWithContent(
+		ctx,
+		"test-block.txt",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		bytes.NewReader(content),
+		0o644,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	fileHandle, err := handle.Lookup(ctx, "test-block.txt")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fileHandle.Release()
+
+	size, err := fileHandle.GetSize(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size != uint64(len(content)) {
+		t.Fatalf("expected size %d but got %d", len(content), size)
+	}
+
+	buf := make([]byte, len(content))
+	n, err := fileHandle.ReadAt(ctx, 0, buf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if int(n) != len(content) {
+		t.Fatalf("expected to read %d bytes but got %d", len(content), n)
+	}
+	if !bytes.Equal(buf[:n], content) {
+		t.Fatalf("content mismatch: %q != %q", buf[:n], content)
 	}
 }
