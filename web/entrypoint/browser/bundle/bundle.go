@@ -2,6 +2,7 @@ package entrypoint_browser_bundle
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,6 +18,34 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// BrowserBundleResult contains the output filenames from a browser bundle build.
+type BrowserBundleResult struct {
+	// EntrypointPath is the path to the entrypoint mjs relative to the build dir.
+	EntrypointPath string
+	// ServiceWorkerFilename is the output filename of the service worker.
+	ServiceWorkerFilename string
+	// SharedWorkerFilename is the output filename of the shared worker.
+	SharedWorkerFilename string
+}
+
+// BuildManifest is the manifest.json structure written alongside index.html.
+// The prerender build script reads this to discover asset URLs.
+type BuildManifest struct {
+	Entrypoint   string   `json:"entrypoint"`
+	SharedWorker string   `json:"sharedWorker"`
+	Wasm         string   `json:"wasm"`
+	CSS          []string `json:"css"`
+}
+
+// WriteBuildManifest writes a manifest.json to the given directory.
+func WriteBuildManifest(dir string, manifest *BuildManifest) error {
+	data, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
+}
 
 // EsbuildLogLevel is the log level when bundling the bundle.
 var EsbuildLogLevel = esbuild.LogLevelWarning
@@ -279,22 +308,22 @@ func BuildBrowserBundle(
 	entrypointHash string,
 	minify,
 	devMode bool,
-) error {
+) (*BrowserBundleResult, error) {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// service worker
 	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// shared worker
 	shwFilename, err := BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// replace the filename in runtimeSwPath with the sw filename
@@ -306,7 +335,7 @@ func BuildBrowserBundle(
 	// use platform for linux -> node.js (react and react-dom don't care.)
 	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("native/linux/amd64")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pkgsPathPrefix := "/entrypoint"
@@ -320,15 +349,26 @@ func BuildBrowserBundle(
 	}
 
 	if err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
-		return err
+		return nil, err
 	}
 
 	// renderer bundle
 	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// build the entrypoint path relative to the build dir
+	entrypointPath := "entrypoint"
+	if entrypointHash != "" {
+		entrypointPath += "/" + entrypointHash
+	}
+	entrypointPath += "/entrypoint.mjs"
+
+	return &BrowserBundleResult{
+		EntrypointPath:        entrypointPath,
+		ServiceWorkerFilename: swFilename,
+		SharedWorkerFilename:  shwFilename,
+	}, nil
 }
 
 // BuildWebPkgsBundle builds the web pkg bundle files.

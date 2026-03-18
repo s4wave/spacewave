@@ -1,5 +1,5 @@
 import React, { Suspense, useMemo } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import {
   BldrRoot,
   IBldrRootProps,
@@ -70,8 +70,11 @@ if (typeof BLDR_STARTUP_JS === 'string') {
 }
 
 // initialize react and Bldr
-// document.addEventListener('DOMContentLoaded', () => {
 const container = document.getElementById('bldr-root')
-const root = createRoot(container!)
-root.render(<BldrRoot {...bldrRootProps} />)
-// })
+if (container?.hasAttribute('data-prerendered')) {
+  container.removeAttribute('data-prerendered')
+  hydrateRoot(container, <BldrRoot {...bldrRootProps} />)
+} else {
+  const root = createRoot(container!)
+  root.render(<BldrRoot {...bldrRootProps} />)
+}

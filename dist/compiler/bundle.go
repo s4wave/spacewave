@@ -360,7 +360,7 @@ func BuildDistBundle(
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
 		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-		err := entrypoint_browser_bundle.BuildBrowserBundle(
+		bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 			ctx,
 			le,
 			"", // stateDir - use system PATH for bun
@@ -400,6 +400,21 @@ func BuildDistBundle(
 
 		// store the wasm file where the entrypoint expects.
 		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
+
+		// write manifest.json for the prerender build script
+		wasmManifestPath := "entrypoint/" + entrypointHash + "/runtime.wasm"
+		if enableCompression {
+			wasmManifestPath += ".gz"
+		}
+		manifest := &entrypoint_browser_bundle.BuildManifest{
+			Entrypoint:   bundleResult.EntrypointPath,
+			SharedWorker: bundleResult.SharedWorkerFilename,
+			Wasm:         wasmManifestPath,
+			CSS:          []string{},
+		}
+		if err := entrypoint_browser_bundle.WriteBuildManifest(outputPath, manifest); err != nil {
+			return err
+		}
 	} else {
 		// otherwise we go:embed it
 		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)

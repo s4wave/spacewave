@@ -112,7 +112,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	err := entrypoint_browser_bundle.BuildBrowserBundle(
+	_, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
 		stateDir,

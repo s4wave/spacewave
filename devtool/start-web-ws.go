@@ -143,7 +143,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	err := entrypoint_browser_bundle.BuildBrowserBundle(
+	_, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
 		stateDir,
