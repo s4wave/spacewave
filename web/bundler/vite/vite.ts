@@ -123,28 +123,41 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       mergedConfig.build.rolldownOptions = {}
     }
 
-    // Externalize BldrExternal packages (react, react-dom, etc.) with
-    // subpath matching. These are served via import map at runtime.
-    // Use a function to match subpaths (e.g. "react/jsx-dev-runtime")
-    // so Rolldown leaves them as bare specifiers for the import map.
-    // The import map must have entries for all used subpaths.
+    // Externalize BldrExternal packages (react, etc.) and webPkg
+    // packages (@s4wave/web, etc.) via rolldownOptions.external.
+    //
+    // BldrExternal: served via import map, specifiers kept as-is.
+    // WebPkgs: served at /b/pkg/ URLs, specifiers rewritten by
+    // the bldr-pkg-resolve plugin's renderChunk hook.
+    //
+    // Both must use rolldownOptions.external because Rolldown's
+    // built-in vite-resolve plugin resolves tsconfig paths before
+    // user plugin resolveId hooks fire.
     const externalPkgs = request.externalPkgs ?? []
-    if (externalPkgs.length > 0) {
+    const webPkgIDs: string[] = (request.webPkgs ?? [])
+      .map((pkg) => pkg.id)
+      .filter((pkg): pkg is string => !!pkg)
+    const allExternalPkgs = [...externalPkgs, ...webPkgIDs]
+
+    // Asset extensions that must NOT be externalized -- they need
+    // Vite's CSS/asset pipeline (Tailwind, PostCSS, etc.).
+    const assetExts = ['.css', '.scss', '.sass', '.less', '.styl', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.eot']
+
+    if (allExternalPkgs.length > 0) {
       mergedConfig.build.rolldownOptions.external = (id: string) => {
-        return externalPkgs.some(
+        // Skip asset imports -- they need Vite's CSS/asset pipeline
+        if (assetExts.some((ext) => id.endsWith(ext))) {
+          return false
+        }
+        return allExternalPkgs.some(
           (pkg) => id === pkg || id.startsWith(pkg + '/'),
         )
       }
     }
 
-    // webPkgs are separate -- handled by the bldr-pkg-resolve plugin
-    // which remaps imports to /b/pkg/ URLs. Do NOT include externalPkgs
-    // here as they use the import map at a different URL prefix.
-    const webPkgIDs: string[] = (request.webPkgs ?? [])
-      .map((pkg) => pkg.id)
-      .filter((pkg): pkg is string => !!pkg)
-
-    // Add our web pkg remap plugin with the callback
+    // Track web package imports and rewrite their paths in the output.
+    // The bldr-pkg-resolve plugin still handles imports that bypass
+    // tsconfig (e.g. from node_modules), and tracks subpath references.
     if (!mergedConfig.plugins) {
       mergedConfig.plugins = []
     }
@@ -152,7 +165,6 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       createWebPkgRemapPlugin({
         webPkgIDs,
         addWebPkgImport: (webPkgID, webPkgRoot, webPkgSubPath) => {
-          // Track the web package import similar to esbuild implementation
           const entry = webPkgRefs.get(webPkgID) || {
             root: webPkgRoot,
             subPaths: new Set<string>(),
