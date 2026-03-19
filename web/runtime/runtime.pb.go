@@ -64,7 +64,7 @@ func (x WebRuntimeClientType) String() string {
 type WebRenderer int32
 
 const (
-	// WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+	// WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
 	WebRenderer_WEB_RENDERER_DEFAULT WebRenderer = 0
 	// WEB_RENDERER_ELECTRON uses Electron as the native runtime.
 	WebRenderer_WEB_RENDERER_ELECTRON WebRenderer = 1

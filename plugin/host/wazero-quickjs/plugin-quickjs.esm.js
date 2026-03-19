@@ -3753,8 +3753,6 @@ var CommonRPC = class {
     this.closed = err ?? true;
     if (err && err.message) {
       await this.writeCallData(void 0, true, err.message);
-    } else {
-      await this.writeCallCancel();
     }
     this._source.end();
     this._rpcDataSource.end(err);

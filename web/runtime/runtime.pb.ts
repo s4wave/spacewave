@@ -64,7 +64,7 @@ export const WebRuntimeClientType_Enum = createEnumType(
  */
 export enum WebRenderer {
   /**
-   * WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+   * WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
    *
    * @generated from enum value: WEB_RENDERER_DEFAULT = 0;
    */

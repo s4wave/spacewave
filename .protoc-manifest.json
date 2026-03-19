@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "463c1e2c426f87716c855804c9179990f1deadb789c7b17272405fcdfa48a0c5",
+  "protocFlagsHash": "008a695bca2df3ef2cdb88d83c30143181d937b3760d12632d212f3ff23f717b",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.1",
   "packages": {
     "github.com/aperturerobotics/bldr/cli/compiler": {
@@ -904,7 +904,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/runtime": {
-      "hash": "308a60093e6f1bc76e150b59e727f8f3c0162c4caeecf93fc9630b40554da7f7",
+      "hash": "b3d2858355c8444f7a4814ad3928c162c38975f51a4e4fe1a4fad7aca4151d77",
       "generatedFiles": [
         "web/runtime/runtime.pb.cc",
         "web/runtime/runtime.pb.go",

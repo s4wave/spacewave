@@ -134,7 +134,7 @@ impl WebRuntimeClientType {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum WebRenderer {
-    /// WEB_RENDERER_DEFAULT uses the default renderer (currently saucer).
+    /// WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
     Default = 0,
     /// WEB_RENDERER_ELECTRON uses Electron as the native runtime.
     Electron = 1,
