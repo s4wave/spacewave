@@ -1,6 +1,11 @@
 import { configDefaults, defineConfig } from 'vitest/config'
 import { playwright } from '@vitest/browser-playwright'
 import type { Plugin } from 'vite'
+import { resolve } from 'path'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Plugin to enable cross-origin isolation for SharedArrayBuffer support.
 // Must use enforce: "pre" to run before vitest:browser plugin steals html requests.
@@ -21,11 +26,26 @@ function crossOriginIsolationPlugin(): Plugin {
 
 // Unit tests use happy-dom, browser tests (*.browser.test.ts, *.e2e.test.ts) use vitest browser mode.
 // E2E tests (*.e2e.spec.ts) use Playwright directly and are run separately via `bun run test:e2e`.
+// tsconfigPaths maps tsconfig "paths" aliases to vite resolve aliases.
+const tsconfigPaths = {
+  '@go': resolve(__dirname, 'vendor'),
+  '@aptre/bldr': resolve(__dirname, 'web/bldr/index.js'),
+  '@aptre/bldr-react': resolve(__dirname, 'web/bldr-react/index.js'),
+  '@aptre/bldr-sdk': resolve(__dirname, 'sdk/plugin.ts'),
+  web: resolve(__dirname, 'web'),
+}
+
 export default defineConfig({
   plugins: [crossOriginIsolationPlugin()],
+  resolve: {
+    alias: tsconfigPaths,
+  },
   test: {
     projects: [
       {
+        resolve: {
+          alias: tsconfigPaths,
+        },
         test: {
           name: 'unit',
           environment: 'happy-dom',

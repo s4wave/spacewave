@@ -5,7 +5,10 @@ import { RemoteResourceClient } from './tracked-client.js'
 import { ResourceServer, getCurrentResourceClient } from './server.js'
 import { constructChildResource } from './construct.js'
 import { newResourceMux } from './mux.js'
-import type { ResourceClientResponse } from '../resource.pb.js'
+import type {
+  ResourceAttachPacket,
+  ResourceClientResponse,
+} from '../resource.pb.js'
 
 describe('RemoteResourceClient', () => {
   let idCtr: number
@@ -614,5 +617,464 @@ describe('integration: full resource lifecycle', () => {
     await expect(
       server.ResourceRefRelease({ clientHandleId: 1, resourceId: childId }),
     ).rejects.toThrow('resource not found')
+  })
+})
+
+// createControllableStream builds an async iterable of ResourceAttachPacket
+// where packets can be pushed imperatively and the stream ended on demand.
+function createControllableStream() {
+  let resolve: ((value: IteratorResult<ResourceAttachPacket>) => void) | null =
+    null
+  const queue: ResourceAttachPacket[] = []
+  let done = false
+
+  const push = (pkt: ResourceAttachPacket) => {
+    if (resolve) {
+      const r = resolve
+      resolve = null
+      r({ value: pkt, done: false })
+    } else {
+      queue.push(pkt)
+    }
+  }
+
+  const end = () => {
+    done = true
+    if (resolve) {
+      const r = resolve
+      resolve = null
+      r({ value: undefined as never, done: true })
+    }
+  }
+
+  const iterable: AsyncIterable<ResourceAttachPacket> = {
+    [Symbol.asyncIterator]() {
+      return {
+        next(): Promise<IteratorResult<ResourceAttachPacket>> {
+          if (queue.length > 0) {
+            return Promise.resolve({ value: queue.shift()!, done: false })
+          }
+          if (done) {
+            return Promise.resolve({ value: undefined as never, done: true })
+          }
+          return new Promise<IteratorResult<ResourceAttachPacket>>((r) => {
+            resolve = r
+          })
+        },
+      }
+    },
+  }
+
+  return { push, end, iterable }
+}
+
+// setupClientSession creates a ResourceClient session and returns the
+// client handle ID and the internal RemoteResourceClient instance.
+async function setupClientSession(server: ResourceServer) {
+  const clientController = new AbortController()
+  const clientStream = server.ResourceClient({}, clientController.signal)
+  const clientIter = clientStream[Symbol.asyncIterator]()
+  const { value: initMsg } = await clientIter.next()
+  const clientHandleId =
+    initMsg.body?.case === 'init'
+      ? (initMsg.body.value.clientHandleId ?? 0)
+      : 0
+  const clients = (
+    server as unknown as { clients: Map<number, RemoteResourceClient> }
+  ).clients
+  const client = clients.get(clientHandleId)!
+  return { clientController, clientIter, clientHandleId, client }
+}
+
+describe('ResourceAttach handler', () => {
+  describe('Init/Ack handshake', () => {
+    it('sends ack with resourceId after valid init', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'test-attach' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      expect(ackPkt.body?.case).toBe('ack')
+      if (ackPkt.body?.case === 'ack') {
+        expect(ackPkt.body.value.resourceId).toBeGreaterThan(0)
+        expect(ackPkt.body.value.error).toBeFalsy()
+      }
+
+      stream.end()
+      // Drain remaining output so the generator completes.
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('sends error ack for unknown clientHandleId', async () => {
+      const server = new ResourceServer(createMux())
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId: 9999, label: 'bad' },
+        },
+      })
+      stream.end()
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      expect(ackPkt.body?.case).toBe('ack')
+      if (ackPkt.body?.case === 'ack') {
+        expect(ackPkt.body.value.error).toBe('client not found')
+      }
+
+      const { done } = await attachIter.next()
+      expect(done).toBe(true)
+    })
+
+    it('sends error ack for released client', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId } =
+        await setupClientSession(server)
+
+      // Release the client session.
+      clientController.abort()
+      await clientIter.next()
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'after-release' },
+        },
+      })
+      stream.end()
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      expect(ackPkt.body?.case).toBe('ack')
+      if (ackPkt.body?.case === 'ack') {
+        expect(ackPkt.body.value.error).toBe('client not found')
+      }
+
+      const { done } = await attachIter.next()
+      expect(done).toBe(true)
+    })
+
+    it('throws on stream closed before init', async () => {
+      const server = new ResourceServer(createMux())
+
+      // Empty iterable: yields nothing.
+      const empty: AsyncIterable<ResourceAttachPacket> = {
+        [Symbol.asyncIterator]() {
+          return {
+            next() {
+              return Promise.resolve({
+                value: undefined as never,
+                done: true,
+              })
+            },
+          }
+        },
+      }
+
+      const attachGen = server.ResourceAttach(empty)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await expect(attachIter.next()).rejects.toThrow(
+        'stream closed before init',
+      )
+    })
+
+    it('throws on non-init first packet', async () => {
+      const server = new ResourceServer(createMux())
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'muxData' as const,
+          value: new Uint8Array([0x00]),
+        },
+      })
+      stream.end()
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await expect(attachIter.next()).rejects.toThrow('expected init packet')
+    })
+  })
+
+  describe('attached resource tracking', () => {
+    it('registers attached resource on client', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'tracked' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      expect(resourceId).toBeGreaterThan(0)
+      expect(client.attachedResources.has(resourceId)).toBe(true)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('attached resource has correct label', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'my-special-label' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      const attached = client.attachedResources.get(resourceId)!
+      expect(attached.label).toBe('my-special-label')
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('attached resource has srpc client', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'with-client' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      const attached = client.attachedResources.get(resourceId)!
+      expect(attached.client).toBeDefined()
+      expect(typeof attached.client.request).toBe('function')
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('cleans up attached resource on stream end', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'cleanup-test' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      expect(client.attachedResources.has(resourceId)).toBe(true)
+
+      // End the incoming stream to trigger cleanup.
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      expect(client.attachedResources.has(resourceId)).toBe(false)
+
+      clientController.abort()
+      await clientIter.next()
+    })
+  })
+
+  describe('getAttachedRef integration', () => {
+    it('getAttachedRef returns ref for attached resource', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'ref-test' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      const ref = client.getAttachedRef(resourceId)
+      expect(ref.resourceId).toBe(resourceId)
+      expect(ref.released).toBe(false)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('getAttachedRef throws for unknown id', () => {
+      const client = new RemoteResourceClient(() => 1, 1)
+      expect(() => client.getAttachedRef(999)).toThrow(
+        'attached resource 999 not found',
+      )
+    })
+
+    it('attached ref becomes released when attach stream ends', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'release-check' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      const ref = client.getAttachedRef(resourceId)
+      expect(ref.released).toBe(false)
+
+      // End the stream to trigger cleanup, which aborts the controller.
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      // The ref checks signal.aborted, so after cleanup it is released.
+      expect(ref.released).toBe(true)
+
+      clientController.abort()
+      await clientIter.next()
+    })
+  })
+
+  describe('cleanup', () => {
+    it('ResourceClient cleanup aborts all attached resources', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId, label: 'abort-test' },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      const { value: ackPkt } = await attachIter.next()
+
+      const resourceId =
+        ackPkt.body?.case === 'ack'
+          ? (ackPkt.body.value.resourceId ?? 0)
+          : 0
+      const attached = client.attachedResources.get(resourceId)!
+      expect(attached.signal.aborted).toBe(false)
+
+      // Abort the ResourceClient session. The finally block in
+      // ResourceClient aborts all attached resources.
+      clientController.abort()
+      await clientIter.next()
+
+      expect(attached.signal.aborted).toBe(true)
+
+      // Clean up the attach generator.
+      stream.end()
+      // The attach generator may have already errored from yamux teardown,
+      // so catch any remaining iteration errors.
+      try {
+        for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+          // consume
+        }
+      } catch {
+        // Expected: yamux conn may error on teardown.
+      }
+    })
   })
 })
