@@ -4517,6 +4517,95 @@ var Client = class {
   }
 };
 
+// ../../../node_modules/starpc/dist/srpc/server-rpc.js
+var ServerRPC = class extends CommonRPC {
+  // lookupMethod looks up the incoming RPC methods.
+  lookupMethod;
+  constructor(lookupMethod) {
+    super();
+    this.lookupMethod = lookupMethod;
+  }
+  // handleCallStart handles a CallStart cket.
+  async handleCallStart(packet) {
+    if (this.service || this.method) {
+      throw new Error("call start must be sent only once");
+    }
+    this.service = packet.rpcService;
+    this.method = packet.rpcMethod;
+    if (!this.service || !this.method) {
+      throw new Error("rpcService and rpcMethod cannot be empty");
+    }
+    if (!this.lookupMethod) {
+      throw new Error("LookupMethod is not defined");
+    }
+    const methodDef = await this.lookupMethod(this.service, this.method);
+    if (!methodDef) {
+      throw new Error(`not found: ${this.service}/${this.method}`);
+    }
+    this.pushRpcData(packet.data, packet.dataIsZero);
+    this.invokeRPC(methodDef);
+  }
+  // handleCallData handles a CallData packet.
+  async handleCallData(packet) {
+    if (!this.service || !this.method) {
+      throw new Error("call start must be sent before call data");
+    }
+    return super.handleCallData(packet);
+  }
+  // invokeRPC starts invoking the RPC handler.
+  async invokeRPC(invokeFn) {
+    const dataSink = this._createDataSink();
+    try {
+      await invokeFn(this.rpcDataSource, dataSink);
+    } catch (err) {
+      this.close(err);
+    }
+  }
+  // _createDataSink creates a sink for outgoing data packets.
+  _createDataSink() {
+    return async (source) => {
+      try {
+        for await (const msg of source) {
+          await this.writeCallData(msg);
+        }
+        await this.writeCallData(void 0, true);
+        this.close();
+      } catch (err) {
+        this.close(err);
+      }
+    };
+  }
+};
+
+// ../../../node_modules/starpc/dist/srpc/server.js
+var Server = class {
+  // lookupMethod looks up the incoming RPC methods.
+  lookupMethod;
+  constructor(lookupMethod) {
+    this.lookupMethod = lookupMethod;
+  }
+  // rpcStreamHandler implements the RpcStreamHandler interface.
+  // uses handlePacketDuplex (expects 1 buf = 1 Packet)
+  get rpcStreamHandler() {
+    return async (stream) => {
+      const rpc = this.startRpc();
+      return pipe(stream, decodePacketSource, rpc, encodePacketSource, stream).catch((err) => rpc.close(err)).then(() => rpc.close());
+    };
+  }
+  // startRpc starts a new server-side RPC.
+  // the returned RPC handles incoming Packets.
+  startRpc() {
+    return new ServerRPC(this.lookupMethod);
+  }
+  // handlePacketStream handles an incoming Uint8Array duplex.
+  // the stream has one Uint8Array per packet w/o length prefix.
+  handlePacketStream(stream) {
+    const rpc = this.startRpc();
+    pipe(stream, decodePacketSource, rpc, encodePacketSource, stream).catch((err) => rpc.close(err)).then(() => rpc.close());
+    return rpc;
+  }
+};
+
 // ../../../node_modules/@libp2p/interface/dist/src/errors.js
 var AbortError2 = class extends Error {
   static name = "AbortError";
@@ -8744,6 +8833,86 @@ var Client2 = class {
     const state = await this.ensureInitialized();
     return this.createResourceReference(state.rootResourceId);
   }
+  // attachResource provides a mux that server-side handlers can
+  // invoke. The mux is served over a yamux session inside the
+  // ResourceAttach bidi stream. Returns the server-assigned
+  // resource ID and a cleanup function.
+  async attachResource(label, mux, signal) {
+    const state = await this.ensureInitialized();
+    const outgoing = pushable({ objectMode: true });
+    const incoming = this.service.ResourceAttach(
+      (async function* () {
+        yield* outgoing;
+      })(),
+      signal
+    );
+    const incomingIt = incoming[Symbol.asyncIterator]();
+    outgoing.push({
+      body: {
+        case: "init",
+        value: {
+          clientHandleId: state.clientHandleId,
+          label
+        }
+      }
+    });
+    const ackResult = await incomingIt.next();
+    if (ackResult.done) {
+      outgoing.end();
+      throw new Error("stream closed before ack");
+    }
+    const ackBody = ackResult.value?.body;
+    if (ackBody?.case !== "ack") {
+      outgoing.end();
+      throw new Error("expected ack packet");
+    }
+    if (ackBody.value.error) {
+      outgoing.end();
+      throw new Error(ackBody.value.error);
+    }
+    const resourceId = ackBody.value.resourceId ?? 0;
+    const server = new Server(mux);
+    const conn = new StreamConn(server, {
+      direction: "inbound",
+      yamuxParams: { enableKeepAlive: false }
+    });
+    const incomingBytes = (async function* () {
+      for (; ; ) {
+        const result = await incomingIt.next();
+        if (result.done) break;
+        const body = result.value?.body;
+        if (body?.case === "muxData") {
+          yield body.value;
+        }
+      }
+    })();
+    const pipePromise = pipe(
+      incomingBytes,
+      conn,
+      combineUint8ArrayListTransform(),
+      async (source) => {
+        for await (const chunk of source) {
+          outgoing.push({
+            body: {
+              case: "muxData",
+              value: chunk
+            }
+          });
+        }
+        outgoing.end();
+      }
+    ).catch(() => {
+      outgoing.end();
+    });
+    const cleanup = () => {
+      conn.close();
+      outgoing.end();
+      pipePromise.catch(() => {
+      });
+    };
+    signal?.addEventListener("abort", cleanup, { once: true });
+    return { resourceId, cleanup };
+  }
   /**
    * Create a reference to a specific resource by ID.
    * The resource should already exist on the server.
@@ -9063,21 +9232,27 @@ var ResourceRefReleaseResponse = createMessageType({
 var ResourceAttachInit = createMessageType({
   typeName: "resource.ResourceAttachInit",
   fields: [
-    { no: 1, name: "client_handle_id", kind: "scalar", T: ScalarType.UINT32 },
+    { no: 1, name: "client_handle_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachAdd = createMessageType({
+  typeName: "resource.ResourceAttachAdd",
+  fields: [
+    { no: 1, name: "attach_id", kind: "scalar", T: ScalarType.UINT32 },
     { no: 2, name: "label", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
-var ResourceAttachAck = createMessageType({
-  typeName: "resource.ResourceAttachAck",
+var ResourceAttachDetach = createMessageType({
+  typeName: "resource.ResourceAttachDetach",
   fields: [
-    { no: 1, name: "error", kind: "scalar", T: ScalarType.STRING },
-    { no: 2, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+    { no: 1, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
   ],
   packedByDefault: true
 });
-var ResourceAttachPacket = createMessageType({
-  typeName: "resource.ResourceAttachPacket",
+var ResourceAttachRequest = createMessageType({
+  typeName: "resource.ResourceAttachRequest",
   fields: [
     {
       no: 1,
@@ -9088,13 +9263,77 @@ var ResourceAttachPacket = createMessageType({
     },
     {
       no: 2,
+      name: "add",
+      kind: "message",
+      T: () => ResourceAttachAdd,
+      oneof: "body"
+    },
+    {
+      no: 3,
+      name: "detach",
+      kind: "message",
+      T: () => ResourceAttachDetach,
+      oneof: "body"
+    },
+    {
+      no: 4,
+      name: "mux_data",
+      kind: "scalar",
+      T: ScalarType.BYTES,
+      oneof: "body"
+    }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachAck = createMessageType({
+  typeName: "resource.ResourceAttachAck",
+  fields: [
+    { no: 1, name: "error", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachAddAck = createMessageType({
+  typeName: "resource.ResourceAttachAddAck",
+  fields: [
+    { no: 1, name: "attach_id", kind: "scalar", T: ScalarType.UINT32 },
+    { no: 2, name: "error", kind: "scalar", T: ScalarType.STRING },
+    { no: 3, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachDetachAck = createMessageType({
+  typeName: "resource.ResourceAttachDetachAck",
+  fields: [
+    { no: 1, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachResponse = createMessageType({
+  typeName: "resource.ResourceAttachResponse",
+  fields: [
+    {
+      no: 1,
       name: "ack",
       kind: "message",
       T: () => ResourceAttachAck,
       oneof: "body"
     },
     {
+      no: 2,
+      name: "add_ack",
+      kind: "message",
+      T: () => ResourceAttachAddAck,
+      oneof: "body"
+    },
+    {
       no: 3,
+      name: "detach_ack",
+      kind: "message",
+      T: () => ResourceAttachDetachAck,
+      oneof: "body"
+    },
+    {
+      no: 4,
       name: "mux_data",
       kind: "scalar",
       T: ScalarType.BYTES,
@@ -9142,9 +9381,10 @@ var ResourceServiceDefinition = {
       kind: MethodKind.Unary
     },
     /**
-     * ResourceAttach allows a client to provide a resource that server-side
-     * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
-     * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+     * ResourceAttach allows a client to provide resources that server-side
+     * RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
+     * then resources registered via Add/AddAck. After Init/Ack, mux_data
+     * carries yamux frames for all attached resources.
      *
      * @generated from rpc resource.ResourceService.ResourceAttach
      */
@@ -9217,9 +9457,10 @@ var ResourceServiceClient = class {
     return ResourceRefReleaseResponse.fromBinary(result);
   }
   /**
-   * ResourceAttach allows a client to provide a resource that server-side
-   * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
-   * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+   * ResourceAttach allows a client to provide resources that server-side
+   * RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
+   * then resources registered via Add/AddAck. After Init/Ack, mux_data
+   * carries yamux frames for all attached resources.
    *
    * @generated from rpc resource.ResourceService.ResourceAttach
    */
@@ -9227,10 +9468,10 @@ var ResourceServiceClient = class {
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       ResourceServiceDefinition.methods.ResourceAttach.name,
-      buildEncodeMessageTransform(ResourceAttachPacket)(request),
+      buildEncodeMessageTransform(ResourceAttachRequest)(request),
       abortSignal || void 0
     );
-    return buildDecodeMessageTransform(ResourceAttachPacket)(result);
+    return buildDecodeMessageTransform(ResourceAttachResponse)(result);
   }
 };
 
