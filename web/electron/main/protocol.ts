@@ -9,7 +9,7 @@ export const APP_SCHEME = 'app'
 const app = electron.app
 const distPath = app.getAppPath()
 
-// handle requests for distribution files
+// appRequestHandler handles requests for distribution files.
 export async function appRequestHandler(
   swFetch: (req: GlobalRequest) => Promise<GlobalResponse>,
   req: GlobalRequest,
@@ -68,10 +68,18 @@ export async function appRequestHandler(
       )
     }
 
-    console.warn(`appRequestHandler: failed fetch: ${filePath} -> ${err}`)
-    return new Response('Not found', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain' },
+    // SPA fallback: if the file doesn't exist and it's not a source map,
+    // redirect to the correct base URL. This catches accidental navigations
+    // to paths like app://index.html/feed.xml in a hash-routed SPA.
+    const docId = reqUrl.searchParams.get('webDocumentId')
+    let baseUrl = `${APP_SCHEME}://index.html`
+    if (docId) {
+      baseUrl += `?webDocumentId=${encodeURIComponent(docId)}`
+    }
+    console.warn(`appRequestHandler: SPA redirect: ${reqPath} -> ${baseUrl}`)
+    return new Response(null, {
+      status: 301,
+      headers: { Location: baseUrl },
     })
   }
 }

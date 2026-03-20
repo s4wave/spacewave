@@ -229,6 +229,25 @@ export class BldrElectronApp {
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
           shell.openExternal(targetUrl)
         }
+        return
+      }
+
+      // SPA guard: the app only works at /index.html with hash routing.
+      // If something tries to navigate to e.g. app://index.html/feed.xml,
+      // block it and redirect back to the correct base URL.
+      try {
+        const parsed = new URL(targetUrl)
+        if (parsed.pathname !== '/index.html') {
+          event.preventDefault()
+          const correctUrl =
+            webDocumentId ?
+              `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
+            : `${APP_SCHEME}://index.html`
+          nwindow.loadURL(correctUrl)
+        }
+      } catch {
+        // Invalid URL, block navigation
+        event.preventDefault()
       }
     })
 
