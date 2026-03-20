@@ -77,10 +77,11 @@ type WazeroQuickJsHost struct {
 	quickjsVmRc *refcount.RefCount[*quickjsVm]
 }
 
-// quickjsVm contains the compiled quickjs instance.
+// quickjsVm contains the shared compilation cache for quickjs instances.
+// Each plugin instance gets its own wazero.Runtime to avoid module name
+// collisions, but they share compiled native code via the cache.
 type quickjsVm struct {
-	vm  wazero.Runtime
-	mod wazero.CompiledModule
+	cache wazero.CompilationCache
 }
 
 // NewWazeroQuickJsHost constructs a new WazeroQuickJsHost.
@@ -96,33 +97,49 @@ func NewWazeroQuickJsHost(b bus.Bus, le *logrus.Entry) (*WazeroQuickJsHost, erro
 	return h, nil
 }
 
-// resolveQuickjsVm resolves the quickjs virtual machine for the plugins
+// resolveQuickjsVm resolves the shared compilation cache for quickjs plugins.
 func (h *WazeroQuickJsHost) resolveQuickjsVm(ctx context.Context, released func()) (*quickjsVm, func(), error) {
-	// Configure the runtime
-	runtimeConfig := wazero.NewRuntimeConfig().WithCloseOnContextDone(true)
+	cache := wazero.NewCompilationCache()
+	rel := func() { _ = cache.Close(ctx) }
 
-	// Create a new WebAssembly Runtime.
+	// Pre-warm the cache by compiling once.
+	runtimeConfig := wazero.NewRuntimeConfig().
+		WithCompilationCache(cache).
+		WithCloseOnContextDone(true)
 	r := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
-	// This closes everything this Runtime created.
-	rel := func() { _ = r.Close(ctx) }
-
-	// Instantiate WASI, which implements system call APIs.
-	// This is required for the Wasm module to print to the console.
-	// NOTE: calling the closer returned by this is unnecessary if we call r.Close above
 	_, err := wasi_snapshot_preview1.Instantiate(ctx, r)
 	if err != nil {
+		_ = r.Close(ctx)
 		rel()
 		return nil, nil, err
 	}
-
-	// Compile the Wasm module using the reactor build.
-	mod, err := quickjs.CompileQuickJS(ctx, r)
+	_, err = quickjs.CompileQuickJS(ctx, r)
+	_ = r.Close(ctx)
 	if err != nil {
 		rel()
 		return nil, nil, err
 	}
 
-	return &quickjsVm{vm: r, mod: mod}, rel, nil
+	return &quickjsVm{cache: cache}, rel, nil
+}
+
+// newPluginRuntime creates a per-plugin wazero.Runtime with the shared compilation cache.
+func (h *WazeroQuickJsHost) newPluginRuntime(ctx context.Context, cache wazero.CompilationCache) (wazero.Runtime, wazero.CompiledModule, error) {
+	runtimeConfig := wazero.NewRuntimeConfig().
+		WithCompilationCache(cache).
+		WithCloseOnContextDone(true)
+	r := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
+	_, err := wasi_snapshot_preview1.Instantiate(ctx, r)
+	if err != nil {
+		_ = r.Close(ctx)
+		return nil, nil, err
+	}
+	mod, err := quickjs.CompileQuickJS(ctx, r)
+	if err != nil {
+		_ = r.Close(ctx)
+		return nil, nil, err
+	}
+	return r, mod, nil
 }
 
 // NewWazeroQuickJsHostController constructs the WazeroQuickJsHost and PluginHost controller.
@@ -246,6 +263,15 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 	// this restarts if the quickjs vm is reloaded or unloaded
 	return h.quickjsVmRc.Access(ctx, func(ctx context.Context, val *quickjsVm) error {
+		// Create a per-plugin runtime with the shared compilation cache.
+		// Each plugin gets its own runtime to avoid wazero module name collisions
+		// (the QuickJS library forces the module name to "qjs-wasi.wasm").
+		r, compiled, err := h.newPluginRuntime(ctx, val.cache)
+		if err != nil {
+			return errors.Wrap(err, "create plugin runtime")
+		}
+		defer r.Close(ctx)
+
 		// construct a filesystem with the plugin dist fs at /dist
 		// this makes /dist read-only which is what we want.
 		// wazeroFs := wazerofs.NewFS(ctx, pluginDist, nil)
@@ -317,8 +343,6 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		// Log to the logger instead of directly to stderr.
 		debugWriter := le.WriterLevel(logrus.DebugLevel)
 		moduleConfig := wazero.NewModuleConfig().
-			// required for concurrency
-			WithName("").
 			WithStdin(stdinBuf).
 			WithStdout(debugWriter).
 			WithStderr(debugWriter).
@@ -332,7 +356,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 		// Create a QuickJS instance using the pre-compiled module.
 		// This uses the reactor model which doesn't block in _start().
-		qjs, err := quickjs.NewQuickJSWithModule(ctx, val.vm, val.mod, moduleConfig)
+		qjs, err := quickjs.NewQuickJSWithModule(ctx, r, compiled, moduleConfig)
 		if err != nil {
 			return errors.Wrap(err, "create quickjs instance")
 		}
