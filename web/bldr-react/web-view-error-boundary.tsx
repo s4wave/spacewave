@@ -67,6 +67,10 @@ export class WebViewErrorBoundary extends React.Component<
     }, delay)
   }
 
+  private handleReload = () => {
+    window.location.reload()
+  }
+
   public render() {
     const { caughtError } = this.state
     if (caughtError && !isRecoverableError(caughtError)) {
@@ -74,6 +78,7 @@ export class WebViewErrorBoundary extends React.Component<
         <>
           Error: {caughtError.message}
           <br />
+          <button onClick={this.handleReload}>Reload page</button>
         </>
       )
     }

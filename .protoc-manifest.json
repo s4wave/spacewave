@@ -491,6 +491,60 @@
         "prototypes/webworker-rpcstream/common/common.proto"
       ]
     },
+    "github.com/aperturerobotics/bldr/resource": {
+      "hash": "d7b2d68f7c313bcd437514f11abd056d682a253438ec39db4a9f7bbeb732fd32",
+      "generatedFiles": [
+        "resource/resource.pb.cc",
+        "resource/resource.pb.go",
+        "resource/resource.pb.h",
+        "resource/resource.pb.rs",
+        "resource/resource.pb.ts",
+        "resource/resource_srpc.pb.cpp",
+        "resource/resource_srpc.pb.go",
+        "resource/resource_srpc.pb.hpp",
+        "resource/resource_srpc.pb.rs",
+        "resource/resource_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "resource/resource.proto"
+      ]
+    },
+    "github.com/aperturerobotics/bldr/resource/state": {
+      "hash": "984a48f9a23877c9602cd5a56ae439295ec8de0be4c15e76d067aa70dee74a90",
+      "generatedFiles": [
+        "resource/state/state.pb.cc",
+        "resource/state/state.pb.go",
+        "resource/state/state.pb.h",
+        "resource/state/state.pb.rs",
+        "resource/state/state.pb.ts",
+        "resource/state/state_srpc.pb.cpp",
+        "resource/state/state_srpc.pb.go",
+        "resource/state/state_srpc.pb.hpp",
+        "resource/state/state_srpc.pb.rs",
+        "resource/state/state_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "resource/state/state.proto"
+      ]
+    },
+    "github.com/aperturerobotics/bldr/sdk/plugin/host": {
+      "hash": "cbe8076060a71b8b0b1b289af16a967fec302e2b0818216d71d8d847c8a0b055",
+      "generatedFiles": [
+        "sdk/plugin/host/host.pb.cc",
+        "sdk/plugin/host/host.pb.go",
+        "sdk/plugin/host/host.pb.h",
+        "sdk/plugin/host/host.pb.rs",
+        "sdk/plugin/host/host.pb.ts",
+        "sdk/plugin/host/host_srpc.pb.cpp",
+        "sdk/plugin/host/host_srpc.pb.go",
+        "sdk/plugin/host/host_srpc.pb.hpp",
+        "sdk/plugin/host/host_srpc.pb.rs",
+        "sdk/plugin/host/host_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/plugin/host/host.proto"
+      ]
+    },
     "github.com/aperturerobotics/bldr/storage": {
       "hash": "751894e00e835d5271b32637857b6ed3f2e7100bc74b8fb2515f6b7724f7fadd",
       "generatedFiles": [

@@ -9,6 +9,8 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	plugin_host_resource "github.com/aperturerobotics/bldr/plugin/host/resource"
+	resource_server "github.com/aperturerobotics/bldr/resource/server"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -313,7 +315,8 @@ func (c *Controller) Close() error {
 
 // buildPluginMux builds the rpc mux for plugins.
 //
-// ctx should remain active as long as Mux is in use
+// ctx should remain active as long as Mux is in use.
+// Returns the mux and a release function for cleaning up resources.
 func (c *Controller) buildPluginMux(
 	ctx context.Context,
 	pluginID string,
@@ -322,7 +325,7 @@ func (c *Controller) buildPluginMux(
 	proxyHostVolInfo *volume.VolumeInfo,
 	distFS,
 	assetsFS *unixfs.FSHandle,
-) srpc.Mux {
+) (srpc.Mux, func()) {
 	// fallback to a LookupRpcService on the bus
 	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
 
@@ -347,7 +350,17 @@ func (c *Controller) buildPluginMux(
 		bldr_plugin.PluginAssetsServiceID,
 	))
 
-	return mux
+	// register resource server for plugin resource access
+	pluginHostRoot := plugin_host_resource.NewPluginHostRoot(
+		c.le, c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
+		distFS, assetsFS, proxyHostVol,
+		"plugin-state-atoms",
+		bldr_plugin.PluginVolumeID,
+	)
+	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
+	_ = resourceSrv.Register(mux)
+
+	return mux, pluginHostRoot.Release
 }
 
 /*

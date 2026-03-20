@@ -124,19 +124,20 @@ async function startPlugin() {
     startInfo = {}
   }
 
+  // Build abort signal
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
+
   // Construct the backend api
   const backendAPI = new BackendApiImpl(
     startInfo,
     openStream,
     handleIncomingStreamCtr,
+    abortSignal,
   )
 
   // Garbage collect
   globalThis.gc?.()
-
-  // Build abort signal
-  const abortController = new AbortController()
-  const abortSignal = abortController.signal
 
   // Call the imported module's main function, passing the API implementation.
   await script.default(backendAPI, abortSignal)

@@ -43,6 +43,16 @@ import (
 //go:embed util/pipesock/pipesock.ts
 //go:embed plugin/compiler/js/entrypoint.ts
 //go:embed sdk/plugin.ts sdk/defer.ts sdk/impl/backend-api.ts
+//go:embed sdk/resource/client.ts sdk/resource/resource.ts sdk/resource/index.ts
+//go:embed sdk/resource/resource.pb.ts sdk/resource/resource_srpc.pb.ts
+//go:embed sdk/state/state.ts sdk/state/index.ts
+//go:embed sdk/state/state.pb.ts sdk/state/state_srpc.pb.ts
+//go:embed sdk/plugin/host/plugin-host-root.ts sdk/plugin/host/index.ts
+//go:embed sdk/plugin/host/host.pb.ts sdk/plugin/host/host_srpc.pb.ts
+//go:embed sdk/hooks/index.ts sdk/hooks/useResource.tsx sdk/hooks/useResourcesClient.tsx
+//go:embed sdk/hooks/createResourceContext.tsx sdk/hooks/ResourcesContext.tsx
+//go:embed sdk/hooks/ResourceDevToolsContext.tsx
+//go:embed sdk/hooks/useMappedResource.ts sdk/hooks/useStreamingResource.ts
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
 var DistSources embed.FS

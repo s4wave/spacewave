@@ -17,6 +17,7 @@ import {
   LoadPluginResponse,
   PluginStartInfo,
 } from '../plugin/plugin.pb.js'
+import type { Client as ResourceClient } from './resource/client.js'
 
 // BackendAPI is the API exposed to Bldr plugin backends (running in a WebWorker).
 //
@@ -39,6 +40,10 @@ export interface BackendAPI {
   // handleStreamCtr allows the plugin module to register a function
   // that will be called to handle incoming streams from the WebRuntime.
   readonly handleStreamCtr: HandleStreamCtr
+
+  // resourceClient provides access to the plugin's resource tree.
+  // Lazily connects on first accessRootResource() call.
+  readonly resourceClient: ResourceClient
 
   // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
   buildPluginOpenStream(pluginID: string): OpenStreamFunc

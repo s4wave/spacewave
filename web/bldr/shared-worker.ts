@@ -55,16 +55,17 @@ const startPluginCallback = async (startInfo: PluginStartInfo) => {
     pluginWorker.webRuntimeClient,
   )
 
+  // Build abort signal
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
+
   // Construct the backend api
   const backendAPI = new BackendApiImpl(
     startInfo,
     openStream,
     handleIncomingStreamCtr,
+    abortSignal,
   )
-
-  // Build abort signal
-  const abortController = new AbortController()
-  const abortSignal = abortController.signal
 
   if (workerType === 'quickjs') {
     // QuickJS plugin: import quickjs-runner and run the script in QuickJS VM

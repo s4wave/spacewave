@@ -10,6 +10,8 @@ import {
   ExecControllerResponse,
 } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { BackendAPI } from '../plugin.js'
+import { Client as ResourceClient } from '../resource/client.js'
+import { ResourceServiceClient } from '../resource/resource_srpc.pb.js'
 import { PluginHost, PluginHostClient } from '../../plugin/plugin_srpc.pb.js'
 import {
   GetPluginInfoRequest,
@@ -32,6 +34,8 @@ export class BackendApiImpl implements BackendAPI {
   // handleStreamCtr allows the plugin module to register a function
   // that will be called to handle incoming streams from the WebRuntime.
   public readonly handleStreamCtr: HandleStreamCtr
+  // resourceClient provides access to the plugin's resource tree.
+  public readonly resourceClient: ResourceClient
 
   // protos contains the protobuf objects used by the BackendAPI.
   public readonly protos = {
@@ -97,12 +101,17 @@ export class BackendApiImpl implements BackendAPI {
     startInfo: PluginStartInfo,
     openStream: OpenStreamFunc,
     handleStreamCtr: HandleStreamCtr,
+    signal: AbortSignal,
   ) {
     this.startInfo = startInfo
     this.openStream = openStream
     this.client = new Client(openStream)
     this.handleStreamCtr = handleStreamCtr
     this.pluginHost = new PluginHostClient(this.client)
+    this.resourceClient = new ResourceClient(
+      new ResourceServiceClient(this.client),
+      signal,
+    )
   }
 
   // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.

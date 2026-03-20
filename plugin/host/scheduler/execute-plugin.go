@@ -124,7 +124,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		defer relAssetsAccessCtrl()
 
 		// build the mux for handling incoming RPCs from the plugin
-		hostMux := t.c.buildPluginMux(
+		hostMux, relHostMux := t.c.buildPluginMux(
 			ctx,
 			pluginID,
 			pluginManifest,
@@ -133,6 +133,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			distFS,
 			assetsFS,
 		)
+		defer relHostMux()
 
 		execErr := args.pluginHost.ExecutePlugin(
 			ctx,

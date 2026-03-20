@@ -26,6 +26,7 @@ export {
   setIfChanged,
   useWatchStateRpc,
   useSetValueRpc,
+  useGetValueRpc,
   useOnChangeToValue,
   useFocusOnValueChange,
   useDocumentVisibility,
