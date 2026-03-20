@@ -61,47 +61,107 @@ pub struct ResourceRefReleaseRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResourceRefReleaseResponse {
 }
-/// ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
+/// ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ResourceAttachPacket {
-    /// Body is the body of the packet.
-    #[prost(oneof="resource_attach_packet::Body", tags="1, 2, 3")]
-    pub body: ::core::option::Option<resource_attach_packet::Body>,
+pub struct ResourceAttachRequest {
+    /// Body is the body of the request.
+    #[prost(oneof="resource_attach_request::Body", tags="1, 2, 3, 4")]
+    pub body: ::core::option::Option<resource_attach_request::Body>,
 }
-/// Nested message and enum types in `ResourceAttachPacket`.
-pub mod resource_attach_packet {
-    /// Body is the body of the packet.
+/// Nested message and enum types in `ResourceAttachRequest`.
+pub mod resource_attach_request {
+    /// Body is the body of the request.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Body {
-        /// Init is the initialization message sent by the client.
+        /// Init is the session initialization message.
         #[prost(message, tag="1")]
         Init(super::ResourceAttachInit),
-        /// Ack is the acknowledgment sent by the server.
+        /// Add registers a new resource on the session.
         #[prost(message, tag="2")]
-        Ack(super::ResourceAttachAck),
+        Add(super::ResourceAttachAdd),
+        /// Detach withdraws a previously added resource.
+        #[prost(message, tag="3")]
+        Detach(super::ResourceAttachDetach),
         /// MuxData carries yamux multiplexer frames after handshake.
-        #[prost(bytes, tag="3")]
+        #[prost(bytes, tag="4")]
         MuxData(::prost::alloc::vec::Vec<u8>),
     }
 }
-/// ResourceAttachInit is sent by the client to initiate an attach.
+/// ResourceAttachResponse is a server-to-client message on the ResourceAttach stream.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachResponse {
+    /// Body is the body of the response.
+    #[prost(oneof="resource_attach_response::Body", tags="1, 2, 3, 4")]
+    pub body: ::core::option::Option<resource_attach_response::Body>,
+}
+/// Nested message and enum types in `ResourceAttachResponse`.
+pub mod resource_attach_response {
+    /// Body is the body of the response.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Body {
+        /// Ack is the session acknowledgment.
+        #[prost(message, tag="1")]
+        Ack(super::ResourceAttachAck),
+        /// AddAck confirms a resource was added.
+        #[prost(message, tag="2")]
+        AddAck(super::ResourceAttachAddAck),
+        /// DetachAck confirms a resource was detached.
+        #[prost(message, tag="3")]
+        DetachAck(super::ResourceAttachDetachAck),
+        /// MuxData carries yamux multiplexer frames after handshake.
+        #[prost(bytes, tag="4")]
+        MuxData(::prost::alloc::vec::Vec<u8>),
+    }
+}
+/// ResourceAttachInit is sent by the client to initiate a session.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResourceAttachInit {
     /// ClientHandleId identifies the owning client session.
     #[prost(uint32, tag="1")]
     pub client_handle_id: u32,
+}
+/// ResourceAttachAck is sent by the server to confirm the session.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachAck {
+    /// Error is set if the session was rejected.
+    #[prost(string, tag="1")]
+    pub error: ::prost::alloc::string::String,
+}
+/// ResourceAttachAdd is sent by the client to register a resource.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachAdd {
+    /// AttachId is a client-chosen correlation ID.
+    #[prost(uint32, tag="1")]
+    pub attach_id: u32,
     /// Label is an informational description of the attached resource.
     #[prost(string, tag="2")]
     pub label: ::prost::alloc::string::String,
 }
-/// ResourceAttachAck is sent by the server to confirm the attach.
+/// ResourceAttachAddAck is sent by the server to confirm a resource was added.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ResourceAttachAck {
-    /// Error is set if the attach was rejected.
-    #[prost(string, tag="1")]
+pub struct ResourceAttachAddAck {
+    /// AttachId echoes the client-chosen correlation ID.
+    #[prost(uint32, tag="1")]
+    pub attach_id: u32,
+    /// Error is set if the add was rejected.
+    #[prost(string, tag="2")]
     pub error: ::prost::alloc::string::String,
     /// ResourceId is the server-assigned ID for the attached resource.
-    #[prost(uint32, tag="2")]
+    #[prost(uint32, tag="3")]
+    pub resource_id: u32,
+}
+/// ResourceAttachDetach is sent by the client to withdraw a resource.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachDetach {
+    /// ResourceId is the server-assigned ID to detach.
+    #[prost(uint32, tag="1")]
+    pub resource_id: u32,
+}
+/// ResourceAttachDetachAck is sent by the server to confirm a resource was detached.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachDetachAck {
+    /// ResourceId confirms which resource was detached.
+    #[prost(uint32, tag="1")]
     pub resource_id: u32,
 }
 // @@protoc_insertion_point(module)

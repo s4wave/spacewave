@@ -38,9 +38,9 @@ pub trait ResourceServiceResourceAttachStream: Send + Sync {
     /// Returns the context for this stream.
     fn context(&self) -> &starpc::Context;
     /// Sends a message on the stream.
-    async fn send(&self, msg: &ResourceAttachPacket) -> starpc::Result<()>;
+    async fn send(&self, msg: &ResourceAttachRequest) -> starpc::Result<()>;
     /// Receives a message from the stream.
-    async fn recv(&self) -> starpc::Result<ResourceAttachPacket>;
+    async fn recv(&self) -> starpc::Result<ResourceAttachResponse>;
     /// Closes the stream.
     async fn close(&self) -> starpc::Result<()>;
 }
@@ -138,10 +138,10 @@ impl ResourceServiceResourceAttachStream for ResourceServiceResourceAttachStream
     fn context(&self) -> &starpc::Context {
         self.stream.context()
     }
-    async fn send(&self, msg: &ResourceAttachPacket) -> starpc::Result<()> {
+    async fn send(&self, msg: &ResourceAttachRequest) -> starpc::Result<()> {
         self.stream.msg_send(msg).await
     }
-    async fn recv(&self) -> starpc::Result<ResourceAttachPacket> {
+    async fn recv(&self) -> starpc::Result<ResourceAttachResponse> {
         self.stream.msg_recv().await
     }
     async fn close(&self) -> starpc::Result<()> {

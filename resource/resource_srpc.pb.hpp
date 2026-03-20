@@ -204,11 +204,11 @@ class SRPCResourceService_ResourceAttachClient {
  public:
   explicit SRPCResourceService_ResourceAttachClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
 
-  starpc::Error Send(const resource::ResourceAttachPacket& msg) {
+  starpc::Error Send(const resource::ResourceAttachRequest& msg) {
     return strm_->MsgSend(msg);
   }
 
-  starpc::Error Recv(resource::ResourceAttachPacket* msg) {
+  starpc::Error Recv(resource::ResourceAttachResponse* msg) {
     return strm_->MsgRecv(msg);
   }
 
@@ -224,17 +224,17 @@ class SRPCResourceService_ResourceAttachStream {
  public:
   explicit SRPCResourceService_ResourceAttachStream(starpc::Stream* strm) : strm_(strm) {}
 
-  starpc::Error Send(const resource::ResourceAttachPacket& msg) {
+  starpc::Error Send(const resource::ResourceAttachResponse& msg) {
     return strm_->MsgSend(msg);
   }
 
-  starpc::Error SendAndClose(const resource::ResourceAttachPacket& msg) {
+  starpc::Error SendAndClose(const resource::ResourceAttachResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();
   }
 
-  starpc::Error Recv(resource::ResourceAttachPacket* msg) {
+  starpc::Error Recv(resource::ResourceAttachRequest* msg) {
     return strm_->MsgRecv(msg);
   }
 

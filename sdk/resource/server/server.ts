@@ -11,7 +11,8 @@ import type { RpcStreamPacket } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import type {
-  ResourceAttachPacket,
+  ResourceAttachRequest,
+  ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
   ResourceRefReleaseRequest,
@@ -173,13 +174,14 @@ class ResourceServer implements ResourceService {
     )
   }
 
-  // ResourceAttach handles a client attaching a resource that
+  // ResourceAttach handles a client attaching resources that
   // server-side RPC handlers can invoke via getAttachedRef(id).
-  // After the Init/Ack handshake, mux_data carries yamux frames.
+  // Session-only Init/Ack, then Add/AddAck per resource.
+  // After Init/Ack, mux_data carries yamux frames for all resources.
   async *ResourceAttach(
-    request: MessageStream<ResourceAttachPacket>,
+    request: MessageStream<ResourceAttachRequest>,
     _abortSignal?: AbortSignal,
-  ): MessageStream<ResourceAttachPacket> {
+  ): MessageStream<ResourceAttachResponse> {
     const packetRx = request[Symbol.asyncIterator]()
 
     // 1. Read Init packet.
@@ -191,9 +193,7 @@ class ResourceServer implements ResourceService {
     if (initBody?.case !== 'init') {
       throw new Error('expected init packet')
     }
-    const init = initBody.value
-    const clientHandleId = init.clientHandleId ?? 0
-    const label = init.label ?? ''
+    const clientHandleId = initBody.value.clientHandleId ?? 0
 
     // 2. Find owning client.
     const client = this.clients.get(clientHandleId)
@@ -207,38 +207,70 @@ class ResourceServer implements ResourceService {
       return
     }
 
-    // 3. Allocate attached resource ID.
-    const attachedId = this.nextResourceID()
+    // 3. Send session Ack.
+    const outgoing = pushable<ResourceAttachResponse>({ objectMode: true })
+    outgoing.push({
+      body: {
+        case: 'ack' as const,
+        value: {},
+      },
+    })
 
     // 4. Create yamux StreamConn.
     // SERVER side is yamux client (outbound) -- opens sub-streams
-    // to invoke the client's mux.
+    // to invoke the client's muxes via routed SRPC.
     const attachController = new AbortController()
     const conn = new StreamConn(undefined, {
       direction: 'outbound',
       yamuxParams: { enableKeepAlive: false },
     })
-    const srpcClient = conn.buildClient()
+    const baseClient = conn.buildClient()
 
-    // 5. Register attached resource.
-    client.attachedResources.set(attachedId, {
-      label,
-      client: srpcClient,
-      signal: attachController.signal,
-      controller: attachController,
-    })
+    // Track attached resource IDs for cleanup.
+    const attachedIds: number[] = []
 
-    // 6. Send Ack with the assigned resource ID.
-    const outgoing = pushable<ResourceAttachPacket>({ objectMode: true })
-    outgoing.push({
-      body: {
-        case: 'ack' as const,
-        value: { resourceId: attachedId },
-      },
-    })
+    // 5. onControl handles Add and Detach messages.
+    const onControl = (req: ResourceAttachRequest) => {
+      const body = req.body
+      if (body?.case === 'add') {
+        const attachId = body.value.attachId ?? 0
+        const label = body.value.label ?? ''
+        const resourceId = this.nextResourceID()
 
-    // 7. Pipe mux_data between the bidi stream and yamux.
-    // Incoming mux_data packets -> extract bytes -> feed to conn.sink.
+        // Create routed client for this resource.
+        const resClient = createRoutedClient(baseClient, resourceId)
+
+        client.attachedResources.set(resourceId, {
+          label,
+          client: resClient,
+          signal: attachController.signal,
+          controller: attachController,
+        })
+        attachedIds.push(resourceId)
+
+        outgoing.push({
+          body: {
+            case: 'addAck' as const,
+            value: { attachId, resourceId },
+          },
+        })
+      } else if (body?.case === 'detach') {
+        const resourceId = body.value.resourceId ?? 0
+        client.attachedResources.delete(resourceId)
+        const idx = attachedIds.indexOf(resourceId)
+        if (idx >= 0) attachedIds.splice(idx, 1)
+
+        outgoing.push({
+          body: {
+            case: 'detachAck' as const,
+            value: { resourceId },
+          },
+        })
+      }
+    }
+
+    // 6. Pipe mux_data between the bidi stream and yamux.
+    // Incoming packets -> dispatch control or extract mux_data bytes.
     const incomingBytes = (async function* () {
       for (;;) {
         const result = await packetRx.next()
@@ -246,6 +278,8 @@ class ResourceServer implements ResourceService {
         const body = result.value?.body
         if (body?.case === 'muxData') {
           yield body.value
+        } else if (body?.case === 'add' || body?.case === 'detach') {
+          onControl(result.value)
         }
       }
     })()
@@ -270,14 +304,16 @@ class ResourceServer implements ResourceService {
       outgoing.end(err)
     })
 
-    // 8. Yield outgoing packets and clean up.
+    // 7. Yield outgoing packets and clean up.
     try {
       yield* outgoing
       await pipePromise
     } finally {
       attachController.abort()
       conn.close()
-      client.attachedResources.delete(attachedId)
+      for (const id of attachedIds) {
+        client.attachedResources.delete(id)
+      }
     }
   }
 
@@ -313,6 +349,29 @@ class ResourceServer implements ResourceService {
 
     return {}
   }
+}
+
+// createRoutedClient wraps an SRPC client so all calls are prefixed with
+// a resource ID for routing to the correct attached resource mux.
+function createRoutedClient(
+  inner: ReturnType<StreamConn['buildClient']>,
+  resourceId: number,
+): ReturnType<StreamConn['buildClient']> {
+  const prefix = `${resourceId}/`
+  return {
+    request(service: string, method: string, data: Uint8Array, signal?: AbortSignal) {
+      return inner.request(prefix + service, method, data, signal)
+    },
+    clientStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
+      return inner.clientStreamingRequest(prefix + service, method, data, signal)
+    },
+    serverStreamingRequest(service: string, method: string, data: Uint8Array, signal?: AbortSignal) {
+      return inner.serverStreamingRequest(prefix + service, method, data, signal)
+    },
+    bidirectionalStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
+      return inner.bidirectionalStreamingRequest(prefix + service, method, data, signal)
+    },
+  } as ReturnType<StreamConn['buildClient']>
 }
 
 export { ResourceServer, getCurrentResourceClient }

@@ -22,10 +22,12 @@ service ResourceService {
   // This is called when no references remain to a resource.
   rpc ResourceRefRelease(ResourceRefReleaseRequest) returns (ResourceRefReleaseResponse);
 
-  // ResourceAttach allows a client to provide a resource that server-side
-  // RPC handlers can invoke via getAttachedRef(id). After Init/Ack
-  // handshake, mux_data carries yamux frames for a multiplexed SRPC session.
-  rpc ResourceAttach(stream ResourceAttachPacket) returns (stream ResourceAttachPacket);
+  // ResourceAttach allows a client to provide resources that server-side
+  // RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
+  // then resources registered via Add/AddAck. After Init/Ack, mux_data
+  // carries yamux frames for all attached resources.
+  rpc ResourceAttach(stream ResourceAttachRequest)
+    returns (stream ResourceAttachResponse);
 }
 
 // ResourceClientRequest is the request body for ResourceClient.
@@ -72,31 +74,74 @@ message ResourceRefReleaseRequest {
 // ResourceRefReleaseResponse is the response for ResourceRefRelease.
 message ResourceRefReleaseResponse {}
 
-// ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
-message ResourceAttachPacket {
-  // Body is the body of the packet.
+// ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
+message ResourceAttachRequest {
+  // Body is the body of the request.
   oneof body {
-    // Init is the initialization message sent by the client.
+    // Init is the session initialization message.
     ResourceAttachInit init = 1;
-    // Ack is the acknowledgment sent by the server.
-    ResourceAttachAck ack = 2;
+    // Add registers a new resource on the session.
+    ResourceAttachAdd add = 2;
+    // Detach withdraws a previously added resource.
+    ResourceAttachDetach detach = 3;
     // MuxData carries yamux multiplexer frames after handshake.
-    bytes mux_data = 3;
+    bytes mux_data = 4;
   }
 }
 
-// ResourceAttachInit is sent by the client to initiate an attach.
+// ResourceAttachResponse is a server-to-client message on the ResourceAttach stream.
+message ResourceAttachResponse {
+  // Body is the body of the response.
+  oneof body {
+    // Ack is the session acknowledgment.
+    ResourceAttachAck ack = 1;
+    // AddAck confirms a resource was added.
+    ResourceAttachAddAck add_ack = 2;
+    // DetachAck confirms a resource was detached.
+    ResourceAttachDetachAck detach_ack = 3;
+    // MuxData carries yamux multiplexer frames after handshake.
+    bytes mux_data = 4;
+  }
+}
+
+// ResourceAttachInit is sent by the client to initiate a session.
 message ResourceAttachInit {
   // ClientHandleId identifies the owning client session.
   uint32 client_handle_id = 1;
+}
+
+// ResourceAttachAck is sent by the server to confirm the session.
+message ResourceAttachAck {
+  // Error is set if the session was rejected.
+  string error = 1;
+}
+
+// ResourceAttachAdd is sent by the client to register a resource.
+message ResourceAttachAdd {
+  // AttachId is a client-chosen correlation ID.
+  uint32 attach_id = 1;
   // Label is an informational description of the attached resource.
   string label = 2;
 }
 
-// ResourceAttachAck is sent by the server to confirm the attach.
-message ResourceAttachAck {
-  // Error is set if the attach was rejected.
-  string error = 1;
+// ResourceAttachAddAck is sent by the server to confirm a resource was added.
+message ResourceAttachAddAck {
+  // AttachId echoes the client-chosen correlation ID.
+  uint32 attach_id = 1;
+  // Error is set if the add was rejected.
+  string error = 2;
   // ResourceId is the server-assigned ID for the attached resource.
-  uint32 resource_id = 2;
+  uint32 resource_id = 3;
+}
+
+// ResourceAttachDetach is sent by the client to withdraw a resource.
+message ResourceAttachDetach {
+  // ResourceId is the server-assigned ID to detach.
+  uint32 resource_id = 1;
+}
+
+// ResourceAttachDetachAck is sent by the server to confirm a resource was detached.
+message ResourceAttachDetachAck {
+  // ResourceId confirms which resource was detached.
+  uint32 resource_id = 1;
 }

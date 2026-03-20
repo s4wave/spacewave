@@ -1,6 +1,9 @@
 import { createAbortController, retryWithAbort } from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
-import type { ResourceAttachPacket } from './resource.pb.js'
+import type {
+  ResourceAttachRequest,
+  ResourceAttachResponse,
+} from './resource.pb.js'
 import {
   buildRpcStreamOpenStream,
   Client as SRPCClient,
@@ -10,6 +13,7 @@ import {
 } from 'starpc'
 import type { LookupMethod } from 'starpc'
 import { pushable } from 'it-pushable'
+import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 
 // ReleasedResourceClient is returned from the client getter when a resource has been released.
@@ -233,6 +237,14 @@ function createResourceRef(
   return ref
 }
 
+// AttachSession manages the single ResourceAttach stream + yamux session.
+interface AttachSession {
+  outgoing: Pushable<ResourceAttachRequest>
+  attachIdCtr: number
+  muxes: Map<number, LookupMethod>
+  pending: Map<number, (resourceId: number) => void>
+}
+
 /**
  * Manages connections to remote resources via RPC.
  * Handles resource lifecycle, reference counting, and cleanup.
@@ -252,6 +264,7 @@ export class Client {
   private disposed = false
   private _connectionGeneration = 0
   private _reconnectResolve: ((state: ClientInitState) => void) | null = null
+  private attachSession: AttachSession | null = null
 
   constructor(
     public readonly service: ResourceService,
@@ -308,17 +321,62 @@ export class Client {
 
   // attachResource provides a mux that server-side handlers can
   // invoke. The mux is served over a yamux session inside the
-  // ResourceAttach bidi stream. Returns the server-assigned
-  // resource ID and a cleanup function.
+  // ResourceAttach bidi stream. Multiple resources share one session.
+  // Returns the server-assigned resource ID and a cleanup function.
   async attachResource(
     label: string,
     mux: LookupMethod,
     signal?: AbortSignal,
   ): Promise<{ resourceId: number; cleanup: () => void }> {
+    const sess = await this.ensureAttachSession(signal)
+
+    // Allocate attach correlation ID.
+    const attachId = ++sess.attachIdCtr
+    const resultPromise = new Promise<number>((resolve, reject) => {
+      sess.pending.set(attachId, resolve)
+      signal?.addEventListener('abort', () => {
+        sess.pending.delete(attachId)
+        reject(new Error('aborted'))
+      }, { once: true })
+    })
+
+    // Send Add.
+    sess.outgoing.push({
+      body: {
+        case: 'add' as const,
+        value: { attachId, label },
+      },
+    })
+
+    // Wait for AddAck.
+    const resourceId = await resultPromise
+
+    // Register the mux for routed dispatch.
+    sess.muxes.set(resourceId, mux)
+
+    const cleanup = () => {
+      sess.muxes.delete(resourceId)
+      // Send Detach (best-effort).
+      sess.outgoing.push({
+        body: {
+          case: 'detach' as const,
+          value: { resourceId },
+        },
+      })
+    }
+
+    return { resourceId, cleanup }
+  }
+
+  // ensureAttachSession opens the ResourceAttach bidi stream if needed.
+  private async ensureAttachSession(
+    signal?: AbortSignal,
+  ): Promise<AttachSession> {
+    if (this.attachSession) return this.attachSession
     const state = await this.ensureInitialized()
 
-    // Create outgoing packet pushable for the bidi stream.
-    const outgoing = pushable<ResourceAttachPacket>({ objectMode: true })
+    // Create outgoing packet pushable.
+    const outgoing = pushable<ResourceAttachRequest>({ objectMode: true })
 
     // Open the ResourceAttach bidi stream.
     const incoming = this.service.ResourceAttach(
@@ -329,18 +387,15 @@ export class Client {
     )
     const incomingIt = incoming[Symbol.asyncIterator]()
 
-    // Send Init with the client handle ID.
+    // Send session-only Init.
     outgoing.push({
       body: {
         case: 'init' as const,
-        value: {
-          clientHandleId: state.clientHandleId,
-          label,
-        },
+        value: { clientHandleId: state.clientHandleId },
       },
     })
 
-    // Read Ack.
+    // Read session Ack.
     const ackResult = await incomingIt.next()
     if (ackResult.done) {
       outgoing.end()
@@ -355,19 +410,34 @@ export class Client {
       outgoing.end()
       throw new Error(ackBody.value.error)
     }
-    const resourceId = ackBody.value.resourceId ?? 0
+
+    const sess: AttachSession = {
+      outgoing,
+      attachIdCtr: 0,
+      muxes: new Map(),
+      pending: new Map(),
+    }
 
     // Create yamux StreamConn.
     // CLIENT side is yamux server (inbound) -- accepts streams
-    // and routes to the provided mux.
-    const server = new Server(mux)
+    // and routes to the correct mux via service ID prefix routing.
+    const routedLookup: LookupMethod = async (serviceId: string, methodId: string) => {
+      const slashIdx = serviceId.indexOf('/')
+      if (slashIdx < 0) return null
+      const resourceId = parseInt(serviceId.substring(0, slashIdx), 10)
+      if (isNaN(resourceId)) return null
+      const mux = sess.muxes.get(resourceId)
+      if (!mux) return null
+      return mux(serviceId.substring(slashIdx + 1), methodId)
+    }
+    const server = new Server(routedLookup)
     const conn = new StreamConn(server, {
       direction: 'inbound',
       yamuxParams: { enableKeepAlive: false },
     })
 
     // Pipe mux_data between ResourceAttach stream and yamux.
-    // Incoming mux_data from server -> extract bytes -> feed to conn.sink.
+    // Incoming packets -> dispatch control or extract mux_data bytes.
     const incomingBytes = (async function* () {
       for (;;) {
         const result = await incomingIt.next()
@@ -375,12 +445,20 @@ export class Client {
         const body = result.value?.body
         if (body?.case === 'muxData') {
           yield body.value
+        } else if (body?.case === 'addAck') {
+          const addAck = body.value
+          if (!addAck.error) {
+            const resolve = sess.pending.get(addAck.attachId ?? 0)
+            sess.pending.delete(addAck.attachId ?? 0)
+            resolve?.(addAck.resourceId ?? 0)
+          }
         }
+        // detachAck: no action needed.
       }
     })()
 
-    // conn.source (yamux output) -> wrap as mux_data -> push to outgoing.
-    const pipePromise = pipe(
+    // conn.source -> wrap as mux_data -> push to outgoing.
+    pipe(
       incomingBytes,
       conn,
       combineUint8ArrayListTransform(),
@@ -399,16 +477,8 @@ export class Client {
       outgoing.end()
     })
 
-    const cleanup = () => {
-      conn.close()
-      outgoing.end()
-      pipePromise.catch(() => {})
-    }
-
-    // Clean up when the signal aborts.
-    signal?.addEventListener('abort', cleanup, { once: true })
-
-    return { resourceId, cleanup }
+    this.attachSession = sess
+    return sess
   }
 
   /**

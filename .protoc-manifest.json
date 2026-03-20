@@ -492,7 +492,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/resource": {
-      "hash": "d7428e4992adea5fb5403031fc90b27bbbdde6e781b3312bb374bb629dc6a8cf",
+      "hash": "f955460c2df1c8f49b5df3b2c3f1d10fd795691b23c2e4543585e8cf1c5d29d8",
       "generatedFiles": [
         "resource/resource.pb.cc",
         "resource/resource.pb.go",

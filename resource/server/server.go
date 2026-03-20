@@ -253,9 +253,9 @@ func (s *ResourceServer) ResourceRefRelease(
 	return &resource.ResourceRefReleaseResponse{}, nil
 }
 
-// ResourceAttach allows a client to provide a resource that server-side
-// RPC handlers can invoke. After Init/Ack handshake, mux_data carries
-// yamux frames for a multiplexed SRPC session.
+// ResourceAttach allows a client to provide resources that server-side
+// RPC handlers can invoke via getAttachedRef(id). One stream = one yamux
+// session = N resources. Session-only Init/Ack, then Add/AddAck per resource.
 func (s *ResourceServer) ResourceAttach(
 	strm resource.SRPCResourceService_ResourceAttachStream,
 ) error {
@@ -269,7 +269,6 @@ func (s *ResourceServer) ResourceAttach(
 		return errors.New("expected init packet")
 	}
 	clientHandleID := init.GetClientHandleId()
-	label := init.GetLabel()
 
 	// Find owning client.
 	var client *RemoteResourceClient
@@ -277,31 +276,109 @@ func (s *ResourceServer) ResourceAttach(
 		client = s.clients[clientHandleID]
 	})
 	if client == nil {
-		_ = strm.Send(&resource.ResourceAttachPacket{
-			Body: &resource.ResourceAttachPacket_Ack{
+		_ = strm.Send(&resource.ResourceAttachResponse{
+			Body: &resource.ResourceAttachResponse_Ack{
 				Ack: &resource.ResourceAttachAck{Error: "client not found"},
 			},
 		})
 		return resource.ErrResourceOrClientReleased
 	}
 
-	// Allocate attached resource ID.
-	var attachedID uint32
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.resourceIDCtr++
-		attachedID = s.resourceIDCtr
-	})
+	// Send session Ack.
+	if err := strm.Send(&resource.ResourceAttachResponse{
+		Body: &resource.ResourceAttachResponse_Ack{
+			Ack: &resource.ResourceAttachAck{},
+		},
+	}); err != nil {
+		return err
+	}
 
 	// Create attach context derived from the stream.
 	ctx := strm.Context()
 	attachCtx, attachCancel := context.WithCancel(ctx)
 	defer attachCancel()
 
+	// Track attached resources for cleanup.
+	var attachedIDs []uint32
+	defer func() {
+		for _, id := range attachedIDs {
+			client.RemoveAttachedResource(id)
+		}
+	}()
+
+	// srpcClient is the shared SRPC client over the yamux session.
+	// Assigned after mc is created. onControl uses it to create routed
+	// clients per resource.
+	var srpcClient srpc.Client
+
+	// onControl handles Add and Detach messages inline from the recv loop.
+	onControl := func(req *resource.ResourceAttachRequest) {
+		switch body := req.GetBody().(type) {
+		case *resource.ResourceAttachRequest_Add:
+			add := body.Add
+			attachID := add.GetAttachId()
+			label := add.GetLabel()
+
+			// Allocate resource ID.
+			var resourceID uint32
+			s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				s.resourceIDCtr++
+				resourceID = s.resourceIDCtr
+			})
+
+			// Create srpc.Client for this resource via routed SRPC over yamux.
+			resClient := resource.NewRoutedClient(srpcClient, resourceID)
+
+			// Register on client.
+			addErr := client.AddAttachedResource(resourceID, label, attachCancel, resClient)
+			if addErr != nil {
+				_ = strm.Send(&resource.ResourceAttachResponse{
+					Body: &resource.ResourceAttachResponse_AddAck{
+						AddAck: &resource.ResourceAttachAddAck{
+							AttachId: attachID,
+							Error:    addErr.Error(),
+						},
+					},
+				})
+				return
+			}
+			attachedIDs = append(attachedIDs, resourceID)
+
+			_ = strm.Send(&resource.ResourceAttachResponse{
+				Body: &resource.ResourceAttachResponse_AddAck{
+					AddAck: &resource.ResourceAttachAddAck{
+						AttachId:   attachID,
+						ResourceId: resourceID,
+					},
+				},
+			})
+
+		case *resource.ResourceAttachRequest_Detach:
+			resourceID := body.Detach.GetResourceId()
+			client.RemoveAttachedResource(resourceID)
+			// Remove from our cleanup list.
+			for i, id := range attachedIDs {
+				if id == resourceID {
+					attachedIDs = append(attachedIDs[:i], attachedIDs[i+1:]...)
+					break
+				}
+			}
+			_ = strm.Send(&resource.ResourceAttachResponse{
+				Body: &resource.ResourceAttachResponse_DetachAck{
+					DetachAck: &resource.ResourceAttachDetachAck{
+						ResourceId: resourceID,
+					},
+				},
+			})
+		}
+	}
+
 	// Build ReadWriteCloser adapter bridging mux_data and yamux.
+	// The recv loop runs inside Read(), dispatching control messages via onControl.
 	rwc := resource.NewAttachMuxDataRwc(
 		func(data []byte) error {
-			return strm.Send(&resource.ResourceAttachPacket{
-				Body: &resource.ResourceAttachPacket_MuxData{MuxData: data},
+			return strm.Send(&resource.ResourceAttachResponse{
+				Body: &resource.ResourceAttachResponse_MuxData{MuxData: data},
 			})
 		},
 		func() ([]byte, error) {
@@ -309,32 +386,24 @@ func (s *ResourceServer) ResourceAttach(
 			if recvErr != nil {
 				return nil, recvErr
 			}
-			return pkt.GetMuxData(), nil
+			switch pkt.GetBody().(type) {
+			case *resource.ResourceAttachRequest_Add, *resource.ResourceAttachRequest_Detach:
+				onControl(pkt)
+				return nil, nil
+			case *resource.ResourceAttachRequest_MuxData:
+				return pkt.GetMuxData(), nil
+			}
+			return nil, nil
 		},
 	)
 
 	// SERVER side is yamux client (outbound=true): opens sub-streams to
-	// invoke the client's mux.
-	mc, err := srpc.NewMuxedConnWithRwc(attachCtx, rwc, true, nil)
-	if err != nil {
-		return err
+	// invoke the client's muxes via routed SRPC.
+	mc, mcErr := srpc.NewMuxedConnWithRwc(attachCtx, rwc, true, nil)
+	if mcErr != nil {
+		return mcErr
 	}
-	srpcClient := srpc.NewClientWithMuxedConn(mc)
-
-	// Register attached resource on the client.
-	if err := client.AddAttachedResource(attachedID, label, attachCancel, srpcClient); err != nil {
-		return err
-	}
-	defer client.RemoveAttachedResource(attachedID)
-
-	// Send Ack with the assigned resource ID.
-	if err := strm.Send(&resource.ResourceAttachPacket{
-		Body: &resource.ResourceAttachPacket_Ack{
-			Ack: &resource.ResourceAttachAck{ResourceId: attachedID},
-		},
-	}); err != nil {
-		return err
-	}
+	srpcClient = srpc.NewClientWithMuxedConn(mc)
 
 	// Block until the attach context is canceled (stream closes or client disconnects).
 	<-attachCtx.Done()

@@ -202,7 +202,7 @@ export const ResourceRefReleaseResponse: MessageType<ResourceRefReleaseResponse>
   })
 
 /**
- * ResourceAttachInit is sent by the client to initiate an attach.
+ * ResourceAttachInit is sent by the client to initiate a session.
  *
  * @generated from message resource.ResourceAttachInit
  */
@@ -213,12 +213,6 @@ export interface ResourceAttachInit {
    * @generated from field: uint32 client_handle_id = 1;
    */
   clientHandleId?: number
-  /**
-   * Label is an informational description of the attached resource.
-   *
-   * @generated from field: string label = 2;
-   */
-  label?: string
 }
 
 // ResourceAttachInit contains the message type declaration for ResourceAttachInit.
@@ -227,52 +221,75 @@ export const ResourceAttachInit: MessageType<ResourceAttachInit> =
     typeName: 'resource.ResourceAttachInit',
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachAdd is sent by the client to register a resource.
+ *
+ * @generated from message resource.ResourceAttachAdd
+ */
+export interface ResourceAttachAdd {
+  /**
+   * AttachId is a client-chosen correlation ID.
+   *
+   * @generated from field: uint32 attach_id = 1;
+   */
+  attachId?: number
+  /**
+   * Label is an informational description of the attached resource.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+}
+
+// ResourceAttachAdd contains the message type declaration for ResourceAttachAdd.
+export const ResourceAttachAdd: MessageType<ResourceAttachAdd> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachAdd',
+    fields: [
+      { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * ResourceAttachAck is sent by the server to confirm the attach.
+ * ResourceAttachDetach is sent by the client to withdraw a resource.
  *
- * @generated from message resource.ResourceAttachAck
+ * @generated from message resource.ResourceAttachDetach
  */
-export interface ResourceAttachAck {
+export interface ResourceAttachDetach {
   /**
-   * Error is set if the attach was rejected.
+   * ResourceId is the server-assigned ID to detach.
    *
-   * @generated from field: string error = 1;
-   */
-  error?: string
-  /**
-   * ResourceId is the server-assigned ID for the attached resource.
-   *
-   * @generated from field: uint32 resource_id = 2;
+   * @generated from field: uint32 resource_id = 1;
    */
   resourceId?: number
 }
 
-// ResourceAttachAck contains the message type declaration for ResourceAttachAck.
-export const ResourceAttachAck: MessageType<ResourceAttachAck> =
+// ResourceAttachDetach contains the message type declaration for ResourceAttachDetach.
+export const ResourceAttachDetach: MessageType<ResourceAttachDetach> =
   createMessageType({
-    typeName: 'resource.ResourceAttachAck',
+    typeName: 'resource.ResourceAttachDetach',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
+ * ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
  *
- * @generated from message resource.ResourceAttachPacket
+ * @generated from message resource.ResourceAttachRequest
  */
-export interface ResourceAttachPacket {
+export interface ResourceAttachRequest {
   /**
-   * Body is the body of the packet.
+   * Body is the body of the request.
    *
-   * @generated from oneof resource.ResourceAttachPacket.body
+   * @generated from oneof resource.ResourceAttachRequest.body
    */
   body?:
     | {
@@ -281,7 +298,7 @@ export interface ResourceAttachPacket {
       }
     | {
         /**
-         * Init is the initialization message sent by the client.
+         * Init is the session initialization message.
          *
          * @generated from field: resource.ResourceAttachInit init = 1;
          */
@@ -290,28 +307,37 @@ export interface ResourceAttachPacket {
       }
     | {
         /**
-         * Ack is the acknowledgment sent by the server.
+         * Add registers a new resource on the session.
          *
-         * @generated from field: resource.ResourceAttachAck ack = 2;
+         * @generated from field: resource.ResourceAttachAdd add = 2;
          */
-        value: ResourceAttachAck
-        case: 'ack'
+        value: ResourceAttachAdd
+        case: 'add'
+      }
+    | {
+        /**
+         * Detach withdraws a previously added resource.
+         *
+         * @generated from field: resource.ResourceAttachDetach detach = 3;
+         */
+        value: ResourceAttachDetach
+        case: 'detach'
       }
     | {
         /**
          * MuxData carries yamux multiplexer frames after handshake.
          *
-         * @generated from field: bytes mux_data = 3;
+         * @generated from field: bytes mux_data = 4;
          */
         value: Uint8Array
         case: 'muxData'
       }
 }
 
-// ResourceAttachPacket contains the message type declaration for ResourceAttachPacket.
-export const ResourceAttachPacket: MessageType<ResourceAttachPacket> =
+// ResourceAttachRequest contains the message type declaration for ResourceAttachRequest.
+export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
   createMessageType({
-    typeName: 'resource.ResourceAttachPacket',
+    typeName: 'resource.ResourceAttachRequest',
     fields: [
       {
         no: 1,
@@ -322,13 +348,197 @@ export const ResourceAttachPacket: MessageType<ResourceAttachPacket> =
       },
       {
         no: 2,
+        name: 'add',
+        kind: 'message',
+        T: () => ResourceAttachAdd,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'detach',
+        kind: 'message',
+        T: () => ResourceAttachDetach,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'mux_data',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        oneof: 'body',
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachAck is sent by the server to confirm the session.
+ *
+ * @generated from message resource.ResourceAttachAck
+ */
+export interface ResourceAttachAck {
+  /**
+   * Error is set if the session was rejected.
+   *
+   * @generated from field: string error = 1;
+   */
+  error?: string
+}
+
+// ResourceAttachAck contains the message type declaration for ResourceAttachAck.
+export const ResourceAttachAck: MessageType<ResourceAttachAck> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachAck',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachAddAck is sent by the server to confirm a resource was added.
+ *
+ * @generated from message resource.ResourceAttachAddAck
+ */
+export interface ResourceAttachAddAck {
+  /**
+   * AttachId echoes the client-chosen correlation ID.
+   *
+   * @generated from field: uint32 attach_id = 1;
+   */
+  attachId?: number
+  /**
+   * Error is set if the add was rejected.
+   *
+   * @generated from field: string error = 2;
+   */
+  error?: string
+  /**
+   * ResourceId is the server-assigned ID for the attached resource.
+   *
+   * @generated from field: uint32 resource_id = 3;
+   */
+  resourceId?: number
+}
+
+// ResourceAttachAddAck contains the message type declaration for ResourceAttachAddAck.
+export const ResourceAttachAddAck: MessageType<ResourceAttachAddAck> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachAddAck',
+    fields: [
+      { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachDetachAck is sent by the server to confirm a resource was detached.
+ *
+ * @generated from message resource.ResourceAttachDetachAck
+ */
+export interface ResourceAttachDetachAck {
+  /**
+   * ResourceId confirms which resource was detached.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+// ResourceAttachDetachAck contains the message type declaration for ResourceAttachDetachAck.
+export const ResourceAttachDetachAck: MessageType<ResourceAttachDetachAck> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachDetachAck',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachResponse is a server-to-client message on the ResourceAttach stream.
+ *
+ * @generated from message resource.ResourceAttachResponse
+ */
+export interface ResourceAttachResponse {
+  /**
+   * Body is the body of the response.
+   *
+   * @generated from oneof resource.ResourceAttachResponse.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Ack is the session acknowledgment.
+         *
+         * @generated from field: resource.ResourceAttachAck ack = 1;
+         */
+        value: ResourceAttachAck
+        case: 'ack'
+      }
+    | {
+        /**
+         * AddAck confirms a resource was added.
+         *
+         * @generated from field: resource.ResourceAttachAddAck add_ack = 2;
+         */
+        value: ResourceAttachAddAck
+        case: 'addAck'
+      }
+    | {
+        /**
+         * DetachAck confirms a resource was detached.
+         *
+         * @generated from field: resource.ResourceAttachDetachAck detach_ack = 3;
+         */
+        value: ResourceAttachDetachAck
+        case: 'detachAck'
+      }
+    | {
+        /**
+         * MuxData carries yamux multiplexer frames after handshake.
+         *
+         * @generated from field: bytes mux_data = 4;
+         */
+        value: Uint8Array
+        case: 'muxData'
+      }
+}
+
+// ResourceAttachResponse contains the message type declaration for ResourceAttachResponse.
+export const ResourceAttachResponse: MessageType<ResourceAttachResponse> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachResponse',
+    fields: [
+      {
+        no: 1,
         name: 'ack',
         kind: 'message',
         T: () => ResourceAttachAck,
         oneof: 'body',
       },
       {
+        no: 2,
+        name: 'add_ack',
+        kind: 'message',
+        T: () => ResourceAttachAddAck,
+        oneof: 'body',
+      },
+      {
         no: 3,
+        name: 'detach_ack',
+        kind: 'message',
+        T: () => ResourceAttachDetachAck,
+        oneof: 'body',
+      },
+      {
+        no: 4,
         name: 'mux_data',
         kind: 'scalar',
         T: ScalarType.BYTES,

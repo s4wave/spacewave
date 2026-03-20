@@ -6,7 +6,8 @@ import { ResourceServer, getCurrentResourceClient } from './server.js'
 import { constructChildResource } from './construct.js'
 import { newResourceMux } from './mux.js'
 import type {
-  ResourceAttachPacket,
+  ResourceAttachRequest,
+  ResourceAttachResponse,
   ResourceClientResponse,
 } from '../resource.pb.js'
 
@@ -620,15 +621,15 @@ describe('integration: full resource lifecycle', () => {
   })
 })
 
-// createControllableStream builds an async iterable of ResourceAttachPacket
+// createControllableStream builds an async iterable of ResourceAttachRequest
 // where packets can be pushed imperatively and the stream ended on demand.
 function createControllableStream() {
-  let resolve: ((value: IteratorResult<ResourceAttachPacket>) => void) | null =
+  let resolve: ((value: IteratorResult<ResourceAttachRequest>) => void) | null =
     null
-  const queue: ResourceAttachPacket[] = []
+  const queue: ResourceAttachRequest[] = []
   let done = false
 
-  const push = (pkt: ResourceAttachPacket) => {
+  const push = (pkt: ResourceAttachRequest) => {
     if (resolve) {
       const r = resolve
       resolve = null
@@ -647,17 +648,17 @@ function createControllableStream() {
     }
   }
 
-  const iterable: AsyncIterable<ResourceAttachPacket> = {
+  const iterable: AsyncIterable<ResourceAttachRequest> = {
     [Symbol.asyncIterator]() {
       return {
-        next(): Promise<IteratorResult<ResourceAttachPacket>> {
+        next(): Promise<IteratorResult<ResourceAttachRequest>> {
           if (queue.length > 0) {
             return Promise.resolve({ value: queue.shift()!, done: false })
           }
           if (done) {
             return Promise.resolve({ value: undefined as never, done: true })
           }
-          return new Promise<IteratorResult<ResourceAttachPacket>>((r) => {
+          return new Promise<IteratorResult<ResourceAttachRequest>>((r) => {
             resolve = r
           })
         },
@@ -686,9 +687,29 @@ async function setupClientSession(server: ResourceServer) {
   return { clientController, clientIter, clientHandleId, client }
 }
 
+// sendAddAndGetResourceId pushes an Add message and reads the addAck,
+// returning the server-assigned resourceId.
+async function sendAddAndGetResourceId(
+  stream: ReturnType<typeof createControllableStream>,
+  attachIter: AsyncIterator<ResourceAttachResponse>,
+  label: string,
+): Promise<number> {
+  stream.push({
+    body: {
+      case: 'add' as const,
+      value: { attachId: 1, label },
+    },
+  })
+  const { value: addAckPkt } = await attachIter.next()
+  expect(addAckPkt.body?.case).toBe('addAck')
+  return addAckPkt.body?.case === 'addAck'
+    ? (addAckPkt.body.value.resourceId ?? 0)
+    : 0
+}
+
 describe('ResourceAttach handler', () => {
   describe('Init/Ack handshake', () => {
-    it('sends ack with resourceId after valid init', async () => {
+    it('sends session ack after valid init', async () => {
       const server = new ResourceServer(createMux())
       const { clientController, clientIter, clientHandleId } =
         await setupClientSession(server)
@@ -697,7 +718,7 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'test-attach' },
+          value: { clientHandleId },
         },
       })
 
@@ -707,12 +728,44 @@ describe('ResourceAttach handler', () => {
 
       expect(ackPkt.body?.case).toBe('ack')
       if (ackPkt.body?.case === 'ack') {
-        expect(ackPkt.body.value.resourceId).toBeGreaterThan(0)
         expect(ackPkt.body.value.error).toBeFalsy()
       }
 
       stream.end()
       // Drain remaining output so the generator completes.
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('sends addAck with resourceId after add', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await attachIter.next()
+
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'test-attach',
+      )
+      expect(resourceId).toBeGreaterThan(0)
+
+      stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
         // consume
       }
@@ -728,7 +781,7 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId: 9999, label: 'bad' },
+          value: { clientHandleId: 9999 },
         },
       })
       stream.end()
@@ -759,7 +812,7 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'after-release' },
+          value: { clientHandleId },
         },
       })
       stream.end()
@@ -781,7 +834,7 @@ describe('ResourceAttach handler', () => {
       const server = new ResourceServer(createMux())
 
       // Empty iterable: yields nothing.
-      const empty: AsyncIterable<ResourceAttachPacket> = {
+      const empty: AsyncIterable<ResourceAttachRequest> = {
         [Symbol.asyncIterator]() {
           return {
             next() {
@@ -829,18 +882,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'tracked' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'tracked',
+      )
       expect(resourceId).toBeGreaterThan(0)
       expect(client.attachedResources.has(resourceId)).toBe(true)
 
@@ -861,18 +915,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'my-special-label' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'my-special-label',
+      )
       const attached = client.attachedResources.get(resourceId)!
       expect(attached.label).toBe('my-special-label')
 
@@ -893,18 +948,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'with-client' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'with-client',
+      )
       const attached = client.attachedResources.get(resourceId)!
       expect(attached.client).toBeDefined()
       expect(typeof attached.client.request).toBe('function')
@@ -926,18 +982,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'cleanup-test' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'cleanup-test',
+      )
       expect(client.attachedResources.has(resourceId)).toBe(true)
 
       // End the incoming stream to trigger cleanup.
@@ -963,18 +1020,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'ref-test' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'ref-test',
+      )
       const ref = client.getAttachedRef(resourceId)
       expect(ref.resourceId).toBe(resourceId)
       expect(ref.released).toBe(false)
@@ -1003,18 +1061,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'release-check' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'release-check',
+      )
       const ref = client.getAttachedRef(resourceId)
       expect(ref.released).toBe(false)
 
@@ -1042,18 +1101,19 @@ describe('ResourceAttach handler', () => {
       stream.push({
         body: {
           case: 'init' as const,
-          value: { clientHandleId, label: 'abort-test' },
+          value: { clientHandleId },
         },
       })
 
       const attachGen = server.ResourceAttach(stream.iterable)
       const attachIter = attachGen[Symbol.asyncIterator]()
-      const { value: ackPkt } = await attachIter.next()
+      await attachIter.next()
 
-      const resourceId =
-        ackPkt.body?.case === 'ack'
-          ? (ackPkt.body.value.resourceId ?? 0)
-          : 0
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'abort-test',
+      )
       const attached = client.attachedResources.get(resourceId)!
       expect(attached.signal.aborted).toBe(false)
 
