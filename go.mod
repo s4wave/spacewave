@@ -15,7 +15,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // indirect
-	github.com/aperturerobotics/bldr-saucer v0.3.2-0.20260311225841-73b97f9b4592 // bldr/saucer-streaming
+	github.com/aperturerobotics/bldr-saucer v0.4.3 // bldr/saucer-streaming
 	github.com/aperturerobotics/cli v1.1.0
 	github.com/aperturerobotics/common v0.32.0 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d // master
@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/hydra v0.0.0-20260316122436-fd2115e09339 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
-	github.com/aperturerobotics/saucer v0.0.0-20260311225800-067ba3fcb8ab // indirect; bldr/saucer-streaming; indirect
+	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
 )
 
 require (

@@ -16,8 +16,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 h1:d0WhyJkN
 github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1/go.mod h1:Hcs0czu8ZTqit90wUjdgaKcRlm22+Oe9DcNDN6Sx8Zs=
 github.com/aperturerobotics/bifrost v0.47.2 h1:pfx0AGMHeMNgAoSTpRoLO4VHJF/YqkH3FVRFdiPZxbs=
 github.com/aperturerobotics/bifrost v0.47.2/go.mod h1:1nruG+4JrKuHm8CSG4DR3wdVJQkuy7W0MKvvhqYnKeo=
-github.com/aperturerobotics/bldr-saucer v0.3.2-0.20260311225841-73b97f9b4592 h1:HfwKSAnWr8X0mH55nSTH5V4f0oy2Je5+RPRXv0mSeSw=
-github.com/aperturerobotics/bldr-saucer v0.3.2-0.20260311225841-73b97f9b4592/go.mod h1:cTo0z2KZyRBIaxF42HVcOtGMHK1J/dMiEf8YN0bRyRo=
+github.com/aperturerobotics/bldr-saucer v0.4.3 h1:dcivuDOe+c6EYT1X+7kqIxNHRcj6otGr/Yw9/yNe8I4=
+github.com/aperturerobotics/bldr-saucer v0.4.3/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
 github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 h1:/GtpPF0AtzK06Ymtl6ybMZaWJwbtWr/1lrHlQ7YxFe0=
 github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20/go.mod h1:XSzKC1ihG//p+wH93rfeIfWgBPiuRvKjtKHcXOW905E=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
@@ -56,8 +56,8 @@ github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3B
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
 github.com/aperturerobotics/protobuf-go-lite v0.12.2 h1:ujwTKgpIYAVsv8VljB6PPMY5SI8i8m/NlIHAkkuxQcU=
 github.com/aperturerobotics/protobuf-go-lite v0.12.2/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
-github.com/aperturerobotics/saucer v0.0.0-20260311225800-067ba3fcb8ab h1:bbn9cCPtUKsxH6gmGGecFg5BwUXJj5YBzP79XWGNFeQ=
-github.com/aperturerobotics/saucer v0.0.0-20260311225800-067ba3fcb8ab/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
+github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
+github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.49.0 h1:b3uRx2HF/OMEM47zzPFQumqR42PaOYvQQIhWMUU9RDQ=
 github.com/aperturerobotics/starpc v0.49.0/go.mod h1:WQTxkj5kfUkEfG+ewFC7OggKqgKQkutL76vTTZeXCwM=
 github.com/aperturerobotics/util v1.32.5 h1:5gr2Ft1rYGFA5yrSm3n18Ghu5Al2uyg7DTtljh1wLHI=
@@ -351,8 +351,6 @@ golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.42.0 h1:omrd2nAlyT5ESRdCLYdm3+fMfNFE/+Rf4bDIQImRJeo=
 golang.org/x/sys v0.42.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
-golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 h1:bTLqdHv7xrGlFbvf5/TXNxy/iUwwdkjhqQTJDjW7aj0=
-golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4/go.mod h1:g5NllXBEermZrmR51cJDQxmJUHUOfRAaNyWBM+R+548=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.35.0 h1:JOVx6vVDFokkpaq1AEptVzLTpDe9KGpj5tR4/X+ybL8=
