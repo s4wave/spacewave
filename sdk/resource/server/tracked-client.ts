@@ -1,6 +1,81 @@
-import type { Mux } from 'starpc'
+import type { Mux, Client as SRPCClient } from 'starpc'
+import type { ClientResourceRef, ReleasedResourceClient } from '../client.js'
 import type { ResourceClientResponse } from '../resource.pb.js'
+import type { AttachedResource } from './attached-resource.js'
 import type { TrackedResource } from './tracked-resource.js'
+
+// releasedAttachedClient is a singleton proxy for released attached refs.
+const releasedAttachedClient: ReleasedResourceClient = new Proxy(
+  { released: true } as ReleasedResourceClient,
+  {
+    get(_, prop) {
+      if (prop === 'released') return true
+      if (prop === 'toJSON') return () => ({ released: true })
+      if (
+        typeof prop === 'symbol' ||
+        prop === 'constructor' ||
+        prop === 'prototype' ||
+        prop === '__proto__' ||
+        prop === 'then' ||
+        prop === 'asymmetricMatch' ||
+        prop === 'nodeType' ||
+        prop === 'tagName'
+      ) {
+        return undefined
+      }
+      throw new Error(`Cannot access "${String(prop)}" on released attached resource`)
+    },
+  },
+)
+
+// createAttachedResourceRef builds a ClientResourceRef backed by an
+// attached resource's srpc.Client. The ref does not need
+// ResourceRefRelease -- attached resources are released when the
+// attach stream closes.
+function createAttachedResourceRef(
+  id: number,
+  client: SRPCClient,
+  signal: AbortSignal,
+): ClientResourceRef {
+  let released = false
+
+  const release = () => {
+    released = true
+  }
+
+  const ref: ClientResourceRef = {
+    get resourceId() {
+      return id
+    },
+    get released() {
+      return released || signal.aborted
+    },
+    get client(): SRPCClient | ReleasedResourceClient {
+      if (released || signal.aborted) {
+        return releasedAttachedClient
+      }
+      return client
+    },
+    createRef(newId: number): ClientResourceRef {
+      if (released || signal.aborted) {
+        throw new Error(`Cannot create ref from released attached resource ${id}`)
+      }
+      return createAttachedResourceRef(newId, client, signal)
+    },
+    createResource<T, Args extends unknown[]>(
+      newId: number,
+      ResourceClass: new (ref: ClientResourceRef, ...args: Args) => T,
+      ...args: Args
+    ): T {
+      const childRef = this.createRef(newId)
+      return new ResourceClass(childRef, ...args)
+    },
+    release,
+    [Symbol.dispose]: release,
+  }
+
+  return ref
+}
 
 // RemoteResourceClient tracks a connected client.
 class RemoteResourceClient {
@@ -8,6 +83,7 @@ class RemoteResourceClient {
   readonly controller: AbortController
   released = false
   resources = new Map<number, TrackedResource>()
+  attachedResources = new Map<number, AttachedResource>()
 
   private txQueue: ResourceClientResponse[] = []
   private notifyCallbacks = new Set<() => void>()
@@ -50,6 +126,16 @@ class RemoteResourceClient {
       releaseFn,
     })
     return resourceID
+  }
+
+  // getAttachedRef returns a ClientResourceRef wrapping an
+  // attached resource's srpc.Client.
+  getAttachedRef(id: number): ClientResourceRef {
+    const attached = this.attachedResources.get(id)
+    if (!attached) {
+      throw new Error(`attached resource ${id} not found`)
+    }
+    return createAttachedResourceRef(id, attached.client, attached.signal)
   }
 
   // releaseResource releases a resource server-side and queues

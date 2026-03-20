@@ -1,6 +1,16 @@
 import { createAbortController, retryWithAbort } from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
-import { buildRpcStreamOpenStream, Client as SRPCClient } from 'starpc'
+import type { ResourceAttachPacket } from './resource.pb.js'
+import {
+  buildRpcStreamOpenStream,
+  Client as SRPCClient,
+  Server,
+  StreamConn,
+  combineUint8ArrayListTransform,
+} from 'starpc'
+import type { LookupMethod } from 'starpc'
+import { pushable } from 'it-pushable'
+import { pipe } from 'it-pipe'
 
 // ReleasedResourceClient is returned from the client getter when a resource has been released.
 // It allows DevTools serialization to work without throwing, but throws on actual usage.
@@ -294,6 +304,111 @@ export class Client {
   async accessRootResource(): Promise<ClientResourceRef> {
     const state = await this.ensureInitialized()
     return this.createResourceReference(state.rootResourceId)
+  }
+
+  // attachResource provides a mux that server-side handlers can
+  // invoke. The mux is served over a yamux session inside the
+  // ResourceAttach bidi stream. Returns the server-assigned
+  // resource ID and a cleanup function.
+  async attachResource(
+    label: string,
+    mux: LookupMethod,
+    signal?: AbortSignal,
+  ): Promise<{ resourceId: number; cleanup: () => void }> {
+    const state = await this.ensureInitialized()
+
+    // Create outgoing packet pushable for the bidi stream.
+    const outgoing = pushable<ResourceAttachPacket>({ objectMode: true })
+
+    // Open the ResourceAttach bidi stream.
+    const incoming = this.service.ResourceAttach(
+      (async function* () {
+        yield* outgoing
+      })(),
+      signal,
+    )
+    const incomingIt = incoming[Symbol.asyncIterator]()
+
+    // Send Init with the client handle ID.
+    outgoing.push({
+      body: {
+        case: 'init' as const,
+        value: {
+          clientHandleId: state.clientHandleId,
+          label,
+        },
+      },
+    })
+
+    // Read Ack.
+    const ackResult = await incomingIt.next()
+    if (ackResult.done) {
+      outgoing.end()
+      throw new Error('stream closed before ack')
+    }
+    const ackBody = ackResult.value?.body
+    if (ackBody?.case !== 'ack') {
+      outgoing.end()
+      throw new Error('expected ack packet')
+    }
+    if (ackBody.value.error) {
+      outgoing.end()
+      throw new Error(ackBody.value.error)
+    }
+    const resourceId = ackBody.value.resourceId ?? 0
+
+    // Create yamux StreamConn.
+    // CLIENT side is yamux server (inbound) -- accepts streams
+    // and routes to the provided mux.
+    const server = new Server(mux)
+    const conn = new StreamConn(server, {
+      direction: 'inbound',
+      yamuxParams: { enableKeepAlive: false },
+    })
+
+    // Pipe mux_data between ResourceAttach stream and yamux.
+    // Incoming mux_data from server -> extract bytes -> feed to conn.sink.
+    const incomingBytes = (async function* () {
+      for (;;) {
+        const result = await incomingIt.next()
+        if (result.done) break
+        const body = result.value?.body
+        if (body?.case === 'muxData') {
+          yield body.value
+        }
+      }
+    })()
+
+    // conn.source (yamux output) -> wrap as mux_data -> push to outgoing.
+    const pipePromise = pipe(
+      incomingBytes,
+      conn,
+      combineUint8ArrayListTransform(),
+      async (source: AsyncIterable<Uint8Array>) => {
+        for await (const chunk of source) {
+          outgoing.push({
+            body: {
+              case: 'muxData' as const,
+              value: chunk,
+            },
+          })
+        }
+        outgoing.end()
+      },
+    ).catch(() => {
+      outgoing.end()
+    })
+
+    const cleanup = () => {
+      conn.close()
+      outgoing.end()
+      pipePromise.catch(() => {})
+    }
+
+    // Clean up when the signal aborts.
+    signal?.addEventListener('abort', cleanup, { once: true })
+
+    return { resourceId, cleanup }
   }
 
   /**

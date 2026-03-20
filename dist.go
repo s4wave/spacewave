@@ -47,7 +47,7 @@ import (
 //go:embed sdk/plugin.ts sdk/defer.ts sdk/impl/backend-api.ts
 //go:embed sdk/resource/client.ts sdk/resource/resource.ts sdk/resource/index.ts
 //go:embed sdk/resource/resource.pb.ts sdk/resource/resource_srpc.pb.ts
-//go:embed sdk/resource/server/server.ts sdk/resource/server/tracked-client.ts
+//go:embed sdk/resource/server/server.ts sdk/resource/server/tracked-client.ts sdk/resource/server/attached-resource.ts
 //go:embed sdk/resource/server/tracked-resource.ts sdk/resource/server/construct.ts
 //go:embed sdk/resource/server/mux.ts sdk/resource/server/index.ts
 //go:embed sdk/state/state.ts sdk/state/index.ts

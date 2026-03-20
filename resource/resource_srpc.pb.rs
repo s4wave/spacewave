@@ -32,6 +32,19 @@ pub trait ResourceServiceResourceRpcStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for ResourceService.ResourceAttach.
+#[starpc::async_trait]
+pub trait ResourceServiceResourceAttachStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Sends a message on the stream.
+    async fn send(&self, msg: &ResourceAttachPacket) -> starpc::Result<()>;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<ResourceAttachPacket>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for ResourceService.
 #[starpc::async_trait]
 pub trait ResourceServiceClient: Send + Sync {
@@ -41,6 +54,8 @@ pub trait ResourceServiceClient: Send + Sync {
     async fn resource_rpc(&self) -> starpc::Result<Box<dyn ResourceServiceResourceRpcStream>>;
     /// ResourceRefRelease.
     async fn resource_ref_release(&self, request: &ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse>;
+    /// ResourceAttach.
+    async fn resource_attach(&self) -> starpc::Result<Box<dyn ResourceServiceResourceAttachStream>>;
 }
 
 /// Client implementation for ResourceService.
@@ -70,6 +85,10 @@ impl<C: starpc::Client + 'static> ResourceServiceClient for ResourceServiceClien
     }
     async fn resource_ref_release(&self, request: &ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse> {
         self.client.exec_call("resource.ResourceService", "ResourceRefRelease", request).await
+    }
+    async fn resource_attach(&self) -> starpc::Result<Box<dyn ResourceServiceResourceAttachStream>> {
+        let stream = self.client.new_stream("resource.ResourceService", "ResourceAttach", None).await?;
+        Ok(Box::new(ResourceServiceResourceAttachStreamImpl { stream }))
     }
 }
 
@@ -110,6 +129,26 @@ impl ResourceServiceResourceRpcStream for ResourceServiceResourceRpcStreamImpl {
     }
 }
 
+struct ResourceServiceResourceAttachStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ResourceServiceResourceAttachStream for ResourceServiceResourceAttachStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn send(&self, msg: &ResourceAttachPacket) -> starpc::Result<()> {
+        self.stream.msg_send(msg).await
+    }
+    async fn recv(&self) -> starpc::Result<ResourceAttachPacket> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for ResourceService.
 #[starpc::async_trait]
 pub trait ResourceServiceServer: Send + Sync {
@@ -119,12 +158,15 @@ pub trait ResourceServiceServer: Send + Sync {
     async fn resource_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// ResourceRefRelease.
     async fn resource_ref_release(&self, request: ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse>;
+    /// ResourceAttach.
+    async fn resource_attach(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "ResourceClient",
     "ResourceRpc",
     "ResourceRefRelease",
+    "ResourceAttach",
 ];
 
 /// Handler for ResourceService.
@@ -177,6 +219,9 @@ impl<S: ResourceServiceServer + 'static> starpc::Invoker for ResourceServiceHand
                     }
                     Err(e) => (true, Err(e)),
                 }
+            }
+            "ResourceAttach" => {
+                (true, self.server.resource_attach(stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

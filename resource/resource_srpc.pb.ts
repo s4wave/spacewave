@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import {
+  ResourceAttachPacket,
   ResourceClientRequest,
   ResourceClientResponse,
   ResourceRefReleaseRequest,
@@ -64,6 +65,19 @@ export const ResourceServiceDefinition = {
       O: ResourceRefReleaseResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ResourceAttach allows a client to provide a resource that server-side
+     * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+     * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+     *
+     * @generated from rpc resource.ResourceService.ResourceAttach
+     */
+    ResourceAttach: {
+      name: 'ResourceAttach',
+      I: ResourceAttachPacket,
+      O: ResourceAttachPacket,
+      kind: MethodKind.BiDiStreaming,
+    },
   },
 } as const
 
@@ -108,6 +122,18 @@ export interface ResourceService {
     request: ResourceRefReleaseRequest,
     abortSignal?: AbortSignal,
   ): Promise<ResourceRefReleaseResponse>
+
+  /**
+   * ResourceAttach allows a client to provide a resource that server-side
+   * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+   * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+   *
+   * @generated from rpc resource.ResourceService.ResourceAttach
+   */
+  ResourceAttach(
+    request: MessageStream<ResourceAttachPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ResourceAttachPacket>
 }
 
 export const ResourceServiceServiceName = ResourceServiceDefinition.typeName
@@ -121,6 +147,7 @@ export class ResourceServiceClient implements ResourceService {
     this.ResourceClient = this.ResourceClient.bind(this)
     this.ResourceRpc = this.ResourceRpc.bind(this)
     this.ResourceRefRelease = this.ResourceRefRelease.bind(this)
+    this.ResourceAttach = this.ResourceAttach.bind(this)
   }
   /**
    * ResourceClient starts an instance of a client for the ResourceService,
@@ -182,5 +209,25 @@ export class ResourceServiceClient implements ResourceService {
       abortSignal || undefined,
     )
     return ResourceRefReleaseResponse.fromBinary(result)
+  }
+
+  /**
+   * ResourceAttach allows a client to provide a resource that server-side
+   * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+   * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+   *
+   * @generated from rpc resource.ResourceService.ResourceAttach
+   */
+  ResourceAttach(
+    request: MessageStream<ResourceAttachPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ResourceAttachPacket> {
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceAttach.name,
+      buildEncodeMessageTransform(ResourceAttachPacket)(request),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(ResourceAttachPacket)(result)
   }
 }

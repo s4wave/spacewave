@@ -927,9 +927,9 @@ function pipe(first, ...rest) {
     }
   }
   if (fns.length > 2) {
-    for (let i = 1; i < fns.length - 1; i++) {
-      if (isDuplex(fns[i])) {
-        fns[i] = duplexPipelineFn(fns[i]);
+    for (let i2 = 1; i2 < fns.length - 1; i2++) {
+      if (isDuplex(fns[i2])) {
+        fns[i2] = duplexPipelineFn(fns[i2]);
       }
     }
   }
@@ -1049,8 +1049,8 @@ function varint64read() {
   throw new Error("invalid varint");
 }
 function varint64write(lo, hi, bytes) {
-  for (let i = 0; i < 28; i = i + 7) {
-    const shift = lo >>> i;
+  for (let i2 = 0; i2 < 28; i2 = i2 + 7) {
+    const shift = lo >>> i2;
     const hasNext = !(shift >>> 7 == 0 && hi == 0);
     const byte = (hasNext ? shift | 128 : shift) & 255;
     bytes.push(byte);
@@ -1064,8 +1064,8 @@ function varint64write(lo, hi, bytes) {
   if (!hasMoreBits) {
     return;
   }
-  for (let i = 3; i < 31; i = i + 7) {
-    const shift = hi >>> i;
+  for (let i2 = 3; i2 < 31; i2 = i2 + 7) {
+    const shift = hi >>> i2;
     const hasNext = !(shift >>> 7 == 0);
     const byte = (hasNext ? shift | 128 : shift) & 255;
     bytes.push(byte);
@@ -1157,7 +1157,7 @@ function varint32write(value, bytes) {
     }
     bytes.push(value);
   } else {
-    for (let i = 0; i < 9; i++) {
+    for (let i2 = 0; i2 < 9; i2++) {
       bytes.push(value & 127 | 128);
       value = value >> 7;
     }
@@ -1316,29 +1316,29 @@ var LongType;
   LongType2[LongType2["BIGINT"] = 0] = "BIGINT";
   LongType2[LongType2["STRING"] = 1] = "STRING";
 })(LongType || (LongType = {}));
-function scalarEquals(type, a, b) {
-  if (a === b) {
+function scalarEquals(type, a2, b) {
+  if (a2 === b) {
     return true;
   }
-  if (a == null || b == null) {
-    return a === b;
+  if (a2 == null || b == null) {
+    return a2 === b;
   }
   if (type == ScalarType.BYTES) {
-    if (!(a instanceof Uint8Array) || !(b instanceof Uint8Array)) {
+    if (!(a2 instanceof Uint8Array) || !(b instanceof Uint8Array)) {
       return false;
     }
-    if (a.length !== b.length) {
+    if (a2.length !== b.length) {
       return false;
     }
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
+    for (let i2 = 0; i2 < a2.length; i2++) {
+      if (a2[i2] !== b[i2]) {
         return false;
       }
     }
     return true;
   }
   if (type == ScalarType.DATE) {
-    const dateA = toDate(a, false);
+    const dateA = toDate(a2, false);
     const dateB = toDate(b, false);
     if (dateA == null || dateB == null) {
       return dateA === dateB;
@@ -1351,7 +1351,7 @@ function scalarEquals(type, a, b) {
     case ScalarType.INT64:
     case ScalarType.SFIXED64:
     case ScalarType.SINT64:
-      return a == b;
+      return a2 == b;
   }
   return false;
 }
@@ -1436,9 +1436,9 @@ function localOneofName(protoName) {
 function protoCamelCase(snakeCase) {
   let capNext = false;
   const b = [];
-  for (let i = 0; i < snakeCase.length; i++) {
-    let c = snakeCase.charAt(i);
-    switch (c) {
+  for (let i2 = 0; i2 < snakeCase.length; i2++) {
+    let c2 = snakeCase.charAt(i2);
+    switch (c2) {
       case "_":
         capNext = true;
         break;
@@ -1452,15 +1452,15 @@ function protoCamelCase(snakeCase) {
       case "7":
       case "8":
       case "9":
-        b.push(c);
+        b.push(c2);
         capNext = false;
         break;
       default:
         if (capNext) {
           capNext = false;
-          c = c.toUpperCase();
+          c2 = c2.toUpperCase();
         }
-        b.push(c);
+        b.push(c2);
         break;
     }
   }
@@ -1519,11 +1519,11 @@ var FieldList = class {
    */
   findJsonName(jsonName) {
     if (!this.jsonNames) {
-      const t = {};
-      for (const f of this.list()) {
-        t[f.jsonName] = t[f.name] = f;
+      const t2 = {};
+      for (const f2 of this.list()) {
+        t2[f2.jsonName] = t2[f2.name] = f2;
       }
-      this.jsonNames = t;
+      this.jsonNames = t2;
     }
     return this.jsonNames[jsonName];
   }
@@ -1532,11 +1532,11 @@ var FieldList = class {
    */
   find(fieldNo) {
     if (!this.numbers) {
-      const t = {};
-      for (const f of this.list()) {
-        t[f.no] = f;
+      const t2 = {};
+      for (const f2 of this.list()) {
+        t2[f2.no] = f2;
       }
-      this.numbers = t;
+      this.numbers = t2;
     }
     return this.numbers[fieldNo];
   }
@@ -1554,7 +1554,7 @@ var FieldList = class {
    */
   byNumber() {
     if (!this.numbersAsc) {
-      this.numbersAsc = this.list().concat().sort((a, b) => a.no - b.no);
+      this.numbersAsc = this.list().concat().sort((a2, b) => a2.no - b.no);
     }
     return this.numbersAsc;
   }
@@ -1565,16 +1565,16 @@ var FieldList = class {
   byMember() {
     if (!this.members) {
       this.members = [];
-      const a = this.members;
-      let o;
-      for (const f of this.list()) {
-        if (f.oneof) {
-          if (f.oneof !== o) {
-            o = f.oneof;
-            a.push(o);
+      const a2 = this.members;
+      let o2;
+      for (const f2 of this.list()) {
+        if (f2.oneof) {
+          if (f2.oneof !== o2) {
+            o2 = f2.oneof;
+            a2.push(o2);
           }
         } else {
-          a.push(f);
+          a2.push(f2);
         }
       }
     }
@@ -1612,11 +1612,11 @@ function isFieldSet(field, target) {
   }
 }
 var fieldJsonName = protoCamelCase;
-function resolveMessageType(t) {
-  if (t instanceof Function) {
-    return t();
+function resolveMessageType(t2) {
+  if (t2 instanceof Function) {
+    return t2();
   }
-  return t;
+  return t2;
 }
 var InternalOneofInfo = class {
   kind = "oneof";
@@ -1640,45 +1640,45 @@ var InternalOneofInfo = class {
   findField(localName2) {
     if (!this._lookup) {
       this._lookup = /* @__PURE__ */ Object.create(null);
-      for (let i = 0; i < this.fields.length; i++) {
-        this._lookup[this.fields[i].localName] = this.fields[i];
+      for (let i2 = 0; i2 < this.fields.length; i2++) {
+        this._lookup[this.fields[i2].localName] = this.fields[i2];
       }
     }
     return this._lookup[localName2];
   }
 };
 function normalizeFieldInfos(fieldInfos, packedByDefault) {
-  const r = [];
-  let o;
+  const r2 = [];
+  let o2;
   for (const field of typeof fieldInfos == "function" ? fieldInfos() : fieldInfos) {
-    const f = field;
-    f.localName = localFieldName(field.name, field.oneof !== void 0);
-    f.jsonName = field.jsonName ?? fieldJsonName(field.name);
-    f.repeated = field.repeated ?? false;
+    const f2 = field;
+    f2.localName = localFieldName(field.name, field.oneof !== void 0);
+    f2.jsonName = field.jsonName ?? fieldJsonName(field.name);
+    f2.repeated = field.repeated ?? false;
     if (field.kind == "scalar") {
-      f.L = field.L ?? LongType.BIGINT;
+      f2.L = field.L ?? LongType.BIGINT;
     }
-    f.delimited = field.delimited ?? false;
-    f.req = field.req ?? false;
-    f.opt = field.opt ?? false;
+    f2.delimited = field.delimited ?? false;
+    f2.req = field.req ?? false;
+    f2.opt = field.opt ?? false;
     if (field.packed === void 0) {
       if (packedByDefault) {
-        f.packed = field.kind == "enum" || field.kind == "scalar" && field.T != ScalarType.BYTES && field.T != ScalarType.STRING;
+        f2.packed = field.kind == "enum" || field.kind == "scalar" && field.T != ScalarType.BYTES && field.T != ScalarType.STRING;
       } else {
-        f.packed = false;
+        f2.packed = false;
       }
     }
     if (field.oneof !== void 0) {
       const ooname = typeof field.oneof == "string" ? field.oneof : field.oneof.name;
-      if (!o || o.name != ooname) {
-        o = new InternalOneofInfo(ooname);
+      if (!o2 || o2.name != ooname) {
+        o2 = new InternalOneofInfo(ooname);
       }
-      f.oneof = o;
-      o.addField(f);
+      f2.oneof = o2;
+      o2.addField(f2);
     }
-    r.push(f);
+    r2.push(f2);
   }
-  return r;
+  return r2;
 }
 
 // ../../../node_modules/@aptre/protobuf-es-lite/dist/enum.js
@@ -1687,10 +1687,10 @@ function createEnumType(typeName, values) {
   const numbers = /* @__PURE__ */ Object.create(null);
   const normalValues = [];
   for (const value of values) {
-    const n = "localName" in value ? value : { ...value, localName: value.name };
-    normalValues.push(n);
-    names[value.name] = n;
-    numbers[value.no] = n;
+    const n2 = "localName" in value ? value : { ...value, localName: value.name };
+    normalValues.push(n2);
+    names[value.name] = n2;
+    numbers[value.no] = n2;
   }
   return {
     typeName,
@@ -1735,16 +1735,16 @@ function applyPartialMessage(source, target, fields, clone = false) {
   if (source == null || target == null) {
     return;
   }
-  const t = target, s = source;
+  const t2 = target, s2 = source;
   for (const member of fields.byMember()) {
     const localName2 = member.localName;
     throwSanitizeKey(localName2);
-    if (!(localName2 in s) || s[localName2] === void 0) {
+    if (!(localName2 in s2) || s2[localName2] === void 0) {
       continue;
     }
-    const sourceValue = s[localName2];
+    const sourceValue = s2[localName2];
     if (sourceValue === null) {
-      delete t[localName2];
+      delete t2[localName2];
       continue;
     }
     switch (member.kind) {
@@ -1754,7 +1754,7 @@ function applyPartialMessage(source, target, fields, clone = false) {
         }
         const { case: sk, value: sv } = sourceValue;
         const sourceField = sk != null ? member.findField(sk) : null;
-        let dv = localName2 in t ? t[localName2] : void 0;
+        let dv = localName2 in t2 ? t2[localName2] : void 0;
         if (typeof dv !== "object") {
           dv = /* @__PURE__ */ Object.create(null);
         }
@@ -1765,7 +1765,7 @@ function applyPartialMessage(source, target, fields, clone = false) {
         if (dv.case !== sk || sk == null) {
           delete dv.value;
         }
-        t[localName2] = dv;
+        t2[localName2] = dv;
         if (!sourceField) {
           break;
         }
@@ -1790,27 +1790,27 @@ function applyPartialMessage(source, target, fields, clone = false) {
           if (!Array.isArray(sourceValue)) {
             throw new Error(`field ${localName2}: invalid value: must be array`);
           }
-          let dst = localName2 in t ? t[localName2] : null;
+          let dst = localName2 in t2 ? t2[localName2] : null;
           if (dst == null || !Array.isArray(dst)) {
-            dst = t[localName2] = [];
+            dst = t2[localName2] = [];
           }
-          dst.push(...sourceValue.map((v) => normalizeScalarValue(member.T, v, clone)));
+          dst.push(...sourceValue.map((v2) => normalizeScalarValue(member.T, v2, clone)));
           break;
         }
-        t[localName2] = normalizeScalarValue(member.T, sourceValue, clone);
+        t2[localName2] = normalizeScalarValue(member.T, sourceValue, clone);
         break;
       }
       case "enum": {
-        t[localName2] = normalizeEnumValue(member.T, sourceValue);
+        t2[localName2] = normalizeEnumValue(member.T, sourceValue);
         break;
       }
       case "map": {
         if (typeof sourceValue !== "object") {
           throw new Error(`field ${member.localName}: invalid value: must be object`);
         }
-        let tMap = t[localName2];
+        let tMap = t2[localName2];
         if (typeof tMap !== "object") {
-          tMap = t[localName2] = /* @__PURE__ */ Object.create(null);
+          tMap = t2[localName2] = /* @__PURE__ */ Object.create(null);
         }
         applyPartialMap(sourceValue, tMap, member.V, clone);
         break;
@@ -1821,30 +1821,30 @@ function applyPartialMessage(source, target, fields, clone = false) {
           if (!Array.isArray(sourceValue)) {
             throw new Error(`field ${localName2}: invalid value: must be array`);
           }
-          let tArr = t[localName2];
+          let tArr = t2[localName2];
           if (!Array.isArray(tArr)) {
-            tArr = t[localName2] = [];
+            tArr = t2[localName2] = [];
           }
-          for (const v of sourceValue) {
-            if (v != null) {
+          for (const v2 of sourceValue) {
+            if (v2 != null) {
               if (mt.fieldWrapper) {
-                tArr.push(mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(v)));
+                tArr.push(mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(v2)));
               } else {
-                tArr.push(mt.create(v));
+                tArr.push(mt.create(v2));
               }
             }
           }
           break;
         }
         if (mt.fieldWrapper) {
-          t[localName2] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
+          t2[localName2] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
         } else {
           if (typeof sourceValue !== "object") {
             throw new Error(`field ${member.localName}: invalid value: must be object`);
           }
-          let destMsg = t[localName2];
+          let destMsg = t2[localName2];
           if (typeof destMsg !== "object") {
-            destMsg = t[localName2] = /* @__PURE__ */ Object.create(null);
+            destMsg = t2[localName2] = /* @__PURE__ */ Object.create(null);
           }
           applyPartialMessage(sourceValue, destMsg, mt.fields);
         }
@@ -1862,20 +1862,20 @@ function applyPartialMap(sourceMap, targetMap, value, clone) {
   }
   switch (value.kind) {
     case "scalar":
-      for (const [k, v] of Object.entries(sourceMap)) {
+      for (const [k, v2] of Object.entries(sourceMap)) {
         throwSanitizeKey(k);
-        if (v !== void 0) {
-          targetMap[k] = normalizeScalarValue(value.T, v, clone);
+        if (v2 !== void 0) {
+          targetMap[k] = normalizeScalarValue(value.T, v2, clone);
         } else {
           delete targetMap[k];
         }
       }
       break;
     case "enum":
-      for (const [k, v] of Object.entries(sourceMap)) {
+      for (const [k, v2] of Object.entries(sourceMap)) {
         throwSanitizeKey(k);
-        if (v !== void 0) {
-          targetMap[k] = normalizeEnumValue(value.T, v);
+        if (v2 !== void 0) {
+          targetMap[k] = normalizeEnumValue(value.T, v2);
         } else {
           delete targetMap[k];
         }
@@ -1883,13 +1883,13 @@ function applyPartialMap(sourceMap, targetMap, value, clone) {
       break;
     case "message": {
       const messageType = resolveMessageType(value.T);
-      for (const [k, v] of Object.entries(sourceMap)) {
+      for (const [k, v2] of Object.entries(sourceMap)) {
         throwSanitizeKey(k);
-        if (v === void 0) {
+        if (v2 === void 0) {
           delete targetMap[k];
           continue;
         }
-        if (typeof v !== "object") {
+        if (typeof v2 !== "object") {
           throw new Error(`invalid value: must be object`);
         }
         let val = targetMap[k];
@@ -1898,7 +1898,7 @@ function applyPartialMap(sourceMap, targetMap, value, clone) {
         } else if (typeof val !== "object") {
           val = targetMap[k] = /* @__PURE__ */ Object.create(null);
         }
-        applyPartialMessage(v, val, messageType.fields);
+        applyPartialMessage(v2, val, messageType.fields);
       }
       break;
     }
@@ -1988,13 +1988,13 @@ var BinaryWriter = class {
   finish() {
     this.chunks.push(new Uint8Array(this.buf));
     let len = 0;
-    for (let i = 0; i < this.chunks.length; i++)
-      len += this.chunks[i].length;
+    for (let i2 = 0; i2 < this.chunks.length; i2++)
+      len += this.chunks[i2].length;
     let bytes = new Uint8Array(len);
     let offset = 0;
-    for (let i = 0; i < this.chunks.length; i++) {
-      bytes.set(this.chunks[i], offset);
-      offset += this.chunks[i].length;
+    for (let i2 = 0; i2 < this.chunks.length; i2++) {
+      bytes.set(this.chunks[i2], offset);
+      offset += this.chunks[i2].length;
     }
     this.chunks = [];
     return bytes;
@@ -2228,9 +2228,9 @@ var BinaryReader = class {
         this.pos += len;
         break;
       case WireType.StartGroup:
-        let t;
-        while ((t = this.tag()[1]) !== WireType.EndGroup) {
-          this.skip(t);
+        let t2;
+        while ((t2 = this.tag()[1]) !== WireType.EndGroup) {
+          this.skip(t2);
         }
         break;
       default:
@@ -2283,9 +2283,9 @@ var BinaryReader = class {
    */
   sint64() {
     let [lo, hi] = this.varint64();
-    let s = -(lo & 1);
-    lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
-    hi = hi >>> 1 ^ s;
+    let s2 = -(lo & 1);
+    lo = (lo >>> 1 | (hi & 1) << 31) ^ s2;
+    hi = hi >>> 1 ^ s2;
     return protoInt64.dec(lo, hi);
   }
   /**
@@ -2393,8 +2393,8 @@ function readField(target, reader, field, wireType, options) {
         }
         const isPacked = wireType == WireType.LengthDelimited && scalarType != ScalarType.STRING && scalarType != ScalarType.BYTES;
         if (isPacked) {
-          const e = reader.uint32() + reader.pos;
-          while (reader.pos < e) {
+          const e2 = reader.uint32() + reader.pos;
+          while (reader.pos < e2) {
             tgtArr.push(read(reader, scalarType));
           }
         } else {
@@ -2515,8 +2515,8 @@ function readScalar(reader, type) {
   }
 }
 function readScalarLTString(reader, type) {
-  const v = readScalar(reader, type);
-  return typeof v == "bigint" ? v.toString() : v;
+  const v2 = readScalar(reader, type);
+  return typeof v2 == "bigint" ? v2.toString() : v2;
 }
 function readMessageField(reader, message, fields, options, field) {
   readMessage(message, fields, reader, field?.delimited ? field.no : reader.uint32(), options, field?.delimited ?? false);
@@ -2602,10 +2602,10 @@ function writeField(field, value, writer, options) {
 }
 function writeUnknownFields(message, writer) {
   const m = message;
-  const c = m[unknownFieldsSymbol];
-  if (c) {
-    for (const f of c) {
-      writer.tag(f.no, f.wireType).raw(f.data);
+  const c2 = m[unknownFieldsSymbol];
+  if (c2) {
+    for (const f2 of c2) {
+      writer.tag(f2.no, f2.wireType).raw(f2.data);
     }
   }
 }
@@ -2628,8 +2628,8 @@ function writePacked(writer, type, fieldNo, value) {
   }
   writer.tag(fieldNo, WireType.LengthDelimited).fork();
   const [, method] = scalarTypeInfo(type);
-  for (let i = 0; i < value.length; i++) {
-    writer[method](value[i]);
+  for (let i2 = 0; i2 < value.length; i2++) {
+    writer[method](value[i2]);
   }
   writer.join();
 }
@@ -2692,8 +2692,8 @@ function writeMapEntry(writer, options, field, key, value) {
 // ../../../node_modules/@aptre/protobuf-es-lite/dist/proto-base64.js
 var encTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
 var decTable = [];
-for (let i = 0; i < encTable.length; i++)
-  decTable[encTable[i].charCodeAt(0)] = i;
+for (let i2 = 0; i2 < encTable.length; i2++)
+  decTable[encTable[i2].charCodeAt(0)] = i2;
 decTable["-".charCodeAt(0)] = encTable.indexOf("+");
 decTable["_".charCodeAt(0)] = encTable.indexOf("/");
 var protoBase64 = {
@@ -2715,10 +2715,10 @@ var protoBase64 = {
     else if (base64Str[base64Str.length - 1] == "=")
       es -= 1;
     let bytes = new Uint8Array(es), bytePos = 0, groupPos = 0, b, p = 0;
-    for (let i = 0; i < base64Str.length; i++) {
-      b = decTable[base64Str.charCodeAt(i)];
+    for (let i2 = 0; i2 < base64Str.length; i2++) {
+      b = decTable[base64Str.charCodeAt(i2)];
       if (b === void 0) {
-        switch (base64Str[i]) {
+        switch (base64Str[i2]) {
           // @ts-ignore TS7029: Fallthrough case in switch
           case "=":
             groupPos = 0;
@@ -2764,8 +2764,8 @@ var protoBase64 = {
    */
   enc(bytes) {
     let base64 = "", groupPos = 0, b, p = 0;
-    for (let i = 0; i < bytes.length; i++) {
-      b = bytes[i];
+    for (let i2 = 0; i2 < bytes.length; i2++) {
+      b = bytes[i2];
       switch (groupPos) {
         case 0:
           base64 += encTable[b >> 2];
@@ -2872,10 +2872,10 @@ function writeMessage2(message, fields, options) {
         json[options.useProtoFieldName ? field.name : field.jsonName] = jsonValue;
       }
     }
-  } catch (e) {
+  } catch (e2) {
     const m = field ? `cannot encode field ${field.name} to JSON` : `cannot encode message to JSON`;
-    const r = e instanceof Error ? e.message : String(e);
-    throw new Error(m + (r.length > 0 ? `: ${r}` : ""), { cause: e });
+    const r2 = e2 instanceof Error ? e2.message : String(e2);
+    throw new Error(m + (r2.length > 0 ? `: ${r2}` : ""), { cause: e2 });
   }
   return json;
 }
@@ -2913,12 +2913,12 @@ function readField2(target, jsonValue, field, options) {
         case "scalar":
           try {
             targetArray.push(readScalar2(field.T, jsonItem, field.L, true));
-          } catch (e) {
+          } catch (e2) {
             let m = `cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonItem)}`;
-            if (e instanceof Error && e.message.length > 0) {
-              m += `: ${e.message}`;
+            if (e2 instanceof Error && e2.message.length > 0) {
+              m += `: ${e2.message}`;
             }
-            throw new Error(m, { cause: e });
+            throw new Error(m, { cause: e2 });
           }
           break;
       }
@@ -2941,12 +2941,12 @@ function readField2(target, jsonValue, field, options) {
       let key;
       try {
         key = readMapKey(field.K, jsonMapKey);
-      } catch (e) {
+      } catch (e2) {
         let m = `cannot decode map key for field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`;
-        if (e instanceof Error && e.message.length > 0) {
-          m += `: ${e.message}`;
+        if (e2 instanceof Error && e2.message.length > 0) {
+          m += `: ${e2.message}`;
         }
-        throw new Error(m, { cause: e });
+        throw new Error(m, { cause: e2 });
       }
       throwSanitizeKey(key);
       switch (field.V.kind) {
@@ -2965,12 +2965,12 @@ function readField2(target, jsonValue, field, options) {
         case "scalar":
           try {
             targetMap[key] = readScalar2(field.V.T, jsonMapValue, LongType.BIGINT, true);
-          } catch (e) {
+          } catch (e2) {
             let m = `cannot decode map value for field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`;
-            if (e instanceof Error && e.message.length > 0) {
-              m += `: ${e.message}`;
+            if (e2 instanceof Error && e2.message.length > 0) {
+              m += `: ${e2.message}`;
             }
-            throw new Error(m, { cause: e });
+            throw new Error(m, { cause: e2 });
           }
           break;
       }
@@ -3014,12 +3014,12 @@ function readField2(target, jsonValue, field, options) {
               target[localName2] = scalarValue;
               break;
           }
-        } catch (e) {
+        } catch (e2) {
           let m = `cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`;
-          if (e instanceof Error && e.message.length > 0) {
-            m += `: ${e.message}`;
+          if (e2 instanceof Error && e2.message.length > 0) {
+            m += `: ${e2.message}`;
           }
-          throw new Error(m, { cause: e });
+          throw new Error(m, { cause: e2 });
         }
         break;
     }
@@ -3241,19 +3241,19 @@ function writeField2(field, value, options) {
     if (valueArr && valueArr.length) {
       switch (field.kind) {
         case "scalar":
-          for (let i = 0; i < valueArr.length; i++) {
-            jsonArr.push(writeScalar2(field.T, valueArr[i]));
+          for (let i2 = 0; i2 < valueArr.length; i2++) {
+            jsonArr.push(writeScalar2(field.T, valueArr[i2]));
           }
           break;
         case "enum":
-          for (let i = 0; i < valueArr.length; i++) {
-            jsonArr.push(writeEnum(field.T, valueArr[i], options.enumAsInteger));
+          for (let i2 = 0; i2 < valueArr.length; i2++) {
+            jsonArr.push(writeEnum(field.T, valueArr[i2], options.enumAsInteger));
           }
           break;
         case "message": {
           const messageType = resolveMessageType(field.T);
-          for (let i = 0; i < valueArr.length; i++) {
-            jsonArr.push(messageType.toJson(wrapField(messageType.fieldWrapper, valueArr[i])));
+          for (let i2 = 0; i2 < valueArr.length; i2++) {
+            jsonArr.push(messageType.toJson(wrapField(messageType.fieldWrapper, valueArr[i2])));
           }
           break;
         }
@@ -3365,14 +3365,14 @@ function createMessageType(params, exts) {
       applyPartialMessage(partial, message, fields);
       return message;
     },
-    equals(a, b) {
-      return compareMessages(fields, a, b);
+    equals(a2, b) {
+      return compareMessages(fields, a2, b);
     },
-    clone(a) {
-      if (a == null) {
-        return a;
+    clone(a2) {
+      if (a2 == null) {
+        return a2;
       }
-      return cloneMessage(a, fields);
+      return cloneMessage(a2, fields);
     },
     fromBinary(bytes, options) {
       const message = {};
@@ -3395,44 +3395,44 @@ function createMessageType(params, exts) {
       if (jsonString) {
         try {
           json = JSON.parse(jsonString);
-        } catch (e) {
-          throw new Error(`cannot decode ${typeName} from JSON: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+        } catch (e2) {
+          throw new Error(`cannot decode ${typeName} from JSON: ${e2 instanceof Error ? e2.message : String(e2)}`, { cause: e2 });
         }
       }
       return mt.fromJson(json, options);
     },
-    toBinary(a, options) {
-      if (a == null)
+    toBinary(a2, options) {
+      if (a2 == null)
         return new Uint8Array(0);
       const opt = makeWriteOptions(options);
       const writer = opt.writerFactory();
-      writeMessage(a, fields, writer, opt);
+      writeMessage(a2, fields, writer, opt);
       return writer.finish();
     },
-    toJson(a, options) {
+    toJson(a2, options) {
       const opt = makeWriteOptions2(options);
-      return writeMessage2(a, fields, opt);
+      return writeMessage2(a2, fields, opt);
     },
-    toJsonString(a, options) {
-      const value = mt.toJson(a, options);
+    toJsonString(a2, options) {
+      const value = mt.toJson(a2, options);
       return JSON.stringify(value, null, options?.prettySpaces ?? 0);
     },
     ...exts ?? {}
   };
   return mt;
 }
-function compareMessages(fields, a, b) {
-  if (a == null && b == null) {
+function compareMessages(fields, a2, b) {
+  if (a2 == null && b == null) {
     return true;
   }
-  if (a === b) {
+  if (a2 === b) {
     return true;
   }
-  if (!a || !b) {
+  if (!a2 || !b) {
     return false;
   }
   return fields.byMember().every((m) => {
-    const va = a[m.localName];
+    const va = a2[m.localName];
     const vb = b[m.localName];
     if (m.repeated) {
       if ((va?.length ?? 0) !== (vb?.length ?? 0)) {
@@ -3444,12 +3444,12 @@ function compareMessages(fields, a, b) {
       switch (m.kind) {
         case "message": {
           const messageType = resolveMessageType(m.T);
-          return va.every((a2, i) => messageType.equals(a2, vb[i]));
+          return va.every((a3, i2) => messageType.equals(a3, vb[i2]));
         }
         case "scalar":
-          return va.every((a2, i) => scalarEquals(m.T, a2, vb[i]));
+          return va.every((a3, i2) => scalarEquals(m.T, a3, vb[i2]));
         case "enum":
-          return va.every((a2, i) => scalarEquals(ScalarType.INT32, a2, vb[i]));
+          return va.every((a3, i2) => scalarEquals(ScalarType.INT32, a3, vb[i2]));
       }
       throw new Error(`repeated cannot contain ${m.kind}`);
     }
@@ -3467,21 +3467,21 @@ function compareMessages(fields, a, b) {
         if (va == null) {
           return true;
         }
-        const s = m.findField(va.case);
-        if (s === void 0) {
+        const s2 = m.findField(va.case);
+        if (s2 === void 0) {
           return true;
         }
-        switch (s.kind) {
+        switch (s2.kind) {
           case "message": {
-            const messageType = resolveMessageType(s.T);
+            const messageType = resolveMessageType(s2.T);
             return messageType.equals(va.value, vb.value);
           }
           case "enum":
             return scalarEquals(ScalarType.INT32, va.value, vb.value);
           case "scalar":
-            return scalarEquals(s.T, va.value, vb.value);
+            return scalarEquals(s2.T, va.value, vb.value);
         }
-        throw new Error(`oneof cannot contain ${s.kind}`);
+        throw new Error(`oneof cannot contain ${s2.kind}`);
       }
       case "map": {
         const keys = Object.keys(va).concat(Object.keys(vb));
@@ -3849,15 +3849,15 @@ function concat(arrays, length) {
 }
 
 // ../../../node_modules/uint8arrays/dist/src/equals.js
-function equals(a, b) {
-  if (a === b) {
+function equals(a2, b) {
+  if (a2 === b) {
     return true;
   }
-  if (a.byteLength !== b.byteLength) {
+  if (a2.byteLength !== b.byteLength) {
     return false;
   }
-  for (let i = 0; i < a.byteLength; i++) {
-    if (a[i] !== b[i]) {
+  for (let i2 = 0; i2 < a2.byteLength; i2++) {
+    if (a2[i2] !== b[i2]) {
       return false;
     }
   }
@@ -3970,12 +3970,12 @@ var Uint8ArrayList = class _Uint8ArrayList {
    */
   write(buf, offset = 0) {
     if (buf instanceof Uint8Array) {
-      for (let i = 0; i < buf.length; i++) {
-        this.set(offset + i, buf[i]);
+      for (let i2 = 0; i2 < buf.length; i2++) {
+        this.set(offset + i2, buf[i2]);
       }
     } else if (isUint8ArrayList(buf)) {
-      for (let i = 0; i < buf.length; i++) {
-        this.set(offset + i, buf.get(i));
+      for (let i2 = 0; i2 < buf.length; i2++) {
+        this.set(offset + i2, buf.get(i2));
       }
     } else {
       throw new Error("Could not write value, must be an Uint8Array or a Uint8ArrayList");
@@ -4061,8 +4061,8 @@ var Uint8ArrayList = class _Uint8ArrayList {
     }
     const bufs = [];
     let offset = 0;
-    for (let i = 0; i < this.bufs.length; i++) {
-      const buf = this.bufs[i];
+    for (let i2 = 0; i2 < this.bufs.length; i2++) {
+      const buf = this.bufs[i2];
       const bufStart = offset;
       const bufEnd = bufStart + buf.byteLength;
       offset = bufEnd;
@@ -4124,8 +4124,8 @@ var Uint8ArrayList = class _Uint8ArrayList {
     }
     const radix = 256;
     const rightmostPositions = new Int32Array(radix);
-    for (let c = 0; c < radix; c++) {
-      rightmostPositions[c] = -1;
+    for (let c2 = 0; c2 < radix; c2++) {
+      rightmostPositions[c2] = -1;
     }
     for (let j = 0; j < M; j++) {
       rightmostPositions[needle[j]] = j;
@@ -4134,17 +4134,17 @@ var Uint8ArrayList = class _Uint8ArrayList {
     const lastIndex = this.byteLength - needle.byteLength;
     const lastPatIndex = needle.byteLength - 1;
     let skip;
-    for (let i = offset; i <= lastIndex; i += skip) {
+    for (let i2 = offset; i2 <= lastIndex; i2 += skip) {
       skip = 0;
       for (let j = lastPatIndex; j >= 0; j--) {
-        const char = this.get(i + j);
+        const char = this.get(i2 + j);
         if (needle[j] !== char) {
           skip = Math.max(1, j - right[char]);
           break;
         }
       }
       if (skip === 0) {
-        return i;
+        return i2;
       }
     }
     return -1;
@@ -4269,8 +4269,8 @@ var Uint8ArrayList = class _Uint8ArrayList {
     if (other.bufs.length !== this.bufs.length) {
       return false;
     }
-    for (let i = 0; i < this.bufs.length; i++) {
-      if (!equals(this.bufs[i], other.bufs[i])) {
+    for (let i2 = 0; i2 < this.bufs.length; i2++) {
+      if (!equals(this.bufs[i2], other.bufs[i2])) {
         return false;
       }
     }
@@ -5636,9 +5636,9 @@ var YamuxMuxer = class {
     this.rtt = -1;
     this.log?.trace("muxer created");
     if (this.config.enableKeepAlive) {
-      this.keepAliveLoop().catch((e) => this.log?.error("keepalive error: %s", e));
+      this.keepAliveLoop().catch((e2) => this.log?.error("keepalive error: %s", e2));
     }
-    this.ping().catch((e) => this.log?.error("ping error: %s", e));
+    this.ping().catch((e2) => this.log?.error("ping error: %s", e2));
   }
   get streams() {
     return Array.from(this._streams.values());
@@ -5736,7 +5736,7 @@ var YamuxMuxer = class {
       };
     }
     try {
-      await Promise.all([...this._streams.values()].map(async (s) => s.close(options)));
+      await Promise.all([...this._streams.values()].map(async (s2) => s2.close(options)));
       this.sendGoAway(reason);
       this._closeMuxer();
     } catch (err) {
@@ -5806,8 +5806,8 @@ var YamuxMuxer = class {
         await raceSignal2(new Promise((resolve) => {
           timeoutId = setTimeout(resolve, this.config.keepAliveInterval);
         }), this.closeController.signal);
-        this.ping().catch((e) => this.log?.error("ping error: %s", e));
-      } catch (e) {
+        this.ping().catch((e2) => this.log?.error("ping error: %s", e2));
+      } catch (e2) {
         clearInterval(timeoutId);
         return;
       }
@@ -6486,60 +6486,60 @@ function createSymbolPolyfills() {
 }
 
 // quickjs/text-encoding.js
-function inRange(a, min, max) {
-  return min <= a && a <= max;
+function inRange(a2, min, max) {
+  return min <= a2 && a2 <= max;
 }
-function ToDictionary(o) {
-  if (o === void 0) {
+function ToDictionary(o2) {
+  if (o2 === void 0) {
     return {};
   }
-  if (o === Object(o)) {
-    return o;
+  if (o2 === Object(o2)) {
+    return o2;
   }
   throw TypeError("Could not convert argument to dictionary");
 }
 function stringToCodePoints(string) {
-  var s = String(string);
-  var n = s.length;
-  var i = 0;
-  var u = [];
-  while (i < n) {
-    var c = s.charCodeAt(i);
-    if (c < 55296 || c > 57343) {
-      u.push(c);
-    } else if (56320 <= c && c <= 57343) {
-      u.push(65533);
-    } else if (55296 <= c && c <= 56319) {
-      if (i === n - 1) {
-        u.push(65533);
+  var s2 = String(string);
+  var n2 = s2.length;
+  var i2 = 0;
+  var u2 = [];
+  while (i2 < n2) {
+    var c2 = s2.charCodeAt(i2);
+    if (c2 < 55296 || c2 > 57343) {
+      u2.push(c2);
+    } else if (56320 <= c2 && c2 <= 57343) {
+      u2.push(65533);
+    } else if (55296 <= c2 && c2 <= 56319) {
+      if (i2 === n2 - 1) {
+        u2.push(65533);
       } else {
-        var d = string.charCodeAt(i + 1);
+        var d = string.charCodeAt(i2 + 1);
         if (56320 <= d && d <= 57343) {
-          var a = c & 1023;
+          var a2 = c2 & 1023;
           var b = d & 1023;
-          u.push(65536 + (a << 10) + b);
-          i += 1;
+          u2.push(65536 + (a2 << 10) + b);
+          i2 += 1;
         } else {
-          u.push(65533);
+          u2.push(65533);
         }
       }
     }
-    i += 1;
+    i2 += 1;
   }
-  return u;
+  return u2;
 }
 function codePointsToString(code_points) {
-  var s = "";
-  for (var i = 0; i < code_points.length; ++i) {
-    var cp = code_points[i];
+  var s2 = "";
+  for (var i2 = 0; i2 < code_points.length; ++i2) {
+    var cp = code_points[i2];
     if (cp <= 65535) {
-      s += String.fromCharCode(cp);
+      s2 += String.fromCharCode(cp);
     } else {
       cp -= 65536;
-      s += String.fromCharCode((cp >> 10) + 55296, (cp & 1023) + 56320);
+      s2 += String.fromCharCode((cp >> 10) + 55296, (cp & 1023) + 56320);
     }
   }
-  return s;
+  return s2;
 }
 var end_of_stream = -1;
 function Stream(tokens) {
@@ -6879,54 +6879,54 @@ function extend(origin, add) {
     return origin;
   }
   var keys = Object.keys(add);
-  var i = keys.length;
-  while (i--) {
-    origin[keys[i]] = add[keys[i]];
+  var i2 = keys.length;
+  while (i2--) {
+    origin[keys[i2]] = add[keys[i2]];
   }
   return origin;
 }
 var formatRegExp = /%[sdjif%]/g;
-function format(f) {
-  if (!isString(f)) {
+function format(f2) {
+  if (!isString(f2)) {
     var objects = [];
-    for (let i2 = 0; i2 < arguments.length; i2++) {
-      objects.push(inspect(arguments[i2]));
+    for (let i3 = 0; i3 < arguments.length; i3++) {
+      objects.push(inspect(arguments[i3]));
     }
     return objects.join(" ");
   }
-  let i = 1;
+  let i2 = 1;
   var args = arguments;
   var len = args.length;
-  var str = String(f).replace(formatRegExp, function(x2) {
+  var str = String(f2).replace(formatRegExp, function(x2) {
     if (x2 === "%%") {
       return "%";
     }
-    if (i >= len) {
+    if (i2 >= len) {
       return x2;
     }
     switch (x2) {
       case "%s":
-        return String(args[i++]);
+        return String(args[i2++]);
       case "%d":
       case "%i": {
-        const arg = args[i++];
+        const arg = args[i2++];
         return typeof arg === "symbol" ? NaN : parseInt(arg, 10);
       }
       case "%f": {
-        const arg = args[i++];
+        const arg = args[i2++];
         return typeof arg === "symbol" ? NaN : parseFloat(arg);
       }
       case "%j":
         try {
-          return JSON.stringify(args[i++]);
-        } catch (_) {
+          return JSON.stringify(args[i2++]);
+        } catch (_2) {
           return "[Circular]";
         }
       default:
         return x2;
     }
   });
-  for (var x = args[i]; i < len; x = args[++i]) {
+  for (var x = args[i2]; i2 < len; x = args[++i2]) {
     if (x === null || !["object", "symbol"].includes(typeof x)) {
       str += " " + x;
     } else {
@@ -7010,10 +7010,10 @@ function formatValue(ctx, value, recurseTimes) {
     k,
     descriptors[k]
   ]);
-  let keys = descriptorsArr.filter(([_v, desc]) => desc.enumerable).map(([v, _desc]) => v);
+  let keys = descriptorsArr.filter(([_v, desc]) => desc.enumerable).map(([v2, _desc]) => v2);
   const visibleKeys = new Set(keys);
   if (ctx.showHidden) {
-    keys = descriptorsArr.map(([v, _desc]) => v);
+    keys = descriptorsArr.map(([v2, _desc]) => v2);
   }
   if (keys.length === 0) {
     if (typeof value === "function") {
@@ -7036,8 +7036,8 @@ function formatValue(ctx, value, recurseTimes) {
     braces = ["[", "]"];
   }
   if (typeof value === "function") {
-    var n = value.name ? ": " + value.name : "";
-    base = " [Function" + n + "]";
+    var n2 = value.name ? ": " + value.name : "";
+    base = " [Function" + n2 + "]";
   }
   if (isRegExp(value)) {
     base = " " + RegExp.prototype.toString.call(value);
@@ -7096,10 +7096,10 @@ function formatError(value) {
 }
 function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
   var output = [];
-  for (var i = 0, l = value.length; i < l; ++i) {
-    if (Object.prototype.hasOwnProperty.call(value, String(i))) {
+  for (var i2 = 0, l2 = value.length; i2 < l2; ++i2) {
+    if (Object.prototype.hasOwnProperty.call(value, String(i2))) {
       output.push(
-        formatProperty(ctx, value, recurseTimes, visibleKeys, String(i), true)
+        formatProperty(ctx, value, recurseTimes, visibleKeys, String(i2), true)
       );
     } else {
       output.push("");
@@ -7202,8 +7202,8 @@ function isObject(arg) {
 function isDate(d) {
   return isObject(d) && Object.prototype.toString.call(d) === "[object Date]";
 }
-function isError(e) {
-  return isObject(e) && (Object.prototype.toString.call(e) === "[object Error]" || e instanceof Error);
+function isError(e2) {
+  return isObject(e2) && (Object.prototype.toString.call(e2) === "[object Error]" || e2 instanceof Error);
 }
 
 // quickjs/console.js
@@ -7263,9 +7263,9 @@ function createConsole({
     function getProperties(data2) {
       const props = [];
       const propsS = /* @__PURE__ */ new Set();
-      for (const i in data2) {
-        if (typeof data2[i] === "object") {
-          for (const key in data2[i]) {
+      for (const i2 in data2) {
+        if (typeof data2[i2] === "object") {
+          for (const key in data2[i2]) {
             if (!propsS.has(key)) {
               props.push(key);
               propsS.add(key);
@@ -7287,10 +7287,10 @@ function createConsole({
     }
     function getTableData(data2, properties2, addIndex = true) {
       const rows2 = [addIndex ? ["(index)", ...properties2] : [...properties2]];
-      for (const i in data2) {
-        const row = addIndex ? [i] : [];
+      for (const i2 in data2) {
+        const row = addIndex ? [i2] : [];
         for (const p of properties2) {
-          row.push(normalize(data2[i][p] || ""));
+          row.push(normalize(data2[i2][p] || ""));
         }
         rows2.push(row);
       }
@@ -7527,7 +7527,7 @@ function clearMarks(name) {
     entries = entries.filter((entry) => entry.entryType !== "mark");
   } else {
     const entry = entries.find(
-      (e) => e.entryType === "mark" && e.name === name
+      (e2) => e2.entryType === "mark" && e2.name === name
     );
     entries.splice(entries.indexOf(entry), 1);
     delete marksIndex[name];
@@ -7538,7 +7538,7 @@ function clearMeasures(name) {
     entries = entries.filter((entry) => entry.entryType !== "measure");
   } else {
     const entry = entries.find(
-      (e) => e.entryType === "measure" && e.name === name
+      (e2) => e2.entryType === "measure" && e2.name === name
     );
     entries.splice(entries.indexOf(entry), 1);
   }
@@ -7574,9 +7574,9 @@ function atob(data) {
   let output = "";
   let buffer = 0;
   let accumulatedBits = 0;
-  for (let i = 0; i < data.length; i++) {
+  for (let i2 = 0; i2 < data.length; i2++) {
     buffer <<= 6;
-    buffer |= atobLookup(data[i]);
+    buffer |= atobLookup(data[i2]);
     accumulatedBits += 6;
     if (accumulatedBits === 24) {
       output += String.fromCharCode((buffer & 16711680) >> 16);
@@ -7599,14 +7599,14 @@ function atobLookup(chr) {
   const index = keystr.indexOf(chr);
   return index < 0 ? void 0 : index;
 }
-function btoa(s) {
+function btoa(s2) {
   if (arguments.length === 0) {
     throw new TypeError("1 argument required, but only 0 present.");
   }
-  let i;
-  s = `${s}`;
-  for (i = 0; i < s.length; i++) {
-    if (s.charCodeAt(i) > 255) {
+  let i2;
+  s2 = `${s2}`;
+  for (i2 = 0; i2 < s2.length; i2++) {
+    if (s2.charCodeAt(i2) > 255) {
       throw new DOMException(
         "The string to be encoded contains characters outside of the Latin1 range.",
         "InvalidCharacterError"
@@ -7614,17 +7614,17 @@ function btoa(s) {
     }
   }
   let out = "";
-  for (i = 0; i < s.length; i += 3) {
+  for (i2 = 0; i2 < s2.length; i2 += 3) {
     const groupsOfSix = [void 0, void 0, void 0, void 0];
-    groupsOfSix[0] = s.charCodeAt(i) >> 2;
-    groupsOfSix[1] = (s.charCodeAt(i) & 3) << 4;
-    if (s.length > i + 1) {
-      groupsOfSix[1] |= s.charCodeAt(i + 1) >> 4;
-      groupsOfSix[2] = (s.charCodeAt(i + 1) & 15) << 2;
+    groupsOfSix[0] = s2.charCodeAt(i2) >> 2;
+    groupsOfSix[1] = (s2.charCodeAt(i2) & 3) << 4;
+    if (s2.length > i2 + 1) {
+      groupsOfSix[1] |= s2.charCodeAt(i2 + 1) >> 4;
+      groupsOfSix[2] = (s2.charCodeAt(i2 + 1) & 15) << 2;
     }
-    if (s.length > i + 2) {
-      groupsOfSix[2] |= s.charCodeAt(i + 2) >> 6;
-      groupsOfSix[3] = s.charCodeAt(i + 2) & 63;
+    if (s2.length > i2 + 2) {
+      groupsOfSix[2] |= s2.charCodeAt(i2 + 2) >> 6;
+      groupsOfSix[3] = s2.charCodeAt(i2 + 2) & 63;
     }
     for (let j = 0; j < groupsOfSix.length; j++) {
       if (typeof groupsOfSix[j] === "undefined") {
@@ -7731,6 +7731,1509 @@ var ExecControllerResponse = createMessageType({
   packedByDefault: true
 });
 
+// ../../../web/bldr/retry.tsx
+function constantBackoff(waitMs = 500) {
+  return () => {
+    return waitMs;
+  };
+}
+var Retry = class {
+  constructor(fn, opts) {
+    this.fn = fn;
+    opts?.abortSignal?.addEventListener("abort", this.cancel.bind(this));
+    this._abortSignal = opts?.abortSignal;
+    this._backoffFn = opts?.backoffFn || constantBackoff();
+    this._errorCb = opts?.errorCb;
+    this._setTimeout = opts?.setTimeout || setTimeout.bind(globalThis);
+    this._clearTimeout = opts?.clearTimeout || clearTimeout.bind(globalThis);
+    this.result = new Promise((resolve, reject) => {
+      this._resolve = resolve;
+      this._reject = reject;
+    });
+    this.result.catch(() => {
+    });
+    queueMicrotask(this._execute.bind(this));
+  }
+  // result is the result promise.
+  result;
+  // canceled returns if the retry has been canceled.
+  get canceled() {
+    return this._canceled;
+  }
+  // _backoffFn is the backoff function (if any)
+  _backoffFn;
+  // _errorCb is the error callback.
+  _errorCb;
+  // _abortSignal is the current abort signal (if set).
+  _abortSignal;
+  // _canceled indicates retrying this has been canceled
+  _canceled;
+  // _resolve resolves the promise.
+  _resolve;
+  // _reject rejects the promise.
+  _reject;
+  // _currError contains the current error.
+  _currError;
+  // _cancelRetry is a function to cancel the current retry attempt.
+  _cancelRetry;
+  // _setTimeout is the function to use for setting timeouts.
+  _setTimeout;
+  // _clearTimeout is the function to use for clearing timeouts.
+  _clearTimeout;
+  // cancel prevents further retrying of the function.
+  cancel() {
+    this._canceled = true;
+    if (this._cancelRetry) {
+      this._cancelRetry();
+    }
+    if (this._reject) {
+      this._reject(this._currError);
+    }
+  }
+  async _execute() {
+    do {
+      try {
+        if (this._canceled || this._abortSignal?.aborted) {
+          this.cancel();
+          return;
+        }
+        const res = await this.fn();
+        if (this._resolve) {
+          this._resolve(res);
+        }
+        return;
+      } catch (err) {
+        this._currError = err;
+        if (this._canceled || this._abortSignal?.aborted) {
+          if (this._reject) {
+            this._reject(err);
+          }
+          return;
+        }
+        if (this._errorCb) {
+          this._errorCb(err);
+        }
+        await new Promise((resolve) => {
+          let timeoutId = null;
+          if (this._abortSignal?.aborted) {
+            resolve();
+            return;
+          }
+          this._cancelRetry = () => {
+            if (timeoutId) this._clearTimeout(timeoutId);
+            resolve();
+          };
+          timeoutId = this._setTimeout(() => {
+            this._cancelRetry = void 0;
+            resolve();
+          }, this._backoffFn());
+        });
+      }
+    } while (true);
+  }
+};
+function retryWithAbort(abortSignal, cb, opts) {
+  return new Retry(cb.bind(void 0, abortSignal), {
+    ...opts,
+    abortSignal
+  }).result;
+}
+
+// ../../../web/runtime/runtime.pb.ts
+var WebRuntimeClientType_Enum = createEnumType(
+  "web.runtime.WebRuntimeClientType",
+  [
+    { no: 0, name: "WebRuntimeClientType_UNKNOWN" },
+    { no: 1, name: "WebRuntimeClientType_WEB_DOCUMENT" },
+    { no: 2, name: "WebRuntimeClientType_SERVICE_WORKER" },
+    { no: 3, name: "WebRuntimeClientType_WEB_WORKER" }
+  ]
+);
+createEnumType("web.runtime.WebRenderer", [
+  { no: 0, name: "WEB_RENDERER_DEFAULT" },
+  { no: 1, name: "WEB_RENDERER_ELECTRON" },
+  { no: 2, name: "WEB_RENDERER_SAUCER" }
+]);
+createMessageType({
+  typeName: "web.runtime.WebRuntimeHostInit",
+  fields: [
+    { no: 1, name: "web_runtime_id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.WatchWebRuntimeStatusRequest",
+  fields: [],
+  packedByDefault: true
+});
+var WebDocumentStatus = createMessageType({
+  typeName: "web.runtime.WebDocumentStatus",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "deleted", kind: "scalar", T: ScalarType.BOOL },
+    { no: 3, name: "permanent", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.WebRuntimeStatus",
+  fields: [
+    { no: 1, name: "snapshot", kind: "scalar", T: ScalarType.BOOL },
+    {
+      no: 2,
+      name: "web_documents",
+      kind: "message",
+      T: () => WebDocumentStatus,
+      repeated: true
+    },
+    { no: 3, name: "closed", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.CreateWebDocumentRequest",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.CreateWebDocumentResponse",
+  fields: [
+    { no: 1, name: "created", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.RemoveWebDocumentRequest",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.RemoveWebDocumentResponse",
+  fields: [
+    { no: 1, name: "removed", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.runtime.WebRuntimeClientInit",
+  fields: [
+    { no: 1, name: "web_runtime_id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "client_uuid", kind: "scalar", T: ScalarType.STRING },
+    {
+      no: 3,
+      name: "client_type",
+      kind: "enum",
+      T: WebRuntimeClientType_Enum
+    },
+    { no: 4, name: "disable_web_locks", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+
+// ../../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.ts
+var RpcStreamInit2 = createMessageType({
+  typeName: "rpcstream.RpcStreamInit",
+  fields: [
+    { no: 1, name: "component_id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+var RpcAck2 = createMessageType({
+  typeName: "rpcstream.RpcAck",
+  fields: [
+    { no: 1, name: "error", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+var RpcStreamPacket2 = createMessageType({
+  typeName: "rpcstream.RpcStreamPacket",
+  fields: [
+    {
+      no: 1,
+      name: "init",
+      kind: "message",
+      T: () => RpcStreamInit2,
+      oneof: "body"
+    },
+    { no: 2, name: "ack", kind: "message", T: () => RpcAck2, oneof: "body" },
+    { no: 3, name: "data", kind: "scalar", T: ScalarType.BYTES, oneof: "body" }
+  ],
+  packedByDefault: true
+});
+
+// ../../../web/runtime/runtime_srpc.pb.ts
+({
+  methods: {
+    /**
+     * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+     * Exposes the WebDocumentHost service.
+     * Id is the webDocumentId.
+     *
+     * @generated from rpc web.runtime.WebRuntimeHost.WebDocumentRpc
+     */
+    WebDocumentRpc: {
+      kind: MethodKind.BiDiStreaming
+    },
+    /**
+     * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+     * Exposes the ServiceWorkerHost service.
+     * Id is the service worker id.
+     *
+     * @generated from rpc web.runtime.WebRuntimeHost.ServiceWorkerRpc
+     */
+    ServiceWorkerRpc: {
+      kind: MethodKind.BiDiStreaming
+    },
+    /**
+     * WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+     * Exposes the WebWorkerHost service.
+     * Id is the webWorkerId.
+     *
+     * @generated from rpc web.runtime.WebRuntimeHost.WebWorkerRpc
+     */
+    WebWorkerRpc: {
+      kind: MethodKind.BiDiStreaming
+    }
+  }
+});
+({
+  methods: {
+    /**
+     * WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
+     *
+     * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
+     */
+    WatchWebRuntimeStatus: {
+      kind: MethodKind.ServerStreaming
+    },
+    /**
+     * CreateWebDocument requests to create a new WebDocument.
+     * Returns created: false if unable to create WebDocuments.
+     * This usually creates a new Tab or Window.
+     *
+     * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
+     */
+    CreateWebDocument: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * RemoveWebDocument requests to delete a WebDocument.
+     * Returns created: false if unable to create WebDocuments.
+     * This usually creates a new Tab or Window.
+     *
+     * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
+     */
+    RemoveWebDocument: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+     * Exposes the WebDocument service.
+     * Id is the webDocumentId.
+     *
+     * @generated from rpc web.runtime.WebRuntime.WebDocumentRpc
+     */
+    WebDocumentRpc: {
+      kind: MethodKind.BiDiStreaming
+    },
+    /**
+     * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+     * Contacts the WebWorker via. the associated WebRuntimeClient.
+     * The WebWorker must have registered with the runtime for this to work.
+     * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+     * Id is the webWorkerId.
+     *
+     * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc
+     */
+    WebWorkerRpc: {
+      kind: MethodKind.BiDiStreaming
+    }
+  }
+});
+
+// ../../../node_modules/workbox-window/build/workbox-window.prod.es5.mjs
+try {
+  self["workbox:window:7.3.0"] && _();
+} catch (n2) {
+}
+function n(n2, t2) {
+  return new Promise((function(r2) {
+    var e2 = new MessageChannel();
+    e2.port1.onmessage = function(n3) {
+      r2(n3.data);
+    }, n2.postMessage(t2, [e2.port2]);
+  }));
+}
+function t(n2, t2) {
+  (null == t2 || t2 > n2.length) && (t2 = n2.length);
+  for (var r2 = 0, e2 = Array(t2); r2 < t2; r2++) e2[r2] = n2[r2];
+  return e2;
+}
+function r(n2, t2) {
+  for (var r2 = 0; r2 < t2.length; r2++) {
+    var e2 = t2[r2];
+    e2.enumerable = e2.enumerable || false, e2.configurable = true, "value" in e2 && (e2.writable = true), Object.defineProperty(n2, o(e2.key), e2);
+  }
+}
+function e(n2, r2) {
+  var e2 = "undefined" != typeof Symbol && n2[Symbol.iterator] || n2["@@iterator"];
+  if (e2) return (e2 = e2.call(n2)).next.bind(e2);
+  if (Array.isArray(n2) || (e2 = (function(n3, r3) {
+    if (n3) {
+      if ("string" == typeof n3) return t(n3, r3);
+      var e3 = {}.toString.call(n3).slice(8, -1);
+      return "Object" === e3 && n3.constructor && (e3 = n3.constructor.name), "Map" === e3 || "Set" === e3 ? Array.from(n3) : "Arguments" === e3 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(e3) ? t(n3, r3) : void 0;
+    }
+  })(n2)) || r2) {
+    e2 && (n2 = e2);
+    var i2 = 0;
+    return function() {
+      return i2 >= n2.length ? { done: true } : { done: false, value: n2[i2++] };
+    };
+  }
+  throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function i(n2, t2) {
+  return i = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function(n3, t3) {
+    return n3.__proto__ = t3, n3;
+  }, i(n2, t2);
+}
+function o(n2) {
+  var t2 = (function(n3, t3) {
+    if ("object" != typeof n3 || !n3) return n3;
+    var r2 = n3[Symbol.toPrimitive];
+    if (void 0 !== r2) {
+      var e2 = r2.call(n3, t3);
+      if ("object" != typeof e2) return e2;
+      throw new TypeError("@@toPrimitive must return a primitive value.");
+    }
+    return (String )(n3);
+  })(n2, "string");
+  return "symbol" == typeof t2 ? t2 : t2 + "";
+}
+try {
+  self["workbox:core:7.3.0"] && _();
+} catch (n2) {
+}
+var u = function() {
+  var n2 = this;
+  this.promise = new Promise((function(t2, r2) {
+    n2.resolve = t2, n2.reject = r2;
+  }));
+};
+function a(n2, t2) {
+  var r2 = location.href;
+  return new URL(n2, r2).href === new URL(t2, r2).href;
+}
+var c = function(n2, t2) {
+  this.type = n2, Object.assign(this, t2);
+};
+function f(n2, t2, r2) {
+  return r2 ? t2 ? t2(n2) : n2 : (n2 && n2.then || (n2 = Promise.resolve(n2)), t2 ? n2.then(t2) : n2);
+}
+function s() {
+}
+var v = { type: "SKIP_WAITING" };
+function h(n2, t2) {
+  return n2 && n2.then ? n2.then(s) : Promise.resolve();
+}
+((function(t2) {
+  function e2(n2, r2) {
+    var e3, i2;
+    return void 0 === r2 && (r2 = {}), (e3 = t2.call(this) || this).nn = {}, e3.tn = 0, e3.rn = new u(), e3.en = new u(), e3.on = new u(), e3.un = 0, e3.an = /* @__PURE__ */ new Set(), e3.cn = function() {
+      var n3 = e3.fn, t3 = n3.installing;
+      e3.tn > 0 || !a(t3.scriptURL, e3.sn.toString()) || performance.now() > e3.un + 6e4 ? (e3.vn = t3, n3.removeEventListener("updatefound", e3.cn)) : (e3.hn = t3, e3.an.add(t3), e3.rn.resolve(t3)), ++e3.tn, t3.addEventListener("statechange", e3.ln);
+    }, e3.ln = function(n3) {
+      var t3 = e3.fn, r3 = n3.target, i3 = r3.state, o3 = r3 === e3.vn, u2 = { sw: r3, isExternal: o3, originalEvent: n3 };
+      !o3 && e3.mn && (u2.isUpdate = true), e3.dispatchEvent(new c(i3, u2)), "installed" === i3 ? e3.wn = self.setTimeout((function() {
+        "installed" === i3 && t3.waiting === r3 && e3.dispatchEvent(new c("waiting", u2));
+      }), 200) : "activating" === i3 && (clearTimeout(e3.wn), o3 || e3.en.resolve(r3));
+    }, e3.yn = function(n3) {
+      var t3 = e3.hn, r3 = t3 !== navigator.serviceWorker.controller;
+      e3.dispatchEvent(new c("controlling", { isExternal: r3, originalEvent: n3, sw: t3, isUpdate: e3.mn })), r3 || e3.on.resolve(t3);
+    }, e3.gn = (i2 = function(n3) {
+      var t3 = n3.data, r3 = n3.ports, i3 = n3.source;
+      return f(e3.getSW(), (function() {
+        e3.an.has(i3) && e3.dispatchEvent(new c("message", { data: t3, originalEvent: n3, ports: r3, sw: i3 }));
+      }));
+    }, function() {
+      for (var n3 = [], t3 = 0; t3 < arguments.length; t3++) n3[t3] = arguments[t3];
+      try {
+        return Promise.resolve(i2.apply(this, n3));
+      } catch (n4) {
+        return Promise.reject(n4);
+      }
+    }), e3.sn = n2, e3.nn = r2, navigator.serviceWorker.addEventListener("message", e3.gn), e3;
+  }
+  var o2, s2;
+  s2 = t2, (o2 = e2).prototype = Object.create(s2.prototype), o2.prototype.constructor = o2, i(o2, s2);
+  var l2 = e2.prototype;
+  return l2.register = function(n2) {
+    var t3 = (void 0 === n2 ? {} : n2).immediate, r2 = void 0 !== t3 && t3;
+    try {
+      var e3 = this;
+      return f((function(n3, t4) {
+        var r3 = n3();
+        if (r3 && r3.then) return r3.then(t4);
+        return t4(r3);
+      })((function() {
+        if (!r2 && "complete" !== document.readyState) return h(new Promise((function(n3) {
+          return window.addEventListener("load", n3);
+        })));
+      }), (function() {
+        return e3.mn = Boolean(navigator.serviceWorker.controller), e3.dn = e3.pn(), f(e3.bn(), (function(n3) {
+          e3.fn = n3, e3.dn && (e3.hn = e3.dn, e3.en.resolve(e3.dn), e3.on.resolve(e3.dn), e3.dn.addEventListener("statechange", e3.ln, { once: true }));
+          var t4 = e3.fn.waiting;
+          return t4 && a(t4.scriptURL, e3.sn.toString()) && (e3.hn = t4, Promise.resolve().then((function() {
+            e3.dispatchEvent(new c("waiting", { sw: t4, wasWaitingBeforeRegister: true }));
+          })).then((function() {
+          }))), e3.hn && (e3.rn.resolve(e3.hn), e3.an.add(e3.hn)), e3.fn.addEventListener("updatefound", e3.cn), navigator.serviceWorker.addEventListener("controllerchange", e3.yn), e3.fn;
+        }));
+      })));
+    } catch (n3) {
+      return Promise.reject(n3);
+    }
+  }, l2.update = function() {
+    try {
+      return this.fn ? f(h(this.fn.update())) : f();
+    } catch (n2) {
+      return Promise.reject(n2);
+    }
+  }, l2.getSW = function() {
+    return void 0 !== this.hn ? Promise.resolve(this.hn) : this.rn.promise;
+  }, l2.messageSW = function(t3) {
+    try {
+      return f(this.getSW(), (function(r2) {
+        return n(r2, t3);
+      }));
+    } catch (n2) {
+      return Promise.reject(n2);
+    }
+  }, l2.messageSkipWaiting = function() {
+    this.fn && this.fn.waiting && n(this.fn.waiting, v);
+  }, l2.pn = function() {
+    var n2 = navigator.serviceWorker.controller;
+    return n2 && a(n2.scriptURL, this.sn.toString()) ? n2 : void 0;
+  }, l2.bn = function() {
+    try {
+      var n2 = this;
+      return f((function(n3, t3) {
+        try {
+          var r2 = n3();
+        } catch (n4) {
+          return t3(n4);
+        }
+        if (r2 && r2.then) return r2.then(void 0, t3);
+        return r2;
+      })((function() {
+        return f(navigator.serviceWorker.register(n2.sn, n2.nn), (function(t3) {
+          return n2.un = performance.now(), t3;
+        }));
+      }), (function(n3) {
+        throw n3;
+      })));
+    } catch (n3) {
+      return Promise.reject(n3);
+    }
+  }, (function(n2, t3, e3) {
+    return t3 && r(n2.prototype, t3), Object.defineProperty(n2, "prototype", { writable: false }), n2;
+  })(e2, [{ key: "active", get: function() {
+    return this.en.promise;
+  } }, { key: "controlling", get: function() {
+    return this.on.promise;
+  } }]);
+}))((function() {
+  function n2() {
+    this.Pn = /* @__PURE__ */ new Map();
+  }
+  var t2 = n2.prototype;
+  return t2.addEventListener = function(n3, t3) {
+    this.jn(n3).add(t3);
+  }, t2.removeEventListener = function(n3, t3) {
+    this.jn(n3).delete(t3);
+  }, t2.dispatchEvent = function(n3) {
+    n3.target = this;
+    for (var t3, r2 = e(this.jn(n3.type)); !(t3 = r2()).done; ) {
+      (0, t3.value)(n3);
+    }
+  }, t2.jn = function(n3) {
+    return this.Pn.has(n3) || this.Pn.set(n3, /* @__PURE__ */ new Set()), this.Pn.get(n3);
+  }, n2;
+})());
+
+// ../../../web/document/document.pb.ts
+var WebWorkerType_Enum = createEnumType("web.document.WebWorkerType", [
+  { no: 0, name: "WEB_WORKER_TYPE_NATIVE" },
+  { no: 1, name: "WEB_WORKER_TYPE_QUICKJS" }
+]);
+createMessageType({
+  typeName: "web.document.WatchWebDocumentStatusRequest",
+  fields: [],
+  packedByDefault: true
+});
+var WebViewStatus = createMessageType({
+  typeName: "web.document.WebViewStatus",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "deleted", kind: "scalar", T: ScalarType.BOOL },
+    { no: 3, name: "parent_id", kind: "scalar", T: ScalarType.STRING },
+    { no: 4, name: "permanent", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+var WebWorkerStatus = createMessageType({
+  typeName: "web.document.WebWorkerStatus",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "deleted", kind: "scalar", T: ScalarType.BOOL },
+    { no: 3, name: "shared", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.WebDocumentStatus",
+  fields: [
+    { no: 1, name: "snapshot", kind: "scalar", T: ScalarType.BOOL },
+    { no: 2, name: "hidden", kind: "scalar", T: ScalarType.BOOL },
+    {
+      no: 3,
+      name: "web_views",
+      kind: "message",
+      T: () => WebViewStatus,
+      repeated: true
+    },
+    {
+      no: 4,
+      name: "web_workers",
+      kind: "message",
+      T: () => WebWorkerStatus,
+      repeated: true
+    },
+    { no: 5, name: "closed", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.CreateWebViewRequest",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.CreateWebViewResponse",
+  fields: [
+    { no: 1, name: "created", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.CreateWebWorkerRequest",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "path", kind: "scalar", T: ScalarType.STRING },
+    { no: 3, name: "shared", kind: "scalar", T: ScalarType.BOOL },
+    { no: 4, name: "init_data", kind: "scalar", T: ScalarType.BYTES },
+    { no: 5, name: "worker_type", kind: "enum", T: WebWorkerType_Enum }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.CreateWebWorkerResponse",
+  fields: [
+    { no: 1, name: "created", kind: "scalar", T: ScalarType.BOOL },
+    { no: 2, name: "shared", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.RemoveWebWorkerRequest",
+  fields: [
+    { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.document.RemoveWebWorkerResponse",
+  fields: [
+    { no: 1, name: "removed", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+
+// ../../../web/document/document_srpc.pb.ts
+({
+  methods: {
+    /**
+     * WebViewRpc opens a stream for a RPC call from a WebView.
+     * Exposes the WebViewHost service.
+     * Id is the webViewId.
+     *
+     * @generated from rpc web.document.WebDocumentHost.WebViewRpc
+     */
+    WebViewRpc: {
+      kind: MethodKind.BiDiStreaming
+    }
+  }
+});
+({
+  methods: {
+    /**
+     * WatchWebDocumentStatus returns an initial snapshot of WebViews followed by updates.
+     *
+     * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
+     */
+    WatchWebDocumentStatus: {
+      kind: MethodKind.ServerStreaming
+    },
+    /**
+     * CreateWebView requests to create a new WebView at the root level.
+     * Returns created: false if unable to create WebViews.
+     *
+     * @generated from rpc web.document.WebDocument.CreateWebView
+     */
+    CreateWebView: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * WebViewRpc opens a stream for a RPC call to a WebView.
+     * ID is the webViewId.
+     *
+     * @generated from rpc web.document.WebDocument.WebViewRpc
+     */
+    WebViewRpc: {
+      kind: MethodKind.BiDiStreaming
+    },
+    /**
+     * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
+     * If a worker already exists with that ID, it will be terminated before starting the new.
+     * Returns created: false if unable to create WebWorkers.
+     * This usually creates a new SharedWorker.
+     * The worker is expected to close itself if it becomes disconnected or broken.
+     * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
+     *
+     * @generated from rpc web.document.WebDocument.CreateWebWorker
+     */
+    CreateWebWorker: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * RemoveWebWorker requests to terminate a WebWorker with the given id.
+     *
+     * @generated from rpc web.document.WebDocument.RemoveWebWorker
+     */
+    RemoveWebWorker: {
+      kind: MethodKind.Unary
+    }
+  }
+});
+
+// ../../../web/view/view.pb.ts
+var RenderMode_Enum = createEnumType("web.view.RenderMode", [
+  { no: 0, name: "RenderMode_NONE" },
+  { no: 1, name: "RenderMode_REACT_COMPONENT" },
+  { no: 2, name: "RenderMode_FUNCTION" },
+  { no: 3, name: "RenderMode_REACT_CHILDREN" }
+]);
+createMessageType({
+  typeName: "web.view.SetRenderModeRequest",
+  fields: [
+    { no: 1, name: "render_mode", kind: "enum", T: RenderMode_Enum },
+    { no: 2, name: "script_path", kind: "scalar", T: ScalarType.STRING },
+    { no: 3, name: "props", kind: "scalar", T: ScalarType.BYTES },
+    { no: 4, name: "refresh", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.SetRenderModeResponse",
+  fields: [],
+  packedByDefault: true
+});
+var HtmlLink = createMessageType({
+  typeName: "web.view.HtmlLink",
+  fields: [
+    { no: 1, name: "href", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "rel", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.SetHtmlLinksRequest",
+  fields: [
+    { no: 1, name: "clear", kind: "scalar", T: ScalarType.BOOL },
+    {
+      no: 2,
+      name: "remove",
+      kind: "scalar",
+      T: ScalarType.STRING,
+      repeated: true
+    },
+    {
+      no: 3,
+      name: "set_links",
+      kind: "map",
+      K: ScalarType.STRING,
+      V: { kind: "message", T: () => HtmlLink }
+    }
+  ],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.SetHtmlLinksResponse",
+  fields: [],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.ResetWebViewRequest",
+  fields: [],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.ResetWebViewResponse",
+  fields: [],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.RemoveWebViewRequest",
+  fields: [],
+  packedByDefault: true
+});
+createMessageType({
+  typeName: "web.view.RemoveWebViewResponse",
+  fields: [
+    { no: 1, name: "removed", kind: "scalar", T: ScalarType.BOOL }
+  ],
+  packedByDefault: true
+});
+({
+  methods: {
+    /**
+     * SetRenderMode sets the rendering mode of the view.
+     *
+     * @generated from rpc web.view.WebView.SetRenderMode
+     */
+    SetRenderMode: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
+     *
+     * @generated from rpc web.view.WebView.SetHtmlLinks
+     */
+    SetHtmlLinks: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * ResetWebView clears the render mode, links, and contents of a WebView.
+     *
+     * @generated from rpc web.view.WebView.ResetWebView
+     */
+    ResetWebView: {
+      kind: MethodKind.Unary
+    },
+    /**
+     * RemoveWebView requests to remove a WebView from the root level.
+     *
+     * @generated from rpc web.view.WebView.RemoveWebView
+     */
+    RemoveWebView: {
+      kind: MethodKind.Unary
+    }
+  }
+});
+({
+  methods: {
+    /**
+     * WebViewRpc accesses the WebView service for a view by ID.
+     * Id: web view id
+     *
+     * @generated from rpc web.view.AccessWebViews.WebViewRpc
+     */
+    WebViewRpc: {
+      kind: MethodKind.BiDiStreaming
+    }
+  }
+});
+
+// ../../../web/electron/electron.ts
+(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigator?.userAgentData?.platform === "macOS" || false
+);
+(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigator?.userAgentData?.platform === "Linux" || false
+);
+(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigator?.userAgentData?.platform === "Windows" || false
+);
+
+// ../../../web/bldr/abort.ts
+function createAbortController2(parentSignal) {
+  const controller = new AbortController();
+  if (parentSignal) {
+    if (parentSignal.aborted) {
+      controller.abort();
+    } else {
+      parentSignal.addEventListener("abort", () => controller.abort(), {
+        once: true
+      });
+    }
+  }
+  return controller;
+}
+
+// ../../../sdk/resource/client.ts
+var releasedResourceClient = new Proxy(
+  { released: true },
+  {
+    get(target, prop) {
+      if (prop === "released") return true;
+      if (prop === "toJSON") return () => ({ released: true });
+      const propStr = String(prop);
+      if (typeof prop === "symbol" || propStr.startsWith("$$") || propStr.startsWith("@@__") || prop === "constructor" || prop === "prototype" || prop === "__proto__" || prop === "then" || prop === "asymmetricMatch" || prop === "nodeType" || prop === "tagName") {
+        return void 0;
+      }
+      throw new ResourceClientError(
+        `Cannot access "${propStr}" on released resource`,
+        "INVALID_RESOURCE"
+      );
+    }
+  }
+);
+var ResourceClientError = class extends Error {
+  constructor(message, code, cause) {
+    super(message);
+    this.code = code;
+    this.cause = cause;
+    this.name = "ResourceClientError";
+  }
+};
+var EventEmitter = class {
+  listeners = [];
+  on(listener) {
+    this.listeners.push(listener);
+    return () => {
+      const index = this.listeners.indexOf(listener);
+      if (index >= 0) this.listeners.splice(index, 1);
+    };
+  }
+  emit(event) {
+    const currentListeners = [...this.listeners];
+    currentListeners.forEach((listener) => {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error("Error in event listener:", error);
+      }
+    });
+  }
+  clear() {
+    this.listeners.length = 0;
+  }
+};
+function createResourceRef(id, client, onRelease) {
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    onRelease(id, ref);
+  };
+  let srpcClient = null;
+  const getSrpcClient = () => {
+    if (!srpcClient) {
+      const stream = buildRpcStreamOpenStream(
+        id.toString(),
+        client.service.ResourceRpc.bind(client.service)
+      );
+      srpcClient = new Client(stream);
+    }
+    return srpcClient;
+  };
+  const ref = {
+    get resourceId() {
+      return id;
+    },
+    get released() {
+      return released;
+    },
+    get client() {
+      if (released) {
+        return releasedResourceClient;
+      }
+      return getSrpcClient();
+    },
+    createRef(newId) {
+      if (released) {
+        throw new ResourceClientError(
+          `Cannot create ref from released resource ${id}`,
+          "INVALID_RESOURCE"
+        );
+      }
+      return client.createResourceReference(newId);
+    },
+    createResource(newId, ResourceClass, ...args) {
+      const ref2 = this.createRef(newId);
+      return new ResourceClass(ref2, ...args);
+    },
+    release,
+    [Symbol.dispose]: release,
+    _markReleased() {
+      released = true;
+    }
+  };
+  return ref;
+}
+var Client2 = class {
+  constructor(service, signal) {
+    this.service = service;
+    this.signal = signal;
+    signal.addEventListener(
+      "abort",
+      () => {
+        this.dispose("CLIENT_CANCELLED");
+      },
+      { once: true }
+    );
+  }
+  initState = null;
+  connectionController = null;
+  resources = /* @__PURE__ */ new Map();
+  events = new EventEmitter();
+  connectionLostEvents = new EventEmitter();
+  initPromise = null;
+  disposed = false;
+  _connectionGeneration = 0;
+  _reconnectResolve = null;
+  /**
+   * The connection generation counter. Increments each time the connection
+   * is lost and resources are released. React hooks can use this to detect
+   * when resources need to be re-created.
+   */
+  get connectionGeneration() {
+    return this._connectionGeneration;
+  }
+  /**
+   * Register a callback for when resources are released.
+   * Returns an unsubscribe function.
+   */
+  onResourceReleased(callback) {
+    this.throwIfDisposed();
+    return this.events.on(callback);
+  }
+  /**
+   * Register a callback for when the connection is lost and all resources
+   * are released. This fires when the server connection drops and reconnects.
+   * Returns an unsubscribe function.
+   */
+  onConnectionLost(callback) {
+    this.throwIfDisposed();
+    return this.connectionLostEvents.on(callback);
+  }
+  /**
+   * Get a reference to the root resource.
+   * This starts the client connection if not already active.
+   */
+  async accessRootResource() {
+    const state = await this.ensureInitialized();
+    return this.createResourceReference(state.rootResourceId);
+  }
+  /**
+   * Create a reference to a specific resource by ID.
+   * The resource should already exist on the server.
+   */
+  createResourceReference(id) {
+    this.throwIfDisposed();
+    return this.createRef(id);
+  }
+  /**
+   * Dispose the client and clean up all resources.
+   */
+  dispose(reason = "CLIENT_DISPOSED") {
+    if (this.disposed) return;
+    this.disposed = true;
+    if (this.connectionController) {
+      this.connectionController.abort();
+      this.connectionController = null;
+    }
+    const releaseReason = reason === "CLIENT_CANCELLED" ? "client-disposed" : "client-disposed";
+    for (const [resourceId, refs] of this.resources.entries()) {
+      refs.forEach((ref) => ref._markReleased());
+      this.events.emit({ resourceId, reason: releaseReason });
+    }
+    this.resources.clear();
+    this.events.clear();
+    this.connectionLostEvents.clear();
+    this.initState = null;
+    this.initPromise = null;
+  }
+  /**
+   * Ensure the client is initialized and return the init state.
+   */
+  async ensureInitialized() {
+    this.throwIfDisposed();
+    if (this.initState) {
+      return this.initState;
+    }
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    this.initPromise = this.performInitialization();
+    return this.initPromise;
+  }
+  /**
+   * Perform the actual client initialization.
+   */
+  async performInitialization() {
+    this.throwIfDisposed();
+    this.connectionController = createAbortController2(this.signal);
+    return new Promise((resolve, reject) => {
+      let initialized = false;
+      const cleanup = () => {
+        if (!initialized) {
+          this.connectionController = null;
+          this.initPromise = null;
+        }
+      };
+      const handleCancel = () => {
+        if (!initialized) {
+          cleanup();
+          reject(
+            new ResourceClientError(
+              "Client initialization was cancelled",
+              "CLIENT_CANCELLED"
+            )
+          );
+        }
+      };
+      if (this.signal.aborted) {
+        handleCancel();
+        return;
+      }
+      this.signal.addEventListener("abort", handleCancel, { once: true });
+      this.startConnection(resolve, reject, () => {
+        initialized = true;
+        this.signal.removeEventListener("abort", handleCancel);
+      }).catch((error) => {
+        cleanup();
+        if (!initialized) {
+          const cause = error instanceof Error ? error : new Error(String(error));
+          reject(
+            new ResourceClientError(
+              "Failed to initialize client connection",
+              "CONNECTION_FAILED",
+              cause
+            )
+          );
+        }
+      });
+    });
+  }
+  /**
+   * Start the connection and handle the message stream.
+   */
+  async startConnection(onInitialized, onError, markInitialized) {
+    if (!this.connectionController) {
+      throw new ResourceClientError(
+        "No connection controller",
+        "CONNECTION_FAILED"
+      );
+    }
+    await retryWithAbort(this.connectionController.signal, async (signal) => {
+      const stream = this.service.ResourceClient({}, signal);
+      try {
+        for await (const msg of stream) {
+          if (signal.aborted) return;
+          if (msg.body?.case === "init") {
+            const clientHandleId = msg.body.value.clientHandleId ?? 0;
+            const rootResourceId = msg.body.value.rootResourceId ?? 0;
+            const state = { clientHandleId, rootResourceId };
+            if (this._reconnectResolve) {
+              this.initState = state;
+              this._reconnectResolve(state);
+              this._reconnectResolve = null;
+            } else if (!this.initState) {
+              this.initState = state;
+              markInitialized();
+              onInitialized(state);
+            } else {
+              this.initState = state;
+            }
+            continue;
+          }
+          if (msg.body?.case === "resourceReleased") {
+            const resourceId = msg.body.value.resourceId ?? 0;
+            this.handleServerResourceRelease(resourceId);
+            continue;
+          }
+          if (msg.body?.case === "clientError") {
+            const error = new ResourceClientError(
+              `Server error: ${msg.body.value}`,
+              "SERVER_ERROR"
+            );
+            if (!this.initState) {
+              onError(error);
+            }
+            throw error;
+          }
+        }
+      } finally {
+        if (this.resources.size > 0) {
+          this.releaseAllResources("connection-lost");
+        }
+      }
+    });
+  }
+  /**
+   * Throw an error if the client has been disposed.
+   */
+  throwIfDisposed() {
+    if (this.disposed) {
+      throw new ResourceClientError(
+        "Client has been disposed",
+        "CLIENT_DISPOSED"
+      );
+    }
+  }
+  /**
+   * Creates a new reference to a resource.
+   */
+  createRef(id) {
+    this.throwIfDisposed();
+    if (!this.resources.has(id)) {
+      this.resources.set(id, /* @__PURE__ */ new Set());
+    }
+    const ref = createResourceRef(id, this, this.releaseRef.bind(this));
+    this.resources.get(id).add(ref);
+    return ref;
+  }
+  /**
+   * Called when a reference is released.
+   * Cleans up the resource if no more references exist.
+   *
+   * Since server handlers may send the same resource ID multiple times and
+   * client code may create multiple references to the same resource ID,
+   * we only notify the server when the last client-side reference is released.
+   */
+  releaseRef(id, ref) {
+    const refs = this.resources.get(id);
+    if (!refs) return;
+    refs.delete(ref);
+    if (refs.size === 0) {
+      this.resources.delete(id);
+      this.notifyServerResourceRelease(id).catch(() => {
+      });
+      this.events.emit({
+        resourceId: id,
+        reason: "client-released"
+      });
+    }
+  }
+  /**
+   * Notify the server that a resource should be released.
+   */
+  async notifyServerResourceRelease(resourceId) {
+    if (!this.initState || this.disposed) {
+      return;
+    }
+    try {
+      await this.service.ResourceRefRelease(
+        {
+          clientHandleId: this.initState.clientHandleId,
+          resourceId
+        },
+        this.signal
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("ERR_RPC_ABORT")) {
+        return;
+      }
+      if (error instanceof Error) {
+        console.warn(
+          `Failed to notify server of resource ${resourceId} release:`,
+          error
+        );
+      } else {
+        console.warn(
+          `Failed to notify server of resource ${resourceId} release:`,
+          String(error)
+        );
+      }
+    }
+  }
+  /**
+   * Called when the server notifies us that a resource was released.
+   */
+  handleServerResourceRelease(resourceId) {
+    const refs = this.resources.get(resourceId);
+    if (!refs) return;
+    refs.forEach((ref) => ref._markReleased());
+    this.resources.delete(resourceId);
+    this.events.emit({
+      resourceId,
+      reason: "server-released"
+    });
+  }
+  /**
+   * Release all resources with the given reason.
+   * Used when connection is lost and resources are no longer valid.
+   */
+  releaseAllResources(reason) {
+    for (const [resourceId, refs] of this.resources.entries()) {
+      refs.forEach((ref) => ref._markReleased());
+      this.events.emit({ resourceId, reason });
+    }
+    this.resources.clear();
+    this.initState = null;
+    this.initPromise = new Promise((resolve) => {
+      this._reconnectResolve = resolve;
+    });
+    this._connectionGeneration++;
+    this.connectionLostEvents.emit(void 0);
+  }
+};
+
+// ../../../resource/resource.pb.ts
+var ResourceClientRequest = createMessageType({
+  typeName: "resource.ResourceClientRequest",
+  fields: [],
+  packedByDefault: true
+});
+var ResourceClientInit = createMessageType({
+  typeName: "resource.ResourceClientInit",
+  fields: [
+    { no: 1, name: "client_handle_id", kind: "scalar", T: ScalarType.UINT32 },
+    { no: 2, name: "root_resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceReleasedResponse = createMessageType({
+  typeName: "resource.ResourceReleasedResponse",
+  fields: [
+    { no: 1, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceClientResponse = createMessageType({
+  typeName: "resource.ResourceClientResponse",
+  fields: [
+    {
+      no: 1,
+      name: "init",
+      kind: "message",
+      T: () => ResourceClientInit,
+      oneof: "body"
+    },
+    {
+      no: 2,
+      name: "resource_released",
+      kind: "message",
+      T: () => ResourceReleasedResponse,
+      oneof: "body"
+    },
+    {
+      no: 3,
+      name: "client_error",
+      kind: "scalar",
+      T: ScalarType.STRING,
+      oneof: "body"
+    }
+  ],
+  packedByDefault: true
+});
+var ResourceRefReleaseRequest = createMessageType({
+  typeName: "resource.ResourceRefReleaseRequest",
+  fields: [
+    { no: 1, name: "client_handle_id", kind: "scalar", T: ScalarType.UINT32 },
+    { no: 2, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceRefReleaseResponse = createMessageType({
+  typeName: "resource.ResourceRefReleaseResponse",
+  fields: [],
+  packedByDefault: true
+});
+var ResourceAttachInit = createMessageType({
+  typeName: "resource.ResourceAttachInit",
+  fields: [
+    { no: 1, name: "client_handle_id", kind: "scalar", T: ScalarType.UINT32 },
+    { no: 2, name: "label", kind: "scalar", T: ScalarType.STRING }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachAck = createMessageType({
+  typeName: "resource.ResourceAttachAck",
+  fields: [
+    { no: 1, name: "error", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "resource_id", kind: "scalar", T: ScalarType.UINT32 }
+  ],
+  packedByDefault: true
+});
+var ResourceAttachPacket = createMessageType({
+  typeName: "resource.ResourceAttachPacket",
+  fields: [
+    {
+      no: 1,
+      name: "init",
+      kind: "message",
+      T: () => ResourceAttachInit,
+      oneof: "body"
+    },
+    {
+      no: 2,
+      name: "ack",
+      kind: "message",
+      T: () => ResourceAttachAck,
+      oneof: "body"
+    },
+    {
+      no: 3,
+      name: "mux_data",
+      kind: "scalar",
+      T: ScalarType.BYTES,
+      oneof: "body"
+    }
+  ],
+  packedByDefault: true
+});
+
+// ../../../resource/resource_srpc.pb.ts
+var ResourceServiceDefinition = {
+  typeName: "resource.ResourceService",
+  methods: {
+    /**
+     * ResourceClient starts an instance of a client for the ResourceService,
+     * yielding a new client ID. The client can use that ID for future RPCs
+     * accessing the Resource tree. When the streaming RPC ends, references to
+     * resources opened by the client will be released.
+     *
+     * @generated from rpc resource.ResourceService.ResourceClient
+     */
+    ResourceClient: {
+      name: "ResourceClient",
+      kind: MethodKind.ServerStreaming
+    },
+    /**
+     * ResourceRpc is a rpc request for an open resource handle.
+     * Exposes service(s) depending on the resource type.
+     * Component ID: resource_id from ResourceClient call.
+     *
+     * @generated from rpc resource.ResourceService.ResourceRpc
+     */
+    ResourceRpc: {
+      name: "ResourceRpc",
+      kind: MethodKind.BiDiStreaming
+    },
+    /**
+     * ResourceRefRelease releases a resource given a handle ID.
+     * This is called when no references remain to a resource.
+     *
+     * @generated from rpc resource.ResourceService.ResourceRefRelease
+     */
+    ResourceRefRelease: {
+      name: "ResourceRefRelease",
+      kind: MethodKind.Unary
+    },
+    /**
+     * ResourceAttach allows a client to provide a resource that server-side
+     * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+     * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+     *
+     * @generated from rpc resource.ResourceService.ResourceAttach
+     */
+    ResourceAttach: {
+      name: "ResourceAttach",
+      kind: MethodKind.BiDiStreaming
+    }
+  }
+};
+var ResourceServiceServiceName = ResourceServiceDefinition.typeName;
+var ResourceServiceClient = class {
+  rpc;
+  service;
+  constructor(rpc, opts) {
+    this.service = opts?.service || ResourceServiceServiceName;
+    this.rpc = rpc;
+    this.ResourceClient = this.ResourceClient.bind(this);
+    this.ResourceRpc = this.ResourceRpc.bind(this);
+    this.ResourceRefRelease = this.ResourceRefRelease.bind(this);
+    this.ResourceAttach = this.ResourceAttach.bind(this);
+  }
+  /**
+   * ResourceClient starts an instance of a client for the ResourceService,
+   * yielding a new client ID. The client can use that ID for future RPCs
+   * accessing the Resource tree. When the streaming RPC ends, references to
+   * resources opened by the client will be released.
+   *
+   * @generated from rpc resource.ResourceService.ResourceClient
+   */
+  ResourceClient(request, abortSignal) {
+    const requestMsg = ResourceClientRequest.create(request);
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceClient.name,
+      ResourceClientRequest.toBinary(requestMsg),
+      abortSignal || void 0
+    );
+    return buildDecodeMessageTransform(ResourceClientResponse)(result);
+  }
+  /**
+   * ResourceRpc is a rpc request for an open resource handle.
+   * Exposes service(s) depending on the resource type.
+   * Component ID: resource_id from ResourceClient call.
+   *
+   * @generated from rpc resource.ResourceService.ResourceRpc
+   */
+  ResourceRpc(request, abortSignal) {
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceRpc.name,
+      buildEncodeMessageTransform(RpcStreamPacket2)(request),
+      abortSignal || void 0
+    );
+    return buildDecodeMessageTransform(RpcStreamPacket2)(result);
+  }
+  /**
+   * ResourceRefRelease releases a resource given a handle ID.
+   * This is called when no references remain to a resource.
+   *
+   * @generated from rpc resource.ResourceService.ResourceRefRelease
+   */
+  async ResourceRefRelease(request, abortSignal) {
+    const requestMsg = ResourceRefReleaseRequest.create(request);
+    const result = await this.rpc.request(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceRefRelease.name,
+      ResourceRefReleaseRequest.toBinary(requestMsg),
+      abortSignal || void 0
+    );
+    return ResourceRefReleaseResponse.fromBinary(result);
+  }
+  /**
+   * ResourceAttach allows a client to provide a resource that server-side
+   * RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+   * handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+   *
+   * @generated from rpc resource.ResourceService.ResourceAttach
+   */
+  ResourceAttach(request, abortSignal) {
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceAttach.name,
+      buildEncodeMessageTransform(ResourceAttachPacket)(request),
+      abortSignal || void 0
+    );
+    return buildDecodeMessageTransform(ResourceAttachPacket)(result);
+  }
+};
+
 // ../../../vendor/github.com/aperturerobotics/bifrost/hash/hash.pb.ts
 var HashType_Enum = createEnumType("hash.HashType", [
   { no: 0, name: "HashType_UNKNOWN" },
@@ -7832,8 +9335,8 @@ var Timestamp_Wkt = {
     const nanos = ms % 1e3 * 1e6;
     return { seconds: protoInt64.parse(seconds), nanos };
   },
-  equals(a, b) {
-    const aDate = a instanceof Date ? a : Timestamp_Wkt.toDate(a);
+  equals(a2, b) {
+    const aDate = a2 instanceof Date ? a2 : Timestamp_Wkt.toDate(a2);
     const bDate = b instanceof Date ? b : Timestamp_Wkt.toDate(b);
     if (aDate === bDate) {
       return true;
@@ -8158,37 +9661,6 @@ createMessageType({
   packedByDefault: true
 });
 
-// ../../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.ts
-var RpcStreamInit2 = createMessageType({
-  typeName: "rpcstream.RpcStreamInit",
-  fields: [
-    { no: 1, name: "component_id", kind: "scalar", T: ScalarType.STRING }
-  ],
-  packedByDefault: true
-});
-var RpcAck2 = createMessageType({
-  typeName: "rpcstream.RpcAck",
-  fields: [
-    { no: 1, name: "error", kind: "scalar", T: ScalarType.STRING }
-  ],
-  packedByDefault: true
-});
-var RpcStreamPacket2 = createMessageType({
-  typeName: "rpcstream.RpcStreamPacket",
-  fields: [
-    {
-      no: 1,
-      name: "init",
-      kind: "message",
-      T: () => RpcStreamInit2,
-      oneof: "body"
-    },
-    { no: 2, name: "ack", kind: "message", T: () => RpcAck2, oneof: "body" },
-    { no: 3, name: "data", kind: "scalar", T: ScalarType.BYTES, oneof: "body" }
-  ],
-  packedByDefault: true
-});
-
 // ../../plugin_srpc.pb.ts
 var PluginHostDefinition = {
   typeName: "bldr.plugin.PluginHost",
@@ -8368,6 +9840,8 @@ var BackendApiImpl = class {
   // handleStreamCtr allows the plugin module to register a function
   // that will be called to handle incoming streams from the WebRuntime.
   handleStreamCtr;
+  // resourceClient provides access to the plugin's resource tree.
+  resourceClient;
   // protos contains the protobuf objects used by the BackendAPI.
   protos = {
     PluginStartInfo,
@@ -8419,12 +9893,16 @@ var BackendApiImpl = class {
       return result;
     }
   };
-  constructor(startInfo, openStream2, handleStreamCtr) {
+  constructor(startInfo, openStream2, handleStreamCtr, signal) {
     this.startInfo = startInfo;
     this.openStream = openStream2;
     this.client = new Client(openStream2);
     this.handleStreamCtr = handleStreamCtr;
     this.pluginHost = new PluginHostClient(this.client);
+    this.resourceClient = new Client2(
+      new ResourceServiceClient(this.client),
+      signal
+    );
   }
   // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
   buildPluginOpenStream(pluginID) {
@@ -8508,14 +9986,15 @@ async function startPlugin() {
   } else {
     startInfo = {};
   }
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
   const backendAPI = new BackendApiImpl(
     startInfo,
     openStream,
-    handleIncomingStreamCtr
+    handleIncomingStreamCtr,
+    abortSignal
   );
   globalThis.gc?.();
-  const abortController = new AbortController();
-  const abortSignal = abortController.signal;
   await script.default(backendAPI, abortSignal);
 }
 startPlugin().catch((err) => {

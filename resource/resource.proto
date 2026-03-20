@@ -21,6 +21,11 @@ service ResourceService {
   // ResourceRefRelease releases a resource given a handle ID.
   // This is called when no references remain to a resource.
   rpc ResourceRefRelease(ResourceRefReleaseRequest) returns (ResourceRefReleaseResponse);
+
+  // ResourceAttach allows a client to provide a resource that server-side
+  // RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+  // handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+  rpc ResourceAttach(stream ResourceAttachPacket) returns (stream ResourceAttachPacket);
 }
 
 // ResourceClientRequest is the request body for ResourceClient.
@@ -66,3 +71,32 @@ message ResourceRefReleaseRequest {
 
 // ResourceRefReleaseResponse is the response for ResourceRefRelease.
 message ResourceRefReleaseResponse {}
+
+// ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
+message ResourceAttachPacket {
+  // Body is the body of the packet.
+  oneof body {
+    // Init is the initialization message sent by the client.
+    ResourceAttachInit init = 1;
+    // Ack is the acknowledgment sent by the server.
+    ResourceAttachAck ack = 2;
+    // MuxData carries yamux multiplexer frames after handshake.
+    bytes mux_data = 3;
+  }
+}
+
+// ResourceAttachInit is sent by the client to initiate an attach.
+message ResourceAttachInit {
+  // ClientHandleId identifies the owning client session.
+  uint32 client_handle_id = 1;
+  // Label is an informational description of the attached resource.
+  string label = 2;
+}
+
+// ResourceAttachAck is sent by the server to confirm the attach.
+message ResourceAttachAck {
+  // Error is set if the attach was rejected.
+  string error = 1;
+  // ResourceId is the server-assigned ID for the attached resource.
+  uint32 resource_id = 2;
+}

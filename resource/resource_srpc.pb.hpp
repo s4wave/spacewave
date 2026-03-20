@@ -24,6 +24,8 @@ class SRPCResourceService_ResourceClientClient;
 class SRPCResourceService_ResourceClientStream;
 class SRPCResourceService_ResourceRpcClient;
 class SRPCResourceService_ResourceRpcStream;
+class SRPCResourceService_ResourceAttachClient;
+class SRPCResourceService_ResourceAttachStream;
 
 // SRPCResourceServiceClient is the client API for ResourceService service.
 class SRPCResourceServiceClient {
@@ -39,6 +41,8 @@ class SRPCResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCResourceService_ResourceRpcClient>, starpc::Error> ResourceRpc() = 0;
   // ResourceRefRelease
   virtual starpc::Error ResourceRefRelease(const resource::ResourceRefReleaseRequest& in, resource::ResourceRefReleaseResponse* out) = 0;
+  // ResourceAttach
+  virtual std::pair<std::unique_ptr<SRPCResourceService_ResourceAttachClient>, starpc::Error> ResourceAttach() = 0;
 };
 
 // SRPCResourceServiceClientImpl implements SRPCResourceServiceClient.
@@ -55,6 +59,8 @@ class SRPCResourceServiceClientImpl : public SRPCResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCResourceService_ResourceRpcClient>, starpc::Error> ResourceRpc() override;
   // ResourceRefRelease
   virtual starpc::Error ResourceRefRelease(const resource::ResourceRefReleaseRequest& in, resource::ResourceRefReleaseResponse* out) override;
+  // ResourceAttach
+  virtual std::pair<std::unique_ptr<SRPCResourceService_ResourceAttachClient>, starpc::Error> ResourceAttach() override;
 
  private:
   starpc::Client* cc_;
@@ -77,6 +83,8 @@ class SRPCResourceServiceServer {
   virtual starpc::Error ResourceRpc(SRPCResourceService_ResourceRpcStream* strm) = 0;
   // ResourceRefRelease
   virtual starpc::Error ResourceRefRelease(const resource::ResourceRefReleaseRequest& req, resource::ResourceRefReleaseResponse* resp) = 0;
+  // ResourceAttach
+  virtual starpc::Error ResourceAttach(SRPCResourceService_ResourceAttachStream* strm) = 0;
 };
 
 // SRPCResourceServiceHandler implements starpc::Handler for ResourceService.
@@ -184,6 +192,49 @@ class SRPCResourceService_ResourceRpcStream {
   }
 
   starpc::Error Recv(rpcstream::RpcStreamPacket* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCResourceService_ResourceAttachClient is the client stream for ResourceAttach.
+class SRPCResourceService_ResourceAttachClient {
+ public:
+  explicit SRPCResourceService_ResourceAttachClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Send(const resource::ResourceAttachPacket& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error Recv(resource::ResourceAttachPacket* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCResourceService_ResourceAttachStream is the server stream for ResourceAttach.
+class SRPCResourceService_ResourceAttachStream {
+ public:
+  explicit SRPCResourceService_ResourceAttachStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const resource::ResourceAttachPacket& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const resource::ResourceAttachPacket& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+  starpc::Error Recv(resource::ResourceAttachPacket* msg) {
     return strm_->MsgRecv(msg);
   }
 

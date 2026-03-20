@@ -61,4 +61,47 @@ pub struct ResourceRefReleaseRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResourceRefReleaseResponse {
 }
+/// ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachPacket {
+    /// Body is the body of the packet.
+    #[prost(oneof="resource_attach_packet::Body", tags="1, 2, 3")]
+    pub body: ::core::option::Option<resource_attach_packet::Body>,
+}
+/// Nested message and enum types in `ResourceAttachPacket`.
+pub mod resource_attach_packet {
+    /// Body is the body of the packet.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Body {
+        /// Init is the initialization message sent by the client.
+        #[prost(message, tag="1")]
+        Init(super::ResourceAttachInit),
+        /// Ack is the acknowledgment sent by the server.
+        #[prost(message, tag="2")]
+        Ack(super::ResourceAttachAck),
+        /// MuxData carries yamux multiplexer frames after handshake.
+        #[prost(bytes, tag="3")]
+        MuxData(::prost::alloc::vec::Vec<u8>),
+    }
+}
+/// ResourceAttachInit is sent by the client to initiate an attach.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachInit {
+    /// ClientHandleId identifies the owning client session.
+    #[prost(uint32, tag="1")]
+    pub client_handle_id: u32,
+    /// Label is an informational description of the attached resource.
+    #[prost(string, tag="2")]
+    pub label: ::prost::alloc::string::String,
+}
+/// ResourceAttachAck is sent by the server to confirm the attach.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceAttachAck {
+    /// Error is set if the attach was rejected.
+    #[prost(string, tag="1")]
+    pub error: ::prost::alloc::string::String,
+    /// ResourceId is the server-assigned ID for the attached resource.
+    #[prost(uint32, tag="2")]
+    pub resource_id: u32,
+}
 // @@protoc_insertion_point(module)

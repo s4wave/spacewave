@@ -240,6 +240,79 @@ func (c *Client) Release() {
 	c.cancel()
 }
 
+// AttachResource provides a mux that server-side handlers can invoke.
+// The mux is served over a yamux session inside the ResourceAttach bidi
+// stream. Returns the server-assigned resource ID. The caller's mux
+// serves RPCs coming from the server side. The caller should run this
+// in a goroutine; it blocks until ctx is canceled or the stream closes.
+func (c *Client) AttachResource(
+	ctx context.Context,
+	label string,
+	mux srpc.Invoker,
+) (uint32, error) {
+	// Open ResourceAttach bidi stream.
+	strm, err := c.service.ResourceAttach(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// Send Init with client handle ID and label.
+	err = strm.Send(&resource.ResourceAttachPacket{
+		Body: &resource.ResourceAttachPacket_Init{
+			Init: &resource.ResourceAttachInit{
+				ClientHandleId: c.clientHandleID,
+				Label:          label,
+			},
+		},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	// Read Ack.
+	ackPkt, err := strm.Recv()
+	if err != nil {
+		return 0, err
+	}
+	ack := ackPkt.GetAck()
+	if ack == nil {
+		return 0, errors.New("expected ack packet")
+	}
+	if ack.GetError() != "" {
+		return 0, errors.New(ack.GetError())
+	}
+	resourceID := ack.GetResourceId()
+
+	// Build ReadWriteCloser adapter bridging mux_data and yamux.
+	rwc := resource.NewAttachMuxDataRwc(
+		func(data []byte) error {
+			return strm.Send(&resource.ResourceAttachPacket{
+				Body: &resource.ResourceAttachPacket_MuxData{MuxData: data},
+			})
+		},
+		func() ([]byte, error) {
+			pkt, recvErr := strm.Recv()
+			if recvErr != nil {
+				return nil, recvErr
+			}
+			return pkt.GetMuxData(), nil
+		},
+	)
+
+	// CLIENT side is yamux server (outbound=false): accepts sub-streams
+	// from the server to serve RPCs.
+	mc, err := srpc.NewMuxedConnWithRwc(ctx, rwc, false, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	// Serve incoming RPCs on the mux.
+	srv := srpc.NewServer(mux)
+	go srv.AcceptMuxedConn(ctx, mc)
+
+	return resourceID, nil
+}
+
 // releaseResourceRefLocked is called when a client-side reference is released.
 // Only notifies the server when the last reference to a resource ID is released.
 // Must be called with mtx held.

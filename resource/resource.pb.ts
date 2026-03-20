@@ -200,3 +200,140 @@ export const ResourceRefReleaseResponse: MessageType<ResourceRefReleaseResponse>
     fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * ResourceAttachInit is sent by the client to initiate an attach.
+ *
+ * @generated from message resource.ResourceAttachInit
+ */
+export interface ResourceAttachInit {
+  /**
+   * ClientHandleId identifies the owning client session.
+   *
+   * @generated from field: uint32 client_handle_id = 1;
+   */
+  clientHandleId?: number
+  /**
+   * Label is an informational description of the attached resource.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+}
+
+// ResourceAttachInit contains the message type declaration for ResourceAttachInit.
+export const ResourceAttachInit: MessageType<ResourceAttachInit> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachInit',
+    fields: [
+      { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachAck is sent by the server to confirm the attach.
+ *
+ * @generated from message resource.ResourceAttachAck
+ */
+export interface ResourceAttachAck {
+  /**
+   * Error is set if the attach was rejected.
+   *
+   * @generated from field: string error = 1;
+   */
+  error?: string
+  /**
+   * ResourceId is the server-assigned ID for the attached resource.
+   *
+   * @generated from field: uint32 resource_id = 2;
+   */
+  resourceId?: number
+}
+
+// ResourceAttachAck contains the message type declaration for ResourceAttachAck.
+export const ResourceAttachAck: MessageType<ResourceAttachAck> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachAck',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceAttachPacket is the packet for the ResourceAttach bidi stream.
+ *
+ * @generated from message resource.ResourceAttachPacket
+ */
+export interface ResourceAttachPacket {
+  /**
+   * Body is the body of the packet.
+   *
+   * @generated from oneof resource.ResourceAttachPacket.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Init is the initialization message sent by the client.
+         *
+         * @generated from field: resource.ResourceAttachInit init = 1;
+         */
+        value: ResourceAttachInit
+        case: 'init'
+      }
+    | {
+        /**
+         * Ack is the acknowledgment sent by the server.
+         *
+         * @generated from field: resource.ResourceAttachAck ack = 2;
+         */
+        value: ResourceAttachAck
+        case: 'ack'
+      }
+    | {
+        /**
+         * MuxData carries yamux multiplexer frames after handshake.
+         *
+         * @generated from field: bytes mux_data = 3;
+         */
+        value: Uint8Array
+        case: 'muxData'
+      }
+}
+
+// ResourceAttachPacket contains the message type declaration for ResourceAttachPacket.
+export const ResourceAttachPacket: MessageType<ResourceAttachPacket> =
+  createMessageType({
+    typeName: 'resource.ResourceAttachPacket',
+    fields: [
+      {
+        no: 1,
+        name: 'init',
+        kind: 'message',
+        T: () => ResourceAttachInit,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'ack',
+        kind: 'message',
+        T: () => ResourceAttachAck,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'mux_data',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        oneof: 'body',
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

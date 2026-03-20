@@ -1,5 +1,6 @@
 export { ResourceServer, getCurrentResourceClient } from './server.js'
 export { RemoteResourceClient } from './tracked-client.js'
+export type { AttachedResource } from './attached-resource.js'
 export type { TrackedResource } from './tracked-resource.js'
 export { constructChildResource } from './construct.js'
 export type { ConstructResult } from './construct.js'

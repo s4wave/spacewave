@@ -32,11 +32,20 @@ starpc::Error SRPCResourceServiceClientImpl::ResourceRefRelease(const resource::
   return cc_->ExecCall(service_id_, "ResourceRefRelease", in, out);
 }
 
+std::pair<std::unique_ptr<SRPCResourceService_ResourceAttachClient>, starpc::Error> SRPCResourceServiceClientImpl::ResourceAttach() {
+  auto [strm, err] = cc_->NewStream(service_id_, "ResourceAttach", nullptr);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCResourceService_ResourceAttachClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCResourceServiceHandler::GetMethodIDs() const {
   return {
     "ResourceClient",
     "ResourceRpc",
     "ResourceRefRelease",
+    "ResourceAttach",
   };
 }
 
@@ -65,6 +74,9 @@ std::pair<bool, starpc::Error> SRPCResourceServiceHandler::InvokeMethod(
     err = impl_->ResourceRefRelease(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ResourceAttach") {
+    SRPCResourceService_ResourceAttachStream bidiStrm(strm);
+    return {true, impl_->ResourceAttach(&bidiStrm)};
   }
 
   return {false, starpc::Error::OK};

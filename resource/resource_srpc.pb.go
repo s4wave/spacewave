@@ -27,6 +27,10 @@ type SRPCResourceServiceClient interface {
 	// ResourceRefRelease releases a resource given a handle ID.
 	// This is called when no references remain to a resource.
 	ResourceRefRelease(ctx context.Context, in *ResourceRefReleaseRequest) (*ResourceRefReleaseResponse, error)
+	// ResourceAttach allows a client to provide a resource that server-side
+	// RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+	// handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+	ResourceAttach(ctx context.Context) (SRPCResourceService_ResourceAttachClient, error)
 }
 
 type srpcResourceServiceClient struct {
@@ -129,6 +133,45 @@ func (c *srpcResourceServiceClient) ResourceRefRelease(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *srpcResourceServiceClient) ResourceAttach(ctx context.Context) (SRPCResourceService_ResourceAttachClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ResourceAttach", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcResourceService_ResourceAttachClient{stream}
+	return strm, nil
+}
+
+type SRPCResourceService_ResourceAttachClient interface {
+	srpc.Stream
+	Send(*ResourceAttachPacket) error
+	Recv() (*ResourceAttachPacket, error)
+	RecvTo(*ResourceAttachPacket) error
+}
+
+type srpcResourceService_ResourceAttachClient struct {
+	srpc.Stream
+}
+
+func (x *srpcResourceService_ResourceAttachClient) Send(m *ResourceAttachPacket) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcResourceService_ResourceAttachClient) Recv() (*ResourceAttachPacket, error) {
+	m := new(ResourceAttachPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcResourceService_ResourceAttachClient) RecvTo(m *ResourceAttachPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCResourceServiceServer interface {
 	// ResourceClient starts an instance of a client for the ResourceService,
 	// yielding a new client ID. The client can use that ID for future RPCs
@@ -142,6 +185,10 @@ type SRPCResourceServiceServer interface {
 	// ResourceRefRelease releases a resource given a handle ID.
 	// This is called when no references remain to a resource.
 	ResourceRefRelease(context.Context, *ResourceRefReleaseRequest) (*ResourceRefReleaseResponse, error)
+	// ResourceAttach allows a client to provide a resource that server-side
+	// RPC handlers can invoke via getAttachedRef(id). After Init/Ack
+	// handshake, mux_data carries yamux frames for a multiplexed SRPC session.
+	ResourceAttach(SRPCResourceService_ResourceAttachStream) error
 }
 
 const SRPCResourceServiceServiceID = "resource.ResourceService"
@@ -173,6 +220,7 @@ func (SRPCResourceServiceHandler) GetMethodIDs() []string {
 		"ResourceClient",
 		"ResourceRpc",
 		"ResourceRefRelease",
+		"ResourceAttach",
 	}
 }
 
@@ -191,6 +239,8 @@ func (d *SRPCResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_ResourceRpc(d.impl, strm)
 	case "ResourceRefRelease":
 		return true, d.InvokeMethod_ResourceRefRelease(d.impl, strm)
+	case "ResourceAttach":
+		return true, d.InvokeMethod_ResourceAttach(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -220,6 +270,11 @@ func (SRPCResourceServiceHandler) InvokeMethod_ResourceRefRelease(impl SRPCResou
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCResourceServiceHandler) InvokeMethod_ResourceAttach(impl SRPCResourceServiceServer, strm srpc.Stream) error {
+	clientStrm := &srpcResourceService_ResourceAttachStream{strm}
+	return impl.ResourceAttach(clientStrm)
 }
 
 type SRPCResourceService_ResourceClientStream interface {
@@ -288,4 +343,41 @@ type SRPCResourceService_ResourceRefReleaseStream interface {
 
 type srpcResourceService_ResourceRefReleaseStream struct {
 	srpc.Stream
+}
+
+type SRPCResourceService_ResourceAttachStream interface {
+	srpc.Stream
+	Send(*ResourceAttachPacket) error
+	SendAndClose(*ResourceAttachPacket) error
+	Recv() (*ResourceAttachPacket, error)
+	RecvTo(*ResourceAttachPacket) error
+}
+
+type srpcResourceService_ResourceAttachStream struct {
+	srpc.Stream
+}
+
+func (x *srpcResourceService_ResourceAttachStream) Send(m *ResourceAttachPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcResourceService_ResourceAttachStream) SendAndClose(m *ResourceAttachPacket) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcResourceService_ResourceAttachStream) Recv() (*ResourceAttachPacket, error) {
+	m := new(ResourceAttachPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcResourceService_ResourceAttachStream) RecvTo(m *ResourceAttachPacket) error {
+	return x.MsgRecv(m)
 }

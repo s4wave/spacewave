@@ -21,6 +21,9 @@ type RemoteResourceClient struct {
 	released bool
 	// resources contains the map of resources owned by this client
 	resources map[uint32]*trackedResource
+	// attachedResources are resources provided by the client via
+	// ResourceAttach. Keyed by server-assigned resource ID.
+	attachedResources map[uint32]*attachedResource
 }
 
 // Context returns the client session context.
@@ -112,4 +115,79 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 	}
 
 	return released
+}
+
+// AddAttachedResource registers a client-provided attached resource.
+// Returns an error if the client has been released.
+func (c *RemoteResourceClient) AddAttachedResource(
+	id uint32,
+	label string,
+	cancel context.CancelFunc,
+	srpcClient srpc.Client,
+) error {
+	var released bool
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if c.released {
+			released = true
+			return
+		}
+		if c.attachedResources == nil {
+			c.attachedResources = make(map[uint32]*attachedResource)
+		}
+		c.attachedResources[id] = &attachedResource{
+			label:      label,
+			cancel:     cancel,
+			srpcClient: srpcClient,
+		}
+	})
+	if released {
+		return resource.ErrClientReleased
+	}
+	return nil
+}
+
+// RemoveAttachedResource removes an attached resource and cancels its context.
+func (c *RemoteResourceClient) RemoveAttachedResource(id uint32) {
+	var cancel context.CancelFunc
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ar, ok := c.attachedResources[id]
+		if !ok {
+			return
+		}
+		cancel = ar.cancel
+		delete(c.attachedResources, id)
+	})
+	if cancel != nil {
+		cancel()
+	}
+}
+
+// GetAttachedResource returns the srpc.Client for an attached resource.
+func (c *RemoteResourceClient) GetAttachedResource(id uint32) (srpc.Client, error) {
+	var client srpc.Client
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ar := c.attachedResources[id]
+		if ar != nil {
+			client = ar.srpcClient
+		}
+	})
+	if client == nil {
+		return nil, resource.ErrResourceNotFound
+	}
+	return client, nil
+}
+
+// releaseAllAttachedResources cancels and removes all attached resources.
+// Called during client cleanup.
+func (c *RemoteResourceClient) releaseAllAttachedResources() {
+	var cancels []context.CancelFunc
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, ar := range c.attachedResources {
+			cancels = append(cancels, ar.cancel)
+		}
+		clear(c.attachedResources)
+	})
+	for _, cancel := range cancels {
+		cancel()
+	}
 }
