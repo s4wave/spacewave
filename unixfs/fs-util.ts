@@ -85,7 +85,7 @@ export async function readFile(
     const buf = new Uint8Array(chunkSize)
     let n: bigint
     try {
-      n = await h.readAt(signal, offset, buf)
+      n = await h.readAtTo(signal, offset, buf)
     } catch (err) {
       if (isUnixFSError(err, UnixFSErrorType.EOF)) {
         break

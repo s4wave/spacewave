@@ -69,7 +69,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
 	github.com/aperturerobotics/starpc v0.49.0 // latest
-	github.com/aperturerobotics/util v1.32.5 // latest
+	github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317 // latest
 )
 
 require (

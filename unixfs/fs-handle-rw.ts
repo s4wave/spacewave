@@ -31,7 +31,7 @@ export class FSHandleReadWriter {
   // read reads data from the file at the current index.
   // Returns the number of bytes read.
   async read(p: Uint8Array): Promise<bigint> {
-    const nr = await this.h.readAt(this.signal, this.idx, p)
+    const nr = await this.h.readAtTo(this.signal, this.idx, p)
     if (nr > 0n) {
       this.idx += nr
     }

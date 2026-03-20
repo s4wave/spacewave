@@ -942,8 +942,27 @@ export class FSHandle {
     })
   }
 
-  // readAt reads from a location in a File node.
+  // readAt reads from a location in a File node, allocating a buffer.
   async readAt(
+    signal: AbortSignal,
+    offset: bigint,
+    size: bigint,
+  ): Promise<{ data: Uint8Array; n: bigint }> {
+    let result: { data: Uint8Array; n: bigint } = {
+      data: new Uint8Array(0),
+      n: 0n,
+    }
+    await this._inode.accessInode(signal, async (_cursor, ops) => {
+      if (!ops.getIsFile()) {
+        throw ErrNotFile
+      }
+      result = await ops.readAt(offset, size, signal)
+    })
+    return result
+  }
+
+  // readAtTo reads from a location in a File node into an existing buffer.
+  async readAtTo(
     signal: AbortSignal,
     offset: bigint,
     data: Uint8Array,
@@ -953,7 +972,7 @@ export class FSHandle {
       if (!ops.getIsFile()) {
         throw ErrNotFile
       }
-      read = (await ops.readAt(offset, data, signal)) as bigint
+      read = await ops.readAtTo(offset, data, signal)
     })
     return read
   }

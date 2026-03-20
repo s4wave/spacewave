@@ -69,14 +69,17 @@ class MockFSCursorOps implements FSCursorOps {
   async setModTimestamp(): Promise<void> {}
   async readAt(
     offset: bigint,
-    dataOrSize: Uint8Array | bigint,
-  ): Promise<bigint | { data: Uint8Array; n: bigint }> {
-    if (dataOrSize instanceof Uint8Array) {
-      const len = Math.min(dataOrSize.length, this.readDataVal.length)
-      dataOrSize.set(this.readDataVal.subarray(0, len))
-      return BigInt(len)
-    }
+    size: bigint,
+  ): Promise<{ data: Uint8Array; n: bigint }> {
     return { data: this.readDataVal, n: BigInt(this.readDataVal.length) }
+  }
+  async readAtTo(
+    offset: bigint,
+    data: { readonly length: number; set(source: ArrayLike<number>, offset?: number): void },
+  ): Promise<bigint> {
+    const len = Math.min(data.length, this.readDataVal.length)
+    data.set(this.readDataVal.subarray(0, len))
+    return BigInt(len)
   }
   async getOptimalWriteSize(): Promise<bigint> {
     return 4096n
@@ -297,10 +300,9 @@ describe('FSHandle', () => {
       const handle = FSHandle.create(cursor)
       const ctrl = new AbortController()
 
-      const buf = new Uint8Array(4)
-      const n = await handle.readAt(ctrl.signal, 0n, buf)
-      expect(n).toBe(4n)
-      expect(buf).toEqual(data)
+      const result = await handle.readAt(ctrl.signal, 0n, 4n)
+      expect(result.n).toBe(4n)
+      expect(result.data).toEqual(data)
 
       handle.release()
     })
@@ -311,8 +313,7 @@ describe('FSHandle', () => {
       const handle = FSHandle.create(cursor)
       const ctrl = new AbortController()
 
-      const buf = new Uint8Array(4)
-      await expect(handle.readAt(ctrl.signal, 0n, buf)).rejects.toThrow(
+      await expect(handle.readAt(ctrl.signal, 0n, 4n)).rejects.toThrow(
         'not a file',
       )
 

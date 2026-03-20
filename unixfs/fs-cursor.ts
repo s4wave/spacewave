@@ -1,3 +1,10 @@
+// ReadAtBuffer is a buffer that readAtTo can write into.
+// Accepts Uint8Array and any TypedArray with set() and length.
+export interface ReadAtBuffer {
+  readonly length: number
+  set(source: ArrayLike<number>, offset?: number): void
+}
+
 // FSCursorNodeType indicates the type of node.
 export interface FSCursorNodeType {
   // getIsDirectory returns if the node is a directory.
@@ -85,13 +92,20 @@ export interface FSCursorOps extends FSCursorNodeType {
   setModTimestamp(mtime: Date, signal?: AbortSignal): Promise<void>
 
   // readAt reads from a location in a File node.
-  // Pass a Uint8Array to fill the buffer, returns bytes read as bigint.
-  // Pass a bigint size to allocate and return {data, n}.
+  // Allocates a buffer of the given size, reads into it, returns {data, n}.
   readAt(
     offset: bigint,
-    dataOrSize: Uint8Array | bigint,
+    size: bigint,
     signal?: AbortSignal,
-  ): Promise<bigint | { data: Uint8Array; n: bigint }>
+  ): Promise<{ data: Uint8Array; n: bigint }>
+
+  // readAtTo reads from a location in a File node into an existing buffer.
+  // Returns the number of bytes read.
+  readAtTo(
+    offset: bigint,
+    data: ReadAtBuffer,
+    signal?: AbortSignal,
+  ): Promise<bigint>
 
   // getOptimalWriteSize returns the best write size to use for the write call.
   // May return zero to indicate no known optimal size.

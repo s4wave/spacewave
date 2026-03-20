@@ -91,8 +91,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.12.2 h1:ujwTKgpIYAVsv8VljB6PPMY5
 github.com/aperturerobotics/protobuf-go-lite v0.12.2/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
 github.com/aperturerobotics/starpc v0.49.0 h1:b3uRx2HF/OMEM47zzPFQumqR42PaOYvQQIhWMUU9RDQ=
 github.com/aperturerobotics/starpc v0.49.0/go.mod h1:WQTxkj5kfUkEfG+ewFC7OggKqgKQkutL76vTTZeXCwM=
-github.com/aperturerobotics/util v1.32.5 h1:5gr2Ft1rYGFA5yrSm3n18Ghu5Al2uyg7DTtljh1wLHI=
-github.com/aperturerobotics/util v1.32.5/go.mod h1:jXVTz1OQqM3VSrjy06qiCmJLaUm80NxVuKgweaRs5dg=
+github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317 h1:mYHaIshU8diHHMcLThBpcNLjBCMJ+FdTAD1ZzGI5qHY=
+github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317/go.mod h1:jXVTz1OQqM3VSrjy06qiCmJLaUm80NxVuKgweaRs5dg=
 github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe h1:hbfgpCHsmTzgr1mH+m/rqxxrei+jKSE3w6KbGbBJVJc=
 github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=

@@ -3,6 +3,7 @@ import type {
   FSCursorDirent,
   FSCursorNodeType,
   FSCursorOps,
+  ReadAtBuffer,
 } from '../../fs-cursor.js'
 import {
   ErrHandleIDEmpty,
@@ -136,23 +137,15 @@ export class RemoteFSCursorOps implements FSCursorOps {
   }
 
   // readAt reads from a location in a file node.
-  // Overload: pass Uint8Array to fill buffer, returns bytes read as bigint.
-  // Overload: pass bigint size to allocate and return {data, n}.
-  // Throws ErrEOF if the offset is past the end of the file (data may still be
-  // partially returned in the buffer overload).
+  // Allocates a buffer of the given size, reads into it, returns {data, n}.
   async readAt(
     offset: bigint,
-    dataOrSize: Uint8Array | bigint,
+    size: bigint,
     signal?: AbortSignal,
-  ): Promise<bigint | { data: Uint8Array; n: bigint }> {
-    const isBuf = dataOrSize instanceof Uint8Array
-    if (isBuf && dataOrSize.length === 0) {
-      throw new Error('short buffer')
-    }
+  ): Promise<{ data: Uint8Array; n: bigint }> {
     if (this.checkReleased()) {
       throw ErrReleased
     }
-    const size = isBuf ? BigInt(dataOrSize.length) : (dataOrSize as bigint)
     const resp = await this.c.c.client.OpsReadAt(
       {
         opsHandleId: this.handleId,
@@ -170,12 +163,42 @@ export class RemoteFSCursorOps implements FSCursorOps {
     }
 
     const retData = resp.data ?? new Uint8Array(0)
-    if (isBuf) {
-      const copyLen = Math.min(retData.length, dataOrSize.length)
-      dataOrSize.set(retData.subarray(0, copyLen))
-      return BigInt(copyLen)
-    }
     return { data: retData, n: BigInt(retData.length) }
+  }
+
+  // readAtTo reads from a location in a file node into an existing buffer.
+  // Returns the number of bytes read.
+  async readAtTo(
+    offset: bigint,
+    data: ReadAtBuffer,
+    signal?: AbortSignal,
+  ): Promise<bigint> {
+    if (data.length === 0) {
+      throw new Error('short buffer')
+    }
+    if (this.checkReleased()) {
+      throw ErrReleased
+    }
+    const resp = await this.c.c.client.OpsReadAt(
+      {
+        opsHandleId: this.handleId,
+        offset,
+        size: BigInt(data.length),
+      },
+      signal,
+    )
+
+    const ufErr = resp.unixfsError
+      ? UnixFSError.fromProto(resp.unixfsError)
+      : null
+    if (ufErr && !ufErr.isEOF) {
+      this.handleRpcError(resp.unixfsError)
+    }
+
+    const retData = resp.data ?? new Uint8Array(0)
+    const copyLen = Math.min(retData.length, data.length)
+    data.set(retData.subarray(0, copyLen))
+    return BigInt(copyLen)
   }
 
   // getOptimalWriteSize returns the best write size to use for the write call.
