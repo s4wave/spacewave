@@ -11,7 +11,7 @@ import (
 type attachedResource struct {
 	// label is an informational description of the attached resource.
 	label string
-	// cancel cancels the attached resource context, tearing down the yamux session.
+	// cancel cancels this resource's derived context without affecting the yamux session.
 	cancel context.CancelFunc
 	// srpcClient is the client for server-side handlers to invoke the attached resource.
 	srpcClient srpc.Client

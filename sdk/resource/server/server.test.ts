@@ -707,6 +707,40 @@ async function sendAddAndGetResourceId(
     : 0
 }
 
+// readNextControl reads from the attach iterator, skipping muxData
+// packets, until a packet matching the expected case is found.
+async function readNextControl(
+  attachIter: AsyncIterator<ResourceAttachResponse>,
+  expectedCase: string,
+): Promise<ResourceAttachResponse> {
+  for (;;) {
+    const { value, done } = await attachIter.next()
+    if (done) throw new Error('stream ended before control packet')
+    if (value.body?.case === 'muxData') continue
+    expect(value.body?.case).toBe(expectedCase)
+    return value
+  }
+}
+
+// readNextControlPacket sends an add message then reads the addAck,
+// skipping any interleaved muxData packets.
+async function readNextControlPacket(
+  stream: ReturnType<typeof createControllableStream>,
+  attachIter: AsyncIterator<ResourceAttachResponse>,
+  label: string,
+): Promise<number> {
+  stream.push({
+    body: {
+      case: 'add' as const,
+      value: { attachId: 1, label },
+    },
+  })
+  const pkt = await readNextControl(attachIter, 'addAck')
+  return pkt.body?.case === 'addAck'
+    ? (pkt.body.value.resourceId ?? 0)
+    : 0
+}
+
 describe('ResourceAttach handler', () => {
   describe('Init/Ack handshake', () => {
     it('sends session ack after valid init', async () => {
@@ -1135,6 +1169,150 @@ describe('ResourceAttach handler', () => {
       } catch {
         // Expected: yamux conn may error on teardown.
       }
+    })
+
+    it('detaching one resource does not abort another resource signal', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await attachIter.next()
+
+      const resId1 = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'resource-a',
+      )
+      const resId2 = await readNextControlPacket(stream, attachIter, 'resource-b')
+      expect(resId2).toBeGreaterThan(0)
+
+      const attached1 = client.attachedResources.get(resId1)!
+      const attached2 = client.attachedResources.get(resId2)!
+      expect(attached1.signal.aborted).toBe(false)
+      expect(attached2.signal.aborted).toBe(false)
+
+      // Detach resource 1.
+      stream.push({
+        body: {
+          case: 'detach' as const,
+          value: { resourceId: resId1 },
+        },
+      })
+      const detachAck = await readNextControl(attachIter, 'detachAck')
+      expect(detachAck).toBeDefined()
+
+      // Resource 1 signal is aborted, resource 2 is not.
+      expect(attached1.signal.aborted).toBe(true)
+      expect(attached2.signal.aborted).toBe(false)
+      expect(client.attachedResources.has(resId1)).toBe(false)
+      expect(client.attachedResources.has(resId2)).toBe(true)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('detaching a resource aborts that resource signal', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await attachIter.next()
+
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'detach-signal-test',
+      )
+      const ref = client.getAttachedRef(resourceId)
+      expect(ref.released).toBe(false)
+
+      // Detach the resource.
+      stream.push({
+        body: {
+          case: 'detach' as const,
+          value: { resourceId },
+        },
+      })
+      const detachAck = await readNextControl(attachIter, 'detachAck')
+      expect(detachAck).toBeDefined()
+
+      // The ref captured before detach now reports released.
+      expect(ref.released).toBe(true)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      clientController.abort()
+      await clientIter.next()
+    })
+
+    it('session close aborts all per-resource signals', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, clientHandleId, client } =
+        await setupClientSession(server)
+
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId },
+        },
+      })
+
+      const attachGen = server.ResourceAttach(stream.iterable)
+      const attachIter = attachGen[Symbol.asyncIterator]()
+      await attachIter.next()
+
+      const resId1 = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'session-close-a',
+      )
+      const resId2 = await readNextControlPacket(stream, attachIter, 'session-close-b')
+
+      const attached1 = client.attachedResources.get(resId1)!
+      const attached2 = client.attachedResources.get(resId2)!
+      expect(attached1.signal.aborted).toBe(false)
+      expect(attached2.signal.aborted).toBe(false)
+
+      // End the attach stream to trigger session-level cleanup.
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      // Session cleanup aborts the attachController, which propagates
+      // to all per-resource controllers.
+      expect(attached1.signal.aborted).toBe(true)
+      expect(attached2.signal.aborted).toBe(true)
+
+      clientController.abort()
+      await clientIter.next()
     })
   })
 })

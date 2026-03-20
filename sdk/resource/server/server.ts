@@ -240,11 +240,19 @@ class ResourceServer implements ResourceService {
         // Create routed client for this resource.
         const resClient = createRoutedClient(baseClient, resourceId)
 
+        // Per-resource controller linked to the session controller.
+        const resController = new AbortController()
+        attachController.signal.addEventListener(
+          'abort',
+          () => resController.abort(),
+          { once: true },
+        )
+
         client.attachedResources.set(resourceId, {
           label,
           client: resClient,
-          signal: attachController.signal,
-          controller: attachController,
+          signal: resController.signal,
+          controller: resController,
         })
         attachedIds.push(resourceId)
 
@@ -256,6 +264,10 @@ class ResourceServer implements ResourceService {
         })
       } else if (body?.case === 'detach') {
         const resourceId = body.value.resourceId ?? 0
+        const existing = client.attachedResources.get(resourceId)
+        if (existing) {
+          existing.controller.abort()
+        }
         client.attachedResources.delete(resourceId)
         const idx = attachedIds.indexOf(resourceId)
         if (idx >= 0) attachedIds.splice(idx, 1)

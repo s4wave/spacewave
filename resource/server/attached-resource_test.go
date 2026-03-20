@@ -122,6 +122,50 @@ func TestRemoveAttachedResource_NotFound(t *testing.T) {
 	client.RemoveAttachedResource(999)
 }
 
+func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
+	client, cancel := newTestClient(t)
+	defer cancel()
+
+	canceled1 := false
+	canceled2 := false
+	mc1 := &mockSRPCClient{id: 1}
+	mc2 := &mockSRPCClient{id: 2}
+
+	err := client.AddAttachedResource(10, "res-1", func() { canceled1 = true }, mc1)
+	if err != nil {
+		t.Fatalf("unexpected error adding resource 1: %v", err)
+	}
+	err = client.AddAttachedResource(20, "res-2", func() { canceled2 = true }, mc2)
+	if err != nil {
+		t.Fatalf("unexpected error adding resource 2: %v", err)
+	}
+
+	// Remove resource 1 only.
+	client.RemoveAttachedResource(10)
+
+	if !canceled1 {
+		t.Fatal("cancel for resource 1 was not called")
+	}
+	if canceled2 {
+		t.Fatal("cancel for resource 2 was called unexpectedly")
+	}
+
+	// Resource 1 should be gone.
+	_, err = client.GetAttachedResource(10)
+	if err != resource.ErrResourceNotFound {
+		t.Fatalf("resource 1: got error %v, want %v", err, resource.ErrResourceNotFound)
+	}
+
+	// Resource 2 should still be accessible.
+	got, err := client.GetAttachedResource(20)
+	if err != nil {
+		t.Fatalf("resource 2: unexpected error: %v", err)
+	}
+	if got != mc2 {
+		t.Fatal("resource 2: returned client does not match")
+	}
+}
+
 func TestGetAttachedResource_Success(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
