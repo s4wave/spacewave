@@ -344,9 +344,11 @@ func BuildWebPkgsEsbuild(
 		buildOpts.Alias[pkgRootAlias] = webPkgRef.WebPkgRoot
 		buildOpts.Alias[webPkgID] = webPkgRef.WebPkgRoot
 
-		// see: https://github.com/evanw/esbuild/issues/399
-		// TODO: is this still an issue? having splitting set to false is quite bad for bundle size.
-		// buildOpts.Splitting = false
+		// Splitting is needed to share module instances (React contexts)
+		// across entrypoints. Without it, each entrypoint gets its own
+		// copy of shared code, breaking context identity.
+		// Stale chunk 404s on rebuild are handled by WebViewErrorBoundary.
+		// See: https://github.com/evanw/esbuild/issues/399
 		buildOpts.Splitting = true
 
 		// externalize some packages we remap with an import map
