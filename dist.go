@@ -42,6 +42,8 @@ import (
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
 //go:embed util/pipesock/pipesock.ts
 //go:embed plugin/compiler/js/entrypoint.ts
+//go:embed resource/resource.pb.ts resource/resource_srpc.pb.ts
+//go:embed resource/state/state.pb.ts resource/state/state_srpc.pb.ts
 //go:embed sdk/plugin.ts sdk/defer.ts sdk/impl/backend-api.ts
 //go:embed sdk/resource/client.ts sdk/resource/resource.ts sdk/resource/index.ts
 //go:embed sdk/resource/resource.pb.ts sdk/resource/resource_srpc.pb.ts
