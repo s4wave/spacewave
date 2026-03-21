@@ -899,7 +899,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/unixfs/block": {
-      "hash": "aebae9113d47df61796f38ad6311eeb6a7c46ad6752e0432d48e0e2b6eaa669c",
+      "hash": "795446372c2bd0fc94bc82353432f253e51334306637be40aa8376eac3cc239f",
       "generatedFiles": [
         "unixfs/block/fstree.pb.cc",
         "unixfs/block/fstree.pb.go",

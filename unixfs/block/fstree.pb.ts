@@ -198,6 +198,36 @@ export const FSSymlink: MessageType<FSSymlink> = createMessageType({
 })
 
 /**
+ * FSXattr stores a single extended attribute.
+ *
+ * @generated from message unixfs.block.FSXattr
+ */
+export interface FSXattr {
+  /**
+   * Name is the xattr key (e.g. "com.apple.cs.CodeDirectory").
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * Value is the xattr value bytes.
+   *
+   * @generated from field: bytes value = 2;
+   */
+  value?: Uint8Array
+}
+
+// FSXattr contains the message type declaration for FSXattr.
+export const FSXattr: MessageType<FSXattr> = createMessageType({
+  typeName: 'unixfs.block.FSXattr',
+  fields: [
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * FSNode is a node in the tree.
  * Roughly translates to an inode.
  *
@@ -245,6 +275,14 @@ export interface FSNode {
    * @generated from field: unixfs.block.FSSymlink symlink = 6;
    */
   symlink?: FSSymlink
+  /**
+   * Xattrs stores extended attributes for this node.
+   * Only set when the node has xattrs. Empty on most nodes.
+   * Required for macOS code signature preservation during .app sync.
+   *
+   * @generated from field: repeated unixfs.block.FSXattr xattrs = 7;
+   */
+  xattrs?: FSXattr[]
 }
 
 // FSNode contains the message type declaration for FSNode.
@@ -263,6 +301,13 @@ export const FSNode: MessageType<FSNode> = createMessageType({
       repeated: true,
     },
     { no: 6, name: 'symlink', kind: 'message', T: () => FSSymlink },
+    {
+      no: 7,
+      name: 'xattrs',
+      kind: 'message',
+      T: () => FSXattr,
+      repeated: true,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

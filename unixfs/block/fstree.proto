@@ -40,6 +40,19 @@ message FSNode {
 
   // Symlink contains the symlink data if the node is of type SYMLINK.
   FSSymlink symlink = 6;
+
+  // Xattrs stores extended attributes for this node.
+  // Only set when the node has xattrs. Empty on most nodes.
+  // Required for macOS code signature preservation during .app sync.
+  repeated FSXattr xattrs = 7;
+}
+
+// FSXattr stores a single extended attribute.
+message FSXattr {
+  // Name is the xattr key (e.g. "com.apple.cs.CodeDirectory").
+  string name = 1;
+  // Value is the xattr value bytes.
+  bytes value = 2;
 }
 
 // Dirent contains a directory entry.

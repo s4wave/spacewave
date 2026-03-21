@@ -27,6 +27,21 @@ pub struct FsNode {
     /// Symlink contains the symlink data if the node is of type SYMLINK.
     #[prost(message, optional, tag="6")]
     pub symlink: ::core::option::Option<FsSymlink>,
+    /// Xattrs stores extended attributes for this node.
+    /// Only set when the node has xattrs. Empty on most nodes.
+    /// Required for macOS code signature preservation during .app sync.
+    #[prost(message, repeated, tag="7")]
+    pub xattrs: ::prost::alloc::vec::Vec<FsXattr>,
+}
+/// FSXattr stores a single extended attribute.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FsXattr {
+    /// Name is the xattr key (e.g. "com.apple.cs.CodeDirectory").
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Value is the xattr value bytes.
+    #[prost(bytes="vec", tag="2")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
 }
 /// Dirent contains a directory entry.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

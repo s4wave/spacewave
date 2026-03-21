@@ -5,6 +5,7 @@
 package unixfs_block
 
 import (
+	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
 	slices "slices"
@@ -126,6 +127,10 @@ type FSNode struct {
 	DirectoryEntry []*Dirent `protobuf:"bytes,5,rep,name=directory_entry,json=directoryEntry,proto3" json:"directoryEntry,omitempty"`
 	// Symlink contains the symlink data if the node is of type SYMLINK.
 	Symlink *FSSymlink `protobuf:"bytes,6,opt,name=symlink,proto3" json:"symlink,omitempty"`
+	// Xattrs stores extended attributes for this node.
+	// Only set when the node has xattrs. Empty on most nodes.
+	// Required for macOS code signature preservation during .app sync.
+	Xattrs []*FSXattr `protobuf:"bytes,7,rep,name=xattrs,proto3" json:"xattrs,omitempty"`
 }
 
 func (x *FSNode) Reset() {
@@ -172,6 +177,42 @@ func (x *FSNode) GetDirectoryEntry() []*Dirent {
 func (x *FSNode) GetSymlink() *FSSymlink {
 	if x != nil {
 		return x.Symlink
+	}
+	return nil
+}
+
+func (x *FSNode) GetXattrs() []*FSXattr {
+	if x != nil {
+		return x.Xattrs
+	}
+	return nil
+}
+
+// FSXattr stores a single extended attribute.
+type FSXattr struct {
+	unknownFields []byte
+	// Name is the xattr key (e.g. "com.apple.cs.CodeDirectory").
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Value is the xattr value bytes.
+	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *FSXattr) Reset() {
+	*x = FSXattr{}
+}
+
+func (*FSXattr) ProtoMessage() {}
+
+func (x *FSXattr) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *FSXattr) GetValue() []byte {
+	if x != nil {
+		return x.Value
 	}
 	return nil
 }
@@ -437,15 +478,23 @@ func (m *FSNode) CloneVT() *FSNode {
 	r := new(FSNode)
 	r.NodeType = m.NodeType
 	r.Permissions = m.Permissions
-	r.File = m.File.CloneVT()
 	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.ModTime; rhs != nil {
 		r.ModTime = rhs.CloneVT()
+	}
+	if rhs := m.File; rhs != nil {
+		r.File = rhs.CloneVT()
 	}
 	if rhs := m.DirectoryEntry; rhs != nil {
 		r.DirectoryEntry = make([]*Dirent, len(rhs))
 		for k, v := range rhs {
 			r.DirectoryEntry[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Xattrs; rhs != nil {
+		r.Xattrs = make([]*FSXattr, len(rhs))
+		for k, v := range rhs {
+			r.Xattrs[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -458,14 +507,35 @@ func (m *FSNode) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *FSXattr) CloneVT() *FSXattr {
+	if m == nil {
+		return (*FSXattr)(nil)
+	}
+	r := new(FSXattr)
+	r.Name = m.Name
+	if rhs := m.Value; rhs != nil {
+		r.Value = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FSXattr) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Dirent) CloneVT() *Dirent {
 	if m == nil {
 		return (*Dirent)(nil)
 	}
 	r := new(Dirent)
 	r.Name = m.Name
-	r.NodeRef = m.NodeRef.CloneVT()
 	r.NodeType = m.NodeType
+	if rhs := m.NodeRef; rhs != nil {
+		r.NodeRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -567,10 +637,14 @@ func (m *FSChange) CloneVT() *FSChange {
 	}
 	r := new(FSChange)
 	r.Seqno = m.Seqno
-	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeType = m.ChangeType
-	r.TransactionRef = m.TransactionRef.CloneVT()
 	r.NodeType = m.NodeType
+	if rhs := m.PrevRef; rhs != nil {
+		r.PrevRef = rhs.CloneVT()
+	}
+	if rhs := m.TransactionRef; rhs != nil {
+		r.TransactionRef = rhs.CloneVT()
+	}
 	if rhs := m.Paths; rhs != nil {
 		r.Paths = make([]*FSPath, len(rhs))
 		for k, v := range rhs {
@@ -631,11 +705,51 @@ func (this *FSNode) EqualVT(that *FSNode) bool {
 	if !this.Symlink.EqualVT(that.Symlink) {
 		return false
 	}
+	if len(this.Xattrs) != len(that.Xattrs) {
+		return false
+	}
+	for i, vx := range this.Xattrs {
+		vy := that.Xattrs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &FSXattr{}
+			}
+			if q == nil {
+				q = &FSXattr{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *FSNode) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FSNode)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FSXattr) EqualVT(that *FSXattr) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if string(this.Value) != string(that.Value) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FSXattr) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FSXattr)
 	if !ok {
 		return false
 	}
@@ -973,6 +1087,17 @@ func (x *FSNode) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("symlink")
 		x.Symlink.MarshalProtoJSON(s.WithField("symlink"))
 	}
+	if len(x.Xattrs) > 0 || s.HasField("xattrs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("xattrs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Xattrs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("xattrs"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1035,12 +1160,80 @@ func (x *FSNode) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Symlink = &FSSymlink{}
 			x.Symlink.UnmarshalProtoJSON(s.WithField("symlink", true))
+		case "xattrs":
+			s.AddField("xattrs")
+			if s.ReadNil() {
+				x.Xattrs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Xattrs = append(x.Xattrs, nil)
+					return
+				}
+				v := &FSXattr{}
+				v.UnmarshalProtoJSON(s.WithField("xattrs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Xattrs = append(x.Xattrs, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the FSNode from JSON.
 func (x *FSNode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FSXattr message to JSON.
+func (x *FSXattr) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if len(x.Value) > 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteBytes(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FSXattr to JSON.
+func (x *FSXattr) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FSXattr message from JSON.
+func (x *FSXattr) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FSXattr from JSON.
+func (x *FSXattr) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1530,6 +1723,18 @@ func (m *FSNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Xattrs) > 0 {
+		for iNdEx := len(m.Xattrs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Xattrs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
 	if m.Symlink != nil {
 		size, err := m.Symlink.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1581,6 +1786,53 @@ func (m *FSNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NodeType))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FSXattr) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FSXattr) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FSXattr) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Value) > 0 {
+		i -= len(m.Value)
+		copy(dAtA[i:], m.Value)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Value)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2003,6 +2255,30 @@ func (m *FSNode) SizeVT() (n int) {
 		l = m.Symlink.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.Xattrs) > 0 {
+		for _, e := range m.Xattrs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FSXattr) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2210,11 +2486,51 @@ func (x *FSNode) MarshalProtoText() string {
 		sb.WriteString("symlink: ")
 		sb.WriteString(x.Symlink.MarshalProtoText())
 	}
+	if len(x.Xattrs) > 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("xattrs: [")
+		for i, v := range x.Xattrs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *FSNode) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FSXattr) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FSXattr {")
+	if x.Name != "" {
+		if sb.Len() > 9 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	if x.Value != nil {
+		if sb.Len() > 9 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Value))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *FSXattr) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2593,6 +2909,123 @@ func (m *FSNode) UnmarshalVT(dAtA []byte) error {
 			}
 			if err := m.Symlink.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Xattrs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Xattrs = append(m.Xattrs, &FSXattr{})
+			if err := m.Xattrs[len(m.Xattrs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FSXattr) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FSXattr: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FSXattr: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
+			if m.Value == nil {
+				m.Value = []byte{}
 			}
 			iNdEx = postIndex
 		default:

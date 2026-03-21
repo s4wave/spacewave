@@ -29,6 +29,36 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace unixfs {
 namespace block {
 
+inline constexpr FSXattr::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        value_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR FSXattr::FSXattr(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(FSXattr_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct FSXattrDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR FSXattrDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~FSXattrDefaultTypeInternal() {}
+  union {
+    FSXattr _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FSXattrDefaultTypeInternal _FSXattr_default_instance_;
+
 inline constexpr FSPath::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -196,6 +226,7 @@ inline constexpr FSNode::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         directory_entry_{},
+        xattrs_{},
         mod_time_{nullptr},
         file_{nullptr},
         symlink_{nullptr},
@@ -259,19 +290,28 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.node_type_),
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.mod_time_),
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.permissions_),
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.file_),
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.directory_entry_),
         PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.symlink_),
-        4,
-        1,
+        PROTOBUF_FIELD_OFFSET(::unixfs::block::FSNode, _impl_.xattrs_),
         5,
         2,
-        0,
+        6,
         3,
+        0,
+        4,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::unixfs::block::FSXattr, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::unixfs::block::FSXattr, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::unixfs::block::FSXattr, _impl_.value_),
+        0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::block::Dirent, _impl_._has_bits_),
         6, // hasbit index offset
@@ -334,16 +374,18 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::unixfs::block::FSNode)},
-        {15, sizeof(::unixfs::block::Dirent)},
-        {24, sizeof(::unixfs::block::FSSymlink)},
-        {29, sizeof(::unixfs::block::FSObject)},
-        {38, sizeof(::unixfs::block::FSHostVolume)},
-        {43, sizeof(::unixfs::block::FSConfig)},
-        {48, sizeof(::unixfs::block::FSPath)},
-        {55, sizeof(::unixfs::block::FSChange)},
+        {17, sizeof(::unixfs::block::FSXattr)},
+        {24, sizeof(::unixfs::block::Dirent)},
+        {33, sizeof(::unixfs::block::FSSymlink)},
+        {38, sizeof(::unixfs::block::FSObject)},
+        {47, sizeof(::unixfs::block::FSHostVolume)},
+        {52, sizeof(::unixfs::block::FSConfig)},
+        {57, sizeof(::unixfs::block::FSPath)},
+        {64, sizeof(::unixfs::block::FSChange)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::block::_FSNode_default_instance_._instance,
+    &::unixfs::block::_FSXattr_default_instance_._instance,
     &::unixfs::block::_Dirent_default_instance_._instance,
     &::unixfs::block::_FSSymlink_default_instance_._instance,
     &::unixfs::block::_FSObject_default_instance_._instance,
@@ -359,36 +401,38 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fu
     "hub.com/aperturerobotics/hydra/block/blo"
     "ck.proto\0327github.com/aperturerobotics/hy"
     "dra/block/file/file.proto\032\037google/protob"
-    "uf/timestamp.proto\"\351\001\n\006FSNode\022)\n\tnode_ty"
+    "uf/timestamp.proto\"\220\002\n\006FSNode\022)\n\tnode_ty"
     "pe\030\001 \001(\0162\026.unixfs.block.NodeType\022,\n\010mod_"
     "time\030\002 \001(\0132\032.google.protobuf.Timestamp\022\023"
     "\n\013permissions\030\003 \001(\r\022\030\n\004file\030\004 \001(\0132\n.file"
     ".File\022-\n\017directory_entry\030\005 \003(\0132\024.unixfs."
     "block.Dirent\022(\n\007symlink\030\006 \001(\0132\027.unixfs.b"
-    "lock.FSSymlink\"d\n\006Dirent\022\014\n\004name\030\001 \001(\t\022!"
-    "\n\010node_ref\030\002 \001(\0132\017.block.BlockRef\022)\n\tnod"
-    "e_type\030\003 \001(\0162\026.unixfs.block.NodeType\"6\n\t"
-    "FSSymlink\022)\n\013target_path\030\001 \001(\0132\024.unixfs."
-    "block.FSPath\"\206\001\n\010FSObject\022&\n\006config\030\001 \001("
-    "\0132\026.unixfs.block.FSConfig\022%\n\007fs_node\030\002 \001"
-    "(\0132\024.unixfs.block.FSNode\022+\n\013last_change\030"
-    "\003 \001(\0132\026.unixfs.block.FSChange\"!\n\014FSHostV"
-    "olume\022\021\n\tvolume_id\030\001 \001(\t\"%\n\010FSConfig\022\031\n\021"
-    "disable_changelog\030\001 \001(\010\")\n\006FSPath\022\r\n\005nod"
-    "es\030\001 \003(\t\022\020\n\010absolute\030\002 \001(\010\"\213\002\n\010FSChange\022"
-    "\r\n\005seqno\030\001 \001(\004\022!\n\010prev_ref\030\002 \001(\0132\017.block"
-    ".BlockRef\022/\n\013change_type\030\003 \001(\0162\032.unixfs."
-    "block.FSChangeType\022(\n\017transaction_ref\030\004 "
-    "\001(\0132\017.block.BlockRef\022#\n\005paths\030\005 \003(\0132\024.un"
-    "ixfs.block.FSPath\022)\n\tnode_type\030\006 \001(\0162\026.u"
-    "nixfs.block.NodeType\022\"\n\tvalue_ref\030\010 \003(\0132"
-    "\017.block.BlockRef*a\n\010NodeType\022\024\n\020NodeType"
-    "_UNKNOWN\020\000\022\026\n\022NodeType_DIRECTORY\020\001\022\021\n\rNo"
-    "deType_FILE\020\002\022\024\n\020NodeType_SYMLINK\020\003*{\n\014F"
-    "SChangeType\022\030\n\024FSChangeType_INVALID\020\000\022\026\n"
-    "\022FSChangeType_MKNOD\020\001\022\033\n\027FSChangeType_FI"
-    "LE_WRITE\020\002\022\034\n\030FSChangeType_FILE_REMOVE\020\003"
-    "b\006proto3"
+    "lock.FSSymlink\022%\n\006xattrs\030\007 \003(\0132\025.unixfs."
+    "block.FSXattr\"&\n\007FSXattr\022\014\n\004name\030\001 \001(\t\022\r"
+    "\n\005value\030\002 \001(\014\"d\n\006Dirent\022\014\n\004name\030\001 \001(\t\022!\n"
+    "\010node_ref\030\002 \001(\0132\017.block.BlockRef\022)\n\tnode"
+    "_type\030\003 \001(\0162\026.unixfs.block.NodeType\"6\n\tF"
+    "SSymlink\022)\n\013target_path\030\001 \001(\0132\024.unixfs.b"
+    "lock.FSPath\"\206\001\n\010FSObject\022&\n\006config\030\001 \001(\013"
+    "2\026.unixfs.block.FSConfig\022%\n\007fs_node\030\002 \001("
+    "\0132\024.unixfs.block.FSNode\022+\n\013last_change\030\003"
+    " \001(\0132\026.unixfs.block.FSChange\"!\n\014FSHostVo"
+    "lume\022\021\n\tvolume_id\030\001 \001(\t\"%\n\010FSConfig\022\031\n\021d"
+    "isable_changelog\030\001 \001(\010\")\n\006FSPath\022\r\n\005node"
+    "s\030\001 \003(\t\022\020\n\010absolute\030\002 \001(\010\"\213\002\n\010FSChange\022\r"
+    "\n\005seqno\030\001 \001(\004\022!\n\010prev_ref\030\002 \001(\0132\017.block."
+    "BlockRef\022/\n\013change_type\030\003 \001(\0162\032.unixfs.b"
+    "lock.FSChangeType\022(\n\017transaction_ref\030\004 \001"
+    "(\0132\017.block.BlockRef\022#\n\005paths\030\005 \003(\0132\024.uni"
+    "xfs.block.FSPath\022)\n\tnode_type\030\006 \001(\0162\026.un"
+    "ixfs.block.NodeType\022\"\n\tvalue_ref\030\010 \003(\0132\017"
+    ".block.BlockRef*a\n\010NodeType\022\024\n\020NodeType_"
+    "UNKNOWN\020\000\022\026\n\022NodeType_DIRECTORY\020\001\022\021\n\rNod"
+    "eType_FILE\020\002\022\024\n\020NodeType_SYMLINK\020\003*{\n\014FS"
+    "ChangeType\022\030\n\024FSChangeType_INVALID\020\000\022\026\n\022"
+    "FSChangeType_MKNOD\020\001\022\033\n\027FSChangeType_FIL"
+    "E_WRITE\020\002\022\034\n\030FSChangeType_FILE_REMOVE\020\003b"
+    "\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_deps[3] = {
@@ -400,13 +444,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto = {
     false,
     false,
-    1368,
+    1447,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto,
     "github.com/aperturerobotics/hydra/unixfs/block/fstree.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_deps,
     3,
-    8,
+    9,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto::offsets,
@@ -441,13 +485,13 @@ void FSNode::clear_mod_time() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.mod_time_ != nullptr) _impl_.mod_time_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 void FSNode::clear_file() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.file_ != nullptr) _impl_.file_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 FSNode::FSNode(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -464,7 +508,8 @@ PROTOBUF_NDEBUG_INLINE FSNode::Impl_::Impl_(
     [[maybe_unused]] const ::unixfs::block::FSNode& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        directory_entry_{visibility, arena, from.directory_entry_} {}
+        directory_entry_{visibility, arena, from.directory_entry_},
+        xattrs_{visibility, arena, from.xattrs_} {}
 
 FSNode::FSNode(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -480,13 +525,13 @@ FSNode::FSNode(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.mod_time_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.mod_time_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.mod_time_)
                 : nullptr;
-  _impl_.file_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.file_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.file_)
                 : nullptr;
-  _impl_.symlink_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.symlink_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.symlink_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
@@ -503,7 +548,8 @@ PROTOBUF_NDEBUG_INLINE FSNode::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        directory_entry_{visibility, arena} {}
+        directory_entry_{visibility, arena},
+        xattrs_{visibility, arena} {}
 
 inline void FSNode::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -540,6 +586,10 @@ constexpr auto FSNode::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.directory_entry_) +
           decltype(FSNode::_impl_.directory_entry_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(FSNode, _impl_.xattrs_) +
+          decltype(FSNode::_impl_.xattrs_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
@@ -586,17 +636,17 @@ FSNode::GetClassData() const {
   return FSNode_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 4, 0, 2>
+const ::_pbi::TcParseTable<3, 7, 5, 0, 2>
 FSNode::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(FSNode, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
-    4,  // num_aux_entries
+    7,  // num_field_entries
+    5,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     FSNode_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -607,20 +657,20 @@ FSNode::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .unixfs.block.NodeType node_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FSNode, _impl_.node_type_), 4>(),
-     {8, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FSNode, _impl_.node_type_), 5>(),
+     {8, 5, 0,
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.node_type_)}},
     // .google.protobuf.Timestamp mod_time = 2;
     {::_pbi::TcParser::FastMtS1,
-     {18, 1, 0,
+     {18, 2, 0,
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.mod_time_)}},
     // uint32 permissions = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FSNode, _impl_.permissions_), 5>(),
-     {24, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(FSNode, _impl_.permissions_), 6>(),
+     {24, 6, 0,
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.permissions_)}},
     // .file.File file = 4;
     {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
+     {34, 3, 1,
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.file_)}},
     // repeated .unixfs.block.Dirent directory_entry = 5;
     {::_pbi::TcParser::FastMtR1,
@@ -628,30 +678,36 @@ FSNode::_table_ = {
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.directory_entry_)}},
     // .unixfs.block.FSSymlink symlink = 6;
     {::_pbi::TcParser::FastMtS1,
-     {50, 3, 3,
+     {50, 4, 3,
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.symlink_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .unixfs.block.FSXattr xattrs = 7;
+    {::_pbi::TcParser::FastMtR1,
+     {58, 1, 4,
+      PROTOBUF_FIELD_OFFSET(FSNode, _impl_.xattrs_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .unixfs.block.NodeType node_type = 1;
-    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.node_type_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.node_type_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .google.protobuf.Timestamp mod_time = 2;
-    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.mod_time_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.mod_time_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint32 permissions = 3;
-    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.permissions_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.permissions_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // .file.File file = 4;
-    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.file_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.file_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .unixfs.block.Dirent directory_entry = 5;
     {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.directory_entry_), _Internal::kHasBitsOffset + 0, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // .unixfs.block.FSSymlink symlink = 6;
-    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.symlink_), _Internal::kHasBitsOffset + 3, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.symlink_), _Internal::kHasBitsOffset + 4, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .unixfs.block.FSXattr xattrs = 7;
+    {PROTOBUF_FIELD_OFFSET(FSNode, _impl_.xattrs_), _Internal::kHasBitsOffset + 1, 4, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
       {::_pbi::TcParser::GetTable<::file::File>()},
       {::_pbi::TcParser::GetTable<::unixfs::block::Dirent>()},
       {::_pbi::TcParser::GetTable<::unixfs::block::FSSymlink>()},
+      {::_pbi::TcParser::GetTable<::unixfs::block::FSXattr>()},
   }},
   {{
   }},
@@ -664,24 +720,27 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.directory_entry_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.xattrs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.mod_time_ != nullptr);
       _impl_.mod_time_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.file_ != nullptr);
       _impl_.file_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.symlink_ != nullptr);
       _impl_.symlink_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000060U)) {
     ::memset(&_impl_.node_type_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.permissions_) -
         reinterpret_cast<char*>(&_impl_.node_type_)) + sizeof(_impl_.permissions_));
@@ -710,7 +769,7 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .unixfs.block.NodeType node_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_node_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -719,14 +778,14 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
   }
 
   // .google.protobuf.Timestamp mod_time = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.mod_time_, this_._impl_.mod_time_->GetCachedSize(), target,
         stream);
   }
 
   // uint32 permissions = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_permissions() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -735,7 +794,7 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
   }
 
   // .file.File file = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.file_, this_._impl_.file_->GetCachedSize(), target,
         stream);
@@ -755,10 +814,23 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
   }
 
   // .unixfs.block.FSSymlink symlink = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         6, *this_._impl_.symlink_, this_._impl_.symlink_->GetCachedSize(), target,
         stream);
+  }
+
+  // repeated .unixfs.block.FSXattr xattrs = 7;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_xattrs_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_xattrs().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              7, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -786,7 +858,7 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // repeated .unixfs.block.Dirent directory_entry = 5;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_directory_entry_size();
@@ -794,30 +866,37 @@ PROTOBUF_NOINLINE void FSNode::Clear() {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
+    // repeated .unixfs.block.FSXattr xattrs = 7;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_xattrs_size();
+      for (const auto& msg : this_._internal_xattrs()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // .google.protobuf.Timestamp mod_time = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.mod_time_);
     }
     // .file.File file = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.file_);
     }
     // .unixfs.block.FSSymlink symlink = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.symlink_);
     }
     // .unixfs.block.NodeType node_type = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_node_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_node_type());
       }
     }
     // uint32 permissions = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_permissions() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_permissions());
@@ -843,13 +922,18 @@ void FSNode::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_directory_entry()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_directory_entry());
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_xattrs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_xattrs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.mod_time_ != nullptr);
       if (_this->_impl_.mod_time_ == nullptr) {
         _this->_impl_.mod_time_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.mod_time_);
@@ -857,7 +941,7 @@ void FSNode::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.mod_time_->MergeFrom(*from._impl_.mod_time_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(from._impl_.file_ != nullptr);
       if (_this->_impl_.file_ == nullptr) {
         _this->_impl_.file_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.file_);
@@ -865,7 +949,7 @@ void FSNode::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.file_->MergeFrom(*from._impl_.file_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.symlink_ != nullptr);
       if (_this->_impl_.symlink_ == nullptr) {
         _this->_impl_.symlink_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.symlink_);
@@ -873,12 +957,12 @@ void FSNode::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.symlink_->MergeFrom(*from._impl_.symlink_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_node_type() != 0) {
         _this->_impl_.node_type_ = from._impl_.node_type_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_permissions() != 0) {
         _this->_impl_.permissions_ = from._impl_.permissions_;
       }
@@ -902,6 +986,7 @@ void FSNode::InternalSwap(FSNode* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.directory_entry_.InternalSwap(&other->_impl_.directory_entry_);
+  _impl_.xattrs_.InternalSwap(&other->_impl_.xattrs_);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(FSNode, _impl_.permissions_)
       + sizeof(FSNode::_impl_.permissions_)
@@ -911,6 +996,323 @@ void FSNode::InternalSwap(FSNode* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
 }
 
 ::google::protobuf::Metadata FSNode::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class FSXattr::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<FSXattr>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(FSXattr, _impl_._has_bits_);
+};
+
+FSXattr::FSXattr(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FSXattr_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:unixfs.block.FSXattr)
+}
+PROTOBUF_NDEBUG_INLINE FSXattr::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::unixfs::block::FSXattr& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        name_(arena, from.name_),
+        value_(arena, from.value_) {}
+
+FSXattr::FSXattr(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const FSXattr& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, FSXattr_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  FSXattr* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:unixfs.block.FSXattr)
+}
+PROTOBUF_NDEBUG_INLINE FSXattr::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        name_(arena),
+        value_(arena) {}
+
+inline void FSXattr::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+FSXattr::~FSXattr() {
+  // @@protoc_insertion_point(destructor:unixfs.block.FSXattr)
+  SharedDtor(*this);
+}
+inline void FSXattr::SharedDtor(MessageLite& self) {
+  FSXattr& this_ = static_cast<FSXattr&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.value_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL FSXattr::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) FSXattr(arena);
+}
+constexpr auto FSXattr::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(FSXattr),
+                                            alignof(FSXattr));
+}
+constexpr auto FSXattr::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_FSXattr_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &FSXattr::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<FSXattr>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &FSXattr::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<FSXattr>(), &FSXattr::ByteSizeLong,
+              &FSXattr::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(FSXattr, _impl_._cached_size_),
+          false,
+      },
+      &FSXattr::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull FSXattr_class_data_ =
+        FSXattr::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+FSXattr::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&FSXattr_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(FSXattr_class_data_.tc_table);
+  return FSXattr_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 33, 2>
+FSXattr::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(FSXattr, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    FSXattr_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::unixfs::block::FSXattr>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes value = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(FSXattr, _impl_.value_)}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(FSXattr, _impl_.name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(FSXattr, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes value = 2;
+    {PROTOBUF_FIELD_OFFSET(FSXattr, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\24\4\0\0\0\0\0\0"
+    "unixfs.block.FSXattr"
+    "name"
+  }},
+};
+PROTOBUF_NOINLINE void FSXattr::Clear() {
+// @@protoc_insertion_point(message_clear_start:unixfs.block.FSXattr)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.value_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL FSXattr::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const FSXattr& this_ = static_cast<const FSXattr&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL FSXattr::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const FSXattr& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:unixfs.block.FSXattr)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "unixfs.block.FSXattr.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bytes value = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_value().empty()) {
+      const ::std::string& _s = this_._internal_value();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:unixfs.block.FSXattr)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t FSXattr::ByteSizeLong(const MessageLite& base) {
+  const FSXattr& this_ = static_cast<const FSXattr&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t FSXattr::ByteSizeLong() const {
+  const FSXattr& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:unixfs.block.FSXattr)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // bytes value = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_value().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_value());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void FSXattr::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<FSXattr*>(&to_msg);
+  auto& from = static_cast<const FSXattr&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:unixfs.block.FSXattr)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_value().empty()) {
+        _this->_internal_set_value(from._internal_value());
+      } else {
+        if (_this->_impl_.value_.IsDefault()) {
+          _this->_internal_set_value("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void FSXattr::CopyFrom(const FSXattr& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:unixfs.block.FSXattr)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void FSXattr::InternalSwap(FSXattr* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.value_, &other->_impl_.value_, arena);
+}
+
+::google::protobuf::Metadata FSXattr::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
