@@ -70,6 +70,12 @@ func (t *Factory) Construct(
 		cc.GetElectronFlags(),
 		&ElectronInit{
 			ExternalLinks: cc.GetExternalLinks(),
+			AppName:       cc.GetAppName(),
+			WindowTitle:   cc.GetWindowTitle(),
+			WindowWidth:   cc.GetWindowWidth(),
+			WindowHeight:  cc.GetWindowHeight(),
+			DevTools:      cc.GetDevTools(),
+			ThemeSource:   cc.GetThemeSource(),
 		},
 	)
 }

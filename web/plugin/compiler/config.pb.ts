@@ -8,6 +8,64 @@ import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 export const protobufPackage = 'bldr.web.plugin.compiler'
 
 /**
+ * NativeAppConfig configures branding for native app renderers.
+ *
+ * @generated from message bldr.web.plugin.compiler.NativeAppConfig
+ */
+export interface NativeAppConfig {
+  /**
+   * AppName is the display name of the application.
+   *
+   * @generated from field: string app_name = 1;
+   */
+  appName?: string
+  /**
+   * WindowTitle overrides the default window title.
+   *
+   * @generated from field: string window_title = 2;
+   */
+  windowTitle?: string
+  /**
+   * WindowWidth is the default window width in pixels.
+   *
+   * @generated from field: uint32 window_width = 3;
+   */
+  windowWidth?: number
+  /**
+   * WindowHeight is the default window height in pixels.
+   *
+   * @generated from field: uint32 window_height = 4;
+   */
+  windowHeight?: number
+  /**
+   * DevTools controls whether DevTools open automatically.
+   *
+   * @generated from field: bool dev_tools = 5;
+   */
+  devTools?: boolean
+  /**
+   * ThemeSource overrides the native theme ("dark", "light", "system").
+   *
+   * @generated from field: string theme_source = 6;
+   */
+  themeSource?: string
+}
+
+// NativeAppConfig contains the message type declaration for NativeAppConfig.
+export const NativeAppConfig: MessageType<NativeAppConfig> = createMessageType({
+  typeName: 'bldr.web.plugin.compiler.NativeAppConfig',
+  fields: [
+    { no: 1, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 4, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 5, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Config configures the web plugin builder.
  *
  * @generated from message bldr.web.plugin.compiler.Config
@@ -37,6 +95,12 @@ export interface Config {
    * @generated from field: string electron_pkg = 3;
    */
   electronPkg?: string
+  /**
+   * NativeApp configures branding for native app renderers.
+   *
+   * @generated from field: bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+   */
+  nativeApp?: NativeAppConfig
 }
 
 // Config contains the message type declaration for Config.
@@ -46,6 +110,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'electron_pkg', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'native_app', kind: 'message', T: () => NativeAppConfig },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -86,11 +86,17 @@ export class BldrElectronApp {
   // init initializes the app
   public init() {
     const app = this.app
+    const init = this.electronInit
 
     app.on('ready', this.onAppReady.bind(this))
 
-    // dark mode
-    nativeTheme.themeSource = 'dark' // TODO: allow overriding this
+    if (init.appName) {
+      app.setName(init.appName)
+    }
+
+    if (init.themeSource) {
+      nativeTheme.themeSource = init.themeSource as 'dark' | 'light' | 'system'
+    }
 
     /*
     app.on('window-all-closed', () => {
@@ -178,14 +184,16 @@ export class BldrElectronApp {
   // createWindow creates a new browser window.
   // hash is an optional URL hash to navigate to after loading (without the # prefix).
   private createWindow(webDocumentId?: string, hash?: string) {
+    const init = this.electronInit
     const preload = path.join(this.distPath, 'preload.mjs')
     const nwindow = new electron.BrowserWindow({
       // Only show the OS window frame on MacOS.
       frame: isMac,
       titleBarStyle: isMac ? 'hidden' : undefined,
 
-      height: 680,
-      width: 900,
+      title: init.windowTitle || init.appName || undefined,
+      height: init.windowHeight || 680,
+      width: init.windowWidth || 900,
 
       webPreferences: {
         sandbox: true,
@@ -200,7 +208,9 @@ export class BldrElectronApp {
       },
     })
 
-    nwindow.webContents.openDevTools()
+    if (init.devTools || isDebug) {
+      nwindow.webContents.openDevTools()
+    }
 
     // Build URL with optional hash
     let url =

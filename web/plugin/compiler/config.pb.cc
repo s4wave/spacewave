@@ -31,6 +31,42 @@ namespace web {
 namespace plugin {
 namespace compiler {
 
+inline constexpr NativeAppConfig::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        app_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        window_title_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        theme_source_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        window_width_{0u},
+        window_height_{0u},
+        dev_tools_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NativeAppConfig::NativeAppConfig(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(NativeAppConfig_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct NativeAppConfigDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NativeAppConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NativeAppConfigDefaultTypeInternal() {}
+  union {
+    NativeAppConfig _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NativeAppConfigDefaultTypeInternal _NativeAppConfig_default_instance_;
+
 inline constexpr Config::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -42,7 +78,8 @@ inline constexpr Config::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         electron_pkg_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        native_app_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -76,41 +113,65 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::Config, _impl_._has_bits_),
-        6, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::Config, _impl_.project_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::Config, _impl_.delve_addr_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::Config, _impl_.electron_pkg_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::Config, _impl_.native_app_),
         0,
         1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.app_name_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.window_title_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.window_width_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.window_height_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.dev_tools_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::compiler::NativeAppConfig, _impl_.theme_source_),
+        0,
+        1,
+        3,
+        4,
+        5,
         2,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::web::plugin::compiler::Config)},
+        {11, sizeof(::bldr::web::plugin::compiler::NativeAppConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::plugin::compiler::_Config_default_instance_._instance,
+    &::bldr::web::plugin::compiler::_NativeAppConfig_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nAgithub.com/aperturerobotics/bldr/web/p"
     "lugin/compiler/config.proto\022\030bldr.web.pl"
-    "ugin.compiler\"F\n\006Config\022\022\n\nproject_id\030\001 "
-    "\001(\t\022\022\n\ndelve_addr\030\002 \001(\t\022\024\n\014electron_pkg\030"
-    "\003 \001(\tb\006proto3"
+    "ugin.compiler\"\205\001\n\006Config\022\022\n\nproject_id\030\001"
+    " \001(\t\022\022\n\ndelve_addr\030\002 \001(\t\022\024\n\014electron_pkg"
+    "\030\003 \001(\t\022=\n\nnative_app\030\004 \001(\0132).bldr.web.pl"
+    "ugin.compiler.NativeAppConfig\"\217\001\n\017Native"
+    "AppConfig\022\020\n\010app_name\030\001 \001(\t\022\024\n\014window_ti"
+    "tle\030\002 \001(\t\022\024\n\014window_width\030\003 \001(\r\022\025\n\rwindo"
+    "w_height\030\004 \001(\r\022\021\n\tdev_tools\030\005 \001(\010\022\024\n\014the"
+    "me_source\030\006 \001(\tb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto = {
     false,
     false,
-    173,
+    383,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/web/plugin/compiler/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto_once,
     nullptr,
     0,
-    1,
+    2,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto::offsets,
@@ -163,6 +224,10 @@ Config::Config(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.native_app_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.native_app_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:bldr.web.plugin.compiler.Config)
 }
@@ -176,6 +241,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.native_app_ = {};
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:bldr.web.plugin.compiler.Config)
@@ -191,6 +257,7 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.project_id_.Destroy();
   this_._impl_.delve_addr_.Destroy();
   this_._impl_.electron_pkg_.Destroy();
+  delete this_._impl_.native_app_;
   this_._impl_.~Impl_();
 }
 
@@ -237,18 +304,18 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 72, 2>
+const ::_pbi::TcParseTable<2, 4, 1, 72, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -256,7 +323,10 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::web::plugin::compiler::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.native_app_)}},
     // string project_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -278,8 +348,12 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.delve_addr_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string electron_pkg = 3;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.electron_pkg_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.native_app_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::web::plugin::compiler::NativeAppConfig>()},
+  }},
   {{
     "\37\12\12\14\0\0\0\0"
     "bldr.web.plugin.compiler.Config"
@@ -296,7 +370,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.project_id_.ClearNonDefaultToEmpty();
     }
@@ -305,6 +379,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       _impl_.electron_pkg_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.native_app_ != nullptr);
+      _impl_.native_app_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -360,6 +438,13 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        4, *this_._impl_.native_app_, this_._impl_.native_app_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -385,7 +470,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // string project_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_project_id().empty()) {
@@ -407,6 +492,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_electron_pkg());
       }
     }
+    // .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.native_app_);
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -420,13 +510,14 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:bldr.web.plugin.compiler.Config)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_project_id().empty()) {
         _this->_internal_set_project_id(from._internal_project_id());
@@ -454,6 +545,14 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.native_app_ != nullptr);
+      if (_this->_impl_.native_app_ == nullptr) {
+        _this->_impl_.native_app_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.native_app_);
+      } else {
+        _this->_impl_.native_app_->MergeFrom(*from._impl_.native_app_);
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -477,9 +576,476 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.delve_addr_, &other->_impl_.delve_addr_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.electron_pkg_, &other->_impl_.electron_pkg_, arena);
+  swap(_impl_.native_app_, other->_impl_.native_app_);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NativeAppConfig::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<NativeAppConfig>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_._has_bits_);
+};
+
+NativeAppConfig::NativeAppConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NativeAppConfig_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.web.plugin.compiler.NativeAppConfig)
+}
+PROTOBUF_NDEBUG_INLINE NativeAppConfig::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::web::plugin::compiler::NativeAppConfig& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        app_name_(arena, from.app_name_),
+        window_title_(arena, from.window_title_),
+        theme_source_(arena, from.theme_source_) {}
+
+NativeAppConfig::NativeAppConfig(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NativeAppConfig& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NativeAppConfig_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NativeAppConfig* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, window_width_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, window_width_),
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, window_width_) +
+               sizeof(Impl_::dev_tools_));
+
+  // @@protoc_insertion_point(copy_constructor:bldr.web.plugin.compiler.NativeAppConfig)
+}
+PROTOBUF_NDEBUG_INLINE NativeAppConfig::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        app_name_(arena),
+        window_title_(arena),
+        theme_source_(arena) {}
+
+inline void NativeAppConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, window_width_),
+           0,
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, window_width_) +
+               sizeof(Impl_::dev_tools_));
+}
+NativeAppConfig::~NativeAppConfig() {
+  // @@protoc_insertion_point(destructor:bldr.web.plugin.compiler.NativeAppConfig)
+  SharedDtor(*this);
+}
+inline void NativeAppConfig::SharedDtor(MessageLite& self) {
+  NativeAppConfig& this_ = static_cast<NativeAppConfig&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.app_name_.Destroy();
+  this_._impl_.window_title_.Destroy();
+  this_._impl_.theme_source_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL NativeAppConfig::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NativeAppConfig(arena);
+}
+constexpr auto NativeAppConfig::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(NativeAppConfig),
+                                            alignof(NativeAppConfig));
+}
+constexpr auto NativeAppConfig::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NativeAppConfig_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NativeAppConfig::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<NativeAppConfig>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NativeAppConfig::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<NativeAppConfig>(), &NativeAppConfig::ByteSizeLong,
+              &NativeAppConfig::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_._cached_size_),
+          false,
+      },
+      &NativeAppConfig::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NativeAppConfig_class_data_ =
+        NativeAppConfig::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NativeAppConfig::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NativeAppConfig_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NativeAppConfig_class_data_.tc_table);
+  return NativeAppConfig_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 81, 2>
+NativeAppConfig::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    NativeAppConfig_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::web::plugin::compiler::NativeAppConfig>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string app_name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.app_name_)}},
+    // string window_title = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_title_)}},
+    // uint32 window_width = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NativeAppConfig, _impl_.window_width_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_width_)}},
+    // uint32 window_height = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NativeAppConfig, _impl_.window_height_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_height_)}},
+    // bool dev_tools = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(NativeAppConfig, _impl_.dev_tools_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.dev_tools_)}},
+    // string theme_source = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 2, 0,
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.theme_source_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string app_name = 1;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.app_name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string window_title = 2;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_title_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 window_width = 3;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_width_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 window_height = 4;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_height_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool dev_tools = 5;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.dev_tools_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string theme_source = 6;
+    {PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.theme_source_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\50\10\14\0\0\0\14\0"
+    "bldr.web.plugin.compiler.NativeAppConfig"
+    "app_name"
+    "window_title"
+    "theme_source"
+  }},
+};
+PROTOBUF_NOINLINE void NativeAppConfig::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.web.plugin.compiler.NativeAppConfig)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.app_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.window_title_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.theme_source_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000038U)) {
+    ::memset(&_impl_.window_width_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.dev_tools_) -
+        reinterpret_cast<char*>(&_impl_.window_width_)) + sizeof(_impl_.dev_tools_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL NativeAppConfig::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const NativeAppConfig& this_ = static_cast<const NativeAppConfig&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL NativeAppConfig::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const NativeAppConfig& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.web.plugin.compiler.NativeAppConfig)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string app_name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_app_name().empty()) {
+      const ::std::string& _s = this_._internal_app_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.plugin.compiler.NativeAppConfig.app_name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string window_title = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_window_title().empty()) {
+      const ::std::string& _s = this_._internal_window_title();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.plugin.compiler.NativeAppConfig.window_title");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint32 window_width = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_window_width() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          3, this_._internal_window_width(), target);
+    }
+  }
+
+  // uint32 window_height = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_window_height() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_window_height(), target);
+    }
+  }
+
+  // bool dev_tools = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_dev_tools() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_dev_tools(), target);
+    }
+  }
+
+  // string theme_source = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_theme_source().empty()) {
+      const ::std::string& _s = this_._internal_theme_source();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.plugin.compiler.NativeAppConfig.theme_source");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.web.plugin.compiler.NativeAppConfig)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t NativeAppConfig::ByteSizeLong(const MessageLite& base) {
+  const NativeAppConfig& this_ = static_cast<const NativeAppConfig&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t NativeAppConfig::ByteSizeLong() const {
+  const NativeAppConfig& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.web.plugin.compiler.NativeAppConfig)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string app_name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_app_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_app_name());
+      }
+    }
+    // string window_title = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_window_title().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_window_title());
+      }
+    }
+    // string theme_source = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_theme_source().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_theme_source());
+      }
+    }
+    // uint32 window_width = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_window_width() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_width());
+      }
+    }
+    // uint32 window_height = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_window_height() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_height());
+      }
+    }
+    // bool dev_tools = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_dev_tools() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void NativeAppConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<NativeAppConfig*>(&to_msg);
+  auto& from = static_cast<const NativeAppConfig&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.web.plugin.compiler.NativeAppConfig)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_app_name().empty()) {
+        _this->_internal_set_app_name(from._internal_app_name());
+      } else {
+        if (_this->_impl_.app_name_.IsDefault()) {
+          _this->_internal_set_app_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_window_title().empty()) {
+        _this->_internal_set_window_title(from._internal_window_title());
+      } else {
+        if (_this->_impl_.window_title_.IsDefault()) {
+          _this->_internal_set_window_title("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_theme_source().empty()) {
+        _this->_internal_set_theme_source(from._internal_theme_source());
+      } else {
+        if (_this->_impl_.theme_source_.IsDefault()) {
+          _this->_internal_set_theme_source("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_window_width() != 0) {
+        _this->_impl_.window_width_ = from._impl_.window_width_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_window_height() != 0) {
+        _this->_impl_.window_height_ = from._impl_.window_height_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_dev_tools() != 0) {
+        _this->_impl_.dev_tools_ = from._impl_.dev_tools_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void NativeAppConfig::CopyFrom(const NativeAppConfig& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.web.plugin.compiler.NativeAppConfig)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void NativeAppConfig::InternalSwap(NativeAppConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.app_name_, &other->_impl_.app_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.window_title_, &other->_impl_.window_title_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.theme_source_, &other->_impl_.theme_source_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.dev_tools_)
+      + sizeof(NativeAppConfig::_impl_.dev_tools_)
+      - PROTOBUF_FIELD_OFFSET(NativeAppConfig, _impl_.window_width_)>(
+          reinterpret_cast<char*>(&_impl_.window_width_),
+          reinterpret_cast<char*>(&other->_impl_.window_width_));
+}
+
+::google::protobuf::Metadata NativeAppConfig::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

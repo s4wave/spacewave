@@ -17,4 +17,23 @@ message Config {
   // If not found, defaults to electron@latest.
   // Ignored if build platform is not "native".
   string electron_pkg = 3;
+
+  // NativeApp configures branding for native app renderers.
+  NativeAppConfig native_app = 4;
+}
+
+// NativeAppConfig configures branding for native app renderers.
+message NativeAppConfig {
+  // AppName is the display name of the application.
+  string app_name = 1;
+  // WindowTitle overrides the default window title.
+  string window_title = 2;
+  // WindowWidth is the default window width in pixels.
+  uint32 window_width = 3;
+  // WindowHeight is the default window height in pixels.
+  uint32 window_height = 4;
+  // DevTools controls whether DevTools open automatically.
+  bool dev_tools = 5;
+  // ThemeSource overrides the native theme ("dark", "light", "system").
+  string theme_source = 6;
 }

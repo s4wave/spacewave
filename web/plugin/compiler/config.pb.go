@@ -30,6 +30,8 @@ type Config struct {
 	// If not found, defaults to electron@latest.
 	// Ignored if build platform is not "native".
 	ElectronPkg string `protobuf:"bytes,3,opt,name=electron_pkg,json=electronPkg,proto3" json:"electronPkg,omitempty"`
+	// NativeApp configures branding for native app renderers.
+	NativeApp *NativeAppConfig `protobuf:"bytes,4,opt,name=native_app,json=nativeApp,proto3" json:"nativeApp,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -59,6 +61,78 @@ func (x *Config) GetElectronPkg() string {
 	return ""
 }
 
+func (x *Config) GetNativeApp() *NativeAppConfig {
+	if x != nil {
+		return x.NativeApp
+	}
+	return nil
+}
+
+// NativeAppConfig configures branding for native app renderers.
+type NativeAppConfig struct {
+	unknownFields []byte
+	// AppName is the display name of the application.
+	AppName string `protobuf:"bytes,1,opt,name=app_name,json=appName,proto3" json:"appName,omitempty"`
+	// WindowTitle overrides the default window title.
+	WindowTitle string `protobuf:"bytes,2,opt,name=window_title,json=windowTitle,proto3" json:"windowTitle,omitempty"`
+	// WindowWidth is the default window width in pixels.
+	WindowWidth uint32 `protobuf:"varint,3,opt,name=window_width,json=windowWidth,proto3" json:"windowWidth,omitempty"`
+	// WindowHeight is the default window height in pixels.
+	WindowHeight uint32 `protobuf:"varint,4,opt,name=window_height,json=windowHeight,proto3" json:"windowHeight,omitempty"`
+	// DevTools controls whether DevTools open automatically.
+	DevTools bool `protobuf:"varint,5,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
+	// ThemeSource overrides the native theme ("dark", "light", "system").
+	ThemeSource string `protobuf:"bytes,6,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
+}
+
+func (x *NativeAppConfig) Reset() {
+	*x = NativeAppConfig{}
+}
+
+func (*NativeAppConfig) ProtoMessage() {}
+
+func (x *NativeAppConfig) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *NativeAppConfig) GetWindowTitle() string {
+	if x != nil {
+		return x.WindowTitle
+	}
+	return ""
+}
+
+func (x *NativeAppConfig) GetWindowWidth() uint32 {
+	if x != nil {
+		return x.WindowWidth
+	}
+	return 0
+}
+
+func (x *NativeAppConfig) GetWindowHeight() uint32 {
+	if x != nil {
+		return x.WindowHeight
+	}
+	return 0
+}
+
+func (x *NativeAppConfig) GetDevTools() bool {
+	if x != nil {
+		return x.DevTools
+	}
+	return false
+}
+
+func (x *NativeAppConfig) GetThemeSource() string {
+	if x != nil {
+		return x.ThemeSource
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -67,6 +141,7 @@ func (m *Config) CloneVT() *Config {
 	r.ProjectId = m.ProjectId
 	r.DelveAddr = m.DelveAddr
 	r.ElectronPkg = m.ElectronPkg
+	r.NativeApp = m.NativeApp.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -74,6 +149,27 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NativeAppConfig) CloneVT() *NativeAppConfig {
+	if m == nil {
+		return (*NativeAppConfig)(nil)
+	}
+	r := new(NativeAppConfig)
+	r.AppName = m.AppName
+	r.WindowTitle = m.WindowTitle
+	r.WindowWidth = m.WindowWidth
+	r.WindowHeight = m.WindowHeight
+	r.DevTools = m.DevTools
+	r.ThemeSource = m.ThemeSource
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NativeAppConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -92,11 +188,49 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.ElectronPkg != that.ElectronPkg {
 		return false
 	}
+	if !this.NativeApp.EqualVT(that.NativeApp) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NativeAppConfig) EqualVT(that *NativeAppConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AppName != that.AppName {
+		return false
+	}
+	if this.WindowTitle != that.WindowTitle {
+		return false
+	}
+	if this.WindowWidth != that.WindowWidth {
+		return false
+	}
+	if this.WindowHeight != that.WindowHeight {
+		return false
+	}
+	if this.DevTools != that.DevTools {
+		return false
+	}
+	if this.ThemeSource != that.ThemeSource {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NativeAppConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NativeAppConfig)
 	if !ok {
 		return false
 	}
@@ -126,6 +260,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("electronPkg")
 		s.WriteString(x.ElectronPkg)
 	}
+	if x.NativeApp != nil || s.HasField("nativeApp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nativeApp")
+		x.NativeApp.MarshalProtoJSON(s.WithField("nativeApp"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -152,12 +291,101 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "electron_pkg", "electronPkg":
 			s.AddField("electron_pkg")
 			x.ElectronPkg = s.ReadString()
+		case "native_app", "nativeApp":
+			if s.ReadNil() {
+				x.NativeApp = nil
+				return
+			}
+			x.NativeApp = &NativeAppConfig{}
+			x.NativeApp.UnmarshalProtoJSON(s.WithField("native_app", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NativeAppConfig message to JSON.
+func (x *NativeAppConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AppName != "" || s.HasField("appName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appName")
+		s.WriteString(x.AppName)
+	}
+	if x.WindowTitle != "" || s.HasField("windowTitle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowTitle")
+		s.WriteString(x.WindowTitle)
+	}
+	if x.WindowWidth != 0 || s.HasField("windowWidth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowWidth")
+		s.WriteUint32(x.WindowWidth)
+	}
+	if x.WindowHeight != 0 || s.HasField("windowHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowHeight")
+		s.WriteUint32(x.WindowHeight)
+	}
+	if x.DevTools || s.HasField("devTools") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devTools")
+		s.WriteBool(x.DevTools)
+	}
+	if x.ThemeSource != "" || s.HasField("themeSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("themeSource")
+		s.WriteString(x.ThemeSource)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NativeAppConfig to JSON.
+func (x *NativeAppConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NativeAppConfig message from JSON.
+func (x *NativeAppConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "app_name", "appName":
+			s.AddField("app_name")
+			x.AppName = s.ReadString()
+		case "window_title", "windowTitle":
+			s.AddField("window_title")
+			x.WindowTitle = s.ReadString()
+		case "window_width", "windowWidth":
+			s.AddField("window_width")
+			x.WindowWidth = s.ReadUint32()
+		case "window_height", "windowHeight":
+			s.AddField("window_height")
+			x.WindowHeight = s.ReadUint32()
+		case "dev_tools", "devTools":
+			s.AddField("dev_tools")
+			x.DevTools = s.ReadBool()
+		case "theme_source", "themeSource":
+			s.AddField("theme_source")
+			x.ThemeSource = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NativeAppConfig from JSON.
+func (x *NativeAppConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -191,6 +419,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.NativeApp != nil {
+		size, err := m.NativeApp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.ElectronPkg) > 0 {
 		i -= len(m.ElectronPkg)
 		copy(dAtA[i:], m.ElectronPkg)
@@ -215,6 +453,80 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *NativeAppConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NativeAppConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NativeAppConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ThemeSource) > 0 {
+		i -= len(m.ThemeSource)
+		copy(dAtA[i:], m.ThemeSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ThemeSource)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.DevTools {
+		i--
+		if m.DevTools {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.WindowHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowHeight))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.WindowWidth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowWidth))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.WindowTitle) > 0 {
+		i -= len(m.WindowTitle)
+		copy(dAtA[i:], m.WindowTitle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WindowTitle)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AppName) > 0 {
+		i -= len(m.AppName)
+		copy(dAtA[i:], m.AppName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AppName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -230,6 +542,41 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.ElectronPkg)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.NativeApp != nil {
+		l = m.NativeApp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NativeAppConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AppName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WindowTitle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WindowWidth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowWidth))
+	}
+	if m.WindowHeight != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowHeight))
+	}
+	if m.DevTools {
+		n += 2
+	}
+	l = len(m.ThemeSource)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -261,11 +608,71 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("electron_pkg: ")
 		sb.WriteString(strconv.Quote(x.ElectronPkg))
 	}
+	if x.NativeApp != nil {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("native_app: ")
+		sb.WriteString(x.NativeApp.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *Config) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NativeAppConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("NativeAppConfig {")
+	if x.AppName != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("app_name: ")
+		sb.WriteString(strconv.Quote(x.AppName))
+	}
+	if x.WindowTitle != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_title: ")
+		sb.WriteString(strconv.Quote(x.WindowTitle))
+	}
+	if x.WindowWidth != 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_width: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowWidth), 10))
+	}
+	if x.WindowHeight != 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_height: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowHeight), 10))
+	}
+	if x.DevTools != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dev_tools: ")
+		sb.WriteString(strconv.FormatBool(x.DevTools))
+	}
+	if x.ThemeSource != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("theme_source: ")
+		sb.WriteString(strconv.Quote(x.ThemeSource))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *NativeAppConfig) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -354,6 +761,173 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ElectronPkg = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NativeApp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.NativeApp == nil {
+				m.NativeApp = &NativeAppConfig{}
+			}
+			if err := m.NativeApp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NativeAppConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NativeAppConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NativeAppConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowTitle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WindowTitle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowWidth", wireType)
+			}
+			m.WindowWidth = 0
+			m.WindowWidth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowHeight", wireType)
+			}
+			m.WindowHeight = 0
+			m.WindowHeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevTools", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.DevTools = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThemeSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ThemeSource = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

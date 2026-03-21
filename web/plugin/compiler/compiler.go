@@ -236,12 +236,24 @@ func (c *Controller) BundleElectronHook(
 
 	// build config set to start the electron entrypoint on startup
 	webRuntimeId := random_id.RandomIdentifier(0)
-	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
+	electronConf := &electron.Config{
 		WebRuntimeId:  webRuntimeId,
 		ElectronPath:  filepath.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
 		RendererPath:  "app.asar/index.mjs",
 		ElectronFlags: extraElectronFlags,
-	}), false)
+	}
+
+	// Copy native app branding from compiler config to electron config.
+	if nativeApp := c.GetConfig().GetNativeApp(); nativeApp != nil {
+		electronConf.AppName = nativeApp.GetAppName()
+		electronConf.WindowTitle = nativeApp.GetWindowTitle()
+		electronConf.WindowWidth = nativeApp.GetWindowWidth()
+		electronConf.WindowHeight = nativeApp.GetWindowHeight()
+		electronConf.DevTools = nativeApp.GetDevTools()
+		electronConf.ThemeSource = nativeApp.GetThemeSource()
+	}
+
+	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, electronConf), false)
 	if err != nil {
 		return nil, err
 	}
@@ -347,13 +359,26 @@ func (c *Controller) BundleSaucerHook(
 
 	// Build config set to start the saucer entrypoint on startup
 	webRuntimeId := random_id.RandomIdentifier(0)
-	saucerCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &saucer.Config{
+	saucerConf := &saucer.Config{
 		WebRuntimeId:  webRuntimeId,
 		SaucerPath:    filepath.Join("bin", entrypoint_saucer_bundle.GetSaucerBinName(buildPlatform)),
 		DevTools:      buildType.IsDev(),
 		BootstrapHtml: jsBundle.BootstrapHTML,
 		EntrypointJs:  jsBundle.EntrypointJS,
-	}), false)
+	}
+
+	// Copy native app branding from compiler config to saucer config.
+	if nativeApp := c.GetConfig().GetNativeApp(); nativeApp != nil {
+		saucerConf.AppName = nativeApp.GetAppName()
+		saucerConf.WindowTitle = nativeApp.GetWindowTitle()
+		saucerConf.WindowWidth = nativeApp.GetWindowWidth()
+		saucerConf.WindowHeight = nativeApp.GetWindowHeight()
+		if nativeApp.GetDevTools() {
+			saucerConf.DevTools = true
+		}
+	}
+
+	saucerCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, saucerConf), false)
 	if err != nil {
 		return nil, err
 	}

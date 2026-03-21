@@ -56,6 +56,18 @@ type ElectronInit struct {
 	unknownFields []byte
 	// ExternalLinks configures how external links are handled.
 	ExternalLinks ExternalLinks `protobuf:"varint,1,opt,name=external_links,json=externalLinks,proto3" json:"externalLinks,omitempty"`
+	// AppName is the application display name.
+	AppName string `protobuf:"bytes,2,opt,name=app_name,json=appName,proto3" json:"appName,omitempty"`
+	// WindowTitle overrides the window title (defaults to app_name).
+	WindowTitle string `protobuf:"bytes,3,opt,name=window_title,json=windowTitle,proto3" json:"windowTitle,omitempty"`
+	// WindowWidth is the default window width in pixels (default: 900).
+	WindowWidth uint32 `protobuf:"varint,4,opt,name=window_width,json=windowWidth,proto3" json:"windowWidth,omitempty"`
+	// WindowHeight is the default window height in pixels (default: 680).
+	WindowHeight uint32 `protobuf:"varint,5,opt,name=window_height,json=windowHeight,proto3" json:"windowHeight,omitempty"`
+	// DevTools enables DevTools on window creation (default: false).
+	DevTools bool `protobuf:"varint,6,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
+	// ThemeSource sets native theme ("dark", "light", "system").
+	ThemeSource string `protobuf:"bytes,7,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
 }
 
 func (x *ElectronInit) Reset() {
@@ -69,6 +81,48 @@ func (x *ElectronInit) GetExternalLinks() ExternalLinks {
 		return x.ExternalLinks
 	}
 	return ExternalLinks_EXTERNAL_LINKS_OS_BROWSER
+}
+
+func (x *ElectronInit) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *ElectronInit) GetWindowTitle() string {
+	if x != nil {
+		return x.WindowTitle
+	}
+	return ""
+}
+
+func (x *ElectronInit) GetWindowWidth() uint32 {
+	if x != nil {
+		return x.WindowWidth
+	}
+	return 0
+}
+
+func (x *ElectronInit) GetWindowHeight() uint32 {
+	if x != nil {
+		return x.WindowHeight
+	}
+	return 0
+}
+
+func (x *ElectronInit) GetDevTools() bool {
+	if x != nil {
+		return x.DevTools
+	}
+	return false
+}
+
+func (x *ElectronInit) GetThemeSource() string {
+	if x != nil {
+		return x.ThemeSource
+	}
+	return ""
 }
 
 // Config is the configuration for the electron runtime.
@@ -92,6 +146,18 @@ type Config struct {
 	ElectronFlags []string `protobuf:"bytes,4,rep,name=electron_flags,json=electronFlags,proto3" json:"electronFlags,omitempty"`
 	// ExternalLinks configures how external links are handled.
 	ExternalLinks ExternalLinks `protobuf:"varint,6,opt,name=external_links,json=externalLinks,proto3" json:"externalLinks,omitempty"`
+	// AppName is the application display name.
+	AppName string `protobuf:"bytes,7,opt,name=app_name,json=appName,proto3" json:"appName,omitempty"`
+	// WindowTitle overrides the window title (defaults to app_name).
+	WindowTitle string `protobuf:"bytes,8,opt,name=window_title,json=windowTitle,proto3" json:"windowTitle,omitempty"`
+	// WindowWidth is the default window width in pixels.
+	WindowWidth uint32 `protobuf:"varint,9,opt,name=window_width,json=windowWidth,proto3" json:"windowWidth,omitempty"`
+	// WindowHeight is the default window height in pixels.
+	WindowHeight uint32 `protobuf:"varint,10,opt,name=window_height,json=windowHeight,proto3" json:"windowHeight,omitempty"`
+	// DevTools enables DevTools on window creation.
+	DevTools bool `protobuf:"varint,11,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
+	// ThemeSource sets native theme ("dark", "light", "system").
+	ThemeSource string `protobuf:"bytes,12,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -142,12 +208,60 @@ func (x *Config) GetExternalLinks() ExternalLinks {
 	return ExternalLinks_EXTERNAL_LINKS_OS_BROWSER
 }
 
+func (x *Config) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *Config) GetWindowTitle() string {
+	if x != nil {
+		return x.WindowTitle
+	}
+	return ""
+}
+
+func (x *Config) GetWindowWidth() uint32 {
+	if x != nil {
+		return x.WindowWidth
+	}
+	return 0
+}
+
+func (x *Config) GetWindowHeight() uint32 {
+	if x != nil {
+		return x.WindowHeight
+	}
+	return 0
+}
+
+func (x *Config) GetDevTools() bool {
+	if x != nil {
+		return x.DevTools
+	}
+	return false
+}
+
+func (x *Config) GetThemeSource() string {
+	if x != nil {
+		return x.ThemeSource
+	}
+	return ""
+}
+
 func (m *ElectronInit) CloneVT() *ElectronInit {
 	if m == nil {
 		return (*ElectronInit)(nil)
 	}
 	r := new(ElectronInit)
 	r.ExternalLinks = m.ExternalLinks
+	r.AppName = m.AppName
+	r.WindowTitle = m.WindowTitle
+	r.WindowWidth = m.WindowWidth
+	r.WindowHeight = m.WindowHeight
+	r.DevTools = m.DevTools
+	r.ThemeSource = m.ThemeSource
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -168,6 +282,12 @@ func (m *Config) CloneVT() *Config {
 	r.RendererPath = m.RendererPath
 	r.WebRuntimeId = m.WebRuntimeId
 	r.ExternalLinks = m.ExternalLinks
+	r.AppName = m.AppName
+	r.WindowTitle = m.WindowTitle
+	r.WindowWidth = m.WindowWidth
+	r.WindowHeight = m.WindowHeight
+	r.DevTools = m.DevTools
+	r.ThemeSource = m.ThemeSource
 	if rhs := m.ElectronFlags; rhs != nil {
 		r.ElectronFlags = slices.Clone(rhs)
 	}
@@ -188,6 +308,24 @@ func (this *ElectronInit) EqualVT(that *ElectronInit) bool {
 		return false
 	}
 	if this.ExternalLinks != that.ExternalLinks {
+		return false
+	}
+	if this.AppName != that.AppName {
+		return false
+	}
+	if this.WindowTitle != that.WindowTitle {
+		return false
+	}
+	if this.WindowWidth != that.WindowWidth {
+		return false
+	}
+	if this.WindowHeight != that.WindowHeight {
+		return false
+	}
+	if this.DevTools != that.DevTools {
+		return false
+	}
+	if this.ThemeSource != that.ThemeSource {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -229,6 +367,24 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ExternalLinks != that.ExternalLinks {
+		return false
+	}
+	if this.AppName != that.AppName {
+		return false
+	}
+	if this.WindowTitle != that.WindowTitle {
+		return false
+	}
+	if this.WindowWidth != that.WindowWidth {
+		return false
+	}
+	if this.WindowHeight != that.WindowHeight {
+		return false
+	}
+	if this.DevTools != that.DevTools {
+		return false
+	}
+	if this.ThemeSource != that.ThemeSource {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -295,6 +451,36 @@ func (x *ElectronInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("externalLinks")
 		x.ExternalLinks.MarshalProtoJSON(s)
 	}
+	if x.AppName != "" || s.HasField("appName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appName")
+		s.WriteString(x.AppName)
+	}
+	if x.WindowTitle != "" || s.HasField("windowTitle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowTitle")
+		s.WriteString(x.WindowTitle)
+	}
+	if x.WindowWidth != 0 || s.HasField("windowWidth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowWidth")
+		s.WriteUint32(x.WindowWidth)
+	}
+	if x.WindowHeight != 0 || s.HasField("windowHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowHeight")
+		s.WriteUint32(x.WindowHeight)
+	}
+	if x.DevTools || s.HasField("devTools") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devTools")
+		s.WriteBool(x.DevTools)
+	}
+	if x.ThemeSource != "" || s.HasField("themeSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("themeSource")
+		s.WriteString(x.ThemeSource)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -315,6 +501,24 @@ func (x *ElectronInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "external_links", "externalLinks":
 			s.AddField("external_links")
 			x.ExternalLinks.UnmarshalProtoJSON(s)
+		case "app_name", "appName":
+			s.AddField("app_name")
+			x.AppName = s.ReadString()
+		case "window_title", "windowTitle":
+			s.AddField("window_title")
+			x.WindowTitle = s.ReadString()
+		case "window_width", "windowWidth":
+			s.AddField("window_width")
+			x.WindowWidth = s.ReadUint32()
+		case "window_height", "windowHeight":
+			s.AddField("window_height")
+			x.WindowHeight = s.ReadUint32()
+		case "dev_tools", "devTools":
+			s.AddField("dev_tools")
+			x.DevTools = s.ReadBool()
+		case "theme_source", "themeSource":
+			s.AddField("theme_source")
+			x.ThemeSource = s.ReadString()
 		}
 	})
 }
@@ -362,6 +566,36 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("externalLinks")
 		x.ExternalLinks.MarshalProtoJSON(s)
 	}
+	if x.AppName != "" || s.HasField("appName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appName")
+		s.WriteString(x.AppName)
+	}
+	if x.WindowTitle != "" || s.HasField("windowTitle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowTitle")
+		s.WriteString(x.WindowTitle)
+	}
+	if x.WindowWidth != 0 || s.HasField("windowWidth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowWidth")
+		s.WriteUint32(x.WindowWidth)
+	}
+	if x.WindowHeight != 0 || s.HasField("windowHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowHeight")
+		s.WriteUint32(x.WindowHeight)
+	}
+	if x.DevTools || s.HasField("devTools") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devTools")
+		s.WriteBool(x.DevTools)
+	}
+	if x.ThemeSource != "" || s.HasField("themeSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("themeSource")
+		s.WriteString(x.ThemeSource)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -401,6 +635,24 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "external_links", "externalLinks":
 			s.AddField("external_links")
 			x.ExternalLinks.UnmarshalProtoJSON(s)
+		case "app_name", "appName":
+			s.AddField("app_name")
+			x.AppName = s.ReadString()
+		case "window_title", "windowTitle":
+			s.AddField("window_title")
+			x.WindowTitle = s.ReadString()
+		case "window_width", "windowWidth":
+			s.AddField("window_width")
+			x.WindowWidth = s.ReadUint32()
+		case "window_height", "windowHeight":
+			s.AddField("window_height")
+			x.WindowHeight = s.ReadUint32()
+		case "dev_tools", "devTools":
+			s.AddField("dev_tools")
+			x.DevTools = s.ReadBool()
+		case "theme_source", "themeSource":
+			s.AddField("theme_source")
+			x.ThemeSource = s.ReadString()
 		}
 	})
 }
@@ -440,6 +692,47 @@ func (m *ElectronInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ThemeSource) > 0 {
+		i -= len(m.ThemeSource)
+		copy(dAtA[i:], m.ThemeSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ThemeSource)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.DevTools {
+		i--
+		if m.DevTools {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.WindowHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowHeight))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.WindowWidth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowWidth))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.WindowTitle) > 0 {
+		i -= len(m.WindowTitle)
+		copy(dAtA[i:], m.WindowTitle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WindowTitle)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.AppName) > 0 {
+		i -= len(m.AppName)
+		copy(dAtA[i:], m.AppName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AppName)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.ExternalLinks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExternalLinks))
 		i--
@@ -477,6 +770,47 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ThemeSource) > 0 {
+		i -= len(m.ThemeSource)
+		copy(dAtA[i:], m.ThemeSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ThemeSource)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.DevTools {
+		i--
+		if m.DevTools {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.WindowHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowHeight))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.WindowWidth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowWidth))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.WindowTitle) > 0 {
+		i -= len(m.WindowTitle)
+		copy(dAtA[i:], m.WindowTitle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WindowTitle)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.AppName) > 0 {
+		i -= len(m.AppName)
+		copy(dAtA[i:], m.AppName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AppName)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.ExternalLinks != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExternalLinks))
@@ -532,6 +866,27 @@ func (m *ElectronInit) SizeVT() (n int) {
 	if m.ExternalLinks != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExternalLinks))
 	}
+	l = len(m.AppName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WindowTitle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WindowWidth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowWidth))
+	}
+	if m.WindowHeight != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowHeight))
+	}
+	if m.DevTools {
+		n += 2
+	}
+	l = len(m.ThemeSource)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -567,6 +922,27 @@ func (m *Config) SizeVT() (n int) {
 	if m.ExternalLinks != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExternalLinks))
 	}
+	l = len(m.AppName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WindowTitle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WindowWidth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowWidth))
+	}
+	if m.WindowHeight != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowHeight))
+	}
+	if m.DevTools {
+		n += 2
+	}
+	l = len(m.ThemeSource)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -586,6 +962,48 @@ func (x *ElectronInit) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(ExternalLinks(x.ExternalLinks).String())
 		sb.WriteString("\"")
+	}
+	if x.AppName != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("app_name: ")
+		sb.WriteString(strconv.Quote(x.AppName))
+	}
+	if x.WindowTitle != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_title: ")
+		sb.WriteString(strconv.Quote(x.WindowTitle))
+	}
+	if x.WindowWidth != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_width: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowWidth), 10))
+	}
+	if x.WindowHeight != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_height: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowHeight), 10))
+	}
+	if x.DevTools != false {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dev_tools: ")
+		sb.WriteString(strconv.FormatBool(x.DevTools))
+	}
+	if x.ThemeSource != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("theme_source: ")
+		sb.WriteString(strconv.Quote(x.ThemeSource))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -648,6 +1066,48 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(ExternalLinks(x.ExternalLinks).String())
 		sb.WriteString("\"")
 	}
+	if x.AppName != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("app_name: ")
+		sb.WriteString(strconv.Quote(x.AppName))
+	}
+	if x.WindowTitle != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_title: ")
+		sb.WriteString(strconv.Quote(x.WindowTitle))
+	}
+	if x.WindowWidth != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_width: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowWidth), 10))
+	}
+	if x.WindowHeight != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_height: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowHeight), 10))
+	}
+	if x.DevTools != false {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dev_tools: ")
+		sb.WriteString(strconv.FormatBool(x.DevTools))
+	}
+	if x.ThemeSource != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("theme_source: ")
+		sb.WriteString(strconv.Quote(x.ThemeSource))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -687,6 +1147,102 @@ func (m *ElectronInit) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowTitle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WindowTitle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowWidth", wireType)
+			}
+			m.WindowWidth = 0
+			m.WindowWidth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowHeight", wireType)
+			}
+			m.WindowHeight = 0
+			m.WindowHeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevTools", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.DevTools = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThemeSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ThemeSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -851,6 +1407,102 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowTitle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WindowTitle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowWidth", wireType)
+			}
+			m.WindowWidth = 0
+			m.WindowWidth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowHeight", wireType)
+			}
+			m.WindowHeight = 0
+			m.WindowHeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevTools", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.DevTools = bool(v != 0)
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ThemeSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ThemeSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

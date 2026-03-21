@@ -86,6 +86,30 @@ export interface SaucerInit {
    * @generated from field: string entrypoint_js_path = 6;
    */
   entrypointJsPath?: string
+  /**
+   * AppName is the application display name.
+   *
+   * @generated from field: string app_name = 7;
+   */
+  appName?: string
+  /**
+   * WindowTitle overrides the window title (defaults to app_name).
+   *
+   * @generated from field: string window_title = 8;
+   */
+  windowTitle?: string
+  /**
+   * WindowWidth is the default window width in pixels.
+   *
+   * @generated from field: uint32 window_width = 9;
+   */
+  windowWidth?: number
+  /**
+   * WindowHeight is the default window height in pixels.
+   *
+   * @generated from field: uint32 window_height = 10;
+   */
+  windowHeight?: number
 }
 
 // SaucerInit contains the message type declaration for SaucerInit.
@@ -103,6 +127,10 @@ export const SaucerInit: MessageType<SaucerInit> = createMessageType({
     },
     { no: 5, name: 'entrypoint_js', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'entrypoint_js_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -219,6 +247,30 @@ export interface Config {
    * @generated from field: string entrypoint_js = 8;
    */
   entrypointJs?: string
+  /**
+   * AppName is the application display name.
+   *
+   * @generated from field: string app_name = 9;
+   */
+  appName?: string
+  /**
+   * WindowTitle overrides the window title (defaults to app_name).
+   *
+   * @generated from field: string window_title = 10;
+   */
+  windowTitle?: string
+  /**
+   * WindowWidth is the default window width in pixels.
+   *
+   * @generated from field: uint32 window_width = 11;
+   */
+  windowWidth?: number
+  /**
+   * WindowHeight is the default window height in pixels.
+   *
+   * @generated from field: uint32 window_height = 12;
+   */
+  windowHeight?: number
 }
 
 // Config contains the message type declaration for Config.
@@ -239,6 +291,10 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'bootstrap_html', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'entrypoint_js', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 10, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+    { no: 11, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 12, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

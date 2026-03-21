@@ -50,6 +50,42 @@ export interface ElectronInit {
    * @generated from field: electron.ExternalLinks external_links = 1;
    */
   externalLinks?: ExternalLinks
+  /**
+   * AppName is the application display name.
+   *
+   * @generated from field: string app_name = 2;
+   */
+  appName?: string
+  /**
+   * WindowTitle overrides the window title (defaults to app_name).
+   *
+   * @generated from field: string window_title = 3;
+   */
+  windowTitle?: string
+  /**
+   * WindowWidth is the default window width in pixels (default: 900).
+   *
+   * @generated from field: uint32 window_width = 4;
+   */
+  windowWidth?: number
+  /**
+   * WindowHeight is the default window height in pixels (default: 680).
+   *
+   * @generated from field: uint32 window_height = 5;
+   */
+  windowHeight?: number
+  /**
+   * DevTools enables DevTools on window creation (default: false).
+   *
+   * @generated from field: bool dev_tools = 6;
+   */
+  devTools?: boolean
+  /**
+   * ThemeSource sets native theme ("dark", "light", "system").
+   *
+   * @generated from field: string theme_source = 7;
+   */
+  themeSource?: string
 }
 
 // ElectronInit contains the message type declaration for ElectronInit.
@@ -57,6 +93,12 @@ export const ElectronInit: MessageType<ElectronInit> = createMessageType({
   typeName: 'electron.ElectronInit',
   fields: [
     { no: 1, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
+    { no: 2, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 5, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 6, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -109,6 +151,42 @@ export interface Config {
    * @generated from field: electron.ExternalLinks external_links = 6;
    */
   externalLinks?: ExternalLinks
+  /**
+   * AppName is the application display name.
+   *
+   * @generated from field: string app_name = 7;
+   */
+  appName?: string
+  /**
+   * WindowTitle overrides the window title (defaults to app_name).
+   *
+   * @generated from field: string window_title = 8;
+   */
+  windowTitle?: string
+  /**
+   * WindowWidth is the default window width in pixels.
+   *
+   * @generated from field: uint32 window_width = 9;
+   */
+  windowWidth?: number
+  /**
+   * WindowHeight is the default window height in pixels.
+   *
+   * @generated from field: uint32 window_height = 10;
+   */
+  windowHeight?: number
+  /**
+   * DevTools enables DevTools on window creation.
+   *
+   * @generated from field: bool dev_tools = 11;
+   */
+  devTools?: boolean
+  /**
+   * ThemeSource sets native theme ("dark", "light", "system").
+   *
+   * @generated from field: string theme_source = 12;
+   */
+  themeSource?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -127,6 +205,12 @@ export const Config: MessageType<Config> = createMessageType({
       repeated: true,
     },
     { no: 6, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
+    { no: 7, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 11, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 12, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

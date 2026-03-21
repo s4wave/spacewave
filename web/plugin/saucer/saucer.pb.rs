@@ -27,6 +27,18 @@ pub struct SaucerInit {
     /// The C++ binary serves this at /entrypoint.mjs.
     #[prost(string, tag="6")]
     pub entrypoint_js_path: ::prost::alloc::string::String,
+    /// AppName is the application display name.
+    #[prost(string, tag="7")]
+    pub app_name: ::prost::alloc::string::String,
+    /// WindowTitle overrides the window title (defaults to app_name).
+    #[prost(string, tag="8")]
+    pub window_title: ::prost::alloc::string::String,
+    /// WindowWidth is the default window width in pixels.
+    #[prost(uint32, tag="9")]
+    pub window_width: u32,
+    /// WindowHeight is the default window height in pixels.
+    #[prost(uint32, tag="10")]
+    pub window_height: u32,
 }
 /// EvalJSRequest is a request to evaluate JavaScript code.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -77,6 +89,18 @@ pub struct Config {
     /// This is written to a file and served at /entrypoint.mjs.
     #[prost(string, tag="8")]
     pub entrypoint_js: ::prost::alloc::string::String,
+    /// AppName is the application display name.
+    #[prost(string, tag="9")]
+    pub app_name: ::prost::alloc::string::String,
+    /// WindowTitle overrides the window title (defaults to app_name).
+    #[prost(string, tag="10")]
+    pub window_title: ::prost::alloc::string::String,
+    /// WindowWidth is the default window width in pixels.
+    #[prost(uint32, tag="11")]
+    pub window_width: u32,
+    /// WindowHeight is the default window height in pixels.
+    #[prost(uint32, tag="12")]
+    pub window_height: u32,
 }
 /// ExternalLinks configures how external links are handled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

@@ -72,6 +72,14 @@ type SaucerInit struct {
 	// EntrypointJsPath is the path to the entrypoint JS module file.
 	// The C++ binary serves this at /entrypoint.mjs.
 	EntrypointJsPath string `protobuf:"bytes,6,opt,name=entrypoint_js_path,json=entrypointJsPath,proto3" json:"entrypointJsPath,omitempty"`
+	// AppName is the application display name.
+	AppName string `protobuf:"bytes,7,opt,name=app_name,json=appName,proto3" json:"appName,omitempty"`
+	// WindowTitle overrides the window title (defaults to app_name).
+	WindowTitle string `protobuf:"bytes,8,opt,name=window_title,json=windowTitle,proto3" json:"windowTitle,omitempty"`
+	// WindowWidth is the default window width in pixels.
+	WindowWidth uint32 `protobuf:"varint,9,opt,name=window_width,json=windowWidth,proto3" json:"windowWidth,omitempty"`
+	// WindowHeight is the default window height in pixels.
+	WindowHeight uint32 `protobuf:"varint,10,opt,name=window_height,json=windowHeight,proto3" json:"windowHeight,omitempty"`
 }
 
 func (x *SaucerInit) Reset() {
@@ -120,6 +128,34 @@ func (x *SaucerInit) GetEntrypointJsPath() string {
 		return x.EntrypointJsPath
 	}
 	return ""
+}
+
+func (x *SaucerInit) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *SaucerInit) GetWindowTitle() string {
+	if x != nil {
+		return x.WindowTitle
+	}
+	return ""
+}
+
+func (x *SaucerInit) GetWindowWidth() uint32 {
+	if x != nil {
+		return x.WindowWidth
+	}
+	return 0
+}
+
+func (x *SaucerInit) GetWindowHeight() uint32 {
+	if x != nil {
+		return x.WindowHeight
+	}
+	return 0
 }
 
 // EvalJSRequest is a request to evaluate JavaScript code.
@@ -195,6 +231,14 @@ type Config struct {
 	// EntrypointJs is the entrypoint JavaScript module.
 	// This is written to a file and served at /entrypoint.mjs.
 	EntrypointJs string `protobuf:"bytes,8,opt,name=entrypoint_js,json=entrypointJs,proto3" json:"entrypointJs,omitempty"`
+	// AppName is the application display name.
+	AppName string `protobuf:"bytes,9,opt,name=app_name,json=appName,proto3" json:"appName,omitempty"`
+	// WindowTitle overrides the window title (defaults to app_name).
+	WindowTitle string `protobuf:"bytes,10,opt,name=window_title,json=windowTitle,proto3" json:"windowTitle,omitempty"`
+	// WindowWidth is the default window width in pixels.
+	WindowWidth uint32 `protobuf:"varint,11,opt,name=window_width,json=windowWidth,proto3" json:"windowWidth,omitempty"`
+	// WindowHeight is the default window height in pixels.
+	WindowHeight uint32 `protobuf:"varint,12,opt,name=window_height,json=windowHeight,proto3" json:"windowHeight,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -259,6 +303,34 @@ func (x *Config) GetEntrypointJs() string {
 	return ""
 }
 
+func (x *Config) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *Config) GetWindowTitle() string {
+	if x != nil {
+		return x.WindowTitle
+	}
+	return ""
+}
+
+func (x *Config) GetWindowWidth() uint32 {
+	if x != nil {
+		return x.WindowWidth
+	}
+	return 0
+}
+
+func (x *Config) GetWindowHeight() uint32 {
+	if x != nil {
+		return x.WindowHeight
+	}
+	return 0
+}
+
 func (m *SaucerInit) CloneVT() *SaucerInit {
 	if m == nil {
 		return (*SaucerInit)(nil)
@@ -270,6 +342,10 @@ func (m *SaucerInit) CloneVT() *SaucerInit {
 	r.BootstrapHtmlPath = m.BootstrapHtmlPath
 	r.EntrypointJs = m.EntrypointJs
 	r.EntrypointJsPath = m.EntrypointJsPath
+	r.AppName = m.AppName
+	r.WindowTitle = m.WindowTitle
+	r.WindowWidth = m.WindowWidth
+	r.WindowHeight = m.WindowHeight
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -325,6 +401,10 @@ func (m *Config) CloneVT() *Config {
 	r.BootstrapHtml = m.BootstrapHtml
 	r.DevTools = m.DevTools
 	r.EntrypointJs = m.EntrypointJs
+	r.AppName = m.AppName
+	r.WindowTitle = m.WindowTitle
+	r.WindowWidth = m.WindowWidth
+	r.WindowHeight = m.WindowHeight
 	if rhs := m.SaucerFlags; rhs != nil {
 		r.SaucerFlags = slices.Clone(rhs)
 	}
@@ -360,6 +440,18 @@ func (this *SaucerInit) EqualVT(that *SaucerInit) bool {
 		return false
 	}
 	if this.EntrypointJsPath != that.EntrypointJsPath {
+		return false
+	}
+	if this.AppName != that.AppName {
+		return false
+	}
+	if this.WindowTitle != that.WindowTitle {
+		return false
+	}
+	if this.WindowWidth != that.WindowWidth {
+		return false
+	}
+	if this.WindowHeight != that.WindowHeight {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -452,6 +544,18 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.EntrypointJs != that.EntrypointJs {
 		return false
 	}
+	if this.AppName != that.AppName {
+		return false
+	}
+	if this.WindowTitle != that.WindowTitle {
+		return false
+	}
+	if this.WindowWidth != that.WindowWidth {
+		return false
+	}
+	if this.WindowHeight != that.WindowHeight {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -541,6 +645,26 @@ func (x *SaucerInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("entrypointJsPath")
 		s.WriteString(x.EntrypointJsPath)
 	}
+	if x.AppName != "" || s.HasField("appName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appName")
+		s.WriteString(x.AppName)
+	}
+	if x.WindowTitle != "" || s.HasField("windowTitle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowTitle")
+		s.WriteString(x.WindowTitle)
+	}
+	if x.WindowWidth != 0 || s.HasField("windowWidth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowWidth")
+		s.WriteUint32(x.WindowWidth)
+	}
+	if x.WindowHeight != 0 || s.HasField("windowHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowHeight")
+		s.WriteUint32(x.WindowHeight)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -576,6 +700,18 @@ func (x *SaucerInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "entrypoint_js_path", "entrypointJsPath":
 			s.AddField("entrypoint_js_path")
 			x.EntrypointJsPath = s.ReadString()
+		case "app_name", "appName":
+			s.AddField("app_name")
+			x.AppName = s.ReadString()
+		case "window_title", "windowTitle":
+			s.AddField("window_title")
+			x.WindowTitle = s.ReadString()
+		case "window_width", "windowWidth":
+			s.AddField("window_width")
+			x.WindowWidth = s.ReadUint32()
+		case "window_height", "windowHeight":
+			s.AddField("window_height")
+			x.WindowHeight = s.ReadUint32()
 		}
 	})
 }
@@ -725,6 +861,26 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("entrypointJs")
 		s.WriteString(x.EntrypointJs)
 	}
+	if x.AppName != "" || s.HasField("appName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appName")
+		s.WriteString(x.AppName)
+	}
+	if x.WindowTitle != "" || s.HasField("windowTitle") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowTitle")
+		s.WriteString(x.WindowTitle)
+	}
+	if x.WindowWidth != 0 || s.HasField("windowWidth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowWidth")
+		s.WriteUint32(x.WindowWidth)
+	}
+	if x.WindowHeight != 0 || s.HasField("windowHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("windowHeight")
+		s.WriteUint32(x.WindowHeight)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -770,6 +926,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "entrypoint_js", "entrypointJs":
 			s.AddField("entrypoint_js")
 			x.EntrypointJs = s.ReadString()
+		case "app_name", "appName":
+			s.AddField("app_name")
+			x.AppName = s.ReadString()
+		case "window_title", "windowTitle":
+			s.AddField("window_title")
+			x.WindowTitle = s.ReadString()
+		case "window_width", "windowWidth":
+			s.AddField("window_width")
+			x.WindowWidth = s.ReadUint32()
+		case "window_height", "windowHeight":
+			s.AddField("window_height")
+			x.WindowHeight = s.ReadUint32()
 		}
 	})
 }
@@ -808,6 +976,30 @@ func (m *SaucerInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WindowHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowHeight))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.WindowWidth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowWidth))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.WindowTitle) > 0 {
+		i -= len(m.WindowTitle)
+		copy(dAtA[i:], m.WindowTitle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WindowTitle)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.AppName) > 0 {
+		i -= len(m.AppName)
+		copy(dAtA[i:], m.AppName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AppName)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.EntrypointJsPath) > 0 {
 		i -= len(m.EntrypointJsPath)
@@ -972,6 +1164,30 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.WindowHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowHeight))
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.WindowWidth != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WindowWidth))
+		i--
+		dAtA[i] = 0x58
+	}
+	if len(m.WindowTitle) > 0 {
+		i -= len(m.WindowTitle)
+		copy(dAtA[i:], m.WindowTitle)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WindowTitle)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.AppName) > 0 {
+		i -= len(m.AppName)
+		copy(dAtA[i:], m.AppName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AppName)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if len(m.EntrypointJs) > 0 {
 		i -= len(m.EntrypointJs)
 		copy(dAtA[i:], m.EntrypointJs)
@@ -1062,6 +1278,20 @@ func (m *SaucerInit) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.AppName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WindowTitle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WindowWidth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowWidth))
+	}
+	if m.WindowHeight != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowHeight))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1136,6 +1366,20 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.AppName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WindowTitle)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WindowWidth != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowWidth))
+	}
+	if m.WindowHeight != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WindowHeight))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1190,6 +1434,34 @@ func (x *SaucerInit) MarshalProtoText() string {
 		}
 		sb.WriteString("entrypoint_js_path: ")
 		sb.WriteString(strconv.Quote(x.EntrypointJsPath))
+	}
+	if x.AppName != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("app_name: ")
+		sb.WriteString(strconv.Quote(x.AppName))
+	}
+	if x.WindowTitle != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_title: ")
+		sb.WriteString(strconv.Quote(x.WindowTitle))
+	}
+	if x.WindowWidth != 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_width: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowWidth), 10))
+	}
+	if x.WindowHeight != 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_height: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowHeight), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1308,6 +1580,34 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("entrypoint_js: ")
 		sb.WriteString(strconv.Quote(x.EntrypointJs))
+	}
+	if x.AppName != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("app_name: ")
+		sb.WriteString(strconv.Quote(x.AppName))
+	}
+	if x.WindowTitle != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_title: ")
+		sb.WriteString(strconv.Quote(x.WindowTitle))
+	}
+	if x.WindowWidth != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_width: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowWidth), 10))
+	}
+	if x.WindowHeight != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("window_height: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WindowHeight), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1448,6 +1748,68 @@ func (m *SaucerInit) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EntrypointJsPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowTitle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WindowTitle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowWidth", wireType)
+			}
+			m.WindowWidth = 0
+			m.WindowWidth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowHeight", wireType)
+			}
+			m.WindowHeight = 0
+			m.WindowHeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1798,6 +2160,68 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EntrypointJs = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowTitle", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WindowTitle = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowWidth", wireType)
+			}
+			m.WindowWidth = 0
+			m.WindowWidth, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WindowHeight", wireType)
+			}
+			m.WindowHeight = 0
+			m.WindowHeight, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

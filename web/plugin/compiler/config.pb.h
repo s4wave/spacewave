@@ -62,6 +62,10 @@ class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
+class NativeAppConfig;
+struct NativeAppConfigDefaultTypeInternal;
+extern NativeAppConfigDefaultTypeInternal _NativeAppConfig_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NativeAppConfig_class_data_;
 }  // namespace compiler
 }  // namespace plugin
 }  // namespace web
@@ -79,6 +83,271 @@ namespace compiler {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class NativeAppConfig final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.plugin.compiler.NativeAppConfig) */ {
+ public:
+  inline NativeAppConfig() : NativeAppConfig(nullptr) {}
+  ~NativeAppConfig() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NativeAppConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NativeAppConfig));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NativeAppConfig(::google::protobuf::internal::ConstantInitialized);
+
+  inline NativeAppConfig(const NativeAppConfig& from) : NativeAppConfig(nullptr, from) {}
+  inline NativeAppConfig(NativeAppConfig&& from) noexcept
+      : NativeAppConfig(nullptr, ::std::move(from)) {}
+  inline NativeAppConfig& operator=(const NativeAppConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NativeAppConfig& operator=(NativeAppConfig&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NativeAppConfig& default_instance() {
+    return *reinterpret_cast<const NativeAppConfig*>(
+        &_NativeAppConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(NativeAppConfig& a, NativeAppConfig& b) { a.Swap(&b); }
+  inline void Swap(NativeAppConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NativeAppConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NativeAppConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NativeAppConfig>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NativeAppConfig& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NativeAppConfig& from) { NativeAppConfig::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NativeAppConfig* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.web.plugin.compiler.NativeAppConfig"; }
+
+  explicit NativeAppConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NativeAppConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NativeAppConfig& from);
+  NativeAppConfig(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NativeAppConfig&& from) noexcept
+      : NativeAppConfig(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAppNameFieldNumber = 1,
+    kWindowTitleFieldNumber = 2,
+    kThemeSourceFieldNumber = 6,
+    kWindowWidthFieldNumber = 3,
+    kWindowHeightFieldNumber = 4,
+    kDevToolsFieldNumber = 5,
+  };
+  // string app_name = 1;
+  void clear_app_name() ;
+  const ::std::string& app_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_app_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_app_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_app_name();
+  void set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_app_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_app_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_app_name();
+
+  public:
+  // string window_title = 2;
+  void clear_window_title() ;
+  const ::std::string& window_title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_window_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_window_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_window_title();
+  void set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_window_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_window_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_window_title();
+
+  public:
+  // string theme_source = 6;
+  void clear_theme_source() ;
+  const ::std::string& theme_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_theme_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_theme_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_theme_source();
+  void set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_theme_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_theme_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
+
+  public:
+  // uint32 window_width = 3;
+  void clear_window_width() ;
+  ::uint32_t window_width() const;
+  void set_window_width(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_width() const;
+  void _internal_set_window_width(::uint32_t value);
+
+  public:
+  // uint32 window_height = 4;
+  void clear_window_height() ;
+  ::uint32_t window_height() const;
+  void set_window_height(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_height() const;
+  void _internal_set_window_height(::uint32_t value);
+
+  public:
+  // bool dev_tools = 5;
+  void clear_dev_tools() ;
+  bool dev_tools() const;
+  void set_dev_tools(bool value);
+
+  private:
+  bool _internal_dev_tools() const;
+  void _internal_set_dev_tools(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.web.plugin.compiler.NativeAppConfig)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 81,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NativeAppConfig& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr app_name_;
+    ::google::protobuf::internal::ArenaStringPtr window_title_;
+    ::google::protobuf::internal::ArenaStringPtr theme_source_;
+    ::uint32_t window_width_;
+    ::uint32_t window_height_;
+    bool dev_tools_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fcompiler_2fconfig_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NativeAppConfig_class_data_;
 // -------------------------------------------------------------------
 
 class Config final : public ::google::protobuf::Message
@@ -226,6 +495,7 @@ class Config final : public ::google::protobuf::Message
     kProjectIdFieldNumber = 1,
     kDelveAddrFieldNumber = 2,
     kElectronPkgFieldNumber = 3,
+    kNativeAppFieldNumber = 4,
   };
   // string project_id = 1;
   void clear_project_id() ;
@@ -272,12 +542,27 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_electron_pkg();
 
   public:
+  // .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+  bool has_native_app() const;
+  void clear_native_app() ;
+  const ::bldr::web::plugin::compiler::NativeAppConfig& native_app() const;
+  [[nodiscard]] ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE release_native_app();
+  ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NONNULL mutable_native_app();
+  void set_allocated_native_app(::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_native_app(::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE value);
+  ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE unsafe_arena_release_native_app();
+
+  private:
+  const ::bldr::web::plugin::compiler::NativeAppConfig& _internal_native_app() const;
+  ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NONNULL _internal_mutable_native_app();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.plugin.compiler.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 72,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 72,
                                    2>
       _table_;
 
@@ -301,6 +586,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr delve_addr_;
     ::google::protobuf::internal::ArenaStringPtr electron_pkg_;
+    ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE native_app_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -518,6 +804,379 @@ inline void Config::set_allocated_electron_pkg(::std::string* PROTOBUF_NULLABLE 
     _impl_.electron_pkg_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.Config.electron_pkg)
+}
+
+// .bldr.web.plugin.compiler.NativeAppConfig native_app = 4;
+inline bool Config::has_native_app() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.native_app_ != nullptr);
+  return value;
+}
+inline void Config::clear_native_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.native_app_ != nullptr) _impl_.native_app_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::bldr::web::plugin::compiler::NativeAppConfig& Config::_internal_native_app() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::web::plugin::compiler::NativeAppConfig* p = _impl_.native_app_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::web::plugin::compiler::NativeAppConfig&>(::bldr::web::plugin::compiler::_NativeAppConfig_default_instance_);
+}
+inline const ::bldr::web::plugin::compiler::NativeAppConfig& Config::native_app() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.Config.native_app)
+  return _internal_native_app();
+}
+inline void Config::unsafe_arena_set_allocated_native_app(
+    ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.native_app_);
+  }
+  _impl_.native_app_ = reinterpret_cast<::bldr::web::plugin::compiler::NativeAppConfig*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.web.plugin.compiler.Config.native_app)
+}
+inline ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE Config::release_native_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bldr::web::plugin::compiler::NativeAppConfig* released = _impl_.native_app_;
+  _impl_.native_app_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE Config::unsafe_arena_release_native_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.Config.native_app)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bldr::web::plugin::compiler::NativeAppConfig* temp = _impl_.native_app_;
+  _impl_.native_app_ = nullptr;
+  return temp;
+}
+inline ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NONNULL Config::_internal_mutable_native_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.native_app_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::web::plugin::compiler::NativeAppConfig>(GetArena());
+    _impl_.native_app_ = reinterpret_cast<::bldr::web::plugin::compiler::NativeAppConfig*>(p);
+  }
+  return _impl_.native_app_;
+}
+inline ::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NONNULL Config::mutable_native_app()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bldr::web::plugin::compiler::NativeAppConfig* _msg = _internal_mutable_native_app();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.Config.native_app)
+  return _msg;
+}
+inline void Config::set_allocated_native_app(::bldr::web::plugin::compiler::NativeAppConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.native_app_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.native_app_ = reinterpret_cast<::bldr::web::plugin::compiler::NativeAppConfig*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.Config.native_app)
+}
+
+// -------------------------------------------------------------------
+
+// NativeAppConfig
+
+// string app_name = 1;
+inline void NativeAppConfig::clear_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& NativeAppConfig::app_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.app_name)
+  return _internal_app_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_app_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.app_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.app_name)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_app_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_app_name();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.app_name)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_app_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.app_name_.Get();
+}
+inline void NativeAppConfig::_internal_set_app_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.app_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.app_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.app_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.app_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.app_name_.IsDefault()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.app_name)
+}
+
+// string window_title = 2;
+inline void NativeAppConfig::clear_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& NativeAppConfig::window_title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_title)
+  return _internal_window_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_window_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.window_title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_title)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_window_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_window_title();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.window_title)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_window_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_title_.Get();
+}
+inline void NativeAppConfig::_internal_set_window_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.window_title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.window_title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.window_title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.window_title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.window_title_.IsDefault()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.window_title)
+}
+
+// uint32 window_width = 3;
+inline void NativeAppConfig::clear_window_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint32_t NativeAppConfig::window_width() const {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_width)
+  return _internal_window_width();
+}
+inline void NativeAppConfig::set_window_width(::uint32_t value) {
+  _internal_set_window_width(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_width)
+}
+inline ::uint32_t NativeAppConfig::_internal_window_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_width_;
+}
+inline void NativeAppConfig::_internal_set_window_width(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = value;
+}
+
+// uint32 window_height = 4;
+inline void NativeAppConfig::clear_window_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t NativeAppConfig::window_height() const {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_height)
+  return _internal_window_height();
+}
+inline void NativeAppConfig::set_window_height(::uint32_t value) {
+  _internal_set_window_height(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_height)
+}
+inline ::uint32_t NativeAppConfig::_internal_window_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_height_;
+}
+inline void NativeAppConfig::_internal_set_window_height(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = value;
+}
+
+// bool dev_tools = 5;
+inline void NativeAppConfig::clear_dev_tools() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool NativeAppConfig::dev_tools() const {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
+  return _internal_dev_tools();
+}
+inline void NativeAppConfig::set_dev_tools(bool value) {
+  _internal_set_dev_tools(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
+}
+inline bool NativeAppConfig::_internal_dev_tools() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.dev_tools_;
+}
+inline void NativeAppConfig::_internal_set_dev_tools(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = value;
+}
+
+// string theme_source = 6;
+inline void NativeAppConfig::clear_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& NativeAppConfig::theme_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
+  return _internal_theme_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_theme_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.theme_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_theme_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_theme_source();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_theme_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.theme_source_.Get();
+}
+inline void NativeAppConfig::_internal_set_theme_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.theme_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.theme_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.theme_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.theme_source_.IsDefault()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
 }
 
 #ifdef __GNUC__

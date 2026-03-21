@@ -3484,17 +3484,19 @@ function compareMessages(fields, a2, b) {
         throw new Error(`oneof cannot contain ${s2.kind}`);
       }
       case "map": {
-        const keys = Object.keys(va).concat(Object.keys(vb));
+        const ma = va ?? {};
+        const mb = vb ?? {};
+        const keys = Object.keys(ma).concat(Object.keys(mb));
         switch (m.V.kind) {
           case "message": {
             const messageType = resolveMessageType(m.V.T);
-            return keys.every((k) => messageType.equals(va[k], vb[k]));
+            return keys.every((k) => messageType.equals(ma[k], mb[k]));
           }
           case "enum":
-            return keys.every((k) => scalarEquals(ScalarType.INT32, va[k], vb[k]));
+            return keys.every((k) => scalarEquals(ScalarType.INT32, ma[k], mb[k]));
           case "scalar": {
             const scalarType = m.V.T;
-            return keys.every((k) => scalarEquals(scalarType, va[k], vb[k]));
+            return keys.every((k) => scalarEquals(scalarType, ma[k], mb[k]));
           }
         }
       }
@@ -8800,6 +8802,7 @@ var Client2 = class {
   disposed = false;
   _connectionGeneration = 0;
   _reconnectResolve = null;
+  attachSession = null;
   /**
    * The connection generation counter. Increments each time the connection
    * is lost and resources are released. React hooks can use this to detect
@@ -8835,9 +8838,40 @@ var Client2 = class {
   }
   // attachResource provides a mux that server-side handlers can
   // invoke. The mux is served over a yamux session inside the
-  // ResourceAttach bidi stream. Returns the server-assigned
-  // resource ID and a cleanup function.
+  // ResourceAttach bidi stream. Multiple resources share one session.
+  // Returns the server-assigned resource ID and a cleanup function.
   async attachResource(label, mux, signal) {
+    const sess = await this.ensureAttachSession(signal);
+    const attachId = ++sess.attachIdCtr;
+    const resultPromise = new Promise((resolve, reject) => {
+      sess.pending.set(attachId, resolve);
+      signal?.addEventListener("abort", () => {
+        sess.pending.delete(attachId);
+        reject(new Error("aborted"));
+      }, { once: true });
+    });
+    sess.outgoing.push({
+      body: {
+        case: "add",
+        value: { attachId, label }
+      }
+    });
+    const resourceId = await resultPromise;
+    sess.muxes.set(resourceId, mux);
+    const cleanup = () => {
+      sess.muxes.delete(resourceId);
+      sess.outgoing.push({
+        body: {
+          case: "detach",
+          value: { resourceId }
+        }
+      });
+    };
+    return { resourceId, cleanup };
+  }
+  // ensureAttachSession opens the ResourceAttach bidi stream if needed.
+  async ensureAttachSession(signal) {
+    if (this.attachSession) return this.attachSession;
     const state = await this.ensureInitialized();
     const outgoing = pushable({ objectMode: true });
     const incoming = this.service.ResourceAttach(
@@ -8850,10 +8884,7 @@ var Client2 = class {
     outgoing.push({
       body: {
         case: "init",
-        value: {
-          clientHandleId: state.clientHandleId,
-          label
-        }
+        value: { clientHandleId: state.clientHandleId }
       }
     });
     const ackResult = await incomingIt.next();
@@ -8870,8 +8901,22 @@ var Client2 = class {
       outgoing.end();
       throw new Error(ackBody.value.error);
     }
-    const resourceId = ackBody.value.resourceId ?? 0;
-    const server = new Server(mux);
+    const sess = {
+      outgoing,
+      attachIdCtr: 0,
+      muxes: /* @__PURE__ */ new Map(),
+      pending: /* @__PURE__ */ new Map()
+    };
+    const routedLookup = async (serviceId, methodId) => {
+      const slashIdx = serviceId.indexOf("/");
+      if (slashIdx < 0) return null;
+      const resourceId = parseInt(serviceId.substring(0, slashIdx), 10);
+      if (isNaN(resourceId)) return null;
+      const mux = sess.muxes.get(resourceId);
+      if (!mux) return null;
+      return mux(serviceId.substring(slashIdx + 1), methodId);
+    };
+    const server = new Server(routedLookup);
     const conn = new StreamConn(server, {
       direction: "inbound",
       yamuxParams: { enableKeepAlive: false }
@@ -8883,10 +8928,17 @@ var Client2 = class {
         const body = result.value?.body;
         if (body?.case === "muxData") {
           yield body.value;
+        } else if (body?.case === "addAck") {
+          const addAck = body.value;
+          if (!addAck.error) {
+            const resolve = sess.pending.get(addAck.attachId ?? 0);
+            sess.pending.delete(addAck.attachId ?? 0);
+            resolve?.(addAck.resourceId ?? 0);
+          }
         }
       }
     })();
-    const pipePromise = pipe(
+    pipe(
       incomingBytes,
       conn,
       combineUint8ArrayListTransform(),
@@ -8904,14 +8956,8 @@ var Client2 = class {
     ).catch(() => {
       outgoing.end();
     });
-    const cleanup = () => {
-      conn.close();
-      outgoing.end();
-      pipePromise.catch(() => {
-      });
-    };
-    signal?.addEventListener("abort", cleanup, { once: true });
-    return { resourceId, cleanup };
+    this.attachSession = sess;
+    return sess;
   }
   /**
    * Create a reference to a specific resource by ID.

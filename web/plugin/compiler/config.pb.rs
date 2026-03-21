@@ -18,5 +18,30 @@ pub struct Config {
     /// Ignored if build platform is not "native".
     #[prost(string, tag="3")]
     pub electron_pkg: ::prost::alloc::string::String,
+    /// NativeApp configures branding for native app renderers.
+    #[prost(message, optional, tag="4")]
+    pub native_app: ::core::option::Option<NativeAppConfig>,
+}
+/// NativeAppConfig configures branding for native app renderers.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NativeAppConfig {
+    /// AppName is the display name of the application.
+    #[prost(string, tag="1")]
+    pub app_name: ::prost::alloc::string::String,
+    /// WindowTitle overrides the default window title.
+    #[prost(string, tag="2")]
+    pub window_title: ::prost::alloc::string::String,
+    /// WindowWidth is the default window width in pixels.
+    #[prost(uint32, tag="3")]
+    pub window_width: u32,
+    /// WindowHeight is the default window height in pixels.
+    #[prost(uint32, tag="4")]
+    pub window_height: u32,
+    /// DevTools controls whether DevTools open automatically.
+    #[prost(bool, tag="5")]
+    pub dev_tools: bool,
+    /// ThemeSource overrides the native theme ("dark", "light", "system").
+    #[prost(string, tag="6")]
+    pub theme_source: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

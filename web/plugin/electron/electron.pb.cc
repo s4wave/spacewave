@@ -31,7 +31,19 @@ namespace electron {
 inline constexpr ElectronInit::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
-        external_links_{static_cast< ::electron::ExternalLinks >(0)} {}
+        app_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        window_title_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        theme_source_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        external_links_{static_cast< ::electron::ExternalLinks >(0)},
+        window_width_{0u},
+        window_height_{0u},
+        dev_tools_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ElectronInit::ElectronInit(::_pbi::ConstantInitialized)
@@ -69,7 +81,19 @@ inline constexpr Config::Impl_::Impl_(
         workdir_path_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        external_links_{static_cast< ::electron::ExternalLinks >(0)} {}
+        app_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        window_title_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        theme_source_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        external_links_{static_cast< ::electron::ExternalLinks >(0)},
+        window_width_{0u},
+        window_height_{0u},
+        dev_tools_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -100,30 +124,54 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_._has_bits_),
-        4, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.external_links_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.app_name_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.window_title_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.window_width_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.window_height_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.dev_tools_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.theme_source_),
+        3,
         0,
+        1,
+        4,
+        5,
+        6,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_._has_bits_),
-        9, // hasbit index offset
+        15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.electron_path_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.workdir_path_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.renderer_path_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.web_runtime_id_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.electron_flags_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.external_links_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.app_name_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.window_title_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.window_width_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.window_height_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.dev_tools_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.theme_source_),
         1,
         4,
         2,
         3,
         0,
+        8,
         5,
+        6,
+        9,
+        10,
+        11,
+        7,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::electron::ElectronInit)},
-        {5, sizeof(::electron::Config)},
+        {17, sizeof(::electron::Config)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::electron::_ElectronInit_default_instance_._instance,
@@ -133,21 +181,27 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     protodesc_cold) = {
     "\nCgithub.com/aperturerobotics/bldr/web/p"
     "lugin/electron/electron.proto\022\010electron\""
-    "\?\n\014ElectronInit\022/\n\016external_links\030\001 \001(\0162"
-    "\027.electron.ExternalLinks\"\255\001\n\006Config\022\025\n\re"
-    "lectron_path\030\001 \001(\t\022\024\n\014workdir_path\030\005 \001(\t"
-    "\022\025\n\rrenderer_path\030\002 \001(\t\022\026\n\016web_runtime_i"
-    "d\030\003 \001(\t\022\026\n\016electron_flags\030\004 \003(\t\022/\n\016exter"
-    "nal_links\030\006 \001(\0162\027.electron.ExternalLinks"
-    "*G\n\rExternalLinks\022\035\n\031EXTERNAL_LINKS_OS_B"
-    "ROWSER\020\000\022\027\n\023EXTERNAL_LINKS_DENY\020\001b\006proto"
-    "3"
+    "\275\001\n\014ElectronInit\022/\n\016external_links\030\001 \001(\016"
+    "2\027.electron.ExternalLinks\022\020\n\010app_name\030\002 "
+    "\001(\t\022\024\n\014window_title\030\003 \001(\t\022\024\n\014window_widt"
+    "h\030\004 \001(\r\022\025\n\rwindow_height\030\005 \001(\r\022\021\n\tdev_to"
+    "ols\030\006 \001(\010\022\024\n\014theme_source\030\007 \001(\t\"\253\002\n\006Conf"
+    "ig\022\025\n\relectron_path\030\001 \001(\t\022\024\n\014workdir_pat"
+    "h\030\005 \001(\t\022\025\n\rrenderer_path\030\002 \001(\t\022\026\n\016web_ru"
+    "ntime_id\030\003 \001(\t\022\026\n\016electron_flags\030\004 \003(\t\022/"
+    "\n\016external_links\030\006 \001(\0162\027.electron.Extern"
+    "alLinks\022\020\n\010app_name\030\007 \001(\t\022\024\n\014window_titl"
+    "e\030\010 \001(\t\022\024\n\014window_width\030\t \001(\r\022\025\n\rwindow_"
+    "height\030\n \001(\r\022\021\n\tdev_tools\030\013 \001(\010\022\024\n\014theme"
+    "_source\030\014 \001(\t*G\n\rExternalLinks\022\035\n\031EXTERN"
+    "AL_LINKS_OS_BROWSER\020\000\022\027\n\023EXTERNAL_LINKS_"
+    "DENY\020\001b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto = {
     false,
     false,
-    401,
+    654,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto,
     "github.com/aperturerobotics/bldr/web/plugin/electron/electron.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto_once,
@@ -186,25 +240,55 @@ ElectronInit::ElectronInit(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
   SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:electron.ElectronInit)
 }
+PROTOBUF_NDEBUG_INLINE ElectronInit::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::ElectronInit& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        app_name_(arena, from.app_name_),
+        window_title_(arena, from.window_title_),
+        theme_source_(arena, from.theme_source_) {}
+
 ElectronInit::ElectronInit(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ElectronInit& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ElectronInit& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ElectronInit_class_data_.base()),
+    : ::google::protobuf::Message(arena, ElectronInit_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena),
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(from._impl_) {
+  ElectronInit* const _this = this;
+  (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, external_links_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, external_links_),
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, external_links_) +
+               sizeof(Impl_::dev_tools_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.ElectronInit)
 }
 PROTOBUF_NDEBUG_INLINE ElectronInit::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        app_name_(arena),
+        window_title_(arena),
+        theme_source_(arena) {}
 
 inline void ElectronInit::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.external_links_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, external_links_),
+           0,
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, external_links_) +
+               sizeof(Impl_::dev_tools_));
 }
 ElectronInit::~ElectronInit() {
   // @@protoc_insertion_point(destructor:electron.ElectronInit)
@@ -217,6 +301,9 @@ inline void ElectronInit::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.app_name_.Destroy();
+  this_._impl_.window_title_.Destroy();
+  this_._impl_.theme_source_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -226,7 +313,7 @@ inline void* PROTOBUF_NONNULL ElectronInit::PlacementNew_(
   return ::new (mem) ElectronInit(arena);
 }
 constexpr auto ElectronInit::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ElectronInit),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ElectronInit),
                                             alignof(ElectronInit));
 }
 constexpr auto ElectronInit::InternalGenerateClassData_() {
@@ -263,16 +350,16 @@ ElectronInit::GetClassData() const {
   return ElectronInit_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+const ::_pbi::TcParseTable<3, 7, 0, 62, 2>
 ElectronInit::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ElectronInit_class_data_.base(),
@@ -282,18 +369,60 @@ ElectronInit::_table_ = {
     ::_pbi::TcParser::GetTable<::electron::ElectronInit>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
     // .electron.ExternalLinks external_links = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.external_links_), 0>(),
-     {8, 0, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.external_links_), 3>(),
+     {8, 3, 0,
       PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.external_links_)}},
+    // string app_name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.app_name_)}},
+    // string window_title = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_title_)}},
+    // uint32 window_width = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.window_width_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_width_)}},
+    // uint32 window_height = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.window_height_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_height_)}},
+    // bool dev_tools = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ElectronInit, _impl_.dev_tools_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.dev_tools_)}},
+    // string theme_source = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.theme_source_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .electron.ExternalLinks external_links = 1;
-    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.external_links_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.external_links_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string app_name = 2;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.app_name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string window_title = 3;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_title_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 window_width = 4;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_width_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 window_height = 5;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.window_height_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool dev_tools = 6;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.dev_tools_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string theme_source = 7;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.theme_source_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
+    "\25\0\10\14\0\0\0\14"
+    "electron.ElectronInit"
+    "app_name"
+    "window_title"
+    "theme_source"
   }},
 };
 PROTOBUF_NOINLINE void ElectronInit::Clear() {
@@ -303,7 +432,23 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.external_links_ = 0;
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.app_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.window_title_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.theme_source_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000078U)) {
+    ::memset(&_impl_.external_links_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.dev_tools_) -
+        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.dev_tools_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -328,11 +473,68 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .electron.ExternalLinks external_links = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_external_links() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
           1, this_._internal_external_links(), target);
+    }
+  }
+
+  // string app_name = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_app_name().empty()) {
+      const ::std::string& _s = this_._internal_app_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.ElectronInit.app_name");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string window_title = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_window_title().empty()) {
+      const ::std::string& _s = this_._internal_window_title();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.ElectronInit.window_title");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // uint32 window_width = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_window_width() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_window_width(), target);
+    }
+  }
+
+  // uint32 window_height = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_window_height() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          5, this_._internal_window_height(), target);
+    }
+  }
+
+  // bool dev_tools = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_dev_tools() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          6, this_._internal_dev_tools(), target);
+    }
+  }
+
+  // string theme_source = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_theme_source().empty()) {
+      const ::std::string& _s = this_._internal_theme_source();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.ElectronInit.theme_source");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
     }
   }
 
@@ -359,13 +561,55 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
-    // .electron.ExternalLinks external_links = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // string app_name = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_app_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_app_name());
+      }
+    }
+    // string window_title = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_window_title().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_window_title());
+      }
+    }
+    // string theme_source = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_theme_source().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_theme_source());
+      }
+    }
+    // .electron.ExternalLinks external_links = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_external_links() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_external_links());
+      }
+    }
+    // uint32 window_width = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_window_width() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_width());
+      }
+    }
+    // uint32 window_height = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_window_height() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_height());
+      }
+    }
+    // bool dev_tools = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_dev_tools() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -387,9 +631,53 @@ void ElectronInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (from._internal_external_links() != 0) {
-      _this->_impl_.external_links_ = from._impl_.external_links_;
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_app_name().empty()) {
+        _this->_internal_set_app_name(from._internal_app_name());
+      } else {
+        if (_this->_impl_.app_name_.IsDefault()) {
+          _this->_internal_set_app_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_window_title().empty()) {
+        _this->_internal_set_window_title(from._internal_window_title());
+      } else {
+        if (_this->_impl_.window_title_.IsDefault()) {
+          _this->_internal_set_window_title("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_theme_source().empty()) {
+        _this->_internal_set_theme_source(from._internal_theme_source());
+      } else {
+        if (_this->_impl_.theme_source_.IsDefault()) {
+          _this->_internal_set_theme_source("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_external_links() != 0) {
+        _this->_impl_.external_links_ = from._impl_.external_links_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_window_width() != 0) {
+        _this->_impl_.window_width_ = from._impl_.window_width_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_window_height() != 0) {
+        _this->_impl_.window_height_ = from._impl_.window_height_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_dev_tools() != 0) {
+        _this->_impl_.dev_tools_ = from._impl_.dev_tools_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -407,9 +695,19 @@ void ElectronInit::CopyFrom(const ElectronInit& from) {
 
 void ElectronInit::InternalSwap(ElectronInit* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.external_links_, other->_impl_.external_links_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.app_name_, &other->_impl_.app_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.window_title_, &other->_impl_.window_title_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.theme_source_, &other->_impl_.theme_source_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.dev_tools_)
+      + sizeof(ElectronInit::_impl_.dev_tools_)
+      - PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.external_links_)>(
+          reinterpret_cast<char*>(&_impl_.external_links_),
+          reinterpret_cast<char*>(&other->_impl_.external_links_));
 }
 
 ::google::protobuf::Metadata ElectronInit::GetMetadata() const {
@@ -444,7 +742,10 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         electron_path_(arena, from.electron_path_),
         renderer_path_(arena, from.renderer_path_),
         web_runtime_id_(arena, from.web_runtime_id_),
-        workdir_path_(arena, from.workdir_path_) {}
+        workdir_path_(arena, from.workdir_path_),
+        app_name_(arena, from.app_name_),
+        window_title_(arena, from.window_title_),
+        theme_source_(arena, from.theme_source_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -459,7 +760,13 @@ Config::Config(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.external_links_ = from._impl_.external_links_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, external_links_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, external_links_),
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, external_links_) +
+               sizeof(Impl_::dev_tools_));
 
   // @@protoc_insertion_point(copy_constructor:electron.Config)
 }
@@ -471,11 +778,19 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         electron_path_(arena),
         renderer_path_(arena),
         web_runtime_id_(arena),
-        workdir_path_(arena) {}
+        workdir_path_(arena),
+        app_name_(arena),
+        window_title_(arena),
+        theme_source_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.external_links_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, external_links_),
+           0,
+           offsetof(Impl_, dev_tools_) -
+               offsetof(Impl_, external_links_) +
+               sizeof(Impl_::dev_tools_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:electron.Config)
@@ -492,6 +807,9 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.renderer_path_.Destroy();
   this_._impl_.web_runtime_id_.Destroy();
   this_._impl_.workdir_path_.Destroy();
+  this_._impl_.app_name_.Destroy();
+  this_._impl_.window_title_.Destroy();
+  this_._impl_.theme_source_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -550,16 +868,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 0, 90, 2>
+const ::_pbi::TcParseTable<4, 12, 0, 130, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294963200,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    12,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -591,9 +909,35 @@ Config::_table_ = {
      {42, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.workdir_path_)}},
     // .electron.ExternalLinks external_links = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.external_links_), 5>(),
-     {48, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.external_links_), 8>(),
+     {48, 8, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.external_links_)}},
+    // string app_name = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 5, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.app_name_)}},
+    // string window_title = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 6, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.window_title_)}},
+    // uint32 window_width = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.window_width_), 9>(),
+     {72, 9, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.window_width_)}},
+    // uint32 window_height = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.window_height_), 10>(),
+     {80, 10, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.window_height_)}},
+    // bool dev_tools = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.dev_tools_), 11>(),
+     {88, 11, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.dev_tools_)}},
+    // string theme_source = 12;
+    {::_pbi::TcParser::FastUS1,
+     {98, 7, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.theme_source_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -609,17 +953,32 @@ Config::_table_ = {
     // string workdir_path = 5;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.workdir_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .electron.ExternalLinks external_links = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.external_links_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.external_links_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string app_name = 7;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.app_name_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string window_title = 8;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.window_title_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 window_width = 9;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.window_width_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 window_height = 10;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.window_height_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool dev_tools = 11;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.dev_tools_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string theme_source = 12;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.theme_source_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\17\15\15\16\16\14\0\0"
+    "\17\15\15\16\16\14\0\10\14\0\0\0\14\0\0\0"
     "electron.Config"
     "electron_path"
     "renderer_path"
     "web_runtime_id"
     "electron_flags"
     "workdir_path"
+    "app_name"
+    "window_title"
+    "theme_source"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -630,7 +989,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.electron_flags_.Clear();
     }
@@ -646,8 +1005,21 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       _impl_.workdir_path_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.app_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.window_title_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.theme_source_.ClearNonDefaultToEmpty();
+    }
   }
-  _impl_.external_links_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+    ::memset(&_impl_.external_links_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.dev_tools_) -
+        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.dev_tools_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -722,11 +1094,68 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .electron.ExternalLinks external_links = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_external_links() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
           6, this_._internal_external_links(), target);
+    }
+  }
+
+  // string app_name = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_app_name().empty()) {
+      const ::std::string& _s = this_._internal_app_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.Config.app_name");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // string window_title = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_window_title().empty()) {
+      const ::std::string& _s = this_._internal_window_title();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.Config.window_title");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // uint32 window_width = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_window_width() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          9, this_._internal_window_width(), target);
+    }
+  }
+
+  // uint32 window_height = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_window_height() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          10, this_._internal_window_height(), target);
+    }
+  }
+
+  // bool dev_tools = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_dev_tools() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          11, this_._internal_dev_tools(), target);
+    }
+  }
+
+  // string theme_source = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_theme_source().empty()) {
+      const ::std::string& _s = this_._internal_theme_source();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.Config.theme_source");
+      target = stream->WriteStringMaybeAliased(12, _s, target);
     }
   }
 
@@ -755,7 +1184,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // repeated string electron_flags = 4;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -793,11 +1222,54 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_workdir_path());
       }
     }
-    // .electron.ExternalLinks external_links = 6;
+    // string app_name = 7;
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_app_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_app_name());
+      }
+    }
+    // string window_title = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_window_title().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_window_title());
+      }
+    }
+    // string theme_source = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_theme_source().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_theme_source());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+    // .electron.ExternalLinks external_links = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_external_links() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_external_links());
+      }
+    }
+    // uint32 window_width = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_window_width() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_width());
+      }
+    }
+    // uint32 window_height = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_window_height() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_window_height());
+      }
+    }
+    // bool dev_tools = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_dev_tools() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -820,7 +1292,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_electron_flags()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -863,8 +1335,52 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_app_name().empty()) {
+        _this->_internal_set_app_name(from._internal_app_name());
+      } else {
+        if (_this->_impl_.app_name_.IsDefault()) {
+          _this->_internal_set_app_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_window_title().empty()) {
+        _this->_internal_set_window_title(from._internal_window_title());
+      } else {
+        if (_this->_impl_.window_title_.IsDefault()) {
+          _this->_internal_set_window_title("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_theme_source().empty()) {
+        _this->_internal_set_theme_source(from._internal_theme_source());
+      } else {
+        if (_this->_impl_.theme_source_.IsDefault()) {
+          _this->_internal_set_theme_source("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_external_links() != 0) {
         _this->_impl_.external_links_ = from._impl_.external_links_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_window_width() != 0) {
+        _this->_impl_.window_width_ = from._impl_.window_width_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_window_height() != 0) {
+        _this->_impl_.window_height_ = from._impl_.window_height_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_dev_tools() != 0) {
+        _this->_impl_.dev_tools_ = from._impl_.dev_tools_;
       }
     }
   }
@@ -892,7 +1408,15 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.renderer_path_, &other->_impl_.renderer_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_runtime_id_, &other->_impl_.web_runtime_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.workdir_path_, &other->_impl_.workdir_path_, arena);
-  swap(_impl_.external_links_, other->_impl_.external_links_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.app_name_, &other->_impl_.app_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.window_title_, &other->_impl_.window_title_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.theme_source_, &other->_impl_.theme_source_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.dev_tools_)
+      + sizeof(Config::_impl_.dev_tools_)
+      - PROTOBUF_FIELD_OFFSET(Config, _impl_.external_links_)>(
+          reinterpret_cast<char*>(&_impl_.external_links_),
+          reinterpret_cast<char*>(&other->_impl_.external_links_));
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

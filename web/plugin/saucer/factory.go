@@ -72,6 +72,10 @@ func (t *Factory) Construct(
 			BootstrapHtml: cc.GetBootstrapHtml(),
 			EntrypointJs:  cc.GetEntrypointJs(),
 			ExternalLinks: cc.GetExternalLinks(),
+			AppName:       cc.GetAppName(),
+			WindowTitle:   cc.GetWindowTitle(),
+			WindowWidth:   cc.GetWindowWidth(),
+			WindowHeight:  cc.GetWindowHeight(),
 		},
 	)
 }

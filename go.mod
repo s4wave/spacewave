@@ -15,7 +15,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // indirect
-	github.com/aperturerobotics/bldr-saucer v0.4.3 // bldr/saucer-streaming
+	github.com/aperturerobotics/bldr-saucer v0.4.4 // master
 	github.com/aperturerobotics/cli v1.1.0
 	github.com/aperturerobotics/common v0.32.0 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d // master
@@ -108,7 +108,7 @@ require (
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/sirupsen/logrus v1.9.5-0.20260309202648-9f0600962f75
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 )
@@ -171,3 +171,5 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.45.0 // indirect
 )
+
+replace github.com/aperturerobotics/bldr-saucer => ../../repos/bldr-saucer

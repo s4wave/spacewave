@@ -272,8 +272,12 @@ class SaucerInit final : public ::google::protobuf::Message
     kBootstrapHtmlPathFieldNumber = 4,
     kEntrypointJsFieldNumber = 5,
     kEntrypointJsPathFieldNumber = 6,
+    kAppNameFieldNumber = 7,
+    kWindowTitleFieldNumber = 8,
     kDevToolsFieldNumber = 1,
     kExternalLinksFieldNumber = 3,
+    kWindowWidthFieldNumber = 9,
+    kWindowHeightFieldNumber = 10,
   };
   // string bootstrap_html = 2;
   void clear_bootstrap_html() ;
@@ -335,6 +339,36 @@ class SaucerInit final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_js_path();
 
   public:
+  // string app_name = 7;
+  void clear_app_name() ;
+  const ::std::string& app_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_app_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_app_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_app_name();
+  void set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_app_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_app_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_app_name();
+
+  public:
+  // string window_title = 8;
+  void clear_window_title() ;
+  const ::std::string& window_title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_window_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_window_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_window_title();
+  void set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_window_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_window_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_window_title();
+
+  public:
   // bool dev_tools = 1;
   void clear_dev_tools() ;
   bool dev_tools() const;
@@ -355,12 +389,32 @@ class SaucerInit final : public ::google::protobuf::Message
   void _internal_set_external_links(::saucer::ExternalLinks value);
 
   public:
+  // uint32 window_width = 9;
+  void clear_window_width() ;
+  ::uint32_t window_width() const;
+  void set_window_width(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_width() const;
+  void _internal_set_window_width(::uint32_t value);
+
+  public:
+  // uint32 window_height = 10;
+  void clear_window_height() ;
+  ::uint32_t window_height() const;
+  void set_window_height(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_height() const;
+  void _internal_set_window_height(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:saucer.SaucerInit)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   0, 90,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   0, 118,
                                    2>
       _table_;
 
@@ -385,8 +439,12 @@ class SaucerInit final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr bootstrap_html_path_;
     ::google::protobuf::internal::ArenaStringPtr entrypoint_js_;
     ::google::protobuf::internal::ArenaStringPtr entrypoint_js_path_;
+    ::google::protobuf::internal::ArenaStringPtr app_name_;
+    ::google::protobuf::internal::ArenaStringPtr window_title_;
     bool dev_tools_;
     int external_links_;
+    ::uint32_t window_width_;
+    ::uint32_t window_height_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -951,8 +1009,12 @@ class Config final : public ::google::protobuf::Message
     kWebRuntimeIdFieldNumber = 3,
     kBootstrapHtmlFieldNumber = 6,
     kEntrypointJsFieldNumber = 8,
+    kAppNameFieldNumber = 9,
+    kWindowTitleFieldNumber = 10,
     kExternalLinksFieldNumber = 4,
     kDevToolsFieldNumber = 7,
+    kWindowWidthFieldNumber = 11,
+    kWindowHeightFieldNumber = 12,
   };
   // repeated string saucer_flags = 5;
   int saucer_flags_size() const;
@@ -1051,6 +1113,36 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_js();
 
   public:
+  // string app_name = 9;
+  void clear_app_name() ;
+  const ::std::string& app_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_app_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_app_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_app_name();
+  void set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_app_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_app_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_app_name();
+
+  public:
+  // string window_title = 10;
+  void clear_window_title() ;
+  const ::std::string& window_title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_window_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_window_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_window_title();
+  void set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_window_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_window_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_window_title();
+
+  public:
   // .saucer.ExternalLinks external_links = 4;
   void clear_external_links() ;
   ::saucer::ExternalLinks external_links() const;
@@ -1071,12 +1163,32 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_dev_tools(bool value);
 
   public:
+  // uint32 window_width = 11;
+  void clear_window_width() ;
+  ::uint32_t window_width() const;
+  void set_window_width(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_width() const;
+  void _internal_set_window_width(::uint32_t value);
+
+  public:
+  // uint32 window_height = 12;
+  void clear_window_height() ;
+  ::uint32_t window_height() const;
+  void set_window_height(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_height() const;
+  void _internal_set_window_height(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:saucer.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   0, 106,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
+                                   0, 126,
                                    2>
       _table_;
 
@@ -1103,8 +1215,12 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr web_runtime_id_;
     ::google::protobuf::internal::ArenaStringPtr bootstrap_html_;
     ::google::protobuf::internal::ArenaStringPtr entrypoint_js_;
+    ::google::protobuf::internal::ArenaStringPtr app_name_;
+    ::google::protobuf::internal::ArenaStringPtr window_title_;
     int external_links_;
     bool dev_tools_;
+    ::uint32_t window_width_;
+    ::uint32_t window_height_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1134,7 +1250,7 @@ inline void SaucerInit::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 inline bool SaucerInit::dev_tools() const {
   // @@protoc_insertion_point(field_get:saucer.SaucerInit.dev_tools)
@@ -1142,7 +1258,7 @@ inline bool SaucerInit::dev_tools() const {
 }
 inline void SaucerInit::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:saucer.SaucerInit.dev_tools)
 }
 inline bool SaucerInit::_internal_dev_tools() const {
@@ -1224,7 +1340,7 @@ inline void SaucerInit::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline ::saucer::ExternalLinks SaucerInit::external_links() const {
   // @@protoc_insertion_point(field_get:saucer.SaucerInit.external_links)
@@ -1232,7 +1348,7 @@ inline ::saucer::ExternalLinks SaucerInit::external_links() const {
 }
 inline void SaucerInit::set_external_links(::saucer::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:saucer.SaucerInit.external_links)
 }
 inline ::saucer::ExternalLinks SaucerInit::_internal_external_links() const {
@@ -1437,6 +1553,186 @@ inline void SaucerInit::set_allocated_entrypoint_js_path(::std::string* PROTOBUF
     _impl_.entrypoint_js_path_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:saucer.SaucerInit.entrypoint_js_path)
+}
+
+// string app_name = 7;
+inline void SaucerInit::clear_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& SaucerInit::app_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:saucer.SaucerInit.app_name)
+  return _internal_app_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SaucerInit::set_app_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.app_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:saucer.SaucerInit.app_name)
+}
+inline ::std::string* PROTOBUF_NONNULL SaucerInit::mutable_app_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_app_name();
+  // @@protoc_insertion_point(field_mutable:saucer.SaucerInit.app_name)
+  return _s;
+}
+inline const ::std::string& SaucerInit::_internal_app_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.app_name_.Get();
+}
+inline void SaucerInit::_internal_set_app_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SaucerInit::_internal_mutable_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.app_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SaucerInit::release_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:saucer.SaucerInit.app_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.app_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SaucerInit::set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.app_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.app_name_.IsDefault()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:saucer.SaucerInit.app_name)
+}
+
+// string window_title = 8;
+inline void SaucerInit::clear_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& SaucerInit::window_title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:saucer.SaucerInit.window_title)
+  return _internal_window_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SaucerInit::set_window_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.window_title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:saucer.SaucerInit.window_title)
+}
+inline ::std::string* PROTOBUF_NONNULL SaucerInit::mutable_window_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_window_title();
+  // @@protoc_insertion_point(field_mutable:saucer.SaucerInit.window_title)
+  return _s;
+}
+inline const ::std::string& SaucerInit::_internal_window_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_title_.Get();
+}
+inline void SaucerInit::_internal_set_window_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SaucerInit::_internal_mutable_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.window_title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SaucerInit::release_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:saucer.SaucerInit.window_title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.window_title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SaucerInit::set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.window_title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.window_title_.IsDefault()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:saucer.SaucerInit.window_title)
+}
+
+// uint32 window_width = 9;
+inline void SaucerInit::clear_window_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint32_t SaucerInit::window_width() const {
+  // @@protoc_insertion_point(field_get:saucer.SaucerInit.window_width)
+  return _internal_window_width();
+}
+inline void SaucerInit::set_window_width(::uint32_t value) {
+  _internal_set_window_width(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:saucer.SaucerInit.window_width)
+}
+inline ::uint32_t SaucerInit::_internal_window_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_width_;
+}
+inline void SaucerInit::_internal_set_window_width(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = value;
+}
+
+// uint32 window_height = 10;
+inline void SaucerInit::clear_window_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::uint32_t SaucerInit::window_height() const {
+  // @@protoc_insertion_point(field_get:saucer.SaucerInit.window_height)
+  return _internal_window_height();
+}
+inline void SaucerInit::set_window_height(::uint32_t value) {
+  _internal_set_window_height(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:saucer.SaucerInit.window_height)
+}
+inline ::uint32_t SaucerInit::_internal_window_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_height_;
+}
+inline void SaucerInit::_internal_set_window_height(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -1846,7 +2142,7 @@ inline void Config::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline ::saucer::ExternalLinks Config::external_links() const {
   // @@protoc_insertion_point(field_get:saucer.Config.external_links)
@@ -1854,7 +2150,7 @@ inline ::saucer::ExternalLinks Config::external_links() const {
 }
 inline void Config::set_external_links(::saucer::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:saucer.Config.external_links)
 }
 inline ::saucer::ExternalLinks Config::_internal_external_links() const {
@@ -2008,7 +2304,7 @@ inline void Config::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000200U);
 }
 inline bool Config::dev_tools() const {
   // @@protoc_insertion_point(field_get:saucer.Config.dev_tools)
@@ -2016,7 +2312,7 @@ inline bool Config::dev_tools() const {
 }
 inline void Config::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:saucer.Config.dev_tools)
 }
 inline bool Config::_internal_dev_tools() const {
@@ -2091,6 +2387,186 @@ inline void Config::set_allocated_entrypoint_js(::std::string* PROTOBUF_NULLABLE
     _impl_.entrypoint_js_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:saucer.Config.entrypoint_js)
+}
+
+// string app_name = 9;
+inline void Config::clear_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& Config::app_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:saucer.Config.app_name)
+  return _internal_app_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_app_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.app_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:saucer.Config.app_name)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_app_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_app_name();
+  // @@protoc_insertion_point(field_mutable:saucer.Config.app_name)
+  return _s;
+}
+inline const ::std::string& Config::_internal_app_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.app_name_.Get();
+}
+inline void Config::_internal_set_app_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.app_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:saucer.Config.app_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.app_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.app_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.app_name_.IsDefault()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:saucer.Config.app_name)
+}
+
+// string window_title = 10;
+inline void Config::clear_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& Config::window_title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:saucer.Config.window_title)
+  return _internal_window_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_window_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.window_title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:saucer.Config.window_title)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_window_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_window_title();
+  // @@protoc_insertion_point(field_mutable:saucer.Config.window_title)
+  return _s;
+}
+inline const ::std::string& Config::_internal_window_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_title_.Get();
+}
+inline void Config::_internal_set_window_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.window_title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:saucer.Config.window_title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.window_title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.window_title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.window_title_.IsDefault()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:saucer.Config.window_title)
+}
+
+// uint32 window_width = 11;
+inline void Config::clear_window_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::uint32_t Config::window_width() const {
+  // @@protoc_insertion_point(field_get:saucer.Config.window_width)
+  return _internal_window_width();
+}
+inline void Config::set_window_width(::uint32_t value) {
+  _internal_set_window_width(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:saucer.Config.window_width)
+}
+inline ::uint32_t Config::_internal_window_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_width_;
+}
+inline void Config::_internal_set_window_width(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = value;
+}
+
+// uint32 window_height = 12;
+inline void Config::clear_window_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::uint32_t Config::window_height() const {
+  // @@protoc_insertion_point(field_get:saucer.Config.window_height)
+  return _internal_window_height();
+}
+inline void Config::set_window_height(::uint32_t value) {
+  _internal_set_window_height(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:saucer.Config.window_height)
+}
+inline ::uint32_t Config::_internal_window_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_height_;
+}
+inline void Config::_internal_set_window_height(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = value;
 }
 
 #ifdef __GNUC__

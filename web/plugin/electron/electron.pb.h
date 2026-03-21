@@ -260,8 +260,59 @@ class ElectronInit final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kAppNameFieldNumber = 2,
+    kWindowTitleFieldNumber = 3,
+    kThemeSourceFieldNumber = 7,
     kExternalLinksFieldNumber = 1,
+    kWindowWidthFieldNumber = 4,
+    kWindowHeightFieldNumber = 5,
+    kDevToolsFieldNumber = 6,
   };
+  // string app_name = 2;
+  void clear_app_name() ;
+  const ::std::string& app_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_app_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_app_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_app_name();
+  void set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_app_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_app_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_app_name();
+
+  public:
+  // string window_title = 3;
+  void clear_window_title() ;
+  const ::std::string& window_title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_window_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_window_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_window_title();
+  void set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_window_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_window_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_window_title();
+
+  public:
+  // string theme_source = 7;
+  void clear_theme_source() ;
+  const ::std::string& theme_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_theme_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_theme_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_theme_source();
+  void set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_theme_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_theme_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
+
+  public:
   // .electron.ExternalLinks external_links = 1;
   void clear_external_links() ;
   ::electron::ExternalLinks external_links() const;
@@ -272,12 +323,42 @@ class ElectronInit final : public ::google::protobuf::Message
   void _internal_set_external_links(::electron::ExternalLinks value);
 
   public:
+  // uint32 window_width = 4;
+  void clear_window_width() ;
+  ::uint32_t window_width() const;
+  void set_window_width(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_width() const;
+  void _internal_set_window_width(::uint32_t value);
+
+  public:
+  // uint32 window_height = 5;
+  void clear_window_height() ;
+  ::uint32_t window_height() const;
+  void set_window_height(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_height() const;
+  void _internal_set_window_height(::uint32_t value);
+
+  public:
+  // bool dev_tools = 6;
+  void clear_dev_tools() ;
+  bool dev_tools() const;
+  void set_dev_tools(bool value);
+
+  private:
+  bool _internal_dev_tools() const;
+  void _internal_set_dev_tools(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.ElectronInit)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 62,
                                    2>
       _table_;
 
@@ -298,7 +379,13 @@ class ElectronInit final : public ::google::protobuf::Message
         const ElectronInit& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr app_name_;
+    ::google::protobuf::internal::ArenaStringPtr window_title_;
+    ::google::protobuf::internal::ArenaStringPtr theme_source_;
     int external_links_;
+    ::uint32_t window_width_;
+    ::uint32_t window_height_;
+    bool dev_tools_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -455,7 +542,13 @@ class Config final : public ::google::protobuf::Message
     kRendererPathFieldNumber = 2,
     kWebRuntimeIdFieldNumber = 3,
     kWorkdirPathFieldNumber = 5,
+    kAppNameFieldNumber = 7,
+    kWindowTitleFieldNumber = 8,
+    kThemeSourceFieldNumber = 12,
     kExternalLinksFieldNumber = 6,
+    kWindowWidthFieldNumber = 9,
+    kWindowHeightFieldNumber = 10,
+    kDevToolsFieldNumber = 11,
   };
   // repeated string electron_flags = 4;
   int electron_flags_size() const;
@@ -539,6 +632,51 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_workdir_path();
 
   public:
+  // string app_name = 7;
+  void clear_app_name() ;
+  const ::std::string& app_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_app_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_app_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_app_name();
+  void set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_app_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_app_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_app_name();
+
+  public:
+  // string window_title = 8;
+  void clear_window_title() ;
+  const ::std::string& window_title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_window_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_window_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_window_title();
+  void set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_window_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_window_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_window_title();
+
+  public:
+  // string theme_source = 12;
+  void clear_theme_source() ;
+  const ::std::string& theme_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_theme_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_theme_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_theme_source();
+  void set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_theme_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_theme_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
+
+  public:
   // .electron.ExternalLinks external_links = 6;
   void clear_external_links() ;
   ::electron::ExternalLinks external_links() const;
@@ -549,12 +687,42 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_external_links(::electron::ExternalLinks value);
 
   public:
+  // uint32 window_width = 9;
+  void clear_window_width() ;
+  ::uint32_t window_width() const;
+  void set_window_width(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_width() const;
+  void _internal_set_window_width(::uint32_t value);
+
+  public:
+  // uint32 window_height = 10;
+  void clear_window_height() ;
+  ::uint32_t window_height() const;
+  void set_window_height(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_window_height() const;
+  void _internal_set_window_height(::uint32_t value);
+
+  public:
+  // bool dev_tools = 11;
+  void clear_dev_tools() ;
+  bool dev_tools() const;
+  void set_dev_tools(bool value);
+
+  private:
+  bool _internal_dev_tools() const;
+  void _internal_set_dev_tools(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   0, 90,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
+                                   0, 130,
                                    2>
       _table_;
 
@@ -580,7 +748,13 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr renderer_path_;
     ::google::protobuf::internal::ArenaStringPtr web_runtime_id_;
     ::google::protobuf::internal::ArenaStringPtr workdir_path_;
+    ::google::protobuf::internal::ArenaStringPtr app_name_;
+    ::google::protobuf::internal::ArenaStringPtr window_title_;
+    ::google::protobuf::internal::ArenaStringPtr theme_source_;
     int external_links_;
+    ::uint32_t window_width_;
+    ::uint32_t window_height_;
+    bool dev_tools_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -610,7 +784,7 @@ inline void ElectronInit::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000008U);
 }
 inline ::electron::ExternalLinks ElectronInit::external_links() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.external_links)
@@ -618,7 +792,7 @@ inline ::electron::ExternalLinks ElectronInit::external_links() const {
 }
 inline void ElectronInit::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.external_links)
 }
 inline ::electron::ExternalLinks ElectronInit::_internal_external_links() const {
@@ -628,6 +802,276 @@ inline ::electron::ExternalLinks ElectronInit::_internal_external_links() const 
 inline void ElectronInit::_internal_set_external_links(::electron::ExternalLinks value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = value;
+}
+
+// string app_name = 2;
+inline void ElectronInit::clear_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ElectronInit::app_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.app_name)
+  return _internal_app_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ElectronInit::set_app_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.app_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.app_name)
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::mutable_app_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_app_name();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.app_name)
+  return _s;
+}
+inline const ::std::string& ElectronInit::_internal_app_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.app_name_.Get();
+}
+inline void ElectronInit::_internal_set_app_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::_internal_mutable_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.app_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ElectronInit::release_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.app_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.app_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ElectronInit::set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.app_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.app_name_.IsDefault()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.app_name)
+}
+
+// string window_title = 3;
+inline void ElectronInit::clear_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ElectronInit::window_title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.window_title)
+  return _internal_window_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ElectronInit::set_window_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.window_title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.window_title)
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::mutable_window_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_window_title();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.window_title)
+  return _s;
+}
+inline const ::std::string& ElectronInit::_internal_window_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_title_.Get();
+}
+inline void ElectronInit::_internal_set_window_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::_internal_mutable_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.window_title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ElectronInit::release_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.window_title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.window_title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ElectronInit::set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.window_title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.window_title_.IsDefault()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.window_title)
+}
+
+// uint32 window_width = 4;
+inline void ElectronInit::clear_window_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t ElectronInit::window_width() const {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.window_width)
+  return _internal_window_width();
+}
+inline void ElectronInit::set_window_width(::uint32_t value) {
+  _internal_set_window_width(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.window_width)
+}
+inline ::uint32_t ElectronInit::_internal_window_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_width_;
+}
+inline void ElectronInit::_internal_set_window_width(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = value;
+}
+
+// uint32 window_height = 5;
+inline void ElectronInit::clear_window_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::uint32_t ElectronInit::window_height() const {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.window_height)
+  return _internal_window_height();
+}
+inline void ElectronInit::set_window_height(::uint32_t value) {
+  _internal_set_window_height(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.window_height)
+}
+inline ::uint32_t ElectronInit::_internal_window_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_height_;
+}
+inline void ElectronInit::_internal_set_window_height(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = value;
+}
+
+// bool dev_tools = 6;
+inline void ElectronInit::clear_dev_tools() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool ElectronInit::dev_tools() const {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.dev_tools)
+  return _internal_dev_tools();
+}
+inline void ElectronInit::set_dev_tools(bool value) {
+  _internal_set_dev_tools(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.dev_tools)
+}
+inline bool ElectronInit::_internal_dev_tools() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.dev_tools_;
+}
+inline void ElectronInit::_internal_set_dev_tools(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = value;
+}
+
+// string theme_source = 7;
+inline void ElectronInit::clear_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ElectronInit::theme_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.theme_source)
+  return _internal_theme_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ElectronInit::set_theme_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.theme_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.theme_source)
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::mutable_theme_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_theme_source();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.theme_source)
+  return _s;
+}
+inline const ::std::string& ElectronInit::_internal_theme_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.theme_source_.Get();
+}
+inline void ElectronInit::_internal_set_theme_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ElectronInit::_internal_mutable_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.theme_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ElectronInit::release_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.theme_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.theme_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ElectronInit::set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.theme_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.theme_source_.IsDefault()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.theme_source)
 }
 
 // -------------------------------------------------------------------
@@ -971,7 +1415,7 @@ inline void Config::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000100U);
 }
 inline ::electron::ExternalLinks Config::external_links() const {
   // @@protoc_insertion_point(field_get:electron.Config.external_links)
@@ -979,7 +1423,7 @@ inline ::electron::ExternalLinks Config::external_links() const {
 }
 inline void Config::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:electron.Config.external_links)
 }
 inline ::electron::ExternalLinks Config::_internal_external_links() const {
@@ -989,6 +1433,276 @@ inline ::electron::ExternalLinks Config::_internal_external_links() const {
 inline void Config::_internal_set_external_links(::electron::ExternalLinks value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = value;
+}
+
+// string app_name = 7;
+inline void Config::clear_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& Config::app_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.app_name)
+  return _internal_app_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_app_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.app_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.Config.app_name)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_app_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_app_name();
+  // @@protoc_insertion_point(field_mutable:electron.Config.app_name)
+  return _s;
+}
+inline const ::std::string& Config::_internal_app_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.app_name_.Get();
+}
+inline void Config::_internal_set_app_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.app_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.app_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_app_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.app_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.app_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_app_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.app_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.app_name_.IsDefault()) {
+    _impl_.app_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.app_name)
+}
+
+// string window_title = 8;
+inline void Config::clear_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& Config::window_title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.window_title)
+  return _internal_window_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_window_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.window_title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.Config.window_title)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_window_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_window_title();
+  // @@protoc_insertion_point(field_mutable:electron.Config.window_title)
+  return _s;
+}
+inline const ::std::string& Config::_internal_window_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_title_.Get();
+}
+inline void Config::_internal_set_window_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.window_title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_window_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.window_title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.window_title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_window_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.window_title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.window_title_.IsDefault()) {
+    _impl_.window_title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.window_title)
+}
+
+// uint32 window_width = 9;
+inline void Config::clear_window_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::uint32_t Config::window_width() const {
+  // @@protoc_insertion_point(field_get:electron.Config.window_width)
+  return _internal_window_width();
+}
+inline void Config::set_window_width(::uint32_t value) {
+  _internal_set_window_width(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:electron.Config.window_width)
+}
+inline ::uint32_t Config::_internal_window_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_width_;
+}
+inline void Config::_internal_set_window_width(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_width_ = value;
+}
+
+// uint32 window_height = 10;
+inline void Config::clear_window_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::uint32_t Config::window_height() const {
+  // @@protoc_insertion_point(field_get:electron.Config.window_height)
+  return _internal_window_height();
+}
+inline void Config::set_window_height(::uint32_t value) {
+  _internal_set_window_height(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:electron.Config.window_height)
+}
+inline ::uint32_t Config::_internal_window_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.window_height_;
+}
+inline void Config::_internal_set_window_height(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.window_height_ = value;
+}
+
+// bool dev_tools = 11;
+inline void Config::clear_dev_tools() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline bool Config::dev_tools() const {
+  // @@protoc_insertion_point(field_get:electron.Config.dev_tools)
+  return _internal_dev_tools();
+}
+inline void Config::set_dev_tools(bool value) {
+  _internal_set_dev_tools(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:electron.Config.dev_tools)
+}
+inline bool Config::_internal_dev_tools() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.dev_tools_;
+}
+inline void Config::_internal_set_dev_tools(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dev_tools_ = value;
+}
+
+// string theme_source = 12;
+inline void Config::clear_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& Config::theme_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.theme_source)
+  return _internal_theme_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_theme_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.theme_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.Config.theme_source)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_theme_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_theme_source();
+  // @@protoc_insertion_point(field_mutable:electron.Config.theme_source)
+  return _s;
+}
+inline const ::std::string& Config::_internal_theme_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.theme_source_.Get();
+}
+inline void Config::_internal_set_theme_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.theme_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.theme_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_theme_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.theme_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.theme_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.theme_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.theme_source_.IsDefault()) {
+    _impl_.theme_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.theme_source)
 }
 
 #ifdef __GNUC__

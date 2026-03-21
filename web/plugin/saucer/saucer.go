@@ -71,6 +71,10 @@ func RunSaucer(
 		initMsg := &bldr_saucer.SaucerInit{
 			DevTools:      saucerInit.DevTools,
 			ExternalLinks: bldr_saucer.ExternalLinks(saucerInit.ExternalLinks),
+			AppName:       saucerInit.AppName,
+			WindowTitle:   saucerInit.WindowTitle,
+			WindowWidth:   saucerInit.WindowWidth,
+			WindowHeight:  saucerInit.WindowHeight,
 		}
 		initBytes, err := initMsg.MarshalVT()
 		if err != nil {

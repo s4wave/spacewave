@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "008a695bca2df3ef2cdb88d83c30143181d937b3760d12632d212f3ff23f717b",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.1",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.2",
   "packages": {
     "github.com/aperturerobotics/bldr/cli/compiler": {
       "hash": "9f55862feebc44144c73637580862f95e4a7a1ced732e594333ac6587922ef21",
@@ -66,37 +66,6 @@
       ],
       "protoFiles": [
         "example/example.proto"
-      ]
-    },
-    "github.com/aperturerobotics/bldr/launcher": {
-      "hash": "74d5001f84598977625f0c821563217b2624fb8d25c07b2f5bd013a70748db55",
-      "generatedFiles": [
-        "launcher/launcher.pb.cc",
-        "launcher/launcher.pb.go",
-        "launcher/launcher.pb.h",
-        "launcher/launcher.pb.rs",
-        "launcher/launcher.pb.ts",
-        "launcher/launcher_srpc.pb.cpp",
-        "launcher/launcher_srpc.pb.go",
-        "launcher/launcher_srpc.pb.hpp",
-        "launcher/launcher_srpc.pb.rs",
-        "launcher/launcher_srpc.pb.ts"
-      ],
-      "protoFiles": [
-        "launcher/launcher.proto"
-      ]
-    },
-    "github.com/aperturerobotics/bldr/launcher/controller": {
-      "hash": "19e2ad08d2e5879caf85911d1139def99ae2924a3c9fd957f066797e60f4fc12",
-      "generatedFiles": [
-        "launcher/controller/config.pb.cc",
-        "launcher/controller/config.pb.go",
-        "launcher/controller/config.pb.h",
-        "launcher/controller/config.pb.rs",
-        "launcher/controller/config.pb.ts"
-      ],
-      "protoFiles": [
-        "launcher/controller/config.proto"
       ]
     },
     "github.com/aperturerobotics/bldr/manifest": {
@@ -849,7 +818,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/plugin/compiler": {
-      "hash": "bc601796e66eec47f216679dafc7b371af2d7f7f88ba411a36ebdfc1df71c79b",
+      "hash": "de13181fe0fa07d6c2861c8662f6e48033666b02b226ab2019d15adb9f41a57c",
       "generatedFiles": [
         "web/plugin/compiler/config.pb.cc",
         "web/plugin/compiler/config.pb.go",
@@ -875,7 +844,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/plugin/electron": {
-      "hash": "a8767cb4ee21a2147823b658b0ea73c53e5bc88ee689a38d6631b3f08160b049",
+      "hash": "916bb0b3c399e4e9812874ff15c247f3fe12a48c9d72e8ee563c2c8513cee93d",
       "generatedFiles": [
         "web/plugin/electron/electron.pb.cc",
         "web/plugin/electron/electron.pb.go",
@@ -940,7 +909,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/plugin/saucer": {
-      "hash": "9918af9b5196758705eaad436f52488f24b9767a20e8ae7d24f425b5e77e114a",
+      "hash": "42ba7898a37f6a2b86131ed48adfc7d31784db48689c7de0a6d43a90da8a10af",
       "generatedFiles": [
         "web/plugin/saucer/saucer.pb.cc",
         "web/plugin/saucer/saucer.pb.go",
