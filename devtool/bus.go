@@ -630,6 +630,20 @@ func (d *DevtoolBus) StartProjectController(
 	error,
 ) {
 	absConfigPath := filepath.Join(repoRoot, configPath)
+
+	// Validate the config file upfront so parse errors surface immediately
+	// instead of causing the controller to retry indefinitely.
+	if absConfigPath != "" {
+		confData, err := os.ReadFile(absConfigPath)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "read project config")
+		}
+		testConf := &bldr_project.ProjectConfig{}
+		if err := bldr_project.UnmarshalProjectConfig(confData, testConf); err != nil {
+			return nil, nil, errors.Wrap(err, "parse project config")
+		}
+	}
+
 	baseProjectConfig := &bldr_project.ProjectConfig{
 		Remotes: map[string]*bldr_project.RemoteConfig{
 			"devtool": {
