@@ -13,17 +13,17 @@ func TestParseNativePlatform(t *testing.T) {
 		expectedGOARM  *int
 		expectError    bool
 	}{
-		{"native", runtime.GOOS, runtime.GOARCH, nil, false},
-		{"native/windows", "windows", runtime.GOARCH, nil, false},
-		{"native/linux", "linux", runtime.GOARCH, nil, false},
-		{"native/linux/arm64", "linux", "arm64", nil, false},
-		{"native/linux/arm", "linux", "arm", new(7), false},
-		{"native/linux/armv6", "linux", "arm", new(6), false},
-		{"native/linux/armv7", "linux", "arm", new(7), false},
-		{"native/darwin", "darwin", runtime.GOARCH, nil, false},
-		{"native/js/wasm", "js", "wasm", nil, false},
-		{"native/wasi/wasm", "wasi", "wasm", nil, false},
-		{"native/invalid", "", "", nil, true},
+		{"desktop", runtime.GOOS, runtime.GOARCH, nil, false},
+		{"desktop/windows", "windows", runtime.GOARCH, nil, false},
+		{"desktop/linux", "linux", runtime.GOARCH, nil, false},
+		{"desktop/linux/arm64", "linux", "arm64", nil, false},
+		{"desktop/linux/arm", "linux", "arm", new(7), false},
+		{"desktop/linux/armv6", "linux", "arm", new(6), false},
+		{"desktop/linux/armv7", "linux", "arm", new(7), false},
+		{"desktop/darwin", "darwin", runtime.GOARCH, nil, false},
+		{"desktop/js/wasm", "js", "wasm", nil, false},
+		{"desktop/wasi/wasm", "wasi", "wasm", nil, false},
+		{"desktop/invalid", "", "", nil, true},
 	}
 
 	for _, tc := range testCases {
@@ -63,13 +63,13 @@ func TestNativePlatform_GetPlatformID(t *testing.T) {
 		input          *NativePlatform
 		expectedOutput string
 	}{
-		{&NativePlatform{GOOS: new("windows"), GOARCH: new("amd64")}, "native/windows/amd64"},
-		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm"), GOARM: new(6)}, "native/linux/armv6"},
-		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm64")}, "native/linux/arm64"},
-		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm")}, "native/linux/armv7"},
-		{&NativePlatform{GOOS: new("darwin"), GOARCH: new("386")}, "native/darwin/386"},
-		{&NativePlatform{GOOS: new("js"), GOARCH: new("wasm")}, "native/js/wasm"},
-		{&NativePlatform{GOOS: new("wasi"), GOARCH: new("wasm")}, "native/wasi/wasm"},
+		{&NativePlatform{GOOS: new("windows"), GOARCH: new("amd64")}, "desktop/windows/amd64"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm"), GOARM: new(6)}, "desktop/linux/armv6"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm64")}, "desktop/linux/arm64"},
+		{&NativePlatform{GOOS: new("linux"), GOARCH: new("arm")}, "desktop/linux/armv7"},
+		{&NativePlatform{GOOS: new("darwin"), GOARCH: new("386")}, "desktop/darwin/386"},
+		{&NativePlatform{GOOS: new("js"), GOARCH: new("wasm")}, "desktop/js/wasm"},
+		{&NativePlatform{GOOS: new("wasi"), GOARCH: new("wasm")}, "desktop/wasi/wasm"},
 	}
 
 	for _, tc := range testCases {

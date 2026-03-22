@@ -140,7 +140,7 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	pluginMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "native/linux/amd64", "dev")
+	pluginMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "desktop/linux/amd64", "dev")
 	goVarDefs := []*vardef.PluginVar{vardef.NewPluginVar(
 		"github.com/aperturerobotics/bldr/example",
 		"AssetPath",

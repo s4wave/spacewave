@@ -211,7 +211,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 
 	// web pkgs
 	// use platform for linux -> node.js (react and react-dom don't care.)
-	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("native/linux/amd64")
+	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("desktop/linux/amd64")
 	if err != nil {
 		return err
 	}

@@ -123,7 +123,7 @@ func BuildDistBus(
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
 
 	// HACK: we cannot create paths on the web platform
-	isWebPlatform := platformID == "js" || strings.HasPrefix(platformID, "native/js/")
+	isWebPlatform := platformID == "js" || strings.HasPrefix(platformID, "desktop/js/")
 	if !isWebPlatform {
 		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 			rel()

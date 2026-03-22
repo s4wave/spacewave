@@ -13,10 +13,10 @@ func TestTinyGoTarget(t *testing.T) {
 		expectedTarget string
 		expectError    bool
 	}{
-		{"native/wasi/wasm", "wasm-unknown", false},
-		{"native/linux/amd64", "", true},
+		{"desktop/wasi/wasm", "wasm-unknown", false},
+		{"desktop/linux/amd64", "", true},
 		{"js", "", true},
-		{"native/js/wasm", "", true},
+		{"desktop/js/wasm", "", true},
 	}
 
 	for _, tc := range testCases {
@@ -50,12 +50,12 @@ func TestGoCompilerEnvVars(t *testing.T) {
 		platformID   string
 		expectedVars []string
 	}{
-		{"native/windows/amd64", []string{"GOOS=windows", "GOARCH=amd64"}},
-		{"native/windows/armv6", []string{"GOOS=windows", "GOARCH=arm", "GOARM=6"}},
-		{"native/linux/armv5", []string{"GOOS=linux", "GOARCH=arm", "GOARM=5"}},
-		{"native/darwin/arm64", []string{"GOOS=darwin", "GOARCH=arm64"}},
-		{"native/js/wasm", []string{"GOOS=js", "GOARCH=wasm"}},
-		{"native/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
+		{"desktop/windows/amd64", []string{"GOOS=windows", "GOARCH=amd64"}},
+		{"desktop/windows/armv6", []string{"GOOS=windows", "GOARCH=arm", "GOARM=6"}},
+		{"desktop/linux/armv5", []string{"GOOS=linux", "GOARCH=arm", "GOARM=5"}},
+		{"desktop/darwin/arm64", []string{"GOOS=darwin", "GOARCH=arm64"}},
+		{"desktop/js/wasm", []string{"GOOS=js", "GOARCH=wasm"}},
+		{"desktop/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
 		{"js", []string{"GOOS=js", "GOARCH=wasm"}},
 	}
 

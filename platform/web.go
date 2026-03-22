@@ -53,7 +53,7 @@ func (n *JsPlatform) GetPlatformID() string {
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_NATIVE, PlatformID_JS, and PlatformID_NONE
+// Values: PlatformID_DESKTOP, PlatformID_JS, and PlatformID_NONE
 func (n *JsPlatform) GetBasePlatformID() string {
 	return PlatformID_JS
 }

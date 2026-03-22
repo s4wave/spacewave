@@ -7,7 +7,7 @@ start:
     - bldr-demo
 
 build:
-  native:
+  desktop:
     manifests: ['web', 'bldr-demo']
     targets: ['desktop']
 
@@ -27,9 +27,9 @@ build:
     manifests: ['web', 'bldr-demo', 'bldr-demo-release']
     platformIds:
       - js
-      - native/linux/amd64
-      - native/windows/amd64
-      - native/darwin/amd64
+      - desktop/linux/amd64
+      - desktop/windows/amd64
+      - desktop/darwin/amd64
 
 remotes:
   demo-dist:

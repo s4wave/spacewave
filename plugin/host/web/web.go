@@ -50,8 +50,8 @@ type WebHost struct {
 // NewWebHost constructs a new WebHost.
 func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebHost, error) {
 	// determine the platform id for the host
-	// TODO: also support "js" and "native/wasi/wasm"
-	platform, err := bldr_platform.ParsePlatform("native/js/wasm")
+	// TODO: also support "js" and "desktop/wasi/wasm"
+	platform, err := bldr_platform.ParsePlatform("desktop/js/wasm")
 	if err != nil {
 		return nil, err
 	}

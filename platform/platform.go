@@ -15,7 +15,7 @@ type Platform interface {
 	// There should be exactly one representation of the platform ID possible.
 	GetPlatformID() string
 	// GetBasePlatformID returns the base platform identifier w/o arch specifics.
-	// Values: PlatformID_NATIVE and PlatformID_JS
+	// Values: PlatformID_DESKTOP and PlatformID_JS
 	GetBasePlatformID() string
 	// GetExecutableExt returns the extension used for executables. May be empty.
 	GetExecutableExt() string
@@ -27,7 +27,7 @@ type Platform interface {
 func ParsePlatform(id string) (Platform, error) {
 	firstCmp, _, _ := strings.Cut(id, "/")
 	switch firstCmp {
-	case PlatformID_NATIVE:
+	case PlatformID_DESKTOP:
 		return ParseNativePlatform(id)
 	case PlatformID_JS:
 		return ParseJsPlatform(id)
@@ -37,7 +37,7 @@ func ParsePlatform(id string) (Platform, error) {
 }
 
 // IsWebPlatform returns true if the platform targets a web browser environment.
-// This includes native/js/wasm (WebAssembly in browser) and js (pure JavaScript).
+// This includes desktop/js/wasm (WebAssembly in browser) and js (pure JavaScript).
 func IsWebPlatform(p Platform) bool {
 	if p == nil {
 		return false

@@ -127,7 +127,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 	manifestID, binaryPath string,
 	args []string,
 ) error {
-	np, err := bldr_platform.ParseNativePlatform("native")
+	np, err := bldr_platform.ParseNativePlatform("desktop")
 	if err != nil {
 		return err
 	}

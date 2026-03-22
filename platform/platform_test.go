@@ -7,7 +7,7 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err := ParsePlatform("native/windows/armv6")
+	p, err := ParsePlatform("desktop/windows/armv6")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -30,7 +30,7 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("native/js/wasm")
+	p, err = ParsePlatform("desktop/js/wasm")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -39,7 +39,7 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("native/wasi/wasm")
+	p, err = ParsePlatform("desktop/wasi/wasm")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

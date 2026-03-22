@@ -10,10 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// PlatformID_NATIVE builds Go binaries in the native executable format.
-// Builds a native binary with embedded assets (i.e. a .exe).
+// PlatformID_DESKTOP builds Go binaries for desktop platforms.
+// Builds a desktop binary with embedded assets (i.e. a .exe).
 // Uses the NativePlatform base type to parse the platform ID.
-const PlatformID_NATIVE = "native"
+const PlatformID_DESKTOP = "desktop"
 
 // NativePlatform is a base type for any go compiler based platform ID.
 type NativePlatform struct {
@@ -42,8 +42,8 @@ func ToNativePlatform(p Platform) *NativePlatform {
 // ParseNativePlatform parses a Go compiler based platform ID.
 func ParseNativePlatform(str string) (*NativePlatform, error) {
 	components := strings.Split(str, "/")
-	if len(components) == 0 || components[0] != PlatformID_NATIVE {
-		return nil, errors.Errorf("not a native platform id: %s", str)
+	if len(components) == 0 || components[0] != PlatformID_DESKTOP {
+		return nil, errors.Errorf("not a desktop platform id: %s", str)
 	}
 	goOsArches := gotargets.GetOsArchValues()
 	pt := &NativePlatform{InputPlatformID: str}
@@ -164,7 +164,7 @@ func (n *NativePlatform) GetInputPlatformID() string {
 func (n *NativePlatform) GetPlatformID() string {
 	// build the platform ID
 	idParts := []string{
-		PlatformID_NATIVE,
+		PlatformID_DESKTOP,
 		n.GetGOOS(),
 	}
 	goArch := n.GetGOARCH()
@@ -182,9 +182,9 @@ func (n *NativePlatform) GetPlatformID() string {
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_NATIVE and PlatformID_JS
+// Values: PlatformID_DESKTOP and PlatformID_JS
 func (n *NativePlatform) GetBasePlatformID() string {
-	return PlatformID_NATIVE
+	return PlatformID_DESKTOP
 }
 
 // GetExecutableExt returns the extension used for executables.

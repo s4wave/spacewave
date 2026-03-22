@@ -27,7 +27,7 @@ func ExecBuildEntrypoint(
 	ldFlags []string,
 ) error {
 	isRelease := buildType.IsRelease()
-	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_NATIVE
+	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_DESKTOP
 	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".wasm"
 
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)

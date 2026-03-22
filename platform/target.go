@@ -50,7 +50,7 @@ const TargetID_Desktop = "desktop"
 
 // GetHostPlatformID returns the platform ID for the current host.
 func GetHostPlatformID() string {
-	return fmt.Sprintf("native/%s/%s", runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("desktop/%s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
 // BuiltinTargets contains the predefined targets.
@@ -58,7 +58,7 @@ func GetHostPlatformID() string {
 var BuiltinTargets = map[string]*Target{
 	TargetID_Browser: {
 		ID:          TargetID_Browser,
-		PlatformIDs: []string{"native/js/wasm", PlatformID_JS},
+		PlatformIDs: []string{"desktop/js/wasm", PlatformID_JS},
 		Description: "Web browser environment (WebAssembly + JavaScript)",
 	},
 }
@@ -104,7 +104,7 @@ func ParseTarget(id string) (*Target, error) {
 		}
 
 		// Parse as specific OS/arch
-		platformID := "native/" + suffix
+		platformID := "desktop/" + suffix
 		if _, err := ParsePlatform(platformID); err != nil {
 			return nil, errors.Wrapf(err, "invalid target platform: %s", suffix)
 		}
@@ -121,18 +121,18 @@ func ParseTarget(id string) (*Target, error) {
 // GetAllNativePlatformIDs returns platform IDs for all common native targets.
 func GetAllNativePlatformIDs() []string {
 	return []string{
-		"native/darwin/amd64",
-		"native/darwin/arm64",
-		"native/linux/amd64",
-		"native/linux/arm64",
-		"native/windows/amd64",
-		"native/windows/arm64",
+		"desktop/darwin/amd64",
+		"desktop/darwin/arm64",
+		"desktop/linux/amd64",
+		"desktop/linux/arm64",
+		"desktop/windows/amd64",
+		"desktop/windows/arm64",
 		PlatformID_JS,
 	}
 }
 
 // SelectPlatformForCompiler selects the best platform from the target for a compiler.
-// supportedBasePlatforms is the list of base platform IDs the compiler supports (e.g., ["native"] or ["js"]).
+// supportedBasePlatforms is the list of base platform IDs the compiler supports (e.g., ["desktop"] or ["js"]).
 // Returns the first platform ID from the target that matches a supported base platform.
 // Returns empty string if no match found.
 func (t *Target) SelectPlatformForCompiler(supportedBasePlatforms []string) string {

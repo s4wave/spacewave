@@ -44,7 +44,7 @@ func TestGetSaucerBinName(t *testing.T) {
 	})
 
 	t.Run("darwin platform", func(t *testing.T) {
-		plat, err := bldr_platform.ParseNativePlatform("native/darwin/arm64")
+		plat, err := bldr_platform.ParseNativePlatform("desktop/darwin/arm64")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +55,7 @@ func TestGetSaucerBinName(t *testing.T) {
 	})
 
 	t.Run("linux platform", func(t *testing.T) {
-		plat, err := bldr_platform.ParseNativePlatform("native/linux/amd64")
+		plat, err := bldr_platform.ParseNativePlatform("desktop/linux/amd64")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestGetSaucerBinName(t *testing.T) {
 	})
 
 	t.Run("windows platform", func(t *testing.T) {
-		plat, err := bldr_platform.ParseNativePlatform("native/windows/amd64")
+		plat, err := bldr_platform.ParseNativePlatform("desktop/windows/amd64")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,11 +168,11 @@ func TestGetSaucerPlatformPkgName(t *testing.T) {
 		platform string
 		expected string
 	}{
-		{"native/darwin/arm64", "bldr-saucer-darwin-arm64"},
-		{"native/darwin/amd64", "bldr-saucer-darwin-x64"},
-		{"native/linux/amd64", "bldr-saucer-linux-x64"},
-		{"native/linux/arm64", "bldr-saucer-linux-arm64"},
-		{"native/windows/amd64", "bldr-saucer-win32-x64"},
+		{"desktop/darwin/arm64", "bldr-saucer-darwin-arm64"},
+		{"desktop/darwin/amd64", "bldr-saucer-darwin-x64"},
+		{"desktop/linux/amd64", "bldr-saucer-linux-x64"},
+		{"desktop/linux/arm64", "bldr-saucer-linux-arm64"},
+		{"desktop/windows/amd64", "bldr-saucer-win32-x64"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.platform, func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestGetSaucerPlatformPkgName(t *testing.T) {
 func TestFindSaucerBinary(t *testing.T) {
 	// Create a fake npm directory structure.
 	tmpDir := t.TempDir()
-	plat, err := bldr_platform.ParseNativePlatform("native/darwin/arm64")
+	plat, err := bldr_platform.ParseNativePlatform("desktop/darwin/arm64")
 	if err != nil {
 		t.Fatal(err)
 	}

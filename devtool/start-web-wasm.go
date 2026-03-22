@@ -136,7 +136,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm
-	buildPlatform, err := bldr_platform.ParseNativePlatform("native/js/wasm")
+	buildPlatform, err := bldr_platform.ParseNativePlatform("desktop/js/wasm")
 	if err != nil {
 		return err
 	}

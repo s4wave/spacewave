@@ -329,8 +329,8 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 			},
 		},
 		{
-			Name:  "native",
-			Usage: "Start the application as a native app.",
+			Name:  "desktop",
+			Usage: "Start the application as a desktop app.",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "web-renderer",

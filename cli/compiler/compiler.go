@@ -226,7 +226,7 @@ func (c *Controller) BuildManifest(
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_NATIVE}
+	return []string{bldr_platform.PlatformID_DESKTOP}
 }
 
 // _ is a type assertion

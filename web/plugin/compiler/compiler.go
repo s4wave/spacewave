@@ -143,7 +143,7 @@ func (c *Controller) BundleElectronHook(
 	}
 
 	// If this is not the native platform, do not bundle electron.
-	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_NATIVE {
+	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP {
 		return nil, nil
 	}
 
@@ -283,7 +283,7 @@ func (c *Controller) BundleSaucerHook(
 	}
 
 	// If this is not the native platform, do not bundle saucer.
-	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_NATIVE {
+	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP {
 		return nil, nil
 	}
 
@@ -469,7 +469,7 @@ func (c *Controller) buildBrowserShimManifest(
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_NATIVE}
+	return []string{bldr_platform.PlatformID_DESKTOP}
 }
 
 // _ is a type assertion

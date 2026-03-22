@@ -21,7 +21,7 @@ func (c *Controller) BuildManifests(
 	manifestIDs []string,
 	buildType bldr_manifest.BuildType,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
-	np, err := bldr_platform.ParseNativePlatform("native")
+	np, err := bldr_platform.ParseNativePlatform("desktop")
 	if err != nil {
 		return nil, nil, err
 	}

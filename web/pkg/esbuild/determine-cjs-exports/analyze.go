@@ -54,7 +54,7 @@ var reservedWords = map[string]bool{
 	"interface":    true,
 	"let":          true,
 	"long":         true,
-	"native":       true,
+	"desktop":      true,
 	"new":          true,
 	"null":         true,
 	"package":      true,
