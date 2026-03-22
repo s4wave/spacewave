@@ -121,7 +121,7 @@ export interface ManifestBuilderConfig {
   /**
    * TargetPlatformIds contains all platform IDs from the build target.
    * Used by the dist compiler to collect manifests from all compatible platforms.
-   * For example, a browser target may include ["native/js/wasm", "js"].
+   * For example, a browser target may include ["desktop/js/wasm", "js"].
    *
    * @generated from field: repeated string target_platform_ids = 5;
    */

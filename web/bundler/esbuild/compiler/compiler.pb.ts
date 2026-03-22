@@ -155,6 +155,15 @@ export interface Config {
    * @generated from field: map<string, bldr.web.bundler.esbuild.compiler.Config> build_types = 4;
    */
   buildTypes?: { [key: string]: Config }
+  /**
+   * PlatformTypes contains a mapping of platform ID to Config override.
+   * Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+   * Both base platform IDs and full platform IDs are checked: a build for
+   * "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+   *
+   * @generated from field: map<string, bldr.web.bundler.esbuild.compiler.Config> platform_types = 5;
+   */
+  platformTypes?: { [key: string]: Config }
 }
 
 // Config contains the message type declaration for Config.
@@ -185,6 +194,13 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 4,
       name: 'build_types',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => Config },
+    },
+    {
+      no: 5,
+      name: 'platform_types',
       kind: 'map',
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => Config },

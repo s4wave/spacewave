@@ -43,7 +43,7 @@ type BuilderConfig struct {
 	ProjectId string `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// TargetPlatformIds contains all platform IDs from the build target.
 	// Used by the dist compiler to collect manifests from all compatible platforms.
-	// For example, a browser target may include ["native/js/wasm", "js"].
+	// For example, a browser target may include ["desktop/js/wasm", "js"].
 	// If empty, falls back to using only the platform_id from ManifestMeta.
 	TargetPlatformIds []string `protobuf:"bytes,10,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 }
@@ -277,7 +277,6 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 		return (*BuilderConfig)(nil)
 	}
 	r := new(BuilderConfig)
-	r.ManifestMeta = m.ManifestMeta.CloneVT()
 	r.SourcePath = m.SourcePath
 	r.DistSourcePath = m.DistSourcePath
 	r.WorkingPath = m.WorkingPath
@@ -285,6 +284,9 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 	r.ObjectKey = m.ObjectKey
 	r.PeerId = m.PeerId
 	r.ProjectId = m.ProjectId
+	if rhs := m.ManifestMeta; rhs != nil {
+		r.ManifestMeta = rhs.CloneVT()
+	}
 	if rhs := m.LinkObjectKeys; rhs != nil {
 		r.LinkObjectKeys = slices.Clone(rhs)
 	}
@@ -306,9 +308,13 @@ func (m *BuilderResult) CloneVT() *BuilderResult {
 		return (*BuilderResult)(nil)
 	}
 	r := new(BuilderResult)
-	r.Manifest = m.Manifest.CloneVT()
-	r.ManifestRef = m.ManifestRef.CloneVT()
 	r.InputManifest = m.InputManifest.CloneVT()
+	if rhs := m.Manifest; rhs != nil {
+		r.Manifest = rhs.CloneVT()
+	}
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

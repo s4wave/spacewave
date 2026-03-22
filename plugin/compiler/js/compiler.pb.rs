@@ -104,6 +104,12 @@ pub struct Config {
     /// BuildTypes contains a mapping of BuildType to Config override.
     #[prost(map="string, message", tag="14")]
     pub build_types: ::std::collections::HashMap<::prost::alloc::string::String, Config>,
+    /// PlatformTypes contains a mapping of platform ID to Config override.
+    /// Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+    /// Both base platform IDs and full platform IDs are checked: a build for
+    /// "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+    #[prost(map="string, message", tag="15")]
+    pub platform_types: ::std::collections::HashMap<::prost::alloc::string::String, Config>,
 }
 /// PreBuildHookResult is the output of a pre-build hook.
 #[derive(Clone, PartialEq, ::prost::Message)]

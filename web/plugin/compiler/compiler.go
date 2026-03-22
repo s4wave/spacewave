@@ -202,6 +202,19 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
+	// Apply dev-mode branding to the extracted Electron binary.
+	electronBinName := entrypoint_electron_bundle.GetElectronBinName(buildPlatform)
+	if nativeApp := c.GetConfig().GetNativeApp(); nativeApp != nil && nativeApp.GetAppName() != "" {
+		brandedName, err := entrypoint_electron_bundle.ApplyDevBranding(
+			ctx, le, electronDistPath, stateDir,
+			buildPlatform, nativeApp.GetAppName(),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "apply dev branding")
+		}
+		electronBinName = brandedName
+	}
+
 	// create a dir for building the web entrypoint
 	workingEntrypointDir := filepath.Join(workingDir, "web-entry")
 	if err := fsutil.CleanCreateDir(workingEntrypointDir); err != nil {
@@ -238,7 +251,7 @@ func (c *Controller) BundleElectronHook(
 	webRuntimeId := random_id.RandomIdentifier(0)
 	electronConf := &electron.Config{
 		WebRuntimeId:  webRuntimeId,
-		ElectronPath:  filepath.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
+		ElectronPath:  filepath.Join("electron", electronBinName),
 		RendererPath:  "app.asar/index.mjs",
 		ElectronFlags: extraElectronFlags,
 	}

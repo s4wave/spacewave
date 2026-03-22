@@ -22,13 +22,13 @@ type Config struct {
 	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// DelveAddr is the address to listen for Delve remote connections.
 	// If the build mode is dev and this is set, uses delve to run the plugin.
-	// Ignored if build mode is not dev or build platform is not "native".
+	// Ignored if build mode is not dev or build platform is not "desktop".
 	// Special value: "wait" - waits for plugin entrypoint to be run manually.
 	DelveAddr string `protobuf:"bytes,2,opt,name=delve_addr,json=delveAddr,proto3" json:"delveAddr,omitempty"`
 	// ElectronPkg is the name and version of the npm package to use for electron.
 	// If unset, defaults to the version in package.json.
 	// If not found, defaults to electron@latest.
-	// Ignored if build platform is not "native".
+	// Ignored if build platform is not "desktop".
 	ElectronPkg string `protobuf:"bytes,3,opt,name=electron_pkg,json=electronPkg,proto3" json:"electronPkg,omitempty"`
 	// NativeApp configures branding for native app renderers.
 	NativeApp *NativeAppConfig `protobuf:"bytes,4,opt,name=native_app,json=nativeApp,proto3" json:"nativeApp,omitempty"`

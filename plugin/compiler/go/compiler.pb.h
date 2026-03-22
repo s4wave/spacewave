@@ -92,6 +92,10 @@ class Config_HostConfigSetEntry_DoNotUse;
 struct Config_HostConfigSetEntry_DoNotUseDefaultTypeInternal;
 extern Config_HostConfigSetEntry_DoNotUseDefaultTypeInternal _Config_HostConfigSetEntry_DoNotUse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Config_HostConfigSetEntry_DoNotUse_class_data_;
+class Config_PlatformTypesEntry_DoNotUse;
+struct Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal;
+extern Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal _Config_PlatformTypesEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_;
 class EsbuildBundleVarMeta;
 struct EsbuildBundleVarMetaDefaultTypeInternal;
 extern EsbuildBundleVarMetaDefaultTypeInternal _EsbuildBundleVarMeta_default_instance_;
@@ -312,7 +316,7 @@ class ViteEntrypointVar final : public ::google::protobuf::Message
     return *reinterpret_cast<const ViteEntrypointVar*>(
         &_ViteEntrypointVar_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(ViteEntrypointVar& a, ViteEntrypointVar& b) { a.Swap(&b); }
   inline void Swap(ViteEntrypointVar* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -606,7 +610,7 @@ class InputFileMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputFileMeta*>(
         &_InputFileMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(InputFileMeta& a, InputFileMeta& b) { a.Swap(&b); }
   inline void Swap(InputFileMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -796,7 +800,7 @@ class EsbuildEntrypointVar final : public ::google::protobuf::Message
     return *reinterpret_cast<const EsbuildEntrypointVar*>(
         &_EsbuildEntrypointVar_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(EsbuildEntrypointVar& a, EsbuildEntrypointVar& b) { a.Swap(&b); }
   inline void Swap(EsbuildEntrypointVar* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1061,7 +1065,7 @@ class ViteBundleVarMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const ViteBundleVarMeta*>(
         &_ViteBundleVarMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(ViteBundleVarMeta& a, ViteBundleVarMeta& b) { a.Swap(&b); }
   inline void Swap(ViteBundleVarMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1275,7 +1279,7 @@ class EsbuildBundleVarMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const EsbuildBundleVarMeta*>(
         &_EsbuildBundleVarMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(EsbuildBundleVarMeta& a, EsbuildBundleVarMeta& b) { a.Swap(&b); }
   inline void Swap(EsbuildBundleVarMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1567,7 +1571,7 @@ class Config final : public ::google::protobuf::Message
     return *reinterpret_cast<const Config*>(
         &_Config_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(Config& a, Config& b) { a.Swap(&b); }
   inline void Swap(Config* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1669,6 +1673,7 @@ class Config final : public ::google::protobuf::Message
     kConfigSetFieldNumber = 2,
     kHostConfigSetFieldNumber = 3,
     kBuildTypesFieldNumber = 14,
+    kPlatformTypesFieldNumber = 17,
   };
   // repeated string go_pkgs = 4;
   int go_pkgs_size() const;
@@ -1893,12 +1898,27 @@ class Config final : public ::google::protobuf::Message
   ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL _internal_mutable_build_types();
 
   public:
+  // map<string, .bldr.plugin.compiler.go.Config> platform_types = 17;
+  int platform_types_size() const;
+  private:
+  int _internal_platform_types_size() const;
+
+  public:
+  void clear_platform_types() ;
+  const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& platform_types() const;
+  ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL mutable_platform_types();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& _internal_platform_types() const;
+  ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL _internal_mutable_platform_types();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.compiler.go.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 15,
-                                   7, 153,
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   9, 175,
                                    2>
       _table_;
 
@@ -1943,6 +1963,10 @@ class Config final : public ::google::protobuf::Message
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
         build_types_;
+    ::google::protobuf::internal::MapField<Config_PlatformTypesEntry_DoNotUse, ::std::string, ::bldr::plugin::compiler::go::Config,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
+        platform_types_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1989,6 +2013,45 @@ class Config_BuildTypesEntry_DoNotUse final
   static constexpr auto InternalNewImpl_();
 };
 extern const ::google::protobuf::internal::ClassDataFull Config_BuildTypesEntry_DoNotUse_class_data_;
+// -------------------------------------------------------------------
+
+class Config_PlatformTypesEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
+  Config_PlatformTypesEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_Config_PlatformTypesEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 61,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
 class PreBuildHookResult final : public ::google::protobuf::Message
@@ -2046,7 +2109,7 @@ class PreBuildHookResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const PreBuildHookResult*>(
         &_PreBuildHookResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(PreBuildHookResult& a, PreBuildHookResult& b) { a.Swap(&b); }
   inline void Swap(PreBuildHookResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2241,7 +2304,7 @@ class InputManifestMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifestMeta*>(
         &_InputManifestMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(InputManifestMeta& a, InputManifestMeta& b) { a.Swap(&b); }
   inline void Swap(InputManifestMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2566,6 +2629,8 @@ extern const ::google::protobuf::internal::ClassDataFull InputManifestMeta_class
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -3244,6 +3309,38 @@ inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Conf
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.build_types)
   return _internal_mutable_build_types();
+}
+
+// map<string, .bldr.plugin.compiler.go.Config> platform_types = 17;
+inline int Config::_internal_platform_types_size() const {
+  return _internal_platform_types().size();
+}
+inline int Config::platform_types_size() const {
+  return _internal_platform_types_size();
+}
+inline void Config::clear_platform_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_types_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& Config::_internal_platform_types() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.platform_types_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& Config::platform_types() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:bldr.plugin.compiler.go.Config.platform_types)
+  return _internal_platform_types();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL Config::_internal_mutable_platform_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.platform_types_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL Config::mutable_platform_types()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.platform_types)
+  return _internal_mutable_platform_types();
 }
 
 // -------------------------------------------------------------------

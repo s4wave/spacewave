@@ -206,6 +206,9 @@ func (c *Controller) BuildManifest(
 		// apply the per-build-type configs
 		buildCtrlConf.FlattenBuildTypes(buildType)
 
+		// apply the per-platform-type configs
+		buildCtrlConf.FlattenPlatformTypes(buildPlatform)
+
 		// call any pre-build hooks
 		for _, hook := range c.preBuildHooks {
 			res, err := hook(ctx, builderConf, busEngine)

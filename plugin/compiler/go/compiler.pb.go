@@ -226,6 +226,11 @@ type Config struct {
 	WebPluginId string `protobuf:"bytes,13,opt,name=web_plugin_id,json=webPluginId,proto3" json:"webPluginId,omitempty"`
 	// BuildTypes contains a mapping of BuildType to Config override.
 	BuildTypes map[string]*Config `protobuf:"bytes,14,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// PlatformTypes contains a mapping of platform ID to Config override.
+	// Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+	// Both base platform IDs and full platform IDs are checked: a build for
+	// "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+	PlatformTypes map[string]*Config `protobuf:"bytes,17,rep,name=platform_types,json=platformTypes,proto3" json:"platformTypes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *Config) Reset() {
@@ -335,6 +340,13 @@ func (x *Config) GetWebPluginId() string {
 func (x *Config) GetBuildTypes() map[string]*Config {
 	if x != nil {
 		return x.BuildTypes
+	}
+	return nil
+}
+
+func (x *Config) GetPlatformTypes() map[string]*Config {
+	if x != nil {
+		return x.PlatformTypes
 	}
 	return nil
 }
@@ -749,6 +761,32 @@ func (x *Config_BuildTypesEntry) GetValue() *Config {
 	return nil
 }
 
+type Config_PlatformTypesEntry struct {
+	unknownFields []byte
+	Key           string  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *Config `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *Config_PlatformTypesEntry) Reset() {
+	*x = Config_PlatformTypesEntry{}
+}
+
+func (*Config_PlatformTypesEntry) ProtoMessage() {}
+
+func (x *Config_PlatformTypesEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Config_PlatformTypesEntry) GetValue() *Config {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -793,6 +831,12 @@ func (m *Config) CloneVT() *Config {
 		r.BuildTypes = make(map[string]*Config, len(rhs))
 		for k, v := range rhs {
 			r.BuildTypes[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.PlatformTypes; rhs != nil {
+		r.PlatformTypes = make(map[string]*Config, len(rhs))
+		for k, v := range rhs {
+			r.PlatformTypes[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -842,8 +886,10 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
-	r.DevInfo = m.DevInfo.CloneVT()
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
+	if rhs := m.DevInfo; rhs != nil {
+		r.DevInfo = rhs.CloneVT()
+	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		r.WebPkgRefs = make([]*pkg.WebPkgRef, len(rhs))
 		for k, v := range rhs {
@@ -1119,6 +1165,26 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.ViteDisableProjectConfig != that.ViteDisableProjectConfig {
 		return false
+	}
+	if len(this.PlatformTypes) != len(that.PlatformTypes) {
+		return false
+	}
+	for i, vx := range this.PlatformTypes {
+		vy, ok := that.PlatformTypes[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &Config{}
+			}
+			if q == nil {
+				q = &Config{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1752,6 +1818,60 @@ func (x *Config_BuildTypesEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Config_PlatformTypesEntry message to JSON.
+func (x *Config_PlatformTypesEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Config_PlatformTypesEntry to JSON.
+func (x *Config_PlatformTypesEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Config_PlatformTypesEntry message from JSON.
+func (x *Config_PlatformTypesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &Config{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Config_PlatformTypesEntry from JSON.
+func (x *Config_PlatformTypesEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Config message to JSON.
 func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1861,6 +1981,18 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("viteDisableProjectConfig")
 		s.WriteBool(x.ViteDisableProjectConfig)
+	}
+	if x.PlatformTypes != nil || s.HasField("platformTypes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformTypes")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.PlatformTypes {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("platformTypes"))
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -1978,6 +2110,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "vite_disable_project_config", "viteDisableProjectConfig":
 			s.AddField("vite_disable_project_config")
 			x.ViteDisableProjectConfig = s.ReadBool()
+		case "platform_types", "platformTypes":
+			s.AddField("platform_types")
+			if s.ReadNil() {
+				x.PlatformTypes = nil
+				return
+			}
+			x.PlatformTypes = make(map[string]*Config)
+			s.ReadStringMap(func(key string) {
+				var v Config
+				v.UnmarshalProtoJSON(s)
+				x.PlatformTypes[key] = &v
+			})
 		}
 	})
 }
@@ -2670,6 +2814,30 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PlatformTypes) > 0 {
+		for k := range m.PlatformTypes {
+			v := m.PlatformTypes[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x8a
+		}
 	}
 	if m.ViteDisableProjectConfig {
 		i--
@@ -3414,6 +3582,19 @@ func (m *Config) SizeVT() (n int) {
 	if m.ViteDisableProjectConfig {
 		n += 3
 	}
+	if len(m.PlatformTypes) > 0 {
+		for k, v := range m.PlatformTypes {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 2 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3706,6 +3887,31 @@ func (x *Config_BuildTypesEntry) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *Config_PlatformTypesEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PlatformTypesEntry {")
+	if x.Key != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(x.Value.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *Config_PlatformTypesEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -3864,6 +4070,20 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("vite_disable_project_config: ")
 		sb.WriteString(strconv.FormatBool(x.ViteDisableProjectConfig))
+	}
+	if len(x.PlatformTypes) > 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_types: {")
+		for _, k := range slices.Sorted(maps.Keys(x.PlatformTypes)) {
+			v := x.PlatformTypes[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4738,6 +4958,99 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ViteDisableProjectConfig = bool(v != 0)
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformTypes", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PlatformTypes == nil {
+				m.PlatformTypes = make(map[string]*Config)
+			}
+			var mapkey string
+			var mapvalue *Config
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					mapmsglen = int(_v)
+					if err != nil {
+						return err
+					}
+					if mapmsglen < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &Config{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.PlatformTypes[mapkey] = mapvalue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

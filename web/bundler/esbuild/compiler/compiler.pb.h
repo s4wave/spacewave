@@ -77,6 +77,10 @@ class Config_BuildTypesEntry_DoNotUse;
 struct Config_BuildTypesEntry_DoNotUseDefaultTypeInternal;
 extern Config_BuildTypesEntry_DoNotUseDefaultTypeInternal _Config_BuildTypesEntry_DoNotUse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Config_BuildTypesEntry_DoNotUse_class_data_;
+class Config_PlatformTypesEntry_DoNotUse;
+struct Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal;
+extern Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal _Config_PlatformTypesEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_;
 class EsbuildBundleMeta;
 struct EsbuildBundleMetaDefaultTypeInternal;
 extern EsbuildBundleMetaDefaultTypeInternal _EsbuildBundleMeta_default_instance_;
@@ -209,7 +213,7 @@ class InputFileMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputFileMeta*>(
         &_InputFileMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(InputFileMeta& a, InputFileMeta& b) { a.Swap(&b); }
   inline void Swap(InputFileMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -399,7 +403,7 @@ class EsbuildBundleMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const EsbuildBundleMeta*>(
         &_EsbuildBundleMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(EsbuildBundleMeta& a, EsbuildBundleMeta& b) { a.Swap(&b); }
   inline void Swap(EsbuildBundleMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -654,7 +658,7 @@ class InputManifestMeta final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifestMeta*>(
         &_InputManifestMeta_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(InputManifestMeta& a, InputManifestMeta& b) { a.Swap(&b); }
   inline void Swap(InputManifestMeta* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -932,7 +936,7 @@ class Config final : public ::google::protobuf::Message
     return *reinterpret_cast<const Config*>(
         &_Config_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(Config& a, Config& b) { a.Swap(&b); }
   inline void Swap(Config* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1023,6 +1027,7 @@ class Config final : public ::google::protobuf::Message
     kWebPkgsFieldNumber = 2,
     kEsbuildFlagsFieldNumber = 3,
     kBuildTypesFieldNumber = 4,
+    kPlatformTypesFieldNumber = 5,
   };
   // repeated .bldr.web.bundler.esbuild.compiler.EsbuildBundleMeta bundles = 1;
   int bundles_size() const;
@@ -1095,12 +1100,27 @@ class Config final : public ::google::protobuf::Message
   ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>* PROTOBUF_NONNULL _internal_mutable_build_types();
 
   public:
+  // map<string, .bldr.web.bundler.esbuild.compiler.Config> platform_types = 5;
+  int platform_types_size() const;
+  private:
+  int _internal_platform_types_size() const;
+
+  public:
+  void clear_platform_types() ;
+  const ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>& platform_types() const;
+  ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>* PROTOBUF_NONNULL mutable_platform_types();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>& _internal_platform_types() const;
+  ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>* PROTOBUF_NONNULL _internal_mutable_platform_types();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.bundler.esbuild.compiler.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   4, 73,
+  static const ::google::protobuf::internal::TcParseTable<2, 5,
+                                   6, 87,
                                    2>
       _table_;
 
@@ -1128,6 +1148,10 @@ class Config final : public ::google::protobuf::Message
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
         build_types_;
+    ::google::protobuf::internal::MapField<Config_PlatformTypesEntry_DoNotUse, ::std::string, ::bldr::web::bundler::esbuild::compiler::Config,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
+        platform_types_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1174,6 +1198,45 @@ class Config_BuildTypesEntry_DoNotUse final
   static constexpr auto InternalNewImpl_();
 };
 extern const ::google::protobuf::internal::ClassDataFull Config_BuildTypesEntry_DoNotUse_class_data_;
+// -------------------------------------------------------------------
+
+class Config_PlatformTypesEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
+  Config_PlatformTypesEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_Config_PlatformTypesEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fcompiler_2fcompiler_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 71,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
 class PreBuildHookResult final : public ::google::protobuf::Message
@@ -1231,7 +1294,7 @@ class PreBuildHookResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const PreBuildHookResult*>(
         &_PreBuildHookResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(PreBuildHookResult& a, PreBuildHookResult& b) { a.Swap(&b); }
   inline void Swap(PreBuildHookResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1382,6 +1445,8 @@ extern const ::google::protobuf::internal::ClassDataFull PreBuildHookResult_clas
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -1596,6 +1661,38 @@ inline ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::com
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_mutable_map:bldr.web.bundler.esbuild.compiler.Config.build_types)
   return _internal_mutable_build_types();
+}
+
+// map<string, .bldr.web.bundler.esbuild.compiler.Config> platform_types = 5;
+inline int Config::_internal_platform_types_size() const {
+  return _internal_platform_types().size();
+}
+inline int Config::platform_types_size() const {
+  return _internal_platform_types_size();
+}
+inline void Config::clear_platform_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_types_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>& Config::_internal_platform_types() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.platform_types_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>& Config::platform_types() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:bldr.web.bundler.esbuild.compiler.Config.platform_types)
+  return _internal_platform_types();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>* PROTOBUF_NONNULL Config::_internal_mutable_platform_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.platform_types_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::web::bundler::esbuild::compiler::Config>* PROTOBUF_NONNULL Config::mutable_platform_types()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_mutable_map:bldr.web.bundler.esbuild.compiler.Config.platform_types)
+  return _internal_mutable_platform_types();
 }
 
 // -------------------------------------------------------------------

@@ -6,6 +6,7 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/bldr/util/merge"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
@@ -88,6 +89,14 @@ func (c *Config) Validate() error {
 		}
 		if err := buildTypeConf.Validate(); err != nil {
 			return errors.Wrapf(err, "build_types[%s]", buildTypeStr)
+		}
+	}
+	for platformTypeStr, platformTypeConf := range c.GetPlatformTypes() {
+		if platformTypeStr == "" {
+			return errors.New("platform_types key cannot be empty")
+		}
+		if err := platformTypeConf.Validate(); err != nil {
+			return errors.Wrapf(err, "platform_types[%s]", platformTypeStr)
 		}
 	}
 
@@ -185,6 +194,35 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 
 		// merge into base config (but skip if it's the original config to avoid self-merge)
 		if conf != c {
+			c.Merge(conf)
+		}
+	}
+}
+
+// FlattenPlatformTypes flattens the platform_types tree given the current build platform.
+//
+// Checks both the full platform ID (e.g., "desktop/darwin/arm64") and the base
+// platform ID (e.g., "desktop"). Full ID match is applied first, then base ID.
+// Clears the PlatformTypes field and applies all relevant overrides to c.
+func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
+	platformTypes := c.GetPlatformTypes()
+	c.PlatformTypes = nil
+	if len(platformTypes) == 0 {
+		return
+	}
+
+	fullID := buildPlatform.GetPlatformID()
+	baseID := buildPlatform.GetBasePlatformID()
+
+	// Apply full platform ID match first.
+	if conf, ok := platformTypes[fullID]; ok {
+		conf.PlatformTypes = nil
+		c.Merge(conf)
+	}
+	// Apply base platform ID match second (if different from full).
+	if baseID != fullID {
+		if conf, ok := platformTypes[baseID]; ok {
+			conf.PlatformTypes = nil
 			c.Merge(conf)
 		}
 	}

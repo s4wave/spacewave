@@ -659,6 +659,9 @@ func (c *Controller) performFullRebuild(
 	// Apply the per-build-type configs
 	buildCtrlConf.FlattenBuildTypes(buildType)
 
+	// Apply the per-platform-type configs
+	buildCtrlConf.FlattenPlatformTypes(bldr_platform.NewNonePlatform())
+
 	// Call any pre-build hooks
 	for _, hook := range c.preBuildHooks {
 		res, err := hook(ctx, builderConf, busEngine)

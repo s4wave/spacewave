@@ -270,6 +270,15 @@ export interface Config {
    * @generated from field: map<string, bldr.plugin.compiler.go.Config> build_types = 14;
    */
   buildTypes?: { [key: string]: Config }
+  /**
+   * PlatformTypes contains a mapping of platform ID to Config override.
+   * Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+   * Both base platform IDs and full platform IDs are checked: a build for
+   * "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+   *
+   * @generated from field: map<string, bldr.plugin.compiler.go.Config> platform_types = 17;
+   */
+  platformTypes?: { [key: string]: Config }
 }
 
 // Config contains the message type declaration for Config.
@@ -334,6 +343,13 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 14,
       name: 'build_types',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => Config },
+    },
+    {
+      no: 17,
+      name: 'platform_types',
       kind: 'map',
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => Config },

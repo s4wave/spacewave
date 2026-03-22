@@ -254,6 +254,9 @@ func (c *Controller) BuildManifest(
 		// apply the per-build-type configs
 		pluginBuildConf.FlattenBuildTypes(buildType)
 
+		// apply the per-platform-type configs
+		pluginBuildConf.FlattenPlatformTypes(buildPlatform)
+
 		// call any pre-build hooks
 		for _, hook := range c.preBuildHooks {
 			res, err := hook(ctx, builderConf, buildWorld)

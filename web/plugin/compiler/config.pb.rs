@@ -8,14 +8,14 @@ pub struct Config {
     pub project_id: ::prost::alloc::string::String,
     /// DelveAddr is the address to listen for Delve remote connections.
     /// If the build mode is dev and this is set, uses delve to run the plugin.
-    /// Ignored if build mode is not dev or build platform is not "native".
+    /// Ignored if build mode is not dev or build platform is not "desktop".
     /// Special value: "wait" - waits for plugin entrypoint to be run manually.
     #[prost(string, tag="2")]
     pub delve_addr: ::prost::alloc::string::String,
     /// ElectronPkg is the name and version of the npm package to use for electron.
     /// If unset, defaults to the version in package.json.
     /// If not found, defaults to electron@latest.
-    /// Ignored if build platform is not "native".
+    /// Ignored if build platform is not "desktop".
     #[prost(string, tag="3")]
     pub electron_pkg: ::prost::alloc::string::String,
     /// NativeApp configures branding for native app renderers.

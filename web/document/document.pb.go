@@ -22,7 +22,7 @@ type WebWorkerType int32
 
 const (
 	// WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
-	// This is used for "native/js/wasm" platform plugins (Go WASM).
+	// This is used for "desktop/js/wasm" platform plugins (Go WASM).
 	WebWorkerType_WEB_WORKER_TYPE_NATIVE WebWorkerType = 0
 	// WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
 	// This is used for "js" platform plugins. The unified shared-worker.ts dispatches

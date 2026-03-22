@@ -191,7 +191,8 @@ inline constexpr Config::Impl_::Impl_(
         vite_disable_project_config_{false},
         disable_rpc_fetch_{false},
         host_config_set_{},
-        build_types_{} {}
+        build_types_{},
+        platform_types_{} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -230,6 +231,24 @@ struct Config_BuildTypesEntry_DoNotUseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Config_BuildTypesEntry_DoNotUseDefaultTypeInternal _Config_BuildTypesEntry_DoNotUse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : Config_PlatformTypesEntry_DoNotUse::MapEntry(Config_PlatformTypesEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : Config_PlatformTypesEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    Config_PlatformTypesEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal _Config_PlatformTypesEntry_DoNotUse_default_instance_;
 
 inline constexpr PreBuildHookResult::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -281,8 +300,15 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config_PlatformTypesEntry_DoNotUse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config_PlatformTypesEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config_PlatformTypesEntry_DoNotUse, _impl_.value_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_._has_bits_),
-        16, // hasbit index offset
+        17, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.modules_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.esbuild_bundles_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.esbuild_flags_),
@@ -296,6 +322,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.disable_rpc_fetch_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.web_plugin_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.build_types_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config, _impl_.platform_types_),
         0,
         1,
         2,
@@ -309,6 +336,7 @@ const ::uint32_t
         10,
         8,
         12,
+        13,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::PreBuildHookResult, _impl_._has_bits_),
         4, // hasbit index offset
@@ -374,16 +402,18 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::plugin::compiler::js::Config_HostConfigSetEntry_DoNotUse)},
         {7, sizeof(::bldr::plugin::compiler::js::Config_BuildTypesEntry_DoNotUse)},
-        {14, sizeof(::bldr::plugin::compiler::js::Config)},
-        {43, sizeof(::bldr::plugin::compiler::js::PreBuildHookResult)},
-        {48, sizeof(::bldr::plugin::compiler::js::InputManifestMeta)},
-        {71, sizeof(::bldr::plugin::compiler::js::JsModule)},
-        {84, sizeof(::bldr::plugin::compiler::js::BackendEntrypoint)},
-        {91, sizeof(::bldr::plugin::compiler::js::FrontendEntrypoint)},
+        {14, sizeof(::bldr::plugin::compiler::js::Config_PlatformTypesEntry_DoNotUse)},
+        {21, sizeof(::bldr::plugin::compiler::js::Config)},
+        {52, sizeof(::bldr::plugin::compiler::js::PreBuildHookResult)},
+        {57, sizeof(::bldr::plugin::compiler::js::InputManifestMeta)},
+        {80, sizeof(::bldr::plugin::compiler::js::JsModule)},
+        {93, sizeof(::bldr::plugin::compiler::js::BackendEntrypoint)},
+        {100, sizeof(::bldr::plugin::compiler::js::FrontendEntrypoint)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::compiler::js::_Config_HostConfigSetEntry_DoNotUse_default_instance_._instance,
     &::bldr::plugin::compiler::js::_Config_BuildTypesEntry_DoNotUse_default_instance_._instance,
+    &::bldr::plugin::compiler::js::_Config_PlatformTypesEntry_DoNotUse_default_instance_._instance,
     &::bldr::plugin::compiler::js::_Config_default_instance_._instance,
     &::bldr::plugin::compiler::js::_PreBuildHookResult_default_instance_._instance,
     &::bldr::plugin::compiler::js::_InputManifestMeta_default_instance_._instance,
@@ -410,7 +440,7 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     "/pkg/pkg.proto\0324github.com/aperturerobot"
     "ics/bldr/web/view/view.proto\0324github.com"
     "/aperturerobotics/util/filter/filter.pro"
-    "to\"\343\006\n\006Config\0222\n\007modules\030\001 \003(\0132!.bldr.pl"
+    "to\"\206\010\n\006Config\0222\n\007modules\030\001 \003(\0132!.bldr.pl"
     "ugin.compiler.js.JsModule\022M\n\017esbuild_bun"
     "dles\030\002 \003(\01324.bldr.web.bundler.esbuild.co"
     "mpiler.EsbuildBundleMeta\022\025\n\resbuild_flag"
@@ -427,40 +457,44 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     ".HostConfigSetEntry\022\031\n\021disable_rpc_fetch"
     "\030\013 \001(\010\022\025\n\rweb_plugin_id\030\r \001(\t\022D\n\013build_t"
     "ypes\030\016 \003(\0132/.bldr.plugin.compiler.js.Con"
-    "fig.BuildTypesEntry\032W\n\022HostConfigSetEntr"
-    "y\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configse"
-    "t.proto.ControllerConfig:\0028\001\032R\n\017BuildTyp"
-    "esEntry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bl"
-    "dr.plugin.compiler.js.Config:\0028\001\"E\n\022PreB"
-    "uildHookResult\022/\n\006config\030\001 \001(\0132\037.bldr.pl"
-    "ugin.compiler.js.Config\"\203\004\n\021InputManifes"
-    "tMeta\022(\n\014web_pkg_refs\030\001 \003(\0132\022.web.pkg.We"
-    "bPkgRef\0223\n\010web_pkgs\030\002 \003(\0132!.bldr.web.bun"
-    "dler.WebPkgRefConfig\022M\n\017esbuild_bundles\030"
-    "\003 \003(\01324.bldr.web.bundler.esbuild.compile"
-    "r.EsbuildBundleMeta\022\025\n\resbuild_flags\030\004 \003"
-    "(\t\022D\n\017esbuild_outputs\030\005 \003(\0132+.bldr.web.b"
-    "undler.esbuild.EsbuildOutputMeta\022D\n\014vite"
-    "_bundles\030\006 \003(\0132..bldr.web.bundler.vite.c"
-    "ompiler.ViteBundleMeta\022\031\n\021vite_config_pa"
-    "ths\030\007 \003(\t\022;\n\014vite_outputs\030\010 \003(\0132%.bldr.w"
-    "eb.bundler.vite.ViteOutputMeta\022#\n\033vite_d"
-    "isable_project_config\030\t \001(\010\022 \n\030compiled_"
-    "entrypoint_path\030\n \001(\t\"\244\001\n\010JsModule\0223\n\004ki"
-    "nd\030\001 \001(\0162%.bldr.plugin.compiler.js.JsMod"
-    "uleKind\022\014\n\004path\030\002 \001(\t\022\031\n\021vite_config_pat"
-    "hs\030\003 \003(\t\022\036\n\026disable_project_config\030\004 \001(\010"
-    "\022\032\n\022disable_entrypoint\030\005 \001(\010\"=\n\021BackendE"
-    "ntrypoint\022\023\n\013import_path\030\001 \001(\t\022\023\n\013import"
-    "_name\030\002 \001(\t\"\341\001\n\022FrontendEntrypoint\0227\n\017se"
-    "t_render_mode\030\001 \001(\0132\036.web.view.SetRender"
-    "ModeRequest\0225\n\016set_html_links\030\002 \001(\0132\035.we"
-    "b.view.SetHtmlLinksRequest\022)\n\013web_view_i"
-    "d\030\003 \001(\0132\024.filter.StringFilter\0220\n\022web_vie"
-    "w_parent_id\030\004 \001(\0132\024.filter.StringFilter*"
-    "c\n\014JsModuleKind\022\032\n\026JS_MODULE_KIND_INVALI"
-    "D\020\000\022\032\n\026JS_MODULE_KIND_BACKEND\020\001\022\033\n\027JS_MO"
-    "DULE_KIND_FRONTEND\020\002b\006proto3"
+    "fig.BuildTypesEntry\022J\n\016platform_types\030\017 "
+    "\003(\01322.bldr.plugin.compiler.js.Config.Pla"
+    "tformTypesEntry\032W\n\022HostConfigSetEntry\022\013\n"
+    "\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset.pr"
+    "oto.ControllerConfig:\0028\001\032R\n\017BuildTypesEn"
+    "try\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bldr.p"
+    "lugin.compiler.js.Config:\0028\001\032U\n\022Platform"
+    "TypesEntry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037"
+    ".bldr.plugin.compiler.js.Config:\0028\001\"E\n\022P"
+    "reBuildHookResult\022/\n\006config\030\001 \001(\0132\037.bldr"
+    ".plugin.compiler.js.Config\"\203\004\n\021InputMani"
+    "festMeta\022(\n\014web_pkg_refs\030\001 \003(\0132\022.web.pkg"
+    ".WebPkgRef\0223\n\010web_pkgs\030\002 \003(\0132!.bldr.web."
+    "bundler.WebPkgRefConfig\022M\n\017esbuild_bundl"
+    "es\030\003 \003(\01324.bldr.web.bundler.esbuild.comp"
+    "iler.EsbuildBundleMeta\022\025\n\resbuild_flags\030"
+    "\004 \003(\t\022D\n\017esbuild_outputs\030\005 \003(\0132+.bldr.we"
+    "b.bundler.esbuild.EsbuildOutputMeta\022D\n\014v"
+    "ite_bundles\030\006 \003(\0132..bldr.web.bundler.vit"
+    "e.compiler.ViteBundleMeta\022\031\n\021vite_config"
+    "_paths\030\007 \003(\t\022;\n\014vite_outputs\030\010 \003(\0132%.bld"
+    "r.web.bundler.vite.ViteOutputMeta\022#\n\033vit"
+    "e_disable_project_config\030\t \001(\010\022 \n\030compil"
+    "ed_entrypoint_path\030\n \001(\t\"\244\001\n\010JsModule\0223\n"
+    "\004kind\030\001 \001(\0162%.bldr.plugin.compiler.js.Js"
+    "ModuleKind\022\014\n\004path\030\002 \001(\t\022\031\n\021vite_config_"
+    "paths\030\003 \003(\t\022\036\n\026disable_project_config\030\004 "
+    "\001(\010\022\032\n\022disable_entrypoint\030\005 \001(\010\"=\n\021Backe"
+    "ndEntrypoint\022\023\n\013import_path\030\001 \001(\t\022\023\n\013imp"
+    "ort_name\030\002 \001(\t\"\341\001\n\022FrontendEntrypoint\0227\n"
+    "\017set_render_mode\030\001 \001(\0132\036.web.view.SetRen"
+    "derModeRequest\0225\n\016set_html_links\030\002 \001(\0132\035"
+    ".web.view.SetHtmlLinksRequest\022)\n\013web_vie"
+    "w_id\030\003 \001(\0132\024.filter.StringFilter\0220\n\022web_"
+    "view_parent_id\030\004 \001(\0132\024.filter.StringFilt"
+    "er*c\n\014JsModuleKind\022\032\n\026JS_MODULE_KIND_INV"
+    "ALID\020\000\022\032\n\026JS_MODULE_KIND_BACKEND\020\001\022\033\n\027JS"
+    "_MODULE_KIND_FRONTEND\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps[9] = {
@@ -478,13 +512,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = {
     false,
     false,
-    2708,
+    2871,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
     "github.com/aperturerobotics/bldr/plugin/compiler/js/compiler.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps,
     9,
-    8,
+    9,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto::offsets,
@@ -701,6 +735,105 @@ Config_BuildTypesEntry_DoNotUse::_table_ = {
 };
 // ===================================================================
 
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse()
+    : SuperType(Config_PlatformTypesEntry_DoNotUse_class_data_.base()) {}
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, Config_PlatformTypesEntry_DoNotUse_class_data_.base()) {}
+#else   // PROTOBUF_CUSTOM_VTABLE
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse() : SuperType() {}
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+inline void* PROTOBUF_NONNULL Config_PlatformTypesEntry_DoNotUse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) Config_PlatformTypesEntry_DoNotUse(arena);
+}
+constexpr auto Config_PlatformTypesEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Config_PlatformTypesEntry_DoNotUse),
+                                            alignof(Config_PlatformTypesEntry_DoNotUse));
+}
+constexpr auto Config_PlatformTypesEntry_DoNotUse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_Config_PlatformTypesEntry_DoNotUse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &Config_PlatformTypesEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<Config_PlatformTypesEntry_DoNotUse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &Config_PlatformTypesEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&Config_PlatformTypesEntry_DoNotUse::ClearImpl),
+              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
+              ,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_._cached_size_),
+          false,
+      },
+      &Config_PlatformTypesEntry_DoNotUse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_ =
+        Config_PlatformTypesEntry_DoNotUse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+Config_PlatformTypesEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&Config_PlatformTypesEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(Config_PlatformTypesEntry_DoNotUse_class_data_.tc_table);
+  return Config_PlatformTypesEntry_DoNotUse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 61, 2>
+Config_PlatformTypesEntry_DoNotUse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    Config_PlatformTypesEntry_DoNotUse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::compiler::js::Config_PlatformTypesEntry_DoNotUse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .bldr.plugin.compiler.js.Config value = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.value_)}},
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.plugin.compiler.js.Config value = 2;
+    {PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::plugin::compiler::js::Config>()},
+  }},
+  {{
+    "\61\3\0\0\0\0\0\0"
+    "bldr.plugin.compiler.js.Config.PlatformTypesEntry"
+    "key"
+  }},
+};
+// ===================================================================
+
 class Config::_Internal {
  public:
   using HasBits =
@@ -758,7 +891,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         web_pkgs_{visibility, arena, from.web_pkgs_},
         web_plugin_id_(arena, from.web_plugin_id_),
         host_config_set_{visibility, arena, from.host_config_set_},
-        build_types_{visibility, arena, from.build_types_} {}
+        build_types_{visibility, arena, from.build_types_},
+        platform_types_{visibility, arena, from.platform_types_} {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -797,7 +931,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         web_pkgs_{visibility, arena},
         web_plugin_id_(arena),
         host_config_set_{visibility, arena},
-        build_types_{visibility, arena} {}
+        build_types_{visibility, arena},
+        platform_types_{visibility, arena} {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -870,6 +1005,10 @@ constexpr auto Config::InternalNewImpl_() {
           decltype(Config::_impl_.build_types_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_) +
+          decltype(Config::_impl_.platform_types_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
     return ::google::protobuf::internal::MessageCreator::CopyInit(
@@ -914,17 +1053,17 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 13, 10, 116, 2>
+const ::_pbi::TcParseTable<4, 14, 12, 130, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    14, 120,  // max_field_number, fast_idx_mask
+    15, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294952960,  // skipmap
+    4294936576,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    13,  // num_field_entries
-    10,  // num_aux_entries
+    14,  // num_field_entries
+    12,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1011,6 +1150,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.web_plugin_id_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // map<string, .bldr.plugin.compiler.js.Config> build_types = 14;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_types_), _Internal::kHasBitsOffset + 12, 8, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // map<string, .bldr.plugin.compiler.js.Config> platform_types = 15;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_), _Internal::kHasBitsOffset + 13, 10, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::plugin::compiler::js::JsModule>()},
@@ -1025,15 +1166,19 @@ Config::_table_ = {
       {::_pbi::TcParser::GetMapAuxInfo(
           1, 0, 9, 11, 0)},
       {::_pbi::TcParser::GetTable<::bldr::plugin::compiler::js::Config>()},
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
+      {::_pbi::TcParser::GetTable<::bldr::plugin::compiler::js::Config>()},
   }},
   {{
-    "\36\0\0\15\0\21\0\0\0\0\17\0\15\13\0\0"
+    "\36\0\0\15\0\21\0\0\0\0\17\0\15\13\16\0"
     "bldr.plugin.compiler.js.Config"
     "esbuild_flags"
     "vite_config_paths"
     "host_config_set"
     "web_plugin_id"
     "build_types"
+    "platform_types"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -1076,12 +1221,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
   ::memset(&_impl_.vite_disable_project_config_, 0, static_cast<::size_t>(
       reinterpret_cast<char*>(&_impl_.disable_rpc_fetch_) -
       reinterpret_cast<char*>(&_impl_.vite_disable_project_config_)) + sizeof(_impl_.disable_rpc_fetch_));
-  if (BatchCheckHasBit(cached_has_bits, 0x00001800U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003800U)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000800U)) {
       _impl_.host_config_set_.Clear();
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
       _impl_.build_types_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+      _impl_.platform_types_.Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1291,6 +1439,35 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // map<string, .bldr.plugin.compiler.js.Config> platform_types = 15;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+    if (!this_._internal_platform_types().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::js::Config>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::bldr::plugin::compiler::js::Config,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_platform_types();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              15, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.compiler.js.Config.platform_types");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              15, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.compiler.js.Config.platform_types");
+        }
+      }
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1378,7 +1555,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     // string web_plugin_id = 13;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!this_._internal_web_plugin_id().empty()) {
@@ -1413,6 +1590,16 @@ PROTOBUF_NOINLINE void Config::Clear() {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_build_types_size());
       for (const auto& entry : this_._internal_build_types()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::bldr::plugin::compiler::js::Config,
+                                       _pbi::WireFormatLite::TYPE_STRING,
+                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
+      }
+    }
+    // map<string, .bldr.plugin.compiler.js.Config> platform_types = 15;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_platform_types_size());
+      for (const auto& entry : this_._internal_platform_types()) {
         total_size += _pbi::MapEntryFuncs<::std::string, ::bldr::plugin::compiler::js::Config,
                                        _pbi::WireFormatLite::TYPE_STRING,
                                        _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
@@ -1480,7 +1667,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
           from._internal_web_pkgs());
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!from._internal_web_plugin_id().empty()) {
         _this->_internal_set_web_plugin_id(from._internal_web_plugin_id());
@@ -1505,6 +1692,9 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
       _this->_impl_.build_types_.MergeFrom(from._impl_.build_types_);
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+      _this->_impl_.platform_types_.MergeFrom(from._impl_.platform_types_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1543,6 +1733,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
           reinterpret_cast<char*>(&other->_impl_.vite_disable_project_config_));
   _impl_.host_config_set_.InternalSwap(&other->_impl_.host_config_set_);
   _impl_.build_types_.InternalSwap(&other->_impl_.build_types_);
+  _impl_.platform_types_.InternalSwap(&other->_impl_.platform_types_);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

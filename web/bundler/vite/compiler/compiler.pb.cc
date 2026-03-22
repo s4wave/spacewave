@@ -155,7 +155,8 @@ inline constexpr Config::Impl_::Impl_(
         web_pkgs_{},
         vite_config_paths_{},
         disable_project_config_{false},
-        build_types_{} {}
+        build_types_{},
+        platform_types_{} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -194,6 +195,24 @@ struct Config_BuildTypesEntry_DoNotUseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Config_BuildTypesEntry_DoNotUseDefaultTypeInternal _Config_BuildTypesEntry_DoNotUse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : Config_PlatformTypesEntry_DoNotUse::MapEntry(Config_PlatformTypesEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : Config_PlatformTypesEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    Config_PlatformTypesEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Config_PlatformTypesEntry_DoNotUseDefaultTypeInternal _Config_PlatformTypesEntry_DoNotUse_default_instance_;
 
 inline constexpr PreBuildHookResult::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -239,18 +258,27 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config_PlatformTypesEntry_DoNotUse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config_PlatformTypesEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config_PlatformTypesEntry_DoNotUse, _impl_.value_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_._has_bits_),
-        8, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.bundles_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.web_pkgs_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.vite_config_paths_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.disable_project_config_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.build_types_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::Config, _impl_.platform_types_),
         0,
         1,
         2,
         3,
         4,
+        5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::compiler::PreBuildHookResult, _impl_._has_bits_),
         4, // hasbit index offset
@@ -301,15 +329,17 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::web::bundler::vite::compiler::Config_BuildTypesEntry_DoNotUse)},
-        {7, sizeof(::bldr::web::bundler::vite::compiler::Config)},
-        {20, sizeof(::bldr::web::bundler::vite::compiler::PreBuildHookResult)},
-        {25, sizeof(::bldr::web::bundler::vite::compiler::InputFileMeta)},
-        {30, sizeof(::bldr::web::bundler::vite::compiler::InputManifestMeta)},
-        {45, sizeof(::bldr::web::bundler::vite::compiler::ViteBundleMeta)},
-        {60, sizeof(::bldr::web::bundler::vite::compiler::ViteBundleEntrypoint)},
+        {7, sizeof(::bldr::web::bundler::vite::compiler::Config_PlatformTypesEntry_DoNotUse)},
+        {14, sizeof(::bldr::web::bundler::vite::compiler::Config)},
+        {29, sizeof(::bldr::web::bundler::vite::compiler::PreBuildHookResult)},
+        {34, sizeof(::bldr::web::bundler::vite::compiler::InputFileMeta)},
+        {39, sizeof(::bldr::web::bundler::vite::compiler::InputManifestMeta)},
+        {54, sizeof(::bldr::web::bundler::vite::compiler::ViteBundleMeta)},
+        {69, sizeof(::bldr::web::bundler::vite::compiler::ViteBundleEntrypoint)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::bundler::vite::compiler::_Config_BuildTypesEntry_DoNotUse_default_instance_._instance,
+    &::bldr::web::bundler::vite::compiler::_Config_PlatformTypesEntry_DoNotUse_default_instance_._instance,
     &::bldr::web::bundler::vite::compiler::_Config_default_instance_._instance,
     &::bldr::web::bundler::vite::compiler::_PreBuildHookResult_default_instance_._instance,
     &::bldr::web::bundler::vite::compiler::_InputFileMeta_default_instance_._instance,
@@ -326,36 +356,40 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "r.proto\032<github.com/aperturerobotics/bld"
     "r/web/bundler/vite/vite.proto\0322github.co"
     "m/aperturerobotics/bldr/web/pkg/pkg.prot"
-    "o\"\341\002\n\006Config\022\?\n\007bundles\030\001 \003(\0132..bldr.web"
+    "o\"\222\004\n\006Config\022\?\n\007bundles\030\001 \003(\0132..bldr.web"
     ".bundler.vite.compiler.ViteBundleMeta\0223\n"
     "\010web_pkgs\030\002 \003(\0132!.bldr.web.bundler.WebPk"
     "gRefConfig\022\031\n\021vite_config_paths\030\003 \003(\t\022\036\n"
     "\026disable_project_config\030\004 \001(\010\022K\n\013build_t"
     "ypes\030\005 \003(\01326.bldr.web.bundler.vite.compi"
-    "ler.Config.BuildTypesEntry\032Y\n\017BuildTypes"
-    "Entry\022\013\n\003key\030\001 \001(\t\0225\n\005value\030\002 \001(\0132&.bldr"
-    ".web.bundler.vite.compiler.Config:\0028\001\"L\n"
-    "\022PreBuildHookResult\0226\n\006config\030\001 \001(\0132&.bl"
-    "dr.web.bundler.vite.compiler.Config\"L\n\rI"
-    "nputFileMeta\022;\n\004kind\030\001 \001(\0162-.bldr.web.bu"
-    "ndler.vite.compiler.InputFileKind\"\265\002\n\021In"
-    "putManifestMeta\022(\n\014web_pkg_refs\030\001 \003(\0132\022."
-    "web.pkg.WebPkgRef\0223\n\010web_pkgs\030\002 \003(\0132!.bl"
-    "dr.web.bundler.WebPkgRefConfig\022\031\n\021vite_c"
-    "onfig_paths\030\003 \003(\t\022#\n\033vite_disable_projec"
-    "t_config\030\004 \001(\010\022D\n\014vite_bundles\030\005 \003(\0132..b"
-    "ldr.web.bundler.vite.compiler.ViteBundle"
-    "Meta\022;\n\014vite_outputs\030\006 \003(\0132%.bldr.web.bu"
-    "ndler.vite.ViteOutputMeta\"\316\001\n\016ViteBundle"
-    "Meta\022\n\n\002id\030\001 \001(\t\022I\n\013entrypoints\030\002 \003(\01324."
-    "bldr.web.bundler.vite.compiler.ViteBundl"
-    "eEntrypoint\022\023\n\013public_path\030\003 \001(\t\022\031\n\021vite"
-    "_config_paths\030\004 \003(\t\022\036\n\026disable_project_c"
-    "onfig\030\005 \001(\010\022\025\n\rexternal_pkgs\030\006 \003(\t\"*\n\024Vi"
-    "teBundleEntrypoint\022\022\n\ninput_path\030\001 \001(\t*]"
-    "\n\rInputFileKind\022\031\n\025InputFileKind_UNKNOWN"
-    "\020\000\022\026\n\022InputFileKind_VITE\020\001\022\031\n\025InputFileK"
-    "ind_WEB_PKG\020\002b\006proto3"
+    "ler.Config.BuildTypesEntry\022Q\n\016platform_t"
+    "ypes\030\006 \003(\01329.bldr.web.bundler.vite.compi"
+    "ler.Config.PlatformTypesEntry\032Y\n\017BuildTy"
+    "pesEntry\022\013\n\003key\030\001 \001(\t\0225\n\005value\030\002 \001(\0132&.b"
+    "ldr.web.bundler.vite.compiler.Config:\0028\001"
+    "\032\\\n\022PlatformTypesEntry\022\013\n\003key\030\001 \001(\t\0225\n\005v"
+    "alue\030\002 \001(\0132&.bldr.web.bundler.vite.compi"
+    "ler.Config:\0028\001\"L\n\022PreBuildHookResult\0226\n\006"
+    "config\030\001 \001(\0132&.bldr.web.bundler.vite.com"
+    "piler.Config\"L\n\rInputFileMeta\022;\n\004kind\030\001 "
+    "\001(\0162-.bldr.web.bundler.vite.compiler.Inp"
+    "utFileKind\"\265\002\n\021InputManifestMeta\022(\n\014web_"
+    "pkg_refs\030\001 \003(\0132\022.web.pkg.WebPkgRef\0223\n\010we"
+    "b_pkgs\030\002 \003(\0132!.bldr.web.bundler.WebPkgRe"
+    "fConfig\022\031\n\021vite_config_paths\030\003 \003(\t\022#\n\033vi"
+    "te_disable_project_config\030\004 \001(\010\022D\n\014vite_"
+    "bundles\030\005 \003(\0132..bldr.web.bundler.vite.co"
+    "mpiler.ViteBundleMeta\022;\n\014vite_outputs\030\006 "
+    "\003(\0132%.bldr.web.bundler.vite.ViteOutputMe"
+    "ta\"\316\001\n\016ViteBundleMeta\022\n\n\002id\030\001 \001(\t\022I\n\013ent"
+    "rypoints\030\002 \003(\01324.bldr.web.bundler.vite.c"
+    "ompiler.ViteBundleEntrypoint\022\023\n\013public_p"
+    "ath\030\003 \001(\t\022\031\n\021vite_config_paths\030\004 \003(\t\022\036\n\026"
+    "disable_project_config\030\005 \001(\010\022\025\n\rexternal"
+    "_pkgs\030\006 \003(\t\"*\n\024ViteBundleEntrypoint\022\022\n\ni"
+    "nput_path\030\001 \001(\t*]\n\rInputFileKind\022\031\n\025Inpu"
+    "tFileKind_UNKNOWN\020\000\022\026\n\022InputFileKind_VIT"
+    "E\020\001\022\031\n\025InputFileKind_WEB_PKG\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto_deps[3] = {
@@ -367,13 +401,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto = {
     false,
     false,
-    1461,
+    1638,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto,
     "github.com/aperturerobotics/bldr/web/bundler/vite/compiler/compiler.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto_deps,
     3,
-    7,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto::offsets,
@@ -492,6 +526,105 @@ Config_BuildTypesEntry_DoNotUse::_table_ = {
 };
 // ===================================================================
 
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse()
+    : SuperType(Config_PlatformTypesEntry_DoNotUse_class_data_.base()) {}
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, Config_PlatformTypesEntry_DoNotUse_class_data_.base()) {}
+#else   // PROTOBUF_CUSTOM_VTABLE
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse() : SuperType() {}
+Config_PlatformTypesEntry_DoNotUse::Config_PlatformTypesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+inline void* PROTOBUF_NONNULL Config_PlatformTypesEntry_DoNotUse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) Config_PlatformTypesEntry_DoNotUse(arena);
+}
+constexpr auto Config_PlatformTypesEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Config_PlatformTypesEntry_DoNotUse),
+                                            alignof(Config_PlatformTypesEntry_DoNotUse));
+}
+constexpr auto Config_PlatformTypesEntry_DoNotUse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_Config_PlatformTypesEntry_DoNotUse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &Config_PlatformTypesEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<Config_PlatformTypesEntry_DoNotUse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &Config_PlatformTypesEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&Config_PlatformTypesEntry_DoNotUse::ClearImpl),
+              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
+              ,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_._cached_size_),
+          false,
+      },
+      &Config_PlatformTypesEntry_DoNotUse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull Config_PlatformTypesEntry_DoNotUse_class_data_ =
+        Config_PlatformTypesEntry_DoNotUse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+Config_PlatformTypesEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&Config_PlatformTypesEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(Config_PlatformTypesEntry_DoNotUse_class_data_.tc_table);
+  return Config_PlatformTypesEntry_DoNotUse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 68, 2>
+Config_PlatformTypesEntry_DoNotUse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    Config_PlatformTypesEntry_DoNotUse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::compiler::Config_PlatformTypesEntry_DoNotUse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .bldr.web.bundler.vite.compiler.Config value = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.value_)}},
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.web.bundler.vite.compiler.Config value = 2;
+    {PROTOBUF_FIELD_OFFSET(Config_PlatformTypesEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::compiler::Config>()},
+  }},
+  {{
+    "\70\3\0\0\0\0\0\0"
+    "bldr.web.bundler.vite.compiler.Config.PlatformTypesEntry"
+    "key"
+  }},
+};
+// ===================================================================
+
 class Config::_Internal {
  public:
   using HasBits =
@@ -524,7 +657,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         bundles_{visibility, arena, from.bundles_},
         web_pkgs_{visibility, arena, from.web_pkgs_},
         vite_config_paths_{visibility, arena, from.vite_config_paths_},
-        build_types_{visibility, arena, from.build_types_} {}
+        build_types_{visibility, arena, from.build_types_},
+        platform_types_{visibility, arena, from.platform_types_} {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -550,7 +684,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         bundles_{visibility, arena},
         web_pkgs_{visibility, arena},
         vite_config_paths_{visibility, arena},
-        build_types_{visibility, arena} {}
+        build_types_{visibility, arena},
+        platform_types_{visibility, arena} {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -591,6 +726,10 @@ constexpr auto Config::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
       PROTOBUF_FIELD_OFFSET(Config, _impl_.build_types_) +
           decltype(Config::_impl_.build_types_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_) +
+          decltype(Config::_impl_.platform_types_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
@@ -637,17 +776,17 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 5, 4, 74, 2>
+const ::_pbi::TcParseTable<2, 6, 6, 88, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    5, 24,  // max_field_number, fast_idx_mask
+    6, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    4,  // num_aux_entries
+    6,  // num_field_entries
+    6,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -685,6 +824,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_project_config_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // map<string, .bldr.web.bundler.vite.compiler.Config> build_types = 5;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_types_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // map<string, .bldr.web.bundler.vite.compiler.Config> platform_types = 6;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_), _Internal::kHasBitsOffset + 5, 4, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::compiler::ViteBundleMeta>()},
@@ -692,12 +833,16 @@ Config::_table_ = {
       {::_pbi::TcParser::GetMapAuxInfo(
           1, 0, 9, 11, 0)},
       {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::compiler::Config>()},
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
+      {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::compiler::Config>()},
   }},
   {{
-    "\45\0\0\21\0\13\0\0"
+    "\45\0\0\21\0\13\16\0"
     "bldr.web.bundler.vite.compiler.Config"
     "vite_config_paths"
     "build_types"
+    "platform_types"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -719,10 +864,13 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.vite_config_paths_.Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000038U)) {
     _impl_.disable_project_config_ = false;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _impl_.build_types_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
+      _impl_.platform_types_.Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -822,6 +970,35 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // map<string, .bldr.web.bundler.vite.compiler.Config> platform_types = 6;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_platform_types().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::bldr::web::bundler::vite::compiler::Config>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::bldr::web::bundler::vite::compiler::Config,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_platform_types();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              6, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.compiler.Config.platform_types");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              6, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.compiler.Config.platform_types");
+        }
+      }
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -847,7 +1024,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // repeated .bldr.web.bundler.vite.compiler.ViteBundleMeta bundles = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_bundles_size();
@@ -887,6 +1064,16 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                        _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
       }
     }
+    // map<string, .bldr.web.bundler.vite.compiler.Config> platform_types = 6;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_platform_types_size());
+      for (const auto& entry : this_._internal_platform_types()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::bldr::web::bundler::vite::compiler::Config,
+                                       _pbi::WireFormatLite::TYPE_STRING,
+                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -907,7 +1094,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_bundles()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -930,6 +1117,9 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _this->_impl_.build_types_.MergeFrom(from._impl_.build_types_);
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
+      _this->_impl_.platform_types_.MergeFrom(from._impl_.platform_types_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -954,6 +1144,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _impl_.vite_config_paths_.InternalSwap(&other->_impl_.vite_config_paths_);
   swap(_impl_.disable_project_config_, other->_impl_.disable_project_config_);
   _impl_.build_types_.InternalSwap(&other->_impl_.build_types_);
+  _impl_.platform_types_.InternalSwap(&other->_impl_.platform_types_);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

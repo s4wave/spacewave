@@ -47,7 +47,7 @@ pub struct ManifestBuilderConfig {
     pub remote_id: ::prost::alloc::string::String,
     /// TargetPlatformIds contains all platform IDs from the build target.
     /// Used by the dist compiler to collect manifests from all compatible platforms.
-    /// For example, a browser target may include \["native/js/wasm", "js"\].
+    /// For example, a browser target may include \["desktop/js/wasm", "js"\].
     #[prost(string, repeated, tag="5")]
     pub target_platform_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }

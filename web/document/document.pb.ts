@@ -19,7 +19,7 @@ export const protobufPackage = 'web.document'
 export enum WebWorkerType {
   /**
    * WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
-   * This is used for "native/js/wasm" platform plugins (Go WASM).
+   * This is used for "desktop/js/wasm" platform plugins (Go WASM).
    *
    * @generated from enum value: WEB_WORKER_TYPE_NATIVE = 0;
    */
