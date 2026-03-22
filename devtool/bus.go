@@ -492,6 +492,14 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		if err = goSumFile.Close(); err != nil {
 			return err
 		}
+
+		// Run go mod download to verify and complete go.sum with any
+		// transitive dependencies not covered by the embedded go.sum.
+		// The embedded go.sum matches the build-time version of bldr; if a
+		// different version is requested, its transitive deps may differ.
+		if err := runGoMod("download"); err != nil {
+			return err
+		}
 	} else {
 		if err := runGoMod("tidy"); err != nil {
 			return err
