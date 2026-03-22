@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/sirupsen/logrus"
 )

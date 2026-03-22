@@ -16,7 +16,7 @@ import (
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"

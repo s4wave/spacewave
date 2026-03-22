@@ -12,7 +12,7 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
