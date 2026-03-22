@@ -172,4 +172,3 @@ require (
 	modernc.org/sqlite v1.45.0 // indirect
 )
 
-replace github.com/aperturerobotics/bldr-saucer => ../../repos/bldr-saucer
