@@ -481,6 +481,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		if err != nil {
 			return err
 		}
+		defer goSumFile.Close()
 		_, err = goSumFile.WriteString(bldrModPath + " " + bldrVersion + " " + bldrSum + "\n")
 		if err != nil {
 			return err

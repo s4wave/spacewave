@@ -197,6 +197,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		if buildCtx.Err() != nil {
 			if restarted.Load() {
+				buildCtxCancel()
 				continue
 			}
 		}
@@ -335,6 +336,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return context.Canceled
 		}
 		if buildCtx.Err() != nil {
+			buildCtxCancel()
 			le.Info("re-building after sub-manifest changed")
 			continue
 		}
