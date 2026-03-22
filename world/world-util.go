@@ -9,6 +9,7 @@ import (
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_task "github.com/aperturerobotics/forge/task"
+	forge_worker "github.com/aperturerobotics/forge/worker"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
@@ -22,6 +23,7 @@ var ForgeObjectTypeIDs = []string{
 	forge_task.TaskTypeID,
 	forge_pass.PassTypeID,
 	forge_execution.ExecutionTypeID,
+	forge_worker.WorkerTypeID,
 }
 
 // ListKeypairObjects lists all Forge objects linked to by the Keypair.
