@@ -382,6 +382,7 @@ func BuildWebPkgsEsbuild(
 
 		buildOpts.Plugins = append(
 			buildOpts.Plugins,
+			bldr_esbuild_build.GoVendorTsResolverPlugin(codeRootPath),
 			BuildEsbuildPlugin(
 				le,
 				webPkgIDsExclCurrAndExternal,
