@@ -7,6 +7,7 @@ import (
 
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
+	plugin_host_web_wasivm "github.com/aperturerobotics/bldr/plugin/host/web-wasivm"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -21,12 +22,16 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 	func(b bus.Bus) controller.Factory {
 		return plugin_host_web.NewQuickJSFactory(b)
 	},
+	func(b bus.Bus) controller.Factory {
+		return plugin_host_web_wasivm.NewFactory(b)
+	},
 }
 
 // PluginHostController contains the plugin host controllers.
 type PluginHostController struct {
-	WebHost     *plugin_host_controller.Controller
-	QuickJSHost *plugin_host_controller.Controller
+	WebHost      *plugin_host_controller.Controller
+	QuickJSHost  *plugin_host_controller.Controller
+	WasiVMHost   *plugin_host_controller.Controller
 }
 
 // StartPluginHost starts the plugin host.
@@ -63,10 +68,25 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
+	wasivmHostConf := &plugin_host_web_wasivm.Config{}
+	wasivmHostCtrl, _, wasivmHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(wasivmHostConf),
+		nil,
+	)
+	if err != nil {
+		quickjsHostRef.Release()
+		webHostRef.Release()
+		return nil, nil, err
+	}
+
 	return &PluginHostController{
 			WebHost:     webHostCtrl,
 			QuickJSHost: quickjsHostCtrl,
+			WasiVMHost:  wasivmHostCtrl,
 		}, func() {
+			wasivmHostRef.Release()
 			quickjsHostRef.Release()
 			webHostRef.Release()
 		}, nil

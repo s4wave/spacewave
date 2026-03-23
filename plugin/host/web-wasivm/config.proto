@@ -1,0 +1,11 @@
+syntax = "proto3";
+package bldr.plugin.host.webwasivm;
+option go_package = "github.com/aperturerobotics/bldr/plugin/host/web-wasivm;plugin_host_web_wasivm";
+
+// Config configures the web-wasivm plugin host controller.
+message Config {
+  // MemoryLimitMb sets the WASM memory limit in MB. 0 = default (256).
+  uint32 memory_limit_mb = 1;
+  // Debug enables verbose kernel syscall logging.
+  bool debug = 2;
+}

@@ -338,6 +338,19 @@
         "plugin/host/web/config.proto"
       ]
     },
+    "github.com/aperturerobotics/bldr/plugin/host/web-wasivm": {
+      "hash": "e7471e06f1f4c2b5a5e9de937069263de46ae86eac7bcbca73284036a3d05007",
+      "generatedFiles": [
+        "plugin/host/web-wasivm/config.pb.cc",
+        "plugin/host/web-wasivm/config.pb.go",
+        "plugin/host/web-wasivm/config.pb.h",
+        "plugin/host/web-wasivm/config.pb.rs",
+        "plugin/host/web-wasivm/config.pb.ts"
+      ],
+      "protoFiles": [
+        "plugin/host/web-wasivm/config.proto"
+      ]
+    },
     "github.com/aperturerobotics/bldr/plugin/load": {
       "hash": "c4621e685a7b82e6cc1370bb7d2bfb7789fcc620492e3d0d94f4577e03c7c102",
       "generatedFiles": [
