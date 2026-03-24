@@ -188,6 +188,12 @@ message JsModule {
   // DisableEntrypoint disables adding an entrypoint for this module.
   // If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
   bool disable_entrypoint = 5;
+  // WebViewId filters by web view id for FRONTEND modules.
+  // Propagated to the auto-generated FrontendEntrypoint.
+  .filter.StringFilter web_view_id = 6;
+  // WebViewParentId filters by web view parent id for FRONTEND modules.
+  // Propagated to the auto-generated FrontendEntrypoint.
+  .filter.StringFilter web_view_parent_id = 7;
 }
 
 // BackendEntrypoint configures a backend entrypoint.

@@ -180,6 +180,14 @@ pub struct JsModule {
     /// If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
     #[prost(bool, tag="5")]
     pub disable_entrypoint: bool,
+    /// WebViewId filters by web view id for FRONTEND modules.
+    /// Propagated to the auto-generated FrontendEntrypoint.
+    #[prost(message, optional, tag="6")]
+    pub web_view_id: ::core::option::Option<super::super::super::super::filter::StringFilter>,
+    /// WebViewParentId filters by web view parent id for FRONTEND modules.
+    /// Propagated to the auto-generated FrontendEntrypoint.
+    #[prost(message, optional, tag="7")]
+    pub web_view_parent_id: ::core::option::Option<super::super::super::super::filter::StringFilter>,
 }
 /// BackendEntrypoint configures a backend entrypoint.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

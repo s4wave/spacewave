@@ -8,11 +8,11 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import { StringFilter } from '@go/github.com/aperturerobotics/util/filter/filter.pb.js'
 import {
   SetHtmlLinksRequest,
   SetRenderModeRequest,
 } from '../../../web/view/view.pb.js'
-import { StringFilter } from '@go/github.com/aperturerobotics/util/filter/filter.pb.js'
 import { EsbuildBundleMeta } from '../../../web/bundler/esbuild/compiler/compiler.pb.js'
 import { ViteBundleMeta } from '../../../web/bundler/vite/compiler/compiler.pb.js'
 import { WebPkgRefConfig } from '../../../web/bundler/bundler.pb.js'
@@ -106,6 +106,20 @@ export interface JsModule {
    * @generated from field: bool disable_entrypoint = 5;
    */
   disableEntrypoint?: boolean
+  /**
+   * WebViewId filters by web view id for FRONTEND modules.
+   * Propagated to the auto-generated FrontendEntrypoint.
+   *
+   * @generated from field: filter.StringFilter web_view_id = 6;
+   */
+  webViewId?: StringFilter
+  /**
+   * WebViewParentId filters by web view parent id for FRONTEND modules.
+   * Propagated to the auto-generated FrontendEntrypoint.
+   *
+   * @generated from field: filter.StringFilter web_view_parent_id = 7;
+   */
+  webViewParentId?: StringFilter
 }
 
 // JsModule contains the message type declaration for JsModule.
@@ -128,6 +142,13 @@ export const JsModule: MessageType<JsModule> = createMessageType({
       T: ScalarType.BOOL,
     },
     { no: 5, name: 'disable_entrypoint', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'web_view_id', kind: 'message', T: () => StringFilter },
+    {
+      no: 7,
+      name: 'web_view_parent_id',
+      kind: 'message',
+      T: () => StringFilter,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -31,37 +31,6 @@ namespace plugin {
 namespace compiler {
 namespace js {
 
-inline constexpr JsModule::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        vite_config_paths_{},
-        path_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        kind_{static_cast< ::bldr::plugin::compiler::js::JsModuleKind >(0)},
-        disable_project_config_{false},
-        disable_entrypoint_{false} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR JsModule::JsModule(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(JsModule_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct JsModuleDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR JsModuleDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~JsModuleDefaultTypeInternal() {}
-  union {
-    JsModule _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 JsModuleDefaultTypeInternal _JsModule_default_instance_;
-
 inline constexpr BackendEntrypoint::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -91,6 +60,39 @@ struct BackendEntrypointDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BackendEntrypointDefaultTypeInternal _BackendEntrypoint_default_instance_;
+
+inline constexpr JsModule::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        vite_config_paths_{},
+        path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        web_view_id_{nullptr},
+        web_view_parent_id_{nullptr},
+        kind_{static_cast< ::bldr::plugin::compiler::js::JsModuleKind >(0)},
+        disable_project_config_{false},
+        disable_entrypoint_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR JsModule::JsModule(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(JsModule_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct JsModuleDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR JsModuleDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~JsModuleDefaultTypeInternal() {}
+  union {
+    JsModule _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 JsModuleDefaultTypeInternal _JsModule_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR Config_HostConfigSetEntry_DoNotUse::Config_HostConfigSetEntry_DoNotUse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -367,17 +369,21 @@ const ::uint32_t
         8,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_._has_bits_),
-        8, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.kind_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.path_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.vite_config_paths_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.disable_project_config_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.disable_entrypoint_),
-        2,
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.web_view_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::JsModule, _impl_.web_view_parent_id_),
+        4,
         1,
         0,
+        5,
+        6,
+        2,
         3,
-        4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::BackendEntrypoint, _impl_._has_bits_),
         5, // hasbit index offset
@@ -407,8 +413,8 @@ static const ::_pbi::MigrationSchema
         {52, sizeof(::bldr::plugin::compiler::js::PreBuildHookResult)},
         {57, sizeof(::bldr::plugin::compiler::js::InputManifestMeta)},
         {80, sizeof(::bldr::plugin::compiler::js::JsModule)},
-        {93, sizeof(::bldr::plugin::compiler::js::BackendEntrypoint)},
-        {100, sizeof(::bldr::plugin::compiler::js::FrontendEntrypoint)},
+        {97, sizeof(::bldr::plugin::compiler::js::BackendEntrypoint)},
+        {104, sizeof(::bldr::plugin::compiler::js::FrontendEntrypoint)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::compiler::js::_Config_HostConfigSetEntry_DoNotUse_default_instance_._instance,
@@ -480,21 +486,24 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     "_paths\030\007 \003(\t\022;\n\014vite_outputs\030\010 \003(\0132%.bld"
     "r.web.bundler.vite.ViteOutputMeta\022#\n\033vit"
     "e_disable_project_config\030\t \001(\010\022 \n\030compil"
-    "ed_entrypoint_path\030\n \001(\t\"\244\001\n\010JsModule\0223\n"
+    "ed_entrypoint_path\030\n \001(\t\"\201\002\n\010JsModule\0223\n"
     "\004kind\030\001 \001(\0162%.bldr.plugin.compiler.js.Js"
     "ModuleKind\022\014\n\004path\030\002 \001(\t\022\031\n\021vite_config_"
     "paths\030\003 \003(\t\022\036\n\026disable_project_config\030\004 "
-    "\001(\010\022\032\n\022disable_entrypoint\030\005 \001(\010\"=\n\021Backe"
-    "ndEntrypoint\022\023\n\013import_path\030\001 \001(\t\022\023\n\013imp"
-    "ort_name\030\002 \001(\t\"\341\001\n\022FrontendEntrypoint\0227\n"
-    "\017set_render_mode\030\001 \001(\0132\036.web.view.SetRen"
-    "derModeRequest\0225\n\016set_html_links\030\002 \001(\0132\035"
-    ".web.view.SetHtmlLinksRequest\022)\n\013web_vie"
-    "w_id\030\003 \001(\0132\024.filter.StringFilter\0220\n\022web_"
-    "view_parent_id\030\004 \001(\0132\024.filter.StringFilt"
-    "er*c\n\014JsModuleKind\022\032\n\026JS_MODULE_KIND_INV"
-    "ALID\020\000\022\032\n\026JS_MODULE_KIND_BACKEND\020\001\022\033\n\027JS"
-    "_MODULE_KIND_FRONTEND\020\002b\006proto3"
+    "\001(\010\022\032\n\022disable_entrypoint\030\005 \001(\010\022)\n\013web_v"
+    "iew_id\030\006 \001(\0132\024.filter.StringFilter\0220\n\022we"
+    "b_view_parent_id\030\007 \001(\0132\024.filter.StringFi"
+    "lter\"=\n\021BackendEntrypoint\022\023\n\013import_path"
+    "\030\001 \001(\t\022\023\n\013import_name\030\002 \001(\t\"\341\001\n\022Frontend"
+    "Entrypoint\0227\n\017set_render_mode\030\001 \001(\0132\036.we"
+    "b.view.SetRenderModeRequest\0225\n\016set_html_"
+    "links\030\002 \001(\0132\035.web.view.SetHtmlLinksReque"
+    "st\022)\n\013web_view_id\030\003 \001(\0132\024.filter.StringF"
+    "ilter\0220\n\022web_view_parent_id\030\004 \001(\0132\024.filt"
+    "er.StringFilter*c\n\014JsModuleKind\022\032\n\026JS_MO"
+    "DULE_KIND_INVALID\020\000\022\032\n\026JS_MODULE_KIND_BA"
+    "CKEND\020\001\022\033\n\027JS_MODULE_KIND_FRONTEND\020\002b\006pr"
+    "oto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps[9] = {
@@ -512,7 +521,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = {
     false,
     false,
-    2871,
+    2964,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
     "github.com/aperturerobotics/bldr/plugin/compiler/js/compiler.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once,
@@ -2720,6 +2729,18 @@ class JsModule::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(JsModule, _impl_._has_bits_);
 };
 
+void JsModule::clear_web_view_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.web_view_id_ != nullptr) _impl_.web_view_id_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+void JsModule::clear_web_view_parent_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.web_view_parent_id_ != nullptr) _impl_.web_view_parent_id_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
 JsModule::JsModule(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, JsModule_class_data_.base()) {
@@ -2751,6 +2772,13 @@ JsModule::JsModule(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.web_view_id_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.web_view_id_)
+                : nullptr;
+  _impl_.web_view_parent_id_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.web_view_parent_id_)
+                : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, kind_),
            reinterpret_cast<const char*>(&from._impl_) +
@@ -2771,10 +2799,10 @@ PROTOBUF_NDEBUG_INLINE JsModule::Impl_::Impl_(
 inline void JsModule::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, kind_),
+               offsetof(Impl_, web_view_id_),
            0,
            offsetof(Impl_, disable_entrypoint_) -
-               offsetof(Impl_, kind_) +
+               offsetof(Impl_, web_view_id_) +
                sizeof(Impl_::disable_entrypoint_));
 }
 JsModule::~JsModule() {
@@ -2789,6 +2817,8 @@ inline void JsModule::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.path_.Destroy();
+  delete this_._impl_.web_view_id_;
+  delete this_._impl_.web_view_parent_id_;
   this_._impl_.~Impl_();
 }
 
@@ -2847,18 +2877,18 @@ JsModule::GetClassData() const {
   return JsModule_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 62, 2>
+const ::_pbi::TcParseTable<3, 7, 2, 62, 2>
 JsModule::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(JsModule, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    7,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     JsModule_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -2868,8 +2898,8 @@ JsModule::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(JsModule, _impl_.kind_), 2>(),
-     {8, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(JsModule, _impl_.kind_), 4>(),
+     {8, 4, 0,
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.kind_)}},
     // string path = 2;
     {::_pbi::TcParser::FastUS1,
@@ -2880,30 +2910,43 @@ JsModule::_table_ = {
      {26, 0, 0,
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.vite_config_paths_)}},
     // bool disable_project_config = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_project_config_), 3>(),
-     {32, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_project_config_), 5>(),
+     {32, 5, 0,
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_project_config_)}},
     // bool disable_entrypoint = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_entrypoint_), 4>(),
-     {40, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(JsModule, _impl_.disable_entrypoint_), 6>(),
+     {40, 6, 0,
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .filter.StringFilter web_view_id = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 2, 0,
+      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_id_)}},
+    // .filter.StringFilter web_view_parent_id = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 3, 1,
+      PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_parent_id_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
-    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.kind_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string path = 2;
     {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.path_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string vite_config_paths = 3;
     {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.vite_config_paths_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // bool disable_project_config = 4;
-    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_project_config_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_project_config_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool disable_entrypoint = 5;
-    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // .filter.StringFilter web_view_id = 6;
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .filter.StringFilter web_view_parent_id = 7;
+    {PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_parent_id_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::filter::StringFilter>()},
+      {::_pbi::TcParser::GetTable<::filter::StringFilter>()},
+  }},
   {{
     "\40\0\4\21\0\0\0\0"
     "bldr.plugin.compiler.js.JsModule"
@@ -2919,15 +2962,23 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.vite_config_paths_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.path_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.web_view_id_ != nullptr);
+      _impl_.web_view_id_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.web_view_parent_id_ != nullptr);
+      _impl_.web_view_parent_id_->Clear();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001cU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
     ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.disable_entrypoint_) -
         reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.disable_entrypoint_));
@@ -2956,7 +3007,7 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_kind() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -2985,7 +3036,7 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
   }
 
   // bool disable_project_config = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_disable_project_config() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -2994,12 +3045,26 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
   }
 
   // bool disable_entrypoint = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_disable_entrypoint() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           5, this_._internal_disable_entrypoint(), target);
     }
+  }
+
+  // .filter.StringFilter web_view_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.web_view_id_, this_._impl_.web_view_id_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .filter.StringFilter web_view_parent_id = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.web_view_parent_id_, this_._impl_.web_view_parent_id_->GetCachedSize(), target,
+        stream);
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -3027,7 +3092,7 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // repeated string vite_config_paths = 3;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -3044,21 +3109,31 @@ PROTOBUF_NOINLINE void JsModule::Clear() {
                                         this_._internal_path());
       }
     }
-    // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
+    // .filter.StringFilter web_view_id = 6;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.web_view_id_);
+    }
+    // .filter.StringFilter web_view_parent_id = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.web_view_parent_id_);
+    }
+    // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_kind() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
       }
     }
     // bool disable_project_config = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_disable_project_config() != 0) {
         total_size += 2;
       }
     }
     // bool disable_entrypoint = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_disable_entrypoint() != 0) {
         total_size += 2;
       }
@@ -3083,7 +3158,7 @@ void JsModule::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_vite_config_paths()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -3099,16 +3174,32 @@ void JsModule::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.web_view_id_ != nullptr);
+      if (_this->_impl_.web_view_id_ == nullptr) {
+        _this->_impl_.web_view_id_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.web_view_id_);
+      } else {
+        _this->_impl_.web_view_id_->MergeFrom(*from._impl_.web_view_id_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.web_view_parent_id_ != nullptr);
+      if (_this->_impl_.web_view_parent_id_ == nullptr) {
+        _this->_impl_.web_view_parent_id_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.web_view_parent_id_);
+      } else {
+        _this->_impl_.web_view_parent_id_->MergeFrom(*from._impl_.web_view_parent_id_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_kind() != 0) {
         _this->_impl_.kind_ = from._impl_.kind_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_disable_project_config() != 0) {
         _this->_impl_.disable_project_config_ = from._impl_.disable_project_config_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_disable_entrypoint() != 0) {
         _this->_impl_.disable_entrypoint_ = from._impl_.disable_entrypoint_;
       }
@@ -3138,9 +3229,9 @@ void JsModule::InternalSwap(JsModule* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) 
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(JsModule, _impl_.disable_entrypoint_)
       + sizeof(JsModule::_impl_.disable_entrypoint_)
-      - PROTOBUF_FIELD_OFFSET(JsModule, _impl_.kind_)>(
-          reinterpret_cast<char*>(&_impl_.kind_),
-          reinterpret_cast<char*>(&other->_impl_.kind_));
+      - PROTOBUF_FIELD_OFFSET(JsModule, _impl_.web_view_id_)>(
+          reinterpret_cast<char*>(&_impl_.web_view_id_),
+          reinterpret_cast<char*>(&other->_impl_.web_view_id_));
 }
 
 ::google::protobuf::Metadata JsModule::GetMetadata() const {

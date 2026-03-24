@@ -209,7 +209,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/plugin/compiler/js": {
-      "hash": "a89345d7c7a824bbdcc4c4cc0642849c6be1164468d8a2be31b3143243de2336",
+      "hash": "c954aace0e84d27bfcb793423d3d8fd7e84f8eaaab7f20229781b7e9c3daed81",
       "generatedFiles": [
         "plugin/compiler/js/compiler.pb.cc",
         "plugin/compiler/js/compiler.pb.go",

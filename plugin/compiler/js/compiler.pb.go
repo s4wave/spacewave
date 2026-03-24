@@ -409,6 +409,12 @@ type JsModule struct {
 	// DisableEntrypoint disables adding an entrypoint for this module.
 	// If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
 	DisableEntrypoint bool `protobuf:"varint,5,opt,name=disable_entrypoint,json=disableEntrypoint,proto3" json:"disableEntrypoint,omitempty"`
+	// WebViewId filters by web view id for FRONTEND modules.
+	// Propagated to the auto-generated FrontendEntrypoint.
+	WebViewId *filter.StringFilter `protobuf:"bytes,6,opt,name=web_view_id,json=webViewId,proto3" json:"webViewId,omitempty"`
+	// WebViewParentId filters by web view parent id for FRONTEND modules.
+	// Propagated to the auto-generated FrontendEntrypoint.
+	WebViewParentId *filter.StringFilter `protobuf:"bytes,7,opt,name=web_view_parent_id,json=webViewParentId,proto3" json:"webViewParentId,omitempty"`
 }
 
 func (x *JsModule) Reset() {
@@ -450,6 +456,20 @@ func (x *JsModule) GetDisableEntrypoint() bool {
 		return x.DisableEntrypoint
 	}
 	return false
+}
+
+func (x *JsModule) GetWebViewId() *filter.StringFilter {
+	if x != nil {
+		return x.WebViewId
+	}
+	return nil
+}
+
+func (x *JsModule) GetWebViewParentId() *filter.StringFilter {
+	if x != nil {
+		return x.WebViewParentId
+	}
+	return nil
 }
 
 // BackendEntrypoint configures a backend entrypoint.
@@ -778,6 +798,12 @@ func (m *JsModule) CloneVT() *JsModule {
 	r.DisableEntrypoint = m.DisableEntrypoint
 	if rhs := m.ViteConfigPaths; rhs != nil {
 		r.ViteConfigPaths = slices.Clone(rhs)
+	}
+	if rhs := m.WebViewId; rhs != nil {
+		r.WebViewId = rhs.CloneVT()
+	}
+	if rhs := m.WebViewParentId; rhs != nil {
+		r.WebViewParentId = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1227,6 +1253,12 @@ func (this *JsModule) EqualVT(that *JsModule) bool {
 		return false
 	}
 	if this.DisableEntrypoint != that.DisableEntrypoint {
+		return false
+	}
+	if !this.WebViewId.EqualVT(that.WebViewId) {
+		return false
+	}
+	if !this.WebViewParentId.EqualVT(that.WebViewParentId) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2149,6 +2181,16 @@ func (x *JsModule) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableEntrypoint")
 		s.WriteBool(x.DisableEntrypoint)
 	}
+	if x.WebViewId != nil || s.HasField("webViewId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webViewId")
+		x.WebViewId.MarshalProtoJSON(s.WithField("webViewId"))
+	}
+	if x.WebViewParentId != nil || s.HasField("webViewParentId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webViewParentId")
+		x.WebViewParentId.MarshalProtoJSON(s.WithField("webViewParentId"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2185,6 +2227,20 @@ func (x *JsModule) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_entrypoint", "disableEntrypoint":
 			s.AddField("disable_entrypoint")
 			x.DisableEntrypoint = s.ReadBool()
+		case "web_view_id", "webViewId":
+			if s.ReadNil() {
+				x.WebViewId = nil
+				return
+			}
+			x.WebViewId = &filter.StringFilter{}
+			x.WebViewId.UnmarshalProtoJSON(s.WithField("web_view_id", true))
+		case "web_view_parent_id", "webViewParentId":
+			if s.ReadNil() {
+				x.WebViewParentId = nil
+				return
+			}
+			x.WebViewParentId = &filter.StringFilter{}
+			x.WebViewParentId.UnmarshalProtoJSON(s.WithField("web_view_parent_id", true))
 		}
 	})
 }
@@ -2755,6 +2811,26 @@ func (m *JsModule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.WebViewParentId != nil {
+		size, err := m.WebViewParentId.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.WebViewId != nil {
+		size, err := m.WebViewId.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.DisableEntrypoint {
 		i--
 		if m.DisableEntrypoint {
@@ -3129,6 +3205,14 @@ func (m *JsModule) SizeVT() (n int) {
 	}
 	if m.DisableEntrypoint {
 		n += 2
+	}
+	if m.WebViewId != nil {
+		l = m.WebViewId.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WebViewParentId != nil {
+		l = m.WebViewParentId.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3627,6 +3711,20 @@ func (x *JsModule) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_entrypoint: ")
 		sb.WriteString(strconv.FormatBool(x.DisableEntrypoint))
+	}
+	if x.WebViewId != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_view_id: ")
+		sb.WriteString(x.WebViewId.MarshalProtoText())
+	}
+	if x.WebViewParentId != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_view_parent_id: ")
+		sb.WriteString(x.WebViewParentId.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4715,6 +4813,62 @@ func (m *JsModule) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableEntrypoint = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewId", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WebViewId == nil {
+				m.WebViewId = &filter.StringFilter{}
+			}
+			if err := m.WebViewId.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewParentId", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WebViewParentId == nil {
+				m.WebViewParentId = &filter.StringFilter{}
+			}
+			if err := m.WebViewParentId.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

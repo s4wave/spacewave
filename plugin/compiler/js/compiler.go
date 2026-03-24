@@ -612,13 +612,15 @@ func CreateEntrypointsFromViteOutputs(
 				break
 			}
 
-			// Create frontend entrypoint
+			// Create frontend entrypoint with filters from the module.
 			frontendEp := &FrontendEntrypoint{
 				SetRenderMode: &web_view.SetRenderModeRequest{
 					RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 					ScriptPath: jsOutputPath,
 					Refresh:    true,
 				},
+				WebViewId:       mod.GetWebViewId(),
+				WebViewParentId: mod.GetWebViewParentId(),
 			}
 
 			// Add CSS links if any

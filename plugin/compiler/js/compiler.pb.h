@@ -169,261 +169,6 @@ inline bool JsModuleKind_Parse(
 
 // -------------------------------------------------------------------
 
-class JsModule final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.plugin.compiler.js.JsModule) */ {
- public:
-  inline JsModule() : JsModule(nullptr) {}
-  ~JsModule() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(JsModule* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(JsModule));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR JsModule(::google::protobuf::internal::ConstantInitialized);
-
-  inline JsModule(const JsModule& from) : JsModule(nullptr, from) {}
-  inline JsModule(JsModule&& from) noexcept
-      : JsModule(nullptr, ::std::move(from)) {}
-  inline JsModule& operator=(const JsModule& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline JsModule& operator=(JsModule&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const JsModule& default_instance() {
-    return *reinterpret_cast<const JsModule*>(
-        &_JsModule_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 6;
-  friend void swap(JsModule& a, JsModule& b) { a.Swap(&b); }
-  inline void Swap(JsModule* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(JsModule* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  JsModule* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<JsModule>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const JsModule& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const JsModule& from) { JsModule::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(JsModule* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.plugin.compiler.js.JsModule"; }
-
-  explicit JsModule(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  JsModule(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const JsModule& from);
-  JsModule(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, JsModule&& from) noexcept
-      : JsModule(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kViteConfigPathsFieldNumber = 3,
-    kPathFieldNumber = 2,
-    kKindFieldNumber = 1,
-    kDisableProjectConfigFieldNumber = 4,
-    kDisableEntrypointFieldNumber = 5,
-  };
-  // repeated string vite_config_paths = 3;
-  int vite_config_paths_size() const;
-  private:
-  int _internal_vite_config_paths_size() const;
-
-  public:
-  void clear_vite_config_paths() ;
-  const ::std::string& vite_config_paths(int index) const;
-  ::std::string* PROTOBUF_NONNULL mutable_vite_config_paths(int index);
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_vite_config_paths(int index, Arg_&& value, Args_... args);
-  ::std::string* PROTOBUF_NONNULL add_vite_config_paths();
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void add_vite_config_paths(Arg_&& value, Args_... args);
-  const ::google::protobuf::RepeatedPtrField<::std::string>& vite_config_paths() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_vite_config_paths();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_vite_config_paths() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_vite_config_paths();
-
-  public:
-  // string path = 2;
-  void clear_path() ;
-  const ::std::string& path() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_path(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_path();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
-  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_path() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
-
-  public:
-  // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
-  void clear_kind() ;
-  ::bldr::plugin::compiler::js::JsModuleKind kind() const;
-  void set_kind(::bldr::plugin::compiler::js::JsModuleKind value);
-
-  private:
-  ::bldr::plugin::compiler::js::JsModuleKind _internal_kind() const;
-  void _internal_set_kind(::bldr::plugin::compiler::js::JsModuleKind value);
-
-  public:
-  // bool disable_project_config = 4;
-  void clear_disable_project_config() ;
-  bool disable_project_config() const;
-  void set_disable_project_config(bool value);
-
-  private:
-  bool _internal_disable_project_config() const;
-  void _internal_set_disable_project_config(bool value);
-
-  public:
-  // bool disable_entrypoint = 5;
-  void clear_disable_entrypoint() ;
-  bool disable_entrypoint() const;
-  void set_disable_entrypoint(bool value);
-
-  private:
-  bool _internal_disable_entrypoint() const;
-  void _internal_set_disable_entrypoint(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:bldr.plugin.compiler.js.JsModule)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 62,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const JsModule& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField<::std::string> vite_config_paths_;
-    ::google::protobuf::internal::ArenaStringPtr path_;
-    int kind_;
-    bool disable_project_config_;
-    bool disable_entrypoint_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull JsModule_class_data_;
-// -------------------------------------------------------------------
-
 class BackendEntrypoint final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:bldr.plugin.compiler.js.BackendEntrypoint) */ {
  public:
@@ -634,6 +379,295 @@ class BackendEntrypoint final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BackendEntrypoint_class_data_;
+// -------------------------------------------------------------------
+
+class JsModule final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.plugin.compiler.js.JsModule) */ {
+ public:
+  inline JsModule() : JsModule(nullptr) {}
+  ~JsModule() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(JsModule* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(JsModule));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR JsModule(::google::protobuf::internal::ConstantInitialized);
+
+  inline JsModule(const JsModule& from) : JsModule(nullptr, from) {}
+  inline JsModule(JsModule&& from) noexcept
+      : JsModule(nullptr, ::std::move(from)) {}
+  inline JsModule& operator=(const JsModule& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline JsModule& operator=(JsModule&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const JsModule& default_instance() {
+    return *reinterpret_cast<const JsModule*>(
+        &_JsModule_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(JsModule& a, JsModule& b) { a.Swap(&b); }
+  inline void Swap(JsModule* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(JsModule* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  JsModule* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<JsModule>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const JsModule& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const JsModule& from) { JsModule::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(JsModule* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.plugin.compiler.js.JsModule"; }
+
+  explicit JsModule(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  JsModule(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const JsModule& from);
+  JsModule(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, JsModule&& from) noexcept
+      : JsModule(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kViteConfigPathsFieldNumber = 3,
+    kPathFieldNumber = 2,
+    kWebViewIdFieldNumber = 6,
+    kWebViewParentIdFieldNumber = 7,
+    kKindFieldNumber = 1,
+    kDisableProjectConfigFieldNumber = 4,
+    kDisableEntrypointFieldNumber = 5,
+  };
+  // repeated string vite_config_paths = 3;
+  int vite_config_paths_size() const;
+  private:
+  int _internal_vite_config_paths_size() const;
+
+  public:
+  void clear_vite_config_paths() ;
+  const ::std::string& vite_config_paths(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_vite_config_paths(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_vite_config_paths(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_vite_config_paths();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_vite_config_paths(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& vite_config_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_vite_config_paths();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_vite_config_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_vite_config_paths();
+
+  public:
+  // string path = 2;
+  void clear_path() ;
+  const ::std::string& path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // .filter.StringFilter web_view_id = 6;
+  bool has_web_view_id() const;
+  void clear_web_view_id() ;
+  const ::filter::StringFilter& web_view_id() const;
+  [[nodiscard]] ::filter::StringFilter* PROTOBUF_NULLABLE release_web_view_id();
+  ::filter::StringFilter* PROTOBUF_NONNULL mutable_web_view_id();
+  void set_allocated_web_view_id(::filter::StringFilter* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_web_view_id(::filter::StringFilter* PROTOBUF_NULLABLE value);
+  ::filter::StringFilter* PROTOBUF_NULLABLE unsafe_arena_release_web_view_id();
+
+  private:
+  const ::filter::StringFilter& _internal_web_view_id() const;
+  ::filter::StringFilter* PROTOBUF_NONNULL _internal_mutable_web_view_id();
+
+  public:
+  // .filter.StringFilter web_view_parent_id = 7;
+  bool has_web_view_parent_id() const;
+  void clear_web_view_parent_id() ;
+  const ::filter::StringFilter& web_view_parent_id() const;
+  [[nodiscard]] ::filter::StringFilter* PROTOBUF_NULLABLE release_web_view_parent_id();
+  ::filter::StringFilter* PROTOBUF_NONNULL mutable_web_view_parent_id();
+  void set_allocated_web_view_parent_id(::filter::StringFilter* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_web_view_parent_id(::filter::StringFilter* PROTOBUF_NULLABLE value);
+  ::filter::StringFilter* PROTOBUF_NULLABLE unsafe_arena_release_web_view_parent_id();
+
+  private:
+  const ::filter::StringFilter& _internal_web_view_parent_id() const;
+  ::filter::StringFilter* PROTOBUF_NONNULL _internal_mutable_web_view_parent_id();
+
+  public:
+  // .bldr.plugin.compiler.js.JsModuleKind kind = 1;
+  void clear_kind() ;
+  ::bldr::plugin::compiler::js::JsModuleKind kind() const;
+  void set_kind(::bldr::plugin::compiler::js::JsModuleKind value);
+
+  private:
+  ::bldr::plugin::compiler::js::JsModuleKind _internal_kind() const;
+  void _internal_set_kind(::bldr::plugin::compiler::js::JsModuleKind value);
+
+  public:
+  // bool disable_project_config = 4;
+  void clear_disable_project_config() ;
+  bool disable_project_config() const;
+  void set_disable_project_config(bool value);
+
+  private:
+  bool _internal_disable_project_config() const;
+  void _internal_set_disable_project_config(bool value);
+
+  public:
+  // bool disable_entrypoint = 5;
+  void clear_disable_entrypoint() ;
+  bool disable_entrypoint() const;
+  void set_disable_entrypoint(bool value);
+
+  private:
+  bool _internal_disable_entrypoint() const;
+  void _internal_set_disable_entrypoint(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.plugin.compiler.js.JsModule)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   2, 62,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const JsModule& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> vite_config_paths_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
+    ::filter::StringFilter* PROTOBUF_NULLABLE web_view_id_;
+    ::filter::StringFilter* PROTOBUF_NULLABLE web_view_parent_id_;
+    int kind_;
+    bool disable_project_config_;
+    bool disable_entrypoint_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull JsModule_class_data_;
 // -------------------------------------------------------------------
 
 class Config_HostConfigSetEntry_DoNotUse final
@@ -3342,7 +3376,7 @@ inline void JsModule::clear_kind() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kind_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000010U);
 }
 inline ::bldr::plugin::compiler::js::JsModuleKind JsModule::kind() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.kind)
@@ -3350,7 +3384,7 @@ inline ::bldr::plugin::compiler::js::JsModuleKind JsModule::kind() const {
 }
 inline void JsModule::set_kind(::bldr::plugin::compiler::js::JsModuleKind value) {
   _internal_set_kind(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:bldr.plugin.compiler.js.JsModule.kind)
 }
 inline ::bldr::plugin::compiler::js::JsModuleKind JsModule::_internal_kind() const {
@@ -3504,7 +3538,7 @@ inline void JsModule::clear_disable_project_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_project_config_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000020U);
 }
 inline bool JsModule::disable_project_config() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.disable_project_config)
@@ -3512,7 +3546,7 @@ inline bool JsModule::disable_project_config() const {
 }
 inline void JsModule::set_disable_project_config(bool value) {
   _internal_set_disable_project_config(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:bldr.plugin.compiler.js.JsModule.disable_project_config)
 }
 inline bool JsModule::_internal_disable_project_config() const {
@@ -3529,7 +3563,7 @@ inline void JsModule::clear_disable_entrypoint() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_entrypoint_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 inline bool JsModule::disable_entrypoint() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.disable_entrypoint)
@@ -3537,7 +3571,7 @@ inline bool JsModule::disable_entrypoint() const {
 }
 inline void JsModule::set_disable_entrypoint(bool value) {
   _internal_set_disable_entrypoint(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:bldr.plugin.compiler.js.JsModule.disable_entrypoint)
 }
 inline bool JsModule::_internal_disable_entrypoint() const {
@@ -3547,6 +3581,192 @@ inline bool JsModule::_internal_disable_entrypoint() const {
 inline void JsModule::_internal_set_disable_entrypoint(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_entrypoint_ = value;
+}
+
+// .filter.StringFilter web_view_id = 6;
+inline bool JsModule::has_web_view_id() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.web_view_id_ != nullptr);
+  return value;
+}
+inline const ::filter::StringFilter& JsModule::_internal_web_view_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::filter::StringFilter* p = _impl_.web_view_id_;
+  return p != nullptr ? *p : reinterpret_cast<const ::filter::StringFilter&>(::filter::_StringFilter_default_instance_);
+}
+inline const ::filter::StringFilter& JsModule::web_view_id() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.web_view_id)
+  return _internal_web_view_id();
+}
+inline void JsModule::unsafe_arena_set_allocated_web_view_id(
+    ::filter::StringFilter* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.web_view_id_);
+  }
+  _impl_.web_view_id_ = reinterpret_cast<::filter::StringFilter*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.plugin.compiler.js.JsModule.web_view_id)
+}
+inline ::filter::StringFilter* PROTOBUF_NULLABLE JsModule::release_web_view_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::filter::StringFilter* released = _impl_.web_view_id_;
+  _impl_.web_view_id_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::filter::StringFilter* PROTOBUF_NULLABLE JsModule::unsafe_arena_release_web_view_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.plugin.compiler.js.JsModule.web_view_id)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::filter::StringFilter* temp = _impl_.web_view_id_;
+  _impl_.web_view_id_ = nullptr;
+  return temp;
+}
+inline ::filter::StringFilter* PROTOBUF_NONNULL JsModule::_internal_mutable_web_view_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.web_view_id_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::filter::StringFilter>(GetArena());
+    _impl_.web_view_id_ = reinterpret_cast<::filter::StringFilter*>(p);
+  }
+  return _impl_.web_view_id_;
+}
+inline ::filter::StringFilter* PROTOBUF_NONNULL JsModule::mutable_web_view_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::filter::StringFilter* _msg = _internal_mutable_web_view_id();
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.compiler.js.JsModule.web_view_id)
+  return _msg;
+}
+inline void JsModule::set_allocated_web_view_id(::filter::StringFilter* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.web_view_id_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.web_view_id_ = reinterpret_cast<::filter::StringFilter*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.plugin.compiler.js.JsModule.web_view_id)
+}
+
+// .filter.StringFilter web_view_parent_id = 7;
+inline bool JsModule::has_web_view_parent_id() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.web_view_parent_id_ != nullptr);
+  return value;
+}
+inline const ::filter::StringFilter& JsModule::_internal_web_view_parent_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::filter::StringFilter* p = _impl_.web_view_parent_id_;
+  return p != nullptr ? *p : reinterpret_cast<const ::filter::StringFilter&>(::filter::_StringFilter_default_instance_);
+}
+inline const ::filter::StringFilter& JsModule::web_view_parent_id() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.js.JsModule.web_view_parent_id)
+  return _internal_web_view_parent_id();
+}
+inline void JsModule::unsafe_arena_set_allocated_web_view_parent_id(
+    ::filter::StringFilter* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.web_view_parent_id_);
+  }
+  _impl_.web_view_parent_id_ = reinterpret_cast<::filter::StringFilter*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.plugin.compiler.js.JsModule.web_view_parent_id)
+}
+inline ::filter::StringFilter* PROTOBUF_NULLABLE JsModule::release_web_view_parent_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::filter::StringFilter* released = _impl_.web_view_parent_id_;
+  _impl_.web_view_parent_id_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::filter::StringFilter* PROTOBUF_NULLABLE JsModule::unsafe_arena_release_web_view_parent_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.plugin.compiler.js.JsModule.web_view_parent_id)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::filter::StringFilter* temp = _impl_.web_view_parent_id_;
+  _impl_.web_view_parent_id_ = nullptr;
+  return temp;
+}
+inline ::filter::StringFilter* PROTOBUF_NONNULL JsModule::_internal_mutable_web_view_parent_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.web_view_parent_id_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::filter::StringFilter>(GetArena());
+    _impl_.web_view_parent_id_ = reinterpret_cast<::filter::StringFilter*>(p);
+  }
+  return _impl_.web_view_parent_id_;
+}
+inline ::filter::StringFilter* PROTOBUF_NONNULL JsModule::mutable_web_view_parent_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::filter::StringFilter* _msg = _internal_mutable_web_view_parent_id();
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.compiler.js.JsModule.web_view_parent_id)
+  return _msg;
+}
+inline void JsModule::set_allocated_web_view_parent_id(::filter::StringFilter* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.web_view_parent_id_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.web_view_parent_id_ = reinterpret_cast<::filter::StringFilter*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.plugin.compiler.js.JsModule.web_view_parent_id)
 }
 
 // -------------------------------------------------------------------
