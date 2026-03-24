@@ -60,6 +60,9 @@ func MergeProjectConfigs(dest, src *ProjectConfig) error {
 	dest.Start.Plugins = append(dest.Start.Plugins, srcStart.GetPlugins()...)
 	slices.Sort(dest.Start.Plugins)
 	dest.Start.Plugins = slices.Compact(dest.Start.Plugins)
+	if ws := srcStart.GetLoadWebStartup(); ws != "" {
+		dest.Start.LoadWebStartup = ws
+	}
 
 	if dest.Manifests == nil {
 		dest.Manifests = make(map[string]*ManifestConfig)
