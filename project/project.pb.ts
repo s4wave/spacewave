@@ -29,6 +29,16 @@ export interface StartConfig {
    * @generated from field: bool disable_build = 2;
    */
   disableBuild?: boolean
+  /**
+   * LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component to load on startup.
+   * Must be a relative path located within the project sources.
+   * The file will be bundled with esbuild into the entrypoint bundle.
+   * The component should contain a <WebView /> from @aptre/bldr-react.
+   * The contents will be used for the children of BldrRoot.
+   *
+   * @generated from field: string load_web_startup = 3;
+   */
+  loadWebStartup?: string
 }
 
 // StartConfig contains the message type declaration for StartConfig.
@@ -43,6 +53,7 @@ export const StartConfig: MessageType<StartConfig> = createMessageType({
       repeated: true,
     },
     { no: 2, name: 'disable_build', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

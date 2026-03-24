@@ -73,7 +73,9 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	// TODO: reload these if ProjectController restarts?
 	currProjConf := currProjCtrl.GetConfig().GetProjectConfig()
 	appID := currProjConf.GetId()
-	startupPlugins := currProjConf.GetStart().GetPlugins()
+	startConf := currProjConf.GetStart()
+	startupPlugins := startConf.GetPlugins()
+	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
 	return d.ExecuteWebWasm(
@@ -84,6 +86,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		a.WebListenAddr,
 		appID,
 		startupPlugins,
+		webStartupSrcPath,
 	)
 }
 
@@ -96,6 +99,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	listenAddr string,
 	appID string,
 	startPlugins []string,
+	webStartupSrcPath string,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -105,9 +109,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
-
-	// TODO: set webStartupSrcPath to control the root component in the WebView.
-	var webStartupSrcPath string
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")

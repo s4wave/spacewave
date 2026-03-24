@@ -274,6 +274,7 @@ class StartConfig final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPluginsFieldNumber = 1,
+    kLoadWebStartupFieldNumber = 3,
     kDisableBuildFieldNumber = 2,
   };
   // repeated string plugins = 1;
@@ -298,6 +299,21 @@ class StartConfig final : public ::google::protobuf::Message
   ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_plugins();
 
   public:
+  // string load_web_startup = 3;
+  void clear_load_web_startup() ;
+  const ::std::string& load_web_startup() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_load_web_startup(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_load_web_startup();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_load_web_startup();
+  void set_allocated_load_web_startup(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_load_web_startup() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_load_web_startup(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_load_web_startup();
+
+  public:
   // bool disable_build = 2;
   void clear_disable_build() ;
   bool disable_build() const;
@@ -312,8 +328,8 @@ class StartConfig final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 40,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 56,
                                    2>
       _table_;
 
@@ -335,6 +351,7 @@ class StartConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField<::std::string> plugins_;
+    ::google::protobuf::internal::ArenaStringPtr load_web_startup_;
     bool disable_build_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2866,7 +2883,7 @@ inline void StartConfig::clear_disable_build() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_build_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline bool StartConfig::disable_build() const {
   // @@protoc_insertion_point(field_get:bldr.project.StartConfig.disable_build)
@@ -2874,7 +2891,7 @@ inline bool StartConfig::disable_build() const {
 }
 inline void StartConfig::set_disable_build(bool value) {
   _internal_set_disable_build(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:bldr.project.StartConfig.disable_build)
 }
 inline bool StartConfig::_internal_disable_build() const {
@@ -2884,6 +2901,71 @@ inline bool StartConfig::_internal_disable_build() const {
 inline void StartConfig::_internal_set_disable_build(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_build_ = value;
+}
+
+// string load_web_startup = 3;
+inline void StartConfig::clear_load_web_startup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.load_web_startup_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& StartConfig::load_web_startup() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.StartConfig.load_web_startup)
+  return _internal_load_web_startup();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void StartConfig::set_load_web_startup(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.load_web_startup_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.project.StartConfig.load_web_startup)
+}
+inline ::std::string* PROTOBUF_NONNULL StartConfig::mutable_load_web_startup()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_load_web_startup();
+  // @@protoc_insertion_point(field_mutable:bldr.project.StartConfig.load_web_startup)
+  return _s;
+}
+inline const ::std::string& StartConfig::_internal_load_web_startup() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.load_web_startup_.Get();
+}
+inline void StartConfig::_internal_set_load_web_startup(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.load_web_startup_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL StartConfig::_internal_mutable_load_web_startup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.load_web_startup_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE StartConfig::release_load_web_startup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.StartConfig.load_web_startup)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.load_web_startup_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.load_web_startup_.Set("", GetArena());
+  }
+  return released;
+}
+inline void StartConfig::set_allocated_load_web_startup(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.load_web_startup_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.load_web_startup_.IsDefault()) {
+    _impl_.load_web_startup_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.StartConfig.load_web_startup)
 }
 
 // -------------------------------------------------------------------

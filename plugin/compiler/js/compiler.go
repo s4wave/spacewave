@@ -355,6 +355,10 @@ func (c *Controller) BuildManifest(
 		)
 	}
 
+	// Filter out excluded web package references (another plugin provides these).
+	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(webPkgs)
+	allWebPkgRefs = allWebPkgRefs.FilterExcluded(excludedIDs)
+
 	// Sort collected web package references
 	web_pkg.SortWebPkgRefs(allWebPkgRefs)
 

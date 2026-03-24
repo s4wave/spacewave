@@ -63,6 +63,17 @@ func (sl WebPkgRefConfigSlice) ToIdList() []string {
 	return out
 }
 
+// ExcludedWebPkgIDs returns the set of web pkg IDs that have exclude=true.
+func ExcludedWebPkgIDs(refs []*WebPkgRefConfig) map[string]struct{} {
+	out := make(map[string]struct{})
+	for _, ref := range refs {
+		if ref.GetExclude() {
+			out[ref.GetId()] = struct{}{}
+		}
+	}
+	return out
+}
+
 // SortWebPkgRefConfigs sorts the list of ref configs by web pkg id.
 func SortWebPkgRefConfigs(refs []*WebPkgRefConfig) {
 	slices.SortStableFunc(refs, func(a, b *WebPkgRefConfig) int {

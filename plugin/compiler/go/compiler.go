@@ -708,6 +708,10 @@ func (c *Controller) BuildPlugin(
 		webPkgRefs = append(webPkgRefs, directRefs...)
 	}
 
+	// Filter out excluded web package references (another plugin provides these).
+	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(webPkgs)
+	webPkgRefs = webPkgRefs.FilterExcluded(excludedIDs)
+
 	// sort the web pkg refs
 	web_pkg.SortWebPkgRefs(webPkgRefs)
 

@@ -2,8 +2,10 @@ package bldr_project
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
@@ -154,7 +156,31 @@ func (c *StartConfig) Validate() error {
 			return errors.Wrapf(err, "plugins[%s]: invalid plugin id", pluginID)
 		}
 	}
+	if _, err := c.ParseWebStartupPath(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ParseWebStartupPath validates and cleans the web startup path.
+// If unset, returns "", nil.
+func (c *StartConfig) ParseWebStartupPath() (string, error) {
+	startupPath := c.GetLoadWebStartup()
+	if len(startupPath) == 0 {
+		return "", nil
+	}
+	startupPath = path.Clean(startupPath)
+	if startupPath[0] == '/' {
+		return "", errors.New("load_web_startup: must be a relative path")
+	}
+	startupPathExt := path.Ext(startupPath)
+	if startupPathExt != ".js" && startupPathExt != ".tsx" && startupPathExt != ".ts" {
+		return "", errors.New("load_web_startup: must be a .js, .tsx, or .ts file")
+	}
+	if strings.HasPrefix(startupPath, "../") {
+		return "", errors.New("load_web_startup: must be relative to ./")
+	}
+	return startupPath, nil
 }
 
 // Validate validates the plugin config.

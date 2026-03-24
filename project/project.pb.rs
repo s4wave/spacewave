@@ -67,6 +67,13 @@ pub struct StartConfig {
     /// DisableBuild disables running the manifest builders to resolve FetchManifest.
     #[prost(bool, tag="2")]
     pub disable_build: bool,
+    /// LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component to load on startup.
+    /// Must be a relative path located within the project sources.
+    /// The file will be bundled with esbuild into the entrypoint bundle.
+    /// The component should contain a <WebView /> from @aptre/bldr-react.
+    /// The contents will be used for the children of BldrRoot.
+    #[prost(string, tag="3")]
+    pub load_web_startup: ::prost::alloc::string::String,
 }
 /// BuildConfig configures a build target.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

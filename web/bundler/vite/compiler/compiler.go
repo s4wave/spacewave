@@ -697,15 +697,18 @@ func (c *Controller) performFullRebuild(
 		return nil, err
 	}
 
-	// Run esbuild on the web pkgs (if any)
+	// Run esbuild on the web pkgs (if any).
+	// Filter out excluded web packages (another plugin provides these).
+	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
+	buildableWebPkgRefs := web_pkg.WebPkgRefSlice(viteBuildResult.webPkgRefs).FilterExcluded(excludedIDs)
 	var webPkgSrcFiles []string
-	if len(viteBuildResult.webPkgRefs) != 0 {
+	if len(buildableWebPkgRefs) != 0 {
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 		_, webPkgSrcFiles, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
 			ctx,
 			le,
 			sourcePath,
-			viteBuildResult.webPkgRefs,
+			buildableWebPkgRefs,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,

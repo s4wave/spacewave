@@ -157,6 +157,12 @@ type StartConfig struct {
 	Plugins []string `protobuf:"bytes,1,rep,name=plugins,proto3" json:"plugins,omitempty"`
 	// DisableBuild disables running the manifest builders to resolve FetchManifest.
 	DisableBuild bool `protobuf:"varint,2,opt,name=disable_build,json=disableBuild,proto3" json:"disableBuild,omitempty"`
+	// LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component to load on startup.
+	// Must be a relative path located within the project sources.
+	// The file will be bundled with esbuild into the entrypoint bundle.
+	// The component should contain a <WebView /> from @aptre/bldr-react.
+	// The contents will be used for the children of BldrRoot.
+	LoadWebStartup string `protobuf:"bytes,3,opt,name=load_web_startup,json=loadWebStartup,proto3" json:"loadWebStartup,omitempty"`
 }
 
 func (x *StartConfig) Reset() {
@@ -177,6 +183,13 @@ func (x *StartConfig) GetDisableBuild() bool {
 		return x.DisableBuild
 	}
 	return false
+}
+
+func (x *StartConfig) GetLoadWebStartup() string {
+	if x != nil {
+		return x.LoadWebStartup
+	}
+	return ""
 }
 
 // BuildConfig configures a build target.
@@ -651,6 +664,7 @@ func (m *StartConfig) CloneVT() *StartConfig {
 	}
 	r := new(StartConfig)
 	r.DisableBuild = m.DisableBuild
+	r.LoadWebStartup = m.LoadWebStartup
 	if rhs := m.Plugins; rhs != nil {
 		r.Plugins = slices.Clone(rhs)
 	}
@@ -929,6 +943,9 @@ func (this *StartConfig) EqualVT(that *StartConfig) bool {
 		}
 	}
 	if this.DisableBuild != that.DisableBuild {
+		return false
+	}
+	if this.LoadWebStartup != that.LoadWebStartup {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1607,6 +1624,11 @@ func (x *StartConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableBuild")
 		s.WriteBool(x.DisableBuild)
 	}
+	if x.LoadWebStartup != "" || s.HasField("loadWebStartup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("loadWebStartup")
+		s.WriteString(x.LoadWebStartup)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1634,6 +1656,9 @@ func (x *StartConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_build", "disableBuild":
 			s.AddField("disable_build")
 			x.DisableBuild = s.ReadBool()
+		case "load_web_startup", "loadWebStartup":
+			s.AddField("load_web_startup")
+			x.LoadWebStartup = s.ReadString()
 		}
 	})
 }
@@ -2351,6 +2376,13 @@ func (m *StartConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.LoadWebStartup) > 0 {
+		i -= len(m.LoadWebStartup)
+		copy(dAtA[i:], m.LoadWebStartup)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LoadWebStartup)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.DisableBuild {
 		i--
 		if m.DisableBuild {
@@ -2811,6 +2843,10 @@ func (m *StartConfig) SizeVT() (n int) {
 	if m.DisableBuild {
 		n += 2
 	}
+	l = len(m.LoadWebStartup)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3212,6 +3248,13 @@ func (x *StartConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_build: ")
 		sb.WriteString(strconv.FormatBool(x.DisableBuild))
+	}
+	if x.LoadWebStartup != "" {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("load_web_startup: ")
+		sb.WriteString(strconv.Quote(x.LoadWebStartup))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4153,6 +4196,28 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableBuild = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadWebStartup", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LoadWebStartup = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

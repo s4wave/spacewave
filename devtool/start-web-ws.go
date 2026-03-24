@@ -105,7 +105,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 
 	// execute the project controller
-	_, projCtrlRef, err := d.StartProjectController(
+	projCtrl, projCtrlRef, err := d.StartProjectController(
 		ctx,
 		d.GetBus(),
 		repoRoot,
@@ -118,7 +118,13 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr)
+	currProjCtrl, err := projCtrl.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+	webStartupSrcPath, _ := currProjCtrl.GetConfig().GetProjectConfig().GetStart().ParseWebStartupPath()
+
+	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)
 }
 
 // ExecuteWebWs starts the application in the browser with a websocket.
@@ -127,6 +133,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 	repoRoot string,
 	minifyEntrypoint, devMode bool,
 	listenAddr string,
+	webStartupSrcPath string,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -136,9 +143,6 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
-
-	// TODO: set webStartupSrcPath to control the root component in the WebView.
-	var webStartupSrcPath string
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")

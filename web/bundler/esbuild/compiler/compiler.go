@@ -13,6 +13,7 @@ import (
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
@@ -289,13 +290,16 @@ func (c *Controller) BuildManifest(
 			InputFileKind_InputFileKind_ESBUILD: sourceFilesList,
 		}
 
-		// Run esbuild on the web pkgs (if any)
+		// Run esbuild on the web pkgs (if any).
+		// Filter out excluded web packages (another plugin provides these).
+		excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
+		buildableWebPkgRefs := web_pkg.WebPkgRefSlice(webPkgRefs).FilterExcluded(excludedIDs)
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 		_, webPkgSrcFiles, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 			ctx,
 			le,
 			sourcePath,
-			webPkgRefs,
+			buildableWebPkgRefs,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,

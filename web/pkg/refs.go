@@ -43,6 +43,20 @@ func (sl WebPkgRefSlice) AppendWebPkgRef(webPkgID, webPkgRoot, importPath string
 	return sl, dirty
 }
 
+// FilterExcluded returns a new slice with web pkg refs whose IDs are NOT in the excluded set.
+func (sl WebPkgRefSlice) FilterExcluded(excludedIDs map[string]struct{}) WebPkgRefSlice {
+	if len(excludedIDs) == 0 {
+		return sl
+	}
+	out := make(WebPkgRefSlice, 0, len(sl))
+	for _, ref := range sl {
+		if _, excluded := excludedIDs[ref.GetWebPkgId()]; !excluded {
+			out = append(out, ref)
+		}
+	}
+	return out
+}
+
 // SortWebPkgRefs sorts the list of refs by web pkg id.
 func SortWebPkgRefs(refs []*WebPkgRef) {
 	slices.SortStableFunc(refs, func(a, b *WebPkgRef) int {
