@@ -5,6 +5,7 @@ package volume_indexeddb
 import (
 	"context"
 
+	"github.com/aperturerobotics/go-indexeddb/idb"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sindexeddb "github.com/aperturerobotics/hydra/store/kvtx/js/indexeddb"
@@ -53,6 +54,7 @@ func NewIndexedDB(
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
 
+	dbName := conf.GetDatabaseName()
 	return kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -62,5 +64,12 @@ func NewIndexedDB(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		istore.Close,
+		func() error {
+			req, err := idb.Global().DeleteDatabase(dbName)
+			if err != nil {
+				return err
+			}
+			return req.Await(ctx)
+		},
 	)
 }

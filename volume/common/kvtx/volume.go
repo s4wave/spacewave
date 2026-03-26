@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
@@ -29,6 +30,12 @@ type Volume struct {
 	refGraph *block_gc.RefGraph
 	// closeFn is the close func, may be nil
 	closeFn func() error
+	// deleteFn removes the backing store after Close, may be nil.
+	deleteFn func() error
+	// closeOnce ensures Close is idempotent.
+	closeOnce sync.Once
+	// closeErr stores the error from Close.
+	closeErr error
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -54,12 +61,16 @@ func NewVolume(
 	noGenerateKey,
 	noWriteKey bool,
 	closeFn func() error,
+	deleteFn ...func() error,
 ) (*Volume, error) {
 	v := &Volume{
 		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
 		kvKey:     kvkey,
 		closeFn:   closeFn,
+	}
+	if len(deleteFn) != 0 {
+		v.deleteFn = deleteFn[0]
 	}
 
 	peerPriv, err := v.LoadPeerPriv(ctx)
@@ -140,14 +151,29 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 }
 
 // Close closes the volume, returning any errors.
+// Close is idempotent: subsequent calls return the same error.
 func (v *Volume) Close() error {
-	if v.refGraph != nil {
-		if err := v.refGraph.Close(); err != nil {
-			return err
+	v.closeOnce.Do(func() {
+		if v.refGraph != nil {
+			if err := v.refGraph.Close(); err != nil {
+				v.closeErr = err
+				return
+			}
 		}
+		if v.closeFn != nil {
+			v.closeErr = v.closeFn()
+		}
+	})
+	return v.closeErr
+}
+
+// Delete closes the volume and removes the backing store.
+func (v *Volume) Delete() error {
+	if err := v.Close(); err != nil {
+		return err
 	}
-	if v.closeFn != nil {
-		return v.closeFn()
+	if v.deleteFn != nil {
+		return v.deleteFn()
 	}
 	return nil
 }

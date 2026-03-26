@@ -146,6 +146,12 @@ func (v *ProxyVolume) Close() error {
 	return nil
 }
 
+// Delete closes the volume and removes the backing store.
+// ProxyVolume does not own a backing store, so this is a no-op.
+func (v *ProxyVolume) Delete() error {
+	return nil
+}
+
 // _ is a type assertion
 var (
 	_ volume.Volume      = ((*ProxyVolume)(nil))

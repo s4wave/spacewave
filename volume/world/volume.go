@@ -159,5 +159,13 @@ func (v *Volume) Close() error {
 	return err
 }
 
+// Delete closes the volume and removes the backing store.
+func (v *Volume) Delete() error {
+	for _, rel := range v.rels {
+		rel()
+	}
+	return v.Volume.Delete()
+}
+
 // _ is a type assertion
 var _ volume.Volume = ((*Volume)(nil))

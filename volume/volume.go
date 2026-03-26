@@ -43,6 +43,11 @@ type Volume interface {
 
 	// Close closes the volume, returning any errors.
 	Close() error
+
+	// Delete closes the volume and removes the backing store.
+	// After Delete returns, the volume's persistent data is gone.
+	// Close is idempotent after Delete.
+	Delete() error
 }
 
 // NewVolumeID constructs a new volume ID with a store type id and a peer id.

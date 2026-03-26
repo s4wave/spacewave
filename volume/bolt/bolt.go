@@ -4,6 +4,7 @@ package volume_bolt
 
 import (
 	"context"
+	"os"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
@@ -76,6 +77,7 @@ func NewBolt(
 		}
 	}
 
+	path := conf.GetPath()
 	return kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -85,6 +87,7 @@ func NewBolt(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		closeFn,
+		func() error { return os.Remove(path) },
 	)
 }
 

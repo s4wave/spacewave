@@ -2,6 +2,7 @@ package volume_sqlite
 
 import (
 	"context"
+	"os"
 
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
@@ -43,6 +44,7 @@ func NewSqlite(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	path := conf.GetPath()
 	return kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -52,6 +54,7 @@ func NewSqlite(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		store.GetDB().Close,
+		func() error { return os.Remove(path) },
 	)
 }
 
