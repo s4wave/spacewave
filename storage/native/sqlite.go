@@ -1,4 +1,4 @@
-//go:build !js && !bldr_bolt
+//go:build !js && bldr_sqlite
 
 package storage_native
 

@@ -22,7 +22,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260326090430-4c4b20b1e76f // master
+	github.com/aperturerobotics/hydra v0.0.0-20260326222524-3d7c49945592 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect

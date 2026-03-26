@@ -1,4 +1,4 @@
-//go:build !js && bldr_bolt
+//go:build !js && !bldr_sqlite
 
 package storage_native
 
@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const BoltDBExt = ".bdb"
+const BoltDBExt = ".s4wave"
 
 // BoltDB implements the BoltDB database.
 type BoltDB struct {
@@ -59,7 +59,10 @@ func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller
 // DeleteVolume removes the BoltDB database file for the given volume ID.
 func (i *BoltDB) DeleteVolume(id string) error {
 	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
-	return os.Remove(filepath.Join(i.rootDir, filename))
+	path := filepath.Join(i.rootDir, filename)
+	// remove the bbolt lock file if present
+	os.Remove(path + "-lock")
+	return os.Remove(path)
 }
 
 func init() {
