@@ -183,6 +183,7 @@ func NewVolume(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		nil,
 		func() error {
 			for _, rel := range rels {
 				rel()

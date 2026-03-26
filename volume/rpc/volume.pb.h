@@ -67,6 +67,14 @@ class GetPeerPrivResponse;
 struct GetPeerPrivResponseDefaultTypeInternal;
 extern GetPeerPrivResponseDefaultTypeInternal _GetPeerPrivResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetPeerPrivResponse_class_data_;
+class GetStorageStatsRequest;
+struct GetStorageStatsRequestDefaultTypeInternal;
+extern GetStorageStatsRequestDefaultTypeInternal _GetStorageStatsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetStorageStatsRequest_class_data_;
+class GetStorageStatsResponse;
+struct GetStorageStatsResponseDefaultTypeInternal;
+extern GetStorageStatsResponseDefaultTypeInternal _GetStorageStatsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetStorageStatsResponse_class_data_;
 class GetVolumeInfoRequest;
 struct GetVolumeInfoRequestDefaultTypeInternal;
 extern GetVolumeInfoRequestDefaultTypeInternal _GetVolumeInfoRequest_default_instance_;
@@ -427,6 +435,140 @@ class GetVolumeInfoRequest final : public ::google::protobuf::internal::ZeroFiel
 extern const ::google::protobuf::internal::ClassDataFull GetVolumeInfoRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GetStorageStatsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:volume.rpc.GetStorageStatsRequest) */ {
+ public:
+  inline GetStorageStatsRequest() : GetStorageStatsRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetStorageStatsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetStorageStatsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetStorageStatsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetStorageStatsRequest(const GetStorageStatsRequest& from) : GetStorageStatsRequest(nullptr, from) {}
+  inline GetStorageStatsRequest(GetStorageStatsRequest&& from) noexcept
+      : GetStorageStatsRequest(nullptr, ::std::move(from)) {}
+  inline GetStorageStatsRequest& operator=(const GetStorageStatsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetStorageStatsRequest& operator=(GetStorageStatsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetStorageStatsRequest& default_instance() {
+    return *reinterpret_cast<const GetStorageStatsRequest*>(
+        &_GetStorageStatsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(GetStorageStatsRequest& a, GetStorageStatsRequest& b) { a.Swap(&b); }
+  inline void Swap(GetStorageStatsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetStorageStatsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetStorageStatsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<GetStorageStatsRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const GetStorageStatsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const GetStorageStatsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.GetStorageStatsRequest"; }
+
+  explicit GetStorageStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetStorageStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetStorageStatsRequest& from);
+  GetStorageStatsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetStorageStatsRequest&& from) noexcept
+      : GetStorageStatsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:volume.rpc.GetStorageStatsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetStorageStatsRequest_class_data_;
+// -------------------------------------------------------------------
+
 class GetPeerPrivResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:volume.rpc.GetPeerPrivResponse) */ {
  public:
@@ -754,6 +896,201 @@ class GetPeerPrivRequest final : public ::google::protobuf::internal::ZeroFields
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetPeerPrivRequest_class_data_;
+// -------------------------------------------------------------------
+
+class GetStorageStatsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.GetStorageStatsResponse) */ {
+ public:
+  inline GetStorageStatsResponse() : GetStorageStatsResponse(nullptr) {}
+  ~GetStorageStatsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetStorageStatsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetStorageStatsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetStorageStatsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetStorageStatsResponse(const GetStorageStatsResponse& from) : GetStorageStatsResponse(nullptr, from) {}
+  inline GetStorageStatsResponse(GetStorageStatsResponse&& from) noexcept
+      : GetStorageStatsResponse(nullptr, ::std::move(from)) {}
+  inline GetStorageStatsResponse& operator=(const GetStorageStatsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetStorageStatsResponse& operator=(GetStorageStatsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetStorageStatsResponse& default_instance() {
+    return *reinterpret_cast<const GetStorageStatsResponse*>(
+        &_GetStorageStatsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(GetStorageStatsResponse& a, GetStorageStatsResponse& b) { a.Swap(&b); }
+  inline void Swap(GetStorageStatsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetStorageStatsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetStorageStatsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetStorageStatsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetStorageStatsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetStorageStatsResponse& from) { GetStorageStatsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetStorageStatsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.GetStorageStatsResponse"; }
+
+  explicit GetStorageStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetStorageStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetStorageStatsResponse& from);
+  GetStorageStatsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetStorageStatsResponse&& from) noexcept
+      : GetStorageStatsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStorageStatsFieldNumber = 1,
+  };
+  // .volume.StorageStats storage_stats = 1;
+  bool has_storage_stats() const;
+  void clear_storage_stats() ;
+  const ::volume::StorageStats& storage_stats() const;
+  [[nodiscard]] ::volume::StorageStats* PROTOBUF_NULLABLE release_storage_stats();
+  ::volume::StorageStats* PROTOBUF_NONNULL mutable_storage_stats();
+  void set_allocated_storage_stats(::volume::StorageStats* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_storage_stats(::volume::StorageStats* PROTOBUF_NULLABLE value);
+  ::volume::StorageStats* PROTOBUF_NULLABLE unsafe_arena_release_storage_stats();
+
+  private:
+  const ::volume::StorageStats& _internal_storage_stats() const;
+  ::volume::StorageStats* PROTOBUF_NONNULL _internal_mutable_storage_stats();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.GetStorageStatsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetStorageStatsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::volume::StorageStats* PROTOBUF_NULLABLE storage_stats_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetStorageStatsResponse_class_data_;
 // -------------------------------------------------------------------
 
 class WatchVolumeInfoResponse final : public ::google::protobuf::Message
@@ -1532,6 +1869,107 @@ inline void GetPeerPrivResponse::set_allocated_priv_key(::std::string* PROTOBUF_
     _impl_.priv_key_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:volume.rpc.GetPeerPrivResponse.priv_key)
+}
+
+// -------------------------------------------------------------------
+
+// GetStorageStatsRequest
+
+// -------------------------------------------------------------------
+
+// GetStorageStatsResponse
+
+// .volume.StorageStats storage_stats = 1;
+inline bool GetStorageStatsResponse::has_storage_stats() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.storage_stats_ != nullptr);
+  return value;
+}
+inline const ::volume::StorageStats& GetStorageStatsResponse::_internal_storage_stats() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::volume::StorageStats* p = _impl_.storage_stats_;
+  return p != nullptr ? *p : reinterpret_cast<const ::volume::StorageStats&>(::volume::_StorageStats_default_instance_);
+}
+inline const ::volume::StorageStats& GetStorageStatsResponse::storage_stats() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.GetStorageStatsResponse.storage_stats)
+  return _internal_storage_stats();
+}
+inline void GetStorageStatsResponse::unsafe_arena_set_allocated_storage_stats(
+    ::volume::StorageStats* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.storage_stats_);
+  }
+  _impl_.storage_stats_ = reinterpret_cast<::volume::StorageStats*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.GetStorageStatsResponse.storage_stats)
+}
+inline ::volume::StorageStats* PROTOBUF_NULLABLE GetStorageStatsResponse::release_storage_stats() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::StorageStats* released = _impl_.storage_stats_;
+  _impl_.storage_stats_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::volume::StorageStats* PROTOBUF_NULLABLE GetStorageStatsResponse::unsafe_arena_release_storage_stats() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.GetStorageStatsResponse.storage_stats)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::StorageStats* temp = _impl_.storage_stats_;
+  _impl_.storage_stats_ = nullptr;
+  return temp;
+}
+inline ::volume::StorageStats* PROTOBUF_NONNULL GetStorageStatsResponse::_internal_mutable_storage_stats() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.storage_stats_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::volume::StorageStats>(GetArena());
+    _impl_.storage_stats_ = reinterpret_cast<::volume::StorageStats*>(p);
+  }
+  return _impl_.storage_stats_;
+}
+inline ::volume::StorageStats* PROTOBUF_NONNULL GetStorageStatsResponse::mutable_storage_stats()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::StorageStats* _msg = _internal_mutable_storage_stats();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.GetStorageStatsResponse.storage_stats)
+  return _msg;
+}
+inline void GetStorageStatsResponse::set_allocated_storage_stats(::volume::StorageStats* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.storage_stats_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.storage_stats_ = reinterpret_cast<::volume::StorageStats*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.GetStorageStatsResponse.storage_stats)
 }
 
 #ifdef __GNUC__

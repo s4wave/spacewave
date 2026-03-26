@@ -65,6 +65,36 @@ export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
 })
 
 /**
+ * StorageStats contains storage usage statistics for a volume.
+ *
+ * @generated from message volume.StorageStats
+ */
+export interface StorageStats {
+  /**
+   * TotalBytes is the total storage size in bytes.
+   *
+   * @generated from field: uint64 total_bytes = 1;
+   */
+  totalBytes?: bigint
+  /**
+   * BlockCount is the number of blocks stored.
+   *
+   * @generated from field: uint64 block_count = 2;
+   */
+  blockCount?: bigint
+}
+
+// StorageStats contains the message type declaration for StorageStats.
+export const StorageStats: MessageType<StorageStats> = createMessageType({
+  typeName: 'volume.StorageStats',
+  fields: [
+    { no: 1, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 2, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * VolumeBucketInfo is information about a bucket in a volume.
  *
  * @generated from message volume.VolumeBucketInfo

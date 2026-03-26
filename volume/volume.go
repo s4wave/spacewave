@@ -38,6 +38,10 @@ type Volume interface {
 	// NOTE: May return nil if the volume does not support Garbage Collection.
 	GetRefGraph() block_gc.RefGraphOps
 
+	// GetStorageStats returns storage usage statistics for the volume.
+	// Returns total bytes and block count from the underlying storage backend.
+	GetStorageStats(ctx context.Context) (*StorageStats, error)
+
 	// Store indicates the volume is a hydra store.
 	store.Store
 

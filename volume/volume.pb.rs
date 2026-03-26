@@ -21,6 +21,16 @@ pub struct VolumeInfo {
     #[prost(enumeration="super::hash::HashType", tag="5")]
     pub hash_type: i32,
 }
+/// StorageStats contains storage usage statistics for a volume.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StorageStats {
+    /// TotalBytes is the total storage size in bytes.
+    #[prost(uint64, tag="1")]
+    pub total_bytes: u64,
+    /// BlockCount is the number of blocks stored.
+    #[prost(uint64, tag="2")]
+    pub block_count: u64,
+}
 /// VolumeBucketInfo is information about a bucket in a volume.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VolumeBucketInfo {

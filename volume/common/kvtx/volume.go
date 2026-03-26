@@ -14,6 +14,9 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 )
 
+// StatsFn returns storage usage statistics for a volume.
+type StatsFn func(ctx context.Context) (*volume.StorageStats, error)
+
 // Volume implements a key-value volume.
 type Volume struct {
 	// volumeID is the volume id
@@ -28,6 +31,8 @@ type Volume struct {
 	kvKey *store_kvkey.KVKey
 	// refGraph is the volume's GC reference graph.
 	refGraph *block_gc.RefGraph
+	// statsFn returns storage stats, may be nil.
+	statsFn StatsFn
 	// closeFn is the close func, may be nil
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
@@ -60,6 +65,7 @@ func NewVolume(
 	conf *store_kvtx.Config,
 	noGenerateKey,
 	noWriteKey bool,
+	statsFn StatsFn,
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
@@ -67,6 +73,7 @@ func NewVolume(
 		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
 		kvKey:     kvkey,
+		statsFn:   statsFn,
 		closeFn:   closeFn,
 	}
 	if len(deleteFn) != 0 {
@@ -140,6 +147,14 @@ func (v *Volume) GetKvtxStore() kvtx.Store {
 // GetKvKey returns the instance of KvKey used to build keys.
 func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 	return v.kvKey
+}
+
+// GetStorageStats returns storage usage statistics for the volume.
+func (v *Volume) GetStorageStats(ctx context.Context) (*volume.StorageStats, error) {
+	if v.statsFn != nil {
+		return v.statsFn(ctx)
+	}
+	return &volume.StorageStats{}, nil
 }
 
 // GetRefGraph returns the volume's GC reference graph.

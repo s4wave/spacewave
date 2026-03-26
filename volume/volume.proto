@@ -21,6 +21,14 @@ message VolumeInfo {
   .hash.HashType hash_type = 5;
 }
 
+// StorageStats contains storage usage statistics for a volume.
+message StorageStats {
+  // TotalBytes is the total storage size in bytes.
+  uint64 total_bytes = 1;
+  // BlockCount is the number of blocks stored.
+  uint64 block_count = 2;
+}
+
 // VolumeBucketInfo is information about a bucket in a volume.
 message VolumeBucketInfo {
   // BucketInfo is the bucket information.

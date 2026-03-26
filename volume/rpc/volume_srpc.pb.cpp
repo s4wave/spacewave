@@ -65,10 +65,15 @@ starpc::Error SRPCProxyVolumeClientImpl::GetPeerPriv(const volume::rpc::GetPeerP
   return cc_->ExecCall(service_id_, "GetPeerPriv", in, out);
 }
 
+starpc::Error SRPCProxyVolumeClientImpl::GetStorageStats(const volume::rpc::GetStorageStatsRequest& in, volume::rpc::GetStorageStatsResponse* out) {
+  return cc_->ExecCall(service_id_, "GetStorageStats", in, out);
+}
+
 std::vector<std::string> SRPCProxyVolumeHandler::GetMethodIDs() const {
   return {
     "GetVolumeInfo",
     "GetPeerPriv",
+    "GetStorageStats",
   };
 }
 
@@ -94,6 +99,14 @@ std::pair<bool, starpc::Error> SRPCProxyVolumeHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     volume::rpc::GetPeerPrivResponse resp;
     err = impl_->GetPeerPriv(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetStorageStats") {
+    volume::rpc::GetStorageStatsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::GetStorageStatsResponse resp;
+    err = impl_->GetStorageStats(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

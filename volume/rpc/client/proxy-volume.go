@@ -82,6 +82,15 @@ func (v *ProxyVolume) GetPeerID() peer.ID {
 	return v.volPeer.GetPeerID()
 }
 
+// GetStorageStats returns storage usage statistics via RPC.
+func (v *ProxyVolume) GetStorageStats(ctx context.Context) (*volume.StorageStats, error) {
+	resp, err := v.client.GetStorageStats(ctx, &volume_rpc.GetStorageStatsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetStorageStats(), nil
+}
+
 // GetRefGraph returns the volume's GC reference graph.
 func (v *ProxyVolume) GetRefGraph() block_gc.RefGraphOps {
 	if v.refGraph == nil {

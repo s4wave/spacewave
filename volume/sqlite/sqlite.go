@@ -45,6 +45,7 @@ func NewSqlite(
 	}
 
 	path := conf.GetPath()
+	db := store.GetDB()
 	return kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -53,7 +54,29 @@ func NewSqlite(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
-		store.GetDB().Close,
+		func(ctx context.Context) (*volume.StorageStats, error) {
+			var pageCount, pageSize uint64
+			if err := db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pageCount); err != nil {
+				return nil, err
+			}
+			if err := db.QueryRowContext(ctx, "PRAGMA page_size").Scan(&pageSize); err != nil {
+				return nil, err
+			}
+			tx, err := store.NewTransaction(ctx, false)
+			if err != nil {
+				return nil, err
+			}
+			defer tx.Discard()
+			count, err := tx.Size(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return &volume.StorageStats{
+				TotalBytes: pageCount * pageSize,
+				BlockCount: count,
+			}, nil
+		},
+		db.Close,
 		func() error { return os.Remove(path) },
 	)
 }

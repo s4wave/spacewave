@@ -60,6 +60,11 @@ func TestSqliteVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// check storage stats return non-zero after writes
+	if err := volume_test.CheckStorageStatsNonZero(ctx, bvol); err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// check volume key
 	t.Log(bvol.GetPeerID().String())
 }

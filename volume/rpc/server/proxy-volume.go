@@ -138,6 +138,18 @@ func (v *ProxyVolume) GetPeerPriv(
 	return volume_rpc.NewGetPeerPrivResponse(peerPriv)
 }
 
+// GetStorageStats returns storage usage statistics for the volume.
+func (v *ProxyVolume) GetStorageStats(
+	ctx context.Context,
+	req *volume_rpc.GetStorageStatsRequest,
+) (*volume_rpc.GetStorageStatsResponse, error) {
+	stats, err := v.vol.GetStorageStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &volume_rpc.GetStorageStatsResponse{StorageStats: stats}, nil
+}
+
 // _ is a type assertion
 var (
 	_ volume_rpc.SRPCProxyVolumeServer = ((*ProxyVolume)(nil))

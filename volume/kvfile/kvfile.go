@@ -51,6 +51,7 @@ func NewKVFile(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		true,
+		nil,
 		closeFn,
 	)
 }

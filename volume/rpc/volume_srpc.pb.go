@@ -259,6 +259,8 @@ type SRPCProxyVolumeClient interface {
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
+	// GetStorageStats returns storage usage statistics for the volume.
+	GetStorageStats(ctx context.Context, in *GetStorageStatsRequest) (*GetStorageStatsResponse, error)
 }
 
 type srpcProxyVolumeClient struct {
@@ -297,12 +299,23 @@ func (c *srpcProxyVolumeClient) GetPeerPriv(ctx context.Context, in *GetPeerPriv
 	return out, nil
 }
 
+func (c *srpcProxyVolumeClient) GetStorageStats(ctx context.Context, in *GetStorageStatsRequest) (*GetStorageStatsResponse, error) {
+	out := new(GetStorageStatsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetStorageStats", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCProxyVolumeServer interface {
 	// GetVolumeInfo returns the basic volume information.
 	GetVolumeInfo(context.Context, *GetVolumeInfoRequest) (*GetVolumeInfoResponse, error)
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(context.Context, *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
+	// GetStorageStats returns storage usage statistics for the volume.
+	GetStorageStats(context.Context, *GetStorageStatsRequest) (*GetStorageStatsResponse, error)
 }
 
 const SRPCProxyVolumeServiceID = "volume.rpc.ProxyVolume"
@@ -333,6 +346,7 @@ func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 	return []string{
 		"GetVolumeInfo",
 		"GetPeerPriv",
+		"GetStorageStats",
 	}
 }
 
@@ -349,6 +363,8 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetVolumeInfo(d.impl, strm)
 	case "GetPeerPriv":
 		return true, d.InvokeMethod_GetPeerPriv(d.impl, strm)
+	case "GetStorageStats":
+		return true, d.InvokeMethod_GetStorageStats(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -378,6 +394,18 @@ func (SRPCProxyVolumeHandler) InvokeMethod_GetPeerPriv(impl SRPCProxyVolumeServe
 	return strm.MsgSend(out)
 }
 
+func (SRPCProxyVolumeHandler) InvokeMethod_GetStorageStats(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetStorageStatsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetStorageStats(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCProxyVolume_GetVolumeInfoStream interface {
 	srpc.Stream
 }
@@ -391,5 +419,13 @@ type SRPCProxyVolume_GetPeerPrivStream interface {
 }
 
 type srpcProxyVolume_GetPeerPrivStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_GetStorageStatsStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_GetStorageStatsStream struct {
 	srpc.Stream
 }

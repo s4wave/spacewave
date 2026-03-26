@@ -73,6 +73,24 @@ struct GetVolumeInfoRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetVolumeInfoRequestDefaultTypeInternal _GetVolumeInfoRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR GetStorageStatsRequest::GetStorageStatsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(GetStorageStatsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct GetStorageStatsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetStorageStatsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetStorageStatsRequestDefaultTypeInternal() {}
+  union {
+    GetStorageStatsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetStorageStatsRequestDefaultTypeInternal _GetStorageStatsRequest_default_instance_;
 
 inline constexpr GetPeerPrivResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -118,6 +136,31 @@ struct GetPeerPrivRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetPeerPrivRequestDefaultTypeInternal _GetPeerPrivRequest_default_instance_;
+
+inline constexpr GetStorageStatsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        storage_stats_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetStorageStatsResponse::GetStorageStatsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetStorageStatsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetStorageStatsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetStorageStatsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetStorageStatsResponseDefaultTypeInternal() {}
+  union {
+    GetStorageStatsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetStorageStatsResponseDefaultTypeInternal _GetStorageStatsResponse_default_instance_;
 
 inline constexpr WatchVolumeInfoResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -202,6 +245,12 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::rpc::GetPeerPrivResponse, _impl_.priv_key_),
         0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::GetStorageStatsResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::GetStorageStatsResponse, _impl_.storage_stats_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -212,6 +261,8 @@ static const ::_pbi::MigrationSchema
         {13, sizeof(::volume::rpc::GetVolumeInfoResponse)},
         {18, sizeof(::volume::rpc::GetPeerPrivRequest)},
         {19, sizeof(::volume::rpc::GetPeerPrivResponse)},
+        {24, sizeof(::volume::rpc::GetStorageStatsRequest)},
+        {25, sizeof(::volume::rpc::GetStorageStatsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::rpc::_WatchVolumeInfoRequest_default_instance_._instance,
@@ -220,6 +271,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::rpc::_GetVolumeInfoResponse_default_instance_._instance,
     &::volume::rpc::_GetPeerPrivRequest_default_instance_._instance,
     &::volume::rpc::_GetPeerPrivResponse_default_instance_._instance,
+    &::volume::rpc::_GetStorageStatsRequest_default_instance_._instance,
+    &::volume::rpc::_GetStorageStatsResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -234,17 +287,21 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fv
     "\"\026\n\024GetVolumeInfoRequest\"@\n\025GetVolumeInf"
     "oResponse\022\'\n\013volume_info\030\001 \001(\0132\022.volume."
     "VolumeInfo\"\024\n\022GetPeerPrivRequest\"\'\n\023GetP"
-    "eerPrivResponse\022\020\n\010priv_key\030\001 \001(\t2\266\001\n\rAc"
-    "cessVolumes\022\\\n\017WatchVolumeInfo\022\".volume."
-    "rpc.WatchVolumeInfoRequest\032#.volume.rpc."
-    "WatchVolumeInfoResponse0\001\022G\n\tVolumeRpc\022\032"
-    ".rpcstream.RpcStreamPacket\032\032.rpcstream.R"
-    "pcStreamPacket(\0010\0012\263\001\n\013ProxyVolume\022T\n\rGe"
-    "tVolumeInfo\022 .volume.rpc.GetVolumeInfoRe"
-    "quest\032!.volume.rpc.GetVolumeInfoResponse"
-    "\022N\n\013GetPeerPriv\022\036.volume.rpc.GetPeerPriv"
-    "Request\032\037.volume.rpc.GetPeerPrivResponse"
-    "b\006proto3"
+    "eerPrivResponse\022\020\n\010priv_key\030\001 \001(\t\"\030\n\026Get"
+    "StorageStatsRequest\"F\n\027GetStorageStatsRe"
+    "sponse\022+\n\rstorage_stats\030\001 \001(\0132\024.volume.S"
+    "torageStats2\266\001\n\rAccessVolumes\022\\\n\017WatchVo"
+    "lumeInfo\022\".volume.rpc.WatchVolumeInfoReq"
+    "uest\032#.volume.rpc.WatchVolumeInfoRespons"
+    "e0\001\022G\n\tVolumeRpc\022\032.rpcstream.RpcStreamPa"
+    "cket\032\032.rpcstream.RpcStreamPacket(\0010\0012\217\002\n"
+    "\013ProxyVolume\022T\n\rGetVolumeInfo\022 .volume.r"
+    "pc.GetVolumeInfoRequest\032!.volume.rpc.Get"
+    "VolumeInfoResponse\022N\n\013GetPeerPriv\022\036.volu"
+    "me.rpc.GetPeerPrivRequest\032\037.volume.rpc.G"
+    "etPeerPrivResponse\022Z\n\017GetStorageStats\022\"."
+    "volume.rpc.GetStorageStatsRequest\032#.volu"
+    "me.rpc.GetStorageStatsResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_deps[2] = {
@@ -255,13 +312,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto = {
     false,
     false,
-    848,
+    1038,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
     "github.com/aperturerobotics/hydra/volume/rpc/volume.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_deps,
     2,
-    6,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto::offsets,
@@ -1631,6 +1688,392 @@ void GetPeerPrivResponse::InternalSwap(GetPeerPrivResponse* PROTOBUF_RESTRICT PR
 }
 
 ::google::protobuf::Metadata GetPeerPrivResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetStorageStatsRequest::_Internal {
+ public:
+};
+
+GetStorageStatsRequest::GetStorageStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, GetStorageStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.GetStorageStatsRequest)
+}
+GetStorageStatsRequest::GetStorageStatsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetStorageStatsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, GetStorageStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetStorageStatsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.GetStorageStatsRequest)
+}
+
+inline void* PROTOBUF_NONNULL GetStorageStatsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetStorageStatsRequest(arena);
+}
+constexpr auto GetStorageStatsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(GetStorageStatsRequest),
+                                            alignof(GetStorageStatsRequest));
+}
+constexpr auto GetStorageStatsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetStorageStatsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetStorageStatsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<GetStorageStatsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetStorageStatsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<GetStorageStatsRequest>(), &GetStorageStatsRequest::ByteSizeLong,
+              &GetStorageStatsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetStorageStatsRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetStorageStatsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetStorageStatsRequest_class_data_ =
+        GetStorageStatsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetStorageStatsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetStorageStatsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetStorageStatsRequest_class_data_.tc_table);
+  return GetStorageStatsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+GetStorageStatsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetStorageStatsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::GetStorageStatsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata GetStorageStatsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetStorageStatsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetStorageStatsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetStorageStatsResponse, _impl_._has_bits_);
+};
+
+void GetStorageStatsResponse::clear_storage_stats() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.storage_stats_ != nullptr) _impl_.storage_stats_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+GetStorageStatsResponse::GetStorageStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetStorageStatsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.GetStorageStatsResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetStorageStatsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::volume::rpc::GetStorageStatsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+GetStorageStatsResponse::GetStorageStatsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetStorageStatsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetStorageStatsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetStorageStatsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.storage_stats_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.storage_stats_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.GetStorageStatsResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetStorageStatsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void GetStorageStatsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.storage_stats_ = {};
+}
+GetStorageStatsResponse::~GetStorageStatsResponse() {
+  // @@protoc_insertion_point(destructor:volume.rpc.GetStorageStatsResponse)
+  SharedDtor(*this);
+}
+inline void GetStorageStatsResponse::SharedDtor(MessageLite& self) {
+  GetStorageStatsResponse& this_ = static_cast<GetStorageStatsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.storage_stats_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetStorageStatsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetStorageStatsResponse(arena);
+}
+constexpr auto GetStorageStatsResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(GetStorageStatsResponse),
+                                            alignof(GetStorageStatsResponse));
+}
+constexpr auto GetStorageStatsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetStorageStatsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetStorageStatsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetStorageStatsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetStorageStatsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetStorageStatsResponse>(), &GetStorageStatsResponse::ByteSizeLong,
+              &GetStorageStatsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetStorageStatsResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetStorageStatsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetStorageStatsResponse_class_data_ =
+        GetStorageStatsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetStorageStatsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetStorageStatsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetStorageStatsResponse_class_data_.tc_table);
+  return GetStorageStatsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+GetStorageStatsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetStorageStatsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetStorageStatsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::GetStorageStatsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .volume.StorageStats storage_stats = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetStorageStatsResponse, _impl_.storage_stats_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .volume.StorageStats storage_stats = 1;
+    {PROTOBUF_FIELD_OFFSET(GetStorageStatsResponse, _impl_.storage_stats_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::volume::StorageStats>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetStorageStatsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:volume.rpc.GetStorageStatsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.storage_stats_ != nullptr);
+    _impl_.storage_stats_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetStorageStatsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetStorageStatsResponse& this_ = static_cast<const GetStorageStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetStorageStatsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetStorageStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:volume.rpc.GetStorageStatsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .volume.StorageStats storage_stats = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.storage_stats_, this_._impl_.storage_stats_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:volume.rpc.GetStorageStatsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetStorageStatsResponse::ByteSizeLong(const MessageLite& base) {
+  const GetStorageStatsResponse& this_ = static_cast<const GetStorageStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetStorageStatsResponse::ByteSizeLong() const {
+  const GetStorageStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:volume.rpc.GetStorageStatsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .volume.StorageStats storage_stats = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.storage_stats_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetStorageStatsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetStorageStatsResponse*>(&to_msg);
+  auto& from = static_cast<const GetStorageStatsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:volume.rpc.GetStorageStatsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.storage_stats_ != nullptr);
+    if (_this->_impl_.storage_stats_ == nullptr) {
+      _this->_impl_.storage_stats_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.storage_stats_);
+    } else {
+      _this->_impl_.storage_stats_->MergeFrom(*from._impl_.storage_stats_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetStorageStatsResponse::CopyFrom(const GetStorageStatsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:volume.rpc.GetStorageStatsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetStorageStatsResponse::InternalSwap(GetStorageStatsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.storage_stats_, other->_impl_.storage_stats_);
+}
+
+::google::protobuf::Metadata GetStorageStatsResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

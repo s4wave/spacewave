@@ -44,6 +44,9 @@ service ProxyVolume {
   // GetPeerPriv returns the volume peer private key.
   // Returns ErrPrivKeyUnavailable if the private key is unavailable.
   rpc GetPeerPriv(GetPeerPrivRequest) returns (GetPeerPrivResponse);
+
+  // GetStorageStats returns storage usage statistics for the volume.
+  rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
 }
 
 // GetVolumeInfoRequest is a request to get volume information.
@@ -62,4 +65,13 @@ message GetPeerPrivRequest {}
 message GetPeerPrivResponse {
   // PrivKey is the private key.
   string priv_key = 1;
+}
+
+// GetStorageStatsRequest is a request to get storage usage statistics.
+message GetStorageStatsRequest {}
+
+// GetStorageStatsResponse is the response with storage usage statistics.
+message GetStorageStatsResponse {
+  // StorageStats contains the storage usage statistics.
+  .volume.StorageStats storage_stats = 1;
 }

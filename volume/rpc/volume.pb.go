@@ -128,6 +128,37 @@ func (x *GetPeerPrivResponse) GetPrivKey() string {
 	return ""
 }
 
+// GetStorageStatsRequest is a request to get storage usage statistics.
+type GetStorageStatsRequest struct {
+	unknownFields []byte
+}
+
+func (x *GetStorageStatsRequest) Reset() {
+	*x = GetStorageStatsRequest{}
+}
+
+func (*GetStorageStatsRequest) ProtoMessage() {}
+
+// GetStorageStatsResponse is the response with storage usage statistics.
+type GetStorageStatsResponse struct {
+	unknownFields []byte
+	// StorageStats contains the storage usage statistics.
+	StorageStats *volume.StorageStats `protobuf:"bytes,1,opt,name=storage_stats,json=storageStats,proto3" json:"storageStats,omitempty"`
+}
+
+func (x *GetStorageStatsResponse) Reset() {
+	*x = GetStorageStatsResponse{}
+}
+
+func (*GetStorageStatsResponse) ProtoMessage() {}
+
+func (x *GetStorageStatsResponse) GetStorageStats() *volume.StorageStats {
+	if x != nil {
+		return x.StorageStats
+	}
+	return nil
+}
+
 func (m *WatchVolumeInfoRequest) CloneVT() *WatchVolumeInfoRequest {
 	if m == nil {
 		return (*WatchVolumeInfoRequest)(nil)
@@ -220,6 +251,37 @@ func (m *GetPeerPrivResponse) CloneVT() *GetPeerPrivResponse {
 }
 
 func (m *GetPeerPrivResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetStorageStatsRequest) CloneVT() *GetStorageStatsRequest {
+	if m == nil {
+		return (*GetStorageStatsRequest)(nil)
+	}
+	r := new(GetStorageStatsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetStorageStatsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetStorageStatsResponse) CloneVT() *GetStorageStatsResponse {
+	if m == nil {
+		return (*GetStorageStatsResponse)(nil)
+	}
+	r := new(GetStorageStatsResponse)
+	r.StorageStats = m.StorageStats.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetStorageStatsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -334,6 +396,43 @@ func (this *GetPeerPrivResponse) EqualVT(that *GetPeerPrivResponse) bool {
 
 func (this *GetPeerPrivResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetPeerPrivResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetStorageStatsRequest) EqualVT(that *GetStorageStatsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetStorageStatsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetStorageStatsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetStorageStatsResponse) EqualVT(that *GetStorageStatsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.StorageStats.EqualVT(that.StorageStats) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetStorageStatsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetStorageStatsResponse)
 	if !ok {
 		return false
 	}
@@ -584,6 +683,82 @@ func (x *GetPeerPrivResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the GetStorageStatsRequest message to JSON.
+func (x *GetStorageStatsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetStorageStatsRequest to JSON.
+func (x *GetStorageStatsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetStorageStatsRequest message from JSON.
+func (x *GetStorageStatsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the GetStorageStatsRequest from JSON.
+func (x *GetStorageStatsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetStorageStatsResponse message to JSON.
+func (x *GetStorageStatsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageStats != nil || s.HasField("storageStats") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageStats")
+		x.StorageStats.MarshalProtoJSON(s.WithField("storageStats"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetStorageStatsResponse to JSON.
+func (x *GetStorageStatsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetStorageStatsResponse message from JSON.
+func (x *GetStorageStatsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_stats", "storageStats":
+			if s.ReadNil() {
+				x.StorageStats = nil
+				return
+			}
+			x.StorageStats = &volume.StorageStats{}
+			x.StorageStats.UnmarshalProtoJSON(s.WithField("storage_stats", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetStorageStatsResponse from JSON.
+func (x *GetStorageStatsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WatchVolumeInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -826,6 +1001,82 @@ func (m *GetPeerPrivResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *GetStorageStatsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetStorageStatsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetStorageStatsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetStorageStatsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetStorageStatsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetStorageStatsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.StorageStats != nil {
+		size, err := m.StorageStats.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchVolumeInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -899,6 +1150,30 @@ func (m *GetPeerPrivResponse) SizeVT() (n int) {
 	_ = l
 	l = len(m.PrivKey)
 	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetStorageStatsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetStorageStatsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.StorageStats != nil {
+		l = m.StorageStats.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1003,6 +1278,35 @@ func (x *GetPeerPrivResponse) MarshalProtoText() string {
 }
 
 func (x *GetPeerPrivResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetStorageStatsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetStorageStatsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetStorageStatsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetStorageStatsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetStorageStatsResponse {")
+	if x.StorageStats != nil {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("storage_stats: ")
+		sb.WriteString(x.StorageStats.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetStorageStatsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1352,6 +1656,120 @@ func (m *GetPeerPrivResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PrivKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetStorageStatsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetStorageStatsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetStorageStatsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetStorageStatsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetStorageStatsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetStorageStatsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageStats", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.StorageStats == nil {
+				m.StorageStats = &volume.StorageStats{}
+			}
+			if err := m.StorageStats.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

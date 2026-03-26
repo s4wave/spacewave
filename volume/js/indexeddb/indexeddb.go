@@ -63,6 +63,7 @@ func NewIndexedDB(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		nil,
 		istore.Close,
 		func() error {
 			req, err := idb.Global().DeleteDatabase(dbName)

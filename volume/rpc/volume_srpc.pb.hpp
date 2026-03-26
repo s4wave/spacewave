@@ -201,6 +201,8 @@ class SRPCProxyVolumeClient {
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& in, volume::rpc::GetVolumeInfoResponse* out) = 0;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) = 0;
+  // GetStorageStats
+  virtual starpc::Error GetStorageStats(const volume::rpc::GetStorageStatsRequest& in, volume::rpc::GetStorageStatsResponse* out) = 0;
 };
 
 // SRPCProxyVolumeClientImpl implements SRPCProxyVolumeClient.
@@ -215,6 +217,8 @@ class SRPCProxyVolumeClientImpl : public SRPCProxyVolumeClient {
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& in, volume::rpc::GetVolumeInfoResponse* out) override;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) override;
+  // GetStorageStats
+  virtual starpc::Error GetStorageStats(const volume::rpc::GetStorageStatsRequest& in, volume::rpc::GetStorageStatsResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -235,6 +239,8 @@ class SRPCProxyVolumeServer {
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& req, volume::rpc::GetVolumeInfoResponse* resp) = 0;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& req, volume::rpc::GetPeerPrivResponse* resp) = 0;
+  // GetStorageStats
+  virtual starpc::Error GetStorageStats(const volume::rpc::GetStorageStatsRequest& req, volume::rpc::GetStorageStatsResponse* resp) = 0;
 };
 
 // SRPCProxyVolumeHandler implements starpc::Handler for ProxyVolume.

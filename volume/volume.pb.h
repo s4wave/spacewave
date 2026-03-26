@@ -62,6 +62,10 @@ class ListBucketsRequest;
 struct ListBucketsRequestDefaultTypeInternal;
 extern ListBucketsRequestDefaultTypeInternal _ListBucketsRequest_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ListBucketsRequest_class_data_;
+class StorageStats;
+struct StorageStatsDefaultTypeInternal;
+extern StorageStatsDefaultTypeInternal _StorageStats_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull StorageStats_class_data_;
 class VolumeBucketInfo;
 struct VolumeBucketInfoDefaultTypeInternal;
 extern VolumeBucketInfoDefaultTypeInternal _VolumeBucketInfo_default_instance_;
@@ -81,6 +85,208 @@ namespace volume {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class StorageStats final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.StorageStats) */ {
+ public:
+  inline StorageStats() : StorageStats(nullptr) {}
+  ~StorageStats() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(StorageStats* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(StorageStats));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR StorageStats(::google::protobuf::internal::ConstantInitialized);
+
+  inline StorageStats(const StorageStats& from) : StorageStats(nullptr, from) {}
+  inline StorageStats(StorageStats&& from) noexcept
+      : StorageStats(nullptr, ::std::move(from)) {}
+  inline StorageStats& operator=(const StorageStats& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline StorageStats& operator=(StorageStats&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const StorageStats& default_instance() {
+    return *reinterpret_cast<const StorageStats*>(
+        &_StorageStats_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(StorageStats& a, StorageStats& b) { a.Swap(&b); }
+  inline void Swap(StorageStats* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(StorageStats* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  StorageStats* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<StorageStats>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const StorageStats& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const StorageStats& from) { StorageStats::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(StorageStats* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.StorageStats"; }
+
+  explicit StorageStats(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  StorageStats(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const StorageStats& from);
+  StorageStats(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, StorageStats&& from) noexcept
+      : StorageStats(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTotalBytesFieldNumber = 1,
+    kBlockCountFieldNumber = 2,
+  };
+  // uint64 total_bytes = 1;
+  void clear_total_bytes() ;
+  ::uint64_t total_bytes() const;
+  void set_total_bytes(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_total_bytes() const;
+  void _internal_set_total_bytes(::uint64_t value);
+
+  public:
+  // uint64 block_count = 2;
+  void clear_block_count() ;
+  ::uint64_t block_count() const;
+  void set_block_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_block_count() const;
+  void _internal_set_block_count(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.StorageStats)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const StorageStats& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint64_t total_bytes_;
+    ::uint64_t block_count_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull StorageStats_class_data_;
 // -------------------------------------------------------------------
 
 class ListBucketsRequest final : public ::google::protobuf::Message
@@ -138,7 +344,7 @@ class ListBucketsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListBucketsRequest*>(
         &_ListBucketsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(ListBucketsRequest& a, ListBucketsRequest& b) { a.Swap(&b); }
   inline void Swap(ListBucketsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -632,7 +838,7 @@ class VolumeBucketInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const VolumeBucketInfo*>(
         &_VolumeBucketInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(VolumeBucketInfo& a, VolumeBucketInfo& b) { a.Swap(&b); }
   inline void Swap(VolumeBucketInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1115,6 +1321,60 @@ inline ::hash::HashType VolumeInfo::_internal_hash_type() const {
 inline void VolumeInfo::_internal_set_hash_type(::hash::HashType value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.hash_type_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// StorageStats
+
+// uint64 total_bytes = 1;
+inline void StorageStats::clear_total_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_bytes_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint64_t StorageStats::total_bytes() const {
+  // @@protoc_insertion_point(field_get:volume.StorageStats.total_bytes)
+  return _internal_total_bytes();
+}
+inline void StorageStats::set_total_bytes(::uint64_t value) {
+  _internal_set_total_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:volume.StorageStats.total_bytes)
+}
+inline ::uint64_t StorageStats::_internal_total_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.total_bytes_;
+}
+inline void StorageStats::_internal_set_total_bytes(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_bytes_ = value;
+}
+
+// uint64 block_count = 2;
+inline void StorageStats::clear_block_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_count_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t StorageStats::block_count() const {
+  // @@protoc_insertion_point(field_get:volume.StorageStats.block_count)
+  return _internal_block_count();
+}
+inline void StorageStats::set_block_count(::uint64_t value) {
+  _internal_set_block_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:volume.StorageStats.block_count)
+}
+inline ::uint64_t StorageStats::_internal_block_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.block_count_;
+}
+inline void StorageStats::_internal_set_block_count(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_count_ = value;
 }
 
 // -------------------------------------------------------------------

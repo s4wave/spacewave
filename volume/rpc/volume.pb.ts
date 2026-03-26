@@ -4,7 +4,7 @@
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
-import { VolumeInfo } from '../volume.pb.js'
+import { StorageStats, VolumeInfo } from '../volume.pb.js'
 
 export const protobufPackage = 'volume.rpc'
 
@@ -137,6 +137,45 @@ export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =
     typeName: 'volume.rpc.GetPeerPrivResponse',
     fields: [
       { no: 1, name: 'priv_key', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetStorageStatsRequest is a request to get storage usage statistics.
+ *
+ * @generated from message volume.rpc.GetStorageStatsRequest
+ */
+export interface GetStorageStatsRequest {}
+
+// GetStorageStatsRequest contains the message type declaration for GetStorageStatsRequest.
+export const GetStorageStatsRequest: MessageType<GetStorageStatsRequest> =
+  createMessageType({
+    typeName: 'volume.rpc.GetStorageStatsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetStorageStatsResponse is the response with storage usage statistics.
+ *
+ * @generated from message volume.rpc.GetStorageStatsResponse
+ */
+export interface GetStorageStatsResponse {
+  /**
+   * StorageStats contains the storage usage statistics.
+   *
+   * @generated from field: volume.StorageStats storage_stats = 1;
+   */
+  storageStats?: StorageStats
+}
+
+// GetStorageStatsResponse contains the message type declaration for GetStorageStatsResponse.
+export const GetStorageStatsResponse: MessageType<GetStorageStatsResponse> =
+  createMessageType({
+    typeName: 'volume.rpc.GetStorageStatsResponse',
+    fields: [
+      { no: 1, name: 'storage_stats', kind: 'message', T: () => StorageStats },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -5,6 +5,8 @@
 import {
   GetPeerPrivRequest,
   GetPeerPrivResponse,
+  GetStorageStatsRequest,
+  GetStorageStatsResponse,
   GetVolumeInfoRequest,
   GetVolumeInfoResponse,
   WatchVolumeInfoRequest,
@@ -176,6 +178,17 @@ export const ProxyVolumeDefinition = {
       O: GetPeerPrivResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * GetStorageStats returns storage usage statistics for the volume.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.GetStorageStats
+     */
+    GetStorageStats: {
+      name: 'GetStorageStats',
+      I: GetStorageStatsRequest,
+      O: GetStorageStatsResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -211,6 +224,16 @@ export interface ProxyVolume {
     request: GetPeerPrivRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetPeerPrivResponse>
+
+  /**
+   * GetStorageStats returns storage usage statistics for the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetStorageStats
+   */
+  GetStorageStats(
+    request: GetStorageStatsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetStorageStatsResponse>
 }
 
 export const ProxyVolumeServiceName = ProxyVolumeDefinition.typeName
@@ -223,6 +246,7 @@ export class ProxyVolumeClient implements ProxyVolume {
     this.rpc = rpc
     this.GetVolumeInfo = this.GetVolumeInfo.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)
+    this.GetStorageStats = this.GetStorageStats.bind(this)
   }
   /**
    * GetVolumeInfo returns the basic volume information.
@@ -261,5 +285,24 @@ export class ProxyVolumeClient implements ProxyVolume {
       abortSignal || undefined,
     )
     return GetPeerPrivResponse.fromBinary(result)
+  }
+
+  /**
+   * GetStorageStats returns storage usage statistics for the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetStorageStats
+   */
+  async GetStorageStats(
+    request: GetStorageStatsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetStorageStatsResponse> {
+    const requestMsg = GetStorageStatsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.GetStorageStats.name,
+      GetStorageStatsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetStorageStatsResponse.fromBinary(result)
   }
 }

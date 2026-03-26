@@ -180,6 +180,8 @@ pub trait ProxyVolumeClient: Send + Sync {
     async fn get_volume_info(&self, request: &GetVolumeInfoRequest) -> starpc::Result<GetVolumeInfoResponse>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
+    /// GetStorageStats.
+    async fn get_storage_stats(&self, request: &GetStorageStatsRequest) -> starpc::Result<GetStorageStatsResponse>;
 }
 
 /// Client implementation for ProxyVolume.
@@ -202,6 +204,9 @@ impl<C: starpc::Client + 'static> ProxyVolumeClient for ProxyVolumeClientImpl<C>
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse> {
         self.client.exec_call("volume.rpc.ProxyVolume", "GetPeerPriv", request).await
     }
+    async fn get_storage_stats(&self, request: &GetStorageStatsRequest) -> starpc::Result<GetStorageStatsResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "GetStorageStats", request).await
+    }
 }
 
 /// Server trait for ProxyVolume.
@@ -211,11 +216,14 @@ pub trait ProxyVolumeServer: Send + Sync {
     async fn get_volume_info(&self, request: GetVolumeInfoRequest) -> starpc::Result<GetVolumeInfoResponse>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
+    /// GetStorageStats.
+    async fn get_storage_stats(&self, request: GetStorageStatsRequest) -> starpc::Result<GetStorageStatsResponse>;
 }
 
 const PROXY_VOLUME_METHOD_IDS: &[&str] = &[
     "GetVolumeInfo",
     "GetPeerPriv",
+    "GetStorageStats",
 ];
 
 /// Handler for ProxyVolume.
@@ -265,6 +273,21 @@ impl<S: ProxyVolumeServer + 'static> starpc::Invoker for ProxyVolumeHandler<S> {
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.get_peer_priv(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetStorageStats" => {
+                let request: GetStorageStatsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_storage_stats(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

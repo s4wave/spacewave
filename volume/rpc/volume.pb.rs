@@ -39,4 +39,15 @@ pub struct GetPeerPrivResponse {
     #[prost(string, tag="1")]
     pub priv_key: ::prost::alloc::string::String,
 }
+/// GetStorageStatsRequest is a request to get storage usage statistics.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetStorageStatsRequest {
+}
+/// GetStorageStatsResponse is the response with storage usage statistics.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetStorageStatsResponse {
+    /// StorageStats contains the storage usage statistics.
+    #[prost(message, optional, tag="1")]
+    pub storage_stats: ::core::option::Option<super::StorageStats>,
+}
 // @@protoc_insertion_point(module)

@@ -1034,7 +1034,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume": {
-      "hash": "e36890ba64c0b4dbe1ef3be6673c175aff76ae3f5588897a8e8618c7d408986e",
+      "hash": "f35b55d9d61d438200a027183486406bb5b876662a9395ded50fd11695c9fc88",
       "generatedFiles": [
         "volume/volume.pb.cc",
         "volume/volume.pb.go",
@@ -1151,7 +1151,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume/rpc": {
-      "hash": "e323afffd66808dfc034e46f3f6030a2408e9e243c7d1692df1758df262d1e52",
+      "hash": "2e6b9917fc1946e008bc28cbd076d0fd637ae2f0f48a54e87af1d509102ca5b5",
       "generatedFiles": [
         "volume/rpc/volume.pb.cc",
         "volume/rpc/volume.pb.go",

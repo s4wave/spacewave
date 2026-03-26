@@ -76,6 +76,35 @@ func (x *VolumeInfo) GetHashType() hash.HashType {
 	return hash.HashType(0)
 }
 
+// StorageStats contains storage usage statistics for a volume.
+type StorageStats struct {
+	unknownFields []byte
+	// TotalBytes is the total storage size in bytes.
+	TotalBytes uint64 `protobuf:"varint,1,opt,name=total_bytes,json=totalBytes,proto3" json:"totalBytes,omitempty"`
+	// BlockCount is the number of blocks stored.
+	BlockCount uint64 `protobuf:"varint,2,opt,name=block_count,json=blockCount,proto3" json:"blockCount,omitempty"`
+}
+
+func (x *StorageStats) Reset() {
+	*x = StorageStats{}
+}
+
+func (*StorageStats) ProtoMessage() {}
+
+func (x *StorageStats) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *StorageStats) GetBlockCount() uint64 {
+	if x != nil {
+		return x.BlockCount
+	}
+	return 0
+}
+
 // VolumeBucketInfo is information about a bucket in a volume.
 type VolumeBucketInfo struct {
 	unknownFields []byte
@@ -170,13 +199,32 @@ func (m *VolumeInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *StorageStats) CloneVT() *StorageStats {
+	if m == nil {
+		return (*StorageStats)(nil)
+	}
+	r := new(StorageStats)
+	r.TotalBytes = m.TotalBytes
+	r.BlockCount = m.BlockCount
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *StorageStats) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *VolumeBucketInfo) CloneVT() *VolumeBucketInfo {
 	if m == nil {
 		return (*VolumeBucketInfo)(nil)
 	}
 	r := new(VolumeBucketInfo)
-	r.BucketInfo = m.BucketInfo.CloneVT()
 	r.VolumeInfo = m.VolumeInfo.CloneVT()
+	if rhs := m.BucketInfo; rhs != nil {
+		r.BucketInfo = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -233,6 +281,29 @@ func (this *VolumeInfo) EqualVT(that *VolumeInfo) bool {
 
 func (this *VolumeInfo) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*VolumeInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *StorageStats) EqualVT(that *StorageStats) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TotalBytes != that.TotalBytes {
+		return false
+	}
+	if this.BlockCount != that.BlockCount {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *StorageStats) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*StorageStats)
 	if !ok {
 		return false
 	}
@@ -369,6 +440,56 @@ func (x *VolumeInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the VolumeInfo from JSON.
 func (x *VolumeInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the StorageStats message to JSON.
+func (x *StorageStats) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TotalBytes != 0 || s.HasField("totalBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("totalBytes")
+		s.WriteUint64(x.TotalBytes)
+	}
+	if x.BlockCount != 0 || s.HasField("blockCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockCount")
+		s.WriteUint64(x.BlockCount)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the StorageStats to JSON.
+func (x *StorageStats) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the StorageStats message from JSON.
+func (x *StorageStats) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "total_bytes", "totalBytes":
+			s.AddField("total_bytes")
+			x.TotalBytes = s.ReadUint64()
+		case "block_count", "blockCount":
+			s.AddField("block_count")
+			x.BlockCount = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the StorageStats from JSON.
+func (x *StorageStats) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -561,6 +682,49 @@ func (m *VolumeInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *StorageStats) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StorageStats) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *StorageStats) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BlockCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.TotalBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TotalBytes))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *VolumeBucketInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -699,6 +863,22 @@ func (m *VolumeInfo) SizeVT() (n int) {
 	return n
 }
 
+func (m *StorageStats) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TotalBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TotalBytes))
+	}
+	if m.BlockCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockCount))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *VolumeBucketInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -786,6 +966,31 @@ func (x *VolumeInfo) MarshalProtoText() string {
 }
 
 func (x *VolumeInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *StorageStats) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("StorageStats {")
+	if x.TotalBytes != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("total_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.TotalBytes), 10))
+	}
+	if x.BlockCount != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockCount), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *StorageStats) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -974,6 +1179,67 @@ func (m *VolumeInfo) UnmarshalVT(dAtA []byte) error {
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			m.HashType = hash.HashType(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *StorageStats) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StorageStats: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StorageStats: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalBytes", wireType)
+			}
+			m.TotalBytes = 0
+			m.TotalBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockCount", wireType)
+			}
+			m.BlockCount = 0
+			m.BlockCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

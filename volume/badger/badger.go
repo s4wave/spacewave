@@ -7,6 +7,7 @@ import (
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbadger "github.com/aperturerobotics/hydra/store/kvtx/badger"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/volume"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
@@ -50,6 +51,7 @@ func NewBadger(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	db := store.GetDB()
 	return kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -58,6 +60,22 @@ func NewBadger(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		false,
-		store.GetDB().Close,
+		func(ctx context.Context) (*volume.StorageStats, error) {
+			lsm, vlog := db.Size()
+			tx, err := store.NewTransaction(ctx, false)
+			if err != nil {
+				return nil, err
+			}
+			defer tx.Discard()
+			count, err := tx.Size(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return &volume.StorageStats{
+				TotalBytes: uint64(lsm + vlog),
+				BlockCount: count,
+			}, nil
+		},
+		db.Close,
 	)
 }

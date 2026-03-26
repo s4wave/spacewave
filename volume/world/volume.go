@@ -140,6 +140,7 @@ func NewVolume(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		nil,
 		func() error { cursor.Release(); return nil },
 	)
 	if err != nil {

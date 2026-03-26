@@ -77,6 +77,7 @@ func NewBolt(
 		}
 	}
 
+	boltDB := store.GetDB()
 	path := conf.GetPath()
 	return kvtx.NewVolume(
 		ctx,
@@ -86,6 +87,25 @@ func NewBolt(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		func(ctx context.Context) (*volume.StorageStats, error) {
+			var totalBytes uint64
+			if fi, err := os.Stat(boltDB.Path()); err == nil {
+				totalBytes = uint64(fi.Size())
+			}
+			tx, err := store.NewTransaction(ctx, false)
+			if err != nil {
+				return nil, err
+			}
+			defer tx.Discard()
+			count, err := tx.Size(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return &volume.StorageStats{
+				TotalBytes: totalBytes,
+				BlockCount: count,
+			}, nil
+		},
 		closeFn,
 		func() error { return os.Remove(path) },
 	)

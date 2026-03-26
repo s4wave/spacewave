@@ -58,6 +58,7 @@ func NewRedis(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		nil,
 		store.GetPool().Close,
 	)
 }
