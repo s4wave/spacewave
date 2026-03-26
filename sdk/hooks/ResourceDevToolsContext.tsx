@@ -266,6 +266,7 @@ function ResourceDevToolsProviderInner({
     }
 
     setResources((prev) => {
+      if (!prev.has(id)) return prev
       const next = new Map(prev)
       next.delete(id)
       return next

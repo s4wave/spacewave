@@ -402,13 +402,17 @@ export function useResource<T>(
     setRetryCount((c) => c + 1)
   }, [parent.retries])
 
-  // DevTools: Extract parent tracking IDs from parent Resource objects
+  // DevTools: Extract parent tracking IDs from parent Resource objects.
+  // Use spread-deps pattern (like useParentState's retries) so the array
+  // reference is stable when the actual IDs haven't changed, even if
+  // parsed.parents is a new array (e.g. when factory changes reference).
+  const parentTrackingIdValues = parsed.parents
+    .map((p) => p.__devtools?.id)
+    .filter((id): id is string => id != null)
   const parentTrackingIds = useMemo(
-    () =>
-      parsed.parents
-        .map((p) => p.__devtools?.id)
-        .filter((id): id is string => id != null),
-    [parsed.parents],
+    () => parentTrackingIdValues,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    parentTrackingIdValues,
   )
 
   // DevTools: Store retry in a ref so we can update it without re-registering
@@ -434,7 +438,7 @@ export function useResource<T>(
     return () => {
       devtools.unregister(trackingId)
     }
-  }, [devtools, trackingId, parentTrackingIds, parsed.parents.length])
+  }, [devtools, trackingId, parentTrackingIds])
 
   // DevTools: Update state when it changes (does not trigger unregister/re-register)
   const prevStateRef = useRef({
