@@ -98,6 +98,16 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	}, true)
 }
 
+// GetStorageTally reads the running tally of total stored byte size.
+func (s *Store) GetStorageTally(ctx context.Context) (uint64, error) {
+	tx, err := s.store.NewTransaction(ctx, false)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.(*kvtxTx).Discard()
+	return tx.(*kvtxTx).readTally(ctx)
+}
+
 // Close closes the store db.
 func (s *Store) Close() error {
 	return s.db.Close()

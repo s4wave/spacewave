@@ -10,6 +10,7 @@ import (
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sindexeddb "github.com/aperturerobotics/hydra/store/kvtx/js/indexeddb"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/volume"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
@@ -54,6 +55,26 @@ func NewIndexedDB(
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
 
+	statsFn := func(ctx context.Context) (*volume.StorageStats, error) {
+		totalBytes, err := istore.GetStorageTally(ctx)
+		if err != nil {
+			return nil, err
+		}
+		tx, err := istore.NewTransaction(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Discard()
+		count, err := tx.Size(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &volume.StorageStats{
+			TotalBytes: totalBytes,
+			BlockCount: count,
+		}, nil
+	}
+
 	dbName := conf.GetDatabaseName()
 	return kvtx.NewVolume(
 		ctx,
@@ -63,7 +84,7 @@ func NewIndexedDB(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
-		nil,
+		statsFn,
 		istore.Close,
 		func() error {
 			req, err := idb.Global().DeleteDatabase(dbName)

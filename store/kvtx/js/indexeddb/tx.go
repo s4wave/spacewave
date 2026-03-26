@@ -90,6 +90,11 @@ func (t *kvtxTx) Set(ctx context.Context, key, value []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 
+	// Update the storage tally before writing.
+	if err := t.updateTallyOnSet(ctx, key, value); err != nil {
+		return err
+	}
+
 	keyVal, err := jsbuf.CopyBytesToJs(key)
 	if err != nil {
 		return err
@@ -114,6 +119,11 @@ func (t *kvtxTx) Delete(ctx context.Context, key []byte) error {
 	}
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
+	}
+
+	// Update the storage tally before deleting.
+	if err := t.updateTallyOnDelete(ctx, key); err != nil {
+		return err
 	}
 
 	keyVal, err := jsbuf.CopyBytesToJs(key)
