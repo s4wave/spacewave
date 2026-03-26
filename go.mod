@@ -22,7 +22,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260316122436-fd2115e09339 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260326090430-4c4b20b1e76f // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
@@ -46,7 +46,7 @@ require (
 require (
 	github.com/aperturerobotics/bifrost v0.47.2 // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
-	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
+	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.0 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
 )
@@ -90,7 +90,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.49.0 // latest
-	github.com/aperturerobotics/util v1.32.5 // latest
+	github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317 // latest
 )
 
 require (
@@ -171,4 +171,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.45.0 // indirect
 )
-

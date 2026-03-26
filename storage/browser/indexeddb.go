@@ -3,12 +3,14 @@
 package browser_storage
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/go-indexeddb/idb"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_indexeddb "github.com/aperturerobotics/hydra/volume/js/indexeddb"
 )
@@ -46,6 +48,16 @@ func (i *IndexedDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_control
 		Verbose:      i.verbose,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
+}
+
+// DeleteVolume removes the IndexedDB database for the given volume ID.
+func (i *IndexedDB) DeleteVolume(id string) error {
+	dbName := i.prefix + id
+	req, err := idb.Global().DeleteDatabase(dbName)
+	if err != nil {
+		return err
+	}
+	return req.Await(context.Background())
 }
 
 func init() {

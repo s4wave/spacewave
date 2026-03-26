@@ -18,4 +18,7 @@ type Storage interface {
 	// baseVolCtrlConf can be nil
 	// NOTE: id should be checked / sanitized before calling this.
 	BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error)
+	// DeleteVolume removes the backing store for the given volume ID.
+	// The volume must be closed before calling this.
+	DeleteVolume(id string) error
 }

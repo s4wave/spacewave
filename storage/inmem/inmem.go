@@ -34,5 +34,10 @@ func (s *InmemStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_cont
 	return &volume_kvtxinmem.Config{VolumeConfig: baseVolCtrlConf}, nil
 }
 
+// DeleteVolume is a no-op for in-memory storage.
+func (s *InmemStorage) DeleteVolume(id string) error {
+	return nil
+}
+
 // _ is a type assertion
 var _ storage.Storage = ((*InmemStorage)(nil))

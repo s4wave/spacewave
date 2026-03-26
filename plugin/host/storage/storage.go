@@ -36,5 +36,10 @@ func (s *PluginHostStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume
 	return &plugin_host_storage_volume.Config{StorageVolumeId: id, VolumeConfig: baseVolCtrlConf}, nil
 }
 
+// DeleteVolume is not supported for plugin host storage.
+func (s *PluginHostStorage) DeleteVolume(id string) error {
+	return nil
+}
+
 // _ is a type assertion
 var _ storage.Storage = ((*PluginHostStorage)(nil))

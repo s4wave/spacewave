@@ -3,6 +3,7 @@
 package storage_native
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,6 +54,12 @@ func (i *SqliteDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controll
 		Verbose:      i.verbose,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
+}
+
+// DeleteVolume removes the SQLite database file for the given volume ID.
+func (i *SqliteDB) DeleteVolume(id string) error {
+	filename := strings.ReplaceAll(id, "/", "_") + SqliteDBExt
+	return os.Remove(filepath.Join(i.rootDir, filename))
 }
 
 func init() {

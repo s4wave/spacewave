@@ -3,6 +3,7 @@
 package storage_native
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,6 +54,12 @@ func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller
 		Sync:         false,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
+}
+
+// DeleteVolume removes the BoltDB database file for the given volume ID.
+func (i *BoltDB) DeleteVolume(id string) error {
+	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
+	return os.Remove(filepath.Join(i.rootDir, filename))
 }
 
 func init() {

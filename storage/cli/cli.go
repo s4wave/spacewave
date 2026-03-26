@@ -39,5 +39,10 @@ func (s *CliStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_contro
 	return s.args.BuildSingleVolume(id, baseVolCtrlConf), nil
 }
 
+// DeleteVolume is not supported for CLI storage.
+func (s *CliStorage) DeleteVolume(id string) error {
+	return nil
+}
+
 // _ is a type assertion
 var _ storage.Storage = ((*CliStorage)(nil))
