@@ -1,1 +1,3 @@
 *.pb.* linguist-generated
+*.pb.* -diff
+

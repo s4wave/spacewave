@@ -34,6 +34,7 @@ namespace controller {
 inline constexpr Config::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        watch_manifest_ids_{},
         builder_config_{nullptr},
         controller_config_{nullptr},
         build_backoff_{nullptr},
@@ -71,15 +72,17 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_.builder_config_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_.controller_config_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_.build_backoff_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_.watch_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::controller::Config, _impl_.watch_manifest_ids_),
         1,
         2,
         3,
+        4,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -98,12 +101,13 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fma
     "/builder.proto\032Tgithub.com/aperturerobot"
     "ics/controllerbus/controller/configset/p"
     "roto/configset.proto\0326github.com/apertur"
-    "erobotics/util/backoff/backoff.proto\"\274\001\n"
+    "erobotics/util/backoff/backoff.proto\"\330\001\n"
     "\006Config\022<\n\016builder_config\030\001 \001(\0132$.bldr.m"
     "anifest.builder.BuilderConfig\022<\n\021control"
     "ler_config\030\002 \001(\0132!.configset.proto.Contr"
     "ollerConfig\022\'\n\rbuild_backoff\030\003 \001(\0132\020.bac"
-    "koff.Backoff\022\r\n\005watch\030\004 \001(\010b\006proto3"
+    "koff.Backoff\022\r\n\005watch\030\004 \001(\010\022\032\n\022watch_man"
+    "ifest_ids\030\005 \003(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fcontroller_2fconfig_2eproto_deps[3] = {
@@ -115,7 +119,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fcontroller_2fconfig_2eproto = {
     false,
     false,
-    515,
+    543,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fcontroller_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/manifest/builder/controller/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fcontroller_2fconfig_2eproto_once,
@@ -146,19 +150,19 @@ void Config::clear_builder_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.builder_config_ != nullptr) _impl_.builder_config_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 void Config::clear_controller_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.controller_config_ != nullptr) _impl_.controller_config_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 void Config::clear_build_backoff() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.build_backoff_ != nullptr) _impl_.build_backoff_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -174,7 +178,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::bldr::manifest::builder::controller::Config& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        watch_manifest_ids_{visibility, arena, from.watch_manifest_ids_} {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -190,13 +195,13 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.builder_config_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.builder_config_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_config_)
                 : nullptr;
-  _impl_.controller_config_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.controller_config_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.controller_config_)
                 : nullptr;
-  _impl_.build_backoff_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.build_backoff_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_backoff_)
                 : nullptr;
   _impl_.watch_ = from._impl_.watch_;
@@ -206,7 +211,8 @@ Config::Config(
 PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        watch_manifest_ids_{visibility, arena} {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -240,8 +246,20 @@ inline void* PROTOBUF_NONNULL Config::PlacementNew_(
   return ::new (mem) Config(arena);
 }
 constexpr auto Config::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(Config),
-                                            alignof(Config));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_manifest_ids_) +
+          decltype(Config::_impl_.watch_manifest_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(Config), alignof(Config), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&Config::PlacementNew_,
+                                 sizeof(Config),
+                                 alignof(Config));
+  }
 }
 constexpr auto Config::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -277,16 +295,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 3, 0, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 66, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    5,  // num_field_entries
     3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -296,33 +314,42 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::manifest::builder::controller::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool watch = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.watch_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .bldr.manifest.builder.BuilderConfig builder_config = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.builder_config_)}},
     // .configset.proto.ControllerConfig controller_config = 2;
     {::_pbi::TcParser::FastMtS1,
-     {18, 1, 1,
+     {18, 2, 1,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.controller_config_)}},
     // .backoff.Backoff build_backoff = 3;
     {::_pbi::TcParser::FastMtS1,
-     {26, 2, 2,
+     {26, 3, 2,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.build_backoff_)}},
+    // bool watch = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.watch_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_)}},
+    // repeated string watch_manifest_ids = 5;
+    {::_pbi::TcParser::FastUR1,
+     {42, 0, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_manifest_ids_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // .bldr.manifest.builder.BuilderConfig builder_config = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.builder_config_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.builder_config_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .configset.proto.ControllerConfig controller_config = 2;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.controller_config_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.controller_config_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .backoff.Backoff build_backoff = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_backoff_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_backoff_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool watch = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // repeated string watch_manifest_ids = 5;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_manifest_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::manifest::builder::BuilderConfig>()},
@@ -330,6 +357,9 @@ Config::_table_ = {
       {::_pbi::TcParser::GetTable<::backoff::Backoff>()},
   }},
   {{
+    "\47\0\0\0\0\22\0\0"
+    "bldr.manifest.builder.controller.Config"
+    "watch_manifest_ids"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -340,16 +370,19 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.watch_manifest_ids_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(_impl_.builder_config_ != nullptr);
       _impl_.builder_config_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.controller_config_ != nullptr);
       _impl_.controller_config_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.build_backoff_ != nullptr);
       _impl_.build_backoff_->Clear();
     }
@@ -379,32 +412,42 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .bldr.manifest.builder.BuilderConfig builder_config = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.builder_config_, this_._impl_.builder_config_->GetCachedSize(), target,
         stream);
   }
 
   // .configset.proto.ControllerConfig controller_config = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.controller_config_, this_._impl_.controller_config_->GetCachedSize(), target,
         stream);
   }
 
   // .backoff.Backoff build_backoff = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         3, *this_._impl_.build_backoff_, this_._impl_.build_backoff_->GetCachedSize(), target,
         stream);
   }
 
   // bool watch = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_watch() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           4, this_._internal_watch(), target);
+    }
+  }
+
+  // repeated string watch_manifest_ids = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_watch_manifest_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_watch_manifest_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.manifest.builder.controller.Config.watch_manifest_ids");
+      target = stream->WriteString(5, s, target);
     }
   }
 
@@ -433,24 +476,33 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated string watch_manifest_ids = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_watch_manifest_ids().size());
+      for (int i = 0, n = this_._internal_watch_manifest_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_watch_manifest_ids().Get(i));
+      }
+    }
     // .bldr.manifest.builder.BuilderConfig builder_config = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.builder_config_);
     }
     // .configset.proto.ControllerConfig controller_config = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.controller_config_);
     }
     // .backoff.Backoff build_backoff = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.build_backoff_);
     }
     // bool watch = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_watch() != 0) {
         total_size += 2;
       }
@@ -475,8 +527,13 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_watch_manifest_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_watch_manifest_ids());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(from._impl_.builder_config_ != nullptr);
       if (_this->_impl_.builder_config_ == nullptr) {
         _this->_impl_.builder_config_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_config_);
@@ -484,7 +541,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.builder_config_->MergeFrom(*from._impl_.builder_config_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.controller_config_ != nullptr);
       if (_this->_impl_.controller_config_ == nullptr) {
         _this->_impl_.controller_config_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.controller_config_);
@@ -492,7 +549,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.controller_config_->MergeFrom(*from._impl_.controller_config_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(from._impl_.build_backoff_ != nullptr);
       if (_this->_impl_.build_backoff_ == nullptr) {
         _this->_impl_.build_backoff_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_backoff_);
@@ -500,7 +557,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.build_backoff_->MergeFrom(*from._impl_.build_backoff_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_watch() != 0) {
         _this->_impl_.watch_ = from._impl_.watch_;
       }
@@ -523,6 +580,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.watch_manifest_ids_.InternalSwap(&other->_impl_.watch_manifest_ids_);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.watch_)
       + sizeof(Config::_impl_.watch_)

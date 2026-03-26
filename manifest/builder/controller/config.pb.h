@@ -226,11 +226,34 @@ class Config final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kWatchManifestIdsFieldNumber = 5,
     kBuilderConfigFieldNumber = 1,
     kControllerConfigFieldNumber = 2,
     kBuildBackoffFieldNumber = 3,
     kWatchFieldNumber = 4,
   };
+  // repeated string watch_manifest_ids = 5;
+  int watch_manifest_ids_size() const;
+  private:
+  int _internal_watch_manifest_ids_size() const;
+
+  public:
+  void clear_watch_manifest_ids() ;
+  const ::std::string& watch_manifest_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_watch_manifest_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_watch_manifest_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_watch_manifest_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_watch_manifest_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& watch_manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_watch_manifest_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_watch_manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_watch_manifest_ids();
+
+  public:
   // .bldr.manifest.builder.BuilderConfig builder_config = 1;
   bool has_builder_config() const;
   void clear_builder_config() ;
@@ -290,8 +313,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   3, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   3, 66,
                                    2>
       _table_;
 
@@ -312,6 +335,7 @@ class Config final : public ::google::protobuf::Message
         const Config& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> watch_manifest_ids_;
     ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NULLABLE builder_config_;
     ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE controller_config_;
     ::backoff::Backoff* PROTOBUF_NULLABLE build_backoff_;
@@ -342,7 +366,7 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 
 // .bldr.manifest.builder.BuilderConfig builder_config = 1;
 inline bool Config::has_builder_config() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.builder_config_ != nullptr);
   return value;
 }
@@ -363,16 +387,16 @@ inline void Config::unsafe_arena_set_allocated_builder_config(
   }
   _impl_.builder_config_ = reinterpret_cast<::bldr::manifest::builder::BuilderConfig*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.manifest.builder.controller.Config.builder_config)
 }
 inline ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NULLABLE Config::release_builder_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::bldr::manifest::builder::BuilderConfig* released = _impl_.builder_config_;
   _impl_.builder_config_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -392,7 +416,7 @@ inline ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NULLABLE Config::unsaf
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.manifest.builder.controller.Config.builder_config)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::bldr::manifest::builder::BuilderConfig* temp = _impl_.builder_config_;
   _impl_.builder_config_ = nullptr;
   return temp;
@@ -407,7 +431,7 @@ inline ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NONNULL Config::_inter
 }
 inline ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NONNULL Config::mutable_builder_config()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::bldr::manifest::builder::BuilderConfig* _msg = _internal_mutable_builder_config();
   // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.controller.Config.builder_config)
   return _msg;
@@ -424,9 +448,9 @@ inline void Config::set_allocated_builder_config(::bldr::manifest::builder::Buil
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.builder_config_ = reinterpret_cast<::bldr::manifest::builder::BuilderConfig*>(value);
@@ -435,7 +459,7 @@ inline void Config::set_allocated_builder_config(::bldr::manifest::builder::Buil
 
 // .configset.proto.ControllerConfig controller_config = 2;
 inline bool Config::has_controller_config() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.controller_config_ != nullptr);
   return value;
 }
@@ -456,16 +480,16 @@ inline void Config::unsafe_arena_set_allocated_controller_config(
   }
   _impl_.controller_config_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.manifest.builder.controller.Config.controller_config)
 }
 inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE Config::release_controller_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::configset::proto::ControllerConfig* released = _impl_.controller_config_;
   _impl_.controller_config_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -485,7 +509,7 @@ inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE Config::unsafe_ar
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.manifest.builder.controller.Config.controller_config)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::configset::proto::ControllerConfig* temp = _impl_.controller_config_;
   _impl_.controller_config_ = nullptr;
   return temp;
@@ -500,7 +524,7 @@ inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL Config::_internal_
 }
 inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL Config::mutable_controller_config()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::configset::proto::ControllerConfig* _msg = _internal_mutable_controller_config();
   // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.controller.Config.controller_config)
   return _msg;
@@ -517,9 +541,9 @@ inline void Config::set_allocated_controller_config(::configset::proto::Controll
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.controller_config_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
@@ -528,7 +552,7 @@ inline void Config::set_allocated_controller_config(::configset::proto::Controll
 
 // .backoff.Backoff build_backoff = 3;
 inline bool Config::has_build_backoff() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
   PROTOBUF_ASSUME(!value || _impl_.build_backoff_ != nullptr);
   return value;
 }
@@ -549,16 +573,16 @@ inline void Config::unsafe_arena_set_allocated_build_backoff(
   }
   _impl_.build_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.manifest.builder.controller.Config.build_backoff)
 }
 inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::release_build_backoff() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::backoff::Backoff* released = _impl_.build_backoff_;
   _impl_.build_backoff_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -578,7 +602,7 @@ inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::unsafe_arena_release_build_
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.manifest.builder.controller.Config.build_backoff)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::backoff::Backoff* temp = _impl_.build_backoff_;
   _impl_.build_backoff_ = nullptr;
   return temp;
@@ -593,7 +617,7 @@ inline ::backoff::Backoff* PROTOBUF_NONNULL Config::_internal_mutable_build_back
 }
 inline ::backoff::Backoff* PROTOBUF_NONNULL Config::mutable_build_backoff()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::backoff::Backoff* _msg = _internal_mutable_build_backoff();
   // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.controller.Config.build_backoff)
   return _msg;
@@ -610,9 +634,9 @@ inline void Config::set_allocated_build_backoff(::backoff::Backoff* PROTOBUF_NUL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
 
   _impl_.build_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
@@ -624,7 +648,7 @@ inline void Config::clear_watch() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.watch_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool Config::watch() const {
   // @@protoc_insertion_point(field_get:bldr.manifest.builder.controller.Config.watch)
@@ -632,7 +656,7 @@ inline bool Config::watch() const {
 }
 inline void Config::set_watch(bool value) {
   _internal_set_watch(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:bldr.manifest.builder.controller.Config.watch)
 }
 inline bool Config::_internal_watch() const {
@@ -642,6 +666,78 @@ inline bool Config::_internal_watch() const {
 inline void Config::_internal_set_watch(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.watch_ = value;
+}
+
+// repeated string watch_manifest_ids = 5;
+inline int Config::_internal_watch_manifest_ids_size() const {
+  return _internal_watch_manifest_ids().size();
+}
+inline int Config::watch_manifest_ids_size() const {
+  return _internal_watch_manifest_ids_size();
+}
+inline void Config::clear_watch_manifest_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.watch_manifest_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::add_watch_manifest_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_watch_manifest_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+  return _s;
+}
+inline const ::std::string& Config::watch_manifest_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+  return _internal_watch_manifest_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_watch_manifest_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+  return _internal_mutable_watch_manifest_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void Config::set_watch_manifest_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_watch_manifest_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void Config::add_watch_manifest_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_watch_manifest_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& Config::watch_manifest_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+  return _internal_watch_manifest_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::mutable_watch_manifest_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.manifest.builder.controller.Config.watch_manifest_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_watch_manifest_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+Config::_internal_watch_manifest_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.watch_manifest_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::_internal_mutable_watch_manifest_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.watch_manifest_ids_;
 }
 
 #ifdef __GNUC__

@@ -230,6 +230,13 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		ctrlConf.GetWatch(),
 	)
 
+	// Resolve webPkg dependencies: if this manifest excludes webPkgs
+	// that another manifest provides, watch the provider for rebuilds.
+	webPkgDeps := resolveWebPkgDeps(t.c.le, projectConfig.GetManifests())
+	if watchIDs := webPkgDeps[manifestID]; len(watchIDs) > 0 {
+		builderConf.WatchManifestIds = watchIDs
+	}
+
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](
 		ctx,
 		t.c.bus,

@@ -69,6 +69,12 @@ pub struct InputManifest {
     /// Optional.
     #[prost(bytes="vec", tag="2")]
     pub metadata: ::prost::alloc::vec::Vec<u8>,
+    /// ManifestDeps are manifests this build depends on.
+    /// The builder controller watches these for changes and triggers
+    /// a rebuild when any dependency's ref changes in the world.
+    /// Optional.
+    #[prost(message, repeated, tag="3")]
+    pub manifest_deps: ::prost::alloc::vec::Vec<input_manifest::ManifestDep>,
 }
 /// Nested message and enum types in `InputManifest`.
 pub mod input_manifest {
@@ -82,6 +88,19 @@ pub mod input_manifest {
         /// Optional.
         #[prost(bytes="vec", tag="2")]
         pub metadata: ::prost::alloc::vec::Vec<u8>,
+    }
+    /// ManifestDep declares a dependency on another manifest.
+    /// The builder controller watches for changes to the manifest's ref
+    /// in the world and triggers a rebuild when it changes.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ManifestDep {
+        /// ManifestId is the manifest ID to depend on.
+        #[prost(string, tag="1")]
+        pub manifest_id: ::prost::alloc::string::String,
+        /// ManifestRef is the ref of the manifest at the time of the build.
+        /// When the world ref differs from this, a rebuild is triggered.
+        #[prost(message, optional, tag="2")]
+        pub manifest_ref: ::core::option::Option<super::super::super::super::bucket::ObjectRef>,
     }
 }
 /// BuildManifestArgs are arguments passed to the BuildManifest function.

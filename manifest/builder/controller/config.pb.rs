@@ -18,5 +18,11 @@ pub struct Config {
     /// Watch enables watching for changes.
     #[prost(bool, tag="4")]
     pub watch: bool,
+    /// WatchManifestIds is the list of manifest IDs to watch for changes.
+    /// When any of these manifests are rebuilt (ref changes in the world),
+    /// the builder controller triggers a rebuild of this manifest.
+    /// Populated by the project controller from the webPkg dependency graph.
+    #[prost(string, repeated, tag="5")]
+    pub watch_manifest_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 // @@protoc_insertion_point(module)

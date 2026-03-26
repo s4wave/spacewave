@@ -32,6 +32,11 @@ type Config struct {
 	BuildBackoff *backoff.Backoff `protobuf:"bytes,3,opt,name=build_backoff,json=buildBackoff,proto3" json:"buildBackoff,omitempty"`
 	// Watch enables watching for changes.
 	Watch bool `protobuf:"varint,4,opt,name=watch,proto3" json:"watch,omitempty"`
+	// WatchManifestIds is the list of manifest IDs to watch for changes.
+	// When any of these manifests are rebuilt (ref changes in the world),
+	// the builder controller triggers a rebuild of this manifest.
+	// Populated by the project controller from the webPkg dependency graph.
+	WatchManifestIds []string `protobuf:"bytes,5,rep,name=watch_manifest_ids,json=watchManifestIds,proto3" json:"watchManifestIds,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -68,6 +73,13 @@ func (x *Config) GetWatch() bool {
 	return false
 }
 
+func (x *Config) GetWatchManifestIds() []string {
+	if x != nil {
+		return x.WatchManifestIds
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -80,6 +92,9 @@ func (m *Config) CloneVT() *Config {
 	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		r.BuildBackoff = rhs.CloneVT()
+	}
+	if rhs := m.WatchManifestIds; rhs != nil {
+		r.WatchManifestIds = slices.Clone(rhs)
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -108,6 +123,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.Watch != that.Watch {
 		return false
+	}
+	if len(this.WatchManifestIds) != len(that.WatchManifestIds) {
+		return false
+	}
+	for i, vx := range this.WatchManifestIds {
+		vy := that.WatchManifestIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -147,6 +171,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("watch")
 		s.WriteBool(x.Watch)
+	}
+	if len(x.WatchManifestIds) > 0 || s.HasField("watchManifestIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("watchManifestIds")
+		s.WriteStringArray(x.WatchManifestIds)
 	}
 	s.WriteObjectEnd()
 }
@@ -189,6 +218,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "watch":
 			s.AddField("watch")
 			x.Watch = s.ReadBool()
+		case "watch_manifest_ids", "watchManifestIds":
+			s.AddField("watch_manifest_ids")
+			if s.ReadNil() {
+				x.WatchManifestIds = nil
+				return
+			}
+			x.WatchManifestIds = s.ReadStringArray()
 		}
 	})
 }
@@ -227,6 +263,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WatchManifestIds) > 0 {
+		for iNdEx := len(m.WatchManifestIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.WatchManifestIds[iNdEx])
+			copy(dAtA[i:], m.WatchManifestIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WatchManifestIds[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
 	if m.Watch {
 		i--
@@ -292,6 +337,12 @@ func (m *Config) SizeVT() (n int) {
 	if m.Watch {
 		n += 2
 	}
+	if len(m.WatchManifestIds) > 0 {
+		for _, s := range m.WatchManifestIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -326,6 +377,19 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("watch: ")
 		sb.WriteString(strconv.FormatBool(x.Watch))
+	}
+	if len(x.WatchManifestIds) > 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("watch_manifest_ids: [")
+		for i, v := range x.WatchManifestIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -451,6 +515,28 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Watch = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WatchManifestIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WatchManifestIds = append(m.WatchManifestIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

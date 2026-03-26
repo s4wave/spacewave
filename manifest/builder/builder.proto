@@ -2,6 +2,7 @@ syntax = "proto3";
 package bldr.manifest.builder;
 
 import "github.com/aperturerobotics/bldr/manifest/manifest.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // BuilderConfig is common configuration for a manifest builder routine.
 message BuilderConfig {
@@ -63,12 +64,28 @@ message InputManifest {
     bytes metadata = 2;
   }
 
+  // ManifestDep declares a dependency on another manifest.
+  // The builder controller watches for changes to the manifest's ref
+  // in the world and triggers a rebuild when it changes.
+  message ManifestDep {
+    // ManifestId is the manifest ID to depend on.
+    string manifest_id = 1;
+    // ManifestRef is the ref of the manifest at the time of the build.
+    // When the world ref differs from this, a rebuild is triggered.
+    .bucket.ObjectRef manifest_ref = 2;
+  }
+
   // Files is the list of consumed source files.
   // Optional.
   repeated File files = 1;
   // Metadata is additional builder-specific metadata about the output.
   // Optional.
   bytes metadata = 2;
+  // ManifestDeps are manifests this build depends on.
+  // The builder controller watches these for changes and triggers
+  // a rebuild when any dependency's ref changes in the world.
+  // Optional.
+  repeated ManifestDep manifest_deps = 3;
 }
 
 // BuildManifestArgs are arguments passed to the BuildManifest function.
