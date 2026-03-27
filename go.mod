@@ -33,7 +33,7 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5 // master
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/aperturerobotics/bbolt v0.0.0-20260224225952-2d545a75bdc1 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562 // master
 	github.com/bits-and-blooms/bitset v1.14.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -99,6 +99,8 @@ require (
 	gotest.tools/v3 v3.5.2
 	modernc.org/sqlite v1.45.0
 )
+
+require golang.org/x/sys v0.42.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -169,7 +171,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
