@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.2 // master
+	github.com/aperturerobotics/bifrost v0.47.4-0.20260329215849-b80367eb17d2 // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
@@ -62,14 +62,14 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.32.0 // latest
-	github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b // latest
+	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8 // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.49.0 // latest
-	github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317 // latest
+	github.com/aperturerobotics/starpc v0.49.1 // latest
+	github.com/aperturerobotics/util v1.33.0 // latest
 )
 
 require (
@@ -169,12 +169,12 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
+	golang.org/x/mod v0.34.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	golang.org/x/tools v0.42.0 // indirect
+	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

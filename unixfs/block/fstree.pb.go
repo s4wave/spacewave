@@ -478,12 +478,10 @@ func (m *FSNode) CloneVT() *FSNode {
 	r := new(FSNode)
 	r.NodeType = m.NodeType
 	r.Permissions = m.Permissions
+	r.File = m.File.CloneVT()
 	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.ModTime; rhs != nil {
 		r.ModTime = rhs.CloneVT()
-	}
-	if rhs := m.File; rhs != nil {
-		r.File = rhs.CloneVT()
 	}
 	if rhs := m.DirectoryEntry; rhs != nil {
 		r.DirectoryEntry = make([]*Dirent, len(rhs))
@@ -532,10 +530,8 @@ func (m *Dirent) CloneVT() *Dirent {
 	}
 	r := new(Dirent)
 	r.Name = m.Name
+	r.NodeRef = m.NodeRef.CloneVT()
 	r.NodeType = m.NodeType
-	if rhs := m.NodeRef; rhs != nil {
-		r.NodeRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -637,14 +633,10 @@ func (m *FSChange) CloneVT() *FSChange {
 	}
 	r := new(FSChange)
 	r.Seqno = m.Seqno
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeType = m.ChangeType
+	r.TransactionRef = m.TransactionRef.CloneVT()
 	r.NodeType = m.NodeType
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
-	if rhs := m.TransactionRef; rhs != nil {
-		r.TransactionRef = rhs.CloneVT()
-	}
 	if rhs := m.Paths; rhs != nil {
 		r.Paths = make([]*FSPath, len(rhs))
 		for k, v := range rhs {

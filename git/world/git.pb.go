@@ -463,11 +463,9 @@ func (m *GitInitOp) CloneVT() *GitInitOp {
 	}
 	r := new(GitInitOp)
 	r.ObjectKey = m.ObjectKey
+	r.RepoRef = m.RepoRef.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
-	if rhs := m.RepoRef; rhs != nil {
-		r.RepoRef = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -486,10 +484,8 @@ func (m *Worktree) CloneVT() *Worktree {
 		return (*Worktree)(nil)
 	}
 	r := new(Worktree)
+	r.GitIndex = m.GitIndex.CloneVT()
 	r.HeadRefStore = m.HeadRefStore.CloneVT()
-	if rhs := m.GitIndex; rhs != nil {
-		r.GitIndex = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -506,9 +502,7 @@ func (m *HeadRefStore) CloneVT() *HeadRefStore {
 	}
 	r := new(HeadRefStore)
 	r.SubmoduleName = m.SubmoduleName
-	if rhs := m.HeadRef; rhs != nil {
-		r.HeadRef = rhs.CloneVT()
-	}
+	r.HeadRef = m.HeadRef.CloneVT()
 	if rhs := m.Submodules; rhs != nil {
 		r.Submodules = make([]*HeadRefStore, len(rhs))
 		for k, v := range rhs {
@@ -532,14 +526,10 @@ func (m *GitCreateWorktreeOp) CloneVT() *GitCreateWorktreeOp {
 	r := new(GitCreateWorktreeOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
+	r.WorkdirRef = m.WorkdirRef.CloneVT()
 	r.CreateWorkdir = m.CreateWorkdir
+	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
-	if rhs := m.WorkdirRef; rhs != nil {
-		r.WorkdirRef = rhs.CloneVT()
-	}
-	if rhs := m.CheckoutOpts; rhs != nil {
-		r.CheckoutOpts = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -559,9 +549,7 @@ func (m *GitFetchOp) CloneVT() *GitFetchOp {
 	}
 	r := new(GitFetchOp)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.FetchOpts; rhs != nil {
-		r.FetchOpts = rhs.CloneVT()
-	}
+	r.FetchOpts = m.FetchOpts.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -578,11 +566,9 @@ func (m *GitCloneOp) CloneVT() *GitCloneOp {
 	}
 	r := new(GitCloneOp)
 	r.ObjectKey = m.ObjectKey
+	r.CloneOpts = m.CloneOpts.CloneVT()
 	r.DisableCheckout = m.DisableCheckout
 	r.CreateWorktree = m.CreateWorktree.CloneVT()
-	if rhs := m.CloneOpts; rhs != nil {
-		r.CloneOpts = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -603,9 +589,7 @@ func (m *GitWorktreeCheckoutOp) CloneVT() *GitWorktreeCheckoutOp {
 	r := new(GitWorktreeCheckoutOp)
 	r.ObjectKey = m.ObjectKey
 	r.RepoObjectKey = m.RepoObjectKey
-	if rhs := m.CheckoutOpts; rhs != nil {
-		r.CheckoutOpts = rhs.CloneVT()
-	}
+	r.CheckoutOpts = m.CheckoutOpts.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}

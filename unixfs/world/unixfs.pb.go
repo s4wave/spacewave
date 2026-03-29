@@ -853,9 +853,7 @@ func (m *UnixfsRef) CloneVT() *UnixfsRef {
 	r := new(UnixfsRef)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -873,10 +871,8 @@ func (m *FsInitOp) CloneVT() *FsInitOp {
 	r := new(FsInitOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.FsRef = m.FsRef.CloneVT()
 	r.FsOverwrite = m.FsOverwrite
-	if rhs := m.FsRef; rhs != nil {
-		r.FsRef = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -925,12 +921,8 @@ func (m *FsSymlinkOp) CloneVT() *FsSymlinkOp {
 	r := new(FsSymlinkOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
-	if rhs := m.Symlink; rhs != nil {
-		r.Symlink = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
+	r.Symlink = m.Symlink.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1004,13 +996,9 @@ func (m *FsWriteAtOp) CloneVT() *FsWriteAtOp {
 	r := new(FsWriteAtOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.Path = m.Path.CloneVT()
 	r.Offset = m.Offset
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
-	if rhs := m.BlobRef; rhs != nil {
-		r.BlobRef = rhs.CloneVT()
-	}
+	r.BlobRef = m.BlobRef.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1031,10 +1019,8 @@ func (m *FsTruncateOp) CloneVT() *FsTruncateOp {
 	r := new(FsTruncateOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.Path = m.Path.CloneVT()
 	r.FileSize = m.FileSize
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1055,12 +1041,8 @@ func (m *FsCopyOp) CloneVT() *FsCopyOp {
 	r := new(FsCopyOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.SrcPath; rhs != nil {
-		r.SrcPath = rhs.CloneVT()
-	}
-	if rhs := m.DestPath; rhs != nil {
-		r.DestPath = rhs.CloneVT()
-	}
+	r.SrcPath = m.SrcPath.CloneVT()
+	r.DestPath = m.DestPath.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1081,12 +1063,8 @@ func (m *FsRenameOp) CloneVT() *FsRenameOp {
 	r := new(FsRenameOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	if rhs := m.SrcPath; rhs != nil {
-		r.SrcPath = rhs.CloneVT()
-	}
-	if rhs := m.DestPath; rhs != nil {
-		r.DestPath = rhs.CloneVT()
-	}
+	r.SrcPath = m.SrcPath.CloneVT()
+	r.DestPath = m.DestPath.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -1107,16 +1085,12 @@ func (m *FsMknodWithContentOp) CloneVT() *FsMknodWithContentOp {
 	r := new(FsMknodWithContentOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
+	r.Path = m.Path.CloneVT()
 	r.Permissions = m.Permissions
 	r.NodeType = m.NodeType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
+	r.BlobRef = m.BlobRef.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
-	}
-	if rhs := m.BlobRef; rhs != nil {
-		r.BlobRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1177,9 +1151,7 @@ func (m *RefValue) CloneVT() *RefValue {
 	}
 	r := new(RefValue)
 	r.FsType = m.FsType
-	if rhs := m.Path; rhs != nil {
-		r.Path = rhs.CloneVT()
-	}
+	r.Path = m.Path.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
