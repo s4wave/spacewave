@@ -4,7 +4,7 @@ import (
 	"context"
 	oexec "os/exec"
 
-	"github.com/aperturerobotics/bldr/exp/autobun"
+	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/sirupsen/logrus"
 )

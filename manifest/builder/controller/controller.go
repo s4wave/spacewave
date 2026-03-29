@@ -24,7 +24,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver/v4"
-	"github.com/fsnotify/fsnotify"
+	"github.com/aperturerobotics/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

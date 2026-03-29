@@ -22,7 +22,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260327031736-327aff3c3711 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260329215922-ad3fd75567c5 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
@@ -32,19 +32,18 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/fatih/color v1.17.0
-	github.com/fsnotify/fsnotify v1.9.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.11.0
-	golang.org/x/mod v0.33.0 // latest
-	golang.org/x/tools v0.42.0 // latest
+	golang.org/x/mod v0.34.0 // latest
+	golang.org/x/tools v0.43.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.2 // master
+	github.com/aperturerobotics/bifrost v0.47.4-0.20260329215849-b80367eb17d2 // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.0 // master
@@ -87,10 +86,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b // latest
+	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.49.0 // latest
-	github.com/aperturerobotics/util v1.32.6-0.20260319220038-23f9d9405317 // latest
+	github.com/aperturerobotics/starpc v0.49.1 // latest
+	github.com/aperturerobotics/util v1.33.1-0.20260329220041-676675cd03f5 // latest
 )
 
 require (
@@ -114,6 +113,7 @@ require (
 )
 
 require (
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
 	github.com/mattn/go-isatty v0.0.20
 )
@@ -161,7 +161,7 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
