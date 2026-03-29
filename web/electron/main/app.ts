@@ -19,7 +19,7 @@ import { messagePortMainToMessagePort } from './ipc.js'
 import {
   buildPipeName,
   connectToPipe,
-} from '../../../util/pipesock/pipesock.js'
+} from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
 import {
   ExternalLinks,
   type ElectronInit,

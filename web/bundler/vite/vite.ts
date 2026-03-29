@@ -6,7 +6,7 @@ import {
   buildPipeName,
   createSocketConnection,
   startSocketSender,
-} from '../../../util/pipesock/pipesock.js'
+} from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
 import { ViteBundler, ViteBundlerDefinition } from './vite_srpc.pb.js'
 import { BuildRequest, BuildResponse } from './vite.pb.js'
 import {
