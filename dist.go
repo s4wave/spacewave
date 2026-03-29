@@ -40,7 +40,6 @@ import (
 //go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts
 //go:embed web/bundler/vite/vite.pb.ts web/bundler/vite/vite_srpc.pb.ts
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
-//go:embed util/pipesock/pipesock.ts
 //go:embed plugin/compiler/js/entrypoint.ts
 //go:embed resource/resource.pb.ts resource/resource_srpc.pb.ts
 //go:embed resource/state/state.pb.ts resource/state/state_srpc.pb.ts
