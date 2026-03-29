@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 )
 
@@ -63,10 +64,7 @@ func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
 		},
 	}
 	for _, sess := range sessions {
-		select {
-		case sess.notifyCh <- msg:
-		default:
-		}
+		sess.queueNotification(msg)
 	}
 }
 
@@ -93,10 +91,7 @@ func (s *Server) RemoveMount(name string) {
 		},
 	}
 	for _, sess := range sessions {
-		select {
-		case sess.notifyCh <- msg:
-		default:
-		}
+		sess.queueNotification(msg)
 	}
 }
 
@@ -128,11 +123,10 @@ func (s *Server) resolveMountName(ctx context.Context, name string) (*unixfs.FSH
 // RelayV86Fs implements the bidirectional streaming RPC.
 func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 	sess := &session{
-		server:   s,
-		strm:     strm,
-		inodes:   make(map[uint64]*inodeEntry),
-		handles:  make(map[uint64]*handleEntry),
-		notifyCh: make(chan *V86FsMessage, 64),
+		server:  s,
+		strm:    strm,
+		inodes:  make(map[uint64]*inodeEntry),
+		handles: make(map[uint64]*handleEntry),
 	}
 
 	s.mtx.Lock()
@@ -160,8 +154,9 @@ type session struct {
 	inodes    map[uint64]*inodeEntry
 	handles   map[uint64]*handleEntry
 
-	// notifyCh queues server-initiated notifications (buffered to avoid blocking AddMount/RemoveMount callers).
-	notifyCh chan *V86FsMessage
+	// bcast guards pending and wakes the run loop when notifications are queued.
+	bcast   broadcast.Broadcast
+	pending []*V86FsMessage
 }
 
 // inodeEntry tracks an open FSHandle associated with an inode ID.
@@ -174,6 +169,14 @@ type inodeEntry struct {
 type handleEntry struct {
 	inodeID uint64
 	handle  *unixfs.FSHandle
+}
+
+// queueNotification appends a notification and wakes the run loop.
+func (ss *session) queueNotification(msg *V86FsMessage) {
+	ss.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		ss.pending = append(ss.pending, msg)
+		broadcast()
+	})
 }
 
 // allocInodeID allocates a new inode ID and registers the FSHandle.
@@ -193,7 +196,7 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 				if ch == nil {
 					return true
 				}
-				msg := &V86FsMessage{
+				ss.queueNotification(&V86FsMessage{
 					Body: &V86FsMessage_Invalidate{
 						Invalidate: &V86FsInvalidate{
 							InodeId: id,
@@ -201,11 +204,7 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 							Size:    ch.Size,
 						},
 					},
-				}
-				select {
-				case ss.notifyCh <- msg:
-				default:
-				}
+				})
 				return !ch.Released
 			})
 			return nil
@@ -289,9 +288,25 @@ func (ss *session) run() error {
 	}()
 
 	for {
+		// Snapshot and drain pending notifications under bcast lock.
+		var waitCh <-chan struct{}
+		var pending []*V86FsMessage
+		ss.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+			pending = ss.pending
+			ss.pending = nil
+		})
+		for _, msg := range pending {
+			if err := ss.strm.Send(msg); err != nil {
+				return err
+			}
+		}
+
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-waitCh:
+			// New notifications queued, loop back to drain.
 		case rm := <-recvCh:
 			if rm.err != nil {
 				return rm.err
@@ -309,10 +324,6 @@ func (ss *session) run() error {
 				if err := ss.strm.Send(reply); err != nil {
 					return err
 				}
-			}
-		case notify := <-ss.notifyCh:
-			if err := ss.strm.Send(notify); err != nil {
-				return err
 			}
 		}
 	}
