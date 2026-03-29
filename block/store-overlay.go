@@ -164,6 +164,9 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 	case OverlayMode_LOWER_READ_CACHE:
 		// reads go to the lower store first, then the upper store.
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		// reads go to the lower store first, then the upper store.
 		return cacheMode(o.lower, o.upper)
@@ -196,6 +199,8 @@ func (o *StoreOverlay) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat
 		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_READ_CACHE:
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		return cacheMode(o.lower, o.upper)
 	}
@@ -285,8 +290,8 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 		// removes go to both stores.
 		return cacheMode(o.upper, o.lower)
 	case OverlayMode_UPPER_WRITE_CACHE:
-		// removes go to both stores.
-		return cacheMode(o.upper, o.lower)
+		// removes go to the upper (write) store only.
+		return o.upper.RmBlock(ctx, ref)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		// removes go to both stores.
 		return cacheMode(o.lower, o.upper)
