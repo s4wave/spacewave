@@ -34,6 +34,13 @@ pub struct LoadPluginRequest {
     /// PluginId is the plugin identifier to load.
     #[prost(string, tag="1")]
     pub plugin_id: ::prost::alloc::string::String,
+    /// InstanceKey is an optional key for instanced plugins.
+    /// When non-empty, the plugin host uses (plugin_id, instance_key) as the
+    /// composite deduplication key, allowing multiple independent instances of the
+    /// same plugin to run concurrently in separate workers.
+    /// When empty, behavior is unchanged: a single shared instance per plugin_id.
+    #[prost(string, tag="2")]
+    pub instance_key: ::prost::alloc::string::String,
 }
 /// LoadPluginResponse is a status response to a LoadPlugin request.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -70,6 +77,10 @@ pub struct PluginStartInfo {
     /// Must be a valid-dns-label.
     #[prost(string, tag="2")]
     pub plugin_id: ::prost::alloc::string::String,
+    /// InstanceKey is the instance key from the LoadPlugin request.
+    /// Empty for non-instanced (shared) plugins.
+    #[prost(string, tag="3")]
+    pub instance_key: ::prost::alloc::string::String,
 }
 /// PluginContextInfo contains information about the running plugin attached to
 /// the Context tree for access within controllers running on the plugin bus.

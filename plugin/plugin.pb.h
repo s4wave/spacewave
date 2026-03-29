@@ -459,6 +459,7 @@ class PluginStartInfo final : public ::google::protobuf::Message
   enum : int {
     kInstanceIdFieldNumber = 1,
     kPluginIdFieldNumber = 2,
+    kInstanceKeyFieldNumber = 3,
   };
   // string instance_id = 1;
   void clear_instance_id() ;
@@ -490,12 +491,27 @@ class PluginStartInfo final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
 
   public:
+  // string instance_key = 3;
+  void clear_instance_key() ;
+  const ::std::string& instance_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_instance_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_instance_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_instance_key();
+  void set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_instance_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_instance_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_instance_key();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.PluginStartInfo)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 56,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 68,
                                    2>
       _table_;
 
@@ -518,6 +534,7 @@ class PluginStartInfo final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr instance_id_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr instance_key_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -916,6 +933,7 @@ class LoadPluginRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPluginIdFieldNumber = 1,
+    kInstanceKeyFieldNumber = 2,
   };
   // string plugin_id = 1;
   void clear_plugin_id() ;
@@ -932,12 +950,27 @@ class LoadPluginRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
 
   public:
+  // string instance_key = 2;
+  void clear_instance_key() ;
+  const ::std::string& instance_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_instance_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_instance_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_instance_key();
+  void set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_instance_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_instance_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_instance_key();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.LoadPluginRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 47,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 59,
                                    2>
       _table_;
 
@@ -959,6 +992,7 @@ class LoadPluginRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr instance_key_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2154,6 +2188,71 @@ inline void LoadPluginRequest::set_allocated_plugin_id(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:bldr.plugin.LoadPluginRequest.plugin_id)
 }
 
+// string instance_key = 2;
+inline void LoadPluginRequest::clear_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& LoadPluginRequest::instance_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.LoadPluginRequest.instance_key)
+  return _internal_instance_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LoadPluginRequest::set_instance_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.plugin.LoadPluginRequest.instance_key)
+}
+inline ::std::string* PROTOBUF_NONNULL LoadPluginRequest::mutable_instance_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_instance_key();
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.LoadPluginRequest.instance_key)
+  return _s;
+}
+inline const ::std::string& LoadPluginRequest::_internal_instance_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.instance_key_.Get();
+}
+inline void LoadPluginRequest::_internal_set_instance_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LoadPluginRequest::_internal_mutable_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.instance_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LoadPluginRequest::release_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.plugin.LoadPluginRequest.instance_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.instance_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LoadPluginRequest::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.instance_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.plugin.LoadPluginRequest.instance_key)
+}
+
 // -------------------------------------------------------------------
 
 // LoadPluginResponse
@@ -2653,6 +2752,71 @@ inline void PluginStartInfo::set_allocated_plugin_id(::std::string* PROTOBUF_NUL
     _impl_.plugin_id_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.plugin.PluginStartInfo.plugin_id)
+}
+
+// string instance_key = 3;
+inline void PluginStartInfo::clear_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& PluginStartInfo::instance_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.PluginStartInfo.instance_key)
+  return _internal_instance_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginStartInfo::set_instance_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.plugin.PluginStartInfo.instance_key)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginStartInfo::mutable_instance_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_instance_key();
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.PluginStartInfo.instance_key)
+  return _s;
+}
+inline const ::std::string& PluginStartInfo::_internal_instance_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.instance_key_.Get();
+}
+inline void PluginStartInfo::_internal_set_instance_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginStartInfo::_internal_mutable_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.instance_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginStartInfo::release_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.plugin.PluginStartInfo.instance_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.instance_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginStartInfo::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.instance_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.plugin.PluginStartInfo.instance_key)
 }
 
 // -------------------------------------------------------------------

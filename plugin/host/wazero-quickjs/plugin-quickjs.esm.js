@@ -9862,6 +9862,14 @@ var VolumeInfo = createMessageType({
   packedByDefault: true
 });
 createMessageType({
+  typeName: "volume.StorageStats",
+  fields: [
+    { no: 1, name: "total_bytes", kind: "scalar", T: ScalarType.UINT64 },
+    { no: 2, name: "block_count", kind: "scalar", T: ScalarType.UINT64 }
+  ],
+  packedByDefault: true
+});
+createMessageType({
   typeName: "volume.VolumeBucketInfo",
   fields: [
     { no: 1, name: "bucket_info", kind: "message", T: () => BucketInfo },
@@ -9911,7 +9919,8 @@ var GetPluginInfoResponse = createMessageType({
 var LoadPluginRequest = createMessageType({
   typeName: "bldr.plugin.LoadPluginRequest",
   fields: [
-    { no: 1, name: "plugin_id", kind: "scalar", T: ScalarType.STRING }
+    { no: 1, name: "plugin_id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "instance_key", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
@@ -9936,7 +9945,8 @@ var PluginStartInfo = createMessageType({
   typeName: "bldr.plugin.PluginStartInfo",
   fields: [
     { no: 1, name: "instance_id", kind: "scalar", T: ScalarType.STRING },
-    { no: 2, name: "plugin_id", kind: "scalar", T: ScalarType.STRING }
+    { no: 2, name: "plugin_id", kind: "scalar", T: ScalarType.STRING },
+    { no: 3, name: "instance_key", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });

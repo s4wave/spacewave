@@ -8,10 +8,11 @@ import (
 )
 
 // NewPluginStartInfo constructs a new PluginStartInfo.
-func NewPluginStartInfo(instanceID, pluginID string) *PluginStartInfo {
+func NewPluginStartInfo(instanceID, pluginID, instanceKey string) *PluginStartInfo {
 	return &PluginStartInfo{
-		InstanceId: instanceID,
-		PluginId:   pluginID,
+		InstanceId:  instanceID,
+		PluginId:    pluginID,
+		InstanceKey: instanceKey,
 	}
 }
 

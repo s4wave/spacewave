@@ -67,6 +67,12 @@ message GetPluginInfoResponse {
 message LoadPluginRequest {
   // PluginId is the plugin identifier to load.
   string plugin_id = 1;
+  // InstanceKey is an optional key for instanced plugins.
+  // When non-empty, the plugin host uses (plugin_id, instance_key) as the
+  // composite deduplication key, allowing multiple independent instances of the
+  // same plugin to run concurrently in separate workers.
+  // When empty, behavior is unchanged: a single shared instance per plugin_id.
+  string instance_key = 2;
 }
 
 // LoadPluginResponse is a status response to a LoadPlugin request.
@@ -96,6 +102,9 @@ message PluginStartInfo {
   // PluginId is the plugin identifier.
   // Must be a valid-dns-label.
   string plugin_id = 2;
+  // InstanceKey is the instance key from the LoadPlugin request.
+  // Empty for non-instanced (shared) plugins.
+  string instance_key = 3;
 }
 
 // PluginContextInfo contains information about the running plugin attached to

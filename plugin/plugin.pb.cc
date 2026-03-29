@@ -65,6 +65,9 @@ inline constexpr PluginStartInfo::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         plugin_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        instance_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -127,6 +130,9 @@ inline constexpr LoadPluginRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         plugin_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        instance_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
@@ -274,9 +280,11 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::LoadPluginRequest, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::LoadPluginRequest, _impl_.plugin_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::LoadPluginRequest, _impl_.instance_key_),
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::LoadPluginResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -295,11 +303,13 @@ const ::uint32_t
         3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStartInfo, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStartInfo, _impl_.instance_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStartInfo, _impl_.plugin_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStartInfo, _impl_.instance_key_),
         0,
         1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginContextInfo, _impl_._has_bits_),
         4, // hasbit index offset
@@ -313,10 +323,10 @@ static const ::_pbi::MigrationSchema
         {7, sizeof(::bldr::plugin::GetPluginInfoRequest)},
         {8, sizeof(::bldr::plugin::GetPluginInfoResponse)},
         {17, sizeof(::bldr::plugin::LoadPluginRequest)},
-        {22, sizeof(::bldr::plugin::LoadPluginResponse)},
-        {27, sizeof(::bldr::plugin::PluginMeta)},
-        {38, sizeof(::bldr::plugin::PluginStartInfo)},
-        {45, sizeof(::bldr::plugin::PluginContextInfo)},
+        {24, sizeof(::bldr::plugin::LoadPluginResponse)},
+        {29, sizeof(::bldr::plugin::PluginMeta)},
+        {40, sizeof(::bldr::plugin::PluginStartInfo)},
+        {49, sizeof(::bldr::plugin::PluginContextInfo)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::_PluginStatus_default_instance_._instance,
@@ -343,28 +353,29 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     "inInfoResponse\022\021\n\tplugin_id\030\001 \001(\t\0220\n\014man"
     "ifest_ref\030\002 \001(\0132\032.bldr.manifest.Manifest"
     "Ref\022,\n\020host_volume_info\030\003 \001(\0132\022.volume.V"
-    "olumeInfo\"&\n\021LoadPluginRequest\022\021\n\tplugin"
-    "_id\030\001 \001(\t\"F\n\022LoadPluginResponse\0220\n\rplugi"
-    "n_status\030\001 \001(\0132\031.bldr.plugin.PluginStatu"
-    "s\"\\\n\nPluginMeta\022\022\n\nproject_id\030\001 \001(\t\022\021\n\tp"
-    "lugin_id\030\002 \001(\t\022\023\n\013platform_id\030\003 \001(\t\022\022\n\nb"
-    "uild_type\030\004 \001(\t\"9\n\017PluginStartInfo\022\023\n\013in"
-    "stance_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\"A\n\021Pl"
-    "uginContextInfo\022,\n\013plugin_meta\030\001 \001(\0132\027.b"
-    "ldr.plugin.PluginMeta2\264\003\n\nPluginHost\022X\n\r"
-    "GetPluginInfo\022!.bldr.plugin.GetPluginInf"
-    "oRequest\032\".bldr.plugin.GetPluginInfoResp"
-    "onse\"\000\022e\n\016ExecController\022&.controller.ex"
-    "ec.ExecControllerRequest\032\'.controller.ex"
-    "ec.ExecControllerResponse\"\0000\001\022Q\n\nLoadPlu"
-    "gin\022\036.bldr.plugin.LoadPluginRequest\032\037.bl"
-    "dr.plugin.LoadPluginResponse\"\0000\001\022G\n\tPlug"
-    "inRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcs"
-    "tream.RpcStreamPacket(\0010\001\022I\n\013PluginFsRpc"
-    "\022\032.rpcstream.RpcStreamPacket\032\032.rpcstream"
-    ".RpcStreamPacket(\0010\0012Q\n\006Plugin\022G\n\tPlugin"
-    "Rpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcstr"
-    "eam.RpcStreamPacket(\0010\001b\006proto3"
+    "olumeInfo\"<\n\021LoadPluginRequest\022\021\n\tplugin"
+    "_id\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\"F\n\022LoadP"
+    "luginResponse\0220\n\rplugin_status\030\001 \001(\0132\031.b"
+    "ldr.plugin.PluginStatus\"\\\n\nPluginMeta\022\022\n"
+    "\nproject_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\023\n\013"
+    "platform_id\030\003 \001(\t\022\022\n\nbuild_type\030\004 \001(\t\"O\n"
+    "\017PluginStartInfo\022\023\n\013instance_id\030\001 \001(\t\022\021\n"
+    "\tplugin_id\030\002 \001(\t\022\024\n\014instance_key\030\003 \001(\t\"A"
+    "\n\021PluginContextInfo\022,\n\013plugin_meta\030\001 \001(\013"
+    "2\027.bldr.plugin.PluginMeta2\264\003\n\nPluginHost"
+    "\022X\n\rGetPluginInfo\022!.bldr.plugin.GetPlugi"
+    "nInfoRequest\032\".bldr.plugin.GetPluginInfo"
+    "Response\"\000\022e\n\016ExecController\022&.controlle"
+    "r.exec.ExecControllerRequest\032\'.controlle"
+    "r.exec.ExecControllerResponse\"\0000\001\022Q\n\nLoa"
+    "dPlugin\022\036.bldr.plugin.LoadPluginRequest\032"
+    "\037.bldr.plugin.LoadPluginResponse\"\0000\001\022G\n\t"
+    "PluginRpc\022\032.rpcstream.RpcStreamPacket\032\032."
+    "rpcstream.RpcStreamPacket(\0010\001\022I\n\013PluginF"
+    "sRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcst"
+    "ream.RpcStreamPacket(\0010\0012Q\n\006Plugin\022G\n\tPl"
+    "uginRpc\022\032.rpcstream.RpcStreamPacket\032\032.rp"
+    "cstream.RpcStreamPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_deps[4] = {
@@ -377,7 +388,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    1391,
+    1435,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
     "github.com/aperturerobotics/bldr/plugin/plugin.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_once,
@@ -1212,7 +1223,8 @@ PROTOBUF_NDEBUG_INLINE LoadPluginRequest::Impl_::Impl_(
     [[maybe_unused]] const ::bldr::plugin::LoadPluginRequest& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        plugin_id_(arena, from.plugin_id_) {}
+        plugin_id_(arena, from.plugin_id_),
+        instance_key_(arena, from.instance_key_) {}
 
 LoadPluginRequest::LoadPluginRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1234,7 +1246,8 @@ PROTOBUF_NDEBUG_INLINE LoadPluginRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        plugin_id_(arena) {}
+        plugin_id_(arena),
+        instance_key_(arena) {}
 
 inline void LoadPluginRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -1251,6 +1264,7 @@ inline void LoadPluginRequest::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.plugin_id_.Destroy();
+  this_._impl_.instance_key_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1297,16 +1311,16 @@ LoadPluginRequest::GetClassData() const {
   return LoadPluginRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 47, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 59, 2>
 LoadPluginRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(LoadPluginRequest, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     LoadPluginRequest_class_data_.base(),
@@ -1316,6 +1330,10 @@ LoadPluginRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::plugin::LoadPluginRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // string instance_key = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(LoadPluginRequest, _impl_.instance_key_)}},
     // string plugin_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -1325,12 +1343,15 @@ LoadPluginRequest::_table_ = {
   }}, {{
     // string plugin_id = 1;
     {PROTOBUF_FIELD_OFFSET(LoadPluginRequest, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string instance_key = 2;
+    {PROTOBUF_FIELD_OFFSET(LoadPluginRequest, _impl_.instance_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\35\11\0\0\0\0\0\0"
+    "\35\11\14\0\0\0\0\0"
     "bldr.plugin.LoadPluginRequest"
     "plugin_id"
+    "instance_key"
   }},
 };
 PROTOBUF_NOINLINE void LoadPluginRequest::Clear() {
@@ -1341,8 +1362,13 @@ PROTOBUF_NOINLINE void LoadPluginRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.plugin_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.plugin_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.instance_key_.ClearNonDefaultToEmpty();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -1377,6 +1403,16 @@ PROTOBUF_NOINLINE void LoadPluginRequest::Clear() {
     }
   }
 
+  // string instance_key = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_instance_key().empty()) {
+      const ::std::string& _s = this_._internal_instance_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.LoadPluginRequest.instance_key");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1400,13 +1436,21 @@ PROTOBUF_NOINLINE void LoadPluginRequest::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string plugin_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_plugin_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_plugin_id());
+      }
+    }
+    // string instance_key = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_instance_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_instance_key());
       }
     }
   }
@@ -1428,12 +1472,23 @@ void LoadPluginRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_plugin_id().empty()) {
-      _this->_internal_set_plugin_id(from._internal_plugin_id());
-    } else {
-      if (_this->_impl_.plugin_id_.IsDefault()) {
-        _this->_internal_set_plugin_id("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_plugin_id().empty()) {
+        _this->_internal_set_plugin_id(from._internal_plugin_id());
+      } else {
+        if (_this->_impl_.plugin_id_.IsDefault()) {
+          _this->_internal_set_plugin_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_instance_key().empty()) {
+        _this->_internal_set_instance_key(from._internal_instance_key());
+      } else {
+        if (_this->_impl_.instance_key_.IsDefault()) {
+          _this->_internal_set_instance_key("");
+        }
       }
     }
   }
@@ -1457,6 +1512,7 @@ void LoadPluginRequest::InternalSwap(LoadPluginRequest* PROTOBUF_RESTRICT PROTOB
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.instance_key_, &other->_impl_.instance_key_, arena);
 }
 
 ::google::protobuf::Metadata LoadPluginRequest::GetMetadata() const {
@@ -2159,7 +2215,8 @@ PROTOBUF_NDEBUG_INLINE PluginStartInfo::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         instance_id_(arena, from.instance_id_),
-        plugin_id_(arena, from.plugin_id_) {}
+        plugin_id_(arena, from.plugin_id_),
+        instance_key_(arena, from.instance_key_) {}
 
 PluginStartInfo::PluginStartInfo(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2182,7 +2239,8 @@ PROTOBUF_NDEBUG_INLINE PluginStartInfo::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         instance_id_(arena),
-        plugin_id_(arena) {}
+        plugin_id_(arena),
+        instance_key_(arena) {}
 
 inline void PluginStartInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -2200,6 +2258,7 @@ inline void PluginStartInfo::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.instance_id_.Destroy();
   this_._impl_.plugin_id_.Destroy();
+  this_._impl_.instance_key_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -2246,16 +2305,16 @@ PluginStartInfo::GetClassData() const {
   return PluginStartInfo_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 56, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 68, 2>
 PluginStartInfo::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     PluginStartInfo_class_data_.base(),
@@ -2265,14 +2324,19 @@ PluginStartInfo::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::plugin::PluginStartInfo>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string plugin_id = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.plugin_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string instance_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.instance_id_)}},
+    // string plugin_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.plugin_id_)}},
+    // string instance_key = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.instance_key_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2280,13 +2344,16 @@ PluginStartInfo::_table_ = {
     {PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.instance_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string plugin_id = 2;
     {PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.plugin_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string instance_key = 3;
+    {PROTOBUF_FIELD_OFFSET(PluginStartInfo, _impl_.instance_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\33\13\11\0\0\0\0\0"
+    "\33\13\11\14\0\0\0\0"
     "bldr.plugin.PluginStartInfo"
     "instance_id"
     "plugin_id"
+    "instance_key"
   }},
 };
 PROTOBUF_NOINLINE void PluginStartInfo::Clear() {
@@ -2297,12 +2364,15 @@ PROTOBUF_NOINLINE void PluginStartInfo::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.instance_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.plugin_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.instance_key_.ClearNonDefaultToEmpty();
     }
   }
   _impl_._has_bits_.Clear();
@@ -2348,6 +2418,16 @@ PROTOBUF_NOINLINE void PluginStartInfo::Clear() {
     }
   }
 
+  // string instance_key = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_instance_key().empty()) {
+      const ::std::string& _s = this_._internal_instance_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.PluginStartInfo.instance_key");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2373,7 +2453,7 @@ PROTOBUF_NOINLINE void PluginStartInfo::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string instance_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_instance_id().empty()) {
@@ -2386,6 +2466,13 @@ PROTOBUF_NOINLINE void PluginStartInfo::Clear() {
       if (!this_._internal_plugin_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_plugin_id());
+      }
+    }
+    // string instance_key = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_instance_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_instance_key());
       }
     }
   }
@@ -2407,7 +2494,7 @@ void PluginStartInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_instance_id().empty()) {
         _this->_internal_set_instance_id(from._internal_instance_id());
@@ -2423,6 +2510,15 @@ void PluginStartInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
       } else {
         if (_this->_impl_.plugin_id_.IsDefault()) {
           _this->_internal_set_plugin_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_instance_key().empty()) {
+        _this->_internal_set_instance_key(from._internal_instance_key());
+      } else {
+        if (_this->_impl_.instance_key_.IsDefault()) {
+          _this->_internal_set_instance_key("");
         }
       }
     }
@@ -2448,6 +2544,7 @@ void PluginStartInfo::InternalSwap(PluginStartInfo* PROTOBUF_RESTRICT PROTOBUF_N
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.instance_id_, &other->_impl_.instance_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.instance_key_, &other->_impl_.instance_key_, arena);
 }
 
 ::google::protobuf::Metadata PluginStartInfo::GetMetadata() const {

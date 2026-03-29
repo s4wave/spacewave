@@ -111,7 +111,7 @@ func (h *WebHost) ListPlugins(ctx context.Context) ([]string, error) {
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *WebHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, entrypoint string,
+	pluginID, instanceKey, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
@@ -144,7 +144,7 @@ func (h *WebHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
-	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err
@@ -152,7 +152,11 @@ func (h *WebHost) ExecutePlugin(
 	pluginStartInfoBin := []byte(pluginStartInfoJsonB64)
 
 	// web worker create request
+	// instanced plugins get a unique worker ID per instance key.
 	pluginWebWorkerID := "plugin/" + pluginID
+	if instanceKey != "" {
+		pluginWebWorkerID += "/" + instanceKey
+	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
 	pluginShared := true
 
@@ -169,6 +173,9 @@ func (h *WebHost) ExecutePlugin(
 
 	// Mount the RPC handler to the bus.
 	baseControllerID := ControllerID + "/" + pluginID
+	if instanceKey != "" {
+		baseControllerID += "/" + instanceKey
+	}
 	rpcServiceControllerID := baseControllerID + "/rpc-host"
 	var hostInvoker srpc.Invoker = hostMux
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(

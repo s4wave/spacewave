@@ -38,9 +38,11 @@ type PluginHost interface {
 	// Should expect to be called only once (at a time) for a plugin ID.
 	// pluginDist contains the plugin distribution files (binaries and assets).
 	// rpcInit is called when the RPC client is ready, should return a mux for the server.
+	// instanceKey is the instance key for instanced plugins (empty for shared).
 	ExecutePlugin(
 		ctx context.Context,
 		pluginID,
+		instanceKey,
 		entrypoint string,
 		pluginDist *unixfs.FSHandle,
 		pluginAssets *unixfs.FSHandle,
@@ -56,7 +58,6 @@ type PluginHost interface {
 type PluginHostScheduler interface {
 	// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
 	// handle and a release function.
-	//
-	// Returns nil, nil, err if any error occurs.
-	AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func())
+	// instanceKey may be empty for shared (non-instanced) plugins.
+	AddPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func())
 }

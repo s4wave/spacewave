@@ -17,6 +17,12 @@ type LoadPlugin interface {
 	// LoadPluginID returns the plugin ID to load.
 	// Cannot be empty.
 	LoadPluginID() string
+
+	// LoadPluginInstanceKey returns the instance key for instanced plugins.
+	// When non-empty, (plugin_id, instance_key) is the composite deduplication
+	// key, creating a separate worker per instance.
+	// When empty, a single shared instance per plugin_id is used.
+	LoadPluginInstanceKey() string
 }
 
 // LoadPluginValue is the result type for LoadPlugin.
@@ -25,12 +31,18 @@ type LoadPluginValue = RunningPlugin
 
 // loadPlugin implements LoadPlugin
 type loadPlugin struct {
-	pluginID string
+	pluginID    string
+	instanceKey string
 }
 
 // NewLoadPlugin constructs a new LoadPlugin directive.
 func NewLoadPlugin(pluginID string) LoadPlugin {
 	return &loadPlugin{pluginID: pluginID}
+}
+
+// NewLoadPluginInstanced constructs a new LoadPlugin directive with an instance key.
+func NewLoadPluginInstanced(pluginID, instanceKey string) LoadPlugin {
+	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey}
 }
 
 // ExLoadPlugin executes the LoadPlugin directive.
@@ -47,6 +59,24 @@ func ExLoadPlugin(
 		ctx,
 		b,
 		NewLoadPlugin(pluginID),
+		bus.ReturnIfIdle(returnIfIdle),
+		valDisposeCallback,
+		nil,
+	)
+}
+
+// ExLoadPluginInstanced executes the LoadPlugin directive with an instance key.
+func ExLoadPluginInstanced(
+	ctx context.Context,
+	b bus.Bus,
+	returnIfIdle bool,
+	pluginID, instanceKey string,
+	valDisposeCallback func(),
+) (LoadPluginValue, directive.Instance, directive.Reference, error) {
+	return bus.ExecWaitValue[RunningPlugin](
+		ctx,
+		b,
+		NewLoadPluginInstanced(pluginID, instanceKey),
 		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCallback,
 		nil,
@@ -157,6 +187,11 @@ func (d *loadPlugin) LoadPluginID() string {
 	return d.pluginID
 }
 
+// LoadPluginInstanceKey returns the instance key.
+func (d *loadPlugin) LoadPluginInstanceKey() string {
+	return d.instanceKey
+}
+
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
@@ -165,12 +200,8 @@ func (d *loadPlugin) IsEquivalent(other directive.Directive) bool {
 	if !ok {
 		return false
 	}
-
-	if d.LoadPluginID() != od.LoadPluginID() {
-		return false
-	}
-
-	return true
+	return d.LoadPluginID() == od.LoadPluginID() &&
+		d.LoadPluginInstanceKey() == od.LoadPluginInstanceKey()
 }
 
 // GetName returns the directive's type name.
@@ -184,6 +215,9 @@ func (d *loadPlugin) GetName() string {
 func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["plugin-id"] = []string{d.LoadPluginID()}
+	if ik := d.LoadPluginInstanceKey(); ik != "" {
+		vals["instance-key"] = []string{ik}
+	}
 	return vals
 }
 

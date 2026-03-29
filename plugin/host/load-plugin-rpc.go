@@ -16,7 +16,13 @@ func HandleLoadPluginRpc(
 	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
 	pluginID := req.GetPluginId()
-	dir := bldr_plugin.NewLoadPlugin(pluginID)
+	instanceKey := req.GetInstanceKey()
+	var dir bldr_plugin.LoadPlugin
+	if instanceKey != "" {
+		dir = bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
+	} else {
+		dir = bldr_plugin.NewLoadPlugin(pluginID)
+	}
 	resp := ccontainer.NewCContainerVT[*bldr_plugin.LoadPluginResponse](nil)
 
 	errCh := make(chan error, 1)

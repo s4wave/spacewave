@@ -13,16 +13,18 @@ type LoadPluginResolver struct {
 	c PluginHostScheduler
 	// pluginID is the plugin identifier
 	pluginID string
+	// instanceKey is the instance key for instanced plugins.
+	instanceKey string
 }
 
 // NewLoadPluginResolver constructs a new LoadPluginResolver.
-func NewLoadPluginResolver(c PluginHostScheduler, pluginID string) *LoadPluginResolver {
-	return &LoadPluginResolver{c: c, pluginID: pluginID}
+func NewLoadPluginResolver(c PluginHostScheduler, pluginID, instanceKey string) *LoadPluginResolver {
+	return &LoadPluginResolver{c: c, pluginID: pluginID, instanceKey: instanceKey}
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	ref, relRef := r.c.AddPluginReference(r.pluginID)
+	ref, relRef := r.c.AddPluginReference(r.pluginID, r.instanceKey)
 	defer relRef()
 
 	rpCtr := ref.GetRunningPluginCtr()

@@ -245,7 +245,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID()), nil
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), dir.LoadPluginInstanceKey()), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -268,12 +268,21 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
+// pluginInstanceKey builds the deduplication key for pluginInstances.
+// When instanceKey is empty, uses pluginID alone (shared instance).
+// When non-empty, uses pluginID/instanceKey (instanced).
+func pluginInstanceKey(pluginID, instanceKey string) string {
+	if instanceKey == "" {
+		return pluginID
+	}
+	return pluginID + "/" + instanceKey
+}
+
 // AddPluginReference adds a reference to the plugin, returning the RunningPlugin
 // handle and a release function.
-//
-// Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
-	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
+// instanceKey may be empty for shared (non-instanced) plugins.
+func (c *Controller) AddPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func()) {
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginInstanceKey(pluginID, instanceKey))
 	return plg, ref.Release
 }
 

@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"strings"
 	"sync/atomic"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -24,6 +25,8 @@ type pluginInstance struct {
 	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
+	// instanceKey is the instance key (empty for shared instances).
+	instanceKey string
 	// loggedNotFound indicates if we logged no manifests were found
 	loggedNotFound atomic.Bool
 
@@ -50,12 +53,18 @@ func (t *pluginInstance) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.
 }
 
 // newPluginInstance constructs a new execute plugin routine.
+// key is the composite key: pluginID or pluginID/instanceKey.
 func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstance) {
-	le := c.le.WithField("plugin-id", key)
+	pluginID, instanceKey, _ := strings.Cut(key, "/")
+	le := c.le.WithField("plugin-id", pluginID)
+	if instanceKey != "" {
+		le = le.WithField("instance-key", instanceKey)
+	}
 	tr := &pluginInstance{
 		c:                c,
 		le:               le,
-		pluginID:         key,
+		pluginID:         pluginID,
+		instanceKey:      instanceKey,
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 	}
 

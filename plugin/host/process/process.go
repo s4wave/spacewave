@@ -132,7 +132,7 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *ProcessHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, entrypoint string,
+	pluginID, instanceKey, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
@@ -192,7 +192,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(0)
-	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err

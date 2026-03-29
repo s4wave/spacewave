@@ -103,6 +103,12 @@ type LoadPluginRequest struct {
 	unknownFields []byte
 	// PluginId is the plugin identifier to load.
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// InstanceKey is an optional key for instanced plugins.
+	// When non-empty, the plugin host uses (plugin_id, instance_key) as the
+	// composite deduplication key, allowing multiple independent instances of the
+	// same plugin to run concurrently in separate workers.
+	// When empty, behavior is unchanged: a single shared instance per plugin_id.
+	InstanceKey string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 }
 
 func (x *LoadPluginRequest) Reset() {
@@ -114,6 +120,13 @@ func (*LoadPluginRequest) ProtoMessage() {}
 func (x *LoadPluginRequest) GetPluginId() string {
 	if x != nil {
 		return x.PluginId
+	}
+	return ""
+}
+
+func (x *LoadPluginRequest) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
 	}
 	return ""
 }
@@ -195,6 +208,9 @@ type PluginStartInfo struct {
 	// PluginId is the plugin identifier.
 	// Must be a valid-dns-label.
 	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// InstanceKey is the instance key from the LoadPlugin request.
+	// Empty for non-instanced (shared) plugins.
+	InstanceKey string `protobuf:"bytes,3,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 }
 
 func (x *PluginStartInfo) Reset() {
@@ -213,6 +229,13 @@ func (x *PluginStartInfo) GetInstanceId() string {
 func (x *PluginStartInfo) GetPluginId() string {
 	if x != nil {
 		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginStartInfo) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
 	}
 	return ""
 }
@@ -276,7 +299,9 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	}
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
-	r.ManifestRef = m.ManifestRef.CloneVT()
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
 	if rhs := m.HostVolumeInfo; rhs != nil {
 		r.HostVolumeInfo = rhs.CloneVT()
 	}
@@ -296,6 +321,7 @@ func (m *LoadPluginRequest) CloneVT() *LoadPluginRequest {
 	}
 	r := new(LoadPluginRequest)
 	r.PluginId = m.PluginId
+	r.InstanceKey = m.InstanceKey
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -348,6 +374,7 @@ func (m *PluginStartInfo) CloneVT() *PluginStartInfo {
 	r := new(PluginStartInfo)
 	r.InstanceId = m.InstanceId
 	r.PluginId = m.PluginId
+	r.InstanceKey = m.InstanceKey
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -449,6 +476,9 @@ func (this *LoadPluginRequest) EqualVT(that *LoadPluginRequest) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
+	if this.InstanceKey != that.InstanceKey {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -519,6 +549,9 @@ func (this *PluginStartInfo) EqualVT(that *PluginStartInfo) bool {
 		return false
 	}
 	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -711,6 +744,11 @@ func (x *LoadPluginRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
 	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -731,6 +769,9 @@ func (x *LoadPluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
 		}
 	})
 }
@@ -870,6 +911,11 @@ func (x *PluginStartInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
 	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -893,6 +939,9 @@ func (x *PluginStartInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
 		}
 	})
 }
@@ -1121,6 +1170,13 @@ func (m *LoadPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.InstanceKey) > 0 {
+		i -= len(m.InstanceKey)
+		copy(dAtA[i:], m.InstanceKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InstanceKey)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
 		copy(dAtA[i:], m.PluginId)
@@ -1265,6 +1321,13 @@ func (m *PluginStartInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.InstanceKey) > 0 {
+		i -= len(m.InstanceKey)
+		copy(dAtA[i:], m.InstanceKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InstanceKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
 		copy(dAtA[i:], m.PluginId)
@@ -1384,6 +1447,10 @@ func (m *LoadPluginRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.InstanceKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1439,6 +1506,10 @@ func (m *PluginStartInfo) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.PluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.InstanceKey)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -1538,6 +1609,13 @@ func (x *LoadPluginRequest) MarshalProtoText() string {
 		sb.WriteString("plugin_id: ")
 		sb.WriteString(strconv.Quote(x.PluginId))
 	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -1619,6 +1697,13 @@ func (x *PluginStartInfo) MarshalProtoText() string {
 		}
 		sb.WriteString("plugin_id: ")
 		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1929,6 +2014,28 @@ func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstanceKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2217,6 +2324,28 @@ func (m *PluginStartInfo) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstanceKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

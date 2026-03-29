@@ -97,7 +97,7 @@ func (h *WebQuickJSHost) ListPlugins(ctx context.Context) ([]string, error) {
 // Very similar to WebHost.ExecutePlugin but uses WorkerType_SAB for blocking WASI I/O.
 func (h *WebQuickJSHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, entrypoint string,
+	pluginID, instanceKey, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
@@ -130,7 +130,7 @@ func (h *WebQuickJSHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
-	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err
@@ -139,6 +139,9 @@ func (h *WebQuickJSHost) ExecutePlugin(
 
 	// web worker create request - use QuickJS worker type
 	pluginWebWorkerID := "plugin/" + pluginID
+	if instanceKey != "" {
+		pluginWebWorkerID += "/" + instanceKey
+	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
 	pluginShared := true
 
@@ -155,6 +158,9 @@ func (h *WebQuickJSHost) ExecutePlugin(
 
 	// Mount the RPC handler to the bus.
 	baseControllerID := WebQuickJSHostControllerID + "/" + pluginID
+	if instanceKey != "" {
+		baseControllerID += "/" + instanceKey
+	}
 	rpcServiceControllerID := baseControllerID + "/rpc-host"
 	var hostInvoker srpc.Invoker = hostMux
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(

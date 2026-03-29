@@ -85,7 +85,7 @@ func (h *WebWasiVMHost) DeletePlugin(ctx context.Context, pluginID string) error
 // ExecutePlugin executes the plugin with the given ID.
 func (h *WebWasiVMHost) ExecutePlugin(
 	ctx context.Context,
-	pluginID, entrypoint string,
+	pluginID, instanceKey, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostRpcMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,

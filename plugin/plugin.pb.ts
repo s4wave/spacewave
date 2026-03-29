@@ -105,6 +105,16 @@ export interface LoadPluginRequest {
    * @generated from field: string plugin_id = 1;
    */
   pluginId?: string
+  /**
+   * InstanceKey is an optional key for instanced plugins.
+   * When non-empty, the plugin host uses (plugin_id, instance_key) as the
+   * composite deduplication key, allowing multiple independent instances of the
+   * same plugin to run concurrently in separate workers.
+   * When empty, behavior is unchanged: a single shared instance per plugin_id.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
 }
 
 // LoadPluginRequest contains the message type declaration for LoadPluginRequest.
@@ -113,6 +123,7 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
     typeName: 'bldr.plugin.LoadPluginRequest',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -206,6 +217,13 @@ export interface PluginStartInfo {
    * @generated from field: string plugin_id = 2;
    */
   pluginId?: string
+  /**
+   * InstanceKey is the instance key from the LoadPlugin request.
+   * Empty for non-instanced (shared) plugins.
+   *
+   * @generated from field: string instance_key = 3;
+   */
+  instanceKey?: string
 }
 
 // PluginStartInfo contains the message type declaration for PluginStartInfo.
@@ -214,6 +232,7 @@ export const PluginStartInfo: MessageType<PluginStartInfo> = createMessageType({
   fields: [
     { no: 1, name: 'instance_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
