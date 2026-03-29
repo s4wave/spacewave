@@ -46,16 +46,16 @@ func GetBldrDistImportMap(pkgsPathPrefix string) web_entrypoint_index.ImportMap 
 	return web_entrypoint_index.ImportMap{
 		// NOTE: be sure to update the WebPkgs list as well
 		Imports: map[string]string{
-			"react":                pkgsPathPrefix + "react/index.mjs",
+			"react":                 pkgsPathPrefix + "react/index.mjs",
 			"react/jsx-runtime":     pkgsPathPrefix + "react/jsx-runtime.mjs",
 			"react/jsx-dev-runtime": pkgsPathPrefix + "react/jsx-dev-runtime.mjs",
-			"react-dom":            pkgsPathPrefix + "react-dom/index.mjs",
-			"react-dom/client":     pkgsPathPrefix + "react-dom/client.mjs",
-			"react-dom/test-utils": pkgsPathPrefix + "react-dom/test-utils.mjs",
-			"@aptre/bldr":          pkgsPathPrefix + "@aptre/bldr/index.mjs",
-			"@aptre/bldr-react":    pkgsPathPrefix + "@aptre/bldr-react/index.mjs",
+			"react-dom":             pkgsPathPrefix + "react-dom/index.mjs",
+			"react-dom/client":      pkgsPathPrefix + "react-dom/client.mjs",
+			"react-dom/test-utils":  pkgsPathPrefix + "react-dom/test-utils.mjs",
+			"@aptre/bldr":           pkgsPathPrefix + "@aptre/bldr/index.mjs",
+			"@aptre/bldr-react":     pkgsPathPrefix + "@aptre/bldr-react/index.mjs",
 
-			"@aptre/protobuf-es-lite":                       pkgsPathPrefix + "@aptre/protobuf-es-lite/index.mjs",
+			"@aptre/protobuf-es-lite":                           pkgsPathPrefix + "@aptre/protobuf-es-lite/index.mjs",
 			"@aptre/protobuf-es-lite/google/protobuf/empty":     pkgsPathPrefix + "@aptre/protobuf-es-lite/google/protobuf/empty.pb.mjs",
 			"@aptre/protobuf-es-lite/google/protobuf/timestamp": pkgsPathPrefix + "@aptre/protobuf-es-lite/google/protobuf/timestamp.pb.mjs",
 		},

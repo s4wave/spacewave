@@ -11,14 +11,14 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
-	"github.com/aperturerobotics/bldr/util/exec"
-	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

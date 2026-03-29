@@ -7,10 +7,10 @@ import (
 	"os"
 	oexec "os/exec"
 
-	"github.com/aperturerobotics/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
-	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/util/pipesock"
 	"github.com/sirupsen/logrus"
 )
 

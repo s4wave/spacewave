@@ -119,10 +119,10 @@ func writerIsTerminal(w io.Writer) bool {
 // BuildLogFileFlag returns a CLI flag for --log-file / --log-files.
 func BuildLogFileFlag(dest *cli.StringSlice) *cli.StringSliceFlag {
 	return &cli.StringSliceFlag{
-		Name:    "log-file",
-		Aliases: []string{"log-files"},
-		Usage:   "file logging spec: [level=LEVEL;][format=FORMAT;]path=PATH",
-		EnvVars: []string{"BLDR_LOG_FILE"},
+		Name:        "log-file",
+		Aliases:     []string{"log-files"},
+		Usage:       "file logging spec: [level=LEVEL;][format=FORMAT;]path=PATH",
+		EnvVars:     []string{"BLDR_LOG_FILE"},
 		Destination: dest,
 	}
 }

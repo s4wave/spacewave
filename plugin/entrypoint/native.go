@@ -10,8 +10,8 @@ import (
 	"time"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/pipesock"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

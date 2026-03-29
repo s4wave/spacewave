@@ -3,8 +3,8 @@
 package bldr_project_controller
 
 import (
-	bldr_project "github.com/aperturerobotics/bldr/project"
 	js_compiler "github.com/aperturerobotics/bldr/plugin/compiler/js"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,4 +75,3 @@ func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.Mani
 
 	return result
 }
-

@@ -1,3 +1,5 @@
+//go:build !js
+
 package web_plugin_browser_build
 
 import (

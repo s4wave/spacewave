@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	bldr_project "github.com/aperturerobotics/bldr/project"
 	js_compiler "github.com/aperturerobotics/bldr/plugin/compiler/js"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/sirupsen/logrus"

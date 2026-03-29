@@ -1,3 +1,5 @@
+//go:build !js
+
 package web_runtime_wasm_build
 
 import (

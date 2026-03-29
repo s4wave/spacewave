@@ -9,10 +9,10 @@ import (
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_saucer "github.com/aperturerobotics/bldr-saucer"
-	"github.com/aperturerobotics/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
-	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/util/pipesock"
 	"github.com/sirupsen/logrus"
 )
 

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/sirupsen/logrus"
 )

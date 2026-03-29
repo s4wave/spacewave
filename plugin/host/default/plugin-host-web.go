@@ -29,9 +29,9 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 
 // PluginHostController contains the plugin host controllers.
 type PluginHostController struct {
-	WebHost      *plugin_host_controller.Controller
-	QuickJSHost  *plugin_host_controller.Controller
-	WasiVMHost   *plugin_host_controller.Controller
+	WebHost     *plugin_host_controller.Controller
+	QuickJSHost *plugin_host_controller.Controller
+	WasiVMHost  *plugin_host_controller.Controller
 }
 
 // StartPluginHost starts the plugin host.

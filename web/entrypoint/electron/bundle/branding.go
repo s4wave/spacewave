@@ -1,3 +1,5 @@
+//go:build !js
+
 package entrypoint_electron_bundle
 
 import (
@@ -66,7 +68,7 @@ func ApplyDevBranding(
 	}
 
 	// Write marker file.
-	if wErr := os.WriteFile(markerPath, []byte(appName), 0644); wErr != nil {
+	if wErr := os.WriteFile(markerPath, []byte(appName), 0o644); wErr != nil {
 		le.WithError(wErr).Warn("failed to write branding marker")
 	}
 
@@ -106,7 +108,7 @@ func applyDarwinBranding(le *logrus.Entry, electronDistPath, appName string) (st
 	plist = updatePlistStringValue(plist, "CFBundleDisplayName", appName)
 	plist = updatePlistStringValue(plist, "CFBundleExecutable", appName)
 
-	if err := os.WriteFile(plistPath, []byte(plist), 0644); err != nil {
+	if err := os.WriteFile(plistPath, []byte(plist), 0o644); err != nil {
 		return "", errors.Wrap(err, "write Info.plist")
 	}
 
@@ -166,7 +168,7 @@ func applyLinuxBranding(electronDistPath, appName string) (string, error) {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return "", errors.Wrap(err, "rename electron binary")
 	}
-	if err := os.Chmod(newPath, 0755); err != nil {
+	if err := os.Chmod(newPath, 0o755); err != nil {
 		return "", errors.Wrap(err, "chmod renamed binary")
 	}
 	return appName, nil

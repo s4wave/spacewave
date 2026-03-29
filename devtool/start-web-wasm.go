@@ -24,10 +24,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 )
 
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.

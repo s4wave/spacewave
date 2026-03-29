@@ -2,10 +2,10 @@
 // existing file on disk can be used to skip go mod tidy + vendor.
 //
 // The optimization strategy:
-//   1. Generate the modified go.mod in memory (same as SyncDistSources)
-//   2. Read the existing .bldr/src/go.mod from disk
-//   3. If bytes.Equal: skip go mod tidy + vendor (saves ~1s)
-//   4. If different: write new go.mod, run tidy + vendor as normal
+//  1. Generate the modified go.mod in memory (same as SyncDistSources)
+//  2. Read the existing .bldr/src/go.mod from disk
+//  3. If bytes.Equal: skip go mod tidy + vendor (saves ~1s)
+//  4. If different: write new go.mod, run tidy + vendor as normal
 //
 // Run from bldr repo root:
 //

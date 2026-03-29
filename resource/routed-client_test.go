@@ -10,10 +10,10 @@ import (
 
 // recordingInvoker records InvokeMethod calls and returns configurable results.
 type recordingInvoker struct {
-	mu        sync.Mutex
-	calls     []invokerCall
-	retFound  bool
-	retErr    error
+	mu       sync.Mutex
+	calls    []invokerCall
+	retFound bool
+	retErr   error
 }
 
 type invokerCall struct {
@@ -38,11 +38,11 @@ func (r *recordingInvoker) getCalls() []invokerCall {
 
 // recordingClient records ExecCall and NewStream calls with their service/method IDs.
 type recordingClient struct {
-	mu       sync.Mutex
-	calls    []clientCall
-	retErr   error
-	retStrm  srpc.Stream
-	strmErr  error
+	mu      sync.Mutex
+	calls   []clientCall
+	retErr  error
+	retStrm srpc.Stream
+	strmErr error
 }
 
 type clientCall struct {

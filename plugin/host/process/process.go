@@ -15,26 +15,19 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/aperturerobotics/bldr/util/tailwriter"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID is the process host controller ID.
-const ControllerID = "bldr/plugin/host/process"
-
 // Controller is the plugin host controller tytpe.
 type Controller = host_controller.Controller
-
-// Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
 
 // ProcessHost implements the plugin host with native processes.
 type ProcessHost struct {

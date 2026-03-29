@@ -1,3 +1,5 @@
+//go:build !js
+
 package entrypoint_browser_bundle
 
 import (
