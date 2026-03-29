@@ -1,0 +1,413 @@
+syntax = "proto3";
+package unixfs.v86fs;
+
+import "github.com/aperturerobotics/hydra/unixfs/block/fstree.proto";
+
+option go_package = "github.com/aperturerobotics/hydra/unixfs/v86fs";
+
+// V86fsMessage wraps all v86fs protocol messages in a single oneof.
+// Used for both client-to-server and server-to-client directions.
+message V86fsMessage {
+  // tag correlates requests with responses.
+  uint32 tag = 1;
+  // body is the message payload.
+  oneof body {
+    // Requests (client to server).
+    V86fsMountRequest mount_request = 2;
+    V86fsLookupRequest lookup_request = 3;
+    V86fsGetattrRequest getattr_request = 4;
+    V86fsReaddirRequest readdir_request = 5;
+    V86fsOpenRequest open_request = 6;
+    V86fsCloseRequest close_request = 7;
+    V86fsReadRequest read_request = 8;
+    V86fsCreateRequest create_request = 9;
+    V86fsWriteRequest write_request = 10;
+    V86fsMkdirRequest mkdir_request = 11;
+    V86fsSetattrRequest setattr_request = 12;
+    V86fsFsyncRequest fsync_request = 13;
+    V86fsUnlinkRequest unlink_request = 14;
+    V86fsRenameRequest rename_request = 15;
+    V86fsSymlinkRequest symlink_request = 16;
+    V86fsReadlinkRequest readlink_request = 17;
+    V86fsStatfsRequest statfs_request = 18;
+
+    // Replies (server to client).
+    V86fsMountReply mount_reply = 32;
+    V86fsLookupReply lookup_reply = 33;
+    V86fsGetattrReply getattr_reply = 34;
+    V86fsReaddirReply readdir_reply = 35;
+    V86fsOpenReply open_reply = 36;
+    V86fsCloseReply close_reply = 37;
+    V86fsReadReply read_reply = 38;
+    V86fsCreateReply create_reply = 39;
+    V86fsWriteReply write_reply = 40;
+    V86fsMkdirReply mkdir_reply = 41;
+    V86fsSetattrReply setattr_reply = 42;
+    V86fsFsyncReply fsync_reply = 43;
+    V86fsUnlinkReply unlink_reply = 44;
+    V86fsRenameReply rename_reply = 45;
+    V86fsSymlinkReply symlink_reply = 46;
+    V86fsReadlinkReply readlink_reply = 47;
+    V86fsStatfsReply statfs_reply = 48;
+
+    // Notifications (server to client, no tag/reply).
+    V86fsInvalidate invalidate = 64;
+    V86fsInvalidateDir invalidate_dir = 65;
+    V86fsMountNotify mount_notify = 66;
+    V86fsUmountNotify umount_notify = 67;
+
+    // Error reply (server to client, matches any request tag).
+    V86fsErrorReply error_reply = 80;
+  }
+}
+
+// V86fsMountRequest mounts a named filesystem root.
+message V86fsMountRequest {
+  // name identifies which filesystem to mount (empty = root).
+  string name = 1;
+}
+
+// V86fsMountReply is the response to a mount request.
+message V86fsMountReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // root_inode_id is the inode ID of the mount root.
+  uint64 root_inode_id = 2;
+  // mode is the file mode of the root inode (includes type bits).
+  uint32 mode = 3;
+}
+
+// V86fsLookupRequest looks up a child entry in a directory.
+message V86fsLookupRequest {
+  // parent_id is the inode ID of the parent directory.
+  uint64 parent_id = 1;
+  // name is the child entry name to look up.
+  string name = 2;
+}
+
+// V86fsLookupReply is the response to a lookup request.
+message V86fsLookupReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // inode_id is the inode ID of the found entry.
+  uint64 inode_id = 2;
+  // mode is the file mode (includes type bits).
+  uint32 mode = 3;
+  // size is the file size in bytes.
+  uint64 size = 4;
+}
+
+// V86fsGetattrRequest gets attributes of an inode.
+message V86fsGetattrRequest {
+  // inode_id is the inode to query.
+  uint64 inode_id = 1;
+}
+
+// V86fsGetattrReply is the response to a getattr request.
+message V86fsGetattrReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // mode is the file mode (includes type bits).
+  uint32 mode = 2;
+  // size is the file size in bytes.
+  uint64 size = 3;
+  // mtime_sec is the modification time (seconds since epoch).
+  int64 mtime_sec = 4;
+  // mtime_nsec is the modification time nanosecond component.
+  uint32 mtime_nsec = 5;
+}
+
+// V86fsDirEntry is a directory entry in a readdir reply.
+message V86fsDirEntry {
+  // inode_id is the inode ID of the entry.
+  uint64 inode_id = 1;
+  // dt_type is the dirent type (DT_DIR=4, DT_REG=8, DT_LNK=10).
+  uint32 dt_type = 2;
+  // name is the entry name.
+  string name = 3;
+}
+
+// V86fsReaddirRequest reads directory entries.
+message V86fsReaddirRequest {
+  // dir_id is the inode ID of the directory.
+  uint64 dir_id = 1;
+}
+
+// V86fsReaddirReply is the response to a readdir request.
+message V86fsReaddirReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // entries contains the directory listing.
+  repeated V86fsDirEntry entries = 2;
+}
+
+// V86fsOpenRequest opens a file handle.
+message V86fsOpenRequest {
+  // inode_id is the inode to open.
+  uint64 inode_id = 1;
+  // flags are the open flags.
+  uint32 flags = 2;
+}
+
+// V86fsOpenReply is the response to an open request.
+message V86fsOpenReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // handle_id is the opened file handle ID.
+  uint64 handle_id = 2;
+}
+
+// V86fsCloseRequest closes a file handle.
+message V86fsCloseRequest {
+  // handle_id is the file handle to close.
+  uint64 handle_id = 1;
+}
+
+// V86fsCloseReply is the response to a close request.
+message V86fsCloseReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+}
+
+// V86fsReadRequest reads data from a file.
+message V86fsReadRequest {
+  // handle_id is the open file handle.
+  uint64 handle_id = 1;
+  // offset is the byte offset to read from.
+  uint64 offset = 2;
+  // size is the number of bytes to read.
+  uint32 size = 3;
+}
+
+// V86fsReadReply is the response to a read request.
+message V86fsReadReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // data contains the bytes read.
+  bytes data = 2;
+}
+
+// V86fsCreateRequest creates a new file in a directory.
+message V86fsCreateRequest {
+  // parent_id is the parent directory inode ID.
+  uint64 parent_id = 1;
+  // name is the new file name.
+  string name = 2;
+  // mode is the file mode to set.
+  uint32 mode = 3;
+}
+
+// V86fsCreateReply is the response to a create request.
+message V86fsCreateReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // inode_id is the new file inode ID.
+  uint64 inode_id = 2;
+  // mode is the actual file mode set.
+  uint32 mode = 3;
+}
+
+// V86fsWriteRequest writes data to a file.
+message V86fsWriteRequest {
+  // inode_id is the file inode to write to.
+  uint64 inode_id = 1;
+  // offset is the byte offset to write at.
+  uint64 offset = 2;
+  // data is the bytes to write.
+  bytes data = 3;
+}
+
+// V86fsWriteReply is the response to a write request.
+message V86fsWriteReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // bytes_written is the number of bytes written.
+  uint32 bytes_written = 2;
+}
+
+// V86fsMkdirRequest creates a directory.
+message V86fsMkdirRequest {
+  // parent_id is the parent directory inode ID.
+  uint64 parent_id = 1;
+  // name is the directory name.
+  string name = 2;
+  // mode is the directory mode.
+  uint32 mode = 3;
+}
+
+// V86fsMkdirReply is the response to a mkdir request.
+message V86fsMkdirReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // inode_id is the new directory inode ID.
+  uint64 inode_id = 2;
+  // mode is the actual directory mode set.
+  uint32 mode = 3;
+}
+
+// V86fsSetattrRequest sets attributes on an inode.
+message V86fsSetattrRequest {
+  // inode_id is the inode to modify.
+  uint64 inode_id = 1;
+  // valid is the bitmask of fields to set (ATTR_MODE=1, ATTR_SIZE=8).
+  uint32 valid = 2;
+  // mode is the new file mode (if ATTR_MODE set).
+  uint32 mode = 3;
+  // size is the new file size (if ATTR_SIZE set).
+  uint64 size = 4;
+}
+
+// V86fsSetattrReply is the response to a setattr request.
+message V86fsSetattrReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+}
+
+// V86fsFsyncRequest flushes a file to storage.
+message V86fsFsyncRequest {
+  // inode_id is the inode to sync.
+  uint64 inode_id = 1;
+}
+
+// V86fsFsyncReply is the response to an fsync request.
+message V86fsFsyncReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+}
+
+// V86fsUnlinkRequest removes a directory entry.
+message V86fsUnlinkRequest {
+  // parent_id is the parent directory inode ID.
+  uint64 parent_id = 1;
+  // name is the entry to remove.
+  string name = 2;
+}
+
+// V86fsUnlinkReply is the response to an unlink request.
+message V86fsUnlinkReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+}
+
+// V86fsRenameRequest renames/moves a directory entry.
+message V86fsRenameRequest {
+  // old_parent_id is the source directory inode ID.
+  uint64 old_parent_id = 1;
+  // old_name is the source entry name.
+  string old_name = 2;
+  // new_parent_id is the destination directory inode ID.
+  uint64 new_parent_id = 3;
+  // new_name is the destination entry name.
+  string new_name = 4;
+}
+
+// V86fsRenameReply is the response to a rename request.
+message V86fsRenameReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+}
+
+// V86fsSymlinkRequest creates a symbolic link.
+message V86fsSymlinkRequest {
+  // parent_id is the parent directory inode ID.
+  uint64 parent_id = 1;
+  // name is the symlink name.
+  string name = 2;
+  // target is the symlink target path.
+  string target = 3;
+}
+
+// V86fsSymlinkReply is the response to a symlink request.
+message V86fsSymlinkReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // inode_id is the new symlink inode ID.
+  uint64 inode_id = 2;
+  // mode is the symlink mode.
+  uint32 mode = 3;
+}
+
+// V86fsReadlinkRequest reads a symbolic link target.
+message V86fsReadlinkRequest {
+  // inode_id is the symlink inode.
+  uint64 inode_id = 1;
+}
+
+// V86fsReadlinkReply is the response to a readlink request.
+message V86fsReadlinkReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // target is the symlink target path.
+  string target = 2;
+}
+
+// V86fsStatfsRequest queries filesystem statistics.
+message V86fsStatfsRequest {}
+
+// V86fsStatfsReply is the response to a statfs request.
+message V86fsStatfsReply {
+  // status is 0 for success, or an errno value.
+  uint32 status = 1;
+  // blocks is the total data blocks in the filesystem.
+  uint64 blocks = 2;
+  // bfree is the free blocks.
+  uint64 bfree = 3;
+  // bavail is the free blocks available to unprivileged users.
+  uint64 bavail = 4;
+  // files is the total file nodes.
+  uint64 files = 5;
+  // ffree is the free file nodes.
+  uint64 ffree = 6;
+  // bsize is the filesystem block size.
+  uint32 bsize = 7;
+}
+
+// V86fsInvalidate invalidates cached data for an inode.
+// Server to client notification (no reply expected).
+message V86fsInvalidate {
+  // inode_id is the inode to invalidate.
+  uint64 inode_id = 1;
+  // offset is the start of the range to invalidate (0 = full inode).
+  uint64 offset = 2;
+  // size is the length of the range to invalidate (0 = full inode).
+  uint64 size = 3;
+}
+
+// V86fsInvalidateDir invalidates a directory listing cache.
+// Server to client notification (no reply expected).
+message V86fsInvalidateDir {
+  // dir_id is the directory inode to invalidate.
+  uint64 dir_id = 1;
+}
+
+// V86fsMountNotify tells the guest to mount a filesystem at a path.
+// Server to client notification (no reply expected).
+message V86fsMountNotify {
+  // name is the mount name (resolved by mount-name resolver).
+  string name = 1;
+  // mount_path is the guest path to mount at.
+  string mount_path = 2;
+}
+
+// V86fsUmountNotify tells the guest to unmount a filesystem.
+// Server to client notification (no reply expected).
+message V86fsUmountNotify {
+  // mount_path is the guest path to unmount.
+  string mount_path = 1;
+}
+
+// V86fsErrorReply is a generic error response for any request.
+message V86fsErrorReply {
+  // status is the errno value.
+  uint32 status = 1;
+}
+
+// V86fsService relays v86fs operations between a browser VM and FSHandle storage.
+// Both client and server send V86fsMessage on the stream.
+// Client sends requests, server sends replies and push notifications.
+service V86fsService {
+  // RelayV86fs opens a bidirectional stream for v86fs message relay.
+  // The client sends V86fsMessage requests, the server sends replies
+  // and push notifications (invalidation, mount/umount).
+  rpc RelayV86fs(stream V86fsMessage) returns (stream V86fsMessage) {};
+}

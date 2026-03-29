@@ -981,6 +981,24 @@
         "unixfs/sync/sync.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/unixfs/v86fs": {
+      "hash": "4334ed26d6efe9fdc3f9aa52ee75ece0953c0cb64dc4a1bc7c20ef3a89e473a4",
+      "generatedFiles": [
+        "unixfs/v86fs/v86fs.pb.cc",
+        "unixfs/v86fs/v86fs.pb.go",
+        "unixfs/v86fs/v86fs.pb.h",
+        "unixfs/v86fs/v86fs.pb.rs",
+        "unixfs/v86fs/v86fs.pb.ts",
+        "unixfs/v86fs/v86fs_srpc.pb.cpp",
+        "unixfs/v86fs/v86fs_srpc.pb.go",
+        "unixfs/v86fs/v86fs_srpc.pb.hpp",
+        "unixfs/v86fs/v86fs_srpc.pb.rs",
+        "unixfs/v86fs/v86fs_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "unixfs/v86fs/v86fs.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/unixfs/world": {
       "hash": "c51131d66079104bc8609edeae193b4b52840f56030e7d6439bec2787472bd39",
       "generatedFiles": [

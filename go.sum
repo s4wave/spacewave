@@ -71,6 +71,7 @@ github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b 
 github.com/aperturerobotics/controllerbus v0.52.6-0.20260302024542-62188a69f31b/go.mod h1:1HJoMwc4IlzwGs3UIwdqCR9CGFU1iy4MCQ4ls0yu4x0=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
+github.com/aperturerobotics/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
 github.com/aperturerobotics/go-indexeddb v0.2.3 h1:DfquIk9YEZjWD/lJyBWZWGCtRga43/a96bx0Ulv9VhQ=
@@ -81,6 +82,10 @@ github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 h
 github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621/go.mod h1:qF9xHPYAk6bpnRjk/7IvUa9YxPdyktjzmAblwqm/P78=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 h1:vaGKrZ/ti7T9RcrPHyqrAzrG9ThuhBF1lhVRExS01bg=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 h1:DbLHhYu2wdFvwQ02KE3rxBE1vSc+ecMxLEyTwv8Ci00=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 h1:2O8djle14ujtze1xQb9MVXAdEepumxhoBJPEdf+kNnA=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8 h1:OWYqCKoDoPGXgkD1y465qb8L5odv3nGabeN9wF50GxU=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
