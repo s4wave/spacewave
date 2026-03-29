@@ -29,7 +29,7 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.2
+	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/fatih/color v1.17.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -89,7 +89,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.49.1 // latest
-	github.com/aperturerobotics/util v1.33.1-0.20260329220041-676675cd03f5 // latest
+	github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143 // latest
 )
 
 require (

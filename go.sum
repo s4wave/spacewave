@@ -62,8 +62,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.49.1 h1:Vjjb7z0B4Fq/WKOIloRv4frMcgtVK3DDrjFFk8A8W6E=
 github.com/aperturerobotics/starpc v0.49.1/go.mod h1:HjqsB5RcFiB2GDTvZ6KuDCbrICVoGD+1jJiKiOdWxyY=
-github.com/aperturerobotics/util v1.33.1-0.20260329220041-676675cd03f5 h1:F1d5NAodJzbSiqts9IN0NSxrCcfl4BXZC13usnPzE9U=
-github.com/aperturerobotics/util v1.33.1-0.20260329220041-676675cd03f5/go.mod h1:FOKm51ZpgLsRszA4e7mjvqrt6J6Pju5GjSJg1Qz4Ouo=
+github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143 h1:DsrA9ETdjurDwrMpjd8EMwIL0zn1hhQidBRYi+Qlp8g=
+github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143/go.mod h1:/RQl+3rqc1Nv1lOo6hdUvmwy7k1+GV8CmJqrdtFuYyY=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6/go.mod h1:SLrPtbLCdMA1cJ2wmpnozln6nLjIH4l/88jcOUEac00=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

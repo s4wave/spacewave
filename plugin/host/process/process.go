@@ -15,7 +15,7 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	"github.com/aperturerobotics/bldr/util/pipesock"
+	"github.com/aperturerobotics/util/pipesock"
 	"github.com/aperturerobotics/bldr/util/tailwriter"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
