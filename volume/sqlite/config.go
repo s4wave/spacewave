@@ -2,8 +2,15 @@ package volume_sqlite
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 )
+
+// ControllerID identifies the Sqlite volume controller.
+const ControllerID = "hydra/volume/sqlite"
+
+// Version is the version of the sqlite implementation.
+var Version = semver.MustParse("0.0.1")
 
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID
@@ -39,7 +46,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return config.EqualsConfig[*Config](c, other)
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion

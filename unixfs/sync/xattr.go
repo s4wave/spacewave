@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !js
 
 package unixfs_sync
 
@@ -23,8 +23,8 @@ func applyXattrs(path string, xattrs []unixfs.FSXattr) error {
 
 // transientXattrs are macOS xattrs that should not be preserved during sync.
 var transientXattrs = map[string]bool{
-	"com.apple.quarantine":              true,
-	"com.apple.lastuseddate#PS":         true,
+	"com.apple.quarantine":                 true,
+	"com.apple.lastuseddate#PS":            true,
 	"com.apple.metadata:kMDItemWhereFroms": true,
 }
 

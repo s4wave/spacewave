@@ -1,3 +1,5 @@
+//go:build !js
+
 package volume_sqlite
 
 import (
@@ -10,15 +12,8 @@ import (
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/volume"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
-
-// ControllerID identifies the Sqlite volume controller.
-const ControllerID = "hydra/volume/sqlite"
-
-// Version is the version of the sqlite implementation.
-var Version = semver.MustParse("0.0.1")
 
 // Sqlite implements a SqliteDB backed volume.
 type Sqlite = kvtx.Volume
