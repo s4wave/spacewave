@@ -4,7 +4,8 @@
     ":semanticPrefixFixDepsChoreOthers",
     ":ignoreModulesAndTests",
     "group:all",
-    "workarounds:all"
+    "workarounds:all",
+    ":gitSignOff"
   ],
   "branchConcurrentLimit": 0,
   "packageRules": [
