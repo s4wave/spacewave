@@ -1,16 +1,16 @@
 {
   "version": 2,
-  "protocFlagsHash": "f749f57bd93c1af3bc8cd388c41996f5f1f05a12a938d93afe529ee185b248c6",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.1,starpc=v0.45.1-0.20260203090429-3e915608d4e8,protobuf-es-lite=^0.5.3",
+  "protocFlagsHash": "1309ae878f673fd5468c86e5bf6992cb5357af0d4467c6834a712f8af51a4f4c",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^0.5.3",
   "packages": {
     "github.com/aperturerobotics/forge/cluster": {
       "hash": "7593056d9323fab7daaee05611183c3d5bdc747c52e4d1ca54dfc8ec46c7ef87",
       "generatedFiles": [
+        "cluster/cluster.pb.cc",
+        "cluster/cluster.pb.go",
         "cluster/cluster.pb.h",
         "cluster/cluster.pb.rs",
-        "cluster/cluster.pb.ts",
-        "cluster/cluster.pb.cc",
-        "cluster/cluster.pb.go"
+        "cluster/cluster.pb.ts"
       ],
       "protoFiles": [
         "cluster/cluster.proto"
@@ -52,8 +52,8 @@
         "daemon/api/api.pb.ts",
         "daemon/api/api_srpc.pb.cpp",
         "daemon/api/api_srpc.pb.go",
-        "daemon/api/api_srpc.pb.rs",
         "daemon/api/api_srpc.pb.hpp",
+        "daemon/api/api_srpc.pb.rs",
         "daemon/api/api_srpc.pb.ts"
       ],
       "protoFiles": [
@@ -89,11 +89,11 @@
     "github.com/aperturerobotics/forge/execution": {
       "hash": "db60498ad3a8959c7c47e8c88c327866bc1b2fb17ea3ca6634ac90a95fd98c2b",
       "generatedFiles": [
+        "execution/execution.pb.cc",
         "execution/execution.pb.go",
         "execution/execution.pb.h",
         "execution/execution.pb.rs",
-        "execution/execution.pb.ts",
-        "execution/execution.pb.cc"
+        "execution/execution.pb.ts"
       ],
       "protoFiles": [
         "execution/execution.proto"
@@ -102,11 +102,11 @@
     "github.com/aperturerobotics/forge/execution/controller": {
       "hash": "e4186d490403ce6dc0da40e71037c6611bbd1061797bace098225e933102f8f0",
       "generatedFiles": [
-        "execution/controller/config.pb.rs",
-        "execution/controller/config.pb.ts",
         "execution/controller/config.pb.cc",
         "execution/controller/config.pb.go",
-        "execution/controller/config.pb.h"
+        "execution/controller/config.pb.h",
+        "execution/controller/config.pb.rs",
+        "execution/controller/config.pb.ts"
       ],
       "protoFiles": [
         "execution/controller/config.proto"
@@ -141,11 +141,11 @@
     "github.com/aperturerobotics/forge/lib/git/clone": {
       "hash": "63d77daa133264503028007ece3af8003cc6d4d99d7bba089607cfb269b8dab4",
       "generatedFiles": [
+        "lib/git/clone/config.pb.cc",
         "lib/git/clone/config.pb.go",
         "lib/git/clone/config.pb.h",
         "lib/git/clone/config.pb.rs",
-        "lib/git/clone/config.pb.ts",
-        "lib/git/clone/config.pb.cc"
+        "lib/git/clone/config.pb.ts"
       ],
       "protoFiles": [
         "lib/git/clone/config.proto"
@@ -154,11 +154,11 @@
     "github.com/aperturerobotics/forge/lib/kvtx": {
       "hash": "4cbf9576f22e8ca383c512a8fdda7ea10b0fa8698a816a5476a977345d4059d4",
       "generatedFiles": [
+        "lib/kvtx/config.pb.cc",
         "lib/kvtx/config.pb.go",
         "lib/kvtx/config.pb.h",
         "lib/kvtx/config.pb.rs",
-        "lib/kvtx/config.pb.ts",
-        "lib/kvtx/config.pb.cc"
+        "lib/kvtx/config.pb.ts"
       ],
       "protoFiles": [
         "lib/kvtx/config.proto"
@@ -167,14 +167,27 @@
     "github.com/aperturerobotics/forge/lib/util/wait": {
       "hash": "0aaccdcc74342513f7c3862bc4c65889202f80a461aa0a68bd1312aee53e9bd4",
       "generatedFiles": [
+        "lib/util/wait/config.pb.cc",
         "lib/util/wait/config.pb.go",
         "lib/util/wait/config.pb.h",
         "lib/util/wait/config.pb.rs",
-        "lib/util/wait/config.pb.ts",
-        "lib/util/wait/config.pb.cc"
+        "lib/util/wait/config.pb.ts"
       ],
       "protoFiles": [
         "lib/util/wait/config.proto"
+      ]
+    },
+    "github.com/aperturerobotics/forge/lib/v86/bun": {
+      "hash": "d07cb80533de7168ebe45f944aebb853814a81f904d713ffdb6fb1daddf37db4",
+      "generatedFiles": [
+        "lib/v86/bun/config.pb.cc",
+        "lib/v86/bun/config.pb.go",
+        "lib/v86/bun/config.pb.h",
+        "lib/v86/bun/config.pb.rs",
+        "lib/v86/bun/config.pb.ts"
+      ],
+      "protoFiles": [
+        "lib/v86/bun/config.proto"
       ]
     },
     "github.com/aperturerobotics/forge/pass": {
@@ -219,11 +232,11 @@
     "github.com/aperturerobotics/forge/target": {
       "hash": "17da0deef937589964ce1d87674a598c2e303027b067fb1e1f7091a2b352c173",
       "generatedFiles": [
+        "target/target.pb.cc",
         "target/target.pb.go",
         "target/target.pb.h",
         "target/target.pb.rs",
-        "target/target.pb.ts",
-        "target/target.pb.cc"
+        "target/target.pb.ts"
       ],
       "protoFiles": [
         "target/target.proto"
@@ -258,11 +271,11 @@
     "github.com/aperturerobotics/forge/task/tx": {
       "hash": "a2f8a97b40259a9d78a2f70f790db1b464e0cb1f84a553c3e3365d6a1c815ac2",
       "generatedFiles": [
-        "task/tx/tx.pb.ts",
         "task/tx/tx.pb.cc",
         "task/tx/tx.pb.go",
         "task/tx/tx.pb.h",
-        "task/tx/tx.pb.rs"
+        "task/tx/tx.pb.rs",
+        "task/tx/tx.pb.ts"
       ],
       "protoFiles": [
         "task/tx/tx.proto"
@@ -271,11 +284,11 @@
     "github.com/aperturerobotics/forge/value": {
       "hash": "70422779bc0171fc5df8e8ae94c37a6a8535068a3b55a2d978eb32e8d9408363",
       "generatedFiles": [
-        "value/value.pb.ts",
         "value/value.pb.cc",
         "value/value.pb.go",
         "value/value.pb.h",
-        "value/value.pb.rs"
+        "value/value.pb.rs",
+        "value/value.pb.ts"
       ],
       "protoFiles": [
         "value/value.proto"
@@ -284,11 +297,11 @@
     "github.com/aperturerobotics/forge/worker": {
       "hash": "607d3f6e9fe7238c56dfddfff962dc3c610cd33a1855b5f8dbee471cd197e9aa",
       "generatedFiles": [
+        "worker/worker.pb.cc",
+        "worker/worker.pb.go",
         "worker/worker.pb.h",
         "worker/worker.pb.rs",
-        "worker/worker.pb.ts",
-        "worker/worker.pb.cc",
-        "worker/worker.pb.go"
+        "worker/worker.pb.ts"
       ],
       "protoFiles": [
         "worker/worker.proto"
@@ -297,11 +310,11 @@
     "github.com/aperturerobotics/forge/worker/controller": {
       "hash": "9fa9108f268d7f18af8d803c7960f154bca229482f7626905990dfa398e07554",
       "generatedFiles": [
-        "worker/controller/config.pb.rs",
-        "worker/controller/config.pb.ts",
         "worker/controller/config.pb.cc",
         "worker/controller/config.pb.go",
-        "worker/controller/config.pb.h"
+        "worker/controller/config.pb.h",
+        "worker/controller/config.pb.rs",
+        "worker/controller/config.pb.ts"
       ],
       "protoFiles": [
         "worker/controller/config.proto"

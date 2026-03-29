@@ -79,6 +79,10 @@ github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e h
 github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260224063833-8b0f11427d5e/go.mod h1:ekjSKTsgK/2obT23keK7ixAB9cFsGPyrIoYzZTG+3pU=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 h1:vaGKrZ/ti7T9RcrPHyqrAzrG9ThuhBF1lhVRExS01bg=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 h1:DbLHhYu2wdFvwQ02KE3rxBE1vSc+ecMxLEyTwv8Ci00=
+github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 h1:2O8djle14ujtze1xQb9MVXAdEepumxhoBJPEdf+kNnA=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c h1:JATtwVM+rTNr0cwQhr9GtDRdi0EsLmfQ0dIT8SlhGMk=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228104546-35e37959349c/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/hydra v0.0.0-20260228113018-399f9d4e09f9 h1:pecByWI7P9LI2IuNGqUXt2ePC8Lw2kEv61rBibC6/ms=
