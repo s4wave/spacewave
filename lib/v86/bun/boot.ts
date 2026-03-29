@@ -41,6 +41,7 @@ function parseArgs(): {
   commands: string[]
   bzimage: string
   v86Dir: string
+  v86fsDir: string
 } {
   const args = process.argv.slice(2)
   let socket = ''
@@ -48,6 +49,7 @@ function parseArgs(): {
   let outputDir = '/output'
   let bzimage = ''
   let v86Dir = ''
+  let v86fsDir = ''
   const commands: string[] = []
 
   for (let i = 0; i < args.length; i++) {
@@ -67,13 +69,16 @@ function parseArgs(): {
       case '--v86-dir':
         v86Dir = args[++i]
         break
+      case '--v86fs-dir':
+        v86fsDir = args[++i]
+        break
       case '--cmd':
         commands.push(args[++i])
         break
     }
   }
 
-  return { socket, memory, outputDir, commands, bzimage, v86Dir }
+  return { socket, memory, outputDir, commands, bzimage, v86Dir, v86fsDir }
 }
 
 // Strip ANSI escape codes from serial output
@@ -133,18 +138,33 @@ async function runCommand(
   return clean
 }
 
+// Load handle9p from a v86fs directory (fs.json + flat/).
+async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<any> {
+  const serverPath = path.join(v86fsDir, 'handle9p-server.mjs')
+  const fallback = path.join(v86Dir, 'tests/v86fs/handle9p-server.mjs')
+  const modPath = fs.existsSync(serverPath) ? serverPath : fallback
+  const mod = await import(modPath)
+  const fsJsonUrl = url.pathToFileURL(path.join(v86fsDir, 'fs.json')).href
+  const flatUrl = url.pathToFileURL(path.join(v86fsDir, 'flat')).href + '/'
+  return mod.createHandle9p(fsJsonUrl, flatUrl)
+}
+
 async function main() {
   const opts = parseArgs()
 
-  // Resolve v86 directory (contains build/, bios/)
+  // Resolve v86 directory (contains build/, bios/, src/)
   const v86Dir =
     opts.v86Dir || process.env.V86_DIR || path.resolve(__dirname, '../../../..')
+  // Resolve v86fs directory (contains bzImage, fs.json, flat/)
+  const v86fsDir =
+    opts.v86fsDir || process.env.V86FS_DIR || ''
 
   // Resolve paths
-  const wasmPath = path.join(v86Dir, 'build/v86.wasm')
+  const wasmPath = path.join(v86Dir, 'build/v86-debug.wasm')
   const biosPath = path.join(v86Dir, 'bios/seabios.bin')
   const vgaBiosPath = path.join(v86Dir, 'bios/vgabios.bin')
-  const bzimagePath = opts.bzimage || path.join(v86Dir, 'bzImage')
+  const bzimagePath = opts.bzimage ||
+    (v86fsDir ? path.join(v86fsDir, 'bzImage') : path.join(v86Dir, 'bzImage'))
 
   // Verify required files exist
   for (const [name, p] of Object.entries({
@@ -159,8 +179,11 @@ async function main() {
     }
   }
 
-  // Import v86
-  const { V86 } = await import('@aptre/v86')
+  // Import V86 from source (same as v86 repo's own tests)
+  const { V86 } = await import(path.join(v86Dir, 'src/main.js'))
+
+  // Load rootfs via handle9p if v86fs directory is available
+  const handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
 
   console.error(
     `[forge-v86] booting VM: memory=${opts.memory}MB commands=${opts.commands.length}`,
@@ -176,7 +199,7 @@ async function main() {
     bzimage: { url: bzimagePath },
     cmdline:
       'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
-    filesystem: {},
+    filesystem: handle9p ? { handle9p } : {},
     autostart: true,
   })
 

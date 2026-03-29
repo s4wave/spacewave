@@ -52,7 +52,8 @@
     "depcheck": "^1.4.7",
     "prettier": "^3.8.1",
     "rimraf": "^6.1.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.5.3",
