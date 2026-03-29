@@ -2,6 +2,7 @@ package forge_lib_v86_bun
 
 import (
 	"context"
+	_ "embed"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,9 @@ var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/v86/bun"
+
+//go:embed boot.ts
+var bootScriptData []byte
 
 // Controller implements the v86 bun subprocess execution controller.
 type Controller struct {
@@ -165,14 +169,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 		"commands":   len(c.conf.GetCommands()),
 	}).Debug("launching v86 bun subprocess")
 
-	// TODO: resolve boot script path from embedded dist or config.
+	// Write embedded boot script to tmpDir.
 	bootScript := filepath.Join(tmpDir, "boot.ts")
+	if err := os.WriteFile(bootScript, bootScriptData, 0o644); err != nil {
+		return errors.Wrap(err, "write boot script")
+	}
 
-	cmd := exec.CommandContext(ctx, bunPath, "run", bootScript,
+	// Build command arguments.
+	args := []string{"run", bootScript,
 		"--socket", socketAddr,
 		"--memory", strconv.FormatUint(uint64(memoryMb), 10),
 		"--output-dir", outputDir,
-	)
+	}
+	for _, cmd := range c.conf.GetCommands() {
+		args = append(args, "--cmd", cmd)
+	}
+
+	cmd := exec.CommandContext(ctx, bunPath, args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
