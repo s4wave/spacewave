@@ -6,9 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/block"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	v86fs "github.com/aperturerobotics/hydra/unixfs/v86fs"
 	"github.com/aperturerobotics/starpc/srpc"
 	billy_util "github.com/go-git/go-billy/v6/util"
@@ -191,5 +195,203 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	}
 	if !bytes.Equal(readData, fileData) {
 		t.Fatalf("expected %q, got %q", string(fileData), string(readData))
+	}
+}
+
+// seedUnixFSTree creates a UnixFS tree with a test file and returns its BlockRef.
+// This simulates a forge input providing a UnixFS tree for mounting.
+func seedUnixFSTree(t *testing.T, ctx context.Context, cs *bucket_lookup.Cursor, filename string, content []byte) *block.BlockRef {
+	t.Helper()
+
+	// Create writable handle to build the tree.
+	handle, err := initOutputMount(ctx, cs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handle.Release()
+
+	// Write a file into the tree.
+	err = handle.MknodWithContent(
+		ctx,
+		filename,
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		bytes.NewReader(content),
+		0o644,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatalf("seed file: %v", err)
+	}
+
+	ref := cs.GetRef().GetRootRef()
+	if ref.GetEmpty() {
+		t.Fatal("expected non-empty ref after seeding tree")
+	}
+	return ref
+}
+
+// TestInputMountReadOnly tests that input mounts create read-only FSHandles
+// backed by existing UnixFS trees. Files seeded into the tree are readable
+// through the mount.
+func TestInputMountReadOnly(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create a populated UnixFS tree (simulates forge input).
+	inputCs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	inputContent := []byte("toolchain-file-content\n")
+	inputRef := seedUnixFSTree(t, ctx, inputCs, "gcc", inputContent)
+
+	// Create a fresh cursor for mounting (simulates AccessStorage cursor).
+	mountCs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mountCs.SetRootRef(inputRef)
+
+	// Create read-only FS from the input ref (same pattern as resolveInputMount).
+	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, mountCs, nil)
+	defer fs.Release()
+
+	inputHandle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer inputHandle.Release()
+
+	// Verify file is readable via BillyFS.
+	bfs := unixfs_billy.NewBillyFS(ctx, inputHandle, "", time.Now())
+	readData, err := billy_util.ReadFile(bfs, "gcc")
+	if err != nil {
+		t.Fatalf("read input file: %v", err)
+	}
+	if !bytes.Equal(readData, inputContent) {
+		t.Fatalf("expected %q, got %q", string(inputContent), string(readData))
+	}
+}
+
+// TestInputMountViaSRPC tests an input mount served through the v86fs SRPC
+// relay. The guest can read files from a pre-populated UnixFS tree.
+func TestInputMountViaSRPC(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Seed an input tree.
+	inputCs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	inputContent := []byte("input-data-from-previous-stage\n")
+	inputRef := seedUnixFSTree(t, ctx, inputCs, "result.txt", inputContent)
+
+	// Create mount cursor at input ref.
+	mountCs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mountCs.SetRootRef(inputRef)
+
+	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, mountCs, nil)
+	defer fs.Release()
+	inputHandle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer inputHandle.Release()
+
+	// Set up v86fs server with the input mount.
+	srv := v86fs.NewServer(nil)
+	srv.AddMount("toolchain", "/opt/toolchain", inputHandle)
+
+	mux := srpc.NewMux()
+	if err := v86fs.SRPCRegisterV86FsService(mux, srv); err != nil {
+		t.Fatal(err.Error())
+	}
+	server := srpc.NewServer(mux)
+	pipe := srpc.NewServerPipe(server)
+	client := srpc.NewClient(pipe)
+	v86fsClient := v86fs.NewSRPCV86FsServiceClient(client)
+
+	strm, err := v86fsClient.RelayV86Fs(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer strm.Close()
+
+	// MOUNT toolchain
+	reply := sendRecv(t, strm, &v86fs.V86FsMessage{
+		Tag:  1,
+		Body: &v86fs.V86FsMessage_MountRequest{MountRequest: &v86fs.V86FsMountRequest{Name: "toolchain"}},
+	})
+	mountReply := reply.GetMountReply()
+	if mountReply == nil || mountReply.GetStatus() != 0 {
+		t.Fatalf("mount failed: %v", reply.GetBody())
+	}
+	rootID := mountReply.GetRootInodeId()
+
+	// LOOKUP result.txt
+	reply = sendRecv(t, strm, &v86fs.V86FsMessage{
+		Tag: 2,
+		Body: &v86fs.V86FsMessage_LookupRequest{LookupRequest: &v86fs.V86FsLookupRequest{
+			ParentId: rootID,
+			Name:     "result.txt",
+		}},
+	})
+	lookupReply := reply.GetLookupReply()
+	if lookupReply == nil || lookupReply.GetStatus() != 0 {
+		t.Fatalf("lookup failed: %v", reply.GetBody())
+	}
+	fileInodeID := lookupReply.GetInodeId()
+	if lookupReply.GetSize() != uint64(len(inputContent)) {
+		t.Fatalf("expected size %d, got %d", len(inputContent), lookupReply.GetSize())
+	}
+
+	// OPEN result.txt
+	reply = sendRecv(t, strm, &v86fs.V86FsMessage{
+		Tag: 3,
+		Body: &v86fs.V86FsMessage_OpenRequest{OpenRequest: &v86fs.V86FsOpenRequest{
+			InodeId: fileInodeID,
+			Flags:   0,
+		}},
+	})
+	openReply := reply.GetOpenReply()
+	if openReply == nil || openReply.GetStatus() != 0 {
+		t.Fatalf("open failed: %v", reply.GetBody())
+	}
+	handleID := openReply.GetHandleId()
+
+	// READ result.txt
+	reply = sendRecv(t, strm, &v86fs.V86FsMessage{
+		Tag: 4,
+		Body: &v86fs.V86FsMessage_ReadRequest{ReadRequest: &v86fs.V86FsReadRequest{
+			HandleId: handleID,
+			Offset:   0,
+			Size:     1024,
+		}},
+	})
+	readReply := reply.GetReadReply()
+	if readReply == nil || readReply.GetStatus() != 0 {
+		t.Fatalf("read failed: %v", reply.GetBody())
+	}
+	if !bytes.Equal(readReply.GetData(), inputContent) {
+		t.Fatalf("expected %q, got %q", string(inputContent), string(readReply.GetData()))
 	}
 }

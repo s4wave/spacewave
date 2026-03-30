@@ -163,7 +163,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		outputDir = "/output"
 	}
 
-	// Access storage to create a writable output mount and run the VM.
+	// Access storage to create mounts and run the VM.
 	// The entire subprocess execution happens inside the callback because
 	// the bucket_lookup.Cursor is only valid within its scope.
 	return c.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
@@ -177,7 +177,30 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Add output mount to v86fs server.
 		v86fsSrv.AddMount("output", outputDir, outputHandle)
 
-		// Build and add --mount flag for the output mount.
+		// Resolve input mounts from config and add to v86fs server.
+		// Each mount maps a guest path to a forge Input name providing a UnixFS tree.
+		var inputHandles []*unixfs.FSHandle
+		defer func() {
+			for _, h := range inputHandles {
+				h.Release()
+			}
+		}()
+
+		for guestPath, inputName := range c.conf.GetMounts() {
+			inputHandle, err := c.resolveInputMount(ctx, cs, inputName)
+			if err != nil {
+				return errors.Wrapf(err, "resolve input mount %s", inputName)
+			}
+			inputHandles = append(inputHandles, inputHandle)
+
+			// Use the input name as the v86fs mount name.
+			v86fsSrv.AddMount(inputName, guestPath, inputHandle)
+			c.le.WithFields(logrus.Fields{
+				"name": inputName,
+				"path": guestPath,
+			}).Debug("added input mount")
+		}
+
 		socketAddr := lis.Addr().String()
 		c.le.WithFields(logrus.Fields{
 			"bun":        bunPath,
@@ -185,6 +208,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			"memory-mb":  memoryMb,
 			"output-dir": outputDir,
 			"commands":   len(c.conf.GetCommands()),
+			"mounts":     len(c.conf.GetMounts()),
 		}).Debug("launching v86 bun subprocess")
 
 		// Write embedded boot script to tmpDir.
@@ -199,6 +223,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 			"--memory", strconv.FormatUint(uint64(memoryMb), 10),
 			"--output-dir", outputDir,
 			"--mount", "output=" + outputDir,
+		}
+		for guestPath, inputName := range c.conf.GetMounts() {
+			args = append(args, "--mount", inputName+"="+guestPath)
 		}
 		for _, cmd := range c.conf.GetCommands() {
 			args = append(args, "--cmd", cmd)
@@ -224,6 +251,58 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		return nil
 	})
+}
+
+// resolveInputMount resolves a forge input to a read-only FSHandle.
+// Clones the cursor, points it at the input's root ref, and creates a
+// read-only FS (no FSWriter).
+func (c *Controller) resolveInputMount(
+	ctx context.Context,
+	cs *bucket_lookup.Cursor,
+	inputName string,
+) (*unixfs.FSHandle, error) {
+	// Look up the input value.
+	iv, ok := c.inputVals[inputName]
+	if !ok {
+		return nil, errors.Errorf("input %q not found in input values", inputName)
+	}
+	val, err := forge_target.InputValueToValue(iv)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve input value")
+	}
+	if val == nil || val.IsEmpty() {
+		return nil, errors.Errorf("input %q is empty", inputName)
+	}
+
+	// Get the BucketRef from the value.
+	bref, err := val.ToBucketRef()
+	if err != nil {
+		return nil, errors.Wrap(err, "get bucket ref")
+	}
+	rootRef := bref.GetRootRef()
+	if rootRef.GetEmpty() {
+		return nil, errors.Errorf("input %q has empty root ref", inputName)
+	}
+
+	// Clone the cursor and point at the input's root.
+	inputCs := cs.Clone()
+	inputCs.SetRootRef(rootRef)
+
+	// Create read-only FS (nil writer).
+	fs := unixfs_block_fs.NewFS(
+		ctx,
+		unixfs_block.NodeType_NodeType_DIRECTORY,
+		inputCs,
+		nil,
+	)
+
+	handle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		fs.Release()
+		return nil, errors.Wrap(err, "create fshandle")
+	}
+
+	return handle, nil
 }
 
 // initOutputMount creates a writable FSHandle backed by a block transaction.
