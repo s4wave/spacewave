@@ -713,7 +713,7 @@
       "protoFiles": ["web/plugin/browser/controller/config.proto"]
     },
     "github.com/aperturerobotics/bldr/web/plugin/compiler": {
-      "hash": "822877f2793ceaea00df02ab442164d32b8d57fa2338fc81992e9e331da8759f",
+      "hash": "29654bd35297ee6d5a4b21954bb2b5267d31491501270f62e16efea944ff0487",
       "generatedFiles": [
         "web/plugin/compiler/config.pb.cc",
         "web/plugin/compiler/config.pb.go",

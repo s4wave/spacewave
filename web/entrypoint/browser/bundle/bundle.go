@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	"github.com/aperturerobotics/bldr/util/npm"
@@ -29,6 +30,8 @@ type BrowserBundleResult struct {
 	ServiceWorkerFilename string
 	// SharedWorkerFilename is the output filename of the shared worker.
 	SharedWorkerFilename string
+	// CSSPaths contains CSS output file paths relative to the build dir.
+	CSSPaths []string
 }
 
 // BuildManifest is the manifest.json structure written alongside index.html.
@@ -230,6 +233,8 @@ func BuildRendererIndex(buildDir, entrypointHash string) error {
 //
 // webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 // entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
+// BuildRendererBundle builds the web renderer bundle and returns CSS output
+// paths relative to buildDir.
 func BuildRendererBundle(
 	le *logrus.Entry,
 	sourcesRoot,
@@ -241,11 +246,11 @@ func BuildRendererBundle(
 	webStartupSrcPath,
 	entrypointHash string,
 	minify bool,
-) error {
+) ([]string, error) {
 	le.Debug("generating web renderer bundle")
 
 	if err := BuildRendererIndex(buildDir, entrypointHash); err != nil {
-		return err
+		return nil, err
 	}
 
 	// entrypoint
@@ -272,7 +277,7 @@ func BuildRendererBundle(
 
 	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if webStartupSrcPath != "" {
@@ -288,7 +293,21 @@ func BuildRendererBundle(
 	}
 
 	res := esbuild.Build(rendererBuildOpts)
-	return bldr_esbuild_build.BuildResultToErr(res)
+	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+		return nil, err
+	}
+
+	// collect CSS output paths relative to buildDir
+	var cssPaths []string
+	for _, f := range res.OutputFiles {
+		if strings.HasSuffix(f.Path, ".css") {
+			rel, relErr := filepath.Rel(buildDir, f.Path)
+			if relErr == nil {
+				cssPaths = append(cssPaths, rel)
+			}
+		}
+	}
+	return cssPaths, nil
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
@@ -355,7 +374,8 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify)
+	if err != nil {
 		return nil, err
 	}
 
@@ -370,6 +390,7 @@ func BuildBrowserBundle(
 		EntrypointPath:        entrypointPath,
 		ServiceWorkerFilename: swFilename,
 		SharedWorkerFilename:  shwFilename,
+		CSSPaths:              cssPaths,
 	}, nil
 }
 

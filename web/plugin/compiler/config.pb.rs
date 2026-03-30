@@ -43,5 +43,9 @@ pub struct NativeAppConfig {
     /// ThemeSource overrides the native theme ("dark", "light", "system").
     #[prost(string, tag="6")]
     pub theme_source: ::prost::alloc::string::String,
+    /// IconPath is the path to the application icon PNG (relative to project root).
+    /// Used for dev-mode branding of the extracted Electron binary.
+    #[prost(string, tag="7")]
+    pub icon_path: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

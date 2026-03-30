@@ -83,6 +83,9 @@ type NativeAppConfig struct {
 	DevTools bool `protobuf:"varint,5,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
 	// ThemeSource overrides the native theme ("dark", "light", "system").
 	ThemeSource string `protobuf:"bytes,6,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
+	// IconPath is the path to the application icon PNG (relative to project root).
+	// Used for dev-mode branding of the extracted Electron binary.
+	IconPath string `protobuf:"bytes,7,opt,name=icon_path,json=iconPath,proto3" json:"iconPath,omitempty"`
 }
 
 func (x *NativeAppConfig) Reset() {
@@ -133,6 +136,13 @@ func (x *NativeAppConfig) GetThemeSource() string {
 	return ""
 }
 
+func (x *NativeAppConfig) GetIconPath() string {
+	if x != nil {
+		return x.IconPath
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -163,6 +173,7 @@ func (m *NativeAppConfig) CloneVT() *NativeAppConfig {
 	r.WindowHeight = m.WindowHeight
 	r.DevTools = m.DevTools
 	r.ThemeSource = m.ThemeSource
+	r.IconPath = m.IconPath
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -224,6 +235,9 @@ func (this *NativeAppConfig) EqualVT(that *NativeAppConfig) bool {
 		return false
 	}
 	if this.ThemeSource != that.ThemeSource {
+		return false
+	}
+	if this.IconPath != that.IconPath {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -345,6 +359,11 @@ func (x *NativeAppConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("themeSource")
 		s.WriteString(x.ThemeSource)
 	}
+	if x.IconPath != "" || s.HasField("iconPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("iconPath")
+		s.WriteString(x.IconPath)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -380,6 +399,9 @@ func (x *NativeAppConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "theme_source", "themeSource":
 			s.AddField("theme_source")
 			x.ThemeSource = s.ReadString()
+		case "icon_path", "iconPath":
+			s.AddField("icon_path")
+			x.IconPath = s.ReadString()
 		}
 	})
 }
@@ -483,6 +505,13 @@ func (m *NativeAppConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.IconPath) > 0 {
+		i -= len(m.IconPath)
+		copy(dAtA[i:], m.IconPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.IconPath)))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.ThemeSource) > 0 {
 		i -= len(m.ThemeSource)
 		copy(dAtA[i:], m.ThemeSource)
@@ -580,6 +609,10 @@ func (m *NativeAppConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.IconPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -667,6 +700,13 @@ func (x *NativeAppConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("theme_source: ")
 		sb.WriteString(strconv.Quote(x.ThemeSource))
+	}
+	if x.IconPath != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("icon_path: ")
+		sb.WriteString(strconv.Quote(x.IconPath))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -928,6 +968,28 @@ func (m *NativeAppConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ThemeSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IconPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.IconPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

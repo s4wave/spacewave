@@ -230,6 +230,7 @@ class NativeAppConfig final : public ::google::protobuf::Message
     kAppNameFieldNumber = 1,
     kWindowTitleFieldNumber = 2,
     kThemeSourceFieldNumber = 6,
+    kIconPathFieldNumber = 7,
     kWindowWidthFieldNumber = 3,
     kWindowHeightFieldNumber = 4,
     kDevToolsFieldNumber = 5,
@@ -279,6 +280,21 @@ class NativeAppConfig final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_theme_source();
 
   public:
+  // string icon_path = 7;
+  void clear_icon_path() ;
+  const ::std::string& icon_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_icon_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_icon_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_icon_path();
+  void set_allocated_icon_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_icon_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_icon_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_icon_path();
+
+  public:
   // uint32 window_width = 3;
   void clear_window_width() ;
   ::uint32_t window_width() const;
@@ -313,8 +329,8 @@ class NativeAppConfig final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   0, 81,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 90,
                                    2>
       _table_;
 
@@ -338,6 +354,7 @@ class NativeAppConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr app_name_;
     ::google::protobuf::internal::ArenaStringPtr window_title_;
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
+    ::google::protobuf::internal::ArenaStringPtr icon_path_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
@@ -1044,7 +1061,7 @@ inline void NativeAppConfig::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline ::uint32_t NativeAppConfig::window_width() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_width)
@@ -1052,7 +1069,7 @@ inline ::uint32_t NativeAppConfig::window_width() const {
 }
 inline void NativeAppConfig::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_width)
 }
 inline ::uint32_t NativeAppConfig::_internal_window_width() const {
@@ -1069,7 +1086,7 @@ inline void NativeAppConfig::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline ::uint32_t NativeAppConfig::window_height() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.window_height)
@@ -1077,7 +1094,7 @@ inline ::uint32_t NativeAppConfig::window_height() const {
 }
 inline void NativeAppConfig::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.window_height)
 }
 inline ::uint32_t NativeAppConfig::_internal_window_height() const {
@@ -1094,7 +1111,7 @@ inline void NativeAppConfig::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline bool NativeAppConfig::dev_tools() const {
   // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
@@ -1102,7 +1119,7 @@ inline bool NativeAppConfig::dev_tools() const {
 }
 inline void NativeAppConfig::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.dev_tools)
 }
 inline bool NativeAppConfig::_internal_dev_tools() const {
@@ -1177,6 +1194,71 @@ inline void NativeAppConfig::set_allocated_theme_source(::std::string* PROTOBUF_
     _impl_.theme_source_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.theme_source)
+}
+
+// string icon_path = 7;
+inline void NativeAppConfig::clear_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.icon_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& NativeAppConfig::icon_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
+  return _internal_icon_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativeAppConfig::set_icon_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.icon_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::mutable_icon_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_icon_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
+  return _s;
+}
+inline const ::std::string& NativeAppConfig::_internal_icon_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.icon_path_.Get();
+}
+inline void NativeAppConfig::_internal_set_icon_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.icon_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativeAppConfig::_internal_mutable_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.icon_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativeAppConfig::release_icon_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.icon_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.icon_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativeAppConfig::set_allocated_icon_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.icon_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.icon_path_.IsDefault()) {
+    _impl_.icon_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
 }
 
 #ifdef __GNUC__

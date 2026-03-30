@@ -410,7 +410,7 @@ func BuildDistBundle(
 			Entrypoint:   bundleResult.EntrypointPath,
 			SharedWorker: bundleResult.SharedWorkerFilename,
 			Wasm:         wasmManifestPath,
-			CSS:          []string{},
+			CSS:          bundleResult.CSSPaths,
 		}
 		if err := entrypoint_browser_bundle.WriteBuildManifest(outputPath, manifest); err != nil {
 			return err

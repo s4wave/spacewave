@@ -205,9 +205,13 @@ func (c *Controller) BundleElectronHook(
 	// Apply dev-mode branding to the extracted Electron binary.
 	electronBinName := entrypoint_electron_bundle.GetElectronBinName(buildPlatform)
 	if nativeApp := c.GetConfig().GetNativeApp(); nativeApp != nil && nativeApp.GetAppName() != "" {
+		iconPath := nativeApp.GetIconPath()
+		if iconPath != "" {
+			iconPath = filepath.Join(builderConf.GetSourcePath(), iconPath)
+		}
 		brandedName, err := entrypoint_electron_bundle.ApplyDevBranding(
 			ctx, le, electronDistPath, stateDir,
-			buildPlatform, nativeApp.GetAppName(),
+			buildPlatform, nativeApp.GetAppName(), iconPath,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "apply dev branding")

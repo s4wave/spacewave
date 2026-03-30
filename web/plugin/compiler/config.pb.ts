@@ -49,6 +49,13 @@ export interface NativeAppConfig {
    * @generated from field: string theme_source = 6;
    */
   themeSource?: string
+  /**
+   * IconPath is the path to the application icon PNG (relative to project root).
+   * Used for dev-mode branding of the extracted Electron binary.
+   *
+   * @generated from field: string icon_path = 7;
+   */
+  iconPath?: string
 }
 
 // NativeAppConfig contains the message type declaration for NativeAppConfig.
@@ -61,6 +68,7 @@ export const NativeAppConfig: MessageType<NativeAppConfig> = createMessageType({
     { no: 4, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 5, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
