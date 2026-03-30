@@ -275,6 +275,8 @@ class Config final : public ::google::protobuf::Message
     kOutputDirFieldNumber = 4,
     kBunVersionFieldNumber = 6,
     kStateDirFieldNumber = 7,
+    kScriptDirFieldNumber = 8,
+    kRootfsTarPathFieldNumber = 9,
     kBzImageRefFieldNumber = 1,
     kMemoryMbFieldNumber = 5,
     kMountsFieldNumber = 2,
@@ -346,6 +348,36 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_state_dir();
 
   public:
+  // string script_dir = 8;
+  void clear_script_dir() ;
+  const ::std::string& script_dir() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_script_dir(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_script_dir();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_script_dir();
+  void set_allocated_script_dir(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_script_dir() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_script_dir(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_script_dir();
+
+  public:
+  // string rootfs_tar_path = 9;
+  void clear_rootfs_tar_path() ;
+  const ::std::string& rootfs_tar_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_rootfs_tar_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_rootfs_tar_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_rootfs_tar_path();
+  void set_allocated_rootfs_tar_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_rootfs_tar_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_rootfs_tar_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_rootfs_tar_path();
+
+  public:
   // .block.BlockRef bz_image_ref = 1;
   bool has_bz_image_ref() const;
   void clear_bz_image_ref() ;
@@ -390,8 +422,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   2, 77,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   2, 110,
                                    2>
       _table_;
 
@@ -416,6 +448,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr output_dir_;
     ::google::protobuf::internal::ArenaStringPtr bun_version_;
     ::google::protobuf::internal::ArenaStringPtr state_dir_;
+    ::google::protobuf::internal::ArenaStringPtr script_dir_;
+    ::google::protobuf::internal::ArenaStringPtr rootfs_tar_path_;
     ::block::BlockRef* PROTOBUF_NULLABLE bz_image_ref_;
     ::uint32_t memory_mb_;
     ::google::protobuf::internal::MapField<Config_MountsEntry_DoNotUse, ::std::string, ::std::string,
@@ -450,7 +484,7 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 
 // .block.BlockRef bz_image_ref = 1;
 inline bool Config::has_bz_image_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
   PROTOBUF_ASSUME(!value || _impl_.bz_image_ref_ != nullptr);
   return value;
 }
@@ -471,16 +505,16 @@ inline void Config::unsafe_arena_set_allocated_bz_image_ref(
   }
   _impl_.bz_image_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.lib.v86.bun.Config.bz_image_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE Config::release_bz_image_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::block::BlockRef* released = _impl_.bz_image_ref_;
   _impl_.bz_image_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -500,7 +534,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE Config::unsafe_arena_release_bz_imag
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.lib.v86.bun.Config.bz_image_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::block::BlockRef* temp = _impl_.bz_image_ref_;
   _impl_.bz_image_ref_ = nullptr;
   return temp;
@@ -515,7 +549,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL Config::_internal_mutable_bz_image_re
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL Config::mutable_bz_image_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::block::BlockRef* _msg = _internal_mutable_bz_image_ref();
   // @@protoc_insertion_point(field_mutable:forge.lib.v86.bun.Config.bz_image_ref)
   return _msg;
@@ -532,9 +566,9 @@ inline void Config::set_allocated_bz_image_ref(::block::BlockRef* PROTOBUF_NULLA
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
 
   _impl_.bz_image_ref_ = reinterpret_cast<::block::BlockRef*>(value);
@@ -552,7 +586,7 @@ inline void Config::clear_mounts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.mounts_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline const ::google::protobuf::Map<::std::string, ::std::string>& Config::_internal_mounts() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -568,7 +602,7 @@ inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL C
 }
 inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL Config::mutable_mounts()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_mutable_map:forge.lib.v86.bun.Config.mounts)
   return _internal_mutable_mounts();
 }
@@ -715,7 +749,7 @@ inline void Config::clear_memory_mb() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.memory_mb_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline ::uint32_t Config::memory_mb() const {
   // @@protoc_insertion_point(field_get:forge.lib.v86.bun.Config.memory_mb)
@@ -723,7 +757,7 @@ inline ::uint32_t Config::memory_mb() const {
 }
 inline void Config::set_memory_mb(::uint32_t value) {
   _internal_set_memory_mb(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:forge.lib.v86.bun.Config.memory_mb)
 }
 inline ::uint32_t Config::_internal_memory_mb() const {
@@ -863,6 +897,136 @@ inline void Config::set_allocated_state_dir(::std::string* PROTOBUF_NULLABLE val
     _impl_.state_dir_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:forge.lib.v86.bun.Config.state_dir)
+}
+
+// string script_dir = 8;
+inline void Config::clear_script_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.script_dir_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& Config::script_dir() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.lib.v86.bun.Config.script_dir)
+  return _internal_script_dir();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_script_dir(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.script_dir_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:forge.lib.v86.bun.Config.script_dir)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_script_dir()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_script_dir();
+  // @@protoc_insertion_point(field_mutable:forge.lib.v86.bun.Config.script_dir)
+  return _s;
+}
+inline const ::std::string& Config::_internal_script_dir() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.script_dir_.Get();
+}
+inline void Config::_internal_set_script_dir(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.script_dir_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_script_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.script_dir_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_script_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:forge.lib.v86.bun.Config.script_dir)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.script_dir_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.script_dir_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_script_dir(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.script_dir_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.script_dir_.IsDefault()) {
+    _impl_.script_dir_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:forge.lib.v86.bun.Config.script_dir)
+}
+
+// string rootfs_tar_path = 9;
+inline void Config::clear_rootfs_tar_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rootfs_tar_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& Config::rootfs_tar_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.lib.v86.bun.Config.rootfs_tar_path)
+  return _internal_rootfs_tar_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_rootfs_tar_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.rootfs_tar_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:forge.lib.v86.bun.Config.rootfs_tar_path)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_rootfs_tar_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_rootfs_tar_path();
+  // @@protoc_insertion_point(field_mutable:forge.lib.v86.bun.Config.rootfs_tar_path)
+  return _s;
+}
+inline const ::std::string& Config::_internal_rootfs_tar_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.rootfs_tar_path_.Get();
+}
+inline void Config::_internal_set_rootfs_tar_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rootfs_tar_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_rootfs_tar_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.rootfs_tar_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_rootfs_tar_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:forge.lib.v86.bun.Config.rootfs_tar_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.rootfs_tar_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.rootfs_tar_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_rootfs_tar_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.rootfs_tar_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.rootfs_tar_path_.IsDefault()) {
+    _impl_.rootfs_tar_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:forge.lib.v86.bun.Config.rootfs_tar_path)
 }
 
 #ifdef __GNUC__

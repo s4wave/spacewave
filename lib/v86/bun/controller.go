@@ -2,7 +2,6 @@ package forge_lib_v86_bun
 
 import (
 	"context"
-	_ "embed"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
+	unixfs_tar "github.com/aperturerobotics/hydra/unixfs/tar"
 	v86fs "github.com/aperturerobotics/hydra/unixfs/v86fs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/autobun"
@@ -31,9 +31,6 @@ var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/v86/bun"
-
-//go:embed boot.ts
-var bootScriptData []byte
 
 // Controller implements the v86 bun subprocess execution controller.
 type Controller struct {
@@ -90,10 +87,9 @@ func (c *Controller) InitForgeExecController(
 //  4. The bun script boots v86 with v86fs mounts, runs commands, reports exit.
 //  5. Extract the output BlockRef and set it as the forge task output.
 func (c *Controller) Execute(ctx context.Context) error {
-	execID := c.handle.GetExecutionUniqueId()
-
 	// Create temp directory for the unix socket and working state.
-	tmpDir, err := os.MkdirTemp("", "forge-v86-"+execID+"-")
+	// Use a short prefix to stay within the unix socket path length limit (104 on macOS).
+	tmpDir, err := os.MkdirTemp("", "fv86-")
 	if err != nil {
 		return errors.Wrap(err, "create temp dir")
 	}
@@ -163,6 +159,32 @@ func (c *Controller) Execute(ctx context.Context) error {
 		outputDir = "/output"
 	}
 
+	// Load rootfs tar as v86fs root mount if configured.
+	rootfsTarPath := c.conf.GetRootfsTarPath()
+	if rootfsTarPath != "" {
+		rootfsFile, err := os.Open(rootfsTarPath)
+		if err != nil {
+			return errors.Wrap(err, "open rootfs tar")
+		}
+		defer rootfsFile.Close()
+
+		rootfsCursor, err := unixfs_tar.NewTarFSCursorFromReader(rootfsFile)
+		if err != nil {
+			return errors.Wrap(err, "parse rootfs tar")
+		}
+		defer rootfsCursor.Release()
+
+		rootfsHandle, err := unixfs.NewFSHandle(rootfsCursor)
+		if err != nil {
+			return errors.Wrap(err, "create rootfs handle")
+		}
+		defer rootfsHandle.Release()
+
+		// Empty name = v86fs root mount.
+		v86fsSrv.AddMount("", "/", rootfsHandle)
+		c.le.WithField("rootfs-tar", rootfsTarPath).Debug("added rootfs mount from tar")
+	}
+
 	// Access storage to create mounts and run the VM.
 	// The entire subprocess execution happens inside the callback because
 	// the bucket_lookup.Cursor is only valid within its scope.
@@ -202,20 +224,26 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		socketAddr := lis.Addr().String()
+
+		// Resolve boot script path.
+		scriptDir := c.conf.GetScriptDir()
+		bootScript := filepath.Join(scriptDir, "boot.ts")
+		if scriptDir == "" {
+			return errors.New("script_dir must be set (directory containing boot.ts)")
+		}
+		if _, err := os.Stat(bootScript); err != nil {
+			return errors.Wrap(err, "boot script not found")
+		}
+
 		c.le.WithFields(logrus.Fields{
 			"bun":        bunPath,
 			"socket":     socketAddr,
+			"script-dir": scriptDir,
 			"memory-mb":  memoryMb,
 			"output-dir": outputDir,
 			"commands":   len(c.conf.GetCommands()),
 			"mounts":     len(c.conf.GetMounts()),
 		}).Debug("launching v86 bun subprocess")
-
-		// Write embedded boot script to tmpDir.
-		bootScript := filepath.Join(tmpDir, "boot.ts")
-		if err := os.WriteFile(bootScript, bootScriptData, 0o644); err != nil {
-			return errors.Wrap(err, "write boot script")
-		}
 
 		// Build command arguments.
 		args := []string{"run", bootScript,
@@ -232,6 +260,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		cmd := exec.CommandContext(ctx, bunPath, args...)
+		cmd.Dir = scriptDir
 		cmd.Env = os.Environ()
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

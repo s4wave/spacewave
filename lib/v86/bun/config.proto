@@ -36,4 +36,12 @@ message Config {
   // StateDir is the directory for autobun state (downloaded bun binary).
   // If empty, uses a default under the working directory.
   string state_dir = 7;
+  // ScriptDir is the directory containing boot.ts and its dependencies.
+  // If set, boot.ts is run from this directory (imports resolve via bun).
+  // If empty, the embedded boot.ts is written to a temp directory.
+  string script_dir = 8;
+  // RootfsTarPath is the path to a rootfs.tar file for the guest root filesystem.
+  // Loaded via TarFSCursor and served as the v86fs root mount (name="").
+  // The VM boots directly from v86fs instead of 9p.
+  string rootfs_tar_path = 9;
 }

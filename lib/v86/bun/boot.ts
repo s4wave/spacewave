@@ -221,9 +221,6 @@ async function main() {
   // Import V86 from source (same as v86 repo's own tests)
   const { V86 } = await import(path.join(v86Dir, 'src/main.js'))
 
-  // Load rootfs via handle9p (always needed for 9p boot root).
-  const handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
-
   // Connect to v86fs SRPC server if socket provided.
   let v86fsBridge: { adapter: any; close: () => void } | undefined
   if (useV86fs) {
@@ -232,13 +229,31 @@ async function main() {
     console.error('[forge-v86] v86fs SRPC connected')
   }
 
+  // Determine boot mode:
+  // - v86fs root: kernel mounts v86fs as root (requires v86fs-capable kernel)
+  // - 9p root: load rootfs from local fs.json + flat/ (fallback)
+  const useV86fsRoot = useV86fs && !v86fsDir
+  let handle9p: any
+  let cmdline: string
+
+  if (useV86fsRoot) {
+    // v86fs root: rootfs.tar served through the v86fs SRPC server.
+    cmdline =
+      'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs console=ttyS0'
+    console.error('[forge-v86] booting with v86fs root')
+  } else {
+    // 9p root: load rootfs from local fs.json + flat/ files.
+    handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
+    cmdline =
+      'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0'
+    console.error('[forge-v86] booting with 9p root')
+  }
+
   console.error(
     `[forge-v86] booting VM: memory=${opts.memory}MB commands=${opts.commands.length} v86fs=${useV86fs}`,
   )
 
   // Boot the emulator headless.
-  // 9p provides rootfs (minimal Linux userspace).
-  // v86fs provides workspace/toolchain mounts when SRPC socket is connected.
   const emulator = new V86({
     wasm_path: wasmPath,
     memory_size: opts.memory * 1024 * 1024,
@@ -246,8 +261,7 @@ async function main() {
     bios: { url: biosPath },
     vga_bios: { url: vgaBiosPath },
     bzimage: { url: bzimagePath },
-    cmdline:
-      'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
+    cmdline,
     filesystem: handle9p ? { handle9p } : {},
     virtio_v86fs: useV86fs,
     virtio_v86fs_adapter: v86fsBridge?.adapter,
@@ -271,8 +285,14 @@ async function main() {
   await waitForSerial(emulator, prompt)
   console.error('[forge-v86] shell ready')
 
-  // Mount v86fs filesystems if configured.
+  // Mount named v86fs filesystems at their guest paths.
+  // On 9p root, the rootfs is read-only for structural changes (mkdir fails).
+  // Mount tmpfs at /tmp first, then use paths under writable areas.
+  // With v86fs root (from tar), the rootfs is fully writable.
   if (useV86fs && opts.mounts.length > 0) {
+    if (!useV86fsRoot) {
+      await runCommand(emulator, 'mount -t tmpfs tmpfs /tmp 2>/dev/null; true')
+    }
     for (const m of opts.mounts) {
       console.error(`[forge-v86] mounting v86fs: ${m.name} at ${m.path}`)
       await runCommand(emulator, `mkdir -p ${m.path}`)

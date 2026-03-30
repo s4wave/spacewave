@@ -73,6 +73,22 @@ export interface Config {
    * @generated from field: string state_dir = 7;
    */
   stateDir?: string
+  /**
+   * ScriptDir is the directory containing boot.ts and its dependencies.
+   * If set, boot.ts is run from this directory (imports resolve via bun).
+   * If empty, the embedded boot.ts is written to a temp directory.
+   *
+   * @generated from field: string script_dir = 8;
+   */
+  scriptDir?: string
+  /**
+   * RootfsTarPath is the path to a rootfs.tar file for the guest root filesystem.
+   * Loaded via TarFSCursor and served as the v86fs root mount (name="").
+   * The VM boots directly from v86fs instead of 9p.
+   *
+   * @generated from field: string rootfs_tar_path = 9;
+   */
+  rootfsTarPath?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -98,6 +114,8 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 5, name: 'memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 6, name: 'bun_version', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'state_dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'script_dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'rootfs_tar_path', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

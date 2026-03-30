@@ -80,7 +80,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           return
         }
         const r = msg.body?.case === 'mountReply' ? msg.body.value : undefined
-        reply(r?.status ?? 5, Number(r?.rootInodeId ?? 0n), r?.mode ?? 0)
+        reply(r?.status ?? 0, Number(r?.rootInodeId ?? 0n), r?.mode ?? 0)
       })
     },
 
@@ -107,7 +107,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           const r =
             msg.body?.case === 'lookupReply' ? msg.body.value : undefined
           reply(
-            r?.status ?? 5,
+            r?.status ?? 0,
             Number(r?.inodeId ?? 0n),
             r?.mode ?? 0,
             Number(r?.size ?? 0n),
@@ -136,7 +136,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           const r =
             msg.body?.case === 'getattrReply' ? msg.body.value : undefined
           reply(
-            r?.status ?? 5,
+            r?.status ?? 0,
             r?.mode ?? 0,
             Number(r?.size ?? 0n),
             Number(r?.mtimeSec ?? 0n),
@@ -167,7 +167,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
             dt_type: e.dtType ?? 0,
             name: e.name ?? '',
           }))
-          reply(r?.status ?? 5, entries)
+          reply(r?.status ?? 0, entries)
         },
       )
     },
@@ -189,7 +189,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'openReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, Number(r?.handleId ?? 0n))
+          reply(r?.status ?? 0, Number(r?.handleId ?? 0n))
         },
       )
     },
@@ -207,7 +207,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'closeReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5)
+          reply(r?.status ?? 0)
         },
       )
     },
@@ -234,7 +234,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'readReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, r?.data ?? new Uint8Array(0))
+          reply(r?.status ?? 0, r?.data ?? new Uint8Array(0))
         },
       )
     },
@@ -257,7 +257,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'createReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
+          reply(r?.status ?? 0, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
         },
       )
     },
@@ -280,7 +280,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'writeReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, r?.bytesWritten ?? 0)
+          reply(r?.status ?? 0, r?.bytesWritten ?? 0)
         },
       )
     },
@@ -303,7 +303,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'mkdirReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
+          reply(r?.status ?? 0, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
         },
       )
     },
@@ -332,7 +332,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'setattrReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5)
+          reply(r?.status ?? 0)
         },
       )
     },
@@ -347,7 +347,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'fsyncReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5)
+          reply(r?.status ?? 0)
         },
       )
     },
@@ -369,7 +369,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'unlinkReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5)
+          reply(r?.status ?? 0)
         },
       )
     },
@@ -398,7 +398,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'renameReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5)
+          reply(r?.status ?? 0)
         },
       )
     },
@@ -421,7 +421,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'symlinkReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
+          reply(r?.status ?? 0, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
         },
       )
     },
@@ -439,7 +439,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
           }
           const r =
             msg.body?.case === 'readlinkReply' ? msg.body.value : undefined
-          reply(r?.status ?? 5, r?.target ?? '')
+          reply(r?.status ?? 0, r?.target ?? '')
         },
       )
     },
@@ -463,7 +463,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
         const r =
           msg.body?.case === 'statfsReply' ? msg.body.value : undefined
         reply(
-          r?.status ?? 5,
+          r?.status ?? 0,
           Number(r?.blocks ?? 0n),
           Number(r?.bfree ?? 0n),
           Number(r?.bavail ?? 0n),

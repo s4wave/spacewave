@@ -41,5 +41,15 @@ pub struct Config {
     /// If empty, uses a default under the working directory.
     #[prost(string, tag="7")]
     pub state_dir: ::prost::alloc::string::String,
+    /// ScriptDir is the directory containing boot.ts and its dependencies.
+    /// If set, boot.ts is run from this directory (imports resolve via bun).
+    /// If empty, the embedded boot.ts is written to a temp directory.
+    #[prost(string, tag="8")]
+    pub script_dir: ::prost::alloc::string::String,
+    /// RootfsTarPath is the path to a rootfs.tar file for the guest root filesystem.
+    /// Loaded via TarFSCursor and served as the v86fs root mount (name="").
+    /// The VM boots directly from v86fs instead of 9p.
+    #[prost(string, tag="9")]
+    pub rootfs_tar_path: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

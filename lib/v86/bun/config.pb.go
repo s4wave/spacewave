@@ -52,6 +52,14 @@ type Config struct {
 	// StateDir is the directory for autobun state (downloaded bun binary).
 	// If empty, uses a default under the working directory.
 	StateDir string `protobuf:"bytes,7,opt,name=state_dir,json=stateDir,proto3" json:"stateDir,omitempty"`
+	// ScriptDir is the directory containing boot.ts and its dependencies.
+	// If set, boot.ts is run from this directory (imports resolve via bun).
+	// If empty, the embedded boot.ts is written to a temp directory.
+	ScriptDir string `protobuf:"bytes,8,opt,name=script_dir,json=scriptDir,proto3" json:"scriptDir,omitempty"`
+	// RootfsTarPath is the path to a rootfs.tar file for the guest root filesystem.
+	// Loaded via TarFSCursor and served as the v86fs root mount (name="").
+	// The VM boots directly from v86fs instead of 9p.
+	RootfsTarPath string `protobuf:"bytes,9,opt,name=rootfs_tar_path,json=rootfsTarPath,proto3" json:"rootfsTarPath,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -109,6 +117,20 @@ func (x *Config) GetStateDir() string {
 	return ""
 }
 
+func (x *Config) GetScriptDir() string {
+	if x != nil {
+		return x.ScriptDir
+	}
+	return ""
+}
+
+func (x *Config) GetRootfsTarPath() string {
+	if x != nil {
+		return x.RootfsTarPath
+	}
+	return ""
+}
+
 type Config_MountsEntry struct {
 	unknownFields []byte
 	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -144,6 +166,8 @@ func (m *Config) CloneVT() *Config {
 	r.MemoryMb = m.MemoryMb
 	r.BunVersion = m.BunVersion
 	r.StateDir = m.StateDir
+	r.ScriptDir = m.ScriptDir
+	r.RootfsTarPath = m.RootfsTarPath
 	if rhs := m.BzImageRef; rhs != nil {
 		r.BzImageRef = rhs.CloneVT()
 	}
@@ -203,6 +227,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.StateDir != that.StateDir {
+		return false
+	}
+	if this.ScriptDir != that.ScriptDir {
+		return false
+	}
+	if this.RootfsTarPath != that.RootfsTarPath {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -316,6 +346,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("stateDir")
 		s.WriteString(x.StateDir)
 	}
+	if x.ScriptDir != "" || s.HasField("scriptDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scriptDir")
+		s.WriteString(x.ScriptDir)
+	}
+	if x.RootfsTarPath != "" || s.HasField("rootfsTarPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootfsTarPath")
+		s.WriteString(x.RootfsTarPath)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -369,6 +409,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "state_dir", "stateDir":
 			s.AddField("state_dir")
 			x.StateDir = s.ReadString()
+		case "script_dir", "scriptDir":
+			s.AddField("script_dir")
+			x.ScriptDir = s.ReadString()
+		case "rootfs_tar_path", "rootfsTarPath":
+			s.AddField("rootfs_tar_path")
+			x.RootfsTarPath = s.ReadString()
 		}
 	})
 }
@@ -407,6 +453,20 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RootfsTarPath) > 0 {
+		i -= len(m.RootfsTarPath)
+		copy(dAtA[i:], m.RootfsTarPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RootfsTarPath)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.ScriptDir) > 0 {
+		i -= len(m.ScriptDir)
+		copy(dAtA[i:], m.ScriptDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ScriptDir)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.StateDir) > 0 {
 		i -= len(m.StateDir)
@@ -514,6 +574,14 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.ScriptDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RootfsTarPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -607,6 +675,20 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("state_dir: ")
 		sb.WriteString(strconv.Quote(x.StateDir))
+	}
+	if x.ScriptDir != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("script_dir: ")
+		sb.WriteString(strconv.Quote(x.ScriptDir))
+	}
+	if x.RootfsTarPath != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("rootfs_tar_path: ")
+		sb.WriteString(strconv.Quote(x.RootfsTarPath))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -849,6 +931,50 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.StateDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ScriptDir", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ScriptDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootfsTarPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootfsTarPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

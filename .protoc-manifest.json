@@ -178,7 +178,7 @@
       ]
     },
     "github.com/aperturerobotics/forge/lib/v86/bun": {
-      "hash": "d07cb80533de7168ebe45f944aebb853814a81f904d713ffdb6fb1daddf37db4",
+      "hash": "6aed7009e531185416c0287c8b6ff276b4375e663ad2d4a15e8675f5a936e8eb",
       "generatedFiles": [
         "lib/v86/bun/config.pb.cc",
         "lib/v86/bun/config.pb.go",

@@ -62,6 +62,12 @@ inline constexpr Config::Impl_::Impl_(
         state_dir_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        script_dir_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        rootfs_tar_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         bz_image_ref_{nullptr},
         memory_mb_{0u},
         mounts_{} {}
@@ -105,7 +111,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_._has_bits_),
-        10, // hasbit index offset
+        12, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.bz_image_ref_),
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.mounts_),
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.commands_),
@@ -113,13 +119,17 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.memory_mb_),
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.bun_version_),
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.state_dir_),
-        4,
+        PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.script_dir_),
+        PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config, _impl_.rootfs_tar_path_),
         6,
+        8,
         0,
         1,
-        5,
+        7,
         2,
         3,
+        4,
+        5,
 };
 
 static const ::_pbi::MigrationSchema
@@ -136,13 +146,14 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fl
     "\n:github.com/aperturerobotics/forge/lib/"
     "v86/bun/config.proto\022\021forge.lib.v86.bun\032"
     "3github.com/aperturerobotics/hydra/block"
-    "/block.proto\"\366\001\n\006Config\022%\n\014bz_image_ref\030"
+    "/block.proto\"\243\002\n\006Config\022%\n\014bz_image_ref\030"
     "\001 \001(\0132\017.block.BlockRef\0225\n\006mounts\030\002 \003(\0132%"
     ".forge.lib.v86.bun.Config.MountsEntry\022\020\n"
     "\010commands\030\003 \003(\t\022\022\n\noutput_dir\030\004 \001(\t\022\021\n\tm"
     "emory_mb\030\005 \001(\r\022\023\n\013bun_version\030\006 \001(\t\022\021\n\ts"
-    "tate_dir\030\007 \001(\t\032-\n\013MountsEntry\022\013\n\003key\030\001 \001"
-    "(\t\022\r\n\005value\030\002 \001(\t:\0028\001b\006proto3"
+    "tate_dir\030\007 \001(\t\022\022\n\nscript_dir\030\010 \001(\t\022\027\n\017ro"
+    "otfs_tar_path\030\t \001(\t\032-\n\013MountsEntry\022\013\n\003ke"
+    "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_deps[1] = {
@@ -152,7 +163,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforg
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = {
     false,
     false,
-    389,
+    434,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
     "github.com/aperturerobotics/forge/lib/v86/bun/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_once,
@@ -281,7 +292,7 @@ void Config::clear_bz_image_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.bz_image_ref_ != nullptr) _impl_.bz_image_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -302,6 +313,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         output_dir_(arena, from.output_dir_),
         bun_version_(arena, from.bun_version_),
         state_dir_(arena, from.state_dir_),
+        script_dir_(arena, from.script_dir_),
+        rootfs_tar_path_(arena, from.rootfs_tar_path_),
         mounts_{visibility, arena, from.mounts_} {}
 
 Config::Config(
@@ -318,7 +331,7 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.bz_image_ref_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+  _impl_.bz_image_ref_ = (CheckHasBit(cached_has_bits, 0x00000040U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.bz_image_ref_)
                 : nullptr;
   _impl_.memory_mb_ = from._impl_.memory_mb_;
@@ -333,6 +346,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         output_dir_(arena),
         bun_version_(arena),
         state_dir_(arena),
+        script_dir_(arena),
+        rootfs_tar_path_(arena),
         mounts_{visibility, arena} {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
@@ -358,6 +373,8 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.output_dir_.Destroy();
   this_._impl_.bun_version_.Destroy();
   this_._impl_.state_dir_.Destroy();
+  this_._impl_.script_dir_.Destroy();
+  this_._impl_.rootfs_tar_path_.Destroy();
   delete this_._impl_.bz_image_ref_;
   this_._impl_.~Impl_();
 }
@@ -421,16 +438,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 2, 77, 2>
+const ::_pbi::TcParseTable<4, 9, 2, 110, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    9, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294966784,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
+    9,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -443,7 +460,7 @@ Config::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // .block.BlockRef bz_image_ref = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 4, 0,
+     {10, 6, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.bz_image_ref_)}},
     {::_pbi::TcParser::MiniParse, {}},
     // repeated string commands = 3;
@@ -455,8 +472,8 @@ Config::_table_ = {
      {34, 1, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.output_dir_)}},
     // uint32 memory_mb = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.memory_mb_), 5>(),
-     {40, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.memory_mb_), 7>(),
+     {40, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.memory_mb_)}},
     // string bun_version = 6;
     {::_pbi::TcParser::FastUS1,
@@ -466,23 +483,41 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {58, 3, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.state_dir_)}},
+    // string script_dir = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 4, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.script_dir_)}},
+    // string rootfs_tar_path = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 5, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.rootfs_tar_path_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // .block.BlockRef bz_image_ref = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.bz_image_ref_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.bz_image_ref_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // map<string, string> mounts = 2;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.mounts_), _Internal::kHasBitsOffset + 6, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.mounts_), _Internal::kHasBitsOffset + 8, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // repeated string commands = 3;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.commands_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // string output_dir = 4;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.output_dir_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint32 memory_mb = 5;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.memory_mb_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.memory_mb_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string bun_version = 6;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.bun_version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string state_dir = 7;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.state_dir_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string script_dir = 8;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.script_dir_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string rootfs_tar_path = 9;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.rootfs_tar_path_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::block::BlockRef>()},
@@ -490,13 +525,15 @@ Config::_table_ = {
           1, 0, 9, 9, 0)},
   }},
   {{
-    "\30\0\6\10\12\0\13\11"
+    "\30\0\6\10\12\0\13\11\12\17\0\0\0\0\0\0"
     "forge.lib.v86.bun.Config"
     "mounts"
     "commands"
     "output_dir"
     "bun_version"
     "state_dir"
+    "script_dir"
+    "rootfs_tar_path"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -507,7 +544,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.commands_.Clear();
     }
@@ -521,15 +558,19 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.state_dir_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.script_dir_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.rootfs_tar_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       ABSL_DCHECK(_impl_.bz_image_ref_ != nullptr);
       _impl_.bz_image_ref_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000060U)) {
-    _impl_.memory_mb_ = 0u;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-      _impl_.mounts_.Clear();
-    }
+  _impl_.memory_mb_ = 0u;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+    _impl_.mounts_.Clear();
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -555,14 +596,14 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .block.BlockRef bz_image_ref = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.bz_image_ref_, this_._impl_.bz_image_ref_->GetCachedSize(), target,
         stream);
   }
 
   // map<string, string> mounts = 2;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
     if (!this_._internal_mounts().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::std::string>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::std::string,
@@ -617,7 +658,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint32 memory_mb = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_memory_mb() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -642,6 +683,26 @@ PROTOBUF_NOINLINE void Config::Clear() {
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "forge.lib.v86.bun.Config.state_dir");
       target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // string script_dir = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_script_dir().empty()) {
+      const ::std::string& _s = this_._internal_script_dir();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "forge.lib.v86.bun.Config.script_dir");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // string rootfs_tar_path = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_rootfs_tar_path().empty()) {
+      const ::std::string& _s = this_._internal_rootfs_tar_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "forge.lib.v86.bun.Config.rootfs_tar_path");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
     }
   }
 
@@ -670,7 +731,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // repeated string commands = 3;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -701,20 +762,36 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_state_dir());
       }
     }
-    // .block.BlockRef bz_image_ref = 1;
+    // string script_dir = 8;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_script_dir().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_script_dir());
+      }
+    }
+    // string rootfs_tar_path = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_rootfs_tar_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_rootfs_tar_path());
+      }
+    }
+    // .block.BlockRef bz_image_ref = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.bz_image_ref_);
     }
     // uint32 memory_mb = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_memory_mb() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_memory_mb());
       }
     }
+  }
+   {
     // map<string, string> mounts = 2;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_mounts_size());
       for (const auto& entry : this_._internal_mounts()) {
@@ -743,7 +820,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_commands()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -777,6 +854,24 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_script_dir().empty()) {
+        _this->_internal_set_script_dir(from._internal_script_dir());
+      } else {
+        if (_this->_impl_.script_dir_.IsDefault()) {
+          _this->_internal_set_script_dir("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_rootfs_tar_path().empty()) {
+        _this->_internal_set_rootfs_tar_path(from._internal_rootfs_tar_path());
+      } else {
+        if (_this->_impl_.rootfs_tar_path_.IsDefault()) {
+          _this->_internal_set_rootfs_tar_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       ABSL_DCHECK(from._impl_.bz_image_ref_ != nullptr);
       if (_this->_impl_.bz_image_ref_ == nullptr) {
         _this->_impl_.bz_image_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.bz_image_ref_);
@@ -784,14 +879,14 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.bz_image_ref_->MergeFrom(*from._impl_.bz_image_ref_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_memory_mb() != 0) {
         _this->_impl_.memory_mb_ = from._impl_.memory_mb_;
       }
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-      _this->_impl_.mounts_.MergeFrom(from._impl_.mounts_);
-    }
+  }
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+    _this->_impl_.mounts_.MergeFrom(from._impl_.mounts_);
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -816,6 +911,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.output_dir_, &other->_impl_.output_dir_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.bun_version_, &other->_impl_.bun_version_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.state_dir_, &other->_impl_.state_dir_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.script_dir_, &other->_impl_.script_dir_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.rootfs_tar_path_, &other->_impl_.rootfs_tar_path_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.memory_mb_)
       + sizeof(Config::_impl_.memory_mb_)
