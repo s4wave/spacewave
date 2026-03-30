@@ -195,8 +195,7 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 		return tx.ErrDiscarded
 	}
 
-	value := world.KeyToGraphValue(objKey)
-	valueStr := value.String()
+	valueStr := world.KeyToGraphValue(objKey).String()
 
 	// find all matching quads where subject == value
 	subjQuads, err := t.LookupGraphQuads(ctx, world.NewGraphQuad(valueStr, "", "", ""), 0)
@@ -211,43 +210,22 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	}
 
 	// if no matches, stop here.
-	if len(subjQuads) == 0 || len(objQuads) == 0 {
+	if len(subjQuads) == 0 && len(objQuads) == 0 {
 		return nil
 	}
 
-	// clear all quads matching the node
-	err = t.graphHd.RemoveNode(ctx, value)
-	if err != nil {
-		return err
-	}
-
-	// increment object revision
-	objState, objStateFound, err := t.getObject(ctx, objKey)
-	if err != nil {
-		return err
-	}
-	if objStateFound {
-		_, err = objState.incrementRev(ctx, false)
-		if err != nil {
+	// Delete each quad individually via DeleteGraphQuad which handles
+	// ErrQuadNotExist gracefully. Using RemoveNode here is unsafe: it
+	// interleaves reading and deleting across direction passes, and
+	// decNodes in one pass can delete shared node log entries that
+	// subsequent passes need to resolve quads.
+	for _, q := range subjQuads {
+		if err := t.DeleteGraphQuad(ctx, q); err != nil {
 			return err
 		}
 	}
-
-	// update changelog
-	queueDel := func(q world.GraphQuad) error {
-		_, err := t.queueWorldChange(ctx, &WorldChange{
-			ChangeType: WorldChangeType_WorldChange_GRAPH_DELETE,
-			Quad:       world.GraphQuadToQuad(q),
-		})
-		return err
-	}
-	for _, subjQuad := range subjQuads {
-		if err := queueDel(subjQuad); err != nil {
-			return err
-		}
-	}
-	for _, objQuad := range objQuads {
-		if err := queueDel(objQuad); err != nil {
+	for _, q := range objQuads {
+		if err := t.DeleteGraphQuad(ctx, q); err != nil {
 			return err
 		}
 	}
