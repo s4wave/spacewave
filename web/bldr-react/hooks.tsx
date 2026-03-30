@@ -832,9 +832,12 @@ export function useFocusOnValueChange<T extends Focusable, V>(
  */
 export function useDocumentVisibility(): DocumentVisibilityState {
   const [documentVisibility, setDocumentVisibility] =
-    useState<DocumentVisibilityState>(document.visibilityState)
+    useState<DocumentVisibilityState>(
+      typeof document !== 'undefined' ? document.visibilityState : 'visible',
+    )
 
   useEffect(() => {
+    if (typeof document === 'undefined') return
     const listener = () => setDocumentVisibility(document.visibilityState)
     document.addEventListener('visibilitychange', listener)
     return () => document.removeEventListener('visibilitychange', listener)
