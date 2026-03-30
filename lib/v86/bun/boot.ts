@@ -2,18 +2,29 @@
  * boot.ts - v86 boot script for forge bun subprocess controller.
  *
  * Boots a v86 VM headless in bun, runs commands via serial console,
- * and reports the exit code.
+ * and reports the exit code. Supports two filesystem modes:
  *
- * Usage: bun run boot.ts --socket <path> --memory <mb> --output-dir <dir>
+ * 1. v86fs over SRPC (primary): --socket <path> connects to a unix
+ *    socket serving v86fs SRPC. The VM boots with 9p rootfs and mounts
+ *    v86fs at configured paths for workspace/toolchain access.
  *
- * The script connects to a unix socket serving v86fs SRPC for filesystem
- * access. For the initial prototype, rootfs is loaded via 9p handle.
- * v86fs SRPC integration is a follow-on iteration.
+ * 2. 9p only (fallback): --v86fs-dir <path> loads rootfs from local
+ *    fs.json + flat/ files. No v86fs device.
+ *
+ * Usage: bun run boot.ts [--socket <path>] [--v86fs-dir <path>]
+ *        [--v86-dir <path>] [--memory <mb>] [--output-dir <dir>]
+ *        [--bzimage <path>] [--cmd <command>]...
  */
 
+import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
 import fs from 'node:fs'
+import { StreamConn } from 'starpc'
+import {
+  connectToPipe,
+} from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
+import { createV86fsSrpcAdapter } from './v86fs-bridge.js'
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
@@ -42,6 +53,7 @@ function parseArgs(): {
   bzimage: string
   v86Dir: string
   v86fsDir: string
+  mounts: Array<{ name: string; path: string }>
 } {
   const args = process.argv.slice(2)
   let socket = ''
@@ -51,6 +63,7 @@ function parseArgs(): {
   let v86Dir = ''
   let v86fsDir = ''
   const commands: string[] = []
+  const mounts: Array<{ name: string; path: string }> = []
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -72,13 +85,22 @@ function parseArgs(): {
       case '--v86fs-dir':
         v86fsDir = args[++i]
         break
+      case '--mount': {
+        // --mount name=/guest/path
+        const val = args[++i]
+        const eq = val.indexOf('=')
+        if (eq > 0) {
+          mounts.push({ name: val.slice(0, eq), path: val.slice(eq + 1) })
+        }
+        break
+      }
       case '--cmd':
         commands.push(args[++i])
         break
     }
   }
 
-  return { socket, memory, outputDir, commands, bzimage, v86Dir, v86fsDir }
+  return { socket, memory, outputDir, commands, bzimage, v86Dir, v86fsDir, mounts }
 }
 
 // Strip ANSI escape codes from serial output
@@ -149,6 +171,22 @@ async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<any> {
   return mod.createHandle9p(fsJsonUrl, flatUrl)
 }
 
+// Connect to SRPC unix socket and create v86fs adapter.
+async function connectV86fsSrpc(
+  socketPath: string,
+): Promise<{ adapter: any; close: () => void }> {
+  const streamConn = new StreamConn(undefined, { direction: 'outbound' })
+  const client = streamConn.buildClient()
+
+  // Connect socket and wait for connection.
+  await new Promise<void>((resolve, reject) => {
+    const socket = connectToPipe(socketPath, streamConn, () => resolve())
+    socket.on('error', reject)
+  })
+
+  return createV86fsSrpcAdapter(client)
+}
+
 async function main() {
   const opts = parseArgs()
 
@@ -156,14 +194,15 @@ async function main() {
   const v86Dir =
     opts.v86Dir || process.env.V86_DIR || path.resolve(__dirname, '../../../..')
   // Resolve v86fs directory (contains bzImage, fs.json, flat/)
-  const v86fsDir =
-    opts.v86fsDir || process.env.V86FS_DIR || ''
+  const v86fsDir = opts.v86fsDir || process.env.V86FS_DIR || ''
+  const useV86fs = !!opts.socket
 
   // Resolve paths
   const wasmPath = path.join(v86Dir, 'build/v86-debug.wasm')
   const biosPath = path.join(v86Dir, 'bios/seabios.bin')
   const vgaBiosPath = path.join(v86Dir, 'bios/vgabios.bin')
-  const bzimagePath = opts.bzimage ||
+  const bzimagePath =
+    opts.bzimage ||
     (v86fsDir ? path.join(v86fsDir, 'bzImage') : path.join(v86Dir, 'bzImage'))
 
   // Verify required files exist
@@ -182,14 +221,24 @@ async function main() {
   // Import V86 from source (same as v86 repo's own tests)
   const { V86 } = await import(path.join(v86Dir, 'src/main.js'))
 
-  // Load rootfs via handle9p if v86fs directory is available
+  // Load rootfs via handle9p (always needed for 9p boot root).
   const handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
 
+  // Connect to v86fs SRPC server if socket provided.
+  let v86fsBridge: { adapter: any; close: () => void } | undefined
+  if (useV86fs) {
+    console.error(`[forge-v86] connecting to v86fs SRPC: ${opts.socket}`)
+    v86fsBridge = await connectV86fsSrpc(opts.socket)
+    console.error('[forge-v86] v86fs SRPC connected')
+  }
+
   console.error(
-    `[forge-v86] booting VM: memory=${opts.memory}MB commands=${opts.commands.length}`,
+    `[forge-v86] booting VM: memory=${opts.memory}MB commands=${opts.commands.length} v86fs=${useV86fs}`,
   )
 
-  // Boot the emulator headless
+  // Boot the emulator headless.
+  // 9p provides rootfs (minimal Linux userspace).
+  // v86fs provides workspace/toolchain mounts when SRPC socket is connected.
   const emulator = new V86({
     wasm_path: wasmPath,
     memory_size: opts.memory * 1024 * 1024,
@@ -200,13 +249,39 @@ async function main() {
     cmdline:
       'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
     filesystem: handle9p ? { handle9p } : {},
+    virtio_v86fs: useV86fs,
+    virtio_v86fs_adapter: v86fsBridge?.adapter,
     autostart: true,
+  })
+
+  // Log serial output to stderr.
+  let lineBuf = ''
+  emulator.add_listener('serial0-output-byte', (byte: number) => {
+    const ch = String.fromCharCode(byte)
+    if (ch === '\n') {
+      process.stderr.write('[serial] ' + lineBuf + '\n')
+      lineBuf = ''
+    } else if (ch !== '\r') {
+      lineBuf += ch
+    }
   })
 
   // Wait for shell prompt
   const prompt = ':/#'
   await waitForSerial(emulator, prompt)
   console.error('[forge-v86] shell ready')
+
+  // Mount v86fs filesystems if configured.
+  if (useV86fs && opts.mounts.length > 0) {
+    for (const m of opts.mounts) {
+      console.error(`[forge-v86] mounting v86fs: ${m.name} at ${m.path}`)
+      await runCommand(emulator, `mkdir -p ${m.path}`)
+      await runCommand(
+        emulator,
+        `mount -t v86fs none ${m.path} -o name=${m.name}`,
+      )
+    }
+  }
 
   // Run commands sequentially
   let exitCode = 0
@@ -235,6 +310,9 @@ async function main() {
   // Stop emulator
   emulator.stop()
   emulator.destroy()
+
+  // Close v86fs SRPC bridge.
+  v86fsBridge?.close()
 
   console.error(`[forge-v86] done, exit code: ${exitCode}`)
   process.exit(exitCode)
