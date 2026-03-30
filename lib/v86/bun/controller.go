@@ -12,6 +12,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	forge_target "github.com/aperturerobotics/forge/target"
+	forge_value "github.com/aperturerobotics/forge/value"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	v86fs "github.com/aperturerobotics/hydra/unixfs/v86fs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/autobun"
@@ -80,11 +85,10 @@ func (c *Controller) InitForgeExecController(
 //
 // Architecture:
 //  1. Create a unix socket (pipesock) and serve v86fs SRPC on it.
-//  2. Launch a bun subprocess that connects to the socket.
-//  3. The bun script boots v86 with v86fs mounts, runs commands, reports exit.
-//
-// Input resolution (rootfs -> FSHandle) is deferred to a later iteration
-// when the full forge pipeline wiring is integrated.
+//  2. Create a writable output mount backed by a block transaction.
+//  3. Launch a bun subprocess that connects to the socket.
+//  4. The bun script boots v86 with v86fs mounts, runs commands, reports exit.
+//  5. Extract the output BlockRef and set it as the forge task output.
 func (c *Controller) Execute(ctx context.Context) error {
 	execID := c.handle.GetExecutionUniqueId()
 
@@ -102,8 +106,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer lis.Close()
 
-	// Create v86fs relay server.
-	// TODO: resolve rootfs input to FSHandle and wire into mount resolver.
+	// Create v86fs relay server (mounts added dynamically below).
 	v86fsSrv := v86fs.NewServer(nil)
 
 	mux := srpc.NewMux()
@@ -160,41 +163,97 @@ func (c *Controller) Execute(ctx context.Context) error {
 		outputDir = "/output"
 	}
 
-	socketAddr := lis.Addr().String()
-	c.le.WithFields(logrus.Fields{
-		"bun":        bunPath,
-		"socket":     socketAddr,
-		"memory-mb":  memoryMb,
-		"output-dir": outputDir,
-		"commands":   len(c.conf.GetCommands()),
-	}).Debug("launching v86 bun subprocess")
+	// Access storage to create a writable output mount and run the VM.
+	// The entire subprocess execution happens inside the callback because
+	// the bucket_lookup.Cursor is only valid within its scope.
+	return c.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
+		// Initialize an empty directory as the output root.
+		outputHandle, err := initOutputMount(ctx, cs)
+		if err != nil {
+			return errors.Wrap(err, "init output mount")
+		}
+		defer outputHandle.Release()
 
-	// Write embedded boot script to tmpDir.
-	bootScript := filepath.Join(tmpDir, "boot.ts")
-	if err := os.WriteFile(bootScript, bootScriptData, 0o644); err != nil {
-		return errors.Wrap(err, "write boot script")
+		// Add output mount to v86fs server.
+		v86fsSrv.AddMount("output", outputDir, outputHandle)
+
+		// Build and add --mount flag for the output mount.
+		socketAddr := lis.Addr().String()
+		c.le.WithFields(logrus.Fields{
+			"bun":        bunPath,
+			"socket":     socketAddr,
+			"memory-mb":  memoryMb,
+			"output-dir": outputDir,
+			"commands":   len(c.conf.GetCommands()),
+		}).Debug("launching v86 bun subprocess")
+
+		// Write embedded boot script to tmpDir.
+		bootScript := filepath.Join(tmpDir, "boot.ts")
+		if err := os.WriteFile(bootScript, bootScriptData, 0o644); err != nil {
+			return errors.Wrap(err, "write boot script")
+		}
+
+		// Build command arguments.
+		args := []string{"run", bootScript,
+			"--socket", socketAddr,
+			"--memory", strconv.FormatUint(uint64(memoryMb), 10),
+			"--output-dir", outputDir,
+			"--mount", "output=" + outputDir,
+		}
+		for _, cmd := range c.conf.GetCommands() {
+			args = append(args, "--cmd", cmd)
+		}
+
+		cmd := exec.CommandContext(ctx, bunPath, args...)
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			return errors.Wrap(err, "bun subprocess")
+		}
+
+		// Extract the output BlockRef after the VM has written to the mount.
+		outputRef := cs.GetRefWithOpArgs()
+		if outputRef != nil && !outputRef.GetRootRef().GetEmpty() {
+			outps := forge_value.ValueSlice{
+				forge_value.NewValueWithBucketRef("output", outputRef),
+			}
+			return c.handle.SetOutputs(ctx, outps, true)
+		}
+
+		return nil
+	})
+}
+
+// initOutputMount creates a writable FSHandle backed by a block transaction.
+// Seeds an empty directory as the root, creates FS + FSWriter, and returns
+// the FSHandle ready for mounting on a v86fs server.
+func initOutputMount(ctx context.Context, cs *bucket_lookup.Cursor) (*unixfs.FSHandle, error) {
+	// Create a block transaction and seed an empty directory root.
+	btx, bcs := cs.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+	if _, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY); err != nil {
+		return nil, errors.Wrap(err, "create root fstree")
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "write root block")
+	}
+	cs.SetRootRef(rootRef)
+
+	// Create FS with FSWriter for writable access.
+	wr := unixfs_block_fs.NewFSWriter()
+	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, wr)
+	wr.SetFS(fs)
+
+	handle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		fs.Release()
+		return nil, errors.Wrap(err, "create fshandle")
 	}
 
-	// Build command arguments.
-	args := []string{"run", bootScript,
-		"--socket", socketAddr,
-		"--memory", strconv.FormatUint(uint64(memoryMb), 10),
-		"--output-dir", outputDir,
-	}
-	for _, cmd := range c.conf.GetCommands() {
-		args = append(args, "--cmd", cmd)
-	}
-
-	cmd := exec.CommandContext(ctx, bunPath, args...)
-	cmd.Env = os.Environ()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return errors.Wrap(err, "bun subprocess")
-	}
-
-	return nil
+	return handle, nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
