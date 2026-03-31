@@ -81,10 +81,10 @@ github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8 h1:OWYqCKoDoPGXgkD1y465qb8L5odv3nGabeN9wF50GxU=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
-github.com/aperturerobotics/hydra v0.0.0-20260329215922-ad3fd75567c5 h1:EcVS763HmKTUDQVwO85agQhT42zKuTqBGA0uezCNsRI=
-github.com/aperturerobotics/hydra v0.0.0-20260329215922-ad3fd75567c5/go.mod h1:W0/m5DrMzTycY+wNbUoSafuBKwGdxQzNdvgfPe8LwXE=
-github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 h1:082/WYPdLPv+IhvwS7rHkZBG2gzio+X6S1946bcai+o=
-github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122/go.mod h1:nOCy/V3CwhO/dnTDoFC3oNgSwcknbV4OpOTPYFMKVzY=
+github.com/aperturerobotics/hydra v0.0.0-20260330093444-3b360fc7ac11 h1:VjghTBJrufHzNu9lPGRM845avnJ9QTRrUIjVA9sRT4U=
+github.com/aperturerobotics/hydra v0.0.0-20260330093444-3b360fc7ac11/go.mod h1:W0/m5DrMzTycY+wNbUoSafuBKwGdxQzNdvgfPe8LwXE=
+github.com/aperturerobotics/identity v0.0.0-20260329113553-e97d9a5548e1 h1:x+P4UWMFlPDv/9JblfE7whvbhrL56gdGDrOZBsik9/A=
+github.com/aperturerobotics/identity v0.0.0-20260329113553-e97d9a5548e1/go.mod h1:iss6K40iPXgBOwTpAaet97US+nbohQxA77H3h0lxgNA=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=

@@ -48,19 +48,19 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.30.1",
+    "@aptre/common": "^0.32.2",
     "depcheck": "^1.4.7",
     "prettier": "^3.8.1",
-    "rimraf": "^6.1.2",
-    "typescript": "^5.8.3",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.5.3",
-    "@aptre/v86": "^0.6.6",
+    "@aptre/protobuf-es-lite": "^1.0.2",
+    "@aptre/v86": "^0.6.8",
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
-    "starpc": "^0.46.1"
+    "starpc": "^0.49.2"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "0.5.2"

@@ -3,8 +3,8 @@ module github.com/aperturerobotics/forge
 go 1.25.0
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20260329215922-ad3fd75567c5 // master
-	github.com/aperturerobotics/identity v0.0.0-20260224072926-c8b00d65a122 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260330093444-3b360fc7ac11 // master
+	github.com/aperturerobotics/identity v0.0.0-20260329113553-e97d9a5548e1 // master
 )
 
 // Note: the below is from the Hydra go.mod
