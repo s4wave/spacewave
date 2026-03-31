@@ -34,6 +34,12 @@ declare const BLDR_ELECTRON: BldrElectron | undefined
 // isElectron indicates this is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
+// isSaucer indicates this is a Saucer desktop app (future).
+export const isSaucer = false
+
+// isDesktop indicates this is a desktop app (Electron, Saucer, etc.).
+export const isDesktop = isElectron || isSaucer
+
 // NOTE: uesrAgentData: https://wicg.github.io/ua-client-hints/#dom-navigatoruadata-platform
 // "Android", "Chrome OS", "Fuchsia", "iOS", "Linux", "macOS", "Windows", or "Unknown".
 
