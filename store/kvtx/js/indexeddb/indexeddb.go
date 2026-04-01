@@ -108,6 +108,13 @@ func (s *Store) GetStorageTally(ctx context.Context) (uint64, error) {
 	return tx.(*kvtxTx).readTally(ctx)
 }
 
+// NewRawWriteTransaction returns a raw write transaction without txcache wrapping.
+// Writes go directly to IndexedDB within the open transaction.
+// This is useful for batching writes without per-op commit overhead.
+func (s *Store) NewRawWriteTransaction(ctx context.Context) (kvtx.Tx, error) {
+	return s.store.NewTransaction(ctx, true)
+}
+
 // Close closes the store db.
 func (s *Store) Close() error {
 	return s.db.Close()
