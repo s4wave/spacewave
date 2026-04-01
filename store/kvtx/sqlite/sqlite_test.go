@@ -1,17 +1,41 @@
-//go:build !js && !wasip1
-
 package store_kvtx_sqlite
 
 import (
 	"context"
 	"os"
-	"path"
+	"runtime"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	store_test "github.com/aperturerobotics/hydra/store/test"
 )
+
+func newTempDBPath(t *testing.T, pattern string) string {
+	t.Helper()
+
+	if runtime.GOOS == "js" {
+		return strings.Replace(pattern, "*", strconv.FormatInt(time.Now().UnixNano(), 10), 1)
+	}
+
+	file, err := os.CreateTemp("", pattern)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	name := file.Name()
+	if err := file.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() {
+		_ = os.Remove(name)
+		_ = os.Remove(name + "-wal")
+		_ = os.Remove(name + "-shm")
+	})
+	return name
+}
 
 // TestSQLite tests all tests on top of SQLite.
 func TestSQLite(t *testing.T) {
@@ -22,13 +46,7 @@ func TestSQLite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	dir, err := os.MkdirTemp("", "hydra-test-sqlite-")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer os.RemoveAll(dir)
-
-	tp := path.Join(dir, "database.sqlite")
+	tp := newTempDBPath(t, "hydra-test-sqlite-*.sqlite")
 
 	db, err := Open(ctx, tp, "test_table")
 	if err != nil {
@@ -74,13 +92,7 @@ func TestSQLite(t *testing.T) {
 func TestSQLiteWithMode(t *testing.T) {
 	ctx := context.Background()
 
-	dir, err := os.MkdirTemp("", "hydra-test-sqlite-mode-")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer os.RemoveAll(dir)
-
-	tp := path.Join(dir, "database_mode.sqlite")
+	tp := newTempDBPath(t, "hydra-test-sqlite-mode-*.sqlite")
 
 	db, err := OpenWithMode(ctx, tp, 0o644, "test_table_mode")
 	if err != nil {
@@ -108,13 +120,7 @@ func TestSQLiteWithMode(t *testing.T) {
 func TestSQLiteIterator(t *testing.T) {
 	ctx := context.Background()
 
-	dir, err := os.MkdirTemp("", "hydra-test-sqlite-iter-")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer os.RemoveAll(dir)
-
-	tp := path.Join(dir, "database_iter.sqlite")
+	tp := newTempDBPath(t, "hydra-test-sqlite-iter-*.sqlite")
 
 	db, err := Open(ctx, tp, "test_iter")
 	if err != nil {

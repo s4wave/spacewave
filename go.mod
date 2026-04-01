@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/hydra
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.4-0.20260329215849-b80367eb17d2 // master
@@ -16,6 +16,7 @@ replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 // aperture
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe // aperture
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
+	github.com/ncruces/go-sqlite3 => github.com/paralin/ncruces-go-sqlite3 v0.0.0-20260401074639-d457cedd05d9 // fix-wasm
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 
@@ -84,6 +85,7 @@ require (
 	github.com/klauspost/compress v1.18.4
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.2.0
+	github.com/ncruces/go-sqlite3 v0.33.2 // latest
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
 	github.com/pion/sdp/v3 v3.0.18 // indirect
@@ -95,12 +97,11 @@ require (
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.49.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
+	golang.org/x/sys v0.42.0
 	gonum.org/v1/gonum v0.17.0
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.45.0
+	modernc.org/sqlite v1.45.0 // latest
 )
-
-require golang.org/x/sys v0.42.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -138,7 +139,9 @@ require (
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
+	github.com/ncruces/go-sqlite3-wasm v1.0.4-0.20260329114232-2491c387476c // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
 	github.com/pion/ice/v4 v4.2.1 // indirect
 	github.com/pion/interceptor v0.1.44 // indirect

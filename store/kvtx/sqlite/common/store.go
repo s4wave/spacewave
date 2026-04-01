@@ -35,6 +35,8 @@ func ValidateTableName(table string) error {
 type SQLiteDriverConfig interface {
 	// DriverName returns the name to use with sql.Open()
 	DriverName() string
+	// OpenDSN returns the DSN to use with sql.Open() for a given database path.
+	OpenDSN(path string) string
 	// Description returns a human-readable description of the driver
 	Description() string
 	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver
@@ -64,9 +66,9 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 		return nil, err
 	}
 
-	// Set WAL mode, synchronous=NORMAL, and busy_timeout in DSN.
-	// DSN params work for go-sqlite3; explicit PRAGMAs below cover other drivers.
-	dsn := path + "?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000"
+	// Set WAL mode, synchronous=NORMAL, and busy_timeout in DSN when supported.
+	// Explicit PRAGMAs below remain a safety net for drivers that ignore DSN params.
+	dsn := config.OpenDSN(path)
 	db, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
 		return nil, err

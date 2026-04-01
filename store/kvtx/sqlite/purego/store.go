@@ -21,6 +21,11 @@ func (c PureGoConfig) DriverName() string {
 	return "sqlite"
 }
 
+// OpenDSN returns the DSN to use with sql.Open().
+func (c PureGoConfig) OpenDSN(path string) string {
+	return path + "?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000"
+}
+
 // Description returns a description for pure Go SQLite.
 func (c PureGoConfig) Description() string {
 	return "SQLite database key-value store using pure Go SQLite driver"
