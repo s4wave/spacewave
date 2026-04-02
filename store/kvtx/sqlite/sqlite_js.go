@@ -2,15 +2,12 @@
 
 package store_kvtx_sqlite
 
-// TODO: implement
-/*
-
 import (
 	"context"
 	"database/sql"
 	"os"
 
-	wasm "github.com/aperturerobotics/hydra/store/kvtx/sqlite/wasm"
+	wasm "github.com/aperturerobotics/hydra/sql/sqlite-wasm"
 )
 
 func open(ctx context.Context, path string, table string) (Store, error) {
@@ -24,4 +21,3 @@ func openWithMode(ctx context.Context, path string, mode os.FileMode, table stri
 func newStore(db *sql.DB, table string) (Store, error) {
 	return wasm.NewStore(db, table)
 }
-*/

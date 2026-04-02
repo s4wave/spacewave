@@ -9,10 +9,15 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
-// Iterator implements high-performance iteration over SQLite results.
+// Iterator iterates over SQLite results using direct SELECTs on the queryer.
+//
+// This intentionally does not hold an explicit read transaction open. Each
+// Seek/Next is a standalone query, which removes BEGIN/ROLLBACK overhead at the
+// cost of allowing iteration to observe concurrent writes.
 type Iterator struct {
 	ctx     context.Context
-	txn     *sql.Tx
+	queryer sqliteQueryer
+	active  func() error
 	table   string
 	prefix  []byte
 	reverse bool
@@ -44,17 +49,17 @@ type Iterator struct {
 	seekAbsoluteEndQuery       string
 }
 
-// NewIterator constructs a new high-performance SQLite iterator.
-func NewIterator(ctx context.Context, txn *sql.Tx, table string, prefix []byte, sort, reverse bool) *Iterator {
+// NewIterator constructs a new SQLite iterator.
+func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error, table string, prefix []byte, sort, reverse bool) *Iterator {
 	i := &Iterator{
 		ctx:     ctx,
-		txn:     txn,
+		queryer: queryer,
+		active:  active,
 		table:   table,
 		prefix:  prefix,
 		reverse: reverse,
 	}
 
-	// Precompute all queries
 	i.advanceForwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceForwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? AND key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceBackwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key < ? ORDER BY key DESC LIMIT 1"}, " ")
@@ -111,6 +116,12 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 
 // Next advances to the next entry and returns Valid.
 func (i *Iterator) Next() bool {
+	if i.active != nil {
+		if err := i.active(); err != nil {
+			i.err = err
+			return false
+		}
+	}
 	if i.closed || i.err != nil {
 		return false
 	}
@@ -122,11 +133,10 @@ func (i *Iterator) Next() bool {
 		return i.Valid()
 	}
 
-	// Move to the next key in the appropriate direction
 	return i.advance()
 }
 
-// advance moves to the next key in sequence
+// advance moves to the next key in sequence.
 func (i *Iterator) advance() bool {
 	if i.currentKey == nil {
 		return false
@@ -136,7 +146,6 @@ func (i *Iterator) advance() bool {
 	var args []any
 
 	if i.reverse {
-		// Find the previous key before current
 		if len(i.prefix) > 0 {
 			upperBound := CreateUpperBound(i.prefix)
 			query = i.advanceBackwardPrefixQuery
@@ -146,7 +155,6 @@ func (i *Iterator) advance() bool {
 			args = []any{i.currentKey}
 		}
 	} else {
-		// Find the next key after current
 		if len(i.prefix) > 0 {
 			upperBound := CreateUpperBound(i.prefix)
 			query = i.advanceForwardPrefixQuery
@@ -158,7 +166,7 @@ func (i *Iterator) advance() bool {
 	}
 
 	var key, value []byte
-	err := i.txn.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
+	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
 	if err == sql.ErrNoRows {
 		i.valid = false
 		return false
@@ -168,7 +176,6 @@ func (i *Iterator) advance() bool {
 		return false
 	}
 
-	// Verify prefix constraint
 	if len(i.prefix) > 0 && !bytes.HasPrefix(key, i.prefix) {
 		i.valid = false
 		return false
@@ -181,8 +188,13 @@ func (i *Iterator) advance() bool {
 }
 
 // Seek moves the iterator to the selected key, or the next key after the key.
-// Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	if i.active != nil {
+		if err := i.active(); err != nil {
+			i.err = err
+			return err
+		}
+	}
 	if i.closed {
 		return context.Canceled
 	}
@@ -192,25 +204,20 @@ func (i *Iterator) Seek(k []byte) error {
 	var query string
 	var args []any
 
-	// Build efficient query based on seek position and direction
 	if i.reverse {
 		if len(i.prefix) > 0 {
 			upperBound := CreateUpperBound(i.prefix)
 			if k == nil {
-				// Seek to end of prefix range
 				query = i.seekBackwardPrefixNilQuery
 				args = []any{i.prefix, upperBound}
 			} else {
-				// Seek to position <= k within prefix range
 				query = i.seekBackwardPrefixQuery
 				args = []any{i.prefix, k, upperBound}
 			}
 		} else {
 			if k == nil {
-				// Seek to absolute end
 				query = i.seekAbsoluteEndQuery
 			} else {
-				// Seek to position <= k
 				query = i.seekBackwardQuery
 				args = []any{k}
 			}
@@ -219,11 +226,9 @@ func (i *Iterator) Seek(k []byte) error {
 		if len(i.prefix) > 0 {
 			upperBound := CreateUpperBound(i.prefix)
 			if k == nil {
-				// Seek to start of prefix range
 				query = i.seekForwardPrefixNilQuery
 				args = []any{i.prefix, upperBound}
 			} else {
-				// Seek to position >= k within prefix range
 				seekKey := k
 				if bytes.Compare(k, i.prefix) < 0 {
 					seekKey = i.prefix
@@ -233,10 +238,8 @@ func (i *Iterator) Seek(k []byte) error {
 			}
 		} else {
 			if k == nil {
-				// Seek to absolute start
 				query = i.seekAbsoluteStartQuery
 			} else {
-				// Seek to position >= k
 				query = i.seekForwardQuery
 				args = []any{k}
 			}
@@ -244,7 +247,7 @@ func (i *Iterator) Seek(k []byte) error {
 	}
 
 	var key, value []byte
-	err := i.txn.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
+	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
 	if err == sql.ErrNoRows {
 		i.valid = false
 		return nil
@@ -254,7 +257,6 @@ func (i *Iterator) Seek(k []byte) error {
 		return err
 	}
 
-	// Verify prefix constraint
 	if len(i.prefix) > 0 && !bytes.HasPrefix(key, i.prefix) {
 		i.valid = false
 		return nil

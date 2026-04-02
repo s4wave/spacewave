@@ -1,0 +1,100 @@
+syntax = "proto3";
+package sql.sqlite_wasm.rpc;
+
+// SqliteBridge wraps sqlite.wasm with a starpc RPC service.
+// Runs in a dedicated Worker with OPFS persistence.
+service SqliteBridge {
+  // OpenDb opens or creates a SQLite database by path.
+  rpc OpenDb(OpenDbRequest) returns (OpenDbResponse);
+  // CloseDb closes an open database by handle.
+  rpc CloseDb(CloseDbRequest) returns (CloseDbResponse);
+  // Exec executes a DDL/DML statement (CREATE, INSERT, UPDATE, DELETE, BEGIN, COMMIT, ROLLBACK).
+  rpc Exec(ExecRequest) returns (ExecResponse);
+  // Query executes a SELECT and streams rows back one at a time.
+  // First response contains column names. Subsequent responses each contain one row.
+  rpc Query(QueryRequest) returns (stream QueryResponse);
+  // DeleteDb deletes a database by path.
+  rpc DeleteDb(DeleteDbRequest) returns (DeleteDbResponse);
+}
+
+// SqlValue represents a SQLite value (int64, double, string, bytes, or null).
+message SqlValue {
+  oneof value {
+    // int_value is an INTEGER value.
+    int64 int_value = 1;
+    // float_value is a REAL value.
+    double float_value = 2;
+    // str_value is a TEXT value.
+    string str_value = 3;
+    // blob_value is a BLOB value.
+    bytes blob_value = 4;
+  }
+  // If no field in the oneof is set, the value is NULL.
+}
+
+// OpenDbRequest is the request to open a database.
+message OpenDbRequest {
+  // path is the database path (e.g. "/vol-123.db").
+  string path = 1;
+}
+
+// OpenDbResponse is the response after opening a database.
+message OpenDbResponse {
+  // db_id is the handle for the opened database.
+  uint32 db_id = 1;
+}
+
+// CloseDbRequest is the request to close a database.
+message CloseDbRequest {
+  // db_id is the handle of the database to close.
+  uint32 db_id = 1;
+}
+
+// CloseDbResponse is the response after closing a database.
+message CloseDbResponse {}
+
+// ExecRequest is the request to execute a DDL/DML statement.
+message ExecRequest {
+  // db_id is the handle of the database.
+  uint32 db_id = 1;
+  // sql is the SQL statement to execute.
+  string sql = 2;
+  // params are the bind parameters.
+  repeated SqlValue params = 3;
+}
+
+// ExecResponse is the response after executing a statement.
+message ExecResponse {
+  // changes is the number of rows changed by the statement.
+  int64 changes = 1;
+  // last_insert_row_id is the rowid of the last inserted row.
+  int64 last_insert_row_id = 2;
+}
+
+// QueryRequest is the request to execute a SELECT query.
+message QueryRequest {
+  // db_id is the handle of the database.
+  uint32 db_id = 1;
+  // sql is the SQL query to execute.
+  string sql = 2;
+  // params are the bind parameters.
+  repeated SqlValue params = 3;
+}
+
+// QueryResponse is a streaming response for a SELECT query.
+// The first message contains column_names. Subsequent messages each contain one row.
+message QueryResponse {
+  // column_names is set in the first response message only.
+  repeated string column_names = 1;
+  // row contains one row of values, set in subsequent messages.
+  repeated SqlValue row = 2;
+}
+
+// DeleteDbRequest is the request to delete a database.
+message DeleteDbRequest {
+  // path is the database path to delete.
+  string path = 1;
+}
+
+// DeleteDbResponse is the response after deleting a database.
+message DeleteDbResponse {}

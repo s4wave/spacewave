@@ -833,6 +833,24 @@
         "sql/mysql/controller/config.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/sql/sqlite-wasm/rpc": {
+      "hash": "d496222f8208deb92faf8c83cf4ec487cb71da7a2b913ea081326b082d757a73",
+      "generatedFiles": [
+        "sql/sqlite-wasm/rpc/sqlite-bridge.pb.cc",
+        "sql/sqlite-wasm/rpc/sqlite-bridge.pb.go",
+        "sql/sqlite-wasm/rpc/sqlite-bridge.pb.h",
+        "sql/sqlite-wasm/rpc/sqlite-bridge.pb.rs",
+        "sql/sqlite-wasm/rpc/sqlite-bridge.pb.ts",
+        "sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.cpp",
+        "sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.go",
+        "sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.hpp",
+        "sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.rs",
+        "sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sql/sqlite-wasm/rpc/sqlite-bridge.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/store/kvkey": {
       "hash": "d1af413efa4a553dd346580fa62f6c0949469018c548b6ca5d04068ce7474a79",
       "generatedFiles": [

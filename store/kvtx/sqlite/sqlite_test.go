@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/kvtx"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	store_test "github.com/aperturerobotics/hydra/store/test"
@@ -180,5 +181,53 @@ func TestSQLiteIterator(t *testing.T) {
 
 	if err := iter.Err(); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestSQLiteReadHandle ensures read-only sqlite transactions are lightweight
+// handles over sql.DB and still honor Commit/Discard lifecycle semantics.
+func TestSQLiteReadHandle(t *testing.T) {
+	ctx := context.Background()
+
+	tp := newTempDBPath(t, "hydra-test-sqlite-read-handle-*.sqlite")
+
+	db, err := Open(ctx, tp, "test_read_handle")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	writeTx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer writeTx.Discard()
+
+	if err := writeTx.Set(ctx, []byte("k"), []byte("v")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	readTx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	val, found, err := readTx.Get(ctx, []byte("k"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found || string(val) != "v" {
+		t.Fatalf("unexpected read result: found=%v val=%q", found, string(val))
+	}
+
+	if err := readTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, _, err := readTx.Get(ctx, []byte("k")); err != kvtx.ErrDiscarded {
+		t.Fatalf("expected ErrDiscarded after read commit, got %v", err)
 	}
 }

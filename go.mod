@@ -20,9 +20,6 @@ replace (
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 
-// aperture: use paralin/go-git fork with local clone + packwindow improvements
-replace github.com/go-git/go-git/v6 => github.com/paralin/go-git/v6 v6.0.0-20260307050103-151494f0b94e // main
-
 // aperture: use compatibility forks
 replace (
 	// https://github.com/dgraph-io/badger/pull/2048
@@ -43,7 +40,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f // main
+	github.com/go-git/go-billy/v6 v6.0.0-20260328065524-593ae452e14d // main
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/minio/minio-go/v7 v7.0.79
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
@@ -79,7 +76,7 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
-	github.com/go-git/go-git/v6 v6.0.0-20260305211659-2083cf940afa // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.1.0.20260402143348-7aeb877aaa56 // main
 	github.com/gomodule/redigo v1.9.3
 	github.com/hack-pad/safejs v0.1.1
 	github.com/klauspost/compress v1.18.4
@@ -105,7 +102,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProtonMail/go-crypto v1.3.0 // indirect
+	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -124,7 +121,7 @@ require (
 	github.com/ipfs/go-cid v0.0.7 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kevinburke/ssh_config v1.5.0 // indirect
+	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

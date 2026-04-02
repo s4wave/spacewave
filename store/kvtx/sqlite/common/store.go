@@ -45,6 +45,14 @@ type SQLiteDriverConfig interface {
 	IsNestedTxError(err error) bool
 }
 
+// SQLiteDriverPoolConfigurator optionally constrains the sql.DB pool created by
+// common.Open. Drivers with connection-bound semantics can use this to align
+// database/sql pooling with the underlying engine.
+type SQLiteDriverPoolConfigurator interface {
+	// ConfigureDBPool mutates the sql.DB pool settings after sql.Open.
+	ConfigureDBPool(db *sql.DB)
+}
+
 // Store represents a generic SQLite store that can work with any driver.
 type Store[T SQLiteDriverConfig] struct {
 	db     *sql.DB
@@ -72,6 +80,9 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 	db, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
 		return nil, err
+	}
+	if poolConfigurator, ok := any(config).(SQLiteDriverPoolConfigurator); ok {
+		poolConfigurator.ConfigureDBPool(db)
 	}
 
 	// Execute PRAGMAs directly as a safety net for drivers that may ignore DSN params.
@@ -205,13 +216,7 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 // tryNewTransaction attempts to create a new transaction.
 func (s *Store[T]) tryNewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if !write {
-		// Read-only tx: allows multiple concurrent readers.
-		opts := &sql.TxOptions{ReadOnly: true}
-		txn, err := s.db.BeginTx(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		return NewTx(txn, s.table, write), nil
+		return NewReadTx(s.db, s.table), nil
 	}
 
 	// Write tx: acquire RESERVED lock early to serialize writers.

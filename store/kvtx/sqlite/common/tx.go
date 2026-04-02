@@ -3,19 +3,34 @@ package common
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
-// Tx is a SQLite transaction.
+type sqliteQueryer interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+type sqliteExecer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// Tx is a SQLite-backed kvtx transaction or read handle.
+//
+// Writes use a real *sql.Tx. Read-only handles run directly on *sql.DB so
+// one-shot reads do not pay explicit BEGIN/ROLLBACK overhead.
 type Tx struct {
-	txn         *sql.Tx
-	table       string
-	write       bool
-	discardOnce sync.Once
+	txn          *sql.Tx
+	queryer      sqliteQueryer
+	execer       sqliteExecer
+	table        string
+	write        bool
+	closed       bool
+	finalizeMu   sync.RWMutex
+	finalizeOnce sync.Once
 
 	// Precomputed queries
 	getQuery        string
@@ -27,22 +42,65 @@ type Tx struct {
 	existsQuery     string
 }
 
-// NewTx constructs a new SQLite transaction.
-func NewTx(txn *sql.Tx, table string, write bool) *Tx {
-	return &Tx{
-		txn:   txn,
-		table: table,
-		write: write,
+func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery string) {
+	getQuery = strings.Join([]string{"SELECT value FROM", table, "WHERE key = ?"}, " ")
+	sizeQuery = strings.Join([]string{"SELECT COUNT(*) FROM", table}, " ")
+	setQuery = strings.Join([]string{"INSERT OR REPLACE INTO", table, "(key, value) VALUES (?, ?)"}, " ")
+	scanAllQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key"}, " ")
+	scanPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key"}, " ")
+	deleteQuery = strings.Join([]string{"DELETE FROM", table, "WHERE key = ?"}, " ")
+	existsQuery = strings.Join([]string{"SELECT 1 FROM", table, "WHERE key = ? LIMIT 1"}, " ")
+	return
+}
 
-		// Precompute queries
-		getQuery:        strings.Join([]string{"SELECT value FROM", table, "WHERE key = ?"}, " "),
-		sizeQuery:       strings.Join([]string{"SELECT COUNT(*) FROM", table}, " "),
-		setQuery:        strings.Join([]string{"INSERT OR REPLACE INTO", table, "(key, value) VALUES (?, ?)"}, " "),
-		scanAllQuery:    strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key"}, " "),
-		scanPrefixQuery: strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key"}, " "),
-		deleteQuery:     strings.Join([]string{"DELETE FROM", table, "WHERE key = ?"}, " "),
-		existsQuery:     strings.Join([]string{"SELECT 1 FROM", table, "WHERE key = ? LIMIT 1"}, " "),
+// NewTx constructs a new SQLite write transaction.
+func NewTx(txn *sql.Tx, table string, write bool) *Tx {
+	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery := buildQueries(table)
+	return &Tx{
+		txn:             txn,
+		queryer:         txn,
+		execer:          txn,
+		table:           table,
+		write:           write,
+		getQuery:        getQuery,
+		sizeQuery:       sizeQuery,
+		setQuery:        setQuery,
+		scanAllQuery:    scanAllQuery,
+		scanPrefixQuery: scanPrefixQuery,
+		deleteQuery:     deleteQuery,
+		existsQuery:     existsQuery,
 	}
+}
+
+// NewReadTx constructs a lightweight SQLite read handle backed directly by sql.DB.
+func NewReadTx(db *sql.DB, table string) *Tx {
+	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery := buildQueries(table)
+	return &Tx{
+		queryer:         db,
+		table:           table,
+		getQuery:        getQuery,
+		sizeQuery:       sizeQuery,
+		setQuery:        setQuery,
+		scanAllQuery:    scanAllQuery,
+		scanPrefixQuery: scanPrefixQuery,
+		deleteQuery:     deleteQuery,
+		existsQuery:     existsQuery,
+	}
+}
+
+func (t *Tx) errIfClosed() error {
+	t.finalizeMu.RLock()
+	defer t.finalizeMu.RUnlock()
+	if t.closed {
+		return kvtx.ErrDiscarded
+	}
+	return nil
+}
+
+func (t *Tx) markClosed() {
+	t.finalizeMu.Lock()
+	t.closed = true
+	t.finalizeMu.Unlock()
 }
 
 // Get returns values for a key.
@@ -50,9 +108,12 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
+	if err := t.errIfClosed(); err != nil {
+		return nil, false, err
+	}
 
 	var value []byte
-	err := t.txn.QueryRowContext(ctx, t.getQuery, key).Scan(&value)
+	err := t.queryer.QueryRowContext(ctx, t.getQuery, key).Scan(&value)
 	if err == sql.ErrNoRows {
 		return nil, false, nil
 	}
@@ -65,8 +126,12 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 // Size returns the number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (uint64, error) {
+	if err := t.errIfClosed(); err != nil {
+		return 0, err
+	}
+
 	var count uint64
-	err := t.txn.QueryRowContext(ctx, t.sizeQuery).Scan(&count)
+	err := t.queryer.QueryRowContext(ctx, t.sizeQuery).Scan(&count)
 	return count, err
 }
 
@@ -78,13 +143,20 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
+	if err := t.errIfClosed(); err != nil {
+		return err
+	}
 
-	_, err := t.txn.ExecContext(ctx, t.setQuery, key, value)
+	_, err := t.execer.ExecContext(ctx, t.setQuery, key, value)
 	return err
 }
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	if err := t.errIfClosed(); err != nil {
+		return err
+	}
+
 	var query string
 	var args []any
 
@@ -96,7 +168,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		args = []any{prefix, upperBound}
 	}
 
-	rows, err := t.txn.QueryContext(ctx, query, args...)
+	rows, err := t.queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -124,7 +196,10 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 
 // Iterate returns an iterator with a given key prefix.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return NewIterator(ctx, t.txn, t.table, prefix, sort, reverse)
+	if err := t.errIfClosed(); err != nil {
+		return kvtx.NewErrIterator(err)
+	}
+	return NewIterator(ctx, t.queryer, t.errIfClosed, t.table, prefix, sort, reverse)
 }
 
 // Delete deletes a key.
@@ -135,24 +210,38 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
+	if err := t.errIfClosed(); err != nil {
+		return err
+	}
 
-	_, err := t.txn.ExecContext(ctx, t.deleteQuery, key)
+	_, err := t.execer.ExecContext(ctx, t.deleteQuery, key)
 	return err
 }
 
 // Commit commits the transaction to storage.
 func (t *Tx) Commit(ctx context.Context) error {
-	var done bool
-	var err error
-	t.discardOnce.Do(func() {
+	if !t.write {
+		if err := t.errIfClosed(); err != nil {
+			return err
+		}
+		t.finalizeOnce.Do(t.markClosed)
+		return nil
+	}
+
+	var (
+		err       error
+		committed bool
+	)
+	t.finalizeOnce.Do(func() {
+		t.markClosed()
 		err = t.txn.Commit()
-		done = true
+		committed = true
 	})
+	if !committed {
+		return kvtx.ErrDiscarded
+	}
 	if err != nil {
 		return err
-	}
-	if !done {
-		return errors.New("commit called after discard")
 	}
 	return nil
 }
@@ -162,9 +251,12 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
+	if err := t.errIfClosed(); err != nil {
+		return false, err
+	}
 
 	var exists int
-	err := t.txn.QueryRowContext(ctx, t.existsQuery, key).Scan(&exists)
+	err := t.queryer.QueryRowContext(ctx, t.existsQuery, key).Scan(&exists)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -176,8 +268,11 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Discard cancels the transaction.
 func (t *Tx) Discard() {
-	t.discardOnce.Do(func() {
-		_ = t.txn.Rollback()
+	t.finalizeOnce.Do(func() {
+		t.markClosed()
+		if t.txn != nil {
+			_ = t.txn.Rollback()
+		}
 	})
 }
 
