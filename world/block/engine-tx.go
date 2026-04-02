@@ -2,8 +2,10 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -43,6 +45,9 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction")
+	defer task.End()
+
 	if e.writeTx == nil {
 		e.Discard()
 		return nil, tx.ErrNotWrite
@@ -56,17 +61,23 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	}
 
 	// commit
-	nroot, commitErr := e.writeTx.CommitBlockTransaction(ctx)
+	var nroot *block.BlockRef
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
+	nroot, commitErr := e.writeTx.CommitBlockTransaction(taskCtx)
+	subtask.End()
 
 	// validate the new root
 	if commitErr == nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/validate-root")
 		nroot = e.writeTx.state.GetRootRef()
 		// expect a non-nil ref
 		commitErr = nroot.Validate(false)
+		subtask.End()
 	}
 
 	var nextRootRef *bucket.ObjectRef
 	// apply committed changes or rollback
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
 	e.engine.rmtx.Lock()
 	var relWriteTx func()
 	if commitErr == nil {
@@ -95,6 +106,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 	}
 	e.engine.rmtx.Unlock()
+	subtask.End()
 
 	if relWriteTx != nil {
 		relWriteTx()

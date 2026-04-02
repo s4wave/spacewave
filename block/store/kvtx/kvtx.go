@@ -2,6 +2,7 @@ package block_store_kvtx
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
@@ -45,6 +46,9 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block")
+	defer task.End()
+
 	if opts == nil {
 		opts = &block.PutOpts{}
 	} else {
@@ -52,7 +56,9 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	opts.HashType = opts.SelectHashType(k.hashType)
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/build-block-ref")
 	ref, err = block.BuildBlockRef(data, opts)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
@@ -67,13 +73,22 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(ctx, true)
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
+	tx, err := k.store.NewTransaction(taskCtx, true)
+	subtask.End()
 	if err != nil {
 		return ref, false, err
 	}
 	defer tx.Discard()
 
-	if exists, _ := tx.Exists(ctx, key); exists {
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/exists")
+	exists, err = tx.Exists(taskCtx, key)
+	subtask.End()
+	if err != nil {
+		return ref, false, err
+	}
+	if exists {
 		return ref, true, nil
 	}
 
@@ -83,16 +98,25 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return ref, false, block.ErrEmptyBlock
 	}
 
-	if err := tx.Set(ctx, key, data); err != nil {
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/set")
+	err = tx.Set(taskCtx, key, data)
+	subtask.End()
+	if err != nil {
 		return ref, false, err
 	}
 
-	return ref, false, tx.Commit(ctx)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/commit")
+	err = tx.Commit(taskCtx)
+	subtask.End()
+	return ref, false, err
 }
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/get-block")
+	defer task.End()
+
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
 	}
@@ -103,13 +127,19 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	tx, err := k.store.NewTransaction(ctx, false)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/new-transaction")
+	tx, err := k.store.NewTransaction(taskCtx, false)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
 
-	data, found, err := tx.Get(ctx, key)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/get")
+	data, found, err := tx.Get(taskCtx, key)
+	subtask.End()
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/discard")
 	tx.Discard()
+	subtask.End()
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -121,10 +151,13 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		return data, found, nil
 	}
 
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/hash-verify")
+	err = ref.VerifyData(data, true)
+	subtask.End()
 	// Return the data and the error with the hash mismatch.
 	// All callers to GetBlock should check the error return value.
 	// We return the data here for cases where we want to report the invalid data.
-	return data, found, ref.VerifyData(data, true)
+	return data, found, err
 }
 
 // GetBlockExists checks if a block exists in the store.

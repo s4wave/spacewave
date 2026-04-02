@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -81,6 +82,9 @@ func NewWorldState(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
+	defer task.End()
+
 	tx := &WorldState{
 		btx:     btx,
 		bcs:     bcs,
@@ -95,7 +99,10 @@ func NewWorldState(
 		storage:  storage,
 		lookupOp: lookupOp,
 	}
-	if err := tx.SetBlockTransaction(ctx, btx, bcs); err != nil {
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
+	err := tx.SetBlockTransaction(taskCtx, btx, bcs)
+	subtask.End()
+	if err != nil {
 		return nil, err
 	}
 	return tx, nil
@@ -296,15 +303,26 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 //
 // The block transaction store is overridden with one wrapped with the GC store ops.
 func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
-	root, err := block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/unmarshal-root")
+	root, err := block.UnmarshalBlock[*World](taskCtx, bcs, NewWorldBlock)
+	subtask.End()
 	if err != nil {
 		return err
 	}
-	objTree, err := t.buildObjectTree(ctx, bcs)
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-object-tree")
+	objTree, err := t.buildObjectTree(taskCtx, bcs)
+	subtask.End()
 	if err != nil {
 		return err
 	}
-	graphTree, graphHandle, err := t.buildGraphTree(ctx, bcs)
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-graph-tree")
+	graphTree, graphHandle, err := t.buildGraphTree(taskCtx, bcs)
+	subtask.End()
 	if err != nil {
 		return err
 	}
@@ -313,7 +331,9 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
 	if t.write && t.store != nil {
-		gcTree, refGraph, err = t.buildGCTree(ctx, bcs)
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
+		gcTree, refGraph, err = t.buildGCTree(taskCtx, bcs)
+		subtask.End()
 		if err != nil {
 			_ = graphHandle.Close()
 			graphTree.Discard()
@@ -327,6 +347,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		}
 	}
 
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
 	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
 		_ = t.graphHd.Close()
@@ -345,15 +366,21 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
 	t.gcTree, t.refGraph = gcTree, refGraph
+	subtask.End()
 
 	// Ensure gcroot -> world edge exists (idempotent).
 	if refGraph != nil {
-		if err := refGraph.AddRef(ctx, block_gc.NodeGCRoot, "world"); err != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/add-gc-root-ref")
+		err := refGraph.AddRef(taskCtx, block_gc.NodeGCRoot, "world")
+		subtask.End()
+		if err != nil {
 			return err
 		}
 	}
 
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
 	t.updateSeqno(root)
+	subtask.End()
 	return nil
 }
 
@@ -382,6 +409,9 @@ func (t *WorldState) Discard() {
 // Commit commits the current pending changes to the block cursor.
 // updates the WorldState with the new root
 func (t *WorldState) Commit(ctx context.Context) error {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/commit")
+	defer task.End()
+
 	if !t.write {
 		return tx.ErrNotWrite
 	}
@@ -393,25 +423,40 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return context.Canceled
 	}
-	w, err := t.GetRoot(ctx)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/commit/get-root")
+	w, err := t.GetRoot(taskCtx)
+	subtask.End()
 	if err != nil {
 		return err
 	}
-	err = t.flushWorldChanges(ctx, w)
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-world-changes")
+	err = t.flushWorldChanges(taskCtx, w)
+	subtask.End()
 	if err != nil || t.btx == nil {
 		return err
 	}
-	_, bcs, err := t.btx.Write(ctx, true)
+
+	var bcs *block.Cursor
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
+	_, bcs, err = t.btx.Write(taskCtx, true)
+	subtask.End()
 	if err != nil {
 		return err
 	}
 	// Flush buffered GC ref graph operations after Write releases the cursor mutex.
 	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
-		if err := gcOps.FlushPending(ctx); err != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending")
+		err := gcOps.FlushPending(taskCtx)
+		subtask.End()
+		if err != nil {
 			return err
 		}
 	}
-	return t.SetBlockTransaction(ctx, t.btx, bcs)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/set-block-transaction")
+	err = t.SetBlockTransaction(taskCtx, t.btx, bcs)
+	subtask.End()
+	return err
 }
 
 // GetRefGraph returns the GC reference graph, or nil if not initialized.
@@ -435,16 +480,25 @@ func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error
 
 // buildObjectTree builds the object tree handle.
 func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-object-tree")
+	defer task.End()
 	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 }
 
 // buildGCTree builds the GC reference graph tree and RefGraph handle.
 func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, error) {
-	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(5), true)
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
+	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(5), true)
+	subtask.End()
 	if err != nil {
 		return nil, nil, err
 	}
-	rg, err := block_gc.NewRefGraph(ctx, kvtx.NewTxStore(ktx), nil)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
+	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
+	subtask.End()
 	if err != nil {
 		ktx.Discard()
 		return nil, nil, err
@@ -454,7 +508,12 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 
 // buildGraphTree builds the graph tree (kv storage) handle.
 func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
-	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), true)
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/build-kv-transaction")
+	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(2), true)
+	subtask.End()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -473,7 +532,9 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	graphOpts[cayley_kv.OptAssumeDefaultIdx] = true
 	// NOTE: the ctx is used here for internal hidalgo k/v transactions!
 	// it must not be canceled while WorldState is in use!
-	graphHd, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(ktx), graphOpts)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/new-graph-handle")
+	graphHd, err := kvtx_cayley.NewGraph(taskCtx, kvtx.NewTxStore(ktx), graphOpts)
+	subtask.End()
 	if err != nil {
 		ktx.Discard()
 		return nil, nil, err

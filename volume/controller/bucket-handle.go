@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
@@ -163,6 +164,9 @@ func (b *bucketHandle) GetBucketConfig() *bucket.Config {
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block")
+	defer task.End()
+
 	if b.err != nil {
 		return nil, false, b.err
 	}
@@ -193,15 +197,22 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		err     error
 	)
 	if b.gcOps != nil {
-		br, existed, err = b.gcOps.PutBlock(ctx, data, opts)
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/gc-put-block")
+		br, existed, err = b.gcOps.PutBlock(taskCtx, data, opts)
+		subtask.End()
 		if err != nil {
 			return nil, false, err
 		}
-		if err := b.gcOps.FlushPending(ctx); err != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/gc-flush-pending")
+		if err := b.gcOps.FlushPending(taskCtx); err != nil {
+			subtask.End()
 			return nil, false, err
 		}
+		subtask.End()
 	} else {
-		br, existed, err = b.v.PutBlock(ctx, data, opts)
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/volume-put-block")
+		br, existed, err = b.v.PutBlock(taskCtx, data, opts)
+		subtask.End()
 	}
 	if err != nil {
 		return nil, false, err

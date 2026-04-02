@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -111,18 +112,29 @@ func (t *Tx) ApplyWorldOp(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction")
+	defer task.End()
+
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
-	err = t.state.Commit(ctx)
+	{
+		taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/state-commit")
+		err = t.state.Commit(taskCtx)
+		task.End()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return t.state.GetRootRef(), nil
+	taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/get-root-ref")
+	ref := t.state.GetRootRef()
+	task.End()
+	_ = taskCtx
+	return ref, nil
 }
 
 // Commit commits the transaction to storage.

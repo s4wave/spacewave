@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -61,6 +62,9 @@ func NewEngine(
 	commitFn CommitFn,
 	verbose bool,
 ) (*Engine, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new")
+	defer task.End()
+
 	e := &Engine{
 		le:       le,
 		baseRoot: root,
@@ -69,7 +73,10 @@ func NewEngine(
 		commitFn: commitFn,
 		verbose:  verbose,
 	}
-	if err := e.updateReadWriteTxns(ctx); err != nil {
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new/update-read-write-txns")
+	err := e.updateReadWriteTxns(taskCtx)
+	subtask.End()
+	if err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -96,6 +103,9 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 
 // setRootRefLocked updates the root reference while rmtx is locked.
 func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) error {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref")
+	defer task.End()
+
 	// if no changes, ignore the call
 	if e.root.GetRef().EqualsRef(ref) {
 		return nil
@@ -109,12 +119,16 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	// apply committed changes or rollback
 	// oldRoot := e.root.GetRef().Clone()
 	oldRoot := e.root
-	nextRoot, err := e.baseRoot.FollowRef(ctx, ref)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref/follow-ref")
+	nextRoot, err := e.baseRoot.FollowRef(taskCtx, ref)
+	subtask.End()
 	if err != nil {
 		return err
 	}
 	e.root = nextRoot
-	err = e.updateReadWriteTxns(ctx)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref/update-read-write-txns")
+	err = e.updateReadWriteTxns(taskCtx)
+	subtask.End()
 	if err == nil {
 		oldRoot.Release()
 	} else {
@@ -134,6 +148,9 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 
 // NewBlockEngineTransaction returns the world-block specific EngineTx type.
 func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*EngineTx, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction")
+	defer task.End()
+
 	// writeTx is nil if it's a read-only tx
 	if !write {
 		return newEngineTx(e, nil), nil
@@ -145,10 +162,12 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		return nil, err
 	}
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 
-	world, err := e.buildWorldState(ctx, false)
+	world, err := e.buildWorldState(taskCtx, false)
+	subtask.End()
 	if err != nil {
 		relLock()
 		return nil, err
@@ -162,10 +181,15 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 // ForkBlockTransaction forks the transaction at the current state.
 func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction")
+	defer task.End()
+
 	e.rmtx.RLock()
 	defer e.rmtx.RUnlock()
 
-	ws, err := e.buildWorldState(ctx, !write)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
+	ws, err := e.buildWorldState(taskCtx, !write)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +272,18 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 // expects caller to hold rmtx lock
 // the state has been affected only if nil is returned
 func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/update-read-write-txns")
+	defer task.End()
+
 	// This is the only place readTx might be nil (on first call).
 	// If no changes have occurred...
 	if e.readTx != nil && e.readTx.state.GetRootRef().EqualsRef(e.root.GetRef().GetRootRef()) {
 		return nil
 	}
 
-	world, err := e.buildWorldState(ctx, true)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/update-read-write-txns/build-world-state")
+	world, err := e.buildWorldState(taskCtx, true)
+	subtask.End()
 	if err != nil {
 		return err
 	}
@@ -275,14 +304,20 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 // buildWorldState builds the world state transaction and cursor fields.
 // expects caller to hold rmtx
 func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldState, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
+	defer task.End()
+
 	store := e.root.GetBucket()
 	xfrm := e.root.GetTransformer()
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
 	btx, bcs := e.root.BuildTransaction(nil)
+	subtask.End()
 	if readOnly {
 		btx = nil
 	}
-	return NewWorldState(
-		ctx,
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
+	ws, err := NewWorldState(
+		taskCtx,
 		e.le,
 		!readOnly,
 		btx, bcs,
@@ -293,6 +328,8 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		e.lookupOp,
 		e.verbose,
 	)
+	subtask.End()
+	return ws, err
 }
 
 // _ is a type assertion

@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"errors"
+	"runtime/trace"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -583,6 +584,9 @@ func (c *Cursor) ClearAllRefs() {
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
 func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/fetch")
+	defer task.End()
+
 	if c == nil {
 		return nil, false, nil
 	}
@@ -594,7 +598,9 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	if bkt == nil {
 		return nil, false, ErrBlockStoreUnavailable
 	}
-	data, found, err := bkt.GetBlock(ctx, c.pos.ref)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/fetch/store-get")
+	data, found, err := bkt.GetBlock(taskCtx, c.pos.ref)
+	subtask.End()
 	if err != nil || !found {
 		if err == nil {
 			err = ErrNotFound
@@ -602,7 +608,9 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		return nil, false, err
 	}
 	if c.t.xfrm != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/fetch/decode")
 		data, err = c.t.xfrm.DecodeBlock(data)
+		subtask.End()
 		if err != nil {
 			return nil, false, err
 		}
@@ -620,6 +628,9 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 // Returns value from ctor() without calling Unmarshal if empty.
 // Returns nil, block.ErrNotFound if not found.
 func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/unmarshal")
+	defer task.End()
+
 	if c == nil {
 		return nil, nil
 	}
@@ -643,7 +654,9 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	dat, datFound, err := c.Fetch(ctx)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/unmarshal/fetch")
+	dat, datFound, err := c.Fetch(taskCtx)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}
@@ -656,7 +669,10 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	}
 
 	if datFound {
-		if err := b.UnmarshalBlock(dat); err != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/unmarshal/decode-block")
+		err := b.UnmarshalBlock(dat)
+		subtask.End()
+		if err != nil {
 			return nil, err
 		}
 	}
