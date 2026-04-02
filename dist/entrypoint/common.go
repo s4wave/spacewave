@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PostStartHook is a post start function.
-type PostStartHook func(distBus *DistBus) (rels []func(), err error)
+// DistBusHook is a function run against the dist bus during startup.
+type DistBusHook func(distBus *DistBus) (rels []func(), err error)
 
 // Run builds the bus & starts the dist entrypoint.
 func Run(
@@ -20,7 +20,8 @@ func Run(
 	distMeta *bldr_dist.DistMeta,
 	assetsFS fs.FS,
 	webRuntimeID string,
-	postStartHooks []PostStartHook,
+	preBuildHooks []DistBusHook,
+	postStartHooks []DistBusHook,
 ) error {
 	if err := distMeta.Validate(); err != nil {
 		return errors.Wrap(err, "dist_meta")
@@ -60,6 +61,7 @@ func Run(
 		webRuntimeID,
 		configSetProto,
 		staticBlockStoreReaderBuilder,
+		preBuildHooks,
 	)
 	if err != nil {
 		return errors.Wrap(err, "unable to initialize")

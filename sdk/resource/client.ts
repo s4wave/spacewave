@@ -1,9 +1,6 @@
 import { createAbortController, retryWithAbort } from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
-import type {
-  ResourceAttachRequest,
-  ResourceAttachResponse,
-} from './resource.pb.js'
+import type { ResourceAttachRequest } from './resource.pb.js'
 import {
   buildRpcStreamOpenStream,
   Client as SRPCClient,
@@ -239,10 +236,17 @@ function createResourceRef(
 
 // AttachSession manages the single ResourceAttach stream + yamux session.
 interface AttachSession {
+  controller: AbortController
   outgoing: Pushable<ResourceAttachRequest>
   attachIdCtr: number
   muxes: Map<number, LookupMethod>
-  pending: Map<number, (resourceId: number) => void>
+  pending: Map<
+    number,
+    {
+      resolve: (resourceId: number) => void
+      reject: (err: Error) => void
+    }
+  >
 }
 
 /**
@@ -328,12 +332,12 @@ export class Client {
     mux: LookupMethod,
     signal?: AbortSignal,
   ): Promise<{ resourceId: number; cleanup: () => void }> {
-    const sess = await this.ensureAttachSession(signal)
+    const sess = await this.ensureAttachSession()
 
     // Allocate attach correlation ID.
     const attachId = ++sess.attachIdCtr
     const resultPromise = new Promise<number>((resolve, reject) => {
-      sess.pending.set(attachId, resolve)
+      sess.pending.set(attachId, { resolve, reject })
       signal?.addEventListener('abort', () => {
         sess.pending.delete(attachId)
         reject(new Error('aborted'))
@@ -370,10 +374,10 @@ export class Client {
 
   // ensureAttachSession opens the ResourceAttach bidi stream if needed.
   private async ensureAttachSession(
-    signal?: AbortSignal,
   ): Promise<AttachSession> {
     if (this.attachSession) return this.attachSession
     const state = await this.ensureInitialized()
+    const controller = createAbortController(this.signal)
 
     // Create outgoing packet pushable.
     const outgoing = pushable<ResourceAttachRequest>({ objectMode: true })
@@ -383,7 +387,7 @@ export class Client {
       (async function* () {
         yield* outgoing
       })(),
-      signal,
+      controller.signal,
     )
     const incomingIt = incoming[Symbol.asyncIterator]()
 
@@ -399,19 +403,23 @@ export class Client {
     const ackResult = await incomingIt.next()
     if (ackResult.done) {
       outgoing.end()
+      controller.abort()
       throw new Error('stream closed before ack')
     }
     const ackBody = ackResult.value?.body
     if (ackBody?.case !== 'ack') {
       outgoing.end()
+      controller.abort()
       throw new Error('expected ack packet')
     }
     if (ackBody.value.error) {
       outgoing.end()
+      controller.abort()
       throw new Error(ackBody.value.error)
     }
 
     const sess: AttachSession = {
+      controller,
       outgoing,
       attachIdCtr: 0,
       muxes: new Map(),
@@ -448,9 +456,13 @@ export class Client {
         } else if (body?.case === 'addAck') {
           const addAck = body.value
           if (!addAck.error) {
-            const resolve = sess.pending.get(addAck.attachId ?? 0)
+            const pending = sess.pending.get(addAck.attachId ?? 0)
             sess.pending.delete(addAck.attachId ?? 0)
-            resolve?.(addAck.resourceId ?? 0)
+            pending?.resolve(addAck.resourceId ?? 0)
+          } else {
+            const pending = sess.pending.get(addAck.attachId ?? 0)
+            sess.pending.delete(addAck.attachId ?? 0)
+            pending?.reject(new Error(addAck.error))
           }
         }
         // detachAck: no action needed.
@@ -475,6 +487,8 @@ export class Client {
       },
     ).catch(() => {
       outgoing.end()
+    }).finally(() => {
+      this.clearAttachSession(sess)
     })
 
     this.attachSession = sess
@@ -496,6 +510,7 @@ export class Client {
   dispose(reason: ResourceClientErrorCode = 'CLIENT_DISPOSED'): void {
     if (this.disposed) return
     this.disposed = true
+    this.clearAttachSession()
 
     // Cancel the connection
     if (this.connectionController) {
@@ -798,6 +813,7 @@ export class Client {
    * Used when connection is lost and resources are no longer valid.
    */
   private releaseAllResources(reason: ResourceReleaseReason): void {
+    this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())
       this.events.emit({ resourceId, reason })
@@ -817,5 +833,23 @@ export class Client {
     // Increment generation and notify listeners so React can re-create resources
     this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
+  }
+
+  // clearAttachSession tears down any cached ResourceAttach session state.
+  private clearAttachSession(sess?: AttachSession): void {
+    const current = sess ?? this.attachSession
+    if (!current) {
+      return
+    }
+    if (this.attachSession === current) {
+      this.attachSession = null
+    }
+    current.controller.abort()
+    current.outgoing.end()
+    for (const [, pending] of current.pending) {
+      pending.reject(new Error('attach session closed'))
+    }
+    current.pending.clear()
+    current.muxes.clear()
   }
 }

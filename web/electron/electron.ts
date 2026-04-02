@@ -96,10 +96,11 @@ export function handleElectronWorkerPort(port: MessagePort) {
       return
     }
 
-    if (msg.connectWebRuntime && ev.ports.length) {
+    const clientPort = msg.connectWebRuntime?.port ?? ev.ports?.[0]
+    if (msg.connectWebRuntime && clientPort) {
       openElectronPort(
         msg.connectWebRuntime.init,
-        msg.connectWebRuntime.port ?? ev.ports[0],
+        clientPort,
       )
     }
   }

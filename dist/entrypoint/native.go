@@ -61,7 +61,7 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		red := fcolor.New(fcolor.FgRed)
 		red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
-		err = Run(ctx, le, distMeta, assetsFS, "", nil)
+		err = Run(ctx, le, distMeta, assetsFS, "", nil, nil)
 		if err != context.Canceled {
 			return err
 		}

@@ -38,6 +38,19 @@ describe('Retry', () => {
     retry.cancel() // Cancel to stop further retries
   })
 
+  test('should warn by default on failure', async () => {
+    const error = new Error('fail')
+    const fn = vi.fn().mockRejectedValue(error)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const retry = new Retry(fn, { backoffFn: constantBackoff(10) })
+
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(warn).toHaveBeenCalledWith('Retry: retrying after error', error)
+    retry.cancel()
+    warn.mockRestore()
+  })
+
   test('should cancel retry', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('fail'))
     const retry = new Retry(fn, { backoffFn: constantBackoff(10) })
@@ -64,15 +77,17 @@ describe('Retry', () => {
     expect(fn).toHaveBeenCalledTimes(4)
   })
 
-  test('should fail after maximum retries', async () => {
-    const maxRetries = 5
+  test('should fail after repeated retries when canceled', async () => {
+    const callsBeforeCancel = 5
     const fn = vi.fn().mockRejectedValue(new Error('fail'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const retry = new Retry(fn, { backoffFn: constantBackoff(10) })
 
-    setTimeout(() => retry.cancel(), (maxRetries + 1) * 10)
+    setTimeout(() => retry.cancel(), callsBeforeCancel * 10)
 
     await expect(retry.result).rejects.toThrow('fail')
-    expect(fn).toHaveBeenCalledTimes(maxRetries + 1)
+    expect(fn).toHaveBeenCalledTimes(callsBeforeCancel)
+    warn.mockRestore()
   })
 
   test('should stop retrying when abortSignal is triggered', async () => {

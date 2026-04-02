@@ -191,12 +191,10 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.SourcePath = m.SourcePath
 	r.WorkingPath = m.WorkingPath
+	r.ProjectConfig = m.ProjectConfig.CloneVT()
 	r.Watch = m.Watch
 	r.Start = m.Start
 	r.FetchManifestRemote = m.FetchManifestRemote
-	if rhs := m.ProjectConfig; rhs != nil {
-		r.ProjectConfig = rhs.CloneVT()
-	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		r.BuildBackoff = rhs.CloneVT()
 	}

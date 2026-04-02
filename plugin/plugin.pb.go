@@ -299,9 +299,7 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	}
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
+	r.ManifestRef = m.ManifestRef.CloneVT()
 	if rhs := m.HostVolumeInfo; rhs != nil {
 		r.HostVolumeInfo = rhs.CloneVT()
 	}

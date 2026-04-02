@@ -837,12 +837,8 @@ func (m *FrontendEntrypoint) CloneVT() *FrontendEntrypoint {
 		return (*FrontendEntrypoint)(nil)
 	}
 	r := new(FrontendEntrypoint)
-	if rhs := m.SetRenderMode; rhs != nil {
-		r.SetRenderMode = rhs.CloneVT()
-	}
-	if rhs := m.SetHtmlLinks; rhs != nil {
-		r.SetHtmlLinks = rhs.CloneVT()
-	}
+	r.SetRenderMode = m.SetRenderMode.CloneVT()
+	r.SetHtmlLinks = m.SetHtmlLinks.CloneVT()
 	if rhs := m.WebViewId; rhs != nil {
 		r.WebViewId = rhs.CloneVT()
 	}

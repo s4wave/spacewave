@@ -220,10 +220,14 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		le.Debug("creating QuickJS web worker")
 
 		// Create worker with QUICKJS worker type for QuickJS reactor
+		workerMode := web_document.WebWorkerMode_WORKER_MODE_DEDICATED
+		if pluginShared {
+			workerMode = web_document.WebWorkerMode_WORKER_MODE_SHARED
+		}
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
 			Id:         pluginWebWorkerID,
 			Path:       pluginWebWorkerPath,
-			Shared:     pluginShared,
+			WorkerMode: workerMode,
 			InitData:   pluginStartInfoBin,
 			WorkerType: web_document.WebWorkerType_WEB_WORKER_TYPE_QUICKJS,
 		})

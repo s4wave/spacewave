@@ -4,6 +4,7 @@ package browser_build
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -75,6 +76,82 @@ func BuildWasmRuntimeEntrypoint(
 
 	// build complete
 	return nil
+}
+
+// BuildSqliteWorkerEntrypoint builds the sqlite dedicated worker entrypoint.
+//
+// builds to buildDir/sqlite-worker.mjs
+func BuildSqliteWorkerEntrypoint(
+	le *logrus.Entry,
+	stateDir string,
+	bldrDistRoot string,
+	buildDir string,
+	buildType bldr_manifest.BuildType,
+) error {
+	le.Info("building sqlite-worker.mjs")
+
+	minify := buildType.IsRelease()
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify)
+	opts.EntryPoints = []string{"web/runtime/wasm/sqlite/worker.ts"}
+	opts.Outfile = filepath.Join(buildDir, "sqlite-worker.mjs")
+	opts.Write = true
+
+	res := esbuild_api.Build(opts)
+	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+		return err
+	}
+	return copySqliteWorkerSidecars(stateDir, bldrDistRoot, buildDir)
+}
+
+// copySqliteWorkerSidecars copies sqlite worker sidecar files expected to live
+// adjacent to sqlite-worker.mjs.
+func copySqliteWorkerSidecars(stateDir, bldrDistRoot, buildDir string) error {
+	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
+	srcCandidates := []string{
+		filepath.Join(
+			buildPkgsDir,
+			"node_modules",
+			"@sqlite.org",
+			"sqlite-wasm",
+			"dist",
+			"sqlite3-opfs-async-proxy.js",
+		),
+		filepath.Join(
+			bldrDistRoot,
+			"node_modules",
+			"@sqlite.org",
+			"sqlite-wasm",
+			"dist",
+			"sqlite3-opfs-async-proxy.js",
+		),
+		filepath.Join(
+			bldrDistRoot,
+			"dist",
+			"deps",
+			"node_modules",
+			"@sqlite.org",
+			"sqlite-wasm",
+			"dist",
+			"sqlite3-opfs-async-proxy.js",
+		),
+	}
+
+	var srcPath string
+	for _, candidate := range srcCandidates {
+		if _, err := os.Stat(candidate); err == nil {
+			srcPath = candidate
+			break
+		}
+	}
+	if srcPath == "" {
+		return os.ErrNotExist
+	}
+
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(buildDir, "sqlite3-opfs-async-proxy.js"), data, 0o644)
 }
 
 // BuildWsRuntime builds the WebSocket dev runtime entrypoint.

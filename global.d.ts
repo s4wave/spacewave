@@ -12,6 +12,10 @@ declare module '*.svg' {
   const value: string;
   export default value;
 }
+declare module '*.wasm' {
+  const value: string;
+  export default value;
+}
 
 // Declare WebkitAppRegion
 declare module 'csstype' {

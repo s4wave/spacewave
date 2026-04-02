@@ -249,11 +249,15 @@ func (h *WebHost) ExecutePlugin(
 				"web-worker":   pluginWebWorkerID,
 			})
 		le.Debug("creating web worker")
+		workerMode := web_document.WebWorkerMode_WORKER_MODE_DEDICATED
+		if pluginShared {
+			workerMode = web_document.WebWorkerMode_WORKER_MODE_SHARED
+		}
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
-			Id:       pluginWebWorkerID,
-			Path:     pluginWebWorkerPath,
-			Shared:   pluginShared,
-			InitData: pluginStartInfoBin,
+			Id:         pluginWebWorkerID,
+			Path:       pluginWebWorkerPath,
+			WorkerMode: workerMode,
+			InitData:   pluginStartInfoBin,
 		})
 		if err != nil {
 			le.WithError(err).Warn("unable to create web worker")

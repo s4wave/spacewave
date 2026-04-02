@@ -104,6 +104,17 @@ enum WebWorkerType {
   WEB_WORKER_TYPE_QUICKJS = 1;
 }
 
+// WebWorkerMode specifies whether a worker should be shared or dedicated.
+enum WebWorkerMode {
+  // WORKER_MODE_DEFAULT preserves the legacy behavior for callers that do
+  // not specify a mode.
+  WORKER_MODE_DEFAULT = 0;
+  // WORKER_MODE_SHARED requests a SharedWorker when supported.
+  WORKER_MODE_SHARED = 1;
+  // WORKER_MODE_DEDICATED requests a dedicated Worker.
+  WORKER_MODE_DEDICATED = 2;
+}
+
 // CreateWebWorkerRequest is a request to create a new web worker.
 message CreateWebWorkerRequest {
   // Id is the identifier for the new WebWorker.
@@ -112,8 +123,9 @@ message CreateWebWorkerRequest {
   // This is passed to the shared-worker.ts loader.
   // Used as the path after the current host. For example /path/to/script.mjs
   string path = 2;
-  // Shared indicates this should be a worker shared between all WebDocument (if possible)
-  bool shared = 3;
+  // WorkerMode controls whether the worker should be shared or dedicated.
+  // If unset, defaults to WORKER_MODE_DEFAULT.
+  WebWorkerMode worker_mode = 3;
   // InitData is initialization data to pass to the worker.
   //
   // Usually a WebWorkerWasmPluginInit.

@@ -10,11 +10,8 @@ import (
 
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
-	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
-	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	web_runtime_bootstrap "github.com/aperturerobotics/bldr/web/runtime/bootstrap"
 	"github.com/aperturerobotics/go-kvfile"
 	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
 	fetch_range "github.com/aperturerobotics/hydra/util/http-range/fetch"
@@ -48,45 +45,34 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 	}
 	banner.WriteToConsole()
 
-	startWebRuntimeHost := func(distBus *DistBus) ([]func(), error) {
-		// load the web runtime controller
-		// communicates with the frontend
-		ctx, b := distBus.GetContext(), distBus.GetBus()
-		distBus.GetStaticResolver().AddFactory(browser.NewFactory(b))
-		_, _, webRuntimeRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(&browser.Config{
-				WebRuntimeId: initm.GetWebRuntimeId(),
-				MessagePort:  "BLDR_WEB_RUNTIME_CLIENT_OPEN",
-			}),
-			nil,
+	startBrowserRuntimeStack := func(distBus *DistBus) ([]func(), error) {
+		stack, err := web_runtime_bootstrap.StartRuntimeStack(
+			distBus.GetContext(),
+			le,
+			distBus.GetBus(),
+			web_runtime_bootstrap.RuntimeStackOpts{
+				WebRuntimeID:      initm.GetWebRuntimeId(),
+				MessagePort:       "BLDR_WEB_RUNTIME_CLIENT_OPEN",
+				StartSqliteWorker: true,
+				StaticResolver:    distBus.GetStaticResolver(),
+			},
 		)
 		if err != nil {
-			err = errors.Wrap(err, "start web runtime controller")
 			return nil, err
 		}
-
-		return []func(){webRuntimeRef.Release}, nil
+		return []func(){stack.Release}, nil
 	}
 
 	startWebPluginHost := func(distBus *DistBus) ([]func(), error) {
-		// load the web plugin browser host controller
-		// services any web plugins forwarding their request to the plugin host
-		// starts the web plugin controller
-		ctx, b := distBus.GetContext(), distBus.GetBus()
-		distBus.GetStaticResolver().AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
-		_, _, webPluginBrowserHostRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(&bldr_web_plugin_browser_controller.Config{}),
-			nil,
+		rel, err := web_runtime_bootstrap.StartPluginBrowserHost(
+			distBus.GetContext(),
+			distBus.GetBus(),
+			distBus.GetStaticResolver(),
 		)
 		if err != nil {
-			err = errors.Wrap(err, "start web plugin browser host controller")
 			return nil, err
 		}
-		return []func(){webPluginBrowserHostRef.Release}, nil
+		return []func(){rel}, nil
 	}
 
 	if err := func() error {
@@ -101,8 +87,10 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 			distMeta,
 			assetsFS,
 			initm.GetWebRuntimeId(),
-			[]PostStartHook{
-				startWebRuntimeHost,
+			[]DistBusHook{
+				startBrowserRuntimeStack,
+			},
+			[]DistBusHook{
 				startWebPluginHost,
 			},
 		)

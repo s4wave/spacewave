@@ -42,6 +42,42 @@ export const WebWorkerType_Enum = createEnumType('web.document.WebWorkerType', [
 ])
 
 /**
+ * WebWorkerMode specifies whether a worker should be shared or dedicated.
+ *
+ * @generated from enum web.document.WebWorkerMode
+ */
+export enum WebWorkerMode {
+  /**
+   * WORKER_MODE_DEFAULT preserves the legacy behavior for callers that do
+   * not specify a mode.
+   *
+   * @generated from enum value: WORKER_MODE_DEFAULT = 0;
+   */
+  WORKER_MODE_DEFAULT = 0,
+
+  /**
+   * WORKER_MODE_SHARED requests a SharedWorker when supported.
+   *
+   * @generated from enum value: WORKER_MODE_SHARED = 1;
+   */
+  WORKER_MODE_SHARED = 1,
+
+  /**
+   * WORKER_MODE_DEDICATED requests a dedicated Worker.
+   *
+   * @generated from enum value: WORKER_MODE_DEDICATED = 2;
+   */
+  WORKER_MODE_DEDICATED = 2,
+}
+
+// WebWorkerMode_Enum is the enum type for WebWorkerMode.
+export const WebWorkerMode_Enum = createEnumType('web.document.WebWorkerMode', [
+  { no: 0, name: 'WORKER_MODE_DEFAULT' },
+  { no: 1, name: 'WORKER_MODE_SHARED' },
+  { no: 2, name: 'WORKER_MODE_DEDICATED' },
+])
+
+/**
  * WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
  *
  * @generated from message web.document.WatchWebDocumentStatusRequest
@@ -276,11 +312,12 @@ export interface CreateWebWorkerRequest {
    */
   path?: string
   /**
-   * Shared indicates this should be a worker shared between all WebDocument (if possible)
+   * WorkerMode controls whether the worker should be shared or dedicated.
+   * If unset, defaults to WORKER_MODE_DEFAULT.
    *
-   * @generated from field: bool shared = 3;
+   * @generated from field: web.document.WebWorkerMode worker_mode = 3;
    */
-  shared?: boolean
+  workerMode?: WebWorkerMode
   /**
    * InitData is initialization data to pass to the worker.
    *
@@ -305,7 +342,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'worker_mode', kind: 'enum', T: WebWorkerMode_Enum },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'worker_type', kind: 'enum', T: WebWorkerType_Enum },
     ] as readonly PartialFieldInfo[],

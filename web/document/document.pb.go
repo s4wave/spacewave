@@ -56,6 +56,47 @@ func (x WebWorkerType) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// WebWorkerMode specifies whether a worker should be shared or dedicated.
+type WebWorkerMode int32
+
+const (
+	// WORKER_MODE_DEFAULT preserves the legacy behavior for callers that do
+	// not specify a mode.
+	WebWorkerMode_WORKER_MODE_DEFAULT WebWorkerMode = 0
+	// WORKER_MODE_SHARED requests a SharedWorker when supported.
+	WebWorkerMode_WORKER_MODE_SHARED WebWorkerMode = 1
+	// WORKER_MODE_DEDICATED requests a dedicated Worker.
+	WebWorkerMode_WORKER_MODE_DEDICATED WebWorkerMode = 2
+)
+
+// Enum value maps for WebWorkerMode.
+var (
+	WebWorkerMode_name = map[int32]string{
+		0: "WORKER_MODE_DEFAULT",
+		1: "WORKER_MODE_SHARED",
+		2: "WORKER_MODE_DEDICATED",
+	}
+	WebWorkerMode_value = map[string]int32{
+		"WORKER_MODE_DEFAULT":   0,
+		"WORKER_MODE_SHARED":    1,
+		"WORKER_MODE_DEDICATED": 2,
+	}
+)
+
+func (x WebWorkerMode) Enum() *WebWorkerMode {
+	p := new(WebWorkerMode)
+	*p = x
+	return p
+}
+
+func (x WebWorkerMode) String() string {
+	name, valid := WebWorkerMode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
 type WatchWebDocumentStatusRequest struct {
 	unknownFields []byte
@@ -263,8 +304,9 @@ type CreateWebWorkerRequest struct {
 	// This is passed to the shared-worker.ts loader.
 	// Used as the path after the current host. For example /path/to/script.mjs
 	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	// Shared indicates this should be a worker shared between all WebDocument (if possible)
-	Shared bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
+	// WorkerMode controls whether the worker should be shared or dedicated.
+	// If unset, defaults to WORKER_MODE_DEFAULT.
+	WorkerMode WebWorkerMode `protobuf:"varint,3,opt,name=worker_mode,json=workerMode,proto3" json:"workerMode,omitempty"`
 	// InitData is initialization data to pass to the worker.
 	//
 	// Usually a WebWorkerWasmPluginInit.
@@ -294,11 +336,11 @@ func (x *CreateWebWorkerRequest) GetPath() string {
 	return ""
 }
 
-func (x *CreateWebWorkerRequest) GetShared() bool {
+func (x *CreateWebWorkerRequest) GetWorkerMode() WebWorkerMode {
 	if x != nil {
-		return x.Shared
+		return x.WorkerMode
 	}
-	return false
+	return WebWorkerMode_WORKER_MODE_DEFAULT
 }
 
 func (x *CreateWebWorkerRequest) GetInitData() []byte {
@@ -508,7 +550,7 @@ func (m *CreateWebWorkerRequest) CloneVT() *CreateWebWorkerRequest {
 	r := new(CreateWebWorkerRequest)
 	r.Id = m.Id
 	r.Path = m.Path
-	r.Shared = m.Shared
+	r.WorkerMode = m.WorkerMode
 	r.WorkerType = m.WorkerType
 	if rhs := m.InitData; rhs != nil {
 		r.InitData = slices.Clone(rhs)
@@ -756,7 +798,7 @@ func (this *CreateWebWorkerRequest) EqualVT(that *CreateWebWorkerRequest) bool {
 	if this.Path != that.Path {
 		return false
 	}
-	if this.Shared != that.Shared {
+	if this.WorkerMode != that.WorkerMode {
 		return false
 	}
 	if string(this.InitData) != string(that.InitData) {
@@ -876,6 +918,46 @@ func (x *WebWorkerType) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the WebWorkerType from JSON.
 func (x *WebWorkerType) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WebWorkerMode to JSON.
+func (x WebWorkerMode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WebWorkerMode_name)
+}
+
+// MarshalText marshals the WebWorkerMode to text.
+func (x WebWorkerMode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WebWorkerMode_name)), nil
+}
+
+// MarshalJSON marshals the WebWorkerMode to JSON.
+func (x WebWorkerMode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebWorkerMode from JSON.
+func (x *WebWorkerMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WebWorkerMode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WebWorkerMode enum: %v", err)
+		return
+	}
+	*x = WebWorkerMode(v)
+}
+
+// UnmarshalText unmarshals the WebWorkerMode from text.
+func (x *WebWorkerMode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WebWorkerMode_value)
+	if err != nil {
+		return err
+	}
+	*x = WebWorkerMode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WebWorkerMode from JSON.
+func (x *WebWorkerMode) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1251,10 +1333,10 @@ func (x *CreateWebWorkerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("path")
 		s.WriteString(x.Path)
 	}
-	if x.Shared || s.HasField("shared") {
+	if x.WorkerMode != 0 || s.HasField("workerMode") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("shared")
-		s.WriteBool(x.Shared)
+		s.WriteObjectField("workerMode")
+		x.WorkerMode.MarshalProtoJSON(s)
 	}
 	if len(x.InitData) > 0 || s.HasField("initData") {
 		s.WriteMoreIf(&wroteField)
@@ -1289,9 +1371,9 @@ func (x *CreateWebWorkerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "path":
 			s.AddField("path")
 			x.Path = s.ReadString()
-		case "shared":
-			s.AddField("shared")
-			x.Shared = s.ReadBool()
+		case "worker_mode", "workerMode":
+			s.AddField("worker_mode")
+			x.WorkerMode.UnmarshalProtoJSON(s)
 		case "init_data", "initData":
 			s.AddField("init_data")
 			x.InitData = s.ReadBytes()
@@ -1813,13 +1895,8 @@ func (m *CreateWebWorkerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x22
 	}
-	if m.Shared {
-		i--
-		if m.Shared {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
+	if m.WorkerMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WorkerMode))
 		i--
 		dAtA[i] = 0x18
 	}
@@ -2102,8 +2179,8 @@ func (m *CreateWebWorkerRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.Shared {
-		n += 2
+	if m.WorkerMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WorkerMode))
 	}
 	l = len(m.InitData)
 	if l > 0 {
@@ -2160,6 +2237,10 @@ func (m *RemoveWebWorkerResponse) SizeVT() (n int) {
 }
 
 func (x WebWorkerType) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x WebWorkerMode) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -2356,12 +2437,14 @@ func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 		sb.WriteString("path: ")
 		sb.WriteString(strconv.Quote(x.Path))
 	}
-	if x.Shared != false {
+	if x.WorkerMode != 0 {
 		if sb.Len() > 24 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("shared: ")
-		sb.WriteString(strconv.FormatBool(x.Shared))
+		sb.WriteString("worker_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(WebWorkerMode(x.WorkerMode).String())
+		sb.WriteString("\"")
 	}
 	if x.InitData != nil {
 		if sb.Len() > 24 {
@@ -3010,16 +3093,15 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Shared", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerMode", wireType)
 			}
-			var v int
+			m.WorkerMode = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
+			m.WorkerMode = WebWorkerMode(_v)
 			if err != nil {
 				return err
 			}
-			m.Shared = bool(v != 0)
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field InitData", wireType)

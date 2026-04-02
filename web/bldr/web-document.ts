@@ -24,6 +24,7 @@ import {
   CreateWebWorkerResponse,
   RemoveWebWorkerRequest,
   RemoveWebWorkerResponse,
+  WebWorkerMode,
   WebWorkerStatus,
   WebWorkerType,
 } from '../document/document.pb.js'
@@ -78,6 +79,7 @@ export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url || window.location.origin
+const dedicatedWorkerShutdownGraceMs = 1000
 
 // WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
 class WebDocumentWebWorker {
@@ -89,6 +91,7 @@ class WebDocumentWebWorker {
   public readonly port: MessagePort
   // workerType is the type of worker
   public readonly workerType: WebWorkerType
+  private closed = false
 
   public get isShared() {
     return !!this.sharedWorker
@@ -103,6 +106,10 @@ class WebDocumentWebWorker {
     public readonly webDocumentUuid: string,
     initData: Uint8Array | undefined,
     workerType: WebWorkerType,
+    // shared controls whether to use SharedWorker (true) or DedicatedWorker
+    // (false). When false, path is used directly as the Worker script URL
+    // without the shw.mjs wrapper.
+    shared: boolean,
     onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
   ) {
     if (!id) {
@@ -111,53 +118,55 @@ class WebDocumentWebWorker {
     if (!path) {
       throw new Error('web worker path must be set')
     }
-    if (!sharedWorkerPath) {
-      throw new Error('shared worker path must be set')
-    }
 
     this.workerType = workerType
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
+    const init: WebDocumentToWorker = {
+      from: webDocumentUuid,
+      initData,
+      initPort: workerPort,
+    }
 
-    // Build the worker URL with script path and worker type in hash
-    const workerURL = new URL(sharedWorkerPath, baseURL)
-
-    // Use the hash to pass parameters to avoid potential conflicts with
-    // query parameters used by the script itself.
-    // Format: #s=<scriptPath>&t=<workerType>
-    // Encode necessary characters using encodeURIComponent, but then replace
-    // encoded forward slashes (%2F) back to literal slashes (/), as slashes
-    // are permitted characters within URL fragments (RFC 3986).
-    const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
-    const workerTypeParam =
-      workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
-    workerURL.hash = `s=${encodedPath}${workerTypeParam}`
-
-    if (typeof SharedWorker !== 'undefined') {
-      // Use SharedWorker when available (both native and QuickJS plugins)
-      this.sharedWorker = new SharedWorker(workerURL.toString(), {
-        name: id,
-        type: 'module',
-      })
-
-      const init: WebDocumentToWorker = {
-        from: webDocumentUuid,
-        initData,
-        initPort: workerPort,
+    if (shared) {
+      if (!sharedWorkerPath) {
+        throw new Error('shared worker path must be set')
       }
-      this.sharedWorker.port.postMessage(init, [workerPort])
+
+      // Build the worker URL with script path and worker type in hash
+      const workerURL = new URL(sharedWorkerPath, baseURL)
+
+      // Use the hash to pass parameters to avoid potential conflicts with
+      // query parameters used by the script itself.
+      // Format: #s=<scriptPath>&t=<workerType>
+      // Encode necessary characters using encodeURIComponent, but then
+      // replace encoded forward slashes (%2F) back to literal slashes (/),
+      // as slashes are permitted characters within URL fragments (RFC 3986).
+      const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
+      const workerTypeParam =
+        workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
+      workerURL.hash = `s=${encodedPath}${workerTypeParam}`
+
+      if (typeof SharedWorker !== 'undefined') {
+        this.sharedWorker = new SharedWorker(workerURL.toString(), {
+          name: id,
+          type: 'module',
+        })
+        this.sharedWorker.port.postMessage(init, [workerPort])
+      } else {
+        this.worker = new Worker(workerURL.toString(), {
+          name: id,
+          type: 'module',
+        })
+        this.worker.postMessage(init, [workerPort])
+      }
     } else {
-      // Fallback to Dedicated Worker if SharedWorker unavailable
+      // Dedicated mode: create Worker directly with path as the script URL.
+      const workerURL = new URL(path, baseURL)
       this.worker = new Worker(workerURL.toString(), {
         name: id,
         type: 'module',
       })
-
-      const init: WebDocumentToWorker = {
-        from: webDocumentUuid,
-        initData,
-        initPort: workerPort,
-      }
       this.worker.postMessage(init, [workerPort])
     }
 
@@ -167,13 +176,35 @@ class WebDocumentWebWorker {
   }
 
   // close closes our connection to the worker.
-  public close() {
+  public async close() {
+    if (this.closed) {
+      return
+    }
+    this.closed = true
+
     // send a message to the worker to shutdown cleanly.
     const msg: WebDocumentToClient = {
       from: this.webDocumentUuid,
       close: true,
     }
-    this.port.postMessage(msg)
+    try {
+      this.port.postMessage(msg)
+    } catch {
+      // ignored
+    }
+
+    if (this.worker) {
+      await new Promise<void>((resolve) => {
+        globalThis.setTimeout(() => {
+          try {
+            this.worker?.terminate()
+          } finally {
+            resolve()
+          }
+        }, dedicatedWorkerShutdownGraceMs)
+      })
+    }
+
     this.port.close()
   }
 }
@@ -747,9 +778,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // createWebWorker spawns a web worker per request of the web runtime.
-  public createWebWorker(
+  public async createWebWorker(
     request: CreateWebWorkerRequest,
-  ): CreateWebWorkerResponse {
+  ): Promise<CreateWebWorkerResponse> {
     if (this.closed) {
       throw new Error('web document is closed')
     }
@@ -762,11 +793,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     const old = this.webWorkers[request.id]
     if (old) {
-      old.close()
+      delete this.webWorkers[request.id]
+      await old.close()
     }
 
     // All workers use the same sharedWorkerPath, with workerType passed in URL
     const workerType = request.workerType ?? WebWorkerType.NATIVE
+
+    const workerMode = request.workerMode ?? WebWorkerMode.WORKER_MODE_DEFAULT
+    const shared =
+      workerMode === WebWorkerMode.WORKER_MODE_DEFAULT ||
+      workerMode === WebWorkerMode.WORKER_MODE_SHARED
 
     const worker = new WebDocumentWebWorker(
       request.id,
@@ -775,27 +812,28 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.webDocumentUuid,
       request.initData,
       workerType,
+      shared,
       this.onWebWorkerMessage.bind(this, request.id),
     )
     this.webWorkers[request.id] = worker
 
-    const shared = worker.isShared
-    this.notifyWebWorkerUpdated(request.id, false, shared)
-    return { created: true, shared }
+    const createdShared = worker.isShared
+    this.notifyWebWorkerUpdated(request.id, false, createdShared)
+    return { created: true, shared: createdShared }
   }
 
   // removeWebWorker removes a web worker per request of the web runtime.
-  public removeWebWorker(
+  public async removeWebWorker(
     request: RemoveWebWorkerRequest,
-  ): RemoveWebWorkerResponse {
+  ): Promise<RemoveWebWorkerResponse> {
     if (this.closed) return { removed: true }
     if (!request.id) {
       throw new Error('web worker id is required')
     }
     const old = this.webWorkers[request.id]
     if (old) {
-      old.close()
       delete this.webWorkers[request.id]
+      await old.close()
       this.notifyWebWorkerUpdated(request.id, true, old.isShared)
     }
     return { removed: !!old }
@@ -814,7 +852,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       delete this.webViews[viewId]
     }
     for (const workerId in this.webWorkers) {
-      this.webWorkers[workerId].close()
+      void this.webWorkers[workerId].close()
       delete this.webWorkers[workerId]
     }
     if (this.worker) {
@@ -989,6 +1027,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   ): Promise<MessagePort> {
     const { port1: localPort, port2: remotePort } = new MessageChannel()
     this.sendWebRuntimeOpenClient(
+      this.webDocumentUuid,
       WebRuntimeClientInit.toBinary(init),
       remotePort,
     )
@@ -997,12 +1036,16 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
   // Only used in non-saucer mode (Electron/SharedWorker).
-  private sendWebRuntimeOpenClient(init: Uint8Array, remotePort: MessagePort) {
+  private sendWebRuntimeOpenClient(
+    from: string,
+    init: Uint8Array,
+    remotePort: MessagePort,
+  ) {
     if (!this.webRuntimePort) {
       throw new Error('webRuntimePort not initialized')
     }
     const msg: WebDocumentToWebRuntime = {
-      from: this.webDocumentUuid,
+      from,
       connectWebRuntime: {
         init,
         port: remotePort,
@@ -1072,7 +1115,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     if (data.close) {
       // Web worker was closed / removed.
-      worker.close()
+      worker.port.close()
       delete this.webWorkers[workerID]
       this.notifyWebWorkerUpdated(workerID, true, worker.isShared)
       return
@@ -1087,16 +1130,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (!data || !data.from) {
       return
     }
-    if (
-      data.connectWebRuntime &&
-      data.connectWebRuntime.init &&
-      data.connectWebRuntime.port &&
-      event.ports?.length
-    ) {
+    const connectWebRuntime = data.connectWebRuntime
+    const port = connectWebRuntime?.port ?? event.ports?.[0]
+    if (connectWebRuntime?.init && port) {
       this.handleClientConnectWebRuntime(
         data.from,
-        data.connectWebRuntime.init,
-        data.connectWebRuntime.port,
+        connectWebRuntime.init,
+        port,
       )
     }
   }
@@ -1120,7 +1160,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     port.close()
 
     // Send the MessagePort to the WebRuntime to complete the connection.
-    this.sendWebRuntimeOpenClient(init, webRuntimePort)
+    this.sendWebRuntimeOpenClient(from, init, webRuntimePort)
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.

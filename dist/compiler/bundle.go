@@ -398,6 +398,16 @@ func BuildDistBundle(
 			return err
 		}
 
+		if err := browser_build.BuildSqliteWorkerEntrypoint(
+			le,
+			"",
+			distSrcPath,
+			outEntryDir,
+			buildType,
+		); err != nil {
+			return err
+		}
+
 		// store the wasm file where the entrypoint expects.
 		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
 

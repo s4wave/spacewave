@@ -86,6 +86,7 @@ func BuildDistBus(
 	webRuntimeID string,
 	configSetProto *configset_proto.ConfigSet,
 	staticBlockStoreReaderBuilder refcount.RefCountResolver[*kvfile.Reader],
+	preBuildHooks []DistBusHook,
 ) (*DistBus, error) {
 	projectID := distMeta.GetProjectId()
 	platformID := distMeta.GetPlatformId()
@@ -107,6 +108,18 @@ func BuildDistBus(
 	if err != nil {
 		rel()
 		return nil, err
+	}
+
+	storageID := default_storage.StorageID
+	distBus := &DistBus{
+		ctx:        ctx,
+		b:          b,
+		le:         le,
+		sr:         sr,
+		storageID:  storageID,
+		platformID: platformID,
+		stateRoot:  stateRoot,
+		rel:        rel,
 	}
 
 	// add the configset controller
@@ -153,9 +166,19 @@ func BuildDistBus(
 		}
 	}
 
+	for _, hook := range preBuildHooks {
+		hookRels, err := hook(distBus)
+		for _, hookRel := range hookRels {
+			rels = append(rels, hookRel)
+		}
+		if err != nil {
+			rel()
+			return nil, err
+		}
+	}
+
 	// attach the default storage controller
 	// this provides separate named volumes with the storage volume controller.
-	storageID := default_storage.StorageID
 	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
@@ -414,26 +437,17 @@ func BuildDistBus(
 		rels = append(rels, pluginRef.Release)
 	}
 
-	return &DistBus{
-		ctx:                 ctx,
-		b:                   b,
-		le:                  le,
-		sr:                  sr,
-		storageID:           storageID,
-		platformID:          platformID,
-		worldEngineID:       engineID,
-		engineBucketID:      engineBucketID,
-		engineObjectStoreID: engineObjStoreID,
-		pluginHostObjectKey: pluginHostObjectKey,
-		pluginSchedCtrl:     pluginSchedCtrl,
-		pluginHostCtrl:      pluginHostCtrl,
-		stateRoot:           stateRoot,
-		vol:                 vol,
-		peerID:              vol.GetPeerID(),
-		worldEngine:         eng,
-		worldState:          worldState,
-		rel:                 rel,
-	}, nil
+	distBus.worldEngineID = engineID
+	distBus.engineBucketID = engineBucketID
+	distBus.engineObjectStoreID = engineObjStoreID
+	distBus.pluginHostObjectKey = pluginHostObjectKey
+	distBus.pluginSchedCtrl = pluginSchedCtrl
+	distBus.pluginHostCtrl = pluginHostCtrl
+	distBus.vol = vol
+	distBus.peerID = vol.GetPeerID()
+	distBus.worldEngine = eng
+	distBus.worldState = worldState
+	return distBus, nil
 }
 
 // GetContext returns the context.

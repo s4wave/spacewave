@@ -94,6 +94,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 		},
 
 		Loader: map[string]esbuild.Loader{
+			".wasm":  esbuild.LoaderFile,
 			".woff":  esbuild.LoaderFile,
 			".woff2": esbuild.LoaderFile,
 			".png":   esbuild.LoaderFile,

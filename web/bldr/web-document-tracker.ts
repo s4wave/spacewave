@@ -44,6 +44,7 @@ export class WebDocumentTracker {
     clientType: WebRuntimeClientType,
     private readonly onWebDocumentsExhausted: () => Promise<void>,
     handleIncomingStream: HandleStreamFunc | null,
+    private readonly onAllWebDocumentsClosed?: (() => Promise<void> | void) | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -81,19 +82,32 @@ export class WebDocumentTracker {
       }
 
       if (data.close) {
-        const closePort = this.webDocuments[webDocumentId]
-        if (closePort) {
-          closePort.close()
-          console.log(
-            `WebDocumentTracker: ${this.clientUuid}: removed WebDocument: ${webDocumentId}`,
-          )
-          delete this.webDocuments[webDocumentId]
-          if (this.lastWebDocumentId === webDocumentId) {
-            this.lastWebDocumentId = undefined
-            this.lastWebDocumentIdx = 0
-            this.webRuntimeClient.close()
+        void (async () => {
+          const closePort = this.webDocuments[webDocumentId]
+          if (closePort) {
+            closePort.close()
+            console.log(
+              `WebDocumentTracker: ${this.clientUuid}: removed WebDocument: ${webDocumentId}`,
+            )
+            delete this.webDocuments[webDocumentId]
+            if (this.lastWebDocumentId === webDocumentId) {
+              this.lastWebDocumentId = undefined
+              this.lastWebDocumentIdx = 0
+              this.webRuntimeClient.close()
+            }
+            if (
+              !Object.keys(this.webDocuments).length &&
+              this.onAllWebDocumentsClosed
+            ) {
+              await this.onAllWebDocumentsClosed()
+            }
           }
-        }
+        })().catch((err) => {
+          console.error(
+            `WebDocumentTracker: ${this.clientUuid}: error handling WebDocument close:`,
+            err,
+          )
+        })
       }
     }
 

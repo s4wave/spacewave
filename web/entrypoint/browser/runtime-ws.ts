@@ -122,11 +122,12 @@ self.addEventListener('connect', (ev) => {
       startWsRuntime(msg.initWebRuntime!)
     }
 
-    if (msg.connectWebRuntime && ev.ports.length) {
+    const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]
+    if (msg.connectWebRuntime && clientPort) {
       // handle the incoming client
       webRuntime.handleClient(
         WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
-        msg.connectWebRuntime.port ?? ev.ports[0],
+        clientPort,
       )
     }
   }

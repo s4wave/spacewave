@@ -7848,7 +7848,9 @@ var Retry = class {
     opts?.abortSignal?.addEventListener("abort", this.cancel.bind(this));
     this._abortSignal = opts?.abortSignal;
     this._backoffFn = opts?.backoffFn || constantBackoff();
-    this._errorCb = opts?.errorCb;
+    this._errorCb = opts?.errorCb ?? ((err) => {
+      console.warn("Retry: retrying after error", err);
+    });
     this._setTimeout = opts?.setTimeout || setTimeout.bind(globalThis);
     this._clearTimeout = opts?.clearTimeout || clearTimeout.bind(globalThis);
     this.result = new Promise((resolve, reject) => {
@@ -8375,6 +8377,11 @@ var WebWorkerType_Enum = createEnumType("web.document.WebWorkerType", [
   { no: 0, name: "WEB_WORKER_TYPE_NATIVE" },
   { no: 1, name: "WEB_WORKER_TYPE_QUICKJS" }
 ]);
+var WebWorkerMode_Enum = createEnumType("web.document.WebWorkerMode", [
+  { no: 0, name: "WORKER_MODE_DEFAULT" },
+  { no: 1, name: "WORKER_MODE_SHARED" },
+  { no: 2, name: "WORKER_MODE_DEDICATED" }
+]);
 createMessageType({
   typeName: "web.document.WatchWebDocumentStatusRequest",
   fields: [],
@@ -8441,7 +8448,7 @@ createMessageType({
   fields: [
     { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "path", kind: "scalar", T: ScalarType.STRING },
-    { no: 3, name: "shared", kind: "scalar", T: ScalarType.BOOL },
+    { no: 3, name: "worker_mode", kind: "enum", T: WebWorkerMode_Enum },
     { no: 4, name: "init_data", kind: "scalar", T: ScalarType.BYTES },
     { no: 5, name: "worker_type", kind: "enum", T: WebWorkerType_Enum }
   ],
@@ -8855,10 +8862,10 @@ var Client2 = class {
   // ResourceAttach bidi stream. Multiple resources share one session.
   // Returns the server-assigned resource ID and a cleanup function.
   async attachResource(label, mux, signal) {
-    const sess = await this.ensureAttachSession(signal);
+    const sess = await this.ensureAttachSession();
     const attachId = ++sess.attachIdCtr;
     const resultPromise = new Promise((resolve, reject) => {
-      sess.pending.set(attachId, resolve);
+      sess.pending.set(attachId, { resolve, reject });
       signal?.addEventListener("abort", () => {
         sess.pending.delete(attachId);
         reject(new Error("aborted"));
@@ -8884,15 +8891,16 @@ var Client2 = class {
     return { resourceId, cleanup };
   }
   // ensureAttachSession opens the ResourceAttach bidi stream if needed.
-  async ensureAttachSession(signal) {
+  async ensureAttachSession() {
     if (this.attachSession) return this.attachSession;
     const state = await this.ensureInitialized();
+    const controller = createAbortController2(this.signal);
     const outgoing = pushable({ objectMode: true });
     const incoming = this.service.ResourceAttach(
       (async function* () {
         yield* outgoing;
       })(),
-      signal
+      controller.signal
     );
     const incomingIt = incoming[Symbol.asyncIterator]();
     outgoing.push({
@@ -8904,18 +8912,22 @@ var Client2 = class {
     const ackResult = await incomingIt.next();
     if (ackResult.done) {
       outgoing.end();
+      controller.abort();
       throw new Error("stream closed before ack");
     }
     const ackBody = ackResult.value?.body;
     if (ackBody?.case !== "ack") {
       outgoing.end();
+      controller.abort();
       throw new Error("expected ack packet");
     }
     if (ackBody.value.error) {
       outgoing.end();
+      controller.abort();
       throw new Error(ackBody.value.error);
     }
     const sess = {
+      controller,
       outgoing,
       attachIdCtr: 0,
       muxes: /* @__PURE__ */ new Map(),
@@ -8945,9 +8957,13 @@ var Client2 = class {
         } else if (body?.case === "addAck") {
           const addAck = body.value;
           if (!addAck.error) {
-            const resolve = sess.pending.get(addAck.attachId ?? 0);
+            const pending = sess.pending.get(addAck.attachId ?? 0);
             sess.pending.delete(addAck.attachId ?? 0);
-            resolve?.(addAck.resourceId ?? 0);
+            pending?.resolve(addAck.resourceId ?? 0);
+          } else {
+            const pending = sess.pending.get(addAck.attachId ?? 0);
+            sess.pending.delete(addAck.attachId ?? 0);
+            pending?.reject(new Error(addAck.error));
           }
         }
       }
@@ -8969,6 +8985,8 @@ var Client2 = class {
       }
     ).catch(() => {
       outgoing.end();
+    }).finally(() => {
+      this.clearAttachSession(sess);
     });
     this.attachSession = sess;
     return sess;
@@ -8987,6 +9005,7 @@ var Client2 = class {
   dispose(reason = "CLIENT_DISPOSED") {
     if (this.disposed) return;
     this.disposed = true;
+    this.clearAttachSession();
     if (this.connectionController) {
       this.connectionController.abort();
       this.connectionController = null;
@@ -9214,6 +9233,7 @@ var Client2 = class {
    * Used when connection is lost and resources are no longer valid.
    */
   releaseAllResources(reason) {
+    this.clearAttachSession();
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased());
       this.events.emit({ resourceId, reason });
@@ -9225,6 +9245,23 @@ var Client2 = class {
     });
     this._connectionGeneration++;
     this.connectionLostEvents.emit(void 0);
+  }
+  // clearAttachSession tears down any cached ResourceAttach session state.
+  clearAttachSession(sess) {
+    const current = sess ?? this.attachSession;
+    if (!current) {
+      return;
+    }
+    if (this.attachSession === current) {
+      this.attachSession = null;
+    }
+    current.controller.abort();
+    current.outgoing.end();
+    for (const [, pending] of current.pending) {
+      pending.reject(new Error("attach session closed"));
+    }
+    current.pending.clear();
+    current.muxes.clear();
   }
 };
 

@@ -83,9 +83,10 @@ pub struct CreateWebWorkerRequest {
     /// Used as the path after the current host. For example /path/to/script.mjs
     #[prost(string, tag="2")]
     pub path: ::prost::alloc::string::String,
-    /// Shared indicates this should be a worker shared between all WebDocument (if possible)
-    #[prost(bool, tag="3")]
-    pub shared: bool,
+    /// WorkerMode controls whether the worker should be shared or dedicated.
+    /// If unset, defaults to WORKER_MODE_DEFAULT.
+    #[prost(enumeration="WebWorkerMode", tag="3")]
+    pub worker_mode: i32,
     /// InitData is initialization data to pass to the worker.
     ///
     /// Usually a WebWorkerWasmPluginInit.
@@ -151,6 +152,40 @@ impl WebWorkerType {
         match value {
             "WEB_WORKER_TYPE_NATIVE" => Some(Self::Native),
             "WEB_WORKER_TYPE_QUICKJS" => Some(Self::Quickjs),
+            _ => None,
+        }
+    }
+}
+/// WebWorkerMode specifies whether a worker should be shared or dedicated.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WebWorkerMode {
+    /// WORKER_MODE_DEFAULT preserves the legacy behavior for callers that do
+    /// not specify a mode.
+    WorkerModeDefault = 0,
+    /// WORKER_MODE_SHARED requests a SharedWorker when supported.
+    WorkerModeShared = 1,
+    /// WORKER_MODE_DEDICATED requests a dedicated Worker.
+    WorkerModeDedicated = 2,
+}
+impl WebWorkerMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::WorkerModeDefault => "WORKER_MODE_DEFAULT",
+            Self::WorkerModeShared => "WORKER_MODE_SHARED",
+            Self::WorkerModeDedicated => "WORKER_MODE_DEDICATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKER_MODE_DEFAULT" => Some(Self::WorkerModeDefault),
+            "WORKER_MODE_SHARED" => Some(Self::WorkerModeShared),
+            "WORKER_MODE_DEDICATED" => Some(Self::WorkerModeDedicated),
             _ => None,
         }
     }

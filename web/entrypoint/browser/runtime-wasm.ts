@@ -9,13 +9,14 @@ import {
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
-import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
+import { GoWasmProcess, loadWebAssemblyModule } from '../../runtime/wasm/go-process.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
 interface Global extends SharedWorkerGlobalScope {
   BLDR_INIT?: Uint8Array
   BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
+  BLDR_SQLITE_WORKER_URL?: string
 }
 const global: Global = self
 
@@ -39,6 +40,10 @@ const webRuntime = new WebRuntime(
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url
 
+// Set the sqlite worker URL for Go to read via syscall/js.
+// sqlite-worker.mjs is built to the same directory as runtime-wasm.mjs.
+global.BLDR_SQLITE_WORKER_URL = new URL('./sqlite-worker.mjs', baseURL).toString()
+
 // BLDR_RUNTIME_WASM is an injected variable with the path to the runtime.wasm
 declare const BLDR_RUNTIME_WASM: string | undefined
 
@@ -50,8 +55,11 @@ const runtimeWasmURL = new URL(
   baseURL,
 )
 
-// construct the go wasm process
-const goProcess = new GoWasmProcess(runtimeWasmURL.toString(), {
+// Start prefetching the Go WASM module immediately.
+const goWasmModule = loadWebAssemblyModule(runtimeWasmURL.toString())
+
+// construct the go wasm process using the prefetched module
+const goProcess = new GoWasmProcess(() => goWasmModule, {
   argv: ['runtime.wasm'],
   retryOpts: {
     errorCb: (err) => {
@@ -87,7 +95,7 @@ function startGoRpcStreams() {
 }
 
 let goStarted = false
-function startGoRuntime(webRuntimeId: string) {
+async function startGoRuntime(webRuntimeId: string) {
   if (goStarted) {
     return
   }
@@ -142,11 +150,12 @@ self.addEventListener('connect', (ev) => {
       startGoRuntime(msg.initWebRuntime.webRuntimeId)
     }
 
-    if (msg.connectWebRuntime && ev.ports.length) {
+    const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]
+    if (msg.connectWebRuntime && clientPort) {
       // handle the incoming client
       webRuntime.handleClient(
         WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
-        msg.connectWebRuntime.port ?? ev.ports[0],
+        clientPort,
       )
     }
   }

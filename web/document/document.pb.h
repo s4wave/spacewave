@@ -59,6 +59,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace web {
 namespace document {
+enum WebWorkerMode : int;
+extern const uint32_t WebWorkerMode_internal_data_[];
 enum WebWorkerType : int;
 extern const uint32_t WebWorkerType_internal_data_[];
 class CreateWebViewRequest;
@@ -106,6 +108,9 @@ extern const ::google::protobuf::internal::ClassDataFull WebWorkerStatus_class_d
 namespace google {
 namespace protobuf {
 template <>
+internal::EnumTraitsT<::web::document::WebWorkerMode_internal_data_>
+    internal::EnumTraitsImpl::value<::web::document::WebWorkerMode>;
+template <>
 internal::EnumTraitsT<::web::document::WebWorkerType_internal_data_>
     internal::EnumTraitsImpl::value<::web::document::WebWorkerType>;
 }  // namespace protobuf
@@ -147,6 +152,43 @@ inline const ::std::string& WebWorkerType_Name(WebWorkerType value) {
 inline bool WebWorkerType_Parse(
     ::absl::string_view name, WebWorkerType* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<WebWorkerType>(WebWorkerType_descriptor(), name,
+                                           value);
+}
+enum WebWorkerMode : int {
+  WORKER_MODE_DEFAULT = 0,
+  WORKER_MODE_SHARED = 1,
+  WORKER_MODE_DEDICATED = 2,
+  WebWorkerMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  WebWorkerMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t WebWorkerMode_internal_data_[];
+inline constexpr WebWorkerMode WebWorkerMode_MIN =
+    static_cast<WebWorkerMode>(0);
+inline constexpr WebWorkerMode WebWorkerMode_MAX =
+    static_cast<WebWorkerMode>(2);
+inline bool WebWorkerMode_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int WebWorkerMode_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerMode_descriptor();
+template <typename T>
+const ::std::string& WebWorkerMode_Name(T value) {
+  static_assert(::std::is_same<T, WebWorkerMode>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to WebWorkerMode_Name().");
+  return WebWorkerMode_Name(static_cast<WebWorkerMode>(value));
+}
+template <>
+inline const ::std::string& WebWorkerMode_Name(WebWorkerMode value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<WebWorkerMode_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool WebWorkerMode_Parse(
+    ::absl::string_view name, WebWorkerMode* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<WebWorkerMode>(WebWorkerMode_descriptor(), name,
                                            value);
 }
 
@@ -1476,7 +1518,7 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
     kIdFieldNumber = 1,
     kPathFieldNumber = 2,
     kInitDataFieldNumber = 4,
-    kSharedFieldNumber = 3,
+    kWorkerModeFieldNumber = 3,
     kWorkerTypeFieldNumber = 5,
   };
   // string id = 1;
@@ -1524,14 +1566,14 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_init_data();
 
   public:
-  // bool shared = 3;
-  void clear_shared() ;
-  bool shared() const;
-  void set_shared(bool value);
+  // .web.document.WebWorkerMode worker_mode = 3;
+  void clear_worker_mode() ;
+  ::web::document::WebWorkerMode worker_mode() const;
+  void set_worker_mode(::web::document::WebWorkerMode value);
 
   private:
-  bool _internal_shared() const;
-  void _internal_set_shared(bool value);
+  ::web::document::WebWorkerMode _internal_worker_mode() const;
+  void _internal_set_worker_mode(::web::document::WebWorkerMode value);
 
   public:
   // .web.document.WebWorkerType worker_type = 5;
@@ -1573,7 +1615,7 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::google::protobuf::internal::ArenaStringPtr path_;
     ::google::protobuf::internal::ArenaStringPtr init_data_;
-    bool shared_;
+    int worker_mode_;
     int worker_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2962,29 +3004,29 @@ inline void CreateWebWorkerRequest::set_allocated_path(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:web.document.CreateWebWorkerRequest.path)
 }
 
-// bool shared = 3;
-inline void CreateWebWorkerRequest::clear_shared() {
+// .web.document.WebWorkerMode worker_mode = 3;
+inline void CreateWebWorkerRequest::clear_worker_mode() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.shared_ = false;
+  _impl_.worker_mode_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline bool CreateWebWorkerRequest::shared() const {
-  // @@protoc_insertion_point(field_get:web.document.CreateWebWorkerRequest.shared)
-  return _internal_shared();
+inline ::web::document::WebWorkerMode CreateWebWorkerRequest::worker_mode() const {
+  // @@protoc_insertion_point(field_get:web.document.CreateWebWorkerRequest.worker_mode)
+  return _internal_worker_mode();
 }
-inline void CreateWebWorkerRequest::set_shared(bool value) {
-  _internal_set_shared(value);
+inline void CreateWebWorkerRequest::set_worker_mode(::web::document::WebWorkerMode value) {
+  _internal_set_worker_mode(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:web.document.CreateWebWorkerRequest.shared)
+  // @@protoc_insertion_point(field_set:web.document.CreateWebWorkerRequest.worker_mode)
 }
-inline bool CreateWebWorkerRequest::_internal_shared() const {
+inline ::web::document::WebWorkerMode CreateWebWorkerRequest::_internal_worker_mode() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.shared_;
+  return static_cast<::web::document::WebWorkerMode>(_impl_.worker_mode_);
 }
-inline void CreateWebWorkerRequest::_internal_set_shared(bool value) {
+inline void CreateWebWorkerRequest::_internal_set_worker_mode(::web::document::WebWorkerMode value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.shared_ = value;
+  _impl_.worker_mode_ = value;
 }
 
 // bytes init_data = 4;
@@ -3246,6 +3288,12 @@ struct is_proto_enum<::web::document::WebWorkerType> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::document::WebWorkerType>() {
   return ::web::document::WebWorkerType_descriptor();
+}
+template <>
+struct is_proto_enum<::web::document::WebWorkerMode> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::document::WebWorkerMode>() {
+  return ::web::document::WebWorkerMode_descriptor();
 }
 
 }  // namespace protobuf

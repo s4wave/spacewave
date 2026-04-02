@@ -20,9 +20,8 @@ import (
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	storage_default "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
-	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
-	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	web_runtime_bootstrap "github.com/aperturerobotics/bldr/web/runtime/bootstrap"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -82,6 +81,21 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	b, le, devtoolInfo := c.b, c.le, c.devtoolInfo
 
+	runtimeStack, err := web_runtime_bootstrap.StartRuntimeStack(
+		ctx,
+		le,
+		b,
+		web_runtime_bootstrap.RuntimeStackOpts{
+			WebRuntimeID:      c.initm.GetWebRuntimeId(),
+			MessagePort:       "BLDR_WEB_RUNTIME_CLIENT_OPEN",
+			StartSqliteWorker: true,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "start runtime stack")
+	}
+	defer runtimeStack.Release()
+
 	// run the dist storage
 	storageID := storage_default.StorageID
 	storageVolCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
@@ -100,23 +114,6 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	if err != nil {
 		return err
 	}
-
-	// run the browser web runtime controller
-	webRuntimeID := c.initm.GetWebRuntimeId()
-	_, _, rtRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(&browser.Config{
-			WebRuntimeId: webRuntimeID,
-			MessagePort:  "BLDR_WEB_RUNTIME_CLIENT_OPEN",
-		}),
-		nil,
-	)
-	if err != nil {
-		err = errors.Wrap(err, "start runtime controller")
-		return err
-	}
-	defer rtRef.Release()
 
 	// connect to the devtool via. WebSocket so we can fetch manifests
 	devtoolBackoff := &backoff.Backoff{
@@ -201,20 +198,11 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer fwdFmRef.Release()
 
-	// load the web plugin browser host controller
-	// services any web plugins forwarding their request to the plugin host
-	// starts the web plugin controller
-	_, _, webPluginBrowserHostRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(&bldr_web_plugin_browser_controller.Config{}),
-		nil,
-	)
+	pluginBrowserHostRel, err := web_runtime_bootstrap.StartPluginBrowserHost(ctx, b, nil)
 	if err != nil {
-		err = errors.Wrap(err, "start web plugin browser host controller")
 		return err
 	}
-	defer webPluginBrowserHostRef.Release()
+	defer pluginBrowserHostRel()
 
 	// run a hydra world for storing plugin host state and manifests
 	engineID := "bldr/dev-plugin-host"
@@ -309,7 +297,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer pluginSchecCtrlRel()
 
 	// run the web browser plugin loader implementation (for "desktop/js/wasm" platform)
-	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{WebRuntimeId: webRuntimeID})
+	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{WebRuntimeId: c.initm.GetWebRuntimeId()})
 	if err != nil {
 		err = errors.Wrap(err, "start web host controller")
 		return err
@@ -326,7 +314,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	_ = webPluginHost
 
 	// run the QuickJS web browser plugin host (for "js" platform)
-	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{WebRuntimeId: webRuntimeID})
+	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{WebRuntimeId: c.initm.GetWebRuntimeId()})
 	if err != nil {
 		err = errors.Wrap(err, "start web quickjs host controller")
 		return err

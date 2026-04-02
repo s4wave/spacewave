@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^1.0.2",
+    "@sqlite.org/sqlite-wasm": "^3.51.2-build8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "ulid": "^3.0.2",
