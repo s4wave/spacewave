@@ -17,11 +17,11 @@ require (
 	github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.4.4 // master
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.32.0 // latest
+	github.com/aperturerobotics/common v0.32.2 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d // master
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
-	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
-	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
+	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
+	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/hydra v0.0.0-20260330093444-3b360fc7ac11 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
@@ -88,7 +88,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.49.1 // latest
+	github.com/aperturerobotics/starpc v0.49.3 // latest
 	github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143 // latest
 )
 
@@ -114,7 +114,7 @@ require (
 
 require (
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/mattn/go-isatty v0.0.20
 )
 
