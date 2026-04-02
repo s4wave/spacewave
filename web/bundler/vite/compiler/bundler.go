@@ -128,6 +128,8 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		Plugins: []esbuild.Plugin{
 			// Mark node_modules as external to prevent bundling dependencies unnecessarily.
 			bldr_esbuild_build.ExternalNodeModulesPlugin(),
+			// Resolve @go/... imports against the source tree vendor/ because dist sources omit vendor/.
+			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath),
 		},
 
 		External: []string{"starpc", "vite"},
