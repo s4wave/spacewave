@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && sqlite_purego_modernc
 
 package purego
 

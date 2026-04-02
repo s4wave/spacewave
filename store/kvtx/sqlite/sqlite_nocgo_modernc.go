@@ -1,4 +1,4 @@
-//go:build !cgo && !js && !wasip1 && !sqlite_purego_modernc
+//go:build !cgo && !js && !wasip1 && sqlite_purego_modernc
 
 package store_kvtx_sqlite
 
@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"os"
 
-	purego "github.com/aperturerobotics/hydra/store/kvtx/sqlite/ncruces"
+	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/purego"
 )
 
 func open(ctx context.Context, path string, table string) (Store, error) {
