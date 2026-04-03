@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 
+	stream_srpc_server_lookup "github.com/aperturerobotics/bifrost/stream/srpc/server/lookup"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	handle_webview_viaplugin "github.com/aperturerobotics/bldr/plugin/handle-web-view"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
@@ -60,4 +61,6 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server_bucket.NewFactory(b))
+
+	sr.AddFactory(stream_srpc_server_lookup.NewFactory(b))
 }

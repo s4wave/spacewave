@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package devtool_web_entrypoint_controller
 
@@ -7,8 +6,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/link"
-	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
@@ -29,12 +28,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/hydra/bucket"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -409,6 +408,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller       = ((*Controller)(nil))
-	_ link.MountedStreamHandler   = ((*Controller)(nil))
+	_ controller.Controller     = ((*Controller)(nil))
+	_ link.MountedStreamHandler = ((*Controller)(nil))
 )
