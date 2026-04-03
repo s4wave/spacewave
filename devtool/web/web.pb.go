@@ -28,6 +28,10 @@ type DevtoolInitBrowser struct {
 	DevtoolVolumeInfo *volume.VolumeInfo `protobuf:"bytes,3,opt,name=devtool_volume_info,json=devtoolVolumeInfo,proto3" json:"devtoolVolumeInfo,omitempty"`
 	// StartPlugins is a list of plugins to LoadPlugin at startup.
 	StartPlugins []string `protobuf:"bytes,4,rep,name=start_plugins,json=startPlugins,proto3" json:"startPlugins,omitempty"`
+	// UseDedicatedWorkers overrides the default SharedWorker mode to use
+	// dedicated Workers for plugins. Useful for testing with Playwright
+	// which can capture console output from dedicated workers but not shared.
+	UseDedicatedWorkers bool `protobuf:"varint,5,opt,name=use_dedicated_workers,json=useDedicatedWorkers,proto3" json:"useDedicatedWorkers,omitempty"`
 }
 
 func (x *DevtoolInitBrowser) Reset() {
@@ -64,6 +68,13 @@ func (x *DevtoolInitBrowser) GetStartPlugins() []string {
 	return nil
 }
 
+func (x *DevtoolInitBrowser) GetUseDedicatedWorkers() bool {
+	if x != nil {
+		return x.UseDedicatedWorkers
+	}
+	return false
+}
+
 func (m *DevtoolInitBrowser) CloneVT() *DevtoolInitBrowser {
 	if m == nil {
 		return (*DevtoolInitBrowser)(nil)
@@ -71,6 +82,7 @@ func (m *DevtoolInitBrowser) CloneVT() *DevtoolInitBrowser {
 	r := new(DevtoolInitBrowser)
 	r.AppId = m.AppId
 	r.DevtoolPeerId = m.DevtoolPeerId
+	r.UseDedicatedWorkers = m.UseDedicatedWorkers
 	if rhs := m.DevtoolVolumeInfo; rhs != nil {
 		r.DevtoolVolumeInfo = rhs.CloneVT()
 	}
@@ -111,6 +123,9 @@ func (this *DevtoolInitBrowser) EqualVT(that *DevtoolInitBrowser) bool {
 			return false
 		}
 	}
+	if this.UseDedicatedWorkers != that.UseDedicatedWorkers {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -150,6 +165,11 @@ func (x *DevtoolInitBrowser) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("startPlugins")
 		s.WriteStringArray(x.StartPlugins)
 	}
+	if x.UseDedicatedWorkers || s.HasField("useDedicatedWorkers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("useDedicatedWorkers")
+		s.WriteBool(x.UseDedicatedWorkers)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -187,6 +207,9 @@ func (x *DevtoolInitBrowser) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.StartPlugins = s.ReadStringArray()
+		case "use_dedicated_workers", "useDedicatedWorkers":
+			s.AddField("use_dedicated_workers")
+			x.UseDedicatedWorkers = s.ReadBool()
 		}
 	})
 }
@@ -225,6 +248,16 @@ func (m *DevtoolInitBrowser) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UseDedicatedWorkers {
+		i--
+		if m.UseDedicatedWorkers {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
 	if len(m.StartPlugins) > 0 {
 		for iNdEx := len(m.StartPlugins) - 1; iNdEx >= 0; iNdEx-- {
@@ -286,6 +319,9 @@ func (m *DevtoolInitBrowser) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.UseDedicatedWorkers {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -326,6 +362,13 @@ func (x *DevtoolInitBrowser) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.UseDedicatedWorkers != false {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("use_dedicated_workers: ")
+		sb.WriteString(strconv.FormatBool(x.UseDedicatedWorkers))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -449,6 +492,18 @@ func (m *DevtoolInitBrowser) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StartPlugins = append(m.StartPlugins, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseDedicatedWorkers", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.UseDedicatedWorkers = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

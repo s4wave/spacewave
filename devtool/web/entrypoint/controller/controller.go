@@ -311,7 +311,10 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer pluginSchecCtrlRel()
 
 	// run the web browser plugin loader implementation (for "desktop/js/wasm" platform)
-	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{WebRuntimeId: c.initm.GetWebRuntimeId()})
+	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
+		WebRuntimeId:        c.initm.GetWebRuntimeId(),
+		UseDedicatedWorkers: devtoolInfo.GetUseDedicatedWorkers(),
+	})
 	if err != nil {
 		err = errors.Wrap(err, "start web host controller")
 		return err
@@ -328,7 +331,10 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	_ = webPluginHost
 
 	// run the QuickJS web browser plugin host (for "js" platform)
-	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{WebRuntimeId: c.initm.GetWebRuntimeId()})
+	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{
+		WebRuntimeId:        c.initm.GetWebRuntimeId(),
+		UseDedicatedWorkers: devtoolInfo.GetUseDedicatedWorkers(),
+	})
 	if err != nil {
 		err = errors.Wrap(err, "start web quickjs host controller")
 		return err

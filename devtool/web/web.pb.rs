@@ -16,5 +16,10 @@ pub struct DevtoolInitBrowser {
     /// StartPlugins is a list of plugins to LoadPlugin at startup.
     #[prost(string, repeated, tag="4")]
     pub start_plugins: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// UseDedicatedWorkers overrides the default SharedWorker mode to use
+    /// dedicated Workers for plugins. Useful for testing with Playwright
+    /// which can capture console output from dedicated workers but not shared.
+    #[prost(bool, tag="5")]
+    pub use_dedicated_workers: bool,
 }
 // @@protoc_insertion_point(module)

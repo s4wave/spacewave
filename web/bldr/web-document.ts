@@ -364,6 +364,11 @@ export interface WebDocumentOptions {
   // if unset, defaults to /shw.mjs
   // This unified worker handles both native and QuickJS plugins.
   sharedWorkerPath?: string
+  // useDedicatedWorkers forces the runtime to use a dedicated Worker instead
+  // of a SharedWorker. Useful for testing with Playwright which can capture
+  // console output from dedicated workers but not shared. Also used as the
+  // automatic fallback when SharedWorker is not supported (e.g. Chrome Android).
+  useDedicatedWorkers?: boolean
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -424,9 +429,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // serviceWorkerPort is the Port connected to the ServiceWorker.
   private serviceWorkerPort?: MessagePort
 
-  // worker is the shared worker containing the WebRuntime.
+  // worker is the shared worker containing the WebRuntime (SharedWorker mode).
   // electron: not used
   private worker?: SharedWorker
+  // runtimeWorker is the dedicated worker containing the WebRuntime.
+  // Used when useDedicatedWorkers is set or SharedWorker is unavailable.
+  private runtimeWorker?: Worker
+  // useDedicatedWorkers forces dedicated Worker mode for the runtime.
+  private useDedicatedWorkers?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
   // Not used in saucer mode (uses HTTP-based communication instead).
   private webRuntimePort?: MessagePort
@@ -478,6 +488,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     if (opts?.closedCallback) {
       this.closedCallback = opts.closedCallback
+    }
+    if (opts?.useDedicatedWorkers) {
+      this.useDedicatedWorkers = true
     }
 
     // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
@@ -563,22 +576,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       throw new Error('service worker not supported')
     }
 
-    if (typeof SharedWorker === 'undefined') {
-      // TODO implement workaround using a WebWorker and leader election.
-      // This is not currently implemented here.
-      // Chrome for Android is the only major browser that does not support this:
-      // https://groups.google.com/a/chromium.org/g/blink-dev/c/H73tticuudc/m/NunrjwcBBwAJ
-      // https://issues.chromium.org/issues/40290702
-      // https://caniuse.com/sharedworkers
-      console.error(
-        'Shared worker not supported, bldr cannot start!',
-        'See: https://caniuse.com/sharedworkers',
-      )
-      // NOTE: the WebWorker (plugins) in WebRuntime automatically fallback to Worker.
-      throw new Error('shared worker not supported')
-    }
+    // Determine whether to use a dedicated Worker instead of SharedWorker.
+    // Forced by option, or when SharedWorker is unavailable (e.g. Chrome Android).
+    const useDedicatedRuntime =
+      this.useDedicatedWorkers || typeof SharedWorker === 'undefined'
 
-    // setup the shared worker
+    // setup the runtime worker
     if (this.isElectron) {
       const workerChannel = new MessageChannel()
       this.webRuntimePort = workerChannel.port2
@@ -609,16 +612,29 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         name: this.webRuntimeId,
         type: 'module',
       }
-      this.worker = new SharedWorker(runtimeJsURL, workerOptions)
 
-      this.webRuntimePort = this.worker!.port!
-      const msg: WebDocumentToWebRuntime = {
+      const initMsg: WebDocumentToWebRuntime = {
         from: this.webDocumentUuid,
         initWebRuntime: {
           webRuntimeId: this.webRuntimeId,
         },
       }
-      this.webRuntimePort.postMessage(msg)
+
+      if (useDedicatedRuntime) {
+        // Dedicated Worker mode: create a Worker and a MessageChannel.
+        // Transfer one port to the Worker for communication (same pattern
+        // as SharedWorker's built-in port). Each tab gets its own Worker.
+        console.log('WebDocument: using dedicated Worker for runtime')
+        this.runtimeWorker = new Worker(runtimeJsURL, workerOptions)
+        const { port1, port2 } = new MessageChannel()
+        this.webRuntimePort = port1
+        this.runtimeWorker.postMessage(initMsg, [port2])
+      } else {
+        // SharedWorker mode: all tabs share a single Worker.
+        this.worker = new SharedWorker(runtimeJsURL, workerOptions)
+        this.webRuntimePort = this.worker!.port!
+        this.webRuntimePort.postMessage(initMsg)
+      }
     }
 
     // we don't expect any messages directly from the main worker port.
@@ -861,6 +877,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       } finally {
         this.worker.port.close()
       }
+    }
+    if (this.runtimeWorker) {
+      this.runtimeWorker.terminate()
+      this.runtimeWorker = undefined
     }
     if (this.serviceWorkerPort) {
       try {

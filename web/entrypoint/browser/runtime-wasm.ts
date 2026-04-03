@@ -11,14 +11,21 @@ import {
 } from '../../bldr/web-runtime.js'
 import { GoWasmProcess, loadWebAssemblyModule } from '../../runtime/wasm/go-process.js'
 
+// Detect whether we are running as a SharedWorker or a dedicated Worker.
+// SharedWorker receives connections via the 'connect' event.
+// Dedicated Worker receives an initial message with a communication port.
+const isSharedWorker =
+  typeof SharedWorkerGlobalScope !== 'undefined' &&
+  self instanceof SharedWorkerGlobalScope
+
 // https://github.com/microsoft/TypeScript/issues/14877
-declare let self: SharedWorkerGlobalScope
-interface Global extends SharedWorkerGlobalScope {
+declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
+interface Global {
   BLDR_INIT?: Uint8Array
   BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
   BLDR_SQLITE_WORKER_URL?: string
 }
-const global: Global = self
+const global: Global = self as unknown as Global
 
 // TODO: add/remove new windows via WebDocumentTracker
 const createDocCb: CreateWebDocumentFunc | null = null
@@ -113,52 +120,62 @@ async function startGoRuntime(webRuntimeId: string) {
   startGoRpcStreams()
 }
 
-// wait for startup / init command
-const runtimeStarted = false
-self.addEventListener('connect', (ev) => {
-  console.log('runtime-wasm: connect event received, ports:', ev.ports?.length)
-  const ports = ev.ports
-  if (!ports || !ports.length) {
+// handlePortMessage processes a message from a WebDocument on a communication port.
+let runtimeStarted = false
+function handlePortMessage(msgEvent: MessageEvent) {
+  if (msgEvent.data === 'close') {
     return
   }
 
-  const port = ev.ports[0]
-  if (!port) {
+  const msg: WebDocumentToWebRuntime = msgEvent.data
+  if (typeof msg !== 'object' || !msg.from) {
+    console.log(
+      'runtime-wasm: dropped invalid document to web runtime message',
+      msg,
+    )
     return
   }
 
-  // Handle an incoming client for the WebRuntime and/or start the worker.
-  port.onmessage = (msgEvent) => {
-    console.log('runtime-wasm: onmessage received:', msgEvent.data)
-    if (msgEvent.data === 'close') {
-      port.close()
-      return
-    }
+  console.log('runtime-wasm: valid message from:', msg.from, 'keys:', Object.keys(msg))
 
-    const msg: WebDocumentToWebRuntime = msgEvent.data
-    if (typeof msg !== 'object' || !msg.from) {
-      console.log(
-        'runtime-wasm: dropped invalid document to web runtime message',
-        msg,
-      )
-      return
-    }
-
-    console.log('runtime-wasm: valid message from:', msg.from, 'keys:', Object.keys(msg))
-
-    if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
-      startGoRuntime(msg.initWebRuntime.webRuntimeId)
-    }
-
-    const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]
-    if (msg.connectWebRuntime && clientPort) {
-      // handle the incoming client
-      webRuntime.handleClient(
-        WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
-        clientPort,
-      )
-    }
+  if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
+    runtimeStarted = true
+    startGoRuntime(msg.initWebRuntime.webRuntimeId)
   }
 
-  port.start()
-})
+  const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]
+  if (msg.connectWebRuntime && clientPort) {
+    webRuntime.handleClient(
+      WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
+      clientPort,
+    )
+  }
+}
+
+if (isSharedWorker) {
+  // SharedWorker mode: each connecting page fires a 'connect' event with a port.
+  self.addEventListener('connect', (ev) => {
+    console.log('runtime-wasm: connect event received, ports:', ev.ports?.length)
+    const port = ev.ports?.[0]
+    if (!port) {
+      return
+    }
+    port.onmessage = handlePortMessage
+    port.start()
+  })
+} else {
+  // Dedicated Worker mode: the page transfers a MessagePort in the first message.
+  // All subsequent communication uses that port (same pattern as SharedWorker).
+  self.onmessage = (msgEvent: MessageEvent) => {
+    const port = msgEvent.ports?.[0]
+    if (port) {
+      console.log('runtime-wasm: dedicated worker received communication port')
+      port.onmessage = handlePortMessage
+      port.start()
+    }
+    // The first message may also contain an init or connect request.
+    if (msgEvent.data && typeof msgEvent.data === 'object' && msgEvent.data.from) {
+      handlePortMessage(msgEvent)
+    }
+  }
+}

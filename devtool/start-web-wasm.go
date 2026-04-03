@@ -87,6 +87,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		appID,
 		startupPlugins,
 		webStartupSrcPath,
+		false,
 	)
 }
 
@@ -100,6 +101,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	appID string,
 	startPlugins []string,
 	webStartupSrcPath string,
+	useDedicatedWorkers bool,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -128,6 +130,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		"",
 		minifyEntrypoint,
 		devMode,
+		useDedicatedWorkers,
 	)
 	if err != nil {
 		return err
@@ -295,10 +298,11 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	// encode the init info for the browser devtool entrypoint
 	browserInit := &devtool_web.DevtoolInitBrowser{
-		AppId:             appID,
-		DevtoolPeerId:     wsPeerID,
-		DevtoolVolumeInfo: d.GetVolumeInfo(),
-		StartPlugins:      startPlugins,
+		AppId:               appID,
+		DevtoolPeerId:       wsPeerID,
+		DevtoolVolumeInfo:   d.GetVolumeInfo(),
+		StartPlugins:        startPlugins,
+		UseDedicatedWorkers: useDedicatedWorkers,
 	}
 	if err := browserInit.Validate(); err != nil {
 		return err

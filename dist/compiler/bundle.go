@@ -374,6 +374,7 @@ func BuildDistBundle(
 			entrypointHash,
 			isRelease, // minify
 			false,     // devMode
+			false,     // useDedicatedWorkers
 		)
 		if err != nil {
 			return err

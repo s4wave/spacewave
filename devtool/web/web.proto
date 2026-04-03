@@ -14,4 +14,8 @@ message DevtoolInitBrowser {
   .volume.VolumeInfo devtool_volume_info = 3;
   // StartPlugins is a list of plugins to LoadPlugin at startup.
   repeated string start_plugins = 4;
+  // UseDedicatedWorkers overrides the default SharedWorker mode to use
+  // dedicated Workers for plugins. Useful for testing with Playwright
+  // which can capture console output from dedicated workers but not shared.
+  bool use_dedicated_workers = 5;
 }

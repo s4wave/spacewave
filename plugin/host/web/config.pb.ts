@@ -19,6 +19,14 @@ export interface Config {
    * @generated from field: string web_runtime_id = 1;
    */
   webRuntimeId?: string
+  /**
+   * UseDedicatedWorkers overrides the default SharedWorker mode to use
+   * dedicated Workers instead. Useful for testing with Playwright which
+   * can capture console output from dedicated workers but not shared.
+   *
+   * @generated from field: bool use_dedicated_workers = 2;
+   */
+  useDedicatedWorkers?: boolean
 }
 
 // Config contains the message type declaration for Config.
@@ -26,6 +34,12 @@ export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.web.Config',
   fields: [
     { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 2,
+      name: 'use_dedicated_workers',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -42,6 +56,14 @@ export interface QuickJSConfig {
    * @generated from field: string web_runtime_id = 1;
    */
   webRuntimeId?: string
+  /**
+   * UseDedicatedWorkers overrides the default SharedWorker mode to use
+   * dedicated Workers instead. Useful for testing with Playwright which
+   * can capture console output from dedicated workers but not shared.
+   *
+   * @generated from field: bool use_dedicated_workers = 2;
+   */
+  useDedicatedWorkers?: boolean
 }
 
 // QuickJSConfig contains the message type declaration for QuickJSConfig.
@@ -49,6 +71,12 @@ export const QuickJSConfig: MessageType<QuickJSConfig> = createMessageType({
   typeName: 'plugin.host.web.QuickJSConfig',
   fields: [
     { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 2,
+      name: 'use_dedicated_workers',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

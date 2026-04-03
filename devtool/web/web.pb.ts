@@ -39,6 +39,14 @@ export interface DevtoolInitBrowser {
    * @generated from field: repeated string start_plugins = 4;
    */
   startPlugins?: string[]
+  /**
+   * UseDedicatedWorkers overrides the default SharedWorker mode to use
+   * dedicated Workers for plugins. Useful for testing with Playwright
+   * which can capture console output from dedicated workers but not shared.
+   *
+   * @generated from field: bool use_dedicated_workers = 5;
+   */
+  useDedicatedWorkers?: boolean
 }
 
 // DevtoolInitBrowser contains the message type declaration for DevtoolInitBrowser.
@@ -60,6 +68,12 @@ export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
         kind: 'scalar',
         T: ScalarType.STRING,
         repeated: true,
+      },
+      {
+        no: 5,
+        name: 'use_dedicated_workers',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,

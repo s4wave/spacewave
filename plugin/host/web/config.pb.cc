@@ -35,7 +35,8 @@ inline constexpr QuickJSConfig::Impl_::Impl_(
       : _cached_size_{0},
         web_runtime_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        use_dedicated_workers_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR QuickJSConfig::QuickJSConfig(::_pbi::ConstantInitialized)
@@ -62,7 +63,8 @@ inline constexpr Config::Impl_::Impl_(
       : _cached_size_{0},
         web_runtime_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        use_dedicated_workers_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -95,20 +97,24 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::plugin::host::web::Config, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::plugin::host::web::Config, _impl_.web_runtime_id_),
+        PROTOBUF_FIELD_OFFSET(::plugin::host::web::Config, _impl_.use_dedicated_workers_),
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::plugin::host::web::QuickJSConfig, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::plugin::host::web::QuickJSConfig, _impl_.web_runtime_id_),
+        PROTOBUF_FIELD_OFFSET(::plugin::host::web::QuickJSConfig, _impl_.use_dedicated_workers_),
         0,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::plugin::host::web::Config)},
-        {5, sizeof(::plugin::host::web::QuickJSConfig)},
+        {7, sizeof(::plugin::host::web::QuickJSConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::plugin::host::web::_Config_default_instance_._instance,
@@ -118,15 +124,16 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     protodesc_cold) = {
     "\n=github.com/aperturerobotics/bldr/plugi"
     "n/host/web/config.proto\022\017plugin.host.web"
-    "\" \n\006Config\022\026\n\016web_runtime_id\030\001 \001(\t\"\'\n\rQu"
-    "ickJSConfig\022\026\n\016web_runtime_id\030\001 \001(\tb\006pro"
-    "to3"
+    "\"\?\n\006Config\022\026\n\016web_runtime_id\030\001 \001(\t\022\035\n\025us"
+    "e_dedicated_workers\030\002 \001(\010\"F\n\rQuickJSConf"
+    "ig\022\026\n\016web_runtime_id\030\001 \001(\t\022\035\n\025use_dedica"
+    "ted_workers\030\002 \001(\010b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fweb_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fweb_2fconfig_2eproto = {
     false,
     false,
-    163,
+    225,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fweb_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/plugin/host/web/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fhost_2fweb_2fconfig_2eproto_once,
@@ -182,6 +189,7 @@ Config::Config(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
 
   // @@protoc_insertion_point(copy_constructor:plugin.host.web.Config)
 }
@@ -193,6 +201,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.use_dedicated_workers_ = {};
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:plugin.host.web.Config)
@@ -252,16 +261,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 45, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 45, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -271,6 +280,10 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::plugin::host::web::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // bool use_dedicated_workers = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.use_dedicated_workers_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.use_dedicated_workers_)}},
     // string web_runtime_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -280,6 +293,8 @@ Config::_table_ = {
   }}, {{
     // string web_runtime_id = 1;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.web_runtime_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool use_dedicated_workers = 2;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.use_dedicated_workers_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -299,6 +314,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     _impl_.web_runtime_id_.ClearNonDefaultToEmpty();
   }
+  _impl_.use_dedicated_workers_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -332,6 +348,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // bool use_dedicated_workers = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_use_dedicated_workers() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_use_dedicated_workers(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -355,13 +380,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string web_runtime_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_web_runtime_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_web_runtime_id());
+      }
+    }
+    // bool use_dedicated_workers = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_use_dedicated_workers() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -383,12 +415,19 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_web_runtime_id().empty()) {
-      _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
-    } else {
-      if (_this->_impl_.web_runtime_id_.IsDefault()) {
-        _this->_internal_set_web_runtime_id("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_web_runtime_id().empty()) {
+        _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
+      } else {
+        if (_this->_impl_.web_runtime_id_.IsDefault()) {
+          _this->_internal_set_web_runtime_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_use_dedicated_workers() != 0) {
+        _this->_impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
       }
     }
   }
@@ -412,6 +451,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_runtime_id_, &other->_impl_.web_runtime_id_, arena);
+  swap(_impl_.use_dedicated_workers_, other->_impl_.use_dedicated_workers_);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {
@@ -457,6 +497,7 @@ QuickJSConfig::QuickJSConfig(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
 
   // @@protoc_insertion_point(copy_constructor:plugin.host.web.QuickJSConfig)
 }
@@ -468,6 +509,7 @@ PROTOBUF_NDEBUG_INLINE QuickJSConfig::Impl_::Impl_(
 
 inline void QuickJSConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.use_dedicated_workers_ = {};
 }
 QuickJSConfig::~QuickJSConfig() {
   // @@protoc_insertion_point(destructor:plugin.host.web.QuickJSConfig)
@@ -527,16 +569,16 @@ QuickJSConfig::GetClassData() const {
   return QuickJSConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 52, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 52, 2>
 QuickJSConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(QuickJSConfig, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     QuickJSConfig_class_data_.base(),
@@ -546,6 +588,10 @@ QuickJSConfig::_table_ = {
     ::_pbi::TcParser::GetTable<::plugin::host::web::QuickJSConfig>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // bool use_dedicated_workers = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(QuickJSConfig, _impl_.use_dedicated_workers_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(QuickJSConfig, _impl_.use_dedicated_workers_)}},
     // string web_runtime_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -555,6 +601,8 @@ QuickJSConfig::_table_ = {
   }}, {{
     // string web_runtime_id = 1;
     {PROTOBUF_FIELD_OFFSET(QuickJSConfig, _impl_.web_runtime_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool use_dedicated_workers = 2;
+    {PROTOBUF_FIELD_OFFSET(QuickJSConfig, _impl_.use_dedicated_workers_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -574,6 +622,7 @@ PROTOBUF_NOINLINE void QuickJSConfig::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     _impl_.web_runtime_id_.ClearNonDefaultToEmpty();
   }
+  _impl_.use_dedicated_workers_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -607,6 +656,15 @@ PROTOBUF_NOINLINE void QuickJSConfig::Clear() {
     }
   }
 
+  // bool use_dedicated_workers = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_use_dedicated_workers() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_use_dedicated_workers(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -630,13 +688,20 @@ PROTOBUF_NOINLINE void QuickJSConfig::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string web_runtime_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_web_runtime_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_web_runtime_id());
+      }
+    }
+    // bool use_dedicated_workers = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_use_dedicated_workers() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -658,12 +723,19 @@ void QuickJSConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_web_runtime_id().empty()) {
-      _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
-    } else {
-      if (_this->_impl_.web_runtime_id_.IsDefault()) {
-        _this->_internal_set_web_runtime_id("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_web_runtime_id().empty()) {
+        _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
+      } else {
+        if (_this->_impl_.web_runtime_id_.IsDefault()) {
+          _this->_internal_set_web_runtime_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_use_dedicated_workers() != 0) {
+        _this->_impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
       }
     }
   }
@@ -687,6 +759,7 @@ void QuickJSConfig::InternalSwap(QuickJSConfig* PROTOBUF_RESTRICT PROTOBUF_NONNU
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_runtime_id_, &other->_impl_.web_runtime_id_, arena);
+  swap(_impl_.use_dedicated_workers_, other->_impl_.use_dedicated_workers_);
 }
 
 ::google::protobuf::Metadata QuickJSConfig::GetMetadata() const {

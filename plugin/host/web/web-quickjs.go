@@ -42,17 +42,20 @@ type WebQuickJSHost struct {
 	pluginPlatformID string
 	// webRuntimeID is the identifier of the web runtime
 	webRuntimeID string
+	// useDedicatedWorkers forces dedicated Workers instead of SharedWorkers.
+	useDedicatedWorkers bool
 }
 
 // NewWebQuickJSHost constructs a new WebQuickJSHost.
-func NewWebQuickJSHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebQuickJSHost, error) {
+func NewWebQuickJSHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, useDedicatedWorkers bool) (*WebQuickJSHost, error) {
 	// "js" platform - runs in QuickJS WASI
 	platform := bldr_platform.NewJsPlatform()
 	return &WebQuickJSHost{
-		b:                b,
-		le:               le,
-		pluginPlatformID: platform.GetPlatformID(),
-		webRuntimeID:     webRuntimeID,
+		b:                   b,
+		le:                  le,
+		pluginPlatformID:    platform.GetPlatformID(),
+		webRuntimeID:        webRuntimeID,
+		useDedicatedWorkers: useDedicatedWorkers,
 	}, nil
 }
 
@@ -65,7 +68,7 @@ func NewWebQuickJSHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	pluginHost, err := NewWebQuickJSHost(b, le, c.GetWebRuntimeId())
+	pluginHost, err := NewWebQuickJSHost(b, le, c.GetWebRuntimeId(), c.GetUseDedicatedWorkers())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,7 +146,7 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		pluginWebWorkerID += "/" + instanceKey
 	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
-	pluginShared := true
+	pluginShared := !h.useDedicatedWorkers
 
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {

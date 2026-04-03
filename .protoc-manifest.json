@@ -17,7 +17,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/devtool/web": {
-      "hash": "85df7f5077ff51e83715343d9ccef1454f6880d2efd76ad7c9d28e105bae9f8f",
+      "hash": "2aff07369bc535f07db20d91ad92494da32806796ad00c5abf1494e4703d3778",
       "generatedFiles": [
         "devtool/web/web.pb.cc",
         "devtool/web/web.pb.go",
@@ -326,7 +326,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/plugin/host/web": {
-      "hash": "815ca531c321d76ab71c89c33246c88af007c122f4f3fcfb007fae5447b2d059",
+      "hash": "c491f4d77d1304de835594d07ca018abe1433a6b100f9109ac832d42915e57a6",
       "generatedFiles": [
         "plugin/host/web/config.pb.cc",
         "plugin/host/web/config.pb.go",

@@ -45,10 +45,12 @@ type WebHost struct {
 	pluginPlatformID string
 	// webRuntimeID is the identifier of the web runtime
 	webRuntimeID string
+	// useDedicatedWorkers forces dedicated Workers instead of SharedWorkers.
+	useDedicatedWorkers bool
 }
 
 // NewWebHost constructs a new WebHost.
-func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebHost, error) {
+func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, useDedicatedWorkers bool) (*WebHost, error) {
 	// determine the platform id for the host
 	// TODO: also support "js" and "desktop/wasi/wasm"
 	platform, err := bldr_platform.ParsePlatform("desktop/js/wasm")
@@ -57,10 +59,11 @@ func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebHost, err
 	}
 
 	return &WebHost{
-		b:                b,
-		le:               le,
-		pluginPlatformID: platform.GetPlatformID(),
-		webRuntimeID:     webRuntimeID,
+		b:                   b,
+		le:                  le,
+		pluginPlatformID:    platform.GetPlatformID(),
+		webRuntimeID:        webRuntimeID,
+		useDedicatedWorkers: useDedicatedWorkers,
 	}, nil
 }
 
@@ -73,7 +76,7 @@ func NewWebHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId())
+	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId(), c.GetUseDedicatedWorkers())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,7 +161,7 @@ func (h *WebHost) ExecutePlugin(
 		pluginWebWorkerID += "/" + instanceKey
 	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
-	pluginShared := true
+	pluginShared := !h.useDedicatedWorkers
 
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {
