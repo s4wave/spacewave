@@ -6,6 +6,8 @@ package devtool_web_entrypoint_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/link"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
@@ -27,6 +29,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/hydra/bucket"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
@@ -52,6 +55,10 @@ type Controller struct {
 	devtoolInfo *devtool_web.DevtoolInitBrowser
 	initm       *web_runtime.WebRuntimeHostInit
 	linkUrl     string
+
+	// browserRpcServer handles incoming SRPC streams on BrowserProtocolID.
+	// Initialized in the constructor so it is ready before Execute runs.
+	browserRpcServer *srpc.Server
 }
 
 func NewController(
@@ -61,12 +68,19 @@ func NewController(
 	initm *web_runtime.WebRuntimeHostInit,
 	linkUrl string,
 ) *Controller {
+	// Set up the browser RPC server immediately so HandleDirective can
+	// accept incoming BrowserProtocolID streams as soon as the controller
+	// is added to the bus. The mux falls back to bifrost_rpc.NewInvoker
+	// which lazily resolves any RPC service on the browser bus (including
+	// plugin-provided services once they load).
+	browserMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, "", true))
 	return &Controller{
-		le:          le,
-		b:           b,
-		devtoolInfo: devtoolInfo,
-		initm:       initm,
-		linkUrl:     linkUrl,
+		le:               le,
+		b:                b,
+		devtoolInfo:      devtoolInfo,
+		initm:            initm,
+		linkUrl:          linkUrl,
+		browserRpcServer: srpc.NewServer(browserMux),
 	}
 }
 
@@ -340,6 +354,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		defer plugRef.Release()
 	}
 
+	le.Info("browser RPC server ready for BrowserProtocolID streams")
+
 	// wait to run all the defer calls until context cancels
 	<-ctx.Done()
 	return nil
@@ -347,11 +363,36 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns resolver(s). If not, returns nil.
-// It is safe to add a reference to the directive during this call.
-// The passed context is canceled when the directive instance expires.
-// NOTE: the passed context is not canceled when the handler is removed.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	dir := di.GetDirective()
+	switch d := dir.(type) {
+	case link.HandleMountedStream:
+		return c.resolveHandleMountedStream(ctx, di, d)
+	}
 	return nil, nil
+}
+
+// resolveHandleMountedStream handles incoming streams on BrowserProtocolID.
+func (c *Controller) resolveHandleMountedStream(
+	_ context.Context,
+	_ directive.Instance,
+	dir link.HandleMountedStream,
+) ([]directive.Resolver, error) {
+	if dir.HandleMountedStreamProtocolID() != devtool_web.BrowserProtocolID {
+		return nil, nil
+	}
+	return directive.Resolvers(directive.NewValueResolver([]link.MountedStreamHandler{c})), nil
+}
+
+// HandleMountedStream handles an incoming mounted stream on BrowserProtocolID.
+func (c *Controller) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
+	go func() {
+		strm := ms.GetStream()
+		sctx := link.WithMountedStreamContext(ctx, ms)
+		c.browserRpcServer.HandleStream(sctx, strm)
+		strm.Close()
+	}()
+	return nil
 }
 
 // Close releases any resources used by the controller.
@@ -361,4 +402,7 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var (
+	_ controller.Controller       = ((*Controller)(nil))
+	_ link.MountedStreamHandler   = ((*Controller)(nil))
+)

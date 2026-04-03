@@ -18,6 +18,11 @@ const HostServerID = "devtool/web"
 // HostProtocolID is the protocol ID used for devtool-host RPC calls.
 const HostProtocolID = protocol.ID("devtool/web/rpc")
 
+// BrowserProtocolID is the protocol ID used for devtool-to-browser RPC calls.
+// The browser serves incoming streams on this protocol, allowing the devtool
+// (or a Go test harness) to call any RPC service on the browser bus.
+const BrowserProtocolID = protocol.ID("devtool/web/browser-rpc")
+
 // EntrypointClientID is the client ID used for devtool-entrypoint originating RPC calls.
 const EntrypointClientID = "devtool/web/entrypoint"
 
