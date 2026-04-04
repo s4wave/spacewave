@@ -320,13 +320,11 @@ class WebRuntimeImpl implements WebRuntimeService {
   }
 
   // getClientRpcHandler looks up the rpc stream handler for the given client ID.
+  // Waits for the client to register if not yet connected.
   private async getClientRpcHandler(
     clientId: string,
   ): Promise<RpcStreamHandler | null> {
-    const client = this.host.lookupClient(clientId)
-    if (!client) {
-      throw new Error(`unknown client: ${clientId}`)
-    }
+    const client = await this.host.waitForClient(clientId)
 
     const stream = await client.openStream()
     return (rpcDataStream: PacketStream) => {
@@ -365,6 +363,9 @@ export class WebRuntime {
   // clients contains the list of attached WebRuntime clients.
   // keyed by client ID
   private clients: Record<string, WebRuntimeClientInstance> = {}
+  // clientWaiters contains promises waiting for a client to register.
+  // keyed by client ID
+  private clientWaiters: Record<string, Array<() => void>> = {}
   // webDocuments contains the list of attached WebDocuments.
   // keyed by web document ID
   private webDocuments: Record<string, WebDocumentStatus> = {}
@@ -445,6 +446,25 @@ export class WebRuntime {
     return this.clients[webRuntimeId] ?? null
   }
 
+  // waitForClient waits for a client with the given ID to register.
+  // Returns immediately if the client is already registered.
+  public waitForClient(
+    clientId: string,
+  ): Promise<WebRuntimeClientInstance> {
+    const existing = this.clients[clientId]
+    if (existing) {
+      return Promise.resolve(existing)
+    }
+    return new Promise<WebRuntimeClientInstance>((resolve) => {
+      if (!this.clientWaiters[clientId]) {
+        this.clientWaiters[clientId] = []
+      }
+      this.clientWaiters[clientId].push(() => {
+        resolve(this.clients[clientId])
+      })
+    })
+  }
+
   // handleClient handles an incoming client connection MessagePort.
   // msg should contain a WebRuntimeClientInit message
   public handleClient(msg: WebRuntimeClientInit, port: MessagePort) {
@@ -470,6 +490,15 @@ export class WebRuntime {
       `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
     )
     this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
+
+    // Notify any waiters for this client.
+    const waiters = this.clientWaiters[clientUuid]
+    if (waiters) {
+      delete this.clientWaiters[clientUuid]
+      for (const resolve of waiters) {
+        resolve()
+      }
+    }
 
     if (
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT

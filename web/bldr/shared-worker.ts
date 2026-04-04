@@ -1,30 +1,31 @@
-// shared-worker.ts is the unified SharedWorker entry point for all plugin types.
+// shared-worker.ts is the unified worker entry point for all worker types.
 //
-// It parses URL parameters to determine:
-// - s: script path (the plugin script to run)
+// It parses URL hash parameters to determine:
+// - s: script path (the worker script to load)
 // - t: worker type ('native' or 'quickjs', defaults to 'native')
+// - p: plugin mode ('1' = plugin worker, absent = custom worker)
 //
-// For native plugins, it imports the script directly and calls main(api, signal).
-// For quickjs plugins, it imports quickjs-runner and calls main(api, signal, scriptPath).
+// Plugin workers (p=1): creates PluginWorker wrapper which manages
+// WebDocumentTracker, BackendApiImpl, and calls the script's main(api, signal).
+//
+// Custom workers (no p): imports the script directly and lets it self-manage.
+// The script provides its own message listeners and WebDocumentTracker.
 
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 
-import { PluginWorker } from '../runtime/plugin-worker.js'
+import { checkSharedWorker, PluginWorker } from '../runtime/plugin-worker.js'
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 
-declare let self: SharedWorkerGlobalScope
-
-// handleIncomingStreamCtr is the container for the plugin handle stream func.
-const handleIncomingStreamCtr = new HandleStreamCtr()
-
-// handleIncomingStream waits for a handler to be registered in handleIncomingStreamCtr.
-const handleIncomingStream: HandleStreamFunc =
-  handleIncomingStreamCtr.handleStreamFunc
+declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
 // parseUrlParams parses the URL hash parameters.
-// Format: #s=<scriptPath>&t=<workerType>
-function parseUrlParams(): { scriptPath: string; workerType: string } {
+// Format: #s=<scriptPath>&t=<workerType>&p=<plugin>
+function parseUrlParams(): {
+  scriptPath: string
+  workerType: string
+  isPlugin: boolean
+} {
   const url = new URL(self.location.href)
   const hash = url.hash
 
@@ -41,56 +42,92 @@ function parseUrlParams(): { scriptPath: string; workerType: string } {
   }
 
   const workerType = params.get('t') ?? 'native'
+  const isPlugin = params.get('p') === '1'
 
-  return { scriptPath: decodeURIComponent(scriptPath), workerType }
+  return { scriptPath: decodeURIComponent(scriptPath), workerType, isPlugin }
 }
 
-// startPluginCallback is called when the first WebDocument connects and sends initialization data.
-const startPluginCallback = async (startInfo: PluginStartInfo) => {
-  const { scriptPath, workerType } = parseUrlParams()
+const { isPlugin } = parseUrlParams()
 
-  // Construct the WebRuntimeHost client.
-  // This will call => WebRuntime (TypeScript) => rpcstream WebWorkerRpc => Go runtime
-  const openStream = pluginWorker.webRuntimeClient.openStream.bind(
-    pluginWorker.webRuntimeClient,
-  )
+if (isPlugin) {
+  // Plugin mode: use PluginWorker wrapper with BackendApiImpl lifecycle.
+  const handleIncomingStreamCtr = new HandleStreamCtr()
+  const handleIncomingStream: HandleStreamFunc =
+    handleIncomingStreamCtr.handleStreamFunc
 
-  // Build abort signal
-  const abortController = new AbortController()
-  const abortSignal = abortController.signal
+  let pluginWorker: PluginWorker
 
-  // Construct the backend api
-  const backendAPI = new BackendApiImpl(
-    startInfo,
-    openStream,
-    handleIncomingStreamCtr,
-    abortSignal,
-  )
+  const startPluginCallback = async (startInfo: PluginStartInfo) => {
+    const { scriptPath, workerType } = parseUrlParams()
 
-  if (workerType === 'quickjs') {
-    // QuickJS plugin: import quickjs-runner and run the script in QuickJS VM
-    console.log('shared-worker: starting QuickJS plugin:', scriptPath)
-    const quickjsRunner =
-      await import('../runtime/quickjs/plugin-host-quickjs.js')
-    await quickjsRunner.default(backendAPI, abortSignal, scriptPath)
-  } else {
-    // Native plugin: dynamically import the script and call its main function
-    console.log('shared-worker: starting native plugin:', scriptPath)
-    const pluginModule = await import(scriptPath)
-    if (typeof pluginModule.default !== 'function') {
-      throw new Error(
-        `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
-      )
+    const openStream = pluginWorker.webRuntimeClient.openStream.bind(
+      pluginWorker.webRuntimeClient,
+    )
+
+    const abortController = new AbortController()
+    const abortSignal = abortController.signal
+
+    const backendAPI = new BackendApiImpl(
+      startInfo,
+      openStream,
+      handleIncomingStreamCtr,
+      abortSignal,
+    )
+
+    if (workerType === 'quickjs') {
+      console.log('shared-worker: starting QuickJS plugin:', scriptPath)
+      const quickjsRunner =
+        await import('../runtime/quickjs/plugin-host-quickjs.js')
+      await quickjsRunner.default(backendAPI, abortSignal, scriptPath)
+    } else {
+      console.log('shared-worker: starting native plugin:', scriptPath)
+      const pluginModule = await import(scriptPath)
+      if (typeof pluginModule.default !== 'function') {
+        throw new Error(
+          `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
+        )
+      }
+      await pluginModule.default(backendAPI, abortSignal)
     }
-    await pluginModule.default(backendAPI, abortSignal)
   }
+
+  pluginWorker = new PluginWorker(self, startPluginCallback, handleIncomingStream)
+} else {
+  // Custom worker mode: import script directly and let it self-manage.
+  // Buffer messages that arrive during the async import. The script registers
+  // its own message/connect listeners at module evaluation time, but the init
+  // postMessage from WebDocument may arrive before the import completes.
+  const { scriptPath } = parseUrlParams()
+  const buffered: MessageEvent[] = []
+
+  const bufferHandler = (ev: MessageEvent) => {
+    buffered.push(ev)
+  }
+
+  if (checkSharedWorker(self)) {
+    self.addEventListener('connect', bufferHandler as EventListener)
+  } else {
+    self.addEventListener('message', bufferHandler)
+  }
+
+  console.log('shared-worker: loading custom worker script:', scriptPath)
+  import(scriptPath)
+    .then(() => {
+      if (checkSharedWorker(self)) {
+        self.removeEventListener('connect', bufferHandler as EventListener)
+        for (const ev of buffered) {
+          self.dispatchEvent(new MessageEvent('connect', { ports: [...ev.ports] }))
+        }
+      } else {
+        self.removeEventListener('message', bufferHandler)
+        for (const ev of buffered) {
+          self.dispatchEvent(new MessageEvent('message', { data: ev.data }))
+        }
+      }
+      buffered.length = 0
+    })
+    .catch((err) => {
+      console.error('shared-worker: failed to load custom worker script:', err)
+      self.close()
+    })
 }
-
-// Initialize the PluginWorker.
-const pluginWorker = new PluginWorker(
-  self,
-  startPluginCallback,
-  handleIncomingStream,
-)
-
-// Note: the pluginWorker registers the onconnect callback on "self".

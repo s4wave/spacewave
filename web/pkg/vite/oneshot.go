@@ -7,13 +7,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/util/randstring"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
-	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
@@ -68,7 +69,10 @@ func RunOneShot(
 		Drop:          esbuild.DropDebugger,
 		Metafile:      false,
 		Splitting:     false,
-		Define:        map[string]string{"BLDR_IS_NODE": "true"},
+		Define: map[string]string{
+			"BLDR_IS_NODE": "true",
+			"NO_COLOR":     "1",
+		},
 		Plugins: []esbuild.Plugin{
 			bldr_esbuild_build.ExternalNodeModulesPlugin(),
 			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath),
@@ -103,10 +107,13 @@ func RunOneShot(
 	if err != nil {
 		return err
 	}
-	cmd.Env = os.Environ()
+	cmd.Env = slices.Clone(os.Environ())
 	cmd.Dir = filepath.Dir(viteScriptPath)
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
+
+	// Env vars
+	cmd.Env = append(cmd.Env, "NO_COLOR=1", "NODE_DISABLE_COLORS=1", "FORCE_COLOR=0")
 
 	if ctx.Err() != nil {
 		return context.Canceled

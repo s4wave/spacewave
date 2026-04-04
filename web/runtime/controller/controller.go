@@ -192,6 +192,12 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 	// /b/ is for bldr internals
 	if strings.HasPrefix(rpath, "/b/") {
+		// COEP + CORP headers are required for resources loaded under
+		// Cross-Origin-Embedder-Policy: require-corp. Module worker scripts
+		// need COEP on their own response (the worker is a separate execution
+		// context). CORP marks the resource as same-origin accessible.
+		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		c.le.Debugf("serve /b/ path: %s", rpath)
 
 		// /b/pkg/ is for Web module distribution files (like react)

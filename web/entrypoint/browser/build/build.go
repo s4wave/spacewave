@@ -81,12 +81,14 @@ func BuildWasmRuntimeEntrypoint(
 // BuildSqliteWorkerEntrypoint builds the sqlite dedicated worker entrypoint.
 //
 // builds to buildDir/sqlite-worker.mjs
+// assetPublicPath is the URL prefix for file-loader assets (e.g. "/entrypoint/").
 func BuildSqliteWorkerEntrypoint(
 	le *logrus.Entry,
 	stateDir string,
 	bldrDistRoot string,
 	buildDir string,
 	buildType bldr_manifest.BuildType,
+	assetPublicPath string,
 ) error {
 	le.Info("building sqlite-worker.mjs")
 
@@ -94,6 +96,7 @@ func BuildSqliteWorkerEntrypoint(
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify)
 	opts.EntryPoints = []string{"web/runtime/wasm/sqlite/worker.ts"}
 	opts.Outfile = filepath.Join(buildDir, "sqlite-worker.mjs")
+	opts.PublicPath = assetPublicPath
 	opts.Write = true
 
 	res := esbuild_api.Build(opts)

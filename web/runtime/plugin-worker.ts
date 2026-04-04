@@ -9,7 +9,7 @@ export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,
 ): scope is SharedWorkerGlobalScope {
   return (
-    typeof SharedWorkerGlobalScope !== undefined && // eslint-disable-line
+    typeof SharedWorkerGlobalScope !== 'undefined' && // eslint-disable-line
     scope instanceof SharedWorkerGlobalScope
   )
 }

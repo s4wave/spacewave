@@ -273,6 +273,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		distSrcDir,
 		wasmRuntimeDir,
 		entryBuildType,
+		"/entrypoint/",
 	); err != nil {
 		return err
 	}
@@ -321,6 +322,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		// These enable SAB-based communication between SharedWorkers
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 
 		if req.URL.Path == infoPath {
 			le.Info("received info request from frontend")

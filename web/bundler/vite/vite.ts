@@ -475,6 +475,7 @@ async function buildWebPkg(
     process.env['NO_COLOR'] = '1'
     process.env['NODE_DISABLE_COLORS'] = '1'
     process.env['CI'] = '1'
+    process.env['FORCE_COLOR'] = '0'
 
     const viteOutput = (await viteBuild(config)) as
       | Rollup.RolldownOutput[]

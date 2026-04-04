@@ -145,7 +145,8 @@ class WebDocumentWebWorker {
       const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
       const workerTypeParam =
         workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
-      workerURL.hash = `s=${encodedPath}${workerTypeParam}`
+      const pluginParam = initData ? '&p=1' : ''
+      workerURL.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
 
       if (typeof SharedWorker !== 'undefined') {
         this.sharedWorker = new SharedWorker(workerURL.toString(), {
@@ -161,13 +162,42 @@ class WebDocumentWebWorker {
         this.worker.postMessage(init, [workerPort])
       }
     } else {
-      // Dedicated mode: create Worker directly with path as the script URL.
-      const workerURL = new URL(path, baseURL)
+      // Dedicated mode: use the same shw.mjs wrapper as SharedWorker mode
+      // but with a dedicated Worker. The wrapper handles init messages,
+      // dynamically imports the plugin script, and calls main(api).
+      // Without the wrapper, the plugin script is loaded directly and
+      // its exported main() is never called.
+      if (!sharedWorkerPath) {
+        throw new Error('shared worker path must be set for dedicated mode')
+      }
+      const workerURL = new URL(sharedWorkerPath, baseURL)
+      const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
+      const workerTypeParam =
+        workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
+      const pluginParam = initData ? '&p=1' : ''
+      workerURL.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
       this.worker = new Worker(workerURL.toString(), {
         name: id,
         type: 'module',
       })
       this.worker.postMessage(init, [workerPort])
+    }
+
+    // Capture worker errors (module load failures, uncaught exceptions).
+    // Without this, dedicated workers that fail during module loading
+    // produce no console output and silently disappear.
+    const w = this.worker
+    if (w) {
+      w.onerror = (ev: ErrorEvent) => {
+        console.error(
+          `worker ${id}: error: ${ev.message} at ${ev.filename}:${ev.lineno}:${ev.colno}`,
+        )
+      }
+    }
+    if (this.sharedWorker) {
+      this.sharedWorker.onerror = (ev: Event) => {
+        console.error(`shared worker ${id}: error: ${(ev as ErrorEvent).message}`)
+      }
     }
 
     this.port = localPort

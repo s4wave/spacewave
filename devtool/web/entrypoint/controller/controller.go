@@ -72,7 +72,7 @@ func NewController(
 	// is added to the bus. The mux falls back to bifrost_rpc.NewInvoker
 	// which lazily resolves any RPC service on the browser bus (including
 	// plugin-provided services once they load).
-	browserMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, "", true))
+	browserMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, devtool_web.BrowserProtocolID.String(), true))
 	return &Controller{
 		le:               le,
 		b:                b,
@@ -391,9 +391,9 @@ func (c *Controller) resolveHandleMountedStream(
 
 // HandleMountedStream handles an incoming mounted stream on BrowserProtocolID.
 func (c *Controller) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
+	strm := ms.GetStream()
+	sctx := link.WithMountedStreamContext(ctx, ms)
 	go func() {
-		strm := ms.GetStream()
-		sctx := link.WithMountedStreamContext(ctx, ms)
 		c.browserRpcServer.HandleStream(sctx, strm)
 		strm.Close()
 	}()

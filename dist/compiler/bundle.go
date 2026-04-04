@@ -405,6 +405,7 @@ func BuildDistBundle(
 			distSrcPath,
 			outEntryDir,
 			buildType,
+			"/entrypoint/"+entrypointHash+"/",
 		); err != nil {
 			return err
 		}

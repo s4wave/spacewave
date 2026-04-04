@@ -123,6 +123,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 
 		Define: map[string]string{
 			"BLDR_IS_NODE": "true",
+			"NO_COLOR":     "1",
 		},
 
 		Plugins: []esbuild.Plugin{
@@ -168,10 +169,13 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		}
 		return err
 	}
-	cmd.Env = os.Environ()
+	cmd.Env = slices.Clone(os.Environ())
 	cmd.Dir = filepath.Dir(viteScriptPath)
 	cmd.Stdout = t.le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = t.le.WriterLevel(logrus.DebugLevel)
+
+	// Env vars
+	cmd.Env = append(cmd.Env, "NO_COLOR=1", "NODE_DISABLE_COLORS=1", "FORCE_COLOR=0")
 
 	// Check if canceled
 	if ctx.Err() != nil {

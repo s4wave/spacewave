@@ -5,12 +5,12 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // LookupRpcServiceResolver resolves LookupRpcService with the plugin or plugin host.
@@ -115,11 +115,19 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		return false, nil
 	}
 
+	le := logrus.WithFields(logrus.Fields{
+		"service": targetServiceID,
+		"method":  methodID,
+	})
+	le.Info("forwarding invoker: opening outgoing stream")
+
 	// Create outgoing stream via client
 	outgoingStream, err := f.client.NewStream(strm.Context(), targetServiceID, methodID, nil)
 	if err != nil {
+		le.WithError(err).Warn("forwarding invoker: outgoing stream open failed")
 		return true, errors.Wrap(err, "failed to create outgoing stream")
 	}
+	le.Info("forwarding invoker: outgoing stream opened, starting bridge")
 	defer strm.Close()
 
 	// Bridge the streams bidirectionally
@@ -137,12 +145,12 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		}
 	}
 
-	var sendErr atomic.Pointer[error]
+	serverDone := make(chan error, 1)
 	go func() {
 		defer outgoingStream.Close()
-		if err := writeServerToClient(); err != nil && err != io.EOF {
-			sendErr.Store(&err)
-		}
+		err := writeServerToClient()
+		le.WithError(err).Info("forwarding invoker: server->client exited")
+		serverDone <- err
 	}()
 
 	// Write messages from client to server
@@ -160,12 +168,23 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 	}
 
 	writeErr := writeClientToServer()
+	le.WithError(writeErr).Info("forwarding invoker: client->server exited")
+
+	// Client closed send side (EOF): forward the half-close to the
+	// outgoing stream and wait for the server->client direction to finish.
+	// This handles server-streaming RPCs where the client sends one message
+	// then calls CloseSend() before reading responses.
 	if writeErr == nil || writeErr == io.EOF {
-		readErr := sendErr.Load()
-		if readErr != nil {
-			writeErr = *readErr
+		_ = outgoingStream.CloseSend()
+		srvErr := <-serverDone
+		if srvErr != nil && srvErr != io.EOF {
+			writeErr = srvErr
+		} else {
+			writeErr = nil
 		}
 	}
+
+	le.WithError(writeErr).Info("forwarding invoker: bridge exited")
 	return true, writeErr
 }
 

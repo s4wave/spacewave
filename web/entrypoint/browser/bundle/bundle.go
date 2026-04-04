@@ -259,6 +259,15 @@ func BuildRendererBundle(
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
 
+	// Set PublicPath so esbuild emits correct URLs for file-loader assets
+	// (images, wasm, fonts). Assets are output to the entrypoint dir which is
+	// served at /entrypoint/ or /entrypoint/{hash}/.
+	assetPublicPath := "/entrypoint/"
+	if entrypointHash != "" {
+		assetPublicPath = "/entrypoint/" + entrypointHash + "/"
+	}
+	rendererBuildOpts.PublicPath = assetPublicPath
+
 	if runtimeJsPath != "" {
 		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}
