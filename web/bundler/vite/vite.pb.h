@@ -67,10 +67,22 @@ class BuildResponse;
 struct BuildResponseDefaultTypeInternal;
 extern BuildResponseDefaultTypeInternal _BuildResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull BuildResponse_class_data_;
+class BuildWebPkgRequest;
+struct BuildWebPkgRequestDefaultTypeInternal;
+extern BuildWebPkgRequestDefaultTypeInternal _BuildWebPkgRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgRequest_class_data_;
+class BuildWebPkgResponse;
+struct BuildWebPkgResponseDefaultTypeInternal;
+extern BuildWebPkgResponseDefaultTypeInternal _BuildWebPkgResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgResponse_class_data_;
 class EntrypointOutput;
 struct EntrypointOutputDefaultTypeInternal;
 extern EntrypointOutputDefaultTypeInternal _EntrypointOutput_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull EntrypointOutput_class_data_;
+class ImportMapEntry;
+struct ImportMapEntryDefaultTypeInternal;
+extern ImportMapEntryDefaultTypeInternal _ImportMapEntry_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ImportMapEntry_class_data_;
 class ViteBuildRequestEntrypoint;
 struct ViteBuildRequestEntrypointDefaultTypeInternal;
 extern ViteBuildRequestEntrypointDefaultTypeInternal _ViteBuildRequestEntrypoint_default_instance_;
@@ -762,6 +774,218 @@ class ViteBuildRequestEntrypoint final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ViteBuildRequestEntrypoint_class_data_;
 // -------------------------------------------------------------------
 
+class ImportMapEntry final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.bundler.vite.ImportMapEntry) */ {
+ public:
+  inline ImportMapEntry() : ImportMapEntry(nullptr) {}
+  ~ImportMapEntry() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ImportMapEntry* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ImportMapEntry));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ImportMapEntry(::google::protobuf::internal::ConstantInitialized);
+
+  inline ImportMapEntry(const ImportMapEntry& from) : ImportMapEntry(nullptr, from) {}
+  inline ImportMapEntry(ImportMapEntry&& from) noexcept
+      : ImportMapEntry(nullptr, ::std::move(from)) {}
+  inline ImportMapEntry& operator=(const ImportMapEntry& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ImportMapEntry& operator=(ImportMapEntry&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ImportMapEntry& default_instance() {
+    return *reinterpret_cast<const ImportMapEntry*>(
+        &_ImportMapEntry_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(ImportMapEntry& a, ImportMapEntry& b) { a.Swap(&b); }
+  inline void Swap(ImportMapEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ImportMapEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ImportMapEntry* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ImportMapEntry>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ImportMapEntry& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ImportMapEntry& from) { ImportMapEntry::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ImportMapEntry* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.vite.ImportMapEntry"; }
+
+  explicit ImportMapEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ImportMapEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ImportMapEntry& from);
+  ImportMapEntry(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ImportMapEntry&& from) noexcept
+      : ImportMapEntry(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSpecifierFieldNumber = 1,
+    kOutputPathFieldNumber = 2,
+  };
+  // string specifier = 1;
+  void clear_specifier() ;
+  const ::std::string& specifier() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_specifier(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_specifier();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_specifier();
+  void set_allocated_specifier(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_specifier() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_specifier(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_specifier();
+
+  public:
+  // string output_path = 2;
+  void clear_output_path() ;
+  const ::std::string& output_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_output_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_output_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_output_path();
+  void set_allocated_output_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_output_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_output_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_output_path();
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.web.bundler.vite.ImportMapEntry)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 65,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ImportMapEntry& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr specifier_;
+    ::google::protobuf::internal::ArenaStringPtr output_path_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ImportMapEntry_class_data_;
+// -------------------------------------------------------------------
+
 class EntrypointOutput final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:bldr.web.bundler.vite.EntrypointOutput) */ {
  public:
@@ -1020,6 +1244,603 @@ class EntrypointOutput final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EntrypointOutput_class_data_;
+// -------------------------------------------------------------------
+
+class BuildWebPkgRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.bundler.vite.BuildWebPkgRequest) */ {
+ public:
+  inline BuildWebPkgRequest() : BuildWebPkgRequest(nullptr) {}
+  ~BuildWebPkgRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BuildWebPkgRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BuildWebPkgRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BuildWebPkgRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline BuildWebPkgRequest(const BuildWebPkgRequest& from) : BuildWebPkgRequest(nullptr, from) {}
+  inline BuildWebPkgRequest(BuildWebPkgRequest&& from) noexcept
+      : BuildWebPkgRequest(nullptr, ::std::move(from)) {}
+  inline BuildWebPkgRequest& operator=(const BuildWebPkgRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BuildWebPkgRequest& operator=(BuildWebPkgRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BuildWebPkgRequest& default_instance() {
+    return *reinterpret_cast<const BuildWebPkgRequest*>(
+        &_BuildWebPkgRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(BuildWebPkgRequest& a, BuildWebPkgRequest& b) { a.Swap(&b); }
+  inline void Swap(BuildWebPkgRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BuildWebPkgRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BuildWebPkgRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<BuildWebPkgRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const BuildWebPkgRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const BuildWebPkgRequest& from) { BuildWebPkgRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(BuildWebPkgRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.vite.BuildWebPkgRequest"; }
+
+  explicit BuildWebPkgRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BuildWebPkgRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BuildWebPkgRequest& from);
+  BuildWebPkgRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BuildWebPkgRequest&& from) noexcept
+      : BuildWebPkgRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kImportsFieldNumber = 3,
+    kSiblingPkgIdsFieldNumber = 4,
+    kExternalPkgsFieldNumber = 5,
+    kPkgIdFieldNumber = 1,
+    kPkgRootFieldNumber = 2,
+    kOutDirFieldNumber = 6,
+    kWebPkgBasePathFieldNumber = 7,
+    kCacheDirFieldNumber = 9,
+    kIsReleaseFieldNumber = 8,
+  };
+  // repeated string imports = 3;
+  int imports_size() const;
+  private:
+  int _internal_imports_size() const;
+
+  public:
+  void clear_imports() ;
+  const ::std::string& imports(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_imports(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_imports(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_imports();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_imports(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& imports() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_imports();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_imports() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_imports();
+
+  public:
+  // repeated string sibling_pkg_ids = 4;
+  int sibling_pkg_ids_size() const;
+  private:
+  int _internal_sibling_pkg_ids_size() const;
+
+  public:
+  void clear_sibling_pkg_ids() ;
+  const ::std::string& sibling_pkg_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_sibling_pkg_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_sibling_pkg_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_sibling_pkg_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_sibling_pkg_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& sibling_pkg_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_sibling_pkg_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_sibling_pkg_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_sibling_pkg_ids();
+
+  public:
+  // repeated string external_pkgs = 5;
+  int external_pkgs_size() const;
+  private:
+  int _internal_external_pkgs_size() const;
+
+  public:
+  void clear_external_pkgs() ;
+  const ::std::string& external_pkgs(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_external_pkgs(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_external_pkgs(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_external_pkgs();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_external_pkgs(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& external_pkgs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_external_pkgs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_external_pkgs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_external_pkgs();
+
+  public:
+  // string pkg_id = 1;
+  void clear_pkg_id() ;
+  const ::std::string& pkg_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_pkg_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_pkg_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_pkg_id();
+  void set_allocated_pkg_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_pkg_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_pkg_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_pkg_id();
+
+  public:
+  // string pkg_root = 2;
+  void clear_pkg_root() ;
+  const ::std::string& pkg_root() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_pkg_root(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_pkg_root();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_pkg_root();
+  void set_allocated_pkg_root(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_pkg_root() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_pkg_root(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_pkg_root();
+
+  public:
+  // string out_dir = 6;
+  void clear_out_dir() ;
+  const ::std::string& out_dir() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_out_dir(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_out_dir();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_out_dir();
+  void set_allocated_out_dir(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_out_dir() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_out_dir(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_out_dir();
+
+  public:
+  // string web_pkg_base_path = 7;
+  void clear_web_pkg_base_path() ;
+  const ::std::string& web_pkg_base_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_web_pkg_base_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_web_pkg_base_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_web_pkg_base_path();
+  void set_allocated_web_pkg_base_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_web_pkg_base_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_web_pkg_base_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_web_pkg_base_path();
+
+  public:
+  // string cache_dir = 9;
+  void clear_cache_dir() ;
+  const ::std::string& cache_dir() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_cache_dir(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_cache_dir();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_cache_dir();
+  void set_allocated_cache_dir(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_cache_dir() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_cache_dir(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_cache_dir();
+
+  public:
+  // bool is_release = 8;
+  void clear_is_release() ;
+  bool is_release() const;
+  void set_is_release(bool value);
+
+  private:
+  bool _internal_is_release() const;
+  void _internal_set_is_release(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.web.bundler.vite.BuildWebPkgRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   0, 139,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const BuildWebPkgRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> imports_;
+    ::google::protobuf::RepeatedPtrField<::std::string> sibling_pkg_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> external_pkgs_;
+    ::google::protobuf::internal::ArenaStringPtr pkg_id_;
+    ::google::protobuf::internal::ArenaStringPtr pkg_root_;
+    ::google::protobuf::internal::ArenaStringPtr out_dir_;
+    ::google::protobuf::internal::ArenaStringPtr web_pkg_base_path_;
+    ::google::protobuf::internal::ArenaStringPtr cache_dir_;
+    bool is_release_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgRequest_class_data_;
+// -------------------------------------------------------------------
+
+class BuildWebPkgResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.bundler.vite.BuildWebPkgResponse) */ {
+ public:
+  inline BuildWebPkgResponse() : BuildWebPkgResponse(nullptr) {}
+  ~BuildWebPkgResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BuildWebPkgResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BuildWebPkgResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BuildWebPkgResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline BuildWebPkgResponse(const BuildWebPkgResponse& from) : BuildWebPkgResponse(nullptr, from) {}
+  inline BuildWebPkgResponse(BuildWebPkgResponse&& from) noexcept
+      : BuildWebPkgResponse(nullptr, ::std::move(from)) {}
+  inline BuildWebPkgResponse& operator=(const BuildWebPkgResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BuildWebPkgResponse& operator=(BuildWebPkgResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BuildWebPkgResponse& default_instance() {
+    return *reinterpret_cast<const BuildWebPkgResponse*>(
+        &_BuildWebPkgResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(BuildWebPkgResponse& a, BuildWebPkgResponse& b) { a.Swap(&b); }
+  inline void Swap(BuildWebPkgResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BuildWebPkgResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BuildWebPkgResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<BuildWebPkgResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const BuildWebPkgResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const BuildWebPkgResponse& from) { BuildWebPkgResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(BuildWebPkgResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.vite.BuildWebPkgResponse"; }
+
+  explicit BuildWebPkgResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BuildWebPkgResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BuildWebPkgResponse& from);
+  BuildWebPkgResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BuildWebPkgResponse&& from) noexcept
+      : BuildWebPkgResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSourceFilesFieldNumber = 3,
+    kImportMapEntriesFieldNumber = 4,
+    kErrorFieldNumber = 2,
+    kSuccessFieldNumber = 1,
+  };
+  // repeated string source_files = 3;
+  int source_files_size() const;
+  private:
+  int _internal_source_files_size() const;
+
+  public:
+  void clear_source_files() ;
+  const ::std::string& source_files(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_source_files(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_source_files(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_source_files();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_source_files(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& source_files() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_source_files();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_source_files() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_source_files();
+
+  public:
+  // repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+  int import_map_entries_size() const;
+  private:
+  int _internal_import_map_entries_size() const;
+
+  public:
+  void clear_import_map_entries() ;
+  ::bldr::web::bundler::vite::ImportMapEntry* PROTOBUF_NONNULL mutable_import_map_entries(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>* PROTOBUF_NONNULL mutable_import_map_entries();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>& _internal_import_map_entries() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>* PROTOBUF_NONNULL _internal_mutable_import_map_entries();
+  public:
+  const ::bldr::web::bundler::vite::ImportMapEntry& import_map_entries(int index) const;
+  ::bldr::web::bundler::vite::ImportMapEntry* PROTOBUF_NONNULL add_import_map_entries();
+  const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>& import_map_entries() const;
+  // string error = 2;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // bool success = 1;
+  void clear_success() ;
+  bool success() const;
+  void set_success(bool value);
+
+  private:
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.web.bundler.vite.BuildWebPkgResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 67,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const BuildWebPkgResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> source_files_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::web::bundler::vite::ImportMapEntry > import_map_entries_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    bool success_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgResponse_class_data_;
 // -------------------------------------------------------------------
 
 class BuildResponse final : public ::google::protobuf::Message
@@ -3436,6 +4257,932 @@ inline void ViteOutputMeta::set_allocated_entrypoint_path(::std::string* PROTOBU
     _impl_.entrypoint_path_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.ViteOutputMeta.entrypoint_path)
+}
+
+// -------------------------------------------------------------------
+
+// BuildWebPkgRequest
+
+// string pkg_id = 1;
+inline void BuildWebPkgRequest::clear_pkg_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pkg_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& BuildWebPkgRequest::pkg_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id)
+  return _internal_pkg_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgRequest::set_pkg_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.pkg_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_pkg_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_pkg_id();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::_internal_pkg_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.pkg_id_.Get();
+}
+inline void BuildWebPkgRequest::_internal_set_pkg_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pkg_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::_internal_mutable_pkg_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.pkg_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgRequest::release_pkg_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.pkg_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.pkg_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgRequest::set_allocated_pkg_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.pkg_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.pkg_id_.IsDefault()) {
+    _impl_.pkg_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id)
+}
+
+// string pkg_root = 2;
+inline void BuildWebPkgRequest::clear_pkg_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pkg_root_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& BuildWebPkgRequest::pkg_root() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root)
+  return _internal_pkg_root();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgRequest::set_pkg_root(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.pkg_root_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_pkg_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_pkg_root();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::_internal_pkg_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.pkg_root_.Get();
+}
+inline void BuildWebPkgRequest::_internal_set_pkg_root(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pkg_root_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::_internal_mutable_pkg_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.pkg_root_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgRequest::release_pkg_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.pkg_root_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.pkg_root_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgRequest::set_allocated_pkg_root(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.pkg_root_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.pkg_root_.IsDefault()) {
+    _impl_.pkg_root_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root)
+}
+
+// repeated string imports = 3;
+inline int BuildWebPkgRequest::_internal_imports_size() const {
+  return _internal_imports().size();
+}
+inline int BuildWebPkgRequest::imports_size() const {
+  return _internal_imports_size();
+}
+inline void BuildWebPkgRequest::clear_imports() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.imports_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::add_imports()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_imports()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::imports(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+  return _internal_imports().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_imports(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+  return _internal_mutable_imports()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::set_imports(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_imports()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::add_imports(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_imports(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& BuildWebPkgRequest::imports()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+  return _internal_imports();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::mutable_imports() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.vite.BuildWebPkgRequest.imports)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_imports();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+BuildWebPkgRequest::_internal_imports() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.imports_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::_internal_mutable_imports() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.imports_;
+}
+
+// repeated string sibling_pkg_ids = 4;
+inline int BuildWebPkgRequest::_internal_sibling_pkg_ids_size() const {
+  return _internal_sibling_pkg_ids().size();
+}
+inline int BuildWebPkgRequest::sibling_pkg_ids_size() const {
+  return _internal_sibling_pkg_ids_size();
+}
+inline void BuildWebPkgRequest::clear_sibling_pkg_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sibling_pkg_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::add_sibling_pkg_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_sibling_pkg_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::sibling_pkg_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+  return _internal_sibling_pkg_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_sibling_pkg_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+  return _internal_mutable_sibling_pkg_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::set_sibling_pkg_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_sibling_pkg_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::add_sibling_pkg_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_sibling_pkg_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& BuildWebPkgRequest::sibling_pkg_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+  return _internal_sibling_pkg_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::mutable_sibling_pkg_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_sibling_pkg_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+BuildWebPkgRequest::_internal_sibling_pkg_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sibling_pkg_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::_internal_mutable_sibling_pkg_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.sibling_pkg_ids_;
+}
+
+// repeated string external_pkgs = 5;
+inline int BuildWebPkgRequest::_internal_external_pkgs_size() const {
+  return _internal_external_pkgs().size();
+}
+inline int BuildWebPkgRequest::external_pkgs_size() const {
+  return _internal_external_pkgs_size();
+}
+inline void BuildWebPkgRequest::clear_external_pkgs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.external_pkgs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::add_external_pkgs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_external_pkgs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::external_pkgs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+  return _internal_external_pkgs().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_external_pkgs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+  return _internal_mutable_external_pkgs()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::set_external_pkgs(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_external_pkgs()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgRequest::add_external_pkgs(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_external_pkgs(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& BuildWebPkgRequest::external_pkgs()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+  return _internal_external_pkgs();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::mutable_external_pkgs() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_external_pkgs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+BuildWebPkgRequest::_internal_external_pkgs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.external_pkgs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgRequest::_internal_mutable_external_pkgs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.external_pkgs_;
+}
+
+// string out_dir = 6;
+inline void BuildWebPkgRequest::clear_out_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.out_dir_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& BuildWebPkgRequest::out_dir() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.out_dir)
+  return _internal_out_dir();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgRequest::set_out_dir(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.out_dir_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.out_dir)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_out_dir()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_out_dir();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.out_dir)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::_internal_out_dir() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.out_dir_.Get();
+}
+inline void BuildWebPkgRequest::_internal_set_out_dir(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.out_dir_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::_internal_mutable_out_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.out_dir_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgRequest::release_out_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgRequest.out_dir)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.out_dir_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.out_dir_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgRequest::set_allocated_out_dir(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.out_dir_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.out_dir_.IsDefault()) {
+    _impl_.out_dir_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.out_dir)
+}
+
+// string web_pkg_base_path = 7;
+inline void BuildWebPkgRequest::clear_web_pkg_base_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.web_pkg_base_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& BuildWebPkgRequest::web_pkg_base_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path)
+  return _internal_web_pkg_base_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgRequest::set_web_pkg_base_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.web_pkg_base_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_web_pkg_base_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_web_pkg_base_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::_internal_web_pkg_base_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.web_pkg_base_path_.Get();
+}
+inline void BuildWebPkgRequest::_internal_set_web_pkg_base_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.web_pkg_base_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::_internal_mutable_web_pkg_base_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.web_pkg_base_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgRequest::release_web_pkg_base_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.web_pkg_base_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.web_pkg_base_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgRequest::set_allocated_web_pkg_base_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.web_pkg_base_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.web_pkg_base_path_.IsDefault()) {
+    _impl_.web_pkg_base_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path)
+}
+
+// bool is_release = 8;
+inline void BuildWebPkgRequest::clear_is_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.is_release_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline bool BuildWebPkgRequest::is_release() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.is_release)
+  return _internal_is_release();
+}
+inline void BuildWebPkgRequest::set_is_release(bool value) {
+  _internal_set_is_release(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.is_release)
+}
+inline bool BuildWebPkgRequest::_internal_is_release() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.is_release_;
+}
+inline void BuildWebPkgRequest::_internal_set_is_release(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.is_release_ = value;
+}
+
+// string cache_dir = 9;
+inline void BuildWebPkgRequest::clear_cache_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_dir_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& BuildWebPkgRequest::cache_dir() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+  return _internal_cache_dir();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgRequest::set_cache_dir(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.cache_dir_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::mutable_cache_dir()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_cache_dir();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgRequest::_internal_cache_dir() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cache_dir_.Get();
+}
+inline void BuildWebPkgRequest::_internal_set_cache_dir(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_dir_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgRequest::_internal_mutable_cache_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.cache_dir_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgRequest::release_cache_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.cache_dir_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.cache_dir_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgRequest::set_allocated_cache_dir(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.cache_dir_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.cache_dir_.IsDefault()) {
+    _impl_.cache_dir_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+}
+
+// -------------------------------------------------------------------
+
+// BuildWebPkgResponse
+
+// bool success = 1;
+inline void BuildWebPkgResponse::clear_success() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.success_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool BuildWebPkgResponse::success() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgResponse.success)
+  return _internal_success();
+}
+inline void BuildWebPkgResponse::set_success(bool value) {
+  _internal_set_success(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgResponse.success)
+}
+inline bool BuildWebPkgResponse::_internal_success() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.success_;
+}
+inline void BuildWebPkgResponse::_internal_set_success(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.success_ = value;
+}
+
+// string error = 2;
+inline void BuildWebPkgResponse::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& BuildWebPkgResponse::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgResponse.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BuildWebPkgResponse::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgResponse.error)
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgResponse::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgResponse.error)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgResponse::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void BuildWebPkgResponse::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgResponse::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BuildWebPkgResponse::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.BuildWebPkgResponse.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BuildWebPkgResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgResponse.error)
+}
+
+// repeated string source_files = 3;
+inline int BuildWebPkgResponse::_internal_source_files_size() const {
+  return _internal_source_files().size();
+}
+inline int BuildWebPkgResponse::source_files_size() const {
+  return _internal_source_files_size();
+}
+inline void BuildWebPkgResponse::clear_source_files() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.source_files_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgResponse::add_source_files()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_source_files()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+  return _s;
+}
+inline const ::std::string& BuildWebPkgResponse::source_files(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+  return _internal_source_files().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL BuildWebPkgResponse::mutable_source_files(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+  return _internal_mutable_source_files()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgResponse::set_source_files(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_source_files()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+}
+template <typename Arg_, typename... Args_>
+inline void BuildWebPkgResponse::add_source_files(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_source_files(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& BuildWebPkgResponse::source_files()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+  return _internal_source_files();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgResponse::mutable_source_files() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.vite.BuildWebPkgResponse.source_files)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_source_files();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+BuildWebPkgResponse::_internal_source_files() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.source_files_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+BuildWebPkgResponse::_internal_mutable_source_files() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.source_files_;
+}
+
+// repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+inline int BuildWebPkgResponse::_internal_import_map_entries_size() const {
+  return _internal_import_map_entries().size();
+}
+inline int BuildWebPkgResponse::import_map_entries_size() const {
+  return _internal_import_map_entries_size();
+}
+inline void BuildWebPkgResponse::clear_import_map_entries() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.import_map_entries_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::bldr::web::bundler::vite::ImportMapEntry* PROTOBUF_NONNULL BuildWebPkgResponse::mutable_import_map_entries(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.BuildWebPkgResponse.import_map_entries)
+  return _internal_mutable_import_map_entries()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>* PROTOBUF_NONNULL BuildWebPkgResponse::mutable_import_map_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.vite.BuildWebPkgResponse.import_map_entries)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_import_map_entries();
+}
+inline const ::bldr::web::bundler::vite::ImportMapEntry& BuildWebPkgResponse::import_map_entries(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgResponse.import_map_entries)
+  return _internal_import_map_entries().Get(index);
+}
+inline ::bldr::web::bundler::vite::ImportMapEntry* PROTOBUF_NONNULL BuildWebPkgResponse::add_import_map_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::bldr::web::bundler::vite::ImportMapEntry* _add =
+      _internal_mutable_import_map_entries()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.vite.BuildWebPkgResponse.import_map_entries)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>& BuildWebPkgResponse::import_map_entries() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.vite.BuildWebPkgResponse.import_map_entries)
+  return _internal_import_map_entries();
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>&
+BuildWebPkgResponse::_internal_import_map_entries() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.import_map_entries_;
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ImportMapEntry>* PROTOBUF_NONNULL
+BuildWebPkgResponse::_internal_mutable_import_map_entries() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.import_map_entries_;
+}
+
+// -------------------------------------------------------------------
+
+// ImportMapEntry
+
+// string specifier = 1;
+inline void ImportMapEntry::clear_specifier() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.specifier_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ImportMapEntry::specifier() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.ImportMapEntry.specifier)
+  return _internal_specifier();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ImportMapEntry::set_specifier(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.specifier_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.ImportMapEntry.specifier)
+}
+inline ::std::string* PROTOBUF_NONNULL ImportMapEntry::mutable_specifier()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_specifier();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.ImportMapEntry.specifier)
+  return _s;
+}
+inline const ::std::string& ImportMapEntry::_internal_specifier() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.specifier_.Get();
+}
+inline void ImportMapEntry::_internal_set_specifier(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.specifier_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ImportMapEntry::_internal_mutable_specifier() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.specifier_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ImportMapEntry::release_specifier() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.ImportMapEntry.specifier)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.specifier_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.specifier_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ImportMapEntry::set_allocated_specifier(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.specifier_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.specifier_.IsDefault()) {
+    _impl_.specifier_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.ImportMapEntry.specifier)
+}
+
+// string output_path = 2;
+inline void ImportMapEntry::clear_output_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.output_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ImportMapEntry::output_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.ImportMapEntry.output_path)
+  return _internal_output_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ImportMapEntry::set_output_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.output_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.ImportMapEntry.output_path)
+}
+inline ::std::string* PROTOBUF_NONNULL ImportMapEntry::mutable_output_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_output_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.vite.ImportMapEntry.output_path)
+  return _s;
+}
+inline const ::std::string& ImportMapEntry::_internal_output_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.output_path_.Get();
+}
+inline void ImportMapEntry::_internal_set_output_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.output_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ImportMapEntry::_internal_mutable_output_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.output_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ImportMapEntry::release_output_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.vite.ImportMapEntry.output_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.output_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.output_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ImportMapEntry::set_allocated_output_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.output_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.output_path_.IsDefault()) {
+    _impl_.output_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.ImportMapEntry.output_path)
 }
 
 #ifdef __GNUC__

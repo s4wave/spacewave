@@ -108,4 +108,63 @@ pub struct ViteOutputMeta {
     #[prost(string, tag="2")]
     pub entrypoint_path: ::prost::alloc::string::String,
 }
+/// BuildWebPkgRequest is a request to build a single web package with Vite.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BuildWebPkgRequest {
+    /// PkgId is the web package identifier (e.g. "react", "@aptre/bldr").
+    #[prost(string, tag="1")]
+    pub pkg_id: ::prost::alloc::string::String,
+    /// PkgRoot is the absolute path to the package root directory.
+    #[prost(string, tag="2")]
+    pub pkg_root: ::prost::alloc::string::String,
+    /// Imports is the list of entry sub-paths to build (e.g. \["index.js", "jsx-runtime.js"\]).
+    #[prost(string, repeated, tag="3")]
+    pub imports: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// SiblingPkgIds is the list of sibling web package IDs to externalize.
+    #[prost(string, repeated, tag="4")]
+    pub sibling_pkg_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// ExternalPkgs is the list of additional packages to externalize (e.g. BldrExternal).
+    #[prost(string, repeated, tag="5")]
+    pub external_pkgs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// OutDir is the output directory for this package's build artifacts.
+    #[prost(string, tag="6")]
+    pub out_dir: ::prost::alloc::string::String,
+    /// WebPkgBasePath is the base URL path for web packages (e.g. "/b/pkg").
+    #[prost(string, tag="7")]
+    pub web_pkg_base_path: ::prost::alloc::string::String,
+    /// IsRelease indicates whether to build in production mode.
+    #[prost(bool, tag="8")]
+    pub is_release: bool,
+    /// CacheDir is the cache directory for the build.
+    #[prost(string, tag="9")]
+    pub cache_dir: ::prost::alloc::string::String,
+}
+/// BuildWebPkgResponse is the response from building a single web package.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BuildWebPkgResponse {
+    /// Success indicates if the build was successful.
+    #[prost(bool, tag="1")]
+    pub success: bool,
+    /// Error is the error message if the build failed.
+    #[prost(string, tag="2")]
+    pub error: ::prost::alloc::string::String,
+    /// SourceFiles is the list of input source files that were processed.
+    #[prost(string, repeated, tag="3")]
+    pub source_files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// ImportMapEntries maps logical import specifiers to hashed output filenames.
+    /// Keys are specifiers like "react" or "react/jsx-runtime".
+    /// Values are output paths like "index-a1b2c3.mjs".
+    #[prost(message, repeated, tag="4")]
+    pub import_map_entries: ::prost::alloc::vec::Vec<ImportMapEntry>,
+}
+/// ImportMapEntry maps a logical import specifier to a hashed output filename.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportMapEntry {
+    /// Specifier is the logical import specifier (e.g. "react", "react/jsx-runtime").
+    #[prost(string, tag="1")]
+    pub specifier: ::prost::alloc::string::String,
+    /// OutputPath is the hashed output filename (e.g. "index-a1b2c3.mjs").
+    #[prost(string, tag="2")]
+    pub output_path: ::prost::alloc::string::String,
+}
 // @@protoc_insertion_point(module)

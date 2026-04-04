@@ -12,9 +12,14 @@ starpc::Error SRPCViteBundlerClientImpl::Build(const bldr::web::bundler::vite::B
   return cc_->ExecCall(service_id_, "Build", in, out);
 }
 
+starpc::Error SRPCViteBundlerClientImpl::BuildWebPkg(const bldr::web::bundler::vite::BuildWebPkgRequest& in, bldr::web::bundler::vite::BuildWebPkgResponse* out) {
+  return cc_->ExecCall(service_id_, "BuildWebPkg", in, out);
+}
+
 std::vector<std::string> SRPCViteBundlerHandler::GetMethodIDs() const {
   return {
     "Build",
+    "BuildWebPkg",
   };
 }
 
@@ -32,6 +37,14 @@ std::pair<bool, starpc::Error> SRPCViteBundlerHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     bldr::web::bundler::vite::BuildResponse resp;
     err = impl_->Build(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "BuildWebPkg") {
+    bldr::web::bundler::vite::BuildWebPkgRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    bldr::web::bundler::vite::BuildWebPkgResponse resp;
+    err = impl_->BuildWebPkg(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

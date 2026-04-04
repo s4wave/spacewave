@@ -15,9 +15,10 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/world"
@@ -290,23 +291,34 @@ func (c *Controller) BuildManifest(
 			InputFileKind_InputFileKind_ESBUILD: sourceFilesList,
 		}
 
-		// Run esbuild on the web pkgs (if any).
+		// Build web pkgs with Vite (if any).
 		// Filter out excluded web packages (another plugin provides these).
 		excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
 		buildableWebPkgRefs := web_pkg.WebPkgRefSlice(webPkgRefs).FilterExcluded(excludedIDs)
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-		_, webPkgSrcFiles, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
-			ctx,
-			le,
-			sourcePath,
-			buildableWebPkgRefs,
-			outWebPkgsPath,
-			bldr_plugin.PluginWebPkgHttpPrefix,
-			isRelease,
-			[]string{filepath.Join(sourcePath, "node_modules")},
-		)
-		if err != nil {
-			return nil, err
+		var webPkgSrcFiles []string
+		if len(buildableWebPkgRefs) != 0 {
+			viteWorkingPath := filepath.Join(workingPath, "vite-web-pkgs")
+			err = web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+				_, srcFiles, _, buildErr := web_pkg_vite.BuildWebPkgsVite(
+					ctx,
+					le,
+					sourcePath,
+					buildableWebPkgRefs,
+					outWebPkgsPath,
+					bldr_plugin.PluginWebPkgHttpPrefix,
+					isRelease,
+					client,
+					filepath.Join(viteWorkingPath, "cache"),
+				)
+				if buildErr == nil {
+					webPkgSrcFiles = srcFiles
+				}
+				return buildErr
+			})
+			if err != nil {
+				return nil, err
+			}
 		}
 		inputFileKinds[InputFileKind_InputFileKind_WEB_PKG] = webPkgSrcFiles
 

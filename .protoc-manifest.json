@@ -606,7 +606,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/bundler/vite": {
-      "hash": "0129425df039fe88ae8cdacb64f1187e31b440af2c72cd21c715f63a63883d42",
+      "hash": "9fafa6189596914d6cbc8ad4672ee9b6268d5ed261417d35de98553866d8d12f",
       "generatedFiles": [
         "web/bundler/vite/vite.pb.cc",
         "web/bundler/vite/vite.pb.go",

@@ -1,6 +1,7 @@
 ## Bldr-Specific Rules
 
 - DO NOT assume `bldr setup` needs to be run - it runs automatically when bldr starts for almost any operation
+- DO NOT manually copy files to `.bldr/src/` or sync source files there. `.bldr/src/` is managed by `bldr setup` and regenerated automatically. Edit source files in their original locations only.
 
 ## File Logging
 

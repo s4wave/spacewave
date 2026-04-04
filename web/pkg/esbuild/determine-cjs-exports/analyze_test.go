@@ -16,7 +16,7 @@ func TestAnalyzeCjsExports_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := AnalyzeCjsExports(dir, "./test.json", nil)
+	result, err := AnalyzeCjsExports(dir, "./test.json", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestAnalyzeCjsExports_UnsupportedExt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := AnalyzeCjsExports(dir, "./test.wasm", nil)
+	result, err := AnalyzeCjsExports(dir, "./test.wasm", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestAnalyzeCjsExports_React(t *testing.T) {
 
 	// React is installed in the bldr project root node_modules.
 	bldrRoot := filepath.Join(wd, "../../../..")
-	result, err := AnalyzeCjsExports(bldrRoot, "react", nil)
+	result, err := AnalyzeCjsExports(bldrRoot, "react", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -131,7 +131,13 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 	le := logrus.NewEntry(log)
 
 	// Build the JS bundle (minified for faster build)
-	bundle, err := BuildSaucerJSBundle(le, bldrRoot, buildDir, true)
+	importMap := web_entrypoint_index.ImportMap{
+		Imports: map[string]string{
+			"react":             "/b/pkg/react/index.mjs",
+			"react/jsx-runtime": "/b/pkg/react/jsx-runtime.mjs",
+		},
+	}
+	bundle, err := BuildSaucerJSBundle(le, bldrRoot, buildDir, true, importMap)
 	if err != nil {
 		t.Fatalf("BuildSaucerJSBundle failed: %v", err)
 	}

@@ -31,6 +31,8 @@ class SRPCViteBundlerClient {
 
   // Build
   virtual starpc::Error Build(const bldr::web::bundler::vite::BuildRequest& in, bldr::web::bundler::vite::BuildResponse* out) = 0;
+  // BuildWebPkg
+  virtual starpc::Error BuildWebPkg(const bldr::web::bundler::vite::BuildWebPkgRequest& in, bldr::web::bundler::vite::BuildWebPkgResponse* out) = 0;
 };
 
 // SRPCViteBundlerClientImpl implements SRPCViteBundlerClient.
@@ -43,6 +45,8 @@ class SRPCViteBundlerClientImpl : public SRPCViteBundlerClient {
 
   // Build
   virtual starpc::Error Build(const bldr::web::bundler::vite::BuildRequest& in, bldr::web::bundler::vite::BuildResponse* out) override;
+  // BuildWebPkg
+  virtual starpc::Error BuildWebPkg(const bldr::web::bundler::vite::BuildWebPkgRequest& in, bldr::web::bundler::vite::BuildWebPkgResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -61,6 +65,8 @@ class SRPCViteBundlerServer {
 
   // Build
   virtual starpc::Error Build(const bldr::web::bundler::vite::BuildRequest& req, bldr::web::bundler::vite::BuildResponse* resp) = 0;
+  // BuildWebPkg
+  virtual starpc::Error BuildWebPkg(const bldr::web::bundler::vite::BuildWebPkgRequest& req, bldr::web::bundler::vite::BuildWebPkgResponse* resp) = 0;
 };
 
 // SRPCViteBundlerHandler implements starpc::Handler for ViteBundler.

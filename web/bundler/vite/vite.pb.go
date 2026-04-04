@@ -328,6 +328,176 @@ func (x *ViteOutputMeta) GetEntrypointPath() string {
 	return ""
 }
 
+// BuildWebPkgRequest is a request to build a single web package with Vite.
+type BuildWebPkgRequest struct {
+	unknownFields []byte
+	// PkgId is the web package identifier (e.g. "react", "@aptre/bldr").
+	PkgId string `protobuf:"bytes,1,opt,name=pkg_id,json=pkgId,proto3" json:"pkgId,omitempty"`
+	// PkgRoot is the absolute path to the package root directory.
+	PkgRoot string `protobuf:"bytes,2,opt,name=pkg_root,json=pkgRoot,proto3" json:"pkgRoot,omitempty"`
+	// Imports is the list of entry sub-paths to build (e.g. ["index.js", "jsx-runtime.js"]).
+	Imports []string `protobuf:"bytes,3,rep,name=imports,proto3" json:"imports,omitempty"`
+	// SiblingPkgIds is the list of sibling web package IDs to externalize.
+	SiblingPkgIds []string `protobuf:"bytes,4,rep,name=sibling_pkg_ids,json=siblingPkgIds,proto3" json:"siblingPkgIds,omitempty"`
+	// ExternalPkgs is the list of additional packages to externalize (e.g. BldrExternal).
+	ExternalPkgs []string `protobuf:"bytes,5,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
+	// OutDir is the output directory for this package's build artifacts.
+	OutDir string `protobuf:"bytes,6,opt,name=out_dir,json=outDir,proto3" json:"outDir,omitempty"`
+	// WebPkgBasePath is the base URL path for web packages (e.g. "/b/pkg").
+	WebPkgBasePath string `protobuf:"bytes,7,opt,name=web_pkg_base_path,json=webPkgBasePath,proto3" json:"webPkgBasePath,omitempty"`
+	// IsRelease indicates whether to build in production mode.
+	IsRelease bool `protobuf:"varint,8,opt,name=is_release,json=isRelease,proto3" json:"isRelease,omitempty"`
+	// CacheDir is the cache directory for the build.
+	CacheDir string `protobuf:"bytes,9,opt,name=cache_dir,json=cacheDir,proto3" json:"cacheDir,omitempty"`
+}
+
+func (x *BuildWebPkgRequest) Reset() {
+	*x = BuildWebPkgRequest{}
+}
+
+func (*BuildWebPkgRequest) ProtoMessage() {}
+
+func (x *BuildWebPkgRequest) GetPkgId() string {
+	if x != nil {
+		return x.PkgId
+	}
+	return ""
+}
+
+func (x *BuildWebPkgRequest) GetPkgRoot() string {
+	if x != nil {
+		return x.PkgRoot
+	}
+	return ""
+}
+
+func (x *BuildWebPkgRequest) GetImports() []string {
+	if x != nil {
+		return x.Imports
+	}
+	return nil
+}
+
+func (x *BuildWebPkgRequest) GetSiblingPkgIds() []string {
+	if x != nil {
+		return x.SiblingPkgIds
+	}
+	return nil
+}
+
+func (x *BuildWebPkgRequest) GetExternalPkgs() []string {
+	if x != nil {
+		return x.ExternalPkgs
+	}
+	return nil
+}
+
+func (x *BuildWebPkgRequest) GetOutDir() string {
+	if x != nil {
+		return x.OutDir
+	}
+	return ""
+}
+
+func (x *BuildWebPkgRequest) GetWebPkgBasePath() string {
+	if x != nil {
+		return x.WebPkgBasePath
+	}
+	return ""
+}
+
+func (x *BuildWebPkgRequest) GetIsRelease() bool {
+	if x != nil {
+		return x.IsRelease
+	}
+	return false
+}
+
+func (x *BuildWebPkgRequest) GetCacheDir() string {
+	if x != nil {
+		return x.CacheDir
+	}
+	return ""
+}
+
+// BuildWebPkgResponse is the response from building a single web package.
+type BuildWebPkgResponse struct {
+	unknownFields []byte
+	// Success indicates if the build was successful.
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// Error is the error message if the build failed.
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// SourceFiles is the list of input source files that were processed.
+	SourceFiles []string `protobuf:"bytes,3,rep,name=source_files,json=sourceFiles,proto3" json:"sourceFiles,omitempty"`
+	// ImportMapEntries maps logical import specifiers to hashed output filenames.
+	// Keys are specifiers like "react" or "react/jsx-runtime".
+	// Values are output paths like "index-a1b2c3.mjs".
+	ImportMapEntries []*ImportMapEntry `protobuf:"bytes,4,rep,name=import_map_entries,json=importMapEntries,proto3" json:"importMapEntries,omitempty"`
+}
+
+func (x *BuildWebPkgResponse) Reset() {
+	*x = BuildWebPkgResponse{}
+}
+
+func (*BuildWebPkgResponse) ProtoMessage() {}
+
+func (x *BuildWebPkgResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *BuildWebPkgResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *BuildWebPkgResponse) GetSourceFiles() []string {
+	if x != nil {
+		return x.SourceFiles
+	}
+	return nil
+}
+
+func (x *BuildWebPkgResponse) GetImportMapEntries() []*ImportMapEntry {
+	if x != nil {
+		return x.ImportMapEntries
+	}
+	return nil
+}
+
+// ImportMapEntry maps a logical import specifier to a hashed output filename.
+type ImportMapEntry struct {
+	unknownFields []byte
+	// Specifier is the logical import specifier (e.g. "react", "react/jsx-runtime").
+	Specifier string `protobuf:"bytes,1,opt,name=specifier,proto3" json:"specifier,omitempty"`
+	// OutputPath is the hashed output filename (e.g. "index-a1b2c3.mjs").
+	OutputPath string `protobuf:"bytes,2,opt,name=output_path,json=outputPath,proto3" json:"outputPath,omitempty"`
+}
+
+func (x *ImportMapEntry) Reset() {
+	*x = ImportMapEntry{}
+}
+
+func (*ImportMapEntry) ProtoMessage() {}
+
+func (x *ImportMapEntry) GetSpecifier() string {
+	if x != nil {
+		return x.Specifier
+	}
+	return ""
+}
+
+func (x *ImportMapEntry) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
 func (m *WebPkgRef) CloneVT() *WebPkgRef {
 	if m == nil {
 		return (*WebPkgRef)(nil)
@@ -476,6 +646,79 @@ func (m *ViteOutputMeta) CloneVT() *ViteOutputMeta {
 }
 
 func (m *ViteOutputMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BuildWebPkgRequest) CloneVT() *BuildWebPkgRequest {
+	if m == nil {
+		return (*BuildWebPkgRequest)(nil)
+	}
+	r := new(BuildWebPkgRequest)
+	r.PkgId = m.PkgId
+	r.PkgRoot = m.PkgRoot
+	r.OutDir = m.OutDir
+	r.WebPkgBasePath = m.WebPkgBasePath
+	r.IsRelease = m.IsRelease
+	r.CacheDir = m.CacheDir
+	if rhs := m.Imports; rhs != nil {
+		r.Imports = slices.Clone(rhs)
+	}
+	if rhs := m.SiblingPkgIds; rhs != nil {
+		r.SiblingPkgIds = slices.Clone(rhs)
+	}
+	if rhs := m.ExternalPkgs; rhs != nil {
+		r.ExternalPkgs = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BuildWebPkgRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BuildWebPkgResponse) CloneVT() *BuildWebPkgResponse {
+	if m == nil {
+		return (*BuildWebPkgResponse)(nil)
+	}
+	r := new(BuildWebPkgResponse)
+	r.Success = m.Success
+	r.Error = m.Error
+	if rhs := m.SourceFiles; rhs != nil {
+		r.SourceFiles = slices.Clone(rhs)
+	}
+	if rhs := m.ImportMapEntries; rhs != nil {
+		r.ImportMapEntries = make([]*ImportMapEntry, len(rhs))
+		for k, v := range rhs {
+			r.ImportMapEntries[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BuildWebPkgResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ImportMapEntry) CloneVT() *ImportMapEntry {
+	if m == nil {
+		return (*ImportMapEntry)(nil)
+	}
+	r := new(ImportMapEntry)
+	r.Specifier = m.Specifier
+	r.OutputPath = m.OutputPath
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ImportMapEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -754,6 +997,140 @@ func (this *ViteOutputMeta) EqualVT(that *ViteOutputMeta) bool {
 
 func (this *ViteOutputMeta) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ViteOutputMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BuildWebPkgRequest) EqualVT(that *BuildWebPkgRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PkgId != that.PkgId {
+		return false
+	}
+	if this.PkgRoot != that.PkgRoot {
+		return false
+	}
+	if len(this.Imports) != len(that.Imports) {
+		return false
+	}
+	for i, vx := range this.Imports {
+		vy := that.Imports[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.SiblingPkgIds) != len(that.SiblingPkgIds) {
+		return false
+	}
+	for i, vx := range this.SiblingPkgIds {
+		vy := that.SiblingPkgIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ExternalPkgs) != len(that.ExternalPkgs) {
+		return false
+	}
+	for i, vx := range this.ExternalPkgs {
+		vy := that.ExternalPkgs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.OutDir != that.OutDir {
+		return false
+	}
+	if this.WebPkgBasePath != that.WebPkgBasePath {
+		return false
+	}
+	if this.IsRelease != that.IsRelease {
+		return false
+	}
+	if this.CacheDir != that.CacheDir {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BuildWebPkgRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BuildWebPkgRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BuildWebPkgResponse) EqualVT(that *BuildWebPkgResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Success != that.Success {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if len(this.SourceFiles) != len(that.SourceFiles) {
+		return false
+	}
+	for i, vx := range this.SourceFiles {
+		vy := that.SourceFiles[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ImportMapEntries) != len(that.ImportMapEntries) {
+		return false
+	}
+	for i, vx := range this.ImportMapEntries {
+		vy := that.ImportMapEntries[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ImportMapEntry{}
+			}
+			if q == nil {
+				q = &ImportMapEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BuildWebPkgResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BuildWebPkgResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ImportMapEntry) EqualVT(that *ImportMapEntry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Specifier != that.Specifier {
+		return false
+	}
+	if this.OutputPath != that.OutputPath {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ImportMapEntry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ImportMapEntry)
 	if !ok {
 		return false
 	}
@@ -1292,6 +1669,265 @@ func (x *ViteOutputMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BuildWebPkgRequest message to JSON.
+func (x *BuildWebPkgRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PkgId != "" || s.HasField("pkgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pkgId")
+		s.WriteString(x.PkgId)
+	}
+	if x.PkgRoot != "" || s.HasField("pkgRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pkgRoot")
+		s.WriteString(x.PkgRoot)
+	}
+	if len(x.Imports) > 0 || s.HasField("imports") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("imports")
+		s.WriteStringArray(x.Imports)
+	}
+	if len(x.SiblingPkgIds) > 0 || s.HasField("siblingPkgIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("siblingPkgIds")
+		s.WriteStringArray(x.SiblingPkgIds)
+	}
+	if len(x.ExternalPkgs) > 0 || s.HasField("externalPkgs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("externalPkgs")
+		s.WriteStringArray(x.ExternalPkgs)
+	}
+	if x.OutDir != "" || s.HasField("outDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outDir")
+		s.WriteString(x.OutDir)
+	}
+	if x.WebPkgBasePath != "" || s.HasField("webPkgBasePath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webPkgBasePath")
+		s.WriteString(x.WebPkgBasePath)
+	}
+	if x.IsRelease || s.HasField("isRelease") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("isRelease")
+		s.WriteBool(x.IsRelease)
+	}
+	if x.CacheDir != "" || s.HasField("cacheDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheDir")
+		s.WriteString(x.CacheDir)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildWebPkgRequest to JSON.
+func (x *BuildWebPkgRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildWebPkgRequest message from JSON.
+func (x *BuildWebPkgRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pkg_id", "pkgId":
+			s.AddField("pkg_id")
+			x.PkgId = s.ReadString()
+		case "pkg_root", "pkgRoot":
+			s.AddField("pkg_root")
+			x.PkgRoot = s.ReadString()
+		case "imports":
+			s.AddField("imports")
+			if s.ReadNil() {
+				x.Imports = nil
+				return
+			}
+			x.Imports = s.ReadStringArray()
+		case "sibling_pkg_ids", "siblingPkgIds":
+			s.AddField("sibling_pkg_ids")
+			if s.ReadNil() {
+				x.SiblingPkgIds = nil
+				return
+			}
+			x.SiblingPkgIds = s.ReadStringArray()
+		case "external_pkgs", "externalPkgs":
+			s.AddField("external_pkgs")
+			if s.ReadNil() {
+				x.ExternalPkgs = nil
+				return
+			}
+			x.ExternalPkgs = s.ReadStringArray()
+		case "out_dir", "outDir":
+			s.AddField("out_dir")
+			x.OutDir = s.ReadString()
+		case "web_pkg_base_path", "webPkgBasePath":
+			s.AddField("web_pkg_base_path")
+			x.WebPkgBasePath = s.ReadString()
+		case "is_release", "isRelease":
+			s.AddField("is_release")
+			x.IsRelease = s.ReadBool()
+		case "cache_dir", "cacheDir":
+			s.AddField("cache_dir")
+			x.CacheDir = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildWebPkgRequest from JSON.
+func (x *BuildWebPkgRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BuildWebPkgResponse message to JSON.
+func (x *BuildWebPkgResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Success || s.HasField("success") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("success")
+		s.WriteBool(x.Success)
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	if len(x.SourceFiles) > 0 || s.HasField("sourceFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceFiles")
+		s.WriteStringArray(x.SourceFiles)
+	}
+	if len(x.ImportMapEntries) > 0 || s.HasField("importMapEntries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("importMapEntries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ImportMapEntries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("importMapEntries"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildWebPkgResponse to JSON.
+func (x *BuildWebPkgResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildWebPkgResponse message from JSON.
+func (x *BuildWebPkgResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "success":
+			s.AddField("success")
+			x.Success = s.ReadBool()
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		case "source_files", "sourceFiles":
+			s.AddField("source_files")
+			if s.ReadNil() {
+				x.SourceFiles = nil
+				return
+			}
+			x.SourceFiles = s.ReadStringArray()
+		case "import_map_entries", "importMapEntries":
+			s.AddField("import_map_entries")
+			if s.ReadNil() {
+				x.ImportMapEntries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ImportMapEntries = append(x.ImportMapEntries, nil)
+					return
+				}
+				v := &ImportMapEntry{}
+				v.UnmarshalProtoJSON(s.WithField("import_map_entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ImportMapEntries = append(x.ImportMapEntries, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildWebPkgResponse from JSON.
+func (x *BuildWebPkgResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ImportMapEntry message to JSON.
+func (x *ImportMapEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Specifier != "" || s.HasField("specifier") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("specifier")
+		s.WriteString(x.Specifier)
+	}
+	if x.OutputPath != "" || s.HasField("outputPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outputPath")
+		s.WriteString(x.OutputPath)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ImportMapEntry to JSON.
+func (x *ImportMapEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ImportMapEntry message from JSON.
+func (x *ImportMapEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "specifier":
+			s.AddField("specifier")
+			x.Specifier = s.ReadString()
+		case "output_path", "outputPath":
+			s.AddField("output_path")
+			x.OutputPath = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ImportMapEntry from JSON.
+func (x *ImportMapEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WebPkgRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1716,6 +2352,229 @@ func (m *ViteOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *BuildWebPkgRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BuildWebPkgRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BuildWebPkgRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CacheDir) > 0 {
+		i -= len(m.CacheDir)
+		copy(dAtA[i:], m.CacheDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CacheDir)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.IsRelease {
+		i--
+		if m.IsRelease {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.WebPkgBasePath) > 0 {
+		i -= len(m.WebPkgBasePath)
+		copy(dAtA[i:], m.WebPkgBasePath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebPkgBasePath)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.OutDir) > 0 {
+		i -= len(m.OutDir)
+		copy(dAtA[i:], m.OutDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OutDir)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.ExternalPkgs) > 0 {
+		for iNdEx := len(m.ExternalPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ExternalPkgs[iNdEx])
+			copy(dAtA[i:], m.ExternalPkgs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExternalPkgs[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.SiblingPkgIds) > 0 {
+		for iNdEx := len(m.SiblingPkgIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SiblingPkgIds[iNdEx])
+			copy(dAtA[i:], m.SiblingPkgIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SiblingPkgIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.Imports) > 0 {
+		for iNdEx := len(m.Imports) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Imports[iNdEx])
+			copy(dAtA[i:], m.Imports[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Imports[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.PkgRoot) > 0 {
+		i -= len(m.PkgRoot)
+		copy(dAtA[i:], m.PkgRoot)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PkgRoot)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PkgId) > 0 {
+		i -= len(m.PkgId)
+		copy(dAtA[i:], m.PkgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PkgId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BuildWebPkgResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BuildWebPkgResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BuildWebPkgResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ImportMapEntries) > 0 {
+		for iNdEx := len(m.ImportMapEntries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ImportMapEntries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.SourceFiles) > 0 {
+		for iNdEx := len(m.SourceFiles) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SourceFiles[iNdEx])
+			copy(dAtA[i:], m.SourceFiles[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SourceFiles[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Success {
+		i--
+		if m.Success {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ImportMapEntry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ImportMapEntry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ImportMapEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OutputPath) > 0 {
+		i -= len(m.OutputPath)
+		copy(dAtA[i:], m.OutputPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OutputPath)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Specifier) > 0 {
+		i -= len(m.Specifier)
+		copy(dAtA[i:], m.Specifier)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Specifier)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WebPkgRef) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1898,6 +2757,104 @@ func (m *ViteOutputMeta) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.EntrypointPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BuildWebPkgRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PkgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.PkgRoot)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Imports) > 0 {
+		for _, s := range m.Imports {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.SiblingPkgIds) > 0 {
+		for _, s := range m.SiblingPkgIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ExternalPkgs) > 0 {
+		for _, s := range m.ExternalPkgs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.OutDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.WebPkgBasePath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.IsRelease {
+		n += 2
+	}
+	l = len(m.CacheDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BuildWebPkgResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Success {
+		n += 2
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.SourceFiles) > 0 {
+		for _, s := range m.SourceFiles {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ImportMapEntries) > 0 {
+		for _, e := range m.ImportMapEntries {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ImportMapEntry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Specifier)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OutputPath)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2223,6 +3180,174 @@ func (x *ViteOutputMeta) MarshalProtoText() string {
 }
 
 func (x *ViteOutputMeta) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BuildWebPkgRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BuildWebPkgRequest {")
+	if x.PkgId != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("pkg_id: ")
+		sb.WriteString(strconv.Quote(x.PkgId))
+	}
+	if x.PkgRoot != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("pkg_root: ")
+		sb.WriteString(strconv.Quote(x.PkgRoot))
+	}
+	if len(x.Imports) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("imports: [")
+		for i, v := range x.Imports {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.SiblingPkgIds) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sibling_pkg_ids: [")
+		for i, v := range x.SiblingPkgIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ExternalPkgs) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("external_pkgs: [")
+		for i, v := range x.ExternalPkgs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.OutDir != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("out_dir: ")
+		sb.WriteString(strconv.Quote(x.OutDir))
+	}
+	if x.WebPkgBasePath != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_pkg_base_path: ")
+		sb.WriteString(strconv.Quote(x.WebPkgBasePath))
+	}
+	if x.IsRelease != false {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("is_release: ")
+		sb.WriteString(strconv.FormatBool(x.IsRelease))
+	}
+	if x.CacheDir != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cache_dir: ")
+		sb.WriteString(strconv.Quote(x.CacheDir))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BuildWebPkgRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BuildWebPkgResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BuildWebPkgResponse {")
+	if x.Success != false {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("success: ")
+		sb.WriteString(strconv.FormatBool(x.Success))
+	}
+	if x.Error != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	if len(x.SourceFiles) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("source_files: [")
+		for i, v := range x.SourceFiles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ImportMapEntries) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("import_map_entries: [")
+		for i, v := range x.ImportMapEntries {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BuildWebPkgResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ImportMapEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ImportMapEntry {")
+	if x.Specifier != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("specifier: ")
+		sb.WriteString(strconv.Quote(x.Specifier))
+	}
+	if x.OutputPath != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("output_path: ")
+		sb.WriteString(strconv.Quote(x.OutputPath))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ImportMapEntry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3060,6 +4185,449 @@ func (m *ViteOutputMeta) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BuildWebPkgRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BuildWebPkgRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BuildWebPkgRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgRoot", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgRoot = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Imports", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Imports = append(m.Imports, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SiblingPkgIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SiblingPkgIds = append(m.SiblingPkgIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExternalPkgs", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExternalPkgs = append(m.ExternalPkgs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutDir", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OutDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgBasePath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgBasePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsRelease", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.IsRelease = bool(v != 0)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheDir", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CacheDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BuildWebPkgResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BuildWebPkgResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BuildWebPkgResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Success", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Success = bool(v != 0)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceFiles", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourceFiles = append(m.SourceFiles, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImportMapEntries", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImportMapEntries = append(m.ImportMapEntries, &ImportMapEntry{})
+			if err := m.ImportMapEntries[len(m.ImportMapEntries)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ImportMapEntry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ImportMapEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ImportMapEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Specifier", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Specifier = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutputPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OutputPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

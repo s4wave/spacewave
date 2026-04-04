@@ -120,9 +120,8 @@ func BuildRendererBundle(
 	le.Debug("generating web renderer bundle")
 
 	// index.html
-	if err := entrypoint_browser_bundle.BuildRendererIndex(buildDir, ""); err != nil {
-		return err
-	}
+	// index.html is rendered after web pkgs are built (import map is post-build).
+	// Placeholder; the actual render happens after BuildWebPkgsBundle below.
 
 	// entrypoint
 	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
@@ -220,7 +219,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 
 	// build to the entrypoint dir
 	entrypointDir := filepath.Join(buildDir, "entrypoint")
-	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(
+	webPkgImportMap, err := entrypoint_browser_bundle.BuildWebPkgsBundle(
 		ctx,
 		le,
 		stateDir,
@@ -230,7 +229,13 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		"/entrypoint/", // set the pathPrefix to /entrypoint/ so web pkg paths are correct
 		minify,
 		devMode,
-	); err != nil {
+	)
+	if err != nil {
+		return err
+	}
+
+	// Render index.html with the import map from the web pkg build.
+	if err := entrypoint_browser_bundle.BuildRendererIndex(buildDir, "", webPkgImportMap); err != nil {
 		return err
 	}
 

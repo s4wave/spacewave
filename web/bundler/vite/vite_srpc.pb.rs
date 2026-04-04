@@ -13,6 +13,8 @@ pub const VITE_BUNDLER_SERVICE_ID: &str = "bldr.web.bundler.vite.ViteBundler";
 pub trait ViteBundlerClient: Send + Sync {
     /// Build.
     async fn build(&self, request: &BuildRequest) -> starpc::Result<BuildResponse>;
+    /// BuildWebPkg.
+    async fn build_web_pkg(&self, request: &BuildWebPkgRequest) -> starpc::Result<BuildWebPkgResponse>;
 }
 
 /// Client implementation for ViteBundler.
@@ -32,6 +34,9 @@ impl<C: starpc::Client + 'static> ViteBundlerClient for ViteBundlerClientImpl<C>
     async fn build(&self, request: &BuildRequest) -> starpc::Result<BuildResponse> {
         self.client.exec_call("bldr.web.bundler.vite.ViteBundler", "Build", request).await
     }
+    async fn build_web_pkg(&self, request: &BuildWebPkgRequest) -> starpc::Result<BuildWebPkgResponse> {
+        self.client.exec_call("bldr.web.bundler.vite.ViteBundler", "BuildWebPkg", request).await
+    }
 }
 
 /// Server trait for ViteBundler.
@@ -39,10 +44,13 @@ impl<C: starpc::Client + 'static> ViteBundlerClient for ViteBundlerClientImpl<C>
 pub trait ViteBundlerServer: Send + Sync {
     /// Build.
     async fn build(&self, request: BuildRequest) -> starpc::Result<BuildResponse>;
+    /// BuildWebPkg.
+    async fn build_web_pkg(&self, request: BuildWebPkgRequest) -> starpc::Result<BuildWebPkgResponse>;
 }
 
 const VITE_BUNDLER_METHOD_IDS: &[&str] = &[
     "Build",
+    "BuildWebPkg",
 ];
 
 /// Handler for ViteBundler.
@@ -77,6 +85,21 @@ impl<S: ViteBundlerServer + 'static> starpc::Invoker for ViteBundlerHandler<S> {
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.build(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "BuildWebPkg" => {
+                let request: BuildWebPkgRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.build_web_pkg(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

@@ -16,6 +16,8 @@ type SRPCViteBundlerClient interface {
 
 	// Build runs the Vite compiler with the given configuration.
 	Build(ctx context.Context, in *BuildRequest) (*BuildResponse, error)
+	// BuildWebPkg builds a single web package with Vite.
+	BuildWebPkg(ctx context.Context, in *BuildWebPkgRequest) (*BuildWebPkgResponse, error)
 }
 
 type srpcViteBundlerClient struct {
@@ -45,9 +47,20 @@ func (c *srpcViteBundlerClient) Build(ctx context.Context, in *BuildRequest) (*B
 	return out, nil
 }
 
+func (c *srpcViteBundlerClient) BuildWebPkg(ctx context.Context, in *BuildWebPkgRequest) (*BuildWebPkgResponse, error) {
+	out := new(BuildWebPkgResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BuildWebPkg", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCViteBundlerServer interface {
 	// Build runs the Vite compiler with the given configuration.
 	Build(context.Context, *BuildRequest) (*BuildResponse, error)
+	// BuildWebPkg builds a single web package with Vite.
+	BuildWebPkg(context.Context, *BuildWebPkgRequest) (*BuildWebPkgResponse, error)
 }
 
 const SRPCViteBundlerServiceID = "bldr.web.bundler.vite.ViteBundler"
@@ -77,6 +90,7 @@ func (d *SRPCViteBundlerHandler) GetServiceID() string { return d.serviceID }
 func (SRPCViteBundlerHandler) GetMethodIDs() []string {
 	return []string{
 		"Build",
+		"BuildWebPkg",
 	}
 }
 
@@ -91,6 +105,8 @@ func (d *SRPCViteBundlerHandler) InvokeMethod(
 	switch methodID {
 	case "Build":
 		return true, d.InvokeMethod_Build(d.impl, strm)
+	case "BuildWebPkg":
+		return true, d.InvokeMethod_BuildWebPkg(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -108,10 +124,30 @@ func (SRPCViteBundlerHandler) InvokeMethod_Build(impl SRPCViteBundlerServer, str
 	return strm.MsgSend(out)
 }
 
+func (SRPCViteBundlerHandler) InvokeMethod_BuildWebPkg(impl SRPCViteBundlerServer, strm srpc.Stream) error {
+	req := new(BuildWebPkgRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BuildWebPkg(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCViteBundler_BuildStream interface {
 	srpc.Stream
 }
 
 type srpcViteBundler_BuildStream struct {
+	srpc.Stream
+}
+
+type SRPCViteBundler_BuildWebPkgStream interface {
+	srpc.Stream
+}
+
+type srpcViteBundler_BuildWebPkgStream struct {
 	srpc.Stream
 }

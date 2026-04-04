@@ -699,8 +699,8 @@ func (c *Controller) BuildPlugin(
 	// sub-manifests, build them directly.
 	if len(webPkgRefs) == 0 && len(webPkgs) != 0 {
 		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
-		directRefs, err := bldr_plugin_compiler.BuildDirectWebPkgs(
-			ctx, le, distSourcePath, workingPath, outAssetsPath, isRelease,
+		directRefs, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
+			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease,
 		)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "build direct web packages")

@@ -363,3 +363,195 @@ export const ViteOutputMeta: MessageType<ViteOutputMeta> = createMessageType({
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * BuildWebPkgRequest is a request to build a single web package with Vite.
+ *
+ * @generated from message bldr.web.bundler.vite.BuildWebPkgRequest
+ */
+export interface BuildWebPkgRequest {
+  /**
+   * PkgId is the web package identifier (e.g. "react", "@aptre/bldr").
+   *
+   * @generated from field: string pkg_id = 1;
+   */
+  pkgId?: string
+  /**
+   * PkgRoot is the absolute path to the package root directory.
+   *
+   * @generated from field: string pkg_root = 2;
+   */
+  pkgRoot?: string
+  /**
+   * Imports is the list of entry sub-paths to build (e.g. ["index.js", "jsx-runtime.js"]).
+   *
+   * @generated from field: repeated string imports = 3;
+   */
+  imports?: string[]
+  /**
+   * SiblingPkgIds is the list of sibling web package IDs to externalize.
+   *
+   * @generated from field: repeated string sibling_pkg_ids = 4;
+   */
+  siblingPkgIds?: string[]
+  /**
+   * ExternalPkgs is the list of additional packages to externalize (e.g. BldrExternal).
+   *
+   * @generated from field: repeated string external_pkgs = 5;
+   */
+  externalPkgs?: string[]
+  /**
+   * OutDir is the output directory for this package's build artifacts.
+   *
+   * @generated from field: string out_dir = 6;
+   */
+  outDir?: string
+  /**
+   * WebPkgBasePath is the base URL path for web packages (e.g. "/b/pkg").
+   *
+   * @generated from field: string web_pkg_base_path = 7;
+   */
+  webPkgBasePath?: string
+  /**
+   * IsRelease indicates whether to build in production mode.
+   *
+   * @generated from field: bool is_release = 8;
+   */
+  isRelease?: boolean
+  /**
+   * CacheDir is the cache directory for the build.
+   *
+   * @generated from field: string cache_dir = 9;
+   */
+  cacheDir?: string
+}
+
+// BuildWebPkgRequest contains the message type declaration for BuildWebPkgRequest.
+export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
+  createMessageType({
+    typeName: 'bldr.web.bundler.vite.BuildWebPkgRequest',
+    fields: [
+      { no: 1, name: 'pkg_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'pkg_root', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'imports',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'sibling_pkg_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'external_pkgs',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 6, name: 'out_dir', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'web_pkg_base_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 8, name: 'is_release', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 9, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ImportMapEntry maps a logical import specifier to a hashed output filename.
+ *
+ * @generated from message bldr.web.bundler.vite.ImportMapEntry
+ */
+export interface ImportMapEntry {
+  /**
+   * Specifier is the logical import specifier (e.g. "react", "react/jsx-runtime").
+   *
+   * @generated from field: string specifier = 1;
+   */
+  specifier?: string
+  /**
+   * OutputPath is the hashed output filename (e.g. "index-a1b2c3.mjs").
+   *
+   * @generated from field: string output_path = 2;
+   */
+  outputPath?: string
+}
+
+// ImportMapEntry contains the message type declaration for ImportMapEntry.
+export const ImportMapEntry: MessageType<ImportMapEntry> = createMessageType({
+  typeName: 'bldr.web.bundler.vite.ImportMapEntry',
+  fields: [
+    { no: 1, name: 'specifier', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * BuildWebPkgResponse is the response from building a single web package.
+ *
+ * @generated from message bldr.web.bundler.vite.BuildWebPkgResponse
+ */
+export interface BuildWebPkgResponse {
+  /**
+   * Success indicates if the build was successful.
+   *
+   * @generated from field: bool success = 1;
+   */
+  success?: boolean
+  /**
+   * Error is the error message if the build failed.
+   *
+   * @generated from field: string error = 2;
+   */
+  error?: string
+  /**
+   * SourceFiles is the list of input source files that were processed.
+   *
+   * @generated from field: repeated string source_files = 3;
+   */
+  sourceFiles?: string[]
+  /**
+   * ImportMapEntries maps logical import specifiers to hashed output filenames.
+   * Keys are specifiers like "react" or "react/jsx-runtime".
+   * Values are output paths like "index-a1b2c3.mjs".
+   *
+   * @generated from field: repeated bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+   */
+  importMapEntries?: ImportMapEntry[]
+}
+
+// BuildWebPkgResponse contains the message type declaration for BuildWebPkgResponse.
+export const BuildWebPkgResponse: MessageType<BuildWebPkgResponse> =
+  createMessageType({
+    typeName: 'bldr.web.bundler.vite.BuildWebPkgResponse',
+    fields: [
+      { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'source_files',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'import_map_entries',
+        kind: 'message',
+        T: () => ImportMapEntry,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

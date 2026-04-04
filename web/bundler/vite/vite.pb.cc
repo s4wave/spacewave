@@ -122,6 +122,36 @@ struct ViteBuildRequestEntrypointDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ViteBuildRequestEntrypointDefaultTypeInternal _ViteBuildRequestEntrypoint_default_instance_;
 
+inline constexpr ImportMapEntry::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        specifier_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        output_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ImportMapEntry::ImportMapEntry(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ImportMapEntry_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ImportMapEntryDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ImportMapEntryDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ImportMapEntryDefaultTypeInternal() {}
+  union {
+    ImportMapEntry _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ImportMapEntryDefaultTypeInternal _ImportMapEntry_default_instance_;
+
 inline constexpr EntrypointOutput::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -153,6 +183,79 @@ struct EntrypointOutputDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EntrypointOutputDefaultTypeInternal _EntrypointOutput_default_instance_;
+
+inline constexpr BuildWebPkgRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        imports_{},
+        sibling_pkg_ids_{},
+        external_pkgs_{},
+        pkg_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        pkg_root_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        out_dir_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        web_pkg_base_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        cache_dir_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        is_release_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BuildWebPkgRequest::BuildWebPkgRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BuildWebPkgRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BuildWebPkgRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BuildWebPkgRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BuildWebPkgRequestDefaultTypeInternal() {}
+  union {
+    BuildWebPkgRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuildWebPkgRequestDefaultTypeInternal _BuildWebPkgRequest_default_instance_;
+
+inline constexpr BuildWebPkgResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        source_files_{},
+        import_map_entries_{},
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        success_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BuildWebPkgResponse::BuildWebPkgResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BuildWebPkgResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BuildWebPkgResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BuildWebPkgResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BuildWebPkgResponseDefaultTypeInternal() {}
+  union {
+    BuildWebPkgResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuildWebPkgResponseDefaultTypeInternal _BuildWebPkgResponse_default_instance_;
 
 inline constexpr BuildResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -314,6 +417,45 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::ViteOutputMeta, _impl_.entrypoint_path_),
         0,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_._has_bits_),
+        12, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.pkg_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.pkg_root_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.imports_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.sibling_pkg_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.external_pkgs_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.out_dir_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.web_pkg_base_path_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.is_release_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.cache_dir_),
+        3,
+        4,
+        0,
+        1,
+        2,
+        5,
+        6,
+        8,
+        7,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_.success_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_.source_files_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_.import_map_entries_),
+        3,
+        2,
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::ImportMapEntry, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::ImportMapEntry, _impl_.specifier_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::ImportMapEntry, _impl_.output_path_),
+        0,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
@@ -324,6 +466,9 @@ static const ::_pbi::MigrationSchema
         {39, sizeof(::bldr::web::bundler::vite::BuildResponse)},
         {54, sizeof(::bldr::web::bundler::vite::EntrypointOutput)},
         {65, sizeof(::bldr::web::bundler::vite::ViteOutputMeta)},
+        {72, sizeof(::bldr::web::bundler::vite::BuildWebPkgRequest)},
+        {93, sizeof(::bldr::web::bundler::vite::BuildWebPkgResponse)},
+        {104, sizeof(::bldr::web::bundler::vite::ImportMapEntry)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::bundler::vite::_WebPkgRef_default_instance_._instance,
@@ -332,6 +477,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::bundler::vite::_BuildResponse_default_instance_._instance,
     &::bldr::web::bundler::vite::_EntrypointOutput_default_instance_._instance,
     &::bldr::web::bundler::vite::_ViteOutputMeta_default_instance_._instance,
+    &::bldr::web::bundler::vite::_BuildWebPkgRequest_default_instance_._instance,
+    &::bldr::web::bundler::vite::_BuildWebPkgResponse_default_instance_._instance,
+    &::bldr::web::bundler::vite::_ImportMapEntry_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -358,10 +506,23 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "pointOutput\022\022\n\nentrypoint\030\001 \001(\t\022\021\n\tjs_ou"
     "tput\030\002 \001(\t\022\023\n\013css_outputs\030\003 \003(\t\022\023\n\013input"
     "_files\030\004 \003(\t\"7\n\016ViteOutputMeta\022\014\n\004path\030\001"
-    " \001(\t\022\027\n\017entrypoint_path\030\002 \001(\t2c\n\013ViteBun"
-    "dler\022T\n\005Build\022#.bldr.web.bundler.vite.Bu"
-    "ildRequest\032$.bldr.web.bundler.vite.Build"
-    "Response\"\000b\006proto3"
+    " \001(\t\022\027\n\017entrypoint_path\030\002 \001(\t\"\312\001\n\022BuildW"
+    "ebPkgRequest\022\016\n\006pkg_id\030\001 \001(\t\022\020\n\010pkg_root"
+    "\030\002 \001(\t\022\017\n\007imports\030\003 \003(\t\022\027\n\017sibling_pkg_i"
+    "ds\030\004 \003(\t\022\025\n\rexternal_pkgs\030\005 \003(\t\022\017\n\007out_d"
+    "ir\030\006 \001(\t\022\031\n\021web_pkg_base_path\030\007 \001(\t\022\022\n\ni"
+    "s_release\030\010 \001(\010\022\021\n\tcache_dir\030\t \001(\t\"\216\001\n\023B"
+    "uildWebPkgResponse\022\017\n\007success\030\001 \001(\010\022\r\n\005e"
+    "rror\030\002 \001(\t\022\024\n\014source_files\030\003 \003(\t\022A\n\022impo"
+    "rt_map_entries\030\004 \003(\0132%.bldr.web.bundler."
+    "vite.ImportMapEntry\"8\n\016ImportMapEntry\022\021\n"
+    "\tspecifier\030\001 \001(\t\022\023\n\013output_path\030\002 \001(\t2\313\001"
+    "\n\013ViteBundler\022T\n\005Build\022#.bldr.web.bundle"
+    "r.vite.BuildRequest\032$.bldr.web.bundler.v"
+    "ite.BuildResponse\"\000\022f\n\013BuildWebPkg\022).bld"
+    "r.web.bundler.vite.BuildWebPkgRequest\032*."
+    "bldr.web.bundler.vite.BuildWebPkgRespons"
+    "e\"\000b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_deps[1] = {
@@ -371,13 +532,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto = {
     false,
     false,
-    1058,
+    1571,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
     "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_deps,
     1,
-    6,
+    9,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto::offsets,
@@ -2970,6 +3131,1340 @@ void ViteOutputMeta::InternalSwap(ViteOutputMeta* PROTOBUF_RESTRICT PROTOBUF_NON
 }
 
 ::google::protobuf::Metadata ViteOutputMeta::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class BuildWebPkgRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BuildWebPkgRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_._has_bits_);
+};
+
+BuildWebPkgRequest::BuildWebPkgRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BuildWebPkgRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.web.bundler.vite.BuildWebPkgRequest)
+}
+PROTOBUF_NDEBUG_INLINE BuildWebPkgRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::web::bundler::vite::BuildWebPkgRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        imports_{visibility, arena, from.imports_},
+        sibling_pkg_ids_{visibility, arena, from.sibling_pkg_ids_},
+        external_pkgs_{visibility, arena, from.external_pkgs_},
+        pkg_id_(arena, from.pkg_id_),
+        pkg_root_(arena, from.pkg_root_),
+        out_dir_(arena, from.out_dir_),
+        web_pkg_base_path_(arena, from.web_pkg_base_path_),
+        cache_dir_(arena, from.cache_dir_) {}
+
+BuildWebPkgRequest::BuildWebPkgRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BuildWebPkgRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BuildWebPkgRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BuildWebPkgRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.is_release_ = from._impl_.is_release_;
+
+  // @@protoc_insertion_point(copy_constructor:bldr.web.bundler.vite.BuildWebPkgRequest)
+}
+PROTOBUF_NDEBUG_INLINE BuildWebPkgRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        imports_{visibility, arena},
+        sibling_pkg_ids_{visibility, arena},
+        external_pkgs_{visibility, arena},
+        pkg_id_(arena),
+        pkg_root_(arena),
+        out_dir_(arena),
+        web_pkg_base_path_(arena),
+        cache_dir_(arena) {}
+
+inline void BuildWebPkgRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.is_release_ = {};
+}
+BuildWebPkgRequest::~BuildWebPkgRequest() {
+  // @@protoc_insertion_point(destructor:bldr.web.bundler.vite.BuildWebPkgRequest)
+  SharedDtor(*this);
+}
+inline void BuildWebPkgRequest::SharedDtor(MessageLite& self) {
+  BuildWebPkgRequest& this_ = static_cast<BuildWebPkgRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.pkg_id_.Destroy();
+  this_._impl_.pkg_root_.Destroy();
+  this_._impl_.out_dir_.Destroy();
+  this_._impl_.web_pkg_base_path_.Destroy();
+  this_._impl_.cache_dir_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BuildWebPkgRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BuildWebPkgRequest(arena);
+}
+constexpr auto BuildWebPkgRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.imports_) +
+          decltype(BuildWebPkgRequest::_impl_.imports_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.sibling_pkg_ids_) +
+          decltype(BuildWebPkgRequest::_impl_.sibling_pkg_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.external_pkgs_) +
+          decltype(BuildWebPkgRequest::_impl_.external_pkgs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(BuildWebPkgRequest), alignof(BuildWebPkgRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&BuildWebPkgRequest::PlacementNew_,
+                                 sizeof(BuildWebPkgRequest),
+                                 alignof(BuildWebPkgRequest));
+  }
+}
+constexpr auto BuildWebPkgRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BuildWebPkgRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BuildWebPkgRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BuildWebPkgRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BuildWebPkgRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BuildWebPkgRequest>(), &BuildWebPkgRequest::ByteSizeLong,
+              &BuildWebPkgRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_._cached_size_),
+          false,
+      },
+      &BuildWebPkgRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BuildWebPkgRequest_class_data_ =
+        BuildWebPkgRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BuildWebPkgRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BuildWebPkgRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BuildWebPkgRequest_class_data_.tc_table);
+  return BuildWebPkgRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 9, 0, 139, 2>
+BuildWebPkgRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    9, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966784,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    9,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    BuildWebPkgRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::BuildWebPkgRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string pkg_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 3, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.pkg_id_)}},
+    // string pkg_root = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 4, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.pkg_root_)}},
+    // repeated string imports = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.imports_)}},
+    // repeated string sibling_pkg_ids = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.sibling_pkg_ids_)}},
+    // repeated string external_pkgs = 5;
+    {::_pbi::TcParser::FastUR1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.external_pkgs_)}},
+    // string out_dir = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 5, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.out_dir_)}},
+    // string web_pkg_base_path = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 6, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.web_pkg_base_path_)}},
+    // bool is_release = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildWebPkgRequest, _impl_.is_release_), 8>(),
+     {64, 8, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.is_release_)}},
+    // string cache_dir = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 7, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.cache_dir_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string pkg_id = 1;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.pkg_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string pkg_root = 2;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.pkg_root_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string imports = 3;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.imports_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string sibling_pkg_ids = 4;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.sibling_pkg_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string external_pkgs = 5;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.external_pkgs_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // string out_dir = 6;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.out_dir_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string web_pkg_base_path = 7;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.web_pkg_base_path_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool is_release = 8;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.is_release_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string cache_dir = 9;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.cache_dir_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\50\6\10\7\17\15\7\21\0\11\0\0\0\0\0\0"
+    "bldr.web.bundler.vite.BuildWebPkgRequest"
+    "pkg_id"
+    "pkg_root"
+    "imports"
+    "sibling_pkg_ids"
+    "external_pkgs"
+    "out_dir"
+    "web_pkg_base_path"
+    "cache_dir"
+  }},
+};
+PROTOBUF_NOINLINE void BuildWebPkgRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.web.bundler.vite.BuildWebPkgRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.imports_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.sibling_pkg_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.external_pkgs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.pkg_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.pkg_root_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.out_dir_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.web_pkg_base_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.cache_dir_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.is_release_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BuildWebPkgRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BuildWebPkgRequest& this_ = static_cast<const BuildWebPkgRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BuildWebPkgRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BuildWebPkgRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.web.bundler.vite.BuildWebPkgRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string pkg_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_pkg_id().empty()) {
+      const ::std::string& _s = this_._internal_pkg_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.pkg_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string pkg_root = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_pkg_root().empty()) {
+      const ::std::string& _s = this_._internal_pkg_root();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.pkg_root");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // repeated string imports = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_imports_size(); i < n; ++i) {
+      const auto& s = this_._internal_imports().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.imports");
+      target = stream->WriteString(3, s, target);
+    }
+  }
+
+  // repeated string sibling_pkg_ids = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (int i = 0, n = this_._internal_sibling_pkg_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_sibling_pkg_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.sibling_pkg_ids");
+      target = stream->WriteString(4, s, target);
+    }
+  }
+
+  // repeated string external_pkgs = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (int i = 0, n = this_._internal_external_pkgs_size(); i < n; ++i) {
+      const auto& s = this_._internal_external_pkgs().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.external_pkgs");
+      target = stream->WriteString(5, s, target);
+    }
+  }
+
+  // string out_dir = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_out_dir().empty()) {
+      const ::std::string& _s = this_._internal_out_dir();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.out_dir");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // string web_pkg_base_path = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_web_pkg_base_path().empty()) {
+      const ::std::string& _s = this_._internal_web_pkg_base_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.web_pkg_base_path");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // bool is_release = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_is_release() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          8, this_._internal_is_release(), target);
+    }
+  }
+
+  // string cache_dir = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_cache_dir().empty()) {
+      const ::std::string& _s = this_._internal_cache_dir();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.web.bundler.vite.BuildWebPkgRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BuildWebPkgRequest::ByteSizeLong(const MessageLite& base) {
+  const BuildWebPkgRequest& this_ = static_cast<const BuildWebPkgRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BuildWebPkgRequest::ByteSizeLong() const {
+  const BuildWebPkgRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.web.bundler.vite.BuildWebPkgRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated string imports = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_imports().size());
+      for (int i = 0, n = this_._internal_imports().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_imports().Get(i));
+      }
+    }
+    // repeated string sibling_pkg_ids = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_sibling_pkg_ids().size());
+      for (int i = 0, n = this_._internal_sibling_pkg_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_sibling_pkg_ids().Get(i));
+      }
+    }
+    // repeated string external_pkgs = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_external_pkgs().size());
+      for (int i = 0, n = this_._internal_external_pkgs().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_external_pkgs().Get(i));
+      }
+    }
+    // string pkg_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_pkg_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_pkg_id());
+      }
+    }
+    // string pkg_root = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_pkg_root().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_pkg_root());
+      }
+    }
+    // string out_dir = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_out_dir().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_out_dir());
+      }
+    }
+    // string web_pkg_base_path = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_web_pkg_base_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_web_pkg_base_path());
+      }
+    }
+    // string cache_dir = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_cache_dir().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_cache_dir());
+      }
+    }
+  }
+   {
+    // bool is_release = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_is_release() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void BuildWebPkgRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BuildWebPkgRequest*>(&to_msg);
+  auto& from = static_cast<const BuildWebPkgRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.web.bundler.vite.BuildWebPkgRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_imports()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_imports());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_sibling_pkg_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_sibling_pkg_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_external_pkgs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_external_pkgs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_pkg_id().empty()) {
+        _this->_internal_set_pkg_id(from._internal_pkg_id());
+      } else {
+        if (_this->_impl_.pkg_id_.IsDefault()) {
+          _this->_internal_set_pkg_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_pkg_root().empty()) {
+        _this->_internal_set_pkg_root(from._internal_pkg_root());
+      } else {
+        if (_this->_impl_.pkg_root_.IsDefault()) {
+          _this->_internal_set_pkg_root("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_out_dir().empty()) {
+        _this->_internal_set_out_dir(from._internal_out_dir());
+      } else {
+        if (_this->_impl_.out_dir_.IsDefault()) {
+          _this->_internal_set_out_dir("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_web_pkg_base_path().empty()) {
+        _this->_internal_set_web_pkg_base_path(from._internal_web_pkg_base_path());
+      } else {
+        if (_this->_impl_.web_pkg_base_path_.IsDefault()) {
+          _this->_internal_set_web_pkg_base_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_cache_dir().empty()) {
+        _this->_internal_set_cache_dir(from._internal_cache_dir());
+      } else {
+        if (_this->_impl_.cache_dir_.IsDefault()) {
+          _this->_internal_set_cache_dir("");
+        }
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_is_release() != 0) {
+      _this->_impl_.is_release_ = from._impl_.is_release_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void BuildWebPkgRequest::CopyFrom(const BuildWebPkgRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.web.bundler.vite.BuildWebPkgRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BuildWebPkgRequest::InternalSwap(BuildWebPkgRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.imports_.InternalSwap(&other->_impl_.imports_);
+  _impl_.sibling_pkg_ids_.InternalSwap(&other->_impl_.sibling_pkg_ids_);
+  _impl_.external_pkgs_.InternalSwap(&other->_impl_.external_pkgs_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pkg_id_, &other->_impl_.pkg_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pkg_root_, &other->_impl_.pkg_root_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.out_dir_, &other->_impl_.out_dir_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_pkg_base_path_, &other->_impl_.web_pkg_base_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cache_dir_, &other->_impl_.cache_dir_, arena);
+  swap(_impl_.is_release_, other->_impl_.is_release_);
+}
+
+::google::protobuf::Metadata BuildWebPkgRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class BuildWebPkgResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BuildWebPkgResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_._has_bits_);
+};
+
+BuildWebPkgResponse::BuildWebPkgResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BuildWebPkgResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.web.bundler.vite.BuildWebPkgResponse)
+}
+PROTOBUF_NDEBUG_INLINE BuildWebPkgResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::web::bundler::vite::BuildWebPkgResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        source_files_{visibility, arena, from.source_files_},
+        import_map_entries_{visibility, arena, from.import_map_entries_},
+        error_(arena, from.error_) {}
+
+BuildWebPkgResponse::BuildWebPkgResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BuildWebPkgResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BuildWebPkgResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BuildWebPkgResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.success_ = from._impl_.success_;
+
+  // @@protoc_insertion_point(copy_constructor:bldr.web.bundler.vite.BuildWebPkgResponse)
+}
+PROTOBUF_NDEBUG_INLINE BuildWebPkgResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        source_files_{visibility, arena},
+        import_map_entries_{visibility, arena},
+        error_(arena) {}
+
+inline void BuildWebPkgResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.success_ = {};
+}
+BuildWebPkgResponse::~BuildWebPkgResponse() {
+  // @@protoc_insertion_point(destructor:bldr.web.bundler.vite.BuildWebPkgResponse)
+  SharedDtor(*this);
+}
+inline void BuildWebPkgResponse::SharedDtor(MessageLite& self) {
+  BuildWebPkgResponse& this_ = static_cast<BuildWebPkgResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.error_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BuildWebPkgResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BuildWebPkgResponse(arena);
+}
+constexpr auto BuildWebPkgResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.source_files_) +
+          decltype(BuildWebPkgResponse::_impl_.source_files_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.import_map_entries_) +
+          decltype(BuildWebPkgResponse::_impl_.import_map_entries_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(BuildWebPkgResponse), alignof(BuildWebPkgResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&BuildWebPkgResponse::PlacementNew_,
+                                 sizeof(BuildWebPkgResponse),
+                                 alignof(BuildWebPkgResponse));
+  }
+}
+constexpr auto BuildWebPkgResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BuildWebPkgResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BuildWebPkgResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BuildWebPkgResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BuildWebPkgResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BuildWebPkgResponse>(), &BuildWebPkgResponse::ByteSizeLong,
+              &BuildWebPkgResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_._cached_size_),
+          false,
+      },
+      &BuildWebPkgResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BuildWebPkgResponse_class_data_ =
+        BuildWebPkgResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BuildWebPkgResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BuildWebPkgResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BuildWebPkgResponse_class_data_.tc_table);
+  return BuildWebPkgResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 1, 67, 2>
+BuildWebPkgResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    BuildWebPkgResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::BuildWebPkgResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.import_map_entries_)}},
+    // bool success = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildWebPkgResponse, _impl_.success_), 3>(),
+     {8, 3, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.success_)}},
+    // string error = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.error_)}},
+    // repeated string source_files = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.source_files_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool success = 1;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.success_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string error = 2;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.error_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string source_files = 3;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.source_files_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgResponse, _impl_.import_map_entries_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::ImportMapEntry>()},
+  }},
+  {{
+    "\51\0\5\14\0\0\0\0"
+    "bldr.web.bundler.vite.BuildWebPkgResponse"
+    "error"
+    "source_files"
+  }},
+};
+PROTOBUF_NOINLINE void BuildWebPkgResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.web.bundler.vite.BuildWebPkgResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.source_files_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.import_map_entries_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.success_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BuildWebPkgResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BuildWebPkgResponse& this_ = static_cast<const BuildWebPkgResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BuildWebPkgResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BuildWebPkgResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.web.bundler.vite.BuildWebPkgResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool success = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_success() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_success(), target);
+    }
+  }
+
+  // string error = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgResponse.error");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // repeated string source_files = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_source_files_size(); i < n; ++i) {
+      const auto& s = this_._internal_source_files().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.BuildWebPkgResponse.source_files");
+      target = stream->WriteString(3, s, target);
+    }
+  }
+
+  // repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_import_map_entries_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_import_map_entries().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.web.bundler.vite.BuildWebPkgResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BuildWebPkgResponse::ByteSizeLong(const MessageLite& base) {
+  const BuildWebPkgResponse& this_ = static_cast<const BuildWebPkgResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BuildWebPkgResponse::ByteSizeLong() const {
+  const BuildWebPkgResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.web.bundler.vite.BuildWebPkgResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated string source_files = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_source_files().size());
+      for (int i = 0, n = this_._internal_source_files().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_source_files().Get(i));
+      }
+    }
+    // repeated .bldr.web.bundler.vite.ImportMapEntry import_map_entries = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_import_map_entries_size();
+      for (const auto& msg : this_._internal_import_map_entries()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string error = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+    // bool success = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_success() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void BuildWebPkgResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BuildWebPkgResponse*>(&to_msg);
+  auto& from = static_cast<const BuildWebPkgResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.web.bundler.vite.BuildWebPkgResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_source_files()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_source_files());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_import_map_entries()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_import_map_entries());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_success() != 0) {
+        _this->_impl_.success_ = from._impl_.success_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void BuildWebPkgResponse::CopyFrom(const BuildWebPkgResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.web.bundler.vite.BuildWebPkgResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BuildWebPkgResponse::InternalSwap(BuildWebPkgResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.source_files_.InternalSwap(&other->_impl_.source_files_);
+  _impl_.import_map_entries_.InternalSwap(&other->_impl_.import_map_entries_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  swap(_impl_.success_, other->_impl_.success_);
+}
+
+::google::protobuf::Metadata BuildWebPkgResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ImportMapEntry::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ImportMapEntry>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_._has_bits_);
+};
+
+ImportMapEntry::ImportMapEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ImportMapEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.web.bundler.vite.ImportMapEntry)
+}
+PROTOBUF_NDEBUG_INLINE ImportMapEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::web::bundler::vite::ImportMapEntry& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        specifier_(arena, from.specifier_),
+        output_path_(arena, from.output_path_) {}
+
+ImportMapEntry::ImportMapEntry(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ImportMapEntry& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ImportMapEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ImportMapEntry* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.web.bundler.vite.ImportMapEntry)
+}
+PROTOBUF_NDEBUG_INLINE ImportMapEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        specifier_(arena),
+        output_path_(arena) {}
+
+inline void ImportMapEntry::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ImportMapEntry::~ImportMapEntry() {
+  // @@protoc_insertion_point(destructor:bldr.web.bundler.vite.ImportMapEntry)
+  SharedDtor(*this);
+}
+inline void ImportMapEntry::SharedDtor(MessageLite& self) {
+  ImportMapEntry& this_ = static_cast<ImportMapEntry&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.specifier_.Destroy();
+  this_._impl_.output_path_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ImportMapEntry::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ImportMapEntry(arena);
+}
+constexpr auto ImportMapEntry::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ImportMapEntry),
+                                            alignof(ImportMapEntry));
+}
+constexpr auto ImportMapEntry::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ImportMapEntry_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ImportMapEntry::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ImportMapEntry>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ImportMapEntry::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ImportMapEntry>(), &ImportMapEntry::ByteSizeLong,
+              &ImportMapEntry::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_._cached_size_),
+          false,
+      },
+      &ImportMapEntry::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ImportMapEntry_class_data_ =
+        ImportMapEntry::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ImportMapEntry::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ImportMapEntry_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ImportMapEntry_class_data_.tc_table);
+  return ImportMapEntry_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 65, 2>
+ImportMapEntry::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ImportMapEntry_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::ImportMapEntry>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string output_path = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_.output_path_)}},
+    // string specifier = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_.specifier_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string specifier = 1;
+    {PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_.specifier_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string output_path = 2;
+    {PROTOBUF_FIELD_OFFSET(ImportMapEntry, _impl_.output_path_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\44\11\13\0\0\0\0\0"
+    "bldr.web.bundler.vite.ImportMapEntry"
+    "specifier"
+    "output_path"
+  }},
+};
+PROTOBUF_NOINLINE void ImportMapEntry::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.web.bundler.vite.ImportMapEntry)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.specifier_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.output_path_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ImportMapEntry::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ImportMapEntry& this_ = static_cast<const ImportMapEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ImportMapEntry::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ImportMapEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.web.bundler.vite.ImportMapEntry)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string specifier = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_specifier().empty()) {
+      const ::std::string& _s = this_._internal_specifier();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.ImportMapEntry.specifier");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string output_path = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_output_path().empty()) {
+      const ::std::string& _s = this_._internal_output_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.bundler.vite.ImportMapEntry.output_path");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.web.bundler.vite.ImportMapEntry)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ImportMapEntry::ByteSizeLong(const MessageLite& base) {
+  const ImportMapEntry& this_ = static_cast<const ImportMapEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ImportMapEntry::ByteSizeLong() const {
+  const ImportMapEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.web.bundler.vite.ImportMapEntry)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string specifier = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_specifier().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_specifier());
+      }
+    }
+    // string output_path = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_output_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_output_path());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ImportMapEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ImportMapEntry*>(&to_msg);
+  auto& from = static_cast<const ImportMapEntry&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.web.bundler.vite.ImportMapEntry)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_specifier().empty()) {
+        _this->_internal_set_specifier(from._internal_specifier());
+      } else {
+        if (_this->_impl_.specifier_.IsDefault()) {
+          _this->_internal_set_specifier("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_output_path().empty()) {
+        _this->_internal_set_output_path(from._internal_output_path());
+      } else {
+        if (_this->_impl_.output_path_.IsDefault()) {
+          _this->_internal_set_output_path("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ImportMapEntry::CopyFrom(const ImportMapEntry& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.web.bundler.vite.ImportMapEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ImportMapEntry::InternalSwap(ImportMapEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.specifier_, &other->_impl_.specifier_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.output_path_, &other->_impl_.output_path_, arena);
+}
+
+::google::protobuf::Metadata ImportMapEntry::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
@@ -54,12 +53,14 @@ type SaucerJSBundle struct {
 // BuildSaucerJSBundle builds the JS runtime bundle that runs inside Saucer.
 //
 // The pkgs (react, @aptre/bldr, etc.) are served via the fetch protocol at /b/pkg/.
+// importMap contains the web pkg import map (from the web pkg build).
 // Returns the bootstrap HTML and entrypoint JS.
 func BuildSaucerJSBundle(
 	le *logrus.Entry,
 	bldrDistRoot,
 	buildDir string,
 	minify bool,
+	importMap web_entrypoint_index.ImportMap,
 ) (*SaucerJSBundle, error) {
 	le.Debug("generating saucer JS runtime bundle")
 
@@ -106,7 +107,6 @@ func BuildSaucerJSBundle(
 
 	// Generate bootstrap HTML with import map pointing to /b/pkg/
 	// The pkgs are served via the fetch protocol by Go runtime
-	importMap := web_pkg_external.GetBldrDistImportMap(bldr_plugin.PluginWebPkgHttpPrefix)
 	bootstrapHtml := generateBootstrapHtml(importMap)
 
 	return &SaucerJSBundle{

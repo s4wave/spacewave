@@ -4,13 +4,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,6 +33,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	}
 	rootDir := filepath.Join(wd, "../../")
 	outDir := filepath.Join(wd, "out")
+	workingDir := filepath.Join(wd, "working")
 
 	refs := []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
@@ -52,25 +53,30 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		Imports:    []string{"index.ts"},
 	}}
 
-	refs, err = web_pkg_esbuild.ResolveWebPkgRefsEsbuild(ctx, le, rootDir, refs)
-	if err != nil {
-		return err
-	}
+	// Use the bldr dist sources as the distSourcePath.
+	distSourcePath := filepath.Join(rootDir, ".bldr", "src")
 
-	webPkgIds, srcPaths, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
-		ctx,
-		le,
-		rootDir,
-		refs,
-		outDir,
-		bldr_plugin.PluginWebPkgHttpPrefix,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("web pkg ids: %v\n", webPkgIds)
-	fmt.Printf("source paths: %v\n", srcPaths)
-	return nil
+	return web_pkg_vite.RunOneShot(ctx, le, distSourcePath, rootDir, workingDir, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+		webPkgIds, srcPaths, importMapEntries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+			ctx,
+			le,
+			rootDir,
+			refs,
+			outDir,
+			bldr_plugin.PluginWebPkgHttpPrefix,
+			false,
+			client,
+			filepath.Join(workingDir, "cache"),
+		)
+		if buildErr != nil {
+			return buildErr
+		}
+		le.Infof("web pkg ids: %v", webPkgIds)
+		le.Infof("source paths: %d files", len(srcPaths))
+		le.Infof("import map entries: %d", len(importMapEntries))
+		for _, entry := range importMapEntries {
+			le.Infof("  %s -> %s", entry.Specifier, entry.OutputPath)
+		}
+		return nil
+	})
 }

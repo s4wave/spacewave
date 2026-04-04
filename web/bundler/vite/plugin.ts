@@ -130,62 +130,96 @@ export function createWebPkgRemapPlugin(
       }
     },
 
-    // resolveId handles imports that bypass tsconfig resolution
-    // (e.g. from node_modules). For tsconfig-aliased packages,
-    // rolldownOptions.external catches them first and renderChunk
-    // rewrites the specifiers.
+    // resolveId resolves sibling web pkg imports to /b/pkg/ URLs.
+    // Uses Vite's resolver to find the actual file path, then computes
+    // the relative path within the package and remaps .js -> .mjs.
     async resolveId(
       importId,
       importer,
       options,
     ): Promise<Rollup.ResolveIdResult> {
-      if (importer === 'bldr-pkg-resolve' || importId?.startsWith('.')) {
+      if (options?.custom?.['bldr-pkg-resolve'] || importId?.startsWith('.')) {
         return null
       }
 
       const normalizedImportId = importId.trim().replace(/^\//, '')
       if (normalizedImportId.length === 0) return null
 
-      let pkgID: string,
-        subPath: string = ''
+      let pkgID: string
       if (normalizedImportId.startsWith('@')) {
         const firstSlash = normalizedImportId.indexOf('/')
         if (firstSlash === -1) return null
         const secondSlash = normalizedImportId.indexOf('/', firstSlash + 1)
         pkgID =
-          secondSlash === -1 ?
-            normalizedImportId
-          : normalizedImportId.substring(0, secondSlash)
-        subPath =
-          secondSlash === -1 ?
-            ''
-          : normalizedImportId.substring(secondSlash + 1)
+          secondSlash === -1
+            ? normalizedImportId
+            : normalizedImportId.substring(0, secondSlash)
       } else {
         const firstSlash = normalizedImportId.indexOf('/')
         pkgID =
-          firstSlash === -1 ?
-            normalizedImportId
-          : normalizedImportId.substring(0, firstSlash)
-        subPath =
-          firstSlash === -1 ? '' : normalizedImportId.substring(firstSlash + 1)
+          firstSlash === -1
+            ? normalizedImportId
+            : normalizedImportId.substring(0, firstSlash)
       }
 
-      subPath = path.posix.normalize(subPath).replace(/^(\.\/|\.|\/)/, '')
       const pkgNameRegex =
         /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/
       if (!pkgNameRegex.test(pkgID) || !config.webPkgIDs.includes(pkgID)) {
         return null
       }
 
-      const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
-      if (!result) return null
+      // Resolve the import to find the actual file on disk.
+      const resolved = await this.resolve(importId, importer, {
+        ...options,
+        custom: { 'bldr-pkg-resolve': true },
+      })
+      if (!resolved || !resolved.id) {
+        // Fall back to simple remap without resolution.
+        const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
+        if (!result) return null
+        if (debug)
+          console.log(
+            `[bldr-pkg-resolve] resolveId (fallback): ${importId} -> ${result.remapped}`,
+          )
+        return { id: result.remapped, external: true }
+      }
+
+      // Compute relative path within the package root.
+      const pkgRoot = webPkgRoots[pkgID]
+      let relPath: string
+      if (pkgRoot && resolved.id.startsWith(pkgRoot)) {
+        relPath = resolved.id.substring(pkgRoot.length).replace(/^\//, '')
+      } else {
+        // Could not determine relative path, use the specifier subpath.
+        const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
+        if (!result) return null
+        if (debug)
+          console.log(
+            `[bldr-pkg-resolve] resolveId (no root): ${importId} -> ${result.remapped}`,
+          )
+        return { id: result.remapped, external: true }
+      }
+
+      // Remap JS extensions to .mjs to match web pkg output.
+      const ext = path.extname(relPath)
+      if (JS_EXTENSIONS.includes(ext)) {
+        relPath = relPath.substring(0, relPath.length - ext.length) + '.mjs'
+      }
+
+      const remapped = `/b/pkg/${pkgID}/${relPath}`
+
+      // Track the import for the Go side.
+      if (config.addWebPkgImport && pkgRoot) {
+        const originalRelPath = resolved.id.substring(pkgRoot.length).replace(/^\//, '')
+        config.addWebPkgImport(pkgID, pkgRoot, originalRelPath)
+      }
 
       if (debug)
         console.log(
-          `[bldr-pkg-resolve] resolveId: ${importId} -> ${result.remapped}`,
+          `[bldr-pkg-resolve] resolveId: ${importId} -> ${remapped}`,
         )
 
-      return { id: result.remapped, external: true }
+      return { id: remapped, external: true }
     },
 
     // renderChunk rewrites external web pkg import specifiers in the

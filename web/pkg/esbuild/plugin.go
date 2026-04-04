@@ -8,7 +8,6 @@ import (
 
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -116,7 +115,7 @@ func BuildEsbuildPlugin(
 				// Adjust suffix if we will rewrite .js -> .mjs in the build process.
 				relPkgSubImpPath := relPkgSubPath
 				relPkgSubImpPathExt := filepath.Ext(relPkgSubPath)
-				if determine_cjs_exports.SupportsExtension(relPkgSubImpPathExt) {
+				if isJSExtension(relPkgSubImpPathExt) {
 					// remap the output file extension to .mjs
 					relPkgSubImpPath = relPkgSubImpPath[:len(relPkgSubPath)-len(relPkgSubImpPathExt)] + ".mjs"
 				}

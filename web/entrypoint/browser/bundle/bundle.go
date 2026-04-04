@@ -13,10 +13,11 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	"github.com/aperturerobotics/bldr/util/npm"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
+	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -200,23 +201,15 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 }
 
 // BuildRendererIndex builds the web renderer index.html.
-func BuildRendererIndex(buildDir, entrypointHash string) error {
+//
+// importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
+func BuildRendererIndex(buildDir, entrypointHash string, importMap web_entrypoint_index.ImportMap) error {
 	// entrypoint import path
 	entrypointImportPath := "./entrypoint"
 	if entrypointHash != "" {
 		entrypointImportPath += "/" + entrypointHash
 	}
 	entrypointImportPath += "/entrypoint.mjs"
-
-	// pkgsPathPrefix is the path prefix to ./pkgs relative to index.html
-	pkgsPathPrefix := "./entrypoint"
-	if entrypointHash != "" {
-		pkgsPathPrefix += "/" + entrypointHash
-	}
-	pkgsPathPrefix += "/pkgs/"
-
-	// build the import map
-	importMap := web_pkg_external.GetBldrDistImportMap(pkgsPathPrefix)
 
 	// render index.html
 	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
@@ -248,10 +241,11 @@ func BuildRendererBundle(
 	entrypointHash string,
 	minify,
 	useDedicatedWorkers bool,
+	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
 
-	if err := BuildRendererIndex(buildDir, entrypointHash); err != nil {
+	if err := BuildRendererIndex(buildDir, entrypointHash, webPkgImportMap); err != nil {
 		return nil, err
 	}
 
@@ -376,12 +370,13 @@ func BuildBrowserBundle(
 		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
 	}
 
-	if err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
+	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode)
+	if err != nil {
 		return nil, err
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, useDedicatedWorkers)
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, useDedicatedWorkers, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +400,8 @@ func BuildBrowserBundle(
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // pathPrefix is the prefix to prepend to /pkgs/ for pkg paths
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) error {
+// Returns the import map entries mapping logical specifiers to hashed output paths.
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) (web_entrypoint_index.ImportMap, error) {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -413,7 +409,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 	// Use stateDir (not buildDir) so the cache survives CleanCreateDir on the build output.
 	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
 	if err := npm.EnsureBunInstall(ctx, le, stateDir, filepath.Join(bldrDistRoot, "dist/deps/package.json"), buildPkgsDir); err != nil {
-		return err
+		return web_entrypoint_index.ImportMap{}, err
 	}
 
 	// web pkgs we distribute with bldr
@@ -428,19 +424,24 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		}
 	}
 
-	_, _, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
-		ctx,
-		le,
-		buildDir,
-		refs,
-		outDir,
-		pathPrefix+"/pkgs/",
-		minify,
-		[]string{filepath.Join(buildPkgsDir, "node_modules")},
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	var importMap web_entrypoint_index.ImportMap
+	viteWorkingPath := filepath.Join(stateDir, "vite-web-pkgs")
+	err := web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+		_, _, mapEntries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+			ctx,
+			le,
+			buildDir,
+			refs,
+			outDir,
+			pathPrefix+"/pkgs/",
+			minify,
+			client,
+			filepath.Join(viteWorkingPath, "cache"),
+		)
+		if buildErr == nil {
+			importMap = web_pkg_vite.BuildImportMapFromEntries(mapEntries)
+		}
+		return buildErr
+	})
+	return importMap, err
 }

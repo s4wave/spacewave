@@ -12,11 +12,13 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
 	entrypoint_saucer_bundle "github.com/aperturerobotics/bldr/web/entrypoint/saucer/bundle"
+	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	web_plugin_browser_build "github.com/aperturerobotics/bldr/web/plugin/browser/build"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"
 	saucer "github.com/aperturerobotics/bldr/web/plugin/saucer"
@@ -366,10 +368,24 @@ func (c *Controller) BundleSaucerHook(
 	}
 	le.Info("saucer binary resolved successfully")
 
+	// Build web packages to generate the import map for the bootstrap HTML.
+	// The web pkgs are also built later by BuildDirectWebPkgs to the final
+	// assets directory; Vite caching makes the second build fast.
+	distSrcDir := builderConf.GetDistSourcePath()
+	sourcePath := builderConf.GetSourcePath()
+	webPkgWorkDir := filepath.Join(buildDir, "web-pkgs")
+	webPkgOutDir := filepath.Join(buildDir, "web-pkgs-out")
+	_, importMapEntries, err := bldr_plugin_compiler.BuildDirectWebPkgs(
+		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "build web packages for import map")
+	}
+	importMap := web_pkg_vite.BuildImportMapFromEntries(importMapEntries)
+
 	// Build JS bundle
 	le.Debug("building saucer JS bundle...")
-	distSrcDir := builderConf.GetDistSourcePath()
-	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, minify)
+	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, minify, importMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "build saucer JS bundle")
 	}

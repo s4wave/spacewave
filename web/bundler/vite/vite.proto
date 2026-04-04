@@ -7,6 +7,8 @@ import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 service ViteBundler {
   // Build runs the Vite compiler with the given configuration.
   rpc Build(BuildRequest) returns (BuildResponse) {}
+  // BuildWebPkg builds a single web package with Vite.
+  rpc BuildWebPkg(BuildWebPkgRequest) returns (BuildWebPkgResponse) {}
 }
 
 // WebPkgRef is a reference to a web package.
@@ -88,4 +90,48 @@ message ViteOutputMeta {
   // EntrypointPath is the entrypoint that produced this output file.
   // May be empty.
   string entrypoint_path = 2;
+}
+
+// BuildWebPkgRequest is a request to build a single web package with Vite.
+message BuildWebPkgRequest {
+  // PkgId is the web package identifier (e.g. "react", "@aptre/bldr").
+  string pkg_id = 1;
+  // PkgRoot is the absolute path to the package root directory.
+  string pkg_root = 2;
+  // Imports is the list of entry sub-paths to build (e.g. ["index.js", "jsx-runtime.js"]).
+  repeated string imports = 3;
+  // SiblingPkgIds is the list of sibling web package IDs to externalize.
+  repeated string sibling_pkg_ids = 4;
+  // ExternalPkgs is the list of additional packages to externalize (e.g. BldrExternal).
+  repeated string external_pkgs = 5;
+  // OutDir is the output directory for this package's build artifacts.
+  string out_dir = 6;
+  // WebPkgBasePath is the base URL path for web packages (e.g. "/b/pkg").
+  string web_pkg_base_path = 7;
+  // IsRelease indicates whether to build in production mode.
+  bool is_release = 8;
+  // CacheDir is the cache directory for the build.
+  string cache_dir = 9;
+}
+
+// BuildWebPkgResponse is the response from building a single web package.
+message BuildWebPkgResponse {
+  // Success indicates if the build was successful.
+  bool success = 1;
+  // Error is the error message if the build failed.
+  string error = 2;
+  // SourceFiles is the list of input source files that were processed.
+  repeated string source_files = 3;
+  // ImportMapEntries maps logical import specifiers to hashed output filenames.
+  // Keys are specifiers like "react" or "react/jsx-runtime".
+  // Values are output paths like "index-a1b2c3.mjs".
+  repeated ImportMapEntry import_map_entries = 4;
+}
+
+// ImportMapEntry maps a logical import specifier to a hashed output filename.
+message ImportMapEntry {
+  // Specifier is the logical import specifier (e.g. "react", "react/jsx-runtime").
+  string specifier = 1;
+  // OutputPath is the hashed output filename (e.g. "index-a1b2c3.mjs").
+  string output_path = 2;
 }

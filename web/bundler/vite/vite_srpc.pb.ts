@@ -2,7 +2,12 @@
 // @generated from file github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto (package bldr.web.bundler.vite, syntax proto3)
 /* eslint-disable */
 
-import { BuildRequest, BuildResponse } from './vite.pb.js'
+import {
+  BuildRequest,
+  BuildResponse,
+  BuildWebPkgRequest,
+  BuildWebPkgResponse,
+} from './vite.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
@@ -25,6 +30,17 @@ export const ViteBundlerDefinition = {
       O: BuildResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * BuildWebPkg builds a single web package with Vite.
+     *
+     * @generated from rpc bldr.web.bundler.vite.ViteBundler.BuildWebPkg
+     */
+    BuildWebPkg: {
+      name: 'BuildWebPkg',
+      I: BuildWebPkgRequest,
+      O: BuildWebPkgResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -43,6 +59,16 @@ export interface ViteBundler {
     request: BuildRequest,
     abortSignal?: AbortSignal,
   ): Promise<BuildResponse>
+
+  /**
+   * BuildWebPkg builds a single web package with Vite.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.BuildWebPkg
+   */
+  BuildWebPkg(
+    request: BuildWebPkgRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildWebPkgResponse>
 }
 
 export const ViteBundlerServiceName = ViteBundlerDefinition.typeName
@@ -54,6 +80,7 @@ export class ViteBundlerClient implements ViteBundler {
     this.service = opts?.service || ViteBundlerServiceName
     this.rpc = rpc
     this.Build = this.Build.bind(this)
+    this.BuildWebPkg = this.BuildWebPkg.bind(this)
   }
   /**
    * Build runs the Vite compiler with the given configuration.
@@ -72,5 +99,24 @@ export class ViteBundlerClient implements ViteBundler {
       abortSignal || undefined,
     )
     return BuildResponse.fromBinary(result)
+  }
+
+  /**
+   * BuildWebPkg builds a single web package with Vite.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.BuildWebPkg
+   */
+  async BuildWebPkg(
+    request: BuildWebPkgRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildWebPkgResponse> {
+    const requestMsg = BuildWebPkgRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ViteBundlerDefinition.methods.BuildWebPkg.name,
+      BuildWebPkgRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return BuildWebPkgResponse.fromBinary(result)
   }
 }

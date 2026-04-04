@@ -18,7 +18,7 @@ import (
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/world"
@@ -697,14 +697,32 @@ func (c *Controller) performFullRebuild(
 		return nil, err
 	}
 
-	// Run esbuild on the web pkgs (if any).
+	// Build web pkgs with Vite (if any).
 	// Filter out excluded web packages (another plugin provides these).
 	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
 	buildableWebPkgRefs := web_pkg.WebPkgRefSlice(viteBuildResult.webPkgRefs).FilterExcluded(excludedIDs)
 	var webPkgSrcFiles []string
 	if len(buildableWebPkgRefs) != 0 {
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-		_, webPkgSrcFiles, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
+
+		// Acquire a ViteBundler client for web pkg builds.
+		// Reuse the first bundle's bundler process (shared Vite cache).
+		bundleList, bundleErr := BuildViteBundleMeta(buildCtrlConf.GetBundles())
+		if bundleErr != nil {
+			return nil, bundleErr
+		}
+		if len(bundleList) == 0 {
+			return nil, errors.New("no vite bundles configured, cannot build web pkgs")
+		}
+		bundlerKey := newViteBundlerKey(distSourcePath, sourcePath, workingPath, bundleList[0].Id)
+		bundlerRef, bundlerTkr, _ := c.viteBundlers.AddKeyRef(bundlerKey)
+		defer bundlerRef.Release()
+		bundlerClient, awaitErr := bundlerTkr.instancePromiseCtr.Await(ctx)
+		if awaitErr != nil {
+			return nil, errors.Wrap(awaitErr, "await vite bundler for web pkgs")
+		}
+
+		_, webPkgSrcFiles, _, err = web_pkg_vite.BuildWebPkgsVite(
 			ctx,
 			le,
 			sourcePath,
@@ -712,7 +730,8 @@ func (c *Controller) performFullRebuild(
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
-			[]string{filepath.Join(sourcePath, "node_modules")},
+			bundlerClient,
+			filepath.Join(workingPath, "cache"),
 		)
 		if err != nil {
 			return nil, err

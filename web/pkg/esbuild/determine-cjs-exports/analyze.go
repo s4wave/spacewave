@@ -146,7 +146,9 @@ type requireItem struct {
 // codeRootPath is the directory to resolve from.
 // importPath is the module to analyze (e.g., "./index.js", "react").
 // nodePaths are additional directories containing node_modules.
-func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string) (*CjsExportsResult, error) {
+// nodeEnv controls which branch is followed for conditional require() calls
+// (e.g., "production" or "development").
+func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, nodeEnv string) (*CjsExportsResult, error) {
 	// Resolve the entry file.
 	entry, err := ResolveModuleWithNodePaths(codeRootPath, importPath, nodePaths)
 	if err != nil {
@@ -181,7 +183,7 @@ func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string) (*Cj
 		}
 
 		result, parseErr := cjsexports.Parse(string(code), req.path, cjsexports.Options{
-			NodeEnv:  "production",
+			NodeEnv:  nodeEnv,
 			CallMode: req.callMode,
 		})
 		if parseErr != nil {
