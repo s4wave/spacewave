@@ -53,6 +53,10 @@ import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { isSaucer, SaucerRuntimeClient } from '../saucer/saucer.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
+import {
+  detectWorkerCommsConfig,
+  type WorkerCommsDetectResult,
+} from './worker-comms-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
   ClientToWebDocument,
@@ -487,6 +491,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
   // This unified worker handles both native and QuickJS plugins via URL params.
   private readonly sharedWorkerPath: string
+  // workerCommsDetect resolves to the detected worker communication config.
+  private readonly workerCommsDetect: Promise<WorkerCommsDetectResult>
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
 
@@ -530,6 +536,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         throw new Error('WebAssembly is not supported in this browser')
       }
     }
+
+    // Detect worker communication capabilities (SAB, OPFS, etc.).
+    this.workerCommsDetect = detectWorkerCommsConfig()
 
     // Setup the status stream.
     const webStatusStream = new ItState<WebDocumentStatus>(
@@ -847,9 +856,23 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const workerType = request.workerType ?? WebWorkerType.NATIVE
 
     const workerMode = request.workerMode ?? WebWorkerMode.WORKER_MODE_DEFAULT
-    const shared =
-      workerMode === WebWorkerMode.WORKER_MODE_DEFAULT ||
-      workerMode === WebWorkerMode.WORKER_MODE_SHARED
+    let shared: boolean
+    if (workerMode === WebWorkerMode.WORKER_MODE_DEDICATED) {
+      shared = false
+    } else if (workerMode === WebWorkerMode.WORKER_MODE_SHARED) {
+      shared = true
+    } else {
+      // WORKER_MODE_DEFAULT: for plugin workers on Config B/C (SAB available),
+      // use DedicatedWorker so the SAB bus can be wired for intra-tab IPC.
+      // Non-plugin workers and Config A/F keep SharedWorker.
+      const isPlugin = !!request.initData
+      if (isPlugin) {
+        const detect = await this.workerCommsDetect
+        shared = detect.config !== 'B' && detect.config !== 'C'
+      } else {
+        shared = true
+      }
+    }
 
     const worker = new WebDocumentWebWorker(
       request.id,
