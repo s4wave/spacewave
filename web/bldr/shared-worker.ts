@@ -68,11 +68,17 @@ if (isPlugin) {
     const { scriptPath, workerType } = parseUrlParams()
 
     // Set up SAB bus endpoint if the bus SAB was provided.
+    // Falls back to MessagePort-only transport if bus initialization fails.
     let busEndpoint: SabBusEndpoint | undefined
     if (busSab && busPluginId != null) {
-      busEndpoint = new SabBusEndpoint(busSab, busPluginId)
-      busEndpoint.register()
-      console.log('shared-worker: registered on SAB bus with pluginId', busPluginId)
+      try {
+        busEndpoint = new SabBusEndpoint(busSab, busPluginId)
+        busEndpoint.register()
+        console.log('shared-worker: registered on SAB bus with pluginId', busPluginId)
+      } catch (err) {
+        console.warn('shared-worker: SAB bus init failed, falling back to MessagePort', err)
+        busEndpoint = undefined
+      }
     }
 
     const detect = await detectWorkerCommsConfig()

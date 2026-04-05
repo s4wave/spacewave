@@ -886,17 +886,22 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // For DedicatedWorker plugins on config B/C, set up the SAB bus.
+    // Falls back gracefully if SAB allocation fails.
     let busSab: SharedArrayBuffer | undefined
     let busPluginId: number | undefined
     if (!shared && request.initData) {
       const detect = await this.workerCommsDetect
       if (detect.config === 'B' || detect.config === 'C') {
-        if (!this.busSab) {
-          this.busSab = createBusSab()
-          console.log('WebDocument: created SAB bus for intra-tab plugin IPC')
+        try {
+          if (!this.busSab) {
+            this.busSab = createBusSab()
+            console.log('WebDocument: created SAB bus for intra-tab plugin IPC')
+          }
+          busSab = this.busSab
+          busPluginId = this.nextBusPluginId++
+        } catch (err) {
+          console.warn('WebDocument: SAB bus allocation failed, using MessagePort only', err)
         }
-        busSab = this.busSab
-        busPluginId = this.nextBusPluginId++
       }
     }
 
