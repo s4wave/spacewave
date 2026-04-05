@@ -1,7 +1,7 @@
-import sqlite3Init, { type Sqlite3Static, type SAHPoolUtil } from '@sqlite.org/sqlite-wasm'
+import sqlite3Init, { type Sqlite3Static, type SAHPoolUtil } from '@aptre/sqlite-wasm'
 // The package exports ./sqlite3.wasm as a named export.
 // esbuild's file loader copies it to the output and returns the URL.
-import sqlite3WasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm'
+import sqlite3WasmUrl from '@aptre/sqlite-wasm/sqlite3.wasm'
 
 // SqliteLoadResult holds the result of loading and initializing sqlite.wasm.
 export interface SqliteLoadResult {

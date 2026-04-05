@@ -103,7 +103,7 @@
   "dependencies": {
     "@aptre/protobuf-es-lite": "^1.0.2",
     "@libp2p/logger": "^6.2.3",
-    "@sqlite.org/sqlite-wasm": "^3.51.2-build8",
+    "@aptre/sqlite-wasm": "^3.53.0-build1",
     "console": "^0.7.2",
     "electron": "^41.1.1",
     "quickjs-wasi-reactor": "^0.13.0",
