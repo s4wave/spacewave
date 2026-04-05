@@ -16,6 +16,7 @@ import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 import { checkSharedWorker, PluginWorker } from '../runtime/plugin-worker.js'
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
+import { createMessagePortTransportFactory } from './plugin-transport.js'
 
 declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
@@ -60,16 +61,19 @@ if (isPlugin) {
   const startPluginCallback = async (startInfo: PluginStartInfo) => {
     const { scriptPath, workerType } = parseUrlParams()
 
-    const openStream = pluginWorker.webRuntimeClient.openStream.bind(
-      pluginWorker.webRuntimeClient,
-    )
+    const transport = createMessagePortTransportFactory({
+      openStream: pluginWorker.webRuntimeClient.openStream.bind(
+        pluginWorker.webRuntimeClient,
+      ),
+      handleIncomingStream: handleIncomingStream,
+    })
 
     const abortController = new AbortController()
     const abortSignal = abortController.signal
 
     const backendAPI = new BackendApiImpl(
       startInfo,
-      openStream,
+      transport.openStream,
       handleIncomingStreamCtr,
       abortSignal,
     )
