@@ -14,6 +14,13 @@ export function checkSharedWorker(
   )
 }
 
+// PluginStartOpts contains start info and optional bus configuration.
+export interface PluginStartOpts {
+  startInfo: PluginStartInfo
+  busSab?: SharedArrayBuffer
+  busPluginId?: number
+}
+
 // PluginWorker wraps common logic for running a plugin within a WebWorker or SharedWorker.
 export class PluginWorker {
   // webDocumentTracker tracks the set of connected WebDocument.
@@ -46,7 +53,7 @@ export class PluginWorker {
     public readonly global:
       | SharedWorkerGlobalScope
       | DedicatedWorkerGlobalScope,
-    private readonly startPlugin: (startInfo: PluginStartInfo) => void,
+    private readonly startPlugin: (opts: PluginStartOpts) => void,
     handleIncomingStream: HandleStreamFunc | null,
   ) {
     // webDocumentTracker tracks the set of connected remote WebDocument.
@@ -94,7 +101,11 @@ export class PluginWorker {
   }
 
   // handleStartPlugin handles the message to start the plugin.
-  private handleStartPlugin(startInfoBin: Uint8Array) {
+  private handleStartPlugin(
+    startInfoBin: Uint8Array,
+    busSab?: SharedArrayBuffer,
+    busPluginId?: number,
+  ) {
     if (this.pluginStarted) return
     this.pluginStarted = true
 
@@ -103,7 +114,7 @@ export class PluginWorker {
     const startInfoJson = atob(startInfoJsonB64)
     const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
 
-    this.startPlugin(startInfo)
+    this.startPlugin({ startInfo, busSab, busPluginId })
   }
 
   private handleWorkerMessage(msgEvent: MessageEvent<WebDocumentToWorker>) {
@@ -112,7 +123,7 @@ export class PluginWorker {
     this.webDocumentTracker.handleWebDocumentMessage(data)
 
     if (data.initData) {
-      this.handleStartPlugin(data.initData)
+      this.handleStartPlugin(data.initData, data.busSab, data.busPluginId)
 
       // trigger connecting to web runtime
       this.webDocumentTracker.waitConn().catch((err) => {

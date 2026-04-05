@@ -13,11 +13,15 @@
 
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 
-import { checkSharedWorker, PluginWorker } from '../runtime/plugin-worker.js'
+import {
+  checkSharedWorker,
+  PluginWorker,
+  type PluginStartOpts,
+} from '../runtime/plugin-worker.js'
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
-import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
+import { SabBusEndpoint } from './sab-bus.js'
 
 declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
@@ -59,8 +63,17 @@ if (isPlugin) {
 
   let pluginWorker: PluginWorker
 
-  const startPluginCallback = async (startInfo: PluginStartInfo) => {
+  const startPluginCallback = async (opts: PluginStartOpts) => {
+    const { startInfo, busSab, busPluginId } = opts
     const { scriptPath, workerType } = parseUrlParams()
+
+    // Set up SAB bus endpoint if the bus SAB was provided.
+    let busEndpoint: SabBusEndpoint | undefined
+    if (busSab && busPluginId != null) {
+      busEndpoint = new SabBusEndpoint(busSab, busPluginId)
+      busEndpoint.register()
+      console.log('shared-worker: registered on SAB bus with pluginId', busPluginId)
+    }
 
     const detect = await detectWorkerCommsConfig()
     const transport = createTransportFactory(detect, {
@@ -68,6 +81,7 @@ if (isPlugin) {
         pluginWorker.webRuntimeClient,
       ),
       handleIncomingStream: handleIncomingStream,
+      busEndpoint,
     })
 
     const abortController = new AbortController()

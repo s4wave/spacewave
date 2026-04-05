@@ -73,6 +73,11 @@ export interface WebDocumentToWorker {
   // Worker sends ClientToWebDocument
   // Document sends WebDocumentToClient
   initPort?: MessagePort
+  // busSab is the SharedArrayBuffer for the intra-tab SAB bus.
+  // Present when the worker is a plugin DedicatedWorker on config B/C.
+  busSab?: SharedArrayBuffer
+  // busPluginId is the numeric plugin ID assigned for the SAB bus.
+  busPluginId?: number
 }
 
 // WebDocumentToClient is a message sent to a WebDocument client.

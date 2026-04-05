@@ -57,6 +57,7 @@ import {
   detectWorkerCommsConfig,
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
+import { createBusSab } from './sab-bus.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
   ClientToWebDocument,
@@ -115,6 +116,10 @@ class WebDocumentWebWorker {
     // without the shw.mjs wrapper.
     shared: boolean,
     onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
+    // busSab is the SAB bus for intra-tab plugin IPC (config B/C).
+    busSab?: SharedArrayBuffer,
+    // busPluginId is the numeric ID for this worker on the bus.
+    busPluginId?: number,
   ) {
     if (!id) {
       throw new Error('empty web worker id')
@@ -130,6 +135,8 @@ class WebDocumentWebWorker {
       from: webDocumentUuid,
       initData,
       initPort: workerPort,
+      busSab,
+      busPluginId,
     }
 
     if (shared) {
@@ -493,6 +500,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private readonly sharedWorkerPath: string
   // workerCommsDetect resolves to the detected worker communication config.
   private readonly workerCommsDetect: Promise<WorkerCommsDetectResult>
+  // busSab is the shared bus SAB for intra-tab plugin IPC (config B/C).
+  private busSab?: SharedArrayBuffer
+  // nextBusPluginId is the next numeric plugin ID to assign on the bus.
+  private nextBusPluginId = 1
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
 
@@ -874,6 +885,21 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
     }
 
+    // For DedicatedWorker plugins on config B/C, set up the SAB bus.
+    let busSab: SharedArrayBuffer | undefined
+    let busPluginId: number | undefined
+    if (!shared && request.initData) {
+      const detect = await this.workerCommsDetect
+      if (detect.config === 'B' || detect.config === 'C') {
+        if (!this.busSab) {
+          this.busSab = createBusSab()
+          console.log('WebDocument: created SAB bus for intra-tab plugin IPC')
+        }
+        busSab = this.busSab
+        busPluginId = this.nextBusPluginId++
+      }
+    }
+
     const worker = new WebDocumentWebWorker(
       request.id,
       request.path,
@@ -883,6 +909,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       workerType,
       shared,
       this.onWebWorkerMessage.bind(this, request.id),
+      busSab,
+      busPluginId,
     )
     this.webWorkers[request.id] = worker
 
