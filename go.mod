@@ -117,6 +117,7 @@ require (
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
 	github.com/mattn/go-isatty v0.0.20
+	github.com/playwright-community/playwright-go v0.5700.1
 	go.starlark.net v0.0.0-20260326113308-fadfc96def35
 )
 
@@ -124,7 +125,10 @@ require (
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/gomodule/redigo v1.9.3 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
