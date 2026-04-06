@@ -267,10 +267,10 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return false, nil
 		}
 
-		_, rwv := r.lookupRemoteWebWorker(webWorkerID)
-		if rwv != nil {
-			out = rwv
-			return false, nil
+		// If the worker already exists, remove it so we can recreate with the new path.
+		// The browser-side web-document.ts already closes and replaces workers on same-ID calls.
+		if rwv := r.removeRemoteWebWorker(webWorkerID); rwv != nil {
+			r.le.WithField("worker-id", webWorkerID).Debug("CreateWebWorker: recreating existing worker")
 		}
 
 		resp, err := r.webDocument.CreateWebWorker(ctx, req)

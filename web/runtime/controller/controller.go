@@ -357,10 +357,10 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	}
 	defer relHandler()
 
-	// TODO: tell ServiceWorker to flush cache when plugin is updated!
-	// TODO: set cache retention headers, store the hash for last loaded plugin revision,
-	// TODO: store version info of each of the cached files, compare all + flush when plugin is updated.
-	// setNoCacheHeaders(rw.Header())
+	// Content-hashed filenames change on every rebuild so the old path
+	// becomes a 404 if cached.  Disable caching to match /b/pd/ behavior.
+	// TODO: use immutable cache headers keyed on content hash instead.
+	setNoCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
