@@ -120,7 +120,7 @@ func GetElectronApplicable(parsedPlatform bldr_platform.Platform) bool {
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_DESKTOP}
+	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
 }
 
 // _ is a type assertion

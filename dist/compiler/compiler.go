@@ -341,9 +341,9 @@ func (c *Controller) BuildManifest(
 }
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
-// The dist compiler supports native platforms including WebAssembly (native/js/wasm).
+// The dist compiler supports native and web platforms including WebAssembly.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_DESKTOP}
+	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
 }
 
 // _ is a type assertion

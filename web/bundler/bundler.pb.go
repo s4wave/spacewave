@@ -94,6 +94,18 @@ type WebPkgRefConfig struct {
 	// NOTE: this will be merged with any imports the code accesses.
 	// NOTE: this is therefore optional.
 	Imports []string `protobuf:"bytes,3,rep,name=imports,proto3" json:"imports,omitempty"`
+	// Entrypoints defines the subpath entry points to build for this web package.
+	//
+	// For project-local packages (resolved via tsconfig paths, not node_modules):
+	//   - If set, each entry declares a subpath export (e.g. ".", "./object").
+	//     "." maps to the package root index file.
+	//   - If empty, defaults to a single "." entrypoint (package root index).
+	//
+	// For node_modules packages:
+	//   - If set, overrides the auto-detected exports from package.json.
+	//   - If empty, entry points are read from the package.json "exports" field.
+	//     Falls back to "main" or "." if no exports field is present.
+	Entrypoints []*WebPkgEntrypoint `protobuf:"bytes,4,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
 }
 
 func (x *WebPkgRefConfig) Reset() {
@@ -121,6 +133,41 @@ func (x *WebPkgRefConfig) GetImports() []string {
 		return x.Imports
 	}
 	return nil
+}
+
+func (x *WebPkgRefConfig) GetEntrypoints() []*WebPkgEntrypoint {
+	if x != nil {
+		return x.Entrypoints
+	}
+	return nil
+}
+
+// WebPkgEntrypoint configures a single entry point for a web package build.
+type WebPkgEntrypoint struct {
+	unknownFields []byte
+	// Path is the subpath export specifier relative to the package root.
+	//
+	// Examples:
+	//
+	//	"."           - the package root (index.ts / index.js)
+	//	"./object"    - a subpath directory or file (object/index.ts or object.ts)
+	//	"./hooks"     - another subpath
+	//
+	// Follows Node.js subpath exports conventions.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+}
+
+func (x *WebPkgEntrypoint) Reset() {
+	*x = WebPkgEntrypoint{}
+}
+
+func (*WebPkgEntrypoint) ProtoMessage() {}
+
+func (x *WebPkgEntrypoint) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
 }
 
 func (m *WebEntrypoint) CloneVT() *WebEntrypoint {
@@ -167,6 +214,12 @@ func (m *WebPkgRefConfig) CloneVT() *WebPkgRefConfig {
 	if rhs := m.Imports; rhs != nil {
 		r.Imports = slices.Clone(rhs)
 	}
+	if rhs := m.Entrypoints; rhs != nil {
+		r.Entrypoints = make([]*WebPkgEntrypoint, len(rhs))
+		for k, v := range rhs {
+			r.Entrypoints[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -174,6 +227,22 @@ func (m *WebPkgRefConfig) CloneVT() *WebPkgRefConfig {
 }
 
 func (m *WebPkgRefConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WebPkgEntrypoint) CloneVT() *WebPkgEntrypoint {
+	if m == nil {
+		return (*WebPkgEntrypoint)(nil)
+	}
+	r := new(WebPkgEntrypoint)
+	r.Path = m.Path
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WebPkgEntrypoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -244,11 +313,48 @@ func (this *WebPkgRefConfig) EqualVT(that *WebPkgRefConfig) bool {
 			return false
 		}
 	}
+	if len(this.Entrypoints) != len(that.Entrypoints) {
+		return false
+	}
+	for i, vx := range this.Entrypoints {
+		vy := that.Entrypoints[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &WebPkgEntrypoint{}
+			}
+			if q == nil {
+				q = &WebPkgEntrypoint{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *WebPkgRefConfig) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WebPkgRefConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WebPkgEntrypoint) EqualVT(that *WebPkgEntrypoint) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WebPkgEntrypoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WebPkgEntrypoint)
 	if !ok {
 		return false
 	}
@@ -378,6 +484,17 @@ func (x *WebPkgRefConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("imports")
 		s.WriteStringArray(x.Imports)
 	}
+	if len(x.Entrypoints) > 0 || s.HasField("entrypoints") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypoints")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entrypoints {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entrypoints"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -408,12 +525,72 @@ func (x *WebPkgRefConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Imports = s.ReadStringArray()
+		case "entrypoints":
+			s.AddField("entrypoints")
+			if s.ReadNil() {
+				x.Entrypoints = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entrypoints = append(x.Entrypoints, nil)
+					return
+				}
+				v := &WebPkgEntrypoint{}
+				v.UnmarshalProtoJSON(s.WithField("entrypoints", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entrypoints = append(x.Entrypoints, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the WebPkgRefConfig from JSON.
 func (x *WebPkgRefConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WebPkgEntrypoint message to JSON.
+func (x *WebPkgEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WebPkgEntrypoint to JSON.
+func (x *WebPkgEntrypoint) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebPkgEntrypoint message from JSON.
+func (x *WebPkgEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WebPkgEntrypoint from JSON.
+func (x *WebPkgEntrypoint) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -541,6 +718,18 @@ func (m *WebPkgRefConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Entrypoints) > 0 {
+		for iNdEx := len(m.Entrypoints) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entrypoints[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.Imports) > 0 {
 		for iNdEx := len(m.Imports) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Imports[iNdEx])
@@ -564,6 +753,46 @@ func (m *WebPkgRefConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.Id)
 		copy(dAtA[i:], m.Id)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebPkgEntrypoint) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebPkgEntrypoint) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WebPkgEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -624,6 +853,26 @@ func (m *WebPkgRefConfig) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	if len(m.Entrypoints) > 0 {
+		for _, e := range m.Entrypoints {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WebPkgEntrypoint) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -709,11 +958,42 @@ func (x *WebPkgRefConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
+	if len(x.Entrypoints) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoints: [")
+		for i, v := range x.Entrypoints {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *WebPkgRefConfig) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WebPkgEntrypoint) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WebPkgEntrypoint {")
+	if x.Path != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WebPkgEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -966,6 +1246,97 @@ func (m *WebPkgRefConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Imports = append(m.Imports, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoints", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entrypoints = append(m.Entrypoints, &WebPkgEntrypoint{})
+			if err := m.Entrypoints[len(m.Entrypoints)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WebPkgEntrypoint) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WebPkgEntrypoint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WebPkgEntrypoint: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

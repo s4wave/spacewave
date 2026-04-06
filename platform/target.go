@@ -58,7 +58,7 @@ func GetHostPlatformID() string {
 var BuiltinTargets = map[string]*Target{
 	TargetID_Browser: {
 		ID:          TargetID_Browser,
-		PlatformIDs: []string{"desktop/js/wasm", PlatformID_JS},
+		PlatformIDs: []string{"web/js/wasm", PlatformID_JS},
 		Description: "Web browser environment (WebAssembly + JavaScript)",
 	},
 }

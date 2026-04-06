@@ -4509,11 +4509,14 @@ var Client = class {
     const openStreamFn = await this.openStreamCtr.wait();
     const stream = await openStreamFn();
     const call = new ClientRPC(rpcService, rpcMethod);
-    abortSignal?.addEventListener("abort", () => {
+    const onAbort = () => {
       call.writeCallCancel();
       call.close(new Error(ERR_RPC_ABORT));
+    };
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
+    pipe(stream, decodePacketSource, call, encodePacketSource, stream).catch((err) => call.close(err)).then(() => call.close()).finally(() => {
+      abortSignal?.removeEventListener("abort", onAbort);
     });
-    pipe(stream, decodePacketSource, call, encodePacketSource, stream).catch((err) => call.close(err)).then(() => call.close());
     await call.writeCallStart(data ?? void 0);
     return call;
   }

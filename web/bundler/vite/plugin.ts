@@ -1,5 +1,4 @@
 import path from 'path'
-import fs from 'fs'
 import type { Rollup } from 'vite'
 import { Plugin } from 'vite'
 
@@ -9,12 +8,9 @@ const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
 export interface WebPkgRemapPluginConfig {
   // List of packages that can be bundled as web pkgs
   webPkgIDs: string[]
-  // Optional callback
-  addWebPkgImport?: (
-    webPkgID: string,
-    webPkgRoot: string,
-    webPkgSubPath: string,
-  ) => void
+  // Optional callback to report the resolved root directory for a web package.
+  // Called once per package when the root is first discovered.
+  addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
   // Enable debug logging
   debug?: boolean
 }
@@ -47,34 +43,6 @@ function remapWebPkgSpecifier(
 // escapeRegExp escapes special regex characters in a string.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-// TS_RESOLVE_EXTENSIONS are the extensions to try when resolving a .js
-// import to a TypeScript source file.
-const TS_RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.jsx', '.mts', '.cts']
-
-// resolveSubPathExtension resolves a subpath like "contexts/Foo.js" to
-// the actual file extension on disk (e.g. "contexts/Foo.tsx"). If the
-// root is empty or the file can't be found, returns the original subpath.
-function resolveSubPathExtension(root: string, subPath: string): string {
-  if (!root) return subPath
-
-  const fullPath = path.join(root, subPath)
-  if (fs.existsSync(fullPath)) return subPath
-
-  // Try replacing .js with TS extensions
-  const ext = path.extname(subPath)
-  if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    const base = subPath.substring(0, subPath.length - ext.length)
-    for (const tsExt of TS_RESOLVE_EXTENSIONS) {
-      const candidate = base + tsExt
-      if (fs.existsSync(path.join(root, candidate))) {
-        return candidate
-      }
-    }
-  }
-
-  return subPath
 }
 
 export function createWebPkgRemapPlugin(
@@ -208,10 +176,9 @@ export function createWebPkgRemapPlugin(
 
       const remapped = `/b/pkg/${pkgID}/${relPath}`
 
-      // Track the import for the Go side.
-      if (config.addWebPkgImport && pkgRoot) {
-        const originalRelPath = resolved.id.substring(pkgRoot.length).replace(/^\//, '')
-        config.addWebPkgImport(pkgID, pkgRoot, originalRelPath)
+      // Report the resolved root for this web package.
+      if (config.addWebPkgRoot && pkgRoot) {
+        config.addWebPkgRoot(pkgID, pkgRoot)
       }
 
       if (debug)
@@ -226,6 +193,11 @@ export function createWebPkgRemapPlugin(
     // output code. This handles the case where rolldownOptions.external
     // marks the import as external (preserving the original specifier)
     // but we need /b/pkg/ URLs with .mjs extensions.
+    //
+    // NOTE: This hook only rewrites specifiers. It does NOT track imports
+    // for entry point discovery. Entry points are configured explicitly
+    // via WebPkgRefConfig.entrypoints (project-local packages) or read
+    // from package.json exports (node_modules packages).
     renderChunk(code) {
       if (config.webPkgIDs.length === 0) return null
 
@@ -250,15 +222,6 @@ export function createWebPkgRemapPlugin(
             console.log(
               `[bldr-pkg-resolve] renderChunk: ${fullId} -> ${remap.remapped}`,
             )
-          // Track the import with the filesystem subpath. The Go
-          // esbuild step needs the actual file extension (.ts/.tsx)
-          // because esbuild doesn't resolve .js -> .tsx like TS does.
-          if (config.addWebPkgImport && subPathMatch) {
-            const originalSubPath = subPathMatch.substring(1) // strip leading /
-            const root = webPkgRoots[remap.pkg] ?? ''
-            const resolvedSubPath = resolveSubPathExtension(root, originalSubPath)
-            config.addWebPkgImport(remap.pkg, root, resolvedSubPath)
-          }
           return prefix + remap.remapped
         })
       }

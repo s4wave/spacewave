@@ -30,7 +30,7 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("desktop/js/wasm")
+	p, err = ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

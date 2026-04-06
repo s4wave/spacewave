@@ -170,22 +170,22 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       }
     }
 
-    // Track web package imports and rewrite their paths in the output.
-    // The bldr-pkg-resolve plugin still handles imports that bypass
-    // tsconfig (e.g. from node_modules), and tracks subpath references.
+    // Rewrite web pkg import specifiers to /b/pkg/ URLs in the output.
+    // The plugin also reports discovered package roots back to the Go side.
+    // Entry point discovery is handled by the Go side from config, not here.
     if (!mergedConfig.plugins) {
       mergedConfig.plugins = []
     }
     mergedConfig.plugins.push(
       createWebPkgRemapPlugin({
         webPkgIDs,
-        addWebPkgImport: (webPkgID, webPkgRoot, webPkgSubPath) => {
-          const entry = webPkgRefs.get(webPkgID) || {
-            root: webPkgRoot,
-            subPaths: new Set<string>(),
+        addWebPkgRoot: (webPkgID, webPkgRoot) => {
+          if (!webPkgRefs.has(webPkgID)) {
+            webPkgRefs.set(webPkgID, {
+              root: webPkgRoot,
+              subPaths: new Set<string>(),
+            })
           }
-          entry.subPaths.add(webPkgSubPath)
-          webPkgRefs.set(webPkgID, entry)
         },
         debug: verboseDebug,
       }),

@@ -309,7 +309,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer pluginSchecCtrlRel()
 
-	// run the web browser plugin loader implementation (for "desktop/js/wasm" platform)
+	// run the web browser plugin loader implementation (for "web/js/wasm" platform)
 	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
 		WebRuntimeId:        c.initm.GetWebRuntimeId(),
 		UseDedicatedWorkers: devtoolInfo.GetUseDedicatedWorkers(),

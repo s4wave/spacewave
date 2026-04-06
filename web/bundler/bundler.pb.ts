@@ -77,6 +77,37 @@ export const WebBundlerOutput: MessageType<WebBundlerOutput> =
   })
 
 /**
+ * WebPkgEntrypoint configures a single entry point for a web package build.
+ *
+ * @generated from message bldr.web.bundler.WebPkgEntrypoint
+ */
+export interface WebPkgEntrypoint {
+  /**
+   * Path is the subpath export specifier relative to the package root.
+   *
+   * Examples:
+   *   "."           - the package root (index.ts / index.js)
+   *   "./object"    - a subpath directory or file (object/index.ts or object.ts)
+   *   "./hooks"     - another subpath
+   *
+   * Follows Node.js subpath exports conventions.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+}
+
+// WebPkgEntrypoint contains the message type declaration for WebPkgEntrypoint.
+export const WebPkgEntrypoint: MessageType<WebPkgEntrypoint> =
+  createMessageType({
+    typeName: 'bldr.web.bundler.WebPkgEntrypoint',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WebPkgRefConfig configures a web pkg reference.
  *
  * @generated from message bldr.web.bundler.WebPkgRefConfig
@@ -104,6 +135,22 @@ export interface WebPkgRefConfig {
    * @generated from field: repeated string imports = 3;
    */
   imports?: string[]
+  /**
+   * Entrypoints defines the subpath entry points to build for this web package.
+   *
+   * For project-local packages (resolved via tsconfig paths, not node_modules):
+   *   - If set, each entry declares a subpath export (e.g. ".", "./object").
+   *     "." maps to the package root index file.
+   *   - If empty, defaults to a single "." entrypoint (package root index).
+   *
+   * For node_modules packages:
+   *   - If set, overrides the auto-detected exports from package.json.
+   *   - If empty, entry points are read from the package.json "exports" field.
+   *     Falls back to "main" or "." if no exports field is present.
+   *
+   * @generated from field: repeated bldr.web.bundler.WebPkgEntrypoint entrypoints = 4;
+   */
+  entrypoints?: WebPkgEntrypoint[]
 }
 
 // WebPkgRefConfig contains the message type declaration for WebPkgRefConfig.
@@ -117,6 +164,13 @@ export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
       name: 'imports',
       kind: 'scalar',
       T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'entrypoints',
+      kind: 'message',
+      T: () => WebPkgEntrypoint,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

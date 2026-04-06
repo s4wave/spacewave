@@ -13,10 +13,11 @@ func TestTinyGoTarget(t *testing.T) {
 		expectedTarget string
 		expectError    bool
 	}{
+		{"web/wasi/wasm", "wasm-unknown", false},
 		{"desktop/wasi/wasm", "wasm-unknown", false},
 		{"desktop/linux/amd64", "", true},
 		{"js", "", true},
-		{"desktop/js/wasm", "", true},
+		{"web/js/wasm", "", true},
 	}
 
 	for _, tc := range testCases {
@@ -54,7 +55,8 @@ func TestGoCompilerEnvVars(t *testing.T) {
 		{"desktop/windows/armv6", []string{"GOOS=windows", "GOARCH=arm", "GOARM=6"}},
 		{"desktop/linux/armv5", []string{"GOOS=linux", "GOARCH=arm", "GOARM=5"}},
 		{"desktop/darwin/arm64", []string{"GOOS=darwin", "GOARCH=arm64"}},
-		{"desktop/js/wasm", []string{"GOOS=js", "GOARCH=wasm"}},
+		{"web/js/wasm", []string{"GOOS=js", "GOARCH=wasm"}},
+		{"web/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
 		{"desktop/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
 		{"js", []string{"GOOS=js", "GOARCH=wasm"}},
 	}

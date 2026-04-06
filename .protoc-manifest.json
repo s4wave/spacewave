@@ -567,7 +567,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/bundler": {
-      "hash": "8f5e944a44a396f4b6dabf171e23336b1bf984057d72032e5fba6ac2db6080e4",
+      "hash": "89a01b51452d6f64cb87aea107478ef83d39cb0dc8a3a04f2782675c1a1ba09d",
       "generatedFiles": [
         "web/bundler/bundler.pb.cc",
         "web/bundler/bundler.pb.go",

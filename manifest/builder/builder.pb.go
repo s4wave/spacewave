@@ -44,7 +44,7 @@ type BuilderConfig struct {
 	ProjectId string `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// TargetPlatformIds contains all platform IDs from the build target.
 	// Used by the dist compiler to collect manifests from all compatible platforms.
-	// For example, a browser target may include ["desktop/js/wasm", "js"].
+	// For example, a browser target may include ["web/js/wasm", "js"].
 	// If empty, falls back to using only the platform_id from ManifestMeta.
 	TargetPlatformIds []string `protobuf:"bytes,10,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 }

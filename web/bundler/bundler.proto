@@ -37,4 +37,29 @@ message WebPkgRefConfig {
   // NOTE: this will be merged with any imports the code accesses.
   // NOTE: this is therefore optional.
   repeated string imports = 3;
+  // Entrypoints defines the subpath entry points to build for this web package.
+  //
+  // For project-local packages (resolved via tsconfig paths, not node_modules):
+  //   - If set, each entry declares a subpath export (e.g. ".", "./object").
+  //     "." maps to the package root index file.
+  //   - If empty, defaults to a single "." entrypoint (package root index).
+  //
+  // For node_modules packages:
+  //   - If set, overrides the auto-detected exports from package.json.
+  //   - If empty, entry points are read from the package.json "exports" field.
+  //     Falls back to "main" or "." if no exports field is present.
+  repeated WebPkgEntrypoint entrypoints = 4;
+}
+
+// WebPkgEntrypoint configures a single entry point for a web package build.
+message WebPkgEntrypoint {
+  // Path is the subpath export specifier relative to the package root.
+  //
+  // Examples:
+  //   "."           - the package root (index.ts / index.js)
+  //   "./object"    - a subpath directory or file (object/index.ts or object.ts)
+  //   "./hooks"     - another subpath
+  //
+  // Follows Node.js subpath exports conventions.
+  string path = 1;
 }

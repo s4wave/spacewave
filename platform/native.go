@@ -15,6 +15,10 @@ import (
 // Uses the NativePlatform base type to parse the platform ID.
 const PlatformID_DESKTOP = "desktop"
 
+// PlatformID_WEB builds Go binaries targeting web browsers (js/wasm).
+// Uses the NativePlatform base type to parse the platform ID.
+const PlatformID_WEB = "web"
+
 // NativePlatform is a base type for any go compiler based platform ID.
 type NativePlatform struct {
 	// GOOS is the go operating system type.
@@ -40,10 +44,11 @@ func ToNativePlatform(p Platform) *NativePlatform {
 }
 
 // ParseNativePlatform parses a Go compiler based platform ID.
+// Accepts both "desktop/" and "web/" prefixes.
 func ParseNativePlatform(str string) (*NativePlatform, error) {
 	components := strings.Split(str, "/")
-	if len(components) == 0 || components[0] != PlatformID_DESKTOP {
-		return nil, errors.Errorf("not a desktop platform id: %s", str)
+	if len(components) == 0 || (components[0] != PlatformID_DESKTOP && components[0] != PlatformID_WEB) {
+		return nil, errors.Errorf("not a native platform id: %s", str)
 	}
 	goOsArches := gotargets.GetOsArchValues()
 	pt := &NativePlatform{InputPlatformID: str}
@@ -161,10 +166,15 @@ func (n *NativePlatform) GetInputPlatformID() string {
 
 // GetPlatformID converts the platform into a fully qualified platform ID.
 // There should be exactly one representation of the platform ID possible.
+// Web platforms (js/wasm) use the "web/" prefix, desktop uses "desktop/".
 func (n *NativePlatform) GetPlatformID() string {
+	prefix := PlatformID_DESKTOP
+	if n.IsWebPlatform() {
+		prefix = PlatformID_WEB
+	}
 	// build the platform ID
 	idParts := []string{
-		PlatformID_DESKTOP,
+		prefix,
 		n.GetGOOS(),
 	}
 	goArch := n.GetGOARCH()
@@ -182,8 +192,11 @@ func (n *NativePlatform) GetPlatformID() string {
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_DESKTOP and PlatformID_JS
+// Values: PlatformID_DESKTOP, PlatformID_WEB, PlatformID_JS
 func (n *NativePlatform) GetBasePlatformID() string {
+	if n.IsWebPlatform() {
+		return PlatformID_WEB
+	}
 	return PlatformID_DESKTOP
 }
 

@@ -29,7 +29,7 @@ pub struct WebBundlerOutput {
     pub css_href: ::prost::alloc::string::String,
 }
 /// WebPkgRefConfig configures a web pkg reference.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WebPkgRefConfig {
     /// Id is the identifier of the web pkg.
     /// example: @aptre/flex-layout
@@ -44,5 +44,32 @@ pub struct WebPkgRefConfig {
     /// NOTE: this is therefore optional.
     #[prost(string, repeated, tag="3")]
     pub imports: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Entrypoints defines the subpath entry points to build for this web package.
+    ///
+    /// For project-local packages (resolved via tsconfig paths, not node_modules):
+    ///    - If set, each entry declares a subpath export (e.g. ".", "./object").
+    ///      "." maps to the package root index file.
+    ///    - If empty, defaults to a single "." entrypoint (package root index).
+    ///
+    /// For node_modules packages:
+    ///    - If set, overrides the auto-detected exports from package.json.
+    ///    - If empty, entry points are read from the package.json "exports" field.
+    ///      Falls back to "main" or "." if no exports field is present.
+    #[prost(message, repeated, tag="4")]
+    pub entrypoints: ::prost::alloc::vec::Vec<WebPkgEntrypoint>,
+}
+/// WebPkgEntrypoint configures a single entry point for a web package build.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WebPkgEntrypoint {
+    /// Path is the subpath export specifier relative to the package root.
+    ///
+    /// Examples:
+    ///    "."           - the package root (index.ts / index.js)
+    ///    "./object"    - a subpath directory or file (object/index.ts or object.ts)
+    ///    "./hooks"     - another subpath
+    ///
+    /// Follows Node.js subpath exports conventions.
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

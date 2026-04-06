@@ -64,7 +64,7 @@ func NewWebWasiVMHostController(
 
 // GetPlatformId returns the plugin platform ID for this host.
 func (h *WebWasiVMHost) GetPlatformId() string {
-	return "desktop/wasi/wasm"
+	return "web/wasi/wasm"
 }
 
 // Execute returns nil as the web-wasivm host does not need a background goroutine.

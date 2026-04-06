@@ -65,6 +65,10 @@ class WebEntrypoint;
 struct WebEntrypointDefaultTypeInternal;
 extern WebEntrypointDefaultTypeInternal _WebEntrypoint_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WebEntrypoint_class_data_;
+class WebPkgEntrypoint;
+struct WebPkgEntrypointDefaultTypeInternal;
+extern WebPkgEntrypointDefaultTypeInternal _WebPkgEntrypoint_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WebPkgEntrypoint_class_data_;
 class WebPkgRefConfig;
 struct WebPkgRefConfigDefaultTypeInternal;
 extern WebPkgRefConfigDefaultTypeInternal _WebPkgRefConfig_default_instance_;
@@ -86,30 +90,30 @@ namespace bundler {
 
 // -------------------------------------------------------------------
 
-class WebPkgRefConfig final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.web.bundler.WebPkgRefConfig) */ {
+class WebPkgEntrypoint final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.bundler.WebPkgEntrypoint) */ {
  public:
-  inline WebPkgRefConfig() : WebPkgRefConfig(nullptr) {}
-  ~WebPkgRefConfig() PROTOBUF_FINAL;
+  inline WebPkgEntrypoint() : WebPkgEntrypoint(nullptr) {}
+  ~WebPkgEntrypoint() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(WebPkgRefConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(WebPkgEntrypoint* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(WebPkgRefConfig));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WebPkgEntrypoint));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR WebPkgRefConfig(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR WebPkgEntrypoint(::google::protobuf::internal::ConstantInitialized);
 
-  inline WebPkgRefConfig(const WebPkgRefConfig& from) : WebPkgRefConfig(nullptr, from) {}
-  inline WebPkgRefConfig(WebPkgRefConfig&& from) noexcept
-      : WebPkgRefConfig(nullptr, ::std::move(from)) {}
-  inline WebPkgRefConfig& operator=(const WebPkgRefConfig& from) {
+  inline WebPkgEntrypoint(const WebPkgEntrypoint& from) : WebPkgEntrypoint(nullptr, from) {}
+  inline WebPkgEntrypoint(WebPkgEntrypoint&& from) noexcept
+      : WebPkgEntrypoint(nullptr, ::std::move(from)) {}
+  inline WebPkgEntrypoint& operator=(const WebPkgEntrypoint& from) {
     CopyFrom(from);
     return *this;
   }
-  inline WebPkgRefConfig& operator=(WebPkgRefConfig&& from) noexcept {
+  inline WebPkgEntrypoint& operator=(WebPkgEntrypoint&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -137,13 +141,13 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const WebPkgRefConfig& default_instance() {
-    return *reinterpret_cast<const WebPkgRefConfig*>(
-        &_WebPkgRefConfig_default_instance_);
+  static const WebPkgEntrypoint& default_instance() {
+    return *reinterpret_cast<const WebPkgEntrypoint*>(
+        &_WebPkgEntrypoint_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(WebPkgRefConfig& a, WebPkgRefConfig& b) { a.Swap(&b); }
-  inline void Swap(WebPkgRefConfig* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(WebPkgEntrypoint& a, WebPkgEntrypoint& b) { a.Swap(&b); }
+  inline void Swap(WebPkgEntrypoint* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -151,7 +155,7 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(WebPkgRefConfig* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(WebPkgEntrypoint* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -159,13 +163,13 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  WebPkgRefConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<WebPkgRefConfig>(arena);
+  WebPkgEntrypoint* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WebPkgEntrypoint>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const WebPkgRefConfig& from);
+  void CopyFrom(const WebPkgEntrypoint& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const WebPkgRefConfig& from) { WebPkgRefConfig::MergeImpl(*this, from); }
+  void MergeFrom(const WebPkgEntrypoint& from) { WebPkgEntrypoint::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -201,17 +205,17 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(WebPkgRefConfig* PROTOBUF_NONNULL other);
+  void InternalSwap(WebPkgEntrypoint* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.WebPkgRefConfig"; }
+  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.WebPkgEntrypoint"; }
 
-  explicit WebPkgRefConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  WebPkgRefConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WebPkgRefConfig& from);
-  WebPkgRefConfig(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WebPkgRefConfig&& from) noexcept
-      : WebPkgRefConfig(arena) {
+  explicit WebPkgEntrypoint(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WebPkgEntrypoint(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WebPkgEntrypoint& from);
+  WebPkgEntrypoint(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WebPkgEntrypoint&& from) noexcept
+      : WebPkgEntrypoint(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -228,63 +232,29 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kImportsFieldNumber = 3,
-    kIdFieldNumber = 1,
-    kExcludeFieldNumber = 2,
+    kPathFieldNumber = 1,
   };
-  // repeated string imports = 3;
-  int imports_size() const;
-  private:
-  int _internal_imports_size() const;
-
-  public:
-  void clear_imports() ;
-  const ::std::string& imports(int index) const;
-  ::std::string* PROTOBUF_NONNULL mutable_imports(int index);
+  // string path = 1;
+  void clear_path() ;
+  const ::std::string& path() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_imports(int index, Arg_&& value, Args_... args);
-  ::std::string* PROTOBUF_NONNULL add_imports();
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void add_imports(Arg_&& value, Args_... args);
-  const ::google::protobuf::RepeatedPtrField<::std::string>& imports() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_imports();
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_imports() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_imports();
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
 
   public:
-  // string id = 1;
-  void clear_id() ;
-  const ::std::string& id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
-  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
-
-  public:
-  // bool exclude = 2;
-  void clear_exclude() ;
-  bool exclude() const;
-  void set_exclude(bool value);
-
-  private:
-  bool _internal_exclude() const;
-  void _internal_set_exclude(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:bldr.web.bundler.WebPkgRefConfig)
+  // @@protoc_insertion_point(class_scope:bldr.web.bundler.WebPkgEntrypoint)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 50,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 46,
                                    2>
       _table_;
 
@@ -302,19 +272,17 @@ class WebPkgRefConfig final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const WebPkgRefConfig& from_msg);
+        const WebPkgEntrypoint& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField<::std::string> imports_;
-    ::google::protobuf::internal::ArenaStringPtr id_;
-    bool exclude_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fbundler_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull WebPkgRefConfig_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull WebPkgEntrypoint_class_data_;
 // -------------------------------------------------------------------
 
 class WebEntrypoint final : public ::google::protobuf::Message
@@ -739,6 +707,256 @@ class WebBundlerOutput final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WebBundlerOutput_class_data_;
+// -------------------------------------------------------------------
+
+class WebPkgRefConfig final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.web.bundler.WebPkgRefConfig) */ {
+ public:
+  inline WebPkgRefConfig() : WebPkgRefConfig(nullptr) {}
+  ~WebPkgRefConfig() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WebPkgRefConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WebPkgRefConfig));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WebPkgRefConfig(::google::protobuf::internal::ConstantInitialized);
+
+  inline WebPkgRefConfig(const WebPkgRefConfig& from) : WebPkgRefConfig(nullptr, from) {}
+  inline WebPkgRefConfig(WebPkgRefConfig&& from) noexcept
+      : WebPkgRefConfig(nullptr, ::std::move(from)) {}
+  inline WebPkgRefConfig& operator=(const WebPkgRefConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WebPkgRefConfig& operator=(WebPkgRefConfig&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WebPkgRefConfig& default_instance() {
+    return *reinterpret_cast<const WebPkgRefConfig*>(
+        &_WebPkgRefConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(WebPkgRefConfig& a, WebPkgRefConfig& b) { a.Swap(&b); }
+  inline void Swap(WebPkgRefConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WebPkgRefConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WebPkgRefConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WebPkgRefConfig>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WebPkgRefConfig& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WebPkgRefConfig& from) { WebPkgRefConfig::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WebPkgRefConfig* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.web.bundler.WebPkgRefConfig"; }
+
+  explicit WebPkgRefConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WebPkgRefConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WebPkgRefConfig& from);
+  WebPkgRefConfig(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WebPkgRefConfig&& from) noexcept
+      : WebPkgRefConfig(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kImportsFieldNumber = 3,
+    kEntrypointsFieldNumber = 4,
+    kIdFieldNumber = 1,
+    kExcludeFieldNumber = 2,
+  };
+  // repeated string imports = 3;
+  int imports_size() const;
+  private:
+  int _internal_imports_size() const;
+
+  public:
+  void clear_imports() ;
+  const ::std::string& imports(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_imports(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_imports(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_imports();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_imports(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& imports() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_imports();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_imports() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_imports();
+
+  public:
+  // repeated .bldr.web.bundler.WebPkgEntrypoint entrypoints = 4;
+  int entrypoints_size() const;
+  private:
+  int _internal_entrypoints_size() const;
+
+  public:
+  void clear_entrypoints() ;
+  ::bldr::web::bundler::WebPkgEntrypoint* PROTOBUF_NONNULL mutable_entrypoints(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>* PROTOBUF_NONNULL mutable_entrypoints();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>& _internal_entrypoints() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>* PROTOBUF_NONNULL _internal_mutable_entrypoints();
+  public:
+  const ::bldr::web::bundler::WebPkgEntrypoint& entrypoints(int index) const;
+  ::bldr::web::bundler::WebPkgEntrypoint* PROTOBUF_NONNULL add_entrypoints();
+  const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>& entrypoints() const;
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // bool exclude = 2;
+  void clear_exclude() ;
+  bool exclude() const;
+  void set_exclude(bool value);
+
+  private:
+  bool _internal_exclude() const;
+  void _internal_set_exclude(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.web.bundler.WebPkgRefConfig)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 50,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WebPkgRefConfig& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> imports_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::web::bundler::WebPkgEntrypoint > entrypoints_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    bool exclude_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fbundler_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WebPkgRefConfig_class_data_;
 
 // ===================================================================
 
@@ -1029,7 +1247,7 @@ inline void WebPkgRefConfig::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::std::string& WebPkgRefConfig::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1039,13 +1257,13 @@ inline const ::std::string& WebPkgRefConfig::id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void WebPkgRefConfig::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bldr.web.bundler.WebPkgRefConfig.id)
 }
 inline ::std::string* PROTOBUF_NONNULL WebPkgRefConfig::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_id();
   // @@protoc_insertion_point(field_mutable:bldr.web.bundler.WebPkgRefConfig.id)
   return _s;
@@ -1065,10 +1283,10 @@ inline ::std::string* PROTOBUF_NONNULL WebPkgRefConfig::_internal_mutable_id() {
 inline ::std::string* PROTOBUF_NULLABLE WebPkgRefConfig::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.web.bundler.WebPkgRefConfig.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.id_.Set("", GetArena());
@@ -1078,9 +1296,9 @@ inline ::std::string* PROTOBUF_NULLABLE WebPkgRefConfig::release_id() {
 inline void WebPkgRefConfig::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   _impl_.id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
@@ -1094,7 +1312,7 @@ inline void WebPkgRefConfig::clear_exclude() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.exclude_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline bool WebPkgRefConfig::exclude() const {
   // @@protoc_insertion_point(field_get:bldr.web.bundler.WebPkgRefConfig.exclude)
@@ -1102,7 +1320,7 @@ inline bool WebPkgRefConfig::exclude() const {
 }
 inline void WebPkgRefConfig::set_exclude(bool value) {
   _internal_set_exclude(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:bldr.web.bundler.WebPkgRefConfig.exclude)
 }
 inline bool WebPkgRefConfig::_internal_exclude() const {
@@ -1184,6 +1402,131 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 WebPkgRefConfig::_internal_mutable_imports() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.imports_;
+}
+
+// repeated .bldr.web.bundler.WebPkgEntrypoint entrypoints = 4;
+inline int WebPkgRefConfig::_internal_entrypoints_size() const {
+  return _internal_entrypoints().size();
+}
+inline int WebPkgRefConfig::entrypoints_size() const {
+  return _internal_entrypoints_size();
+}
+inline void WebPkgRefConfig::clear_entrypoints() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoints_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::bldr::web::bundler::WebPkgEntrypoint* PROTOBUF_NONNULL WebPkgRefConfig::mutable_entrypoints(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.WebPkgRefConfig.entrypoints)
+  return _internal_mutable_entrypoints()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>* PROTOBUF_NONNULL WebPkgRefConfig::mutable_entrypoints()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.web.bundler.WebPkgRefConfig.entrypoints)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_entrypoints();
+}
+inline const ::bldr::web::bundler::WebPkgEntrypoint& WebPkgRefConfig::entrypoints(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.WebPkgRefConfig.entrypoints)
+  return _internal_entrypoints().Get(index);
+}
+inline ::bldr::web::bundler::WebPkgEntrypoint* PROTOBUF_NONNULL WebPkgRefConfig::add_entrypoints()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::bldr::web::bundler::WebPkgEntrypoint* _add =
+      _internal_mutable_entrypoints()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.web.bundler.WebPkgRefConfig.entrypoints)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>& WebPkgRefConfig::entrypoints() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.web.bundler.WebPkgRefConfig.entrypoints)
+  return _internal_entrypoints();
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>&
+WebPkgRefConfig::_internal_entrypoints() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entrypoints_;
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgEntrypoint>* PROTOBUF_NONNULL
+WebPkgRefConfig::_internal_mutable_entrypoints() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.entrypoints_;
+}
+
+// -------------------------------------------------------------------
+
+// WebPkgEntrypoint
+
+// string path = 1;
+inline void WebPkgEntrypoint::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& WebPkgEntrypoint::path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.WebPkgEntrypoint.path)
+  return _internal_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WebPkgEntrypoint::set_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.WebPkgEntrypoint.path)
+}
+inline ::std::string* PROTOBUF_NONNULL WebPkgEntrypoint::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:bldr.web.bundler.WebPkgEntrypoint.path)
+  return _s;
+}
+inline const ::std::string& WebPkgEntrypoint::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_.Get();
+}
+inline void WebPkgEntrypoint::_internal_set_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WebPkgEntrypoint::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WebPkgEntrypoint::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.bundler.WebPkgEntrypoint.path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WebPkgEntrypoint::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.WebPkgEntrypoint.path)
 }
 
 #ifdef __GNUC__

@@ -27,7 +27,7 @@ type Platform interface {
 func ParsePlatform(id string) (Platform, error) {
 	firstCmp, _, _ := strings.Cut(id, "/")
 	switch firstCmp {
-	case PlatformID_DESKTOP:
+	case PlatformID_DESKTOP, PlatformID_WEB:
 		return ParseNativePlatform(id)
 	case PlatformID_JS:
 		return ParseJsPlatform(id)
@@ -37,7 +37,7 @@ func ParsePlatform(id string) (Platform, error) {
 }
 
 // IsWebPlatform returns true if the platform targets a web browser environment.
-// This includes desktop/js/wasm (WebAssembly in browser) and js (pure JavaScript).
+// This includes web/js/wasm (WebAssembly in browser) and js (pure JavaScript).
 func IsWebPlatform(p Platform) bool {
 	if p == nil {
 		return false
