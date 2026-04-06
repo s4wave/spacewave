@@ -23,6 +23,7 @@ import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
 import { type CommsSqlite, initCommsSqlite } from './comms-sqlite.js'
+import { createSnapshotManager, type SnapshotManager } from './snapshot-manager.js'
 
 declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
@@ -64,6 +65,7 @@ if (isPlugin) {
 
   let pluginWorker: PluginWorker
   let commsSqlite: CommsSqlite | null = null
+  let snapshotMgr: SnapshotManager | null = null
 
   const startPluginCallback = async (opts: PluginStartOpts) => {
     const { startInfo, busSab, busPluginId } = opts
@@ -120,6 +122,18 @@ if (isPlugin) {
       abortSignal,
     )
 
+    // Initialize snapshot manager for WASM memory persistence.
+    // DedicatedWorker plugins can register their WASM memory for snapshots.
+    if (!snapshotMgr) {
+      try {
+        snapshotMgr = await createSnapshotManager()
+        snapshotMgr.startPeriodic()
+        console.log('shared-worker: snapshot manager initialized')
+      } catch (err) {
+        console.warn('shared-worker: snapshot manager init failed:', err)
+      }
+    }
+
     if (workerType === 'quickjs') {
       console.log('shared-worker: starting QuickJS plugin:', scriptPath)
       const quickjsRunner =
@@ -138,6 +152,16 @@ if (isPlugin) {
   }
 
   pluginWorker = new PluginWorker(self, startPluginCallback, handleIncomingStream)
+
+  // Wire the snapshotNow handler: when WebDocument sends snapshotNow during
+  // beforeunload, force-snapshot all registered plugins.
+  pluginWorker.onSnapshotNow = () => {
+    if (snapshotMgr) {
+      snapshotMgr.snapshotAll(true).catch((err) => {
+        console.warn('shared-worker: urgent snapshot failed:', err)
+      })
+    }
+  }
 } else {
   // Custom worker mode: import script directly and let it self-manage.
   // Buffer messages that arrive during the async import. The script registers

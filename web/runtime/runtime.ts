@@ -78,6 +78,9 @@ export interface WebDocumentToWorker {
   busSab?: SharedArrayBuffer
   // busPluginId is the numeric plugin ID assigned for the SAB bus.
   busPluginId?: number
+  // snapshotNow requests the worker to immediately snapshot WASM memory.
+  // Sent from the WebDocument during beforeunload.
+  snapshotNow?: true
 }
 
 // WebDocumentToClient is a message sent to a WebDocument client.

@@ -591,7 +591,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // add a global shutdown callback to terminate this
-    this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
+    // Before closing, send snapshotNow to all plugin DedicatedWorkers.
+    this.releaseShutdownCallback = addShutdownCallback(() => {
+      this.sendSnapshotNow()
+      this.close()
+    })
 
     // watch the page visibility api
     if (opts?.watchVisibility) {
@@ -942,6 +946,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // close shuts down the WebDocument with an optional error.
+  // sendSnapshotNow sends a snapshotNow message to all plugin DedicatedWorkers.
+  // Called from beforeunload to trigger urgent WASM memory snapshots.
+  private sendSnapshotNow(): void {
+    const msg: WebDocumentToWorker = {
+      from: this.webDocumentUuid,
+      snapshotNow: true,
+    }
+    for (const workerId in this.webWorkers) {
+      const ww = this.webWorkers[workerId]
+      if (ww.worker && !ww.isShared) {
+        try {
+          ww.worker.postMessage(msg)
+        } catch {
+          // Worker may already be terminated.
+        }
+      }
+    }
+  }
+
   public close(err?: Error) {
     if (this.closed) {
       return

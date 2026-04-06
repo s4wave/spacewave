@@ -21,6 +21,9 @@ export interface PluginStartOpts {
   busPluginId?: number
 }
 
+// SnapshotNowCallback is called when the WebDocument requests an urgent snapshot.
+export type SnapshotNowCallback = () => void
+
 // PluginWorker wraps common logic for running a plugin within a WebWorker or SharedWorker.
 export class PluginWorker {
   // webDocumentTracker tracks the set of connected WebDocument.
@@ -48,6 +51,8 @@ export class PluginWorker {
 
   // pluginStarted is the private field for started.
   private pluginStarted?: true
+  // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
+  public onSnapshotNow?: SnapshotNowCallback
 
   constructor(
     public readonly global:
@@ -121,6 +126,12 @@ export class PluginWorker {
     // Expect the WebDocument to send a WebDocumentToWorker.
     const data: WebDocumentToWorker = msgEvent.data
     this.webDocumentTracker.handleWebDocumentMessage(data)
+
+    if (data.snapshotNow && this.onSnapshotNow) {
+      console.log(`PluginWorker: ${this.workerId}: received snapshotNow`)
+      this.onSnapshotNow()
+      return
+    }
 
     if (data.initData) {
       this.handleStartPlugin(data.initData, data.busSab, data.busPluginId)
