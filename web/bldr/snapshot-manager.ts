@@ -12,10 +12,19 @@ const OPFS_SNAPSHOT_DIR = '.bldr-snapshots'
 const IDB_DB_NAME = 'bldr-snapshots'
 const IDB_STORE_NAME = 'snapshots'
 
+// DEFAULT_SNAPSHOT_INTERVAL_MS is the default periodic snapshot interval.
+export const DEFAULT_SNAPSHOT_INTERVAL_MS = 30_000
+
 // SnapshotEntry tracks a registered plugin's WASM memory.
 interface SnapshotEntry {
   pluginId: string
   memory: WebAssembly.Memory
+  // generation incremented by the plugin to signal memory changes.
+  generation: number
+  // lastSnapshotGeneration is the generation at the last snapshot.
+  lastSnapshotGeneration: number
+  // lastSnapshotSize is the buffer byteLength at the last snapshot.
+  lastSnapshotSize: number
 }
 
 // SnapshotStorage abstracts OPFS vs IDB storage.
@@ -151,6 +160,8 @@ export class SnapshotManager {
   private storage: SnapshotStorage
   private plugins: Map<string, SnapshotEntry> = new Map()
   private initialized = false
+  private periodicTimer: ReturnType<typeof setInterval> | null = null
+  private snapshotIntervalMs = DEFAULT_SNAPSHOT_INTERVAL_MS
 
   constructor(useIdb?: boolean) {
     this.storage = useIdb ? new IdbSnapshotStorage() : new OpfsSnapshotStorage()
@@ -164,32 +175,93 @@ export class SnapshotManager {
 
   // register adds a plugin's WASM memory for snapshot management.
   register(pluginId: string, memory: WebAssembly.Memory): void {
-    this.plugins.set(pluginId, { pluginId, memory })
+    this.plugins.set(pluginId, {
+      pluginId,
+      memory,
+      generation: 0,
+      lastSnapshotGeneration: -1,
+      lastSnapshotSize: 0,
+    })
   }
 
-  // unregister removes a plugin from snapshot management.
+  // unregister removes a plugin from snapshot management and stops periodic
+  // scheduling if no plugins remain.
   unregister(pluginId: string): void {
     this.plugins.delete(pluginId)
+    if (this.plugins.size === 0) {
+      this.stopPeriodic()
+    }
+  }
+
+  // markDirty increments the generation for a plugin, signaling that memory
+  // has changed and a snapshot should be taken on the next periodic tick.
+  markDirty(pluginId: string): void {
+    const entry = this.plugins.get(pluginId)
+    if (entry) {
+      entry.generation++
+    }
+  }
+
+  // isDirty returns true if the plugin's memory has changed since the last
+  // snapshot (generation incremented or buffer size changed).
+  isDirty(pluginId: string): boolean {
+    const entry = this.plugins.get(pluginId)
+    if (!entry) return false
+    return (
+      entry.generation !== entry.lastSnapshotGeneration ||
+      entry.memory.buffer.byteLength !== entry.lastSnapshotSize
+    )
   }
 
   // snapshot writes the current WASM memory for a single plugin to storage.
-  async snapshot(pluginId: string): Promise<void> {
+  // If force is false (default), skips the snapshot if memory is not dirty.
+  async snapshot(pluginId: string, force?: boolean): Promise<boolean> {
     if (!this.initialized) throw new Error('SnapshotManager: not initialized')
     const entry = this.plugins.get(pluginId)
     if (!entry) throw new Error(`SnapshotManager: plugin ${pluginId} not registered`)
 
+    if (!force && !this.isDirty(pluginId)) {
+      return false
+    }
+
     // Copy the buffer to avoid detachment issues.
     const copy = entry.memory.buffer.slice(0)
     await this.storage.write(pluginId, copy)
+
+    entry.lastSnapshotGeneration = entry.generation
+    entry.lastSnapshotSize = copy.byteLength
+    return true
   }
 
-  // snapshotAll writes snapshots for all registered plugins.
-  async snapshotAll(): Promise<void> {
-    const promises: Promise<void>[] = []
+  // snapshotAll writes snapshots for all dirty registered plugins.
+  // If force is true, snapshots all plugins regardless of dirty state.
+  async snapshotAll(force?: boolean): Promise<number> {
+    const promises: Promise<boolean>[] = []
     for (const pluginId of this.plugins.keys()) {
-      promises.push(this.snapshot(pluginId))
+      promises.push(this.snapshot(pluginId, force))
     }
-    await Promise.all(promises)
+    const results = await Promise.all(promises)
+    return results.filter(Boolean).length
+  }
+
+  // startPeriodic begins periodic snapshot scheduling.
+  startPeriodic(intervalMs?: number): void {
+    this.stopPeriodic()
+    this.snapshotIntervalMs = intervalMs ?? DEFAULT_SNAPSHOT_INTERVAL_MS
+    this.periodicTimer = setInterval(() => {
+      this.snapshotAll().catch((err) => {
+        console.warn('SnapshotManager: periodic snapshot failed:', err)
+      })
+    }, this.snapshotIntervalMs)
+    console.log('SnapshotManager: periodic snapshots started, interval:', this.snapshotIntervalMs, 'ms')
+  }
+
+  // stopPeriodic stops periodic snapshot scheduling.
+  stopPeriodic(): void {
+    if (this.periodicTimer != null) {
+      clearInterval(this.periodicTimer)
+      this.periodicTimer = null
+    }
   }
 
   // restore reads a snapshot from storage and returns the ArrayBuffer.
