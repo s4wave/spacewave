@@ -11,6 +11,7 @@
 // Custom workers (no p): imports the script directly and lets it self-manage.
 // The script provides its own message listeners and WebDocumentTracker.
 
+import sqlite3WasmUrl from '@aptre/sqlite-wasm/sqlite3.wasm'
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 
 import {
@@ -90,7 +91,14 @@ if (isPlugin) {
     if (busPluginId != null && !commsSqlite) {
       try {
         const sqlite3Init = (await import('@aptre/sqlite-wasm')).default
-        const sqlite3 = await sqlite3Init()
+        const sqlite3 = await sqlite3Init({
+          locateFile: (path: string) => {
+            if (path.endsWith('.wasm')) {
+              return sqlite3WasmUrl
+            }
+            return path
+          },
+        })
         commsSqlite = await initCommsSqlite({
           sqlite3,
           pluginId: busPluginId,

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
 	"github.com/sirupsen/logrus"

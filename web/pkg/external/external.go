@@ -39,4 +39,3 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 		Imports:    []string{"index.js", "google/protobuf/empty.pb.js", "google/protobuf/timestamp.pb.js"},
 	}}
 }
-

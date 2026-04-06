@@ -10,6 +10,7 @@ import (
 
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
+	bldr_project_starlark "github.com/aperturerobotics/bldr/project/starlark"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -35,6 +36,8 @@ type Controller struct {
 	*bus.BusController[*Config]
 	// projCtrlCtr is the project controller container
 	projCtrlCtr *ccontainer.CContainer[*bldr_project_controller.Controller]
+	// starLoadedFiles tracks files loaded during the last starlark evaluation.
+	starLoadedFiles []string
 }
 
 // Factory is the factory for the controller.
@@ -107,10 +110,19 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}
 	defer watcher.Close()
 
+	starPath := resolveStarlarkPath(configPath)
+
 	for {
 		// add the config file (or re-add if watcher was removed)
 		if err := watcher.Add(configPath); err != nil {
 			return err
+		}
+		// watch bldr.star and any files it loaded
+		if _, serr := os.Stat(starPath); serr == nil {
+			_ = watcher.Add(starPath)
+		}
+		for _, f := range c.starLoadedFiles {
+			_ = watcher.Add(f)
 		}
 		// wait for a file change
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
@@ -173,7 +185,7 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 		// resolve extends: merge extended project configs first (in order)
 		sourcePath := filepath.Dir(configPath)
 		for _, modulePath := range projConfig.GetExtends() {
-			extConfig, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
+			extConfig, _, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
 			if err != nil {
 				return nil, errors.Wrapf(err, "extends %s", modulePath)
 			}
@@ -186,9 +198,31 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 		if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
 			return nil, err
 		}
+
+		// evaluate bldr.star if it exists beside the config path
+		starPath := resolveStarlarkPath(configPath)
+		if _, serr := os.Stat(starPath); serr == nil {
+			result, serr := bldr_project_starlark.Evaluate(starPath)
+			if serr != nil {
+				return nil, errors.Wrap(serr, "evaluate bldr.star")
+			}
+			if serr := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, result.Config); serr != nil {
+				return nil, errors.Wrap(serr, "merge bldr.star config")
+			}
+			c.starLoadedFiles = result.LoadedFiles
+		} else {
+			c.starLoadedFiles = nil
+		}
 	}
 
 	return ctrlConfig, nil
+}
+
+// resolveStarlarkPath returns the bldr.star path beside a config path.
+// e.g. "bldr.yaml" -> "bldr.star", "path/to/bldr.yaml" -> "path/to/bldr.star"
+func resolveStarlarkPath(configPath string) string {
+	dir := filepath.Dir(configPath)
+	return filepath.Join(dir, "bldr.star")
 }
 
 // _ is a type assertion

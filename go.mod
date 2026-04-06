@@ -117,6 +117,7 @@ require (
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
 	github.com/mattn/go-isatty v0.0.20
+	go.starlark.net v0.0.0-20260326113308-fadfc96def35
 )
 
 require (

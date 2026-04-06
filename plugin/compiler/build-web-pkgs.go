@@ -6,9 +6,9 @@ import (
 	"context"
 	"path/filepath"
 
-	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/npm"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"

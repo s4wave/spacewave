@@ -13,8 +13,8 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	"github.com/aperturerobotics/bldr/util/npm"
-	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
