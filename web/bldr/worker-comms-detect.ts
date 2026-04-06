@@ -88,6 +88,20 @@ function selectConfig(caps: WorkerCommsCapabilities): WorkerCommsConfig {
   return 'B'
 }
 
+// configDescription returns a short human-readable description of the config.
+export function configDescription(config: WorkerCommsConfig): string {
+  switch (config) {
+    case 'A':
+      return 'SharedWorker/MessagePort'
+    case 'B':
+      return 'DedicatedWorker/SAB'
+    case 'C':
+      return 'DedicatedWorker/SAB/OPFS'
+    case 'F':
+      return 'SharedWorker/MessagePort (fallback)'
+  }
+}
+
 // detectWorkerCommsConfig runs feature probes and returns the best
 // worker communication configuration for this browser. All probes are
 // fast (<5ms each) and non-destructive.

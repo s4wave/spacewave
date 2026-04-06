@@ -1,4 +1,5 @@
 /node_modules
+/playwright-report
 /bin
 /build-web-pkgs
 /coverage

@@ -61,6 +61,66 @@ import "github.com/aperturerobotics/starpc/srpc/srpc.proto";
 - `core/` files use shortened package names without the prefix (e.g., `package space.world;`)
 - When referencing types from `core/` packages in `sdk/` files, use a leading `.` for fully-qualified references (e.g., `.space.world.WorldContents`)
 
+## Test Structure
+
+Bldr has four test tiers. Choose the narrowest tier that covers the behavior.
+
+### Unit tests (`*.test.ts`)
+
+Run with `vitest run` (happy-dom environment). Co-locate with the module under
+test (e.g. `web/bldr/sab-ring-stream.test.ts` beside `sab-ring-stream.ts`).
+Use for pure logic, data structures, ring buffers, parsers, protocol helpers.
+No real browser APIs, no network, no filesystem.
+
+### Browser tests (`*.browser.test.ts`, `*.e2e.test.ts`)
+
+Run with vitest browser mode (Playwright provider, headless Chromium). Use when
+the test needs real browser APIs (SharedArrayBuffer, Atomics, OPFS,
+BroadcastChannel, Web Locks, service workers). Co-locate with the module.
+Cross-origin isolation headers are applied automatically via the vitest config
+plugin.
+
+### E2E tests (`e2e/*.spec.ts`)
+
+Run with `bun run test:e2e` (Playwright directly, not vitest). The Playwright
+config at `e2e/playwright.config.ts` starts the dev server via
+`bun run start:web:wasm` and waits for it. Use for validating the full
+application lifecycle: page loads, WASM boots, plugins render, no console
+errors. Add new specs here when testing cross-cutting behavior that requires the
+full bldr dev server running (Go WASM runtime + Vite + plugin compilation).
+
+```bash
+bun run test:e2e           # headless
+bun run test:e2e:headed    # visible browser
+bun run test:e2e:ui        # Playwright inspector
+```
+
+### Release E2E tests (`web/entrypoint/browser/*.e2e.spec.ts`)
+
+Run with `bun run test:release:web` which first builds a release web bundle
+then tests against the static output. Use for validating release builds
+specifically (service worker registration, minified bundles, static serving).
+
+### Go tests (`*_test.go`)
+
+Run with `go test ./...`. Standard Go test files co-located with their
+packages. Use for Go-side logic: compilers, manifests, platforms, storage,
+bundler internals, RPC server plumbing.
+
+### Prototypes (`prototypes/`)
+
+Playwright specs under `prototypes/` are research experiments with their own
+`playwright.config.ts` and static HTML fixtures. They are excluded from all
+vitest projects and from `bun run test:e2e`. Do not add production tests here.
+
+### When to add which test
+
+- New utility function or data structure: unit test (`*.test.ts`)
+- New browser API integration (SAB, OPFS, Web Locks): browser test
+  (`*.browser.test.ts`)
+- New user-visible feature or startup path: e2e test (`e2e/*.spec.ts`)
+- New Go package or compiler behavior: Go test (`*_test.go`)
+
 ## Linting and Typechecking
 
 After making code changes, verify they compile correctly:

@@ -55,6 +55,7 @@ import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import {
   detectWorkerCommsConfig,
+  configDescription,
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
 import { createBusSab } from './sab-bus.js'
@@ -550,6 +551,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // Detect worker communication capabilities (SAB, OPFS, etc.).
     this.workerCommsDetect = detectWorkerCommsConfig()
+    this.workerCommsDetect.then((result) => {
+      const desc = configDescription(result.config)
+      console.log(
+        '%cbldr%c ' + this.webDocumentUuid + ' config ' + result.config + ' ' + desc,
+        'color:#ff3838;font-weight:bold',
+        'color:inherit',
+      )
+    })
 
     // Setup the status stream.
     const webStatusStream = new ItState<WebDocumentStatus>(

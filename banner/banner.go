@@ -2,6 +2,7 @@ package banner
 
 import (
 	"runtime"
+	"runtime/debug"
 )
 
 const apertureBanner = `
@@ -19,12 +20,16 @@ d88P     888 88888P"   "Y8888  888      "Y888  "Y88888 888     "Y8888
 
 // FormatBanner formats the full banner.
 func FormatBanner() string {
-	// versionInfo is the version info str
 	goArch := runtime.GOARCH
 	if goArch == "ecmascript" {
-		// ecmascript is too long to display in some places.
 		goArch = "js"
 	}
 	versionInfo := runtime.Version() + " on " + runtime.GOOS + "/" + goArch
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		ver := bi.Main.Version
+		if ver != "" && ver != "(devel)" {
+			versionInfo += " bldr " + ver
+		}
+	}
 	return apertureBanner + " " + versionInfo
 }

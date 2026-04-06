@@ -222,6 +222,16 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       ): Promise<SetHtmlLinksResponse | void> {
         console.log(`WebView: set html links: ${uuid}`, options)
         setWebViewState((prev) => {
+          // Build lookup of previously loaded hrefs to preserve loaded state
+          // when the same stylesheet is re-set (e.g. on manifest re-commit).
+          const prevLoadedHrefs = new Set<string>()
+          if (options.clear) {
+            for (const link of prev.htmlLinks) {
+              if (link.loaded && link.link.href) {
+                prevLoadedHrefs.add(link.link.href)
+              }
+            }
+          }
           const links: IWebViewHtmlLink[] = [
             ...((!options.clear && prev.htmlLinks) || []),
           ]
@@ -241,7 +251,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               removeLink(addID)
               const link = options.setLinks[addID]
               if (link) {
-                links.push({ id: addID, link, loaded: false })
+                const loaded = prevLoadedHrefs.has(link.href ?? '')
+                links.push({ id: addID, link, loaded })
               }
             }
           }
