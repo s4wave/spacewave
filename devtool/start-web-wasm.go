@@ -267,17 +267,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	if err := entrypoint_browser_build.BuildSqliteWorkerEntrypoint(
-		le,
-		stateDir,
-		distSrcDir,
-		wasmRuntimeDir,
-		entryBuildType,
-		"/entrypoint/",
-	); err != nil {
-		return err
-	}
-
 	// Build runtime wasm pkg
 	le.Info("building runtime.wasm")
 	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)

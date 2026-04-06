@@ -51,10 +51,9 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 			le,
 			distBus.GetBus(),
 			web_runtime_bootstrap.RuntimeStackOpts{
-				WebRuntimeID:      initm.GetWebRuntimeId(),
-				MessagePort:       "BLDR_WEB_RUNTIME_CLIENT_OPEN",
-				StartSqliteWorker: true,
-				StaticResolver:    distBus.GetStaticResolver(),
+				WebRuntimeID:   initm.GetWebRuntimeId(),
+				MessagePort:    "BLDR_WEB_RUNTIME_CLIENT_OPEN",
+				StaticResolver: distBus.GetStaticResolver(),
 			},
 		)
 		if err != nil {

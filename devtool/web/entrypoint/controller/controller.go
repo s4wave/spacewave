@@ -99,9 +99,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		le,
 		b,
 		web_runtime_bootstrap.RuntimeStackOpts{
-			WebRuntimeID:      c.initm.GetWebRuntimeId(),
-			MessagePort:       "BLDR_WEB_RUNTIME_CLIENT_OPEN",
-			StartSqliteWorker: true,
+			WebRuntimeID: c.initm.GetWebRuntimeId(),
+			MessagePort:  "BLDR_WEB_RUNTIME_CLIENT_OPEN",
 		},
 	)
 	if err != nil {

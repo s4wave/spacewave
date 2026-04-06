@@ -407,6 +407,7 @@ func BuildBrowserBundle(
 	}, nil
 }
 
+
 // BuildWebPkgsBundle builds the web pkg bundle files.
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.

@@ -792,7 +792,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     )
   }
 
-  // buildWebViewHostOpenStream builds the Client for a WebViewHost.
+  // buildWebViewHostClient builds the Client for a WebViewHost.
   public buildWebViewHostClient(webViewId: string): Client {
     return new Client(this.buildWebViewHostOpenStream(webViewId))
   }
@@ -954,7 +954,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     return { removed: !!old }
   }
 
-  // close shuts down the WebDocument with an optional error.
   // sendSnapshotNow sends a snapshotNow message to all plugin DedicatedWorkers.
   // Called from beforeunload to trigger urgent WASM memory snapshots.
   private sendSnapshotNow(): void {

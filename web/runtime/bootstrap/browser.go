@@ -8,7 +8,6 @@ import (
 	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
-	web_runtime_sqlite "github.com/aperturerobotics/bldr/web/runtime/sqlite"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -19,10 +18,9 @@ import (
 
 // RuntimeStackOpts configures startup of the browser runtime stack.
 type RuntimeStackOpts struct {
-	WebRuntimeID      string
-	MessagePort       string
-	StartSqliteWorker bool
-	StaticResolver    *static.Resolver
+	WebRuntimeID   string
+	MessagePort    string
+	StaticResolver *static.Resolver
 }
 
 // RuntimeStack contains the started browser runtime stack.
@@ -40,8 +38,7 @@ func (s *RuntimeStack) Release() {
 	}
 }
 
-// StartRuntimeStack starts the browser WebRuntime and, optionally, the sqlite
-// worker lifecycle tied to that runtime.
+// StartRuntimeStack starts the browser WebRuntime.
 func StartRuntimeStack(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -79,16 +76,6 @@ func StartRuntimeStack(
 	stack := &RuntimeStack{
 		WebRuntime: rt,
 		rels:       []func(){webRuntimeRef.Release},
-	}
-
-	if opts.StartSqliteWorker {
-		workerCtx, workerCancel := context.WithCancel(ctx)
-		go func() {
-			if err := web_runtime_sqlite.StartSqliteWorker(workerCtx, le, rt); err != nil && err != context.Canceled {
-				le.WithError(err).Warn("sqlite worker exited with error")
-			}
-		}()
-		stack.rels = append(stack.rels, workerCancel)
 	}
 
 	return stack, nil

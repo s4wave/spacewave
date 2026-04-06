@@ -2,10 +2,10 @@
 // Each *.ts file in fixtures/ (excluding workers/) is built as an ES module.
 // The Go test server generates HTML pages that load each fixture.
 
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig } from 'vite'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { readdirSync, copyFileSync, mkdirSync } from 'fs'
+import { readdirSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '../..')
@@ -31,19 +31,6 @@ try {
   // workers/ dir may not exist yet
 }
 
-// Plugin to copy sqlite3.wasm to dist for test fixtures.
-function sqliteWasmPlugin(): Plugin {
-  const wasmSrc = resolve(repoRoot, 'node_modules/@aptre/sqlite-wasm/dist/sqlite3.wasm')
-  return {
-    name: 'sqlite-wasm-copy',
-    writeBundle() {
-      const outDir = resolve(__dirname, 'dist')
-      mkdirSync(outDir, { recursive: true })
-      copyFileSync(wasmSrc, resolve(outDir, 'sqlite3.wasm'))
-    },
-  }
-}
-
 export default defineConfig({
   resolve: {
     alias: {
@@ -54,7 +41,6 @@ export default defineConfig({
       '@aptre/bldr-sdk/': resolve(repoRoot, 'sdk') + '/',
     },
   },
-  plugins: [sqliteWasmPlugin()],
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyDirBeforeWrite: true,

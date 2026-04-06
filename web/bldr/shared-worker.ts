@@ -11,7 +11,6 @@
 // Custom workers (no p): imports the script directly and lets it self-manage.
 // The script provides its own message listeners and WebDocumentTracker.
 
-import sqlite3WasmUrl from '@aptre/sqlite-wasm/sqlite3.wasm'
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 
 import {
@@ -23,8 +22,6 @@ import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
-import { type CommsSqlite, initCommsSqlite } from './comms-sqlite.js'
-import { createSnapshotManager, type SnapshotManager } from './snapshot-manager.js'
 
 declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
@@ -65,8 +62,6 @@ if (isPlugin) {
     handleIncomingStreamCtr.handleStreamFunc
 
   let pluginWorker: PluginWorker
-  let commsSqlite: CommsSqlite | null = null
-  let snapshotMgr: SnapshotManager | null = null
 
   const startPluginCallback = async (opts: PluginStartOpts) => {
     const { startInfo, busSab, busPluginId } = opts
@@ -86,29 +81,6 @@ if (isPlugin) {
       }
     }
 
-    // Initialize cross-tab comms sqlite (async OPFS for SharedWorker context).
-    // Falls back gracefully if OPFS or sqlite loading fails.
-    if (busPluginId != null && !commsSqlite) {
-      try {
-        const sqlite3Init = (await import('@aptre/sqlite-wasm')).default
-        const sqlite3 = await sqlite3Init({
-          locateFile: (path: string) => {
-            if (path.endsWith('.wasm')) {
-              return sqlite3WasmUrl
-            }
-            return path
-          },
-        })
-        commsSqlite = await initCommsSqlite({
-          sqlite3,
-          pluginId: busPluginId,
-        })
-        console.log('shared-worker: cross-tab comms sqlite initialized')
-      } catch (err) {
-        console.warn('shared-worker: cross-tab comms sqlite init failed:', err)
-      }
-    }
-
     const detect = await detectWorkerCommsConfig()
     const transport = createTransportFactory(detect, {
       openStream: pluginWorker.webRuntimeClient.openStream.bind(
@@ -116,8 +88,6 @@ if (isPlugin) {
       ),
       handleIncomingStream: handleIncomingStream,
       busEndpoint,
-      commsSqlite: commsSqlite ?? undefined,
-      pluginId: busPluginId,
     })
 
     const abortController = new AbortController()
@@ -129,18 +99,6 @@ if (isPlugin) {
       handleIncomingStreamCtr,
       abortSignal,
     )
-
-    // Initialize snapshot manager for WASM memory persistence.
-    // DedicatedWorker plugins can register their WASM memory for snapshots.
-    if (!snapshotMgr) {
-      try {
-        snapshotMgr = await createSnapshotManager()
-        snapshotMgr.startPeriodic()
-        console.log('shared-worker: snapshot manager initialized')
-      } catch (err) {
-        console.warn('shared-worker: snapshot manager init failed:', err)
-      }
-    }
 
     if (workerType === 'quickjs') {
       console.log('shared-worker: starting QuickJS plugin:', scriptPath)
@@ -160,16 +118,6 @@ if (isPlugin) {
   }
 
   pluginWorker = new PluginWorker(self, startPluginCallback, handleIncomingStream)
-
-  // Wire the snapshotNow handler: when WebDocument sends snapshotNow during
-  // beforeunload, force-snapshot all registered plugins.
-  pluginWorker.onSnapshotNow = () => {
-    if (snapshotMgr) {
-      snapshotMgr.snapshotAll(true).catch((err) => {
-        console.warn('shared-worker: urgent snapshot failed:', err)
-      })
-    }
-  }
 } else {
   // Custom worker mode: import script directly and let it self-manage.
   // Buffer messages that arrive during the async import. The script registers

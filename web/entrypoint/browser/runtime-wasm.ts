@@ -23,7 +23,6 @@ declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 interface Global {
   BLDR_INIT?: Uint8Array
   BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
-  BLDR_SQLITE_WORKER_URL?: string
 }
 const global: Global = self as unknown as Global
 
@@ -46,10 +45,6 @@ const webRuntime = new WebRuntime(
 
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url
-
-// Set the sqlite worker URL for Go to read via syscall/js.
-// sqlite-worker.mjs is built to the same directory as runtime-wasm.mjs.
-global.BLDR_SQLITE_WORKER_URL = new URL('./sqlite-worker.mjs', baseURL).toString()
 
 // BLDR_RUNTIME_WASM is an injected variable with the path to the runtime.wasm
 declare const BLDR_RUNTIME_WASM: string | undefined
