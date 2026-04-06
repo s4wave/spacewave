@@ -387,6 +387,10 @@ async function buildWebPkg(
         nameBase = imp
       }
       let name = nameBase
+      // Strip leading "./" prefix (from package.json export paths).
+      if (name.startsWith('./')) {
+        name = name.substring(2)
+      }
       while (true) {
         const ext = path.extname(name)
         if (!ext || !knownExts.has(ext)) break
