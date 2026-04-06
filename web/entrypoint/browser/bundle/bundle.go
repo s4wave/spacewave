@@ -242,7 +242,7 @@ func BuildRendererBundle(
 	webStartupSrcPath,
 	entrypointHash string,
 	minify,
-	useDedicatedWorkers bool,
+	forceDedicatedWorkers bool,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
@@ -295,8 +295,8 @@ func BuildRendererBundle(
 		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPathRel)
 	}
 
-	if useDedicatedWorkers {
-		rendererBuildOpts.Define["BLDR_USE_DEDICATED_WORKERS"] = "true"
+	if forceDedicatedWorkers {
+		rendererBuildOpts.Define["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
 	}
 
 	if !minify {
@@ -340,7 +340,7 @@ func BuildBrowserBundle(
 	entrypointHash string,
 	minify,
 	devMode,
-	useDedicatedWorkers bool,
+	forceDedicatedWorkers bool,
 ) (*BrowserBundleResult, error) {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
@@ -387,7 +387,7 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, useDedicatedWorkers, webPkgImportMap)
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, forceDedicatedWorkers, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}

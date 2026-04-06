@@ -35,10 +35,10 @@ if (typeof BLDR_SHW_JS === 'string') {
   webDocumentOpts.sharedWorkerPath = BLDR_SHW_JS
 }
 
-// BLDR_USE_DEDICATED_WORKERS is an injected variable to force dedicated workers.
-declare const BLDR_USE_DEDICATED_WORKERS: boolean | undefined
-if (typeof BLDR_USE_DEDICATED_WORKERS === 'boolean' && BLDR_USE_DEDICATED_WORKERS) {
-  webDocumentOpts.useDedicatedWorkers = true
+// BLDR_FORCE_DEDICATED_WORKERS is an injected variable to force dedicated workers.
+declare const BLDR_FORCE_DEDICATED_WORKERS: boolean | undefined
+if (typeof BLDR_FORCE_DEDICATED_WORKERS === 'boolean' && BLDR_FORCE_DEDICATED_WORKERS) {
+  webDocumentOpts.forceDedicatedWorkers = true
 }
 
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }

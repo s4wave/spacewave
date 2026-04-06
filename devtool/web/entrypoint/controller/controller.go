@@ -312,7 +312,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// run the web browser plugin loader implementation (for "web/js/wasm" platform)
 	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
 		WebRuntimeId:        c.initm.GetWebRuntimeId(),
-		UseDedicatedWorkers: devtoolInfo.GetUseDedicatedWorkers(),
+		ForceDedicatedWorkers: devtoolInfo.GetForceDedicatedWorkers(),
 	})
 	if err != nil {
 		err = errors.Wrap(err, "start web host controller")
@@ -332,7 +332,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// run the QuickJS web browser plugin host (for "js" platform)
 	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{
 		WebRuntimeId:        c.initm.GetWebRuntimeId(),
-		UseDedicatedWorkers: devtoolInfo.GetUseDedicatedWorkers(),
+		ForceDedicatedWorkers: devtoolInfo.GetForceDedicatedWorkers(),
 	})
 	if err != nil {
 		err = errors.Wrap(err, "start web quickjs host controller")

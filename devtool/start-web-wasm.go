@@ -101,7 +101,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	appID string,
 	startPlugins []string,
 	webStartupSrcPath string,
-	useDedicatedWorkers bool,
+	forceDedicatedWorkers bool,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -130,7 +130,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		"",
 		minifyEntrypoint,
 		devMode,
-		useDedicatedWorkers,
+		forceDedicatedWorkers,
 	)
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		DevtoolPeerId:       wsPeerID,
 		DevtoolVolumeInfo:   d.GetVolumeInfo(),
 		StartPlugins:        startPlugins,
-		UseDedicatedWorkers: useDedicatedWorkers,
+		ForceDedicatedWorkers: forceDedicatedWorkers,
 	}
 	if err := browserInit.Validate(); err != nil {
 		return err

@@ -45,12 +45,12 @@ type WebHost struct {
 	pluginPlatformID string
 	// webRuntimeID is the identifier of the web runtime
 	webRuntimeID string
-	// useDedicatedWorkers forces dedicated Workers instead of SharedWorkers.
-	useDedicatedWorkers bool
+	// forceDedicatedWorkers forces dedicated Workers instead of SharedWorkers.
+	forceDedicatedWorkers bool
 }
 
 // NewWebHost constructs a new WebHost.
-func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, useDedicatedWorkers bool) (*WebHost, error) {
+func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, forceDedicatedWorkers bool) (*WebHost, error) {
 	// determine the platform id for the host
 	// TODO: also support "js" and "web/wasi/wasm"
 	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
@@ -63,7 +63,7 @@ func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, useDedicatedWo
 		le:                  le,
 		pluginPlatformID:    platform.GetPlatformID(),
 		webRuntimeID:        webRuntimeID,
-		useDedicatedWorkers: useDedicatedWorkers,
+		forceDedicatedWorkers: forceDedicatedWorkers,
 	}, nil
 }
 
@@ -76,7 +76,7 @@ func NewWebHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId(), c.GetUseDedicatedWorkers())
+	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId(), c.GetForceDedicatedWorkers())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -251,11 +251,11 @@ func (h *WebHost) ExecutePlugin(
 				"web-worker":   pluginWebWorkerID,
 			})
 		le.Debug("creating web worker")
-		// When useDedicatedWorkers is set, force DedicatedWorker.
+		// When forceDedicatedWorkers is set, use DedicatedWorker.
 		// Otherwise, send WORKER_MODE_DEFAULT so the browser-side
 		// detectWorkerCommsConfig() selects the best mode.
 		workerMode := web_document.WebWorkerMode_WORKER_MODE_DEFAULT
-		if h.useDedicatedWorkers {
+		if h.forceDedicatedWorkers {
 			workerMode = web_document.WebWorkerMode_WORKER_MODE_DEDICATED
 		}
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{

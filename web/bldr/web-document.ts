@@ -406,11 +406,11 @@ export interface WebDocumentOptions {
   // if unset, defaults to /shw.mjs
   // This unified worker handles both native and QuickJS plugins.
   sharedWorkerPath?: string
-  // useDedicatedWorkers forces the runtime to use a dedicated Worker instead
+  // forceDedicatedWorkers forces the runtime to use a dedicated Worker instead
   // of a SharedWorker. Useful for testing with Playwright which can capture
   // console output from dedicated workers but not shared. Also used as the
   // automatic fallback when SharedWorker is not supported (e.g. Chrome Android).
-  useDedicatedWorkers?: boolean
+  forceDedicatedWorkers?: boolean
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -475,10 +475,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // electron: not used
   private worker?: SharedWorker
   // runtimeWorker is the dedicated worker containing the WebRuntime.
-  // Used when useDedicatedWorkers is set or SharedWorker is unavailable.
+  // Used when forceDedicatedWorkers is set or SharedWorker is unavailable.
   private runtimeWorker?: Worker
-  // useDedicatedWorkers forces dedicated Worker mode for the runtime.
-  private useDedicatedWorkers?: boolean
+  // forceDedicatedWorkers forces dedicated Worker mode for the runtime.
+  private forceDedicatedWorkers?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
   // Not used in saucer mode (uses HTTP-based communication instead).
   private webRuntimePort?: MessagePort
@@ -537,8 +537,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (opts?.closedCallback) {
       this.closedCallback = opts.closedCallback
     }
-    if (opts?.useDedicatedWorkers) {
-      this.useDedicatedWorkers = true
+    if (opts?.forceDedicatedWorkers) {
+      this.forceDedicatedWorkers = true
     }
 
     // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
@@ -642,7 +642,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // Determine whether to use a dedicated Worker instead of SharedWorker.
     // Forced by option, or when SharedWorker is unavailable (e.g. Chrome Android).
     const useDedicatedRuntime =
-      this.useDedicatedWorkers || typeof SharedWorker === 'undefined'
+      this.forceDedicatedWorkers || typeof SharedWorker === 'undefined'
 
     // setup the runtime worker
     if (this.isElectron) {

@@ -20,10 +20,10 @@ type Config struct {
 	unknownFields []byte
 	// WebRuntimeId is the identifier of the web runtime.
 	WebRuntimeId string `protobuf:"bytes,1,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"webRuntimeId,omitempty"`
-	// UseDedicatedWorkers overrides the default SharedWorker mode to use
+	// ForceDedicatedWorkers overrides the default SharedWorker mode to use
 	// dedicated Workers instead. Useful for testing with Playwright which
 	// can capture console output from dedicated workers but not shared.
-	UseDedicatedWorkers bool `protobuf:"varint,2,opt,name=use_dedicated_workers,json=useDedicatedWorkers,proto3" json:"useDedicatedWorkers,omitempty"`
+	ForceDedicatedWorkers bool `protobuf:"varint,2,opt,name=force_dedicated_workers,json=forceDedicatedWorkers,proto3" json:"forceDedicatedWorkers,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -39,9 +39,9 @@ func (x *Config) GetWebRuntimeId() string {
 	return ""
 }
 
-func (x *Config) GetUseDedicatedWorkers() bool {
+func (x *Config) GetForceDedicatedWorkers() bool {
 	if x != nil {
-		return x.UseDedicatedWorkers
+		return x.ForceDedicatedWorkers
 	}
 	return false
 }
@@ -51,10 +51,10 @@ type QuickJSConfig struct {
 	unknownFields []byte
 	// WebRuntimeId is the identifier of the web runtime.
 	WebRuntimeId string `protobuf:"bytes,1,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"webRuntimeId,omitempty"`
-	// UseDedicatedWorkers overrides the default SharedWorker mode to use
+	// ForceDedicatedWorkers overrides the default SharedWorker mode to use
 	// dedicated Workers instead. Useful for testing with Playwright which
 	// can capture console output from dedicated workers but not shared.
-	UseDedicatedWorkers bool `protobuf:"varint,2,opt,name=use_dedicated_workers,json=useDedicatedWorkers,proto3" json:"useDedicatedWorkers,omitempty"`
+	ForceDedicatedWorkers bool `protobuf:"varint,2,opt,name=force_dedicated_workers,json=forceDedicatedWorkers,proto3" json:"forceDedicatedWorkers,omitempty"`
 }
 
 func (x *QuickJSConfig) Reset() {
@@ -70,9 +70,9 @@ func (x *QuickJSConfig) GetWebRuntimeId() string {
 	return ""
 }
 
-func (x *QuickJSConfig) GetUseDedicatedWorkers() bool {
+func (x *QuickJSConfig) GetForceDedicatedWorkers() bool {
 	if x != nil {
-		return x.UseDedicatedWorkers
+		return x.ForceDedicatedWorkers
 	}
 	return false
 }
@@ -83,7 +83,7 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.WebRuntimeId = m.WebRuntimeId
-	r.UseDedicatedWorkers = m.UseDedicatedWorkers
+	r.ForceDedicatedWorkers = m.ForceDedicatedWorkers
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -100,7 +100,7 @@ func (m *QuickJSConfig) CloneVT() *QuickJSConfig {
 	}
 	r := new(QuickJSConfig)
 	r.WebRuntimeId = m.WebRuntimeId
-	r.UseDedicatedWorkers = m.UseDedicatedWorkers
+	r.ForceDedicatedWorkers = m.ForceDedicatedWorkers
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -120,7 +120,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.WebRuntimeId != that.WebRuntimeId {
 		return false
 	}
-	if this.UseDedicatedWorkers != that.UseDedicatedWorkers {
+	if this.ForceDedicatedWorkers != that.ForceDedicatedWorkers {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -143,7 +143,7 @@ func (this *QuickJSConfig) EqualVT(that *QuickJSConfig) bool {
 	if this.WebRuntimeId != that.WebRuntimeId {
 		return false
 	}
-	if this.UseDedicatedWorkers != that.UseDedicatedWorkers {
+	if this.ForceDedicatedWorkers != that.ForceDedicatedWorkers {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -170,10 +170,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("webRuntimeId")
 		s.WriteString(x.WebRuntimeId)
 	}
-	if x.UseDedicatedWorkers || s.HasField("useDedicatedWorkers") {
+	if x.ForceDedicatedWorkers || s.HasField("forceDedicatedWorkers") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("useDedicatedWorkers")
-		s.WriteBool(x.UseDedicatedWorkers)
+		s.WriteObjectField("forceDedicatedWorkers")
+		s.WriteBool(x.ForceDedicatedWorkers)
 	}
 	s.WriteObjectEnd()
 }
@@ -195,9 +195,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "web_runtime_id", "webRuntimeId":
 			s.AddField("web_runtime_id")
 			x.WebRuntimeId = s.ReadString()
-		case "use_dedicated_workers", "useDedicatedWorkers":
-			s.AddField("use_dedicated_workers")
-			x.UseDedicatedWorkers = s.ReadBool()
+		case "force_dedicated_workers", "forceDedicatedWorkers":
+			s.AddField("force_dedicated_workers")
+			x.ForceDedicatedWorkers = s.ReadBool()
 		}
 	})
 }
@@ -220,10 +220,10 @@ func (x *QuickJSConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("webRuntimeId")
 		s.WriteString(x.WebRuntimeId)
 	}
-	if x.UseDedicatedWorkers || s.HasField("useDedicatedWorkers") {
+	if x.ForceDedicatedWorkers || s.HasField("forceDedicatedWorkers") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("useDedicatedWorkers")
-		s.WriteBool(x.UseDedicatedWorkers)
+		s.WriteObjectField("forceDedicatedWorkers")
+		s.WriteBool(x.ForceDedicatedWorkers)
 	}
 	s.WriteObjectEnd()
 }
@@ -245,9 +245,9 @@ func (x *QuickJSConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "web_runtime_id", "webRuntimeId":
 			s.AddField("web_runtime_id")
 			x.WebRuntimeId = s.ReadString()
-		case "use_dedicated_workers", "useDedicatedWorkers":
-			s.AddField("use_dedicated_workers")
-			x.UseDedicatedWorkers = s.ReadBool()
+		case "force_dedicated_workers", "forceDedicatedWorkers":
+			s.AddField("force_dedicated_workers")
+			x.ForceDedicatedWorkers = s.ReadBool()
 		}
 	})
 }
@@ -287,9 +287,9 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.UseDedicatedWorkers {
+	if m.ForceDedicatedWorkers {
 		i--
-		if m.UseDedicatedWorkers {
+		if m.ForceDedicatedWorkers {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -337,9 +337,9 @@ func (m *QuickJSConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.UseDedicatedWorkers {
+	if m.ForceDedicatedWorkers {
 		i--
-		if m.UseDedicatedWorkers {
+		if m.ForceDedicatedWorkers {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -367,7 +367,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.UseDedicatedWorkers {
+	if m.ForceDedicatedWorkers {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -384,7 +384,7 @@ func (m *QuickJSConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.UseDedicatedWorkers {
+	if m.ForceDedicatedWorkers {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -401,12 +401,12 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("web_runtime_id: ")
 		sb.WriteString(strconv.Quote(x.WebRuntimeId))
 	}
-	if x.UseDedicatedWorkers != false {
+	if x.ForceDedicatedWorkers != false {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("use_dedicated_workers: ")
-		sb.WriteString(strconv.FormatBool(x.UseDedicatedWorkers))
+		sb.WriteString("force_dedicated_workers: ")
+		sb.WriteString(strconv.FormatBool(x.ForceDedicatedWorkers))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -426,12 +426,12 @@ func (x *QuickJSConfig) MarshalProtoText() string {
 		sb.WriteString("web_runtime_id: ")
 		sb.WriteString(strconv.Quote(x.WebRuntimeId))
 	}
-	if x.UseDedicatedWorkers != false {
+	if x.ForceDedicatedWorkers != false {
 		if sb.Len() > 15 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("use_dedicated_workers: ")
-		sb.WriteString(strconv.FormatBool(x.UseDedicatedWorkers))
+		sb.WriteString("force_dedicated_workers: ")
+		sb.WriteString(strconv.FormatBool(x.ForceDedicatedWorkers))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -485,7 +485,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UseDedicatedWorkers", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ForceDedicatedWorkers", wireType)
 			}
 			var v int
 			var _v uint64
@@ -494,7 +494,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.UseDedicatedWorkers = bool(v != 0)
+			m.ForceDedicatedWorkers = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -562,7 +562,7 @@ func (m *QuickJSConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UseDedicatedWorkers", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ForceDedicatedWorkers", wireType)
 			}
 			var v int
 			var _v uint64
@@ -571,7 +571,7 @@ func (m *QuickJSConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.UseDedicatedWorkers = bool(v != 0)
+			m.ForceDedicatedWorkers = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
