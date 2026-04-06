@@ -110,17 +110,13 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}
 	defer watcher.Close()
 
-	starPath := resolveStarlarkPath(configPath)
+	starPath := ResolveStarlarkPath(configPath)
 
 	for {
-		// add the config file (or re-add if watcher was removed)
-		if err := watcher.Add(configPath); err != nil {
-			return err
-		}
+		// add the config file if it exists (or re-add if watcher was removed)
+		_ = watcher.Add(configPath)
 		// watch bldr.star and any files it loaded
-		if _, serr := os.Stat(starPath); serr == nil {
-			_ = watcher.Add(starPath)
-		}
+		_ = watcher.Add(starPath)
 		for _, f := range c.starLoadedFiles {
 			_ = watcher.Add(f)
 		}
@@ -170,44 +166,65 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 
 	configPath := c.GetConfig().GetConfigPath()
 	if configPath != "" {
-		projConfig := &bldr_project.ProjectConfig{}
-		projConfYaml, err := os.ReadFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
-			return nil, errors.Wrap(err, "unmarshal project config")
-		}
-		if err := projConfig.Validate(); err != nil {
-			return nil, err
-		}
-
-		// resolve extends: merge extended project configs first (in order)
+		starPath := ResolveStarlarkPath(configPath)
 		sourcePath := filepath.Dir(configPath)
-		for _, modulePath := range projConfig.GetExtends() {
-			extConfig, _, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
+
+		// Load bldr.yaml if it exists.
+		yamlData, yamlErr := os.ReadFile(configPath)
+		_, starErr := os.Stat(starPath)
+		if yamlErr != nil && starErr != nil {
+			// Neither file exists.
+			return nil, yamlErr
+		}
+
+		if yamlErr == nil {
+			projConfig := &bldr_project.ProjectConfig{}
+			if err := bldr_project.UnmarshalProjectConfig(yamlData, projConfig); err != nil {
+				return nil, errors.Wrap(err, "unmarshal project config")
+			}
+			if err := projConfig.Validate(); err != nil {
+				return nil, err
+			}
+
+			// resolve extends: merge extended project configs first (in order)
+			for _, modulePath := range projConfig.GetExtends() {
+				extConfig, _, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "extends %s", modulePath)
+				}
+				if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, extConfig); err != nil {
+					return nil, errors.Wrapf(err, "merge extends %s", modulePath)
+				}
+			}
+
+			// merge local yaml config on top of extended configs
+			if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
+				return nil, err
+			}
+		}
+
+		// Evaluate bldr.star if it exists.
+		if starErr == nil {
+			result, err := bldr_project_starlark.Evaluate(starPath)
 			if err != nil {
-				return nil, errors.Wrapf(err, "extends %s", modulePath)
+				return nil, errors.Wrap(err, "evaluate bldr.star")
 			}
-			if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, extConfig); err != nil {
-				return nil, errors.Wrapf(err, "merge extends %s", modulePath)
-			}
-		}
 
-		// merge local config on top of extended configs
-		if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
-			return nil, err
-		}
-
-		// evaluate bldr.star if it exists beside the config path
-		starPath := resolveStarlarkPath(configPath)
-		if _, serr := os.Stat(starPath); serr == nil {
-			result, serr := bldr_project_starlark.Evaluate(starPath)
-			if serr != nil {
-				return nil, errors.Wrap(serr, "evaluate bldr.star")
+			// If bldr.star specifies extends, resolve them.
+			for _, modulePath := range result.Config.GetExtends() {
+				extConfig, _, err := bldr_project.LoadExtendedProjectConfig(sourcePath, modulePath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "extends %s", modulePath)
+				}
+				if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, extConfig); err != nil {
+					return nil, errors.Wrapf(err, "merge extends %s", modulePath)
+				}
 			}
-			if serr := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, result.Config); serr != nil {
-				return nil, errors.Wrap(serr, "merge bldr.star config")
+			// Clear extends before merge so they are not re-processed.
+			result.Config.Extends = nil
+
+			if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, result.Config); err != nil {
+				return nil, errors.Wrap(err, "merge bldr.star config")
 			}
 			c.starLoadedFiles = result.LoadedFiles
 		} else {
@@ -218,9 +235,9 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 	return ctrlConfig, nil
 }
 
-// resolveStarlarkPath returns the bldr.star path beside a config path.
+// ResolveStarlarkPath returns the bldr.star path beside a config path.
 // e.g. "bldr.yaml" -> "bldr.star", "path/to/bldr.yaml" -> "path/to/bldr.star"
-func resolveStarlarkPath(configPath string) string {
+func ResolveStarlarkPath(configPath string) string {
 	dir := filepath.Dir(configPath)
 	return filepath.Join(dir, "bldr.star")
 }

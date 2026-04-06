@@ -634,14 +634,20 @@ func (d *DevtoolBus) StartProjectController(
 
 	// Validate the config file upfront so parse errors surface immediately
 	// instead of causing the controller to retry indefinitely.
+	// bldr.star is also accepted as a standalone config source.
 	if absConfigPath != "" {
 		confData, err := os.ReadFile(absConfigPath)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "read project config")
-		}
-		testConf := &bldr_project.ProjectConfig{}
-		if err := bldr_project.UnmarshalProjectConfig(confData, testConf); err != nil {
-			return nil, nil, errors.Wrap(err, "parse project config")
+			// If bldr.yaml is missing, check for bldr.star.
+			starPath := bldr_project_watcher.ResolveStarlarkPath(absConfigPath)
+			if _, serr := os.Stat(starPath); serr != nil {
+				return nil, nil, errors.Wrap(err, "read project config")
+			}
+		} else {
+			testConf := &bldr_project.ProjectConfig{}
+			if err := bldr_project.UnmarshalProjectConfig(confData, testConf); err != nil {
+				return nil, nil, errors.Wrap(err, "parse project config")
+			}
 		}
 	}
 
