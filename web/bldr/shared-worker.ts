@@ -22,6 +22,7 @@ import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
+import { type CommsSqlite, initCommsSqlite } from './comms-sqlite.js'
 
 declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 
@@ -62,6 +63,7 @@ if (isPlugin) {
     handleIncomingStreamCtr.handleStreamFunc
 
   let pluginWorker: PluginWorker
+  let commsSqlite: CommsSqlite | null = null
 
   const startPluginCallback = async (opts: PluginStartOpts) => {
     const { startInfo, busSab, busPluginId } = opts
@@ -78,6 +80,22 @@ if (isPlugin) {
       } catch (err) {
         console.warn('shared-worker: SAB bus init failed, falling back to MessagePort', err)
         busEndpoint = undefined
+      }
+    }
+
+    // Initialize cross-tab comms sqlite (async OPFS for SharedWorker context).
+    // Falls back gracefully if OPFS or sqlite loading fails.
+    if (busPluginId != null && !commsSqlite) {
+      try {
+        const sqlite3Init = (await import('@aptre/sqlite-wasm')).default
+        const sqlite3 = await sqlite3Init()
+        commsSqlite = await initCommsSqlite({
+          sqlite3,
+          pluginId: busPluginId,
+        })
+        console.log('shared-worker: cross-tab comms sqlite initialized')
+      } catch (err) {
+        console.warn('shared-worker: cross-tab comms sqlite init failed:', err)
       }
     }
 
