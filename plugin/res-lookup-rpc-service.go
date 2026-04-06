@@ -119,7 +119,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		"service": targetServiceID,
 		"method":  methodID,
 	})
-	le.Info("forwarding invoker: opening outgoing stream")
+	le.Debug("forwarding invoker: opening outgoing stream")
 
 	// Create outgoing stream via client
 	outgoingStream, err := f.client.NewStream(strm.Context(), targetServiceID, methodID, nil)
@@ -127,7 +127,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		le.WithError(err).Warn("forwarding invoker: outgoing stream open failed")
 		return true, errors.Wrap(err, "failed to create outgoing stream")
 	}
-	le.Info("forwarding invoker: outgoing stream opened, starting bridge")
+	le.Debug("forwarding invoker: outgoing stream opened, starting bridge")
 
 	// NOTE: do not defer strm.Close() here. strm.Close() writes a CallCancel
 	// packet which sets remoteErr=context.Canceled on the client, breaking
@@ -153,7 +153,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 	go func() {
 		defer outgoingStream.Close()
 		err := writeServerToClient()
-		le.WithError(err).Info("forwarding invoker: server->client exited")
+		le.WithError(err).Debug("forwarding invoker: server->client exited")
 		serverDone <- err
 	}()
 
@@ -172,7 +172,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 	}
 
 	writeErr := writeClientToServer()
-	le.WithError(writeErr).Info("forwarding invoker: client->server exited")
+	le.WithError(writeErr).Debug("forwarding invoker: client->server exited")
 
 	// Client closed send side (EOF): forward the half-close to the
 	// outgoing stream and wait for the server->client direction to finish.
@@ -188,7 +188,7 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		}
 	}
 
-	le.WithError(writeErr).Info("forwarding invoker: bridge exited")
+	le.WithError(writeErr).Debug("forwarding invoker: bridge exited")
 	return true, writeErr
 }
 
