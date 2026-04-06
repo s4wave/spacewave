@@ -102,14 +102,18 @@ func resolveNodeModuleEntrypoints(
 	}
 
 	// Fall back to main or module field.
-	if pkg.Main != "" {
-		return []string{pkg.Main}, nil
-	}
-	if pkg.Module != "" {
-		return []string{pkg.Module}, nil
+	for _, entry := range []string{pkg.Module, pkg.Main} {
+		if entry == "" {
+			continue
+		}
+		ext := filepath.Ext(entry)
+		switch ext {
+		case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".css":
+			return []string{entry}, nil
+		}
 	}
 
-	// No exports/main/module: treat as local package for entrypoint resolution.
+	// No JS exports/main/module: treat as local package for entrypoint resolution.
 	return resolveLocalEntrypoints(pkgRoot, nil)
 }
 
@@ -129,7 +133,7 @@ type packageJSON struct {
 //	{ ".": { "import": { "default": "./dist/index.mjs" } } }
 //	{ "./jsx-runtime": { "import": { "default": "./jsx-runtime.js" } } }
 //
-// Skips entries that resolve to non-JS files (CSS, types).
+// Skips entries that resolve to non-bundleable files (types, binary).
 func resolvePackageJSONExports(exports map[string]json.RawMessage) ([]string, error) {
 	var imports []string
 
@@ -139,16 +143,26 @@ func resolvePackageJSONExports(exports map[string]json.RawMessage) ([]string, er
 			continue
 		}
 
+		// Skip wildcard exports (e.g. "./*", "./*.css", "./files/*").
+		if strings.Contains(subpath, "*") {
+			continue
+		}
+
 		resolved := resolveExportCondition(raw)
 		if resolved == "" {
 			continue
 		}
 
-		// Skip non-JS exports (CSS, types).
+		// Skip wildcard resolved paths.
+		if strings.Contains(resolved, "*") {
+			continue
+		}
+
+		// Skip non-bundleable exports (types, binary, license).
 		ext := filepath.Ext(resolved)
 		switch ext {
-		case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx":
-			// JS entry point.
+		case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".css":
+			// Bundleable entry point.
 		default:
 			continue
 		}
