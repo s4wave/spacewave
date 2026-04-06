@@ -194,10 +194,12 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
 		return "", err
 	}
-	if len(result.OutputFiles) != 1 {
-		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
+	for _, f := range result.OutputFiles {
+		if strings.HasSuffix(f.Path, ".mjs") {
+			return filepath.Base(f.Path), nil
+		}
 	}
-	return filepath.Base(result.OutputFiles[0].Path), nil
+	return "", errors.New("shared worker build produced no .mjs output")
 }
 
 // BuildRendererIndex builds the web renderer index.html.
