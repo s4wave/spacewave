@@ -128,7 +128,11 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		return true, errors.Wrap(err, "failed to create outgoing stream")
 	}
 	le.Info("forwarding invoker: outgoing stream opened, starting bridge")
-	defer strm.Close()
+
+	// NOTE: do not defer strm.Close() here. strm.Close() writes a CallCancel
+	// packet which sets remoteErr=context.Canceled on the client, breaking
+	// server-streaming RPCs. The caller (invokeRPC) handles stream completion
+	// by sending CallData(complete=true) and closing the writer.
 
 	// Bridge the streams bidirectionally
 	// Start a routine to write messages from server to client

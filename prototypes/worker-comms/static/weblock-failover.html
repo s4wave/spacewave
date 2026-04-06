@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head><title>WebLock Failover</title></head>
+<body>
+<h1>WebLock Failover Test</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: Tab A acquires a Web Lock and writes to SAB.
+// Tab B waits for the lock. When Tab A closes, Tab B acquires the lock.
+// Measures lock acquisition latency on tab close.
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+const params = new URLSearchParams(location.search)
+const role = params.get('role') || 'holder'
+const channel = new BroadcastChannel('weblock-failover-test')
+
+if (!crossOriginIsolated) {
+  emit('ERROR: not cross-origin isolated')
+  window.__results = { error: 'not cross-origin isolated' }
+} else if (role === 'holder') {
+  emit('Role: LOCK HOLDER (Tab A)')
+
+  const sab = new SharedArrayBuffer(256)
+  const view = new Int32Array(sab)
+
+  // Acquire lock and hold it.
+  navigator.locks.request('wasm-exec', async () => {
+    emit('Lock acquired!')
+    Atomics.store(view, 0, 42)
+
+    // Broadcast SAB to waiter.
+    channel.postMessage({ type: 'lock-held', sab })
+    emit('SAB sent to waiter, holding lock...')
+
+    // Write incrementing values so waiter can verify activity.
+    let counter = 0
+    const interval = setInterval(() => {
+      counter++
+      Atomics.store(view, 1, counter)
+    }, 10)
+    window.__holderInterval = interval
+
+    // Hold lock until tab closes (this promise never resolves).
+    await new Promise(() => {})
+  })
+
+  window.__results = { role: 'holder', lockAcquired: true }
+} else {
+  // role === 'waiter'
+  emit('Role: LOCK WAITER (Tab B)')
+
+  let sab = null
+  channel.onmessage = (e) => {
+    if (e.data.type === 'lock-held') {
+      sab = e.data.sab
+      if (sab instanceof SharedArrayBuffer) {
+        emit('Received SAB from holder')
+        const view = new Int32Array(sab)
+        emit(`Initial value: ${Atomics.load(view, 0)}`)
+        emit(`Counter: ${Atomics.load(view, 1)}`)
+      } else {
+        emit('Warning: received object is not SAB')
+        emit(`Type: ${typeof sab}, constructor: ${sab?.constructor?.name}`)
+      }
+    }
+  }
+
+  emit('Requesting lock (will block until holder releases)...')
+  const waitStart = performance.now()
+
+  navigator.locks.request('wasm-exec', async () => {
+    const waitMs = performance.now() - waitStart
+    emit(`Lock acquired after ${waitMs.toFixed(1)} ms`)
+
+    if (sab instanceof SharedArrayBuffer) {
+      const view = new Int32Array(sab)
+      const lastCounter = Atomics.load(view, 1)
+      emit(`Last counter value from holder: ${lastCounter}`)
+
+      // Write our own value.
+      Atomics.store(view, 2, 99)
+      emit('Wrote waiter value to SAB')
+
+      window.__results = {
+        role: 'waiter',
+        lockAcquired: true,
+        waitMs,
+        lastHolderCounter: lastCounter,
+        sabShared: true,
+      }
+    } else {
+      window.__results = {
+        role: 'waiter',
+        lockAcquired: true,
+        waitMs,
+        sabShared: sab instanceof SharedArrayBuffer,
+      }
+    }
+    emit('DONE')
+
+    // Hold lock briefly then release.
+    await new Promise(r => setTimeout(r, 100))
+  })
+}
+</script>
+</body>
+</html>

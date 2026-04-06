@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head><title>SAB via SharedWorker Relay</title></head>
+<body>
+<h1>SAB Cross-Tab Transfer via SharedWorker Relay</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: can a SharedArrayBuffer be relayed between tabs through a
+// SharedWorker's MessagePort? The SharedWorker itself cannot use SAB,
+// but if it can forward a message containing SAB between two connected
+// tabs, this gives us cross-tab SAB + tab survival (SharedWorker
+// persists across tab closes).
+//
+// Flow:
+// 1. Tab A connects to SharedWorker, sends { type: 'store', sab }
+// 2. SharedWorker holds the message
+// 3. Tab B connects to SharedWorker, sends { type: 'request' }
+// 4. SharedWorker forwards the stored SAB to Tab B
+// 5. Tab B reads/writes, signals back
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+const params = new URLSearchParams(location.search)
+const role = params.get('role') || 'sender'
+
+if (!crossOriginIsolated) {
+  emit('ERROR: not cross-origin isolated')
+  window.__results = { error: 'not cross-origin isolated' }
+} else {
+  const worker = new SharedWorker('/workers/sab-relay-shared.js')
+  const port = worker.port
+  port.start()
+
+  if (role === 'sender') {
+    emit('Role: SENDER')
+    const sab = new SharedArrayBuffer(256)
+    const view = new Int32Array(sab)
+    Atomics.store(view, 0, 0xDEADBEEF)
+    emit(`Wrote magic: 0xdeadbeef`)
+
+    try {
+      port.postMessage({ type: 'store', sab })
+      emit('SAB stored in SharedWorker')
+    } catch (err) {
+      emit(`Failed to send SAB to SharedWorker: ${err.message}`)
+      window.__results = { sharedWorkerRelay: false, error: err.message }
+      emit('DONE')
+    }
+
+    // Listen for receiver's confirmation via BroadcastChannel.
+    const bc = new BroadcastChannel('sab-relay-test')
+    bc.onmessage = (e) => {
+      if (e.data?.type === 'receiver-wrote') {
+        const response = Atomics.load(view, 1)
+        emit(`Read response: 0x${response.toString(16)}`)
+        const ok = response === 0xCAFEBABE
+        emit(ok ? 'SUCCESS: SharedWorker SAB relay works!' : 'FAIL')
+        window.__results = {
+          sharedWorkerRelay: true,
+          sabShared: ok,
+          responseReceived: response,
+        }
+        emit('DONE')
+      }
+      if (e.data?.type === 'receiver-sab-type') {
+        emit(`Receiver got type: ${e.data.sabType}`)
+        if (e.data.sabType !== 'SharedArrayBuffer') {
+          window.__results = {
+            sharedWorkerRelay: false,
+            sabDowngraded: true,
+            receivedType: e.data.sabType,
+          }
+          emit('DONE')
+        }
+      }
+    }
+
+    setTimeout(() => {
+      if (!window.__results?.sharedWorkerRelay &&
+          !window.__results?.sabDowngraded &&
+          !window.__results?.error) {
+        emit('Timeout waiting for receiver')
+        window.__results = { sharedWorkerRelay: false, timeout: true }
+        emit('DONE')
+      }
+    }, 8000)
+
+  } else {
+    // Receiver.
+    emit('Role: RECEIVER')
+    emit('Requesting SAB from SharedWorker...')
+    port.postMessage({ type: 'request' })
+
+    const bc = new BroadcastChannel('sab-relay-test')
+
+    port.onmessage = (e) => {
+      emit(`Received from SharedWorker: ${e.data?.type}`)
+      if (e.data?.type === 'sab-relay') {
+        const sab = e.data.sab
+        const sabType = sab?.constructor?.name ?? typeof sab
+        emit(`SAB type: ${sabType}`)
+        bc.postMessage({ type: 'receiver-sab-type', sabType })
+
+        if (!(sab instanceof SharedArrayBuffer)) {
+          emit(`NOT SharedArrayBuffer (got ${sabType})`)
+          window.__results = { sabReceived: false, receivedType: sabType }
+          emit('DONE')
+          return
+        }
+
+        const view = new Int32Array(sab)
+        const magic = Atomics.load(view, 0)
+        emit(`Read magic: 0x${magic.toString(16)}`)
+
+        Atomics.store(view, 1, 0xCAFEBABE)
+        emit('Wrote response: 0xcafebabe')
+        bc.postMessage({ type: 'receiver-wrote' })
+
+        window.__results = {
+          sabReceived: true,
+          magicCorrect: magic === 0xDEADBEEF,
+        }
+        emit('DONE')
+      }
+      if (e.data?.type === 'no-sab') {
+        emit('SharedWorker has no stored SAB (sender not connected yet?)')
+        window.__results = { sabReceived: false, noSab: true }
+        emit('DONE')
+      }
+    }
+
+    setTimeout(() => {
+      if (!window.__results?.sabReceived && !window.__results?.noSab) {
+        emit('Timeout')
+        window.__results = { sabReceived: false, timeout: true }
+        emit('DONE')
+      }
+    }, 8000)
+  }
+}
+</script>
+</body>
+</html>

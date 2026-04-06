@@ -1,5 +1,4 @@
 // WorkerCommsConfig enumerates the valid worker communication configurations.
-// See plans/20260404-worker-comms-config.org for the full matrix.
 export type WorkerCommsConfig = 'A' | 'B' | 'C' | 'F'
 
 // WorkerCommsCapabilities holds the result of runtime feature detection probes.

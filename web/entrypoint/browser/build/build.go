@@ -114,7 +114,7 @@ func copySqliteWorkerSidecars(stateDir, bldrDistRoot, buildDir string) error {
 		filepath.Join(
 			buildPkgsDir,
 			"node_modules",
-			"@sqlite.org",
+			"@aptre",
 			"sqlite-wasm",
 			"dist",
 			"sqlite3-opfs-async-proxy.js",
@@ -122,7 +122,7 @@ func copySqliteWorkerSidecars(stateDir, bldrDistRoot, buildDir string) error {
 		filepath.Join(
 			bldrDistRoot,
 			"node_modules",
-			"@sqlite.org",
+			"@aptre",
 			"sqlite-wasm",
 			"dist",
 			"sqlite3-opfs-async-proxy.js",
@@ -132,7 +132,7 @@ func copySqliteWorkerSidecars(stateDir, bldrDistRoot, buildDir string) error {
 			"dist",
 			"deps",
 			"node_modules",
-			"@sqlite.org",
+			"@aptre",
 			"sqlite-wasm",
 			"dist",
 			"sqlite3-opfs-async-proxy.js",

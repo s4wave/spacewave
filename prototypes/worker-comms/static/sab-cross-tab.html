@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head><title>SAB Cross-Tab Transfer</title></head>
+<body>
+<h1>SharedArrayBuffer Cross-Tab Transfer Test</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: can a SharedArrayBuffer allocated in Tab A be shared with Tab B
+// via BroadcastChannel, and both tabs read/write the same memory?
+//
+// Flow:
+// 1. Tab A creates SAB, writes a magic value.
+// 2. Tab A broadcasts SAB reference via BroadcastChannel.
+// 3. Tab B receives SAB, reads magic value, writes response.
+// 4. Tab A reads response from SAB.
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+const params = new URLSearchParams(location.search)
+const role = params.get('role') || 'sender'
+
+const channel = new BroadcastChannel('sab-cross-tab-test')
+
+if (!crossOriginIsolated) {
+  emit('ERROR: not cross-origin isolated')
+  window.__results = { error: 'not cross-origin isolated' }
+} else if (role === 'sender') {
+  emit('Role: SENDER (Tab A)')
+  emit('Allocating SharedArrayBuffer...')
+
+  const sab = new SharedArrayBuffer(256)
+  const view = new Int32Array(sab)
+  const magic = 0xDEADBEEF
+  Atomics.store(view, 0, magic)
+  emit(`Wrote magic value: 0x${magic.toString(16)}`)
+
+  let sabSent = false
+
+  // Listen for receiver's ack.
+  channel.onmessage = (e) => {
+    if (e.data.type === 'receiver-ready' && !sabSent) {
+      sabSent = true
+      clearInterval(interval)
+      emit('Receiver ready, sending SAB via BroadcastChannel...')
+      try {
+        channel.postMessage({ type: 'sab', sab })
+        emit('SAB postMessage sent (no throw)')
+      } catch (err) {
+        emit(`BroadcastChannel SAB send failed: ${err.message}`)
+        window.__results = {
+          broadcastChannelSAB: false,
+          error: err.message,
+        }
+        emit('DONE')
+      }
+    }
+    if (e.data.type === 'receiver-wrote') {
+      const response = Atomics.load(view, 1)
+      emit(`Read receiver response from SAB: 0x${response.toString(16)}`)
+      const ok = response === 0xCAFEBABE
+      emit(ok ? 'SUCCESS: cross-tab SAB sharing works!' : 'FAIL: unexpected value')
+      window.__results = {
+        broadcastChannelSAB: true,
+        sabShared: ok,
+        magicSent: magic,
+        responseReceived: response,
+      }
+      emit('DONE')
+    }
+    if (e.data.type === 'receiver-sab-type') {
+      emit(`Receiver reports SAB type: ${e.data.sabType}`)
+      if (e.data.sabType !== 'SharedArrayBuffer') {
+        emit('FINDING: SAB was downgraded during BroadcastChannel transfer')
+        window.__results = {
+          broadcastChannelSAB: false,
+          sabDowngraded: true,
+          receivedType: e.data.sabType,
+        }
+        emit('DONE')
+      }
+    }
+  }
+
+  // After sending SAB, give receiver 3 seconds to respond before timing out.
+  setTimeout(() => {
+    if (!window.__results?.broadcastChannelSAB && !window.__results?.sabDowngraded && sabSent) {
+      emit('Timeout: receiver never acknowledged SAB')
+      emit('FINDING: BroadcastChannel likely dropped SAB silently')
+      window.__results = {
+        broadcastChannelSAB: false,
+        sabDropped: true,
+      }
+      emit('DONE')
+    }
+  }, 5000)
+
+  // Signal that sender is ready.
+  emit('Waiting for receiver tab...')
+  const interval = setInterval(() => {
+    channel.postMessage({ type: 'sender-ready' })
+  }, 100)
+} else {
+  // role === 'receiver'
+  emit('Role: RECEIVER (Tab B)')
+  emit('Signaling sender...')
+
+  channel.postMessage({ type: 'receiver-ready' })
+
+  channel.onmessage = (e) => {
+    emit(`Received message type: ${e.data?.type}`)
+    if (e.data.type === 'sender-ready') {
+      channel.postMessage({ type: 'receiver-ready' })
+      return
+    }
+    if (e.data.type === 'sab') {
+      const sab = e.data.sab
+      const sabType = sab?.constructor?.name ?? typeof sab
+      emit(`Received SAB object, type: ${sabType}`)
+      channel.postMessage({ type: 'receiver-sab-type', sabType })
+      if (!(sab instanceof SharedArrayBuffer)) {
+        emit(`NOT a SharedArrayBuffer (got ${sabType})`)
+        window.__results = { sabReceived: false, receivedType: sabType }
+        emit('DONE')
+        return
+      }
+      const view = new Int32Array(sab)
+      const magic = Atomics.load(view, 0)
+      emit(`Read magic from sender: 0x${magic.toString(16)}`)
+
+      const response = 0xCAFEBABE
+      Atomics.store(view, 1, response)
+      emit(`Wrote response: 0x${response.toString(16)}`)
+
+      channel.postMessage({ type: 'receiver-wrote' })
+      window.__results = {
+        sabReceived: true,
+        magicRead: magic,
+        magicCorrect: magic === 0xDEADBEEF,
+        responseWritten: response,
+      }
+      emit('DONE')
+    }
+  }
+}
+</script>
+</body>
+</html>
