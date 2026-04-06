@@ -167,6 +167,8 @@ func resolvePackageJSONExports(exports map[string]json.RawMessage) ([]string, er
 			continue
 		}
 
+		// Strip leading "./" from export paths.
+		resolved = strings.TrimPrefix(resolved, "./")
 		imports = append(imports, resolved)
 	}
 
