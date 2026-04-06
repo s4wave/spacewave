@@ -5,6 +5,8 @@ import type {
   WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
 import { SabBusEndpoint, SabBusStream } from './sab-bus.js'
+import type { CommsSqlite } from './comms-sqlite.js'
+import { SqliteCommsStream } from './comms-stream.js'
 
 // PluginTransportFactory creates transport functions for plugin communication.
 // Config A/F: MessagePort/ChannelStream (baseline).
@@ -23,8 +25,15 @@ export interface PluginTransportFactory {
   // Returns null if bus is not available.
   openBusStream?: (targetPluginId: number) => Promise<PacketStream>
 
+  // openCrossTabStream opens a stream to a different-tab plugin via sqlite.
+  // Returns null if cross-tab comms is not available.
+  openCrossTabStream?: (targetPluginId: number) => Promise<PacketStream>
+
   // busEndpoint is the SAB bus endpoint for this plugin (config B/C only).
   busEndpoint?: SabBusEndpoint
+
+  // commsSqlite is the cross-tab communication database (when available).
+  commsSqlite?: CommsSqlite
 }
 
 // TransportFactoryOpts configures the transport factory.
@@ -35,6 +44,10 @@ export interface TransportFactoryOpts {
   handleIncomingStream: HandleStreamFunc
   // busEndpoint is the SAB bus endpoint (present on config B/C).
   busEndpoint?: SabBusEndpoint
+  // commsSqlite is the cross-tab communication database.
+  commsSqlite?: CommsSqlite
+  // pluginId is this plugin's numeric ID.
+  pluginId?: number
 }
 
 // MessagePortTransportOpts configures a MessagePort-backed transport factory.
@@ -62,6 +75,21 @@ export function createTransportFactory(
       return new SabBusStream(opts.busEndpoint!, targetPluginId)
     }
     console.log('worker-comms: SAB bus transport available for intra-tab IPC')
+  }
+
+  if (opts.commsSqlite && opts.pluginId != null) {
+    factory.commsSqlite = opts.commsSqlite
+    factory.openCrossTabStream = async (
+      targetPluginId: number,
+    ): Promise<PacketStream> => {
+      return new SqliteCommsStream({
+        writeDb: null, // SharedWorker context: read-only, writes go via DedicatedWorker
+        asyncDb: opts.commsSqlite!.getDb(),
+        sourcePluginId: opts.pluginId!,
+        targetPluginId,
+      })
+    }
+    console.log('worker-comms: sqlite cross-tab transport available')
   }
 
   return factory

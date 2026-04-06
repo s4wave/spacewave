@@ -106,6 +106,8 @@ if (isPlugin) {
       ),
       handleIncomingStream: handleIncomingStream,
       busEndpoint,
+      commsSqlite: commsSqlite ?? undefined,
+      pluginId: busPluginId,
     })
 
     const abortController = new AbortController()
