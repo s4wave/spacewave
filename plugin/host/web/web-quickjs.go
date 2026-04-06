@@ -146,7 +146,6 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		pluginWebWorkerID += "/" + instanceKey
 	}
 	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
-	pluginShared := !h.useDedicatedWorkers
 
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {
@@ -222,10 +221,13 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		})
 		le.Debug("creating QuickJS web worker")
 
-		// Create worker with QUICKJS worker type for QuickJS reactor
-		workerMode := web_document.WebWorkerMode_WORKER_MODE_DEDICATED
-		if pluginShared {
-			workerMode = web_document.WebWorkerMode_WORKER_MODE_SHARED
+		// Create worker with QUICKJS worker type for QuickJS reactor.
+		// When useDedicatedWorkers is set, force DedicatedWorker.
+		// Otherwise, send WORKER_MODE_DEFAULT so the browser-side
+		// detectWorkerCommsConfig() selects the best mode.
+		workerMode := web_document.WebWorkerMode_WORKER_MODE_DEFAULT
+		if h.useDedicatedWorkers {
+			workerMode = web_document.WebWorkerMode_WORKER_MODE_DEDICATED
 		}
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
 			Id:         pluginWebWorkerID,

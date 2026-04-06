@@ -73,7 +73,7 @@ func NewController(
 		runtimeID:      runtimeID,
 		runtimeVersion: runtimeVersion,
 
-		pkgServer: web_pkg_http.NewServer(le, bus, true),
+		pkgServer: web_pkg_http.NewServer(le, bus, false),
 	}
 }
 

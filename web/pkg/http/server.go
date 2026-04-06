@@ -6,10 +6,48 @@ import (
 
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_http "github.com/aperturerobotics/hydra/unixfs/http"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// debugListHandle recursively lists the contents of a FSHandle for debugging.
+func debugListHandle(ctx context.Context, le *logrus.Entry, h *unixfs.FSHandle, pkgID, prefix string, depth int) {
+	if depth > 3 {
+		return
+	}
+	fi, err := h.GetFileInfo(ctx)
+	if err != nil {
+		le.WithError(err).WithField("prefix", prefix).Debug("debug: GetFileInfo failed")
+		return
+	}
+	le.WithFields(logrus.Fields{
+		"web-pkg-id": pkgID,
+		"path":       prefix,
+		"is-dir":     fi.IsDir(),
+		"size":       fi.Size(),
+	}).Debug("debug: fs entry")
+	if !fi.IsDir() {
+		return
+	}
+	entries, err := unixfs.ReaddirAllToDirEntries(ctx, 0, 0, h)
+	if err != nil {
+		le.WithError(err).WithField("prefix", prefix).Debug("debug: ReadDir failed")
+		return
+	}
+	for _, ent := range entries {
+		childName := ent.Name()
+		childPath := prefix + "/" + childName
+		child, _, lookupErr := h.LookupPath(ctx, childName)
+		if lookupErr != nil {
+			le.WithError(lookupErr).WithField("path", childPath).Debug("debug: Lookup failed")
+			continue
+		}
+		debugListHandle(ctx, le, child, pkgID, childPath, depth+1)
+		child.Release()
+	}
+}
 
 // Server serves web packages by performing LookupWebPkg directives.
 type Server struct {
@@ -63,12 +101,19 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 		}
 		defer fsHandle.Release()
 
+		// Debug: list the contents of the web pkg filesystem.
+		s.le.
+			WithField("web-pkg-id", webPkgID).
+			WithField("web-pkg-path", webPkgPath).
+			Debug("serving web pkg file")
+		debugListHandle(ctx, s.le, fsHandle, webPkgID, "", 0)
+
 		fs, err := unixfs_http.NewFileSystem(ctx, fsHandle, "")
 		if err != nil {
 			return err
 		}
 
-		req.URL.Path = webPkgPath
+		req.URL.Path = "/" + webPkgPath
 		handler := http.FileServer(fs)
 		handler.ServeHTTP(rw, req)
 		return nil
