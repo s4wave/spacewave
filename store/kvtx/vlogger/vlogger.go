@@ -19,6 +19,11 @@ func NewVLogger(le *logrus.Entry, store hydra_store_kvtx.Store) *VLoggerStore {
 	return &VLoggerStore{VLoggerStore: vstore, store: store}
 }
 
+// Unwrap returns the underlying store.
+func (v *VLoggerStore) Unwrap() hydra_store_kvtx.Store {
+	return v.store
+}
+
 // Execute executes the given store.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.

@@ -149,7 +149,7 @@ func (c *wasmConn) ExecContext(ctx context.Context, query string, args []driver.
 		return nil, err
 	}
 	return &wasmResult{
-		changes:     resp.GetChanges(),
+		changes:      resp.GetChanges(),
 		lastInsertID: resp.GetLastInsertRowId(),
 	}, nil
 }

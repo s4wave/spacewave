@@ -19,6 +19,11 @@ func NewVLogger(le *logrus.Entry, store kvtx.Store) *VLoggerStore {
 	return &VLoggerStore{le: le, Store: store}
 }
 
+// Unwrap returns the underlying store.
+func (l *VLoggerStore) Unwrap() kvtx.Store {
+	return l.Store
+}
+
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.

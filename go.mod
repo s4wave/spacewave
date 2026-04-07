@@ -31,7 +31,7 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5 // master
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 // master
 	github.com/bits-and-blooms/bitset v1.14.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -103,6 +103,7 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

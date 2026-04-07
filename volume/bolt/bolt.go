@@ -111,6 +111,38 @@ func NewBolt(
 	)
 }
 
+// boltDBProvider is implemented by types that expose a *bdb.DB.
+type boltDBProvider interface {
+	GetDB() *bdb.DB
+}
+
+// storeUnwrapper is implemented by store wrappers like VLoggerStore.
+type storeUnwrapper interface {
+	Unwrap() skvtx.Store
+}
+
+// GetBoltDB extracts the *bdb.DB from a Volume if it is bolt-backed.
+// Returns nil if the volume does not use bolt. Handles wrapped stores
+// (VLoggerStore, BatchStore).
+func GetBoltDB(vol volume.Volume) *bdb.DB {
+	kv, ok := vol.(kvtx.KvtxVolume)
+	if !ok {
+		return nil
+	}
+	var store interface{} = kv.GetKvtxStore()
+	for i := 0; i < 10; i++ {
+		if p, ok := store.(boltDBProvider); ok {
+			return p.GetDB()
+		}
+		if u, ok := store.(storeUnwrapper); ok {
+			store = u.Unwrap()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
 // _ is a type assertion
 var (
 	_ volume.Volume   = ((*Bolt)(nil))

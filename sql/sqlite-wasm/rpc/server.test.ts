@@ -184,7 +184,10 @@ describe('SqliteBridgeServer', () => {
     await server.Exec({ dbId, sql: 'ROLLBACK' })
 
     // Verify row was rolled back.
-    const stream = server.Query({ dbId, sql: 'SELECT COUNT(*) as cnt FROM txtest' })
+    const stream = server.Query({
+      dbId,
+      sql: 'SELECT COUNT(*) as cnt FROM txtest',
+    })
     const messages = []
     for await (const msg of stream) {
       messages.push(msg)
@@ -209,7 +212,10 @@ describe('SqliteBridgeServer', () => {
     await server.Exec({ dbId: dbId2, sql: "INSERT INTO t(v) VALUES ('x')" })
 
     const rows: string[] = []
-    for await (const msg of server.Query({ dbId: dbId1, sql: 'SELECT v FROM t ORDER BY rowid' })) {
+    for await (const msg of server.Query({
+      dbId: dbId1,
+      sql: 'SELECT v FROM t ORDER BY rowid',
+    })) {
       if (msg.row?.length) {
         rows.push(msg.row[0]!.value!.value as string)
       }
@@ -222,7 +228,10 @@ describe('SqliteBridgeServer', () => {
     await server.Exec({ dbId: dbId2, sql: "INSERT INTO t(v) VALUES ('y')" })
 
     const rowsAfterClose: string[] = []
-    for await (const msg of server.Query({ dbId: dbId2, sql: 'SELECT v FROM t ORDER BY rowid' })) {
+    for await (const msg of server.Query({
+      dbId: dbId2,
+      sql: 'SELECT v FROM t ORDER BY rowid',
+    })) {
       if (msg.row?.length) {
         rowsAfterClose.push(msg.row[0]!.value!.value as string)
       }

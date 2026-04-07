@@ -38,6 +38,11 @@ type BatchStore struct {
 	stats BatchStats
 }
 
+// GetDB returns the bolt DB.
+func (b *BatchStore) GetDB() *bdb.DB {
+	return b.store.GetDB()
+}
+
 // BatchStats tracks batch store performance.
 type BatchStats struct {
 	Writes  atomic.Int64

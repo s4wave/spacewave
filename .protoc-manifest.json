@@ -525,6 +525,24 @@
         "bucket/store/rpc/bucket.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/coord": {
+      "hash": "62aff9c60c72071305089ce20921d68b6494a8f54aec2bf80ea3246d20c61a3f",
+      "generatedFiles": [
+        "coord/coord.pb.cc",
+        "coord/coord.pb.go",
+        "coord/coord.pb.h",
+        "coord/coord.pb.rs",
+        "coord/coord.pb.ts",
+        "coord/coord_srpc.pb.cpp",
+        "coord/coord_srpc.pb.go",
+        "coord/coord_srpc.pb.hpp",
+        "coord/coord_srpc.pb.rs",
+        "coord/coord_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "coord/coord.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/daemon/api": {
       "hash": "70380bd5d53c8fc289a866b8abd5e559052ef429c9e302eed5ce12751cef3487",
       "generatedFiles": [

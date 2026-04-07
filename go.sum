@@ -57,8 +57,8 @@ github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 h1:3U7
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:tykjLki/ShxJNz56wc5zYpz02oo/zNEYRpOb9g+uFuA=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
-github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562 h1:ygYSr1HISAw8YDO5e4zpdjqhTIVU4oZdZuHFqFn3Mgg=
-github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562/go.mod h1:Hcs0czu8ZTqit90wUjdgaKcRlm22+Oe9DcNDN6Sx8Zs=
+github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 h1:G9ziqzF7ox6CGa2sTjmf9V/0zHBlw7Y7ewoCdxo4Kwk=
+github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
 github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff h1:73bGCAMNhq9fIfRQhqz9+3SHbHHt12zcdorDVtRtX2I=
 github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff/go.mod h1:gRr3c2ktFZ1zAsI4d4NU1jisDKGqgs9HsPlVllglWoc=
 github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 h1:/GtpPF0AtzK06Ymtl6ybMZaWJwbtWr/1lrHlQ7YxFe0=
@@ -71,6 +71,8 @@ github.com/aperturerobotics/controllerbus v0.53.0 h1:hLElOrrAOF2bq8RqGl66ovnFCO3
 github.com/aperturerobotics/controllerbus v0.53.0/go.mod h1:65n90+94u3SUCTqLk+NugpHtwRZoGHxIQKTKsG5JkBU=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab h1:QFauzuS4QNsVPYh/PRbfGzaIoW18eBlUsLdYf9jPjOg=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab/go.mod h1:+DWSr6dA/jMpVPJVw5uQ7MXAli8s0hch7cuMZV5fyWk=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
 github.com/aperturerobotics/go-indexeddb v0.2.3 h1:DfquIk9YEZjWD/lJyBWZWGCtRga43/a96bx0Ulv9VhQ=

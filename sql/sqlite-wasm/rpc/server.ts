@@ -46,8 +46,15 @@ function sqlValueToProto(v: SqlValue): Message<ProtoSqlValue> {
   if (typeof v === 'bigint') {
     return { value: { case: 'intValue', value: v } }
   }
-  if (v instanceof Uint8Array || v instanceof Int8Array || v instanceof ArrayBuffer) {
-    const bytes = v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+  if (
+    v instanceof Uint8Array ||
+    v instanceof Int8Array ||
+    v instanceof ArrayBuffer
+  ) {
+    const bytes =
+      v instanceof ArrayBuffer
+        ? new Uint8Array(v)
+        : new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
     return { value: { case: 'blobValue', value: bytes } }
   }
   return { value: { case: undefined } }
@@ -195,7 +202,9 @@ export class SqliteBridgeServer implements SqliteBridge {
   async Exec(request: ExecRequest): Promise<Message<ExecResponse>> {
     const db = this.getDb(request.dbId)
     const sql = request.sql || ''
-    const bind = request.params?.length ? protoToBindable(request.params) : undefined
+    const bind = request.params?.length
+      ? protoToBindable(request.params)
+      : undefined
     db.exec({ sql, bind })
     const ptr = db.pointer
     return {
@@ -210,7 +219,9 @@ export class SqliteBridgeServer implements SqliteBridge {
   async *Query(request: QueryRequest): MessageStream<QueryResponse> {
     const db = this.getDb(request.dbId)
     const sql = request.sql || ''
-    const bind = request.params?.length ? protoToBindable(request.params) : undefined
+    const bind = request.params?.length
+      ? protoToBindable(request.params)
+      : undefined
     const columnNames: string[] = []
     const stmt = db.prepare(sql)
     try {
