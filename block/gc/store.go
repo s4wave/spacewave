@@ -30,6 +30,7 @@ type GCStoreOps struct {
 	store     block.StoreOps
 	refGraph  RefGraphOps
 	parentIRI string
+	flushTask string
 
 	mu             sync.Mutex
 	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
@@ -37,12 +38,38 @@ type GCStoreOps struct {
 	pendingUnunref []string     // block IRIs to remove from unreferenced
 }
 
+const (
+	defaultFlushTask = "hydra/block-gc/store/flush-pending"
+	worldFlushTask   = "hydra/block-gc/store/flush-pending/world"
+	bucketFlushTask  = "hydra/block-gc/store/flush-pending/bucket"
+)
+
+// WorldFlushTask returns the runtime trace task name for world-local GC flushes.
+func WorldFlushTask() string {
+	return worldFlushTask
+}
+
+// BucketFlushTask returns the runtime trace task name for bucket-level GC flushes.
+func BucketFlushTask() string {
+	return bucketFlushTask
+}
+
 // NewGCStoreOps wraps a StoreOps with GC ref graph tracking.
 // New blocks are added under the "unreferenced" staging node.
 func NewGCStoreOps(store block.StoreOps, refGraph RefGraphOps) *GCStoreOps {
+	return NewGCStoreOpsWithTraceTask(store, refGraph, defaultFlushTask)
+}
+
+// NewGCStoreOpsWithTraceTask wraps a StoreOps with GC ref graph tracking and a
+// specific runtime trace task name for FlushPending.
+func NewGCStoreOpsWithTraceTask(store block.StoreOps, refGraph RefGraphOps, flushTask string) *GCStoreOps {
+	if flushTask == "" {
+		flushTask = defaultFlushTask
+	}
 	return &GCStoreOps{
-		store:    store,
-		refGraph: refGraph,
+		store:     store,
+		refGraph:  refGraph,
+		flushTask: flushTask,
 	}
 }
 
@@ -50,10 +77,20 @@ func NewGCStoreOps(store block.StoreOps, refGraph RefGraphOps) *GCStoreOps {
 // using a specific parent IRI. New blocks are tracked under parentIRI
 // instead of the "unreferenced" staging node.
 func NewGCStoreOpsWithParent(store block.StoreOps, refGraph RefGraphOps, parentIRI string) *GCStoreOps {
+	return NewGCStoreOpsWithParentAndTraceTask(store, refGraph, parentIRI, defaultFlushTask)
+}
+
+// NewGCStoreOpsWithParentAndTraceTask wraps a StoreOps with GC ref graph
+// tracking and a specific runtime trace task name for FlushPending.
+func NewGCStoreOpsWithParentAndTraceTask(store block.StoreOps, refGraph RefGraphOps, parentIRI, flushTask string) *GCStoreOps {
+	if flushTask == "" {
+		flushTask = defaultFlushTask
+	}
 	return &GCStoreOps{
 		store:     store,
 		refGraph:  refGraph,
 		parentIRI: parentIRI,
+		flushTask: flushTask,
 	}
 }
 
@@ -159,7 +196,11 @@ func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, 
 // the implementation supports them. Must be called after
 // Transaction.Write completes and the cursor mutex is no longer held.
 func (g *GCStoreOps) FlushPending(ctx context.Context) error {
-	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending")
+	taskName := g.flushTask
+	if taskName == "" {
+		taskName = defaultFlushTask
+	}
+	ctx, task := trace.NewTask(ctx, taskName)
 	defer task.End()
 
 	g.mu.Lock()

@@ -342,7 +342,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		}
 		// Wrap the transaction's store with GCStoreOps.
 		if btx != nil {
-			gcOps := block_gc.NewGCStoreOps(t.store, refGraph)
+			gcOps := block_gc.NewGCStoreOpsWithTraceTask(t.store, refGraph, block_gc.WorldFlushTask())
 			btx.SetStoreOps(gcOps)
 		}
 	}

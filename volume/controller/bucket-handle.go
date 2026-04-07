@@ -82,10 +82,11 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 
 	// Wrap block operations with GC tracking if the volume has a RefGraph.
 	if rg := vol.GetRefGraph(); rg != nil {
-		handle.gcOps = block_gc.NewGCStoreOpsWithParent(
+		handle.gcOps = block_gc.NewGCStoreOpsWithParentAndTraceTask(
 			vol,
 			rg,
 			block_gc.BucketIRI(b.bucketID),
+			block_gc.BucketFlushTask(),
 		)
 	}
 
