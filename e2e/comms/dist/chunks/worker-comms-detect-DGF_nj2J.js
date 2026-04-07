@@ -61,4 +61,4 @@ async function detectWorkerCommsConfig() {
 //#endregion
 export { detectWorkerCommsConfig as n, configDescription as t };
 
-//# sourceMappingURL=worker-comms-detect-DlRfFzjf.js.map
+//# sourceMappingURL=worker-comms-detect-DGF_nj2J.js.map

@@ -1,22 +1,6 @@
-import { i as createBusSab, n as SabBusEndpoint, r as SabBusStream } from "./chunks/sab-bus-D8XB9B_y.js";
-import { n as detectWorkerCommsConfig } from "./chunks/worker-comms-detect-DlRfFzjf.js";
-//#region web/bldr/plugin-transport.ts
-function createTransportFactory(detect, opts) {
-	const factory = {
-		openStream: opts.openStream,
-		handleIncomingStream: opts.handleIncomingStream,
-		config: detect.config
-	};
-	if (opts.busEndpoint) {
-		factory.busEndpoint = opts.busEndpoint;
-		factory.openBusStream = async (targetPluginId) => {
-			return new SabBusStream(opts.busEndpoint, targetPluginId);
-		};
-		console.log("worker-comms: SAB bus transport available for intra-tab IPC");
-	}
-	return factory;
-}
-//#endregion
+import { i as createBusSab, n as SabBusEndpoint } from "./chunks/sab-bus-9wDhw0vI.js";
+import { n as detectWorkerCommsConfig } from "./chunks/worker-comms-detect-DGF_nj2J.js";
+import { t as createTransportFactory } from "./chunks/plugin-transport-mJ6uQBEw.js";
 //#region e2e/comms/fixtures/transport.ts
 async function run() {
 	const log = document.getElementById("log");

@@ -1,6 +1,7 @@
 import { HandleStreamFunc } from 'starpc'
 
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
+import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
 import { WebDocumentToWorker } from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
@@ -19,6 +20,7 @@ export interface PluginStartOpts {
   startInfo: PluginStartInfo
   busSab?: SharedArrayBuffer
   busPluginId?: number
+  workerCommsDetect?: WorkerCommsDetectResult
 }
 
 // SnapshotNowCallback is called when the WebDocument requests an urgent snapshot.
@@ -110,6 +112,7 @@ export class PluginWorker {
     startInfoBin: Uint8Array,
     busSab?: SharedArrayBuffer,
     busPluginId?: number,
+    workerCommsDetect?: WorkerCommsDetectResult,
   ) {
     if (this.pluginStarted) return
     this.pluginStarted = true
@@ -119,7 +122,7 @@ export class PluginWorker {
     const startInfoJson = atob(startInfoJsonB64)
     const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
 
-    this.startPlugin({ startInfo, busSab, busPluginId })
+    this.startPlugin({ startInfo, busSab, busPluginId, workerCommsDetect })
   }
 
   private handleWorkerMessage(msgEvent: MessageEvent<WebDocumentToWorker>) {
@@ -134,7 +137,7 @@ export class PluginWorker {
     }
 
     if (data.initData) {
-      this.handleStartPlugin(data.initData, data.busSab, data.busPluginId)
+      this.handleStartPlugin(data.initData, data.busSab, data.busPluginId, data.workerCommsDetect)
 
       // trigger connecting to web runtime
       this.webDocumentTracker.waitConn().catch((err) => {

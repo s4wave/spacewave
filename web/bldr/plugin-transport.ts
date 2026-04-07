@@ -23,9 +23,10 @@ export interface PluginTransportFactory {
   // Returns null if bus is not available.
   openBusStream?: (targetPluginId: number) => Promise<PacketStream>
 
-  // openCrossTabStream opens a stream to a different-tab plugin.
-  // Returns null if cross-tab comms is not available.
-  openCrossTabStream?: (targetPluginId: number) => Promise<PacketStream>
+  // openCrossTabStream opens a stream to a peer tab via the brokered
+  // cross-tab MessagePort channel. peerId is the ServiceWorker client ID.
+  // Returns null if no channel exists for that peer.
+  openCrossTabStream?: (peerId: string) => PacketStream | null
 
   // busEndpoint is the SAB bus endpoint for this plugin (config B/C only).
   busEndpoint?: SabBusEndpoint
@@ -39,6 +40,9 @@ export interface TransportFactoryOpts {
   handleIncomingStream: HandleStreamFunc
   // busEndpoint is the SAB bus endpoint (present on config B/C).
   busEndpoint?: SabBusEndpoint
+  // openCrossTabStream opens a ChannelStream to a peer tab.
+  // Provided by the CrossTabManager when cross-tab channels are available.
+  openCrossTabStream?: (peerId: string) => PacketStream | null
 }
 
 // MessagePortTransportOpts configures a MessagePort-backed transport factory.
@@ -66,6 +70,11 @@ export function createTransportFactory(
       return new SabBusStream(opts.busEndpoint!, targetPluginId)
     }
     console.log('worker-comms: SAB bus transport available for intra-tab IPC')
+  }
+
+  if (opts.openCrossTabStream) {
+    factory.openCrossTabStream = opts.openCrossTabStream
+    console.log('worker-comms: cross-tab transport available')
   }
 
   return factory

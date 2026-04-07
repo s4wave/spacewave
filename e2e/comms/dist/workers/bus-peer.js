@@ -1,4 +1,4 @@
-import { n as SabBusEndpoint } from "../chunks/sab-bus-D8XB9B_y.js";
+import { n as SabBusEndpoint } from "../chunks/sab-bus-9wDhw0vI.js";
 //#region e2e/comms/fixtures/workers/bus-peer.ts
 self.onmessage = async (ev) => {
 	const { busSab, pluginId, targetId, payload, readOne } = ev.data;

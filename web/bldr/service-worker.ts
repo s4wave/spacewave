@@ -3,6 +3,7 @@ import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
+import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
 
@@ -248,6 +249,14 @@ function initServiceWorker() {
 
   // message event is called when receiving a message from the page.
   self.addEventListener('message', (ev: ExtendableMessageEvent) => {
+    // Cross-tab channel broker: handle hello/goodbye before WebDocument messages.
+    if (isCrossTabMessage(ev.data)) {
+      const senderId = (ev.source as Client)?.id
+      if (senderId) {
+        ev.waitUntil(handleCrossTabMessage(self.clients, senderId, ev.data))
+      }
+      return
+    }
     webDocumentTracker.handleWebDocumentMessage(ev.data)
   })
 

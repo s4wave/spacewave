@@ -14,16 +14,16 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260327031621-e71e5f7e8562 // indirect
+	github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.4.4 // master
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.32.0 // latest
+	github.com/aperturerobotics/common v0.32.2 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d // master
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
-	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260219012250-e75aa9f430a2 // indirect
-	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260219012250-c573f70e4509 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260402115450-31df68548d43 // master
+	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
+	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20260407041707-4a4feec3c8e8 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
@@ -76,7 +76,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-20260226131633-45bd0956d66f
+	github.com/go-git/go-billy/v6 v6.0.0-20260328065524-593ae452e14d
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
@@ -89,7 +89,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.49.1 // latest
+	github.com/aperturerobotics/starpc v0.49.3 // latest
 	github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143 // latest
 )
 
@@ -115,7 +115,7 @@ require (
 
 require (
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/mattn/go-isatty v0.0.20
 	github.com/playwright-community/playwright-go v0.5700.1
 	go.starlark.net v0.0.0-20260326113308-fadfc96def35

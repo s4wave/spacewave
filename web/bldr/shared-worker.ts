@@ -21,9 +21,10 @@ import {
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
+import type { WorkerCommsDetectResult } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
 
-declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
+declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope
 
 // parseUrlParams parses the URL hash parameters.
 // Format: #s=<scriptPath>&t=<workerType>&p=<plugin>
@@ -81,7 +82,9 @@ if (isPlugin) {
       }
     }
 
-    const detect = await detectWorkerCommsConfig()
+    // Use the detection result from the WebDocument init message (authoritative).
+    // Falls back to local detection for standalone test fixtures.
+    const detect = opts.workerCommsDetect ?? await detectWorkerCommsConfig()
     const transport = createTransportFactory(detect, {
       openStream: pluginWorker.webRuntimeClient.openStream.bind(
         pluginWorker.webRuntimeClient,

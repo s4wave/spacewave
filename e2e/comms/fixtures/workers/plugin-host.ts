@@ -5,6 +5,7 @@
 // its default export with the bus endpoint and an AbortSignal.
 
 import { SabBusEndpoint } from '../../../../web/bldr/sab-bus.js'
+import type { WorkerCommsDetectResult } from '../../../../web/bldr/worker-comms-detect.js'
 
 declare const self: DedicatedWorkerGlobalScope
 
@@ -12,17 +13,23 @@ interface InitMsg {
   busSab: SharedArrayBuffer
   busPluginId: number
   scriptUrl: string
+  workerCommsDetect?: WorkerCommsDetectResult
 }
 
 const ac = new AbortController()
 
 self.onmessage = async (ev: MessageEvent<InitMsg>) => {
-  const { busSab, busPluginId, scriptUrl } = ev.data
+  const { busSab, busPluginId, scriptUrl, workerCommsDetect } = ev.data
   const opts = { slotSize: 256, numSlots: 32 }
   const endpoint = new SabBusEndpoint(busSab, busPluginId, opts)
   endpoint.register()
 
   self.postMessage({ type: 'registered', busPluginId })
+
+  // Echo back the received detection config to verify init message passthrough.
+  if (workerCommsDetect) {
+    self.postMessage({ type: 'config-received', config: workerCommsDetect.config })
+  }
 
   // Dynamically import the plugin script and call its default export.
   const pluginModule = await import(/* @vite-ignore */ scriptUrl)

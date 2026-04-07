@@ -110,7 +110,7 @@
 	//#region e2e/comms/fixtures/workers/plugin-host.ts
 	const ac = new AbortController();
 	self.onmessage = async (ev) => {
-		const { busSab, busPluginId, scriptUrl } = ev.data;
+		const { busSab, busPluginId, scriptUrl, workerCommsDetect } = ev.data;
 		const endpoint = new SabBusEndpoint(busSab, busPluginId, {
 			slotSize: 256,
 			numSlots: 32
@@ -119,6 +119,10 @@
 		self.postMessage({
 			type: "registered",
 			busPluginId
+		});
+		if (workerCommsDetect) self.postMessage({
+			type: "config-received",
+			config: workerCommsDetect.config
 		});
 		const pluginModule = await import(
 			/* @vite-ignore */
@@ -136,4 +140,4 @@
 	//#endregion
 })();
 
-//# sourceMappingURL=plugin-host-DtOMjSZn.js.map
+//# sourceMappingURL=plugin-host-sjskEWhU.js.map

@@ -288,6 +288,6 @@ function _pushable(getNext, options) {
 	return pushable;
 }
 //#endregion
-export { pushable as t };
+export { pDefer as n, pushable as t };
 
-//# sourceMappingURL=src-BuuWItrw.js.map
+//# sourceMappingURL=src-DnGF4VQE.js.map

@@ -58,6 +58,7 @@ import {
   configDescription,
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
+import { CrossTabManager } from './cross-tab-manager.js'
 import { createBusSab } from './sab-bus.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
@@ -121,6 +122,8 @@ class WebDocumentWebWorker {
     busSab?: SharedArrayBuffer,
     // busPluginId is the numeric ID for this worker on the bus.
     busPluginId?: number,
+    // workerCommsDetect is the main-thread detection result.
+    workerCommsDetect?: WorkerCommsDetectResult,
   ) {
     if (!id) {
       throw new Error('empty web worker id')
@@ -138,6 +141,7 @@ class WebDocumentWebWorker {
       initPort: workerPort,
       busSab,
       busPluginId,
+      workerCommsDetect,
     }
 
     if (shared) {
@@ -505,6 +509,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private busSab?: SharedArrayBuffer
   // nextBusPluginId is the next numeric plugin ID to assign on the bus.
   private nextBusPluginId = 1
+  // crossTabManager manages brokered cross-tab MessagePort channels.
+  public readonly crossTabManager: CrossTabManager
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
 
@@ -578,6 +584,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.client = new Client()
     this.webDocumentHost = new WebDocumentHostClient(this.client)
     this.sharedWorkerPath = opts?.sharedWorkerPath ?? '/shw.mjs'
+    this.crossTabManager = new CrossTabManager(this.webDocumentUuid)
 
     // Create the appropriate runtime client based on the environment.
     if (this.isSaucer) {
@@ -878,6 +885,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // All workers use the same sharedWorkerPath, with workerType passed in URL
     const workerType = request.workerType ?? WebWorkerType.NATIVE
+    const detect = await this.workerCommsDetect
 
     const workerMode = request.workerMode ?? WebWorkerMode.WORKER_MODE_DEFAULT
     let shared: boolean
@@ -891,7 +899,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // Non-plugin workers and Config A/F keep SharedWorker.
       const isPlugin = !!request.initData
       if (isPlugin) {
-        const detect = await this.workerCommsDetect
         shared = detect.config !== 'B' && detect.config !== 'C'
       } else {
         shared = true
@@ -903,7 +910,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     let busSab: SharedArrayBuffer | undefined
     let busPluginId: number | undefined
     if (!shared && request.initData) {
-      const detect = await this.workerCommsDetect
       if (detect.config === 'B' || detect.config === 'C') {
         try {
           if (!this.busSab) {
@@ -929,6 +935,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.onWebWorkerMessage.bind(this, request.id),
       busSab,
       busPluginId,
+      detect,
     )
     this.webWorkers[request.id] = worker
 
@@ -978,6 +985,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     this.closed = err ?? true
+
+    // Notify the cross-tab broker that this tab is closing.
+    navigator.serviceWorker?.controller?.postMessage({ crossTab: 'goodbye' })
+    this.crossTabManager.close()
 
     this.client.setOpenStreamFn(undefined)
     this.webRuntimeClient.close()
@@ -1042,6 +1053,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (this.closed) return
 
     const swMessageCallback = (ev: MessageEvent) => {
+      // Cross-tab broker messages (direct-port, peer-gone).
+      if (this.crossTabManager.handleMessage(ev.data, ev.ports ?? [])) {
+        return
+      }
+
       console.log('WebDocument: got message from ServiceWorker', ev.data)
       const data: ServiceWorkerToWebDocument = ev.data
       if (typeof data !== 'object' || !data.from || !data.init) {
@@ -1083,6 +1099,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     console.log('WebDocument: service worker is controlling this page', sw)
     navigator.serviceWorker.addEventListener('message', swMessageCallback)
     this.initServiceWorkerPort(sw)
+
+    // Send "hello" to the ServiceWorker cross-tab broker.
+    // The SW creates direct MessagePort channels to every other tab.
+    sw.postMessage({ crossTab: 'hello' })
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.

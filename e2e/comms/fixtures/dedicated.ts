@@ -8,6 +8,7 @@ import {
   SabBusEndpoint,
   createBusSab,
 } from '../../../web/bldr/sab-bus.js'
+import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 
 declare global {
   interface Window {
@@ -17,6 +18,7 @@ declare global {
       registered: boolean
       pluginStarted: boolean
       pluginReceived: boolean
+      configReceived: boolean
     }
   }
 }
@@ -54,6 +56,9 @@ async function run() {
     const mainEndpoint = new SabBusEndpoint(busSab, 0, busOpts)
     mainEndpoint.register()
 
+    // Detect config on main thread (authoritative).
+    const detect = await detectWorkerCommsConfig()
+
     // Create DedicatedWorker with the plugin-host wrapper.
     const worker = new Worker(
       new URL('./workers/plugin-host.js', import.meta.url),
@@ -63,17 +68,24 @@ async function run() {
     // Plugin script URL: served from dist by the test server.
     const pluginUrl = '/workers/plugin-stub.js'
 
-    // Send init message with busSab, busPluginId, and plugin script URL.
+    // Set up all message listeners BEFORE sending init to avoid race conditions.
+    // Worker sends messages in order: registered, config-received, plugin-started.
+    const registeredP = waitWorkerMsg(worker, 'registered', 5000)
+    const configReceivedP = waitWorkerMsg(worker, 'config-received', 5000)
+    const pluginStartedP = waitWorkerMsg(worker, 'plugin-started', 5000)
+
+    // Send init message with busSab, busPluginId, detection result, and plugin script URL.
     worker.postMessage({
       busSab,
       busPluginId: 1,
       scriptUrl: pluginUrl,
+      workerCommsDetect: detect,
     })
 
     // Test 1: Worker registers on bus.
     let registered = false
     {
-      const msg = await waitWorkerMsg(worker, 'registered', 5000)
+      const msg = await registeredP
       if (msg.busPluginId === 1) {
         registered = true
       } else {
@@ -81,14 +93,25 @@ async function run() {
       }
     }
 
-    // Test 2: Plugin script starts (default export called).
+    // Test 2: Worker received workerCommsDetect config via init message.
+    let configReceived = false
+    {
+      const msg = await configReceivedP
+      if (msg.config === detect.config) {
+        configReceived = true
+      } else {
+        errors.push(`config: expected ${detect.config}, got ${msg.config}`)
+      }
+    }
+
+    // Test 3: Plugin script starts (default export called).
     let pluginStarted = false
     {
-      await waitWorkerMsg(worker, 'plugin-started', 5000)
+      await pluginStartedP
       pluginStarted = true
     }
 
-    // Test 3: Send a bus message to the plugin, verify it receives it.
+    // Test 4: Send a bus message to the plugin, verify it receives it.
     let pluginReceived = false
     {
       mainEndpoint.write(1, new Uint8Array([0xff, 0x42]))
@@ -108,13 +131,14 @@ async function run() {
     mainEndpoint.close()
 
     const pass =
-      registered && pluginStarted && pluginReceived && errors.length === 0
+      registered && pluginStarted && pluginReceived && configReceived && errors.length === 0
     window.__results = {
       pass,
       detail: errors.length > 0 ? errors.join('; ') : 'all tests passed',
       registered,
       pluginStarted,
       pluginReceived,
+      configReceived,
     }
   } catch (err) {
     window.__results = {

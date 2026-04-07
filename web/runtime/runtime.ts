@@ -1,3 +1,5 @@
+import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
+
 // NOTE: openStream is a boolean and not a MessagePort as MessagePort can only
 // be passed in the event.ports field via the Electron ContextBridge, it is not
 // possible to send the MessagePort as part of event.data, the message will be
@@ -78,6 +80,9 @@ export interface WebDocumentToWorker {
   busSab?: SharedArrayBuffer
   // busPluginId is the numeric plugin ID assigned for the SAB bus.
   busPluginId?: number
+  // workerCommsDetect is the main-thread detection result.
+  // Passed so workers use the authoritative config without re-detecting.
+  workerCommsDetect?: WorkerCommsDetectResult
   // snapshotNow requests the worker to immediately snapshot WASM memory.
   // Sent from the WebDocument during beforeunload.
   snapshotNow?: true

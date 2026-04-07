@@ -1,4 +1,4 @@
-import { i as createBusSab, n as SabBusEndpoint, t as BROADCAST_ID } from "./chunks/sab-bus-D8XB9B_y.js";
+import { i as createBusSab, n as SabBusEndpoint, t as BROADCAST_ID } from "./chunks/sab-bus-9wDhw0vI.js";
 //#region e2e/comms/fixtures/sab-bus.ts
 function waitWorkerMsg(worker, type, timeoutMs) {
 	return new Promise((resolve, reject) => {

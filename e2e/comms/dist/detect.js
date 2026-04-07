@@ -1,4 +1,4 @@
-import { n as detectWorkerCommsConfig, t as configDescription } from "./chunks/worker-comms-detect-DlRfFzjf.js";
+import { n as detectWorkerCommsConfig, t as configDescription } from "./chunks/worker-comms-detect-DGF_nj2J.js";
 //#region e2e/comms/fixtures/detect.ts
 async function run() {
 	const log = document.getElementById("log");

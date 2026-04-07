@@ -1,8 +1,8 @@
-import { n as SabBusEndpoint } from "../chunks/sab-bus-D8XB9B_y.js";
+import { n as SabBusEndpoint } from "../chunks/sab-bus-9wDhw0vI.js";
 //#region e2e/comms/fixtures/workers/plugin-host.ts
 var ac = new AbortController();
 self.onmessage = async (ev) => {
-	const { busSab, busPluginId, scriptUrl } = ev.data;
+	const { busSab, busPluginId, scriptUrl, workerCommsDetect } = ev.data;
 	const endpoint = new SabBusEndpoint(busSab, busPluginId, {
 		slotSize: 256,
 		numSlots: 32
@@ -11,6 +11,10 @@ self.onmessage = async (ev) => {
 	self.postMessage({
 		type: "registered",
 		busPluginId
+	});
+	if (workerCommsDetect) self.postMessage({
+		type: "config-received",
+		config: workerCommsDetect.config
 	});
 	const pluginModule = await import(
 		/* @vite-ignore */
