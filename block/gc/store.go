@@ -155,13 +155,13 @@ func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, 
 }
 
 // FlushPending writes all buffered PutBlock and RecordBlockRefs
-// operations to the RefGraph. Must be called after Transaction.Write
-// completes and the cursor mutex is no longer held.
+// operations to the RefGraph, using batched ref graph updates when
+// the implementation supports them. Must be called after
+// Transaction.Write completes and the cursor mutex is no longer held.
 func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending")
 	defer task.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/snapshot-pending")
 	g.mu.Lock()
 	unrefs := g.pendingUnref
 	refs := g.pendingRefs
@@ -170,45 +170,35 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	g.pendingRefs = nil
 	g.pendingUnunref = nil
 	g.mu.Unlock()
-	subtask.End()
+
+	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 {
+		return nil
+	}
 
 	parent := g.parentIRI
 	if parent == "" {
 		parent = NodeUnreferenced
 	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/add-parent-refs")
+
+	adds := make([]RefEdge, 0, len(unrefs)+len(refs))
 	for _, iri := range unrefs {
-		if err := g.refGraph.AddRef(taskCtx, parent, iri); err != nil {
-			subtask.End()
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			return errors.Wrap(err, "flush parent edge")
-		}
+		adds = append(adds, RefEdge{Subject: parent, Object: iri})
 	}
-	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/add-block-refs")
 	for _, r := range refs {
-		if err := g.refGraph.AddRef(taskCtx, r.source, r.target); err != nil {
-			subtask.End()
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			return errors.Wrap(err, "flush block ref")
-		}
+		adds = append(adds, RefEdge{Subject: r.source, Object: r.target})
 	}
-	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/remove-unreferenced-refs")
+
+	removes := make([]RefEdge, 0, len(ununrefs))
 	for _, iri := range ununrefs {
-		if err := g.refGraph.RemoveRef(taskCtx, NodeUnreferenced, iri); err != nil {
-			subtask.End()
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			return errors.Wrap(err, "flush remove unreferenced edge")
-		}
+		removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
 	}
-	subtask.End()
+
+	if err := g.refGraph.ApplyRefBatch(ctx, adds, removes); err != nil {
+		if ctx.Err() != nil {
+			return context.Canceled
+		}
+		return errors.Wrap(err, "flush ref batch")
+	}
 	return nil
 }
 

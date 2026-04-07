@@ -9,6 +9,7 @@ import (
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/pkg/errors"
 )
@@ -30,7 +31,23 @@ func NewStore(root js.Value, lockName string) *Store {
 }
 
 // NewTransaction returns a new transaction against the store.
+// Write transactions are wrapped with txcache: reads use a shared lock,
+// writes buffer in memory, and the exclusive lock is only acquired at Commit.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	readTx, err := s.newRawTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	if !write {
+		return readTx, nil
+	}
+	return kvtx_txcache.NewTxWithCbs(readTx, true, readTx.Discard, func() (kvtx.Tx, error) {
+		return s.newRawTransaction(ctx, true)
+	}, true)
+}
+
+// newRawTransaction creates a raw transaction with direct WebLock acquisition.
+func (s *Store) newRawTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -49,7 +66,7 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 		tx.sets = make(map[string][]byte)
 		tx.deletes = make(map[string]struct{})
 
-		// Crash recovery: check for .pending marker from a previous crashed write.
+		// Crash recovery: check for a pending marker from a previous crashed write.
 		if err := tx.cleanupPending(); err != nil {
 			release()
 			return nil, errors.Wrap(err, "cleanup pending")

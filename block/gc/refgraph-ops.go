@@ -6,12 +6,20 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 )
 
+// RefEdge is a subject -> object edge in the GC ref graph.
+type RefEdge struct {
+	Subject, Object string
+}
+
 // RefGraphOps is the interface for GC reference graph operations.
 type RefGraphOps interface {
 	// AddRef adds a gc/ref edge from subject to object. Idempotent.
 	AddRef(ctx context.Context, subject, object string) error
 	// RemoveRef removes a single gc/ref edge from subject to object.
 	RemoveRef(ctx context.Context, subject, object string) error
+	// ApplyRefBatch applies ref graph edge additions followed by removals.
+	// Implementations should batch these operations when possible.
+	ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error
 	// RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 	// Returns the list of target IRIs that lost an incoming edge.
 	// If markOrphaned is true, targets with no remaining incoming

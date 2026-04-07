@@ -190,7 +190,9 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		}
 	}
 
-	// store will hash the data, route through GCStoreOps if available
+	// store will hash the data, route through GCStoreOps if available.
+	// Bucket writes do not have a later commit hook, so bucket-level GC
+	// refs must be flushed before returning.
 	var (
 		br      *block.BlockRef
 		existed bool

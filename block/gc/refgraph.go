@@ -64,6 +64,23 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 	return rg.handle.RemoveQuad(ctx, q)
 }
 
+// ApplyRefBatch applies a batch of ref graph edge additions and removals
+// in a single Cayley transaction.
+func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	n := len(adds) + len(removes)
+	if n == 0 {
+		return nil
+	}
+	tx := graph.NewTransactionN(n)
+	for _, e := range adds {
+		tx.AddQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
+	}
+	for _, e := range removes {
+		tx.RemoveQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
+	}
+	return rg.handle.ApplyTransaction(ctx, tx)
+}
+
 // RemoveNodeRefs removes ALL outgoing gc/ref edges for a node.
 // Returns the list of target IRIs that lost an incoming edge.
 // If markOrphaned is true, targets that have no remaining incoming

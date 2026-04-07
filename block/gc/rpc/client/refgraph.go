@@ -146,6 +146,22 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 	return r.RemoveRef(ctx, block_gc.ObjectIRI(objectKey), t)
 }
 
+// ApplyRefBatch applies a batch of ref graph edge additions and removals.
+// Falls back to sequential RPC calls since no batch RPC is defined.
+func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	for _, e := range adds {
+		if err := r.AddRef(ctx, e.Subject, e.Object); err != nil {
+			return err
+		}
+	}
+	for _, e := range removes {
+		if err := r.RemoveRef(ctx, e.Subject, e.Object); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Close is a no-op for the RPC client.
 func (r *RefGraph) Close() error {
 	return nil
