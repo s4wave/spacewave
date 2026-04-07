@@ -3,10 +3,7 @@ import {
   type RWMutexLock,
 } from '@go/github.com/aperturerobotics/util/csync/rwmutex.js'
 
-import type {
-  FSCursor,
-  FSCursorOps,
-} from './fs-cursor.js'
+import type { FSCursor, FSCursorOps } from './fs-cursor.js'
 import {
   ErrReleased,
   ErrInodeUnresolvable,
@@ -231,11 +228,7 @@ export class FsInode {
       if (this.isReleased && this.relErr) {
         return this.relErr
       }
-      if (
-        this.parent &&
-        this.parent.isReleased &&
-        this.parent.relErr
-      ) {
+      if (this.parent && this.parent.isReleased && this.parent.relErr) {
         return this.parent.relErr
       }
 
@@ -367,9 +360,7 @@ export class FsInode {
     }
 
     // Remove any released cursors from last to first.
-    const cursorStackInner = this.fsCursors.filter(
-      (c) => !c.checkReleased(),
-    )
+    const cursorStackInner = this.fsCursors.filter((c) => !c.checkReleased())
     this.fsCursors = cursorStackInner
     const cursorStack = [...cursorStackInner]
 
@@ -377,15 +368,16 @@ export class FsInode {
     lock.release()
 
     // Async portion.
-    this.resolveOpsRoutineAsync(signal, cursorStack, iparent, iname)
-      .finally(() => {
+    this.resolveOpsRoutineAsync(signal, cursorStack, iparent, iname).finally(
+      () => {
         if (this.fsWait === fsWait) {
           fsWait.resolve()
           this.fsWait = null
         } else {
           fsWait.resolve()
         }
-      })
+      },
+    )
   }
 
   // resolveOpsRoutineAsync is the async resolution logic extracted for clarity.
@@ -511,10 +503,7 @@ export class FsInode {
     let childReady = false
     let childInode: FsInode | null = null
 
-    const { child, index: insertIdx } = this.findChildInodeInternal(
-      name,
-      false,
-    )
+    const { child, index: insertIdx } = this.findChildInodeInternal(name, false)
     childInode = child
 
     let wasReleased = false
@@ -833,9 +822,7 @@ export class FSHandle {
   }
 
   // getFileInfo constructs a FileInfo for the inode at this handle.
-  async getFileInfo(
-    signal: AbortSignal,
-  ): Promise<{
+  async getFileInfo(signal: AbortSignal): Promise<{
     name: string
     size: bigint
     mode: number
@@ -866,9 +853,7 @@ export class FSHandle {
   }
 
   // getNodeType returns the FSCursor node type.
-  async getNodeType(
-    signal: AbortSignal,
-  ): Promise<{
+  async getNodeType(signal: AbortSignal): Promise<{
     getIsDirectory(): boolean
     getIsFile(): boolean
     getIsSymlink(): boolean
@@ -993,11 +978,7 @@ export class FSHandle {
   }
 
   // truncate shrinks or extends a file to the specified size.
-  async truncate(
-    signal: AbortSignal,
-    nsize: bigint,
-    ts: Date,
-  ): Promise<void> {
+  async truncate(signal: AbortSignal, nsize: bigint, ts: Date): Promise<void> {
     await this._inode.accessInode(signal, async (_cursor, ops) => {
       if (!ops.getIsFile()) {
         throw ErrNotFile
@@ -1269,12 +1250,7 @@ export class FSHandle {
         if (doneTo) return
 
         // Attempt optimized copy from dest <- src.
-        const doneFrom = await destOps.copyFrom(
-          destName,
-          srcOps,
-          ts,
-          signal,
-        )
+        const doneFrom = await destOps.copyFrom(destName, srcOps, ts, signal)
         if (doneFrom) return
 
         // No optimized path exists.
@@ -1314,11 +1290,7 @@ export class FSHandle {
           throw ErrMoveToSelf
         }
         // Check if srcLoc is a parent of destParent.
-        for (
-          let nn: FsInode | null = destParent.parent;
-          nn;
-          nn = nn.parent
-        ) {
+        for (let nn: FsInode | null = destParent.parent; nn; nn = nn.parent) {
           if (nn === srcLoc) {
             throw ErrMoveToSelf
           }
@@ -1522,11 +1494,7 @@ export class FSHandle {
   }
 
   // remove removes entries from a directory.
-  async remove(
-    signal: AbortSignal,
-    names: string[],
-    ts: Date,
-  ): Promise<void> {
+  async remove(signal: AbortSignal, names: string[], ts: Date): Promise<void> {
     if (names.length === 0) {
       return
     }
@@ -1610,10 +1578,7 @@ export class FSHandle {
 // These mirror the Go implementations.
 
 import type { FSCursorDirent, FSCursorNodeType } from './fs-cursor.js'
-import {
-  splitPath,
-  cleanSplitValidateRelativePath,
-} from './path.js'
+import { splitPath, cleanSplitValidateRelativePath } from './path.js'
 import {
   newFSCursorNodeType_Dir,
   defaultPermissions,

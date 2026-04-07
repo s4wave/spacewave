@@ -130,9 +130,7 @@ export function joinPathPts(...pts: string[][]): string[] {
 // cleanSplitValidateRelativePath cleans a path, splits it, and validates it.
 // Coerces the path to be a relative path, not absolute.
 // Throws on invalid paths.
-export function cleanSplitValidateRelativePath(
-  filePath: string,
-): string[] {
+export function cleanSplitValidateRelativePath(filePath: string): string[] {
   filePath = cleanPath(filePath)
   if (filePath === '/' || filePath === '.') {
     filePath = ''

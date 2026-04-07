@@ -9,7 +9,17 @@ const ModeIrregular = 0x00080000
 // ModePerm is the permission bits mask (matching Go fs.ModePerm).
 const ModePerm = 0o777
 // ModeTypeMask is the type bits mask (matching Go fs.ModeType).
-const ModeTypeMask = ModeDir | ModeSymlink | ModeIrregular | 0x04000000 | 0x02000000 | 0x01000000 | 0x00800000 | 0x00400000 | 0x00200000 | 0x00100000
+const ModeTypeMask =
+  ModeDir |
+  ModeSymlink |
+  ModeIrregular |
+  0x04000000 |
+  0x02000000 |
+  0x01000000 |
+  0x00800000 |
+  0x00400000 |
+  0x00200000 |
+  0x00100000
 
 // fsCursorNodeType is a static node type value.
 class StaticFSCursorNodeType implements FSCursorNodeType {

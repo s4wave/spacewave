@@ -134,9 +134,8 @@ export async function writeFile(
   // Write data in chunks.
   const dataLen = BigInt(data.length)
   for (let offset = 0n; offset < dataLen; offset += optimalWriteSize) {
-    const end = offset + optimalWriteSize < dataLen
-      ? offset + optimalWriteSize
-      : dataLen
+    const end =
+      offset + optimalWriteSize < dataLen ? offset + optimalWriteSize : dataLen
     const chunk = data.subarray(Number(offset), Number(end))
     await h.writeAt(signal, offset, chunk, ts)
   }
@@ -262,8 +261,7 @@ export async function removeAllWithPath(
   filepath = cleanPath(filepath)
   const lastSlash = filepath.lastIndexOf('/')
   const filedir = lastSlash >= 0 ? filepath.substring(0, lastSlash) : ''
-  const filename =
-    lastSlash >= 0 ? filepath.substring(lastSlash + 1) : filepath
+  const filename = lastSlash >= 0 ? filepath.substring(lastSlash + 1) : filepath
 
   const dirHandle = await lookupPathOrThrow(signal, h, filedir || '.')
   try {

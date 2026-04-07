@@ -32,11 +32,11 @@ const (
 
 // errno values (matching Linux errno.h).
 const (
-	enoent = 2
-	eexist = 17
+	enoent  = 2
+	eexist  = 17
 	enotdir = 20
 	einval  = 22
-	enosys = 38
+	enosys  = 38
 )
 
 // errnoFromError maps a Go error to a v86fs errno value.
@@ -67,7 +67,8 @@ func nodeTypeToMode(nt interface {
 	GetIsDirectory() bool
 	GetIsFile() bool
 	GetIsSymlink() bool
-}) uint32 {
+},
+) uint32 {
 	if nt == nil {
 		return sIFREG
 	}
@@ -84,7 +85,8 @@ func nodeTypeToMode(nt interface {
 func nodeTypeToDtType(ent interface {
 	GetIsDirectory() bool
 	GetIsSymlink() bool
-}) uint32 {
+},
+) uint32 {
 	if ent.GetIsDirectory() {
 		return dtDir
 	}

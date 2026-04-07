@@ -131,16 +131,12 @@ export const ErrEmptyTimestamp = new UnixFSError(
 )
 export const ErrMoveToSelf = new UnixFSError(UnixFSErrorType.MOVE_TO_SELF)
 export const ErrInvalidWrite = new UnixFSError(UnixFSErrorType.INVALID_WRITE)
-export const ErrEmptyUnixFsId = new UnixFSError(
-  UnixFSErrorType.EMPTY_UNIXFS_ID,
-)
+export const ErrEmptyUnixFsId = new UnixFSError(UnixFSErrorType.EMPTY_UNIXFS_ID)
 export const ErrContextCanceled = new UnixFSError(
   UnixFSErrorType.CONTEXT_CANCELED,
 )
 export const ErrEOF = new UnixFSError(UnixFSErrorType.EOF)
-export const ErrCrossFsRename = new UnixFSError(
-  UnixFSErrorType.CROSS_FS_RENAME,
-)
+export const ErrCrossFsRename = new UnixFSError(UnixFSErrorType.CROSS_FS_RENAME)
 export const ErrUnknown = new UnixFSError(UnixFSErrorType.OTHER)
 
 // ErrHandleIDEmpty is returned if the handle id was empty.

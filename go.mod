@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.26.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.4-0.20260329215849-b80367eb17d2 // master
+	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
@@ -62,14 +62,14 @@ require (
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.32.0 // latest
+	github.com/aperturerobotics/common v0.32.2 // latest
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260228132212-c5f88237fdf8 // indirect
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect; wasi
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // latest
-	github.com/aperturerobotics/starpc v0.49.1 // latest
+	github.com/aperturerobotics/starpc v0.49.3 // latest
 	github.com/aperturerobotics/util v1.33.0 // latest
 )
 

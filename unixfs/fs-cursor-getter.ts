@@ -1,8 +1,4 @@
-import type {
-  FSCursor,
-  FSCursorChangeCb,
-  FSCursorOps,
-} from './fs-cursor.js'
+import type { FSCursor, FSCursorChangeCb, FSCursorOps } from './fs-cursor.js'
 import { ErrReleased, ErrNotExist } from './errors/errors.js'
 import type { FSHandle } from './fs-handle.js'
 import { FSHandleCursor } from './fs-handle-cursor.js'
@@ -14,13 +10,9 @@ import { FSHandleCursor } from './fs-handle-cursor.js'
 // checkReleased never returns true until release is called.
 export class FSCursorGetter implements FSCursor {
   private released = false
-  private readonly getter:
-    | ((signal?: AbortSignal) => Promise<FSCursor>)
-    | null
+  private readonly getter: ((signal?: AbortSignal) => Promise<FSCursor>) | null
 
-  constructor(
-    getter: ((signal?: AbortSignal) => Promise<FSCursor>) | null,
-  ) {
+  constructor(getter: ((signal?: AbortSignal) => Promise<FSCursor>) | null) {
     this.getter = getter
   }
 
@@ -68,9 +60,7 @@ export class FSCursorGetter implements FSCursor {
 
 // newFSCursorGetterWithHandle returns a new FSCursorGetter backed by a FSHandle.
 // Constructs a FSCursor from the FSHandle when the cursor is accessed.
-export function newFSCursorGetterWithHandle(
-  handle: FSHandle,
-): FSCursorGetter {
+export function newFSCursorGetterWithHandle(handle: FSHandle): FSCursorGetter {
   return new FSCursorGetter(async (_signal?: AbortSignal) => {
     if (handle.checkReleased()) {
       throw new Error('fs cursor getter handle: cursor or inode released')

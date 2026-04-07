@@ -50,9 +50,7 @@ describe('UnixFSError', () => {
     })
 
     it('returns OTHER error for empty proto (undefined errorType defaults to OTHER)', () => {
-      const err = UnixFSError.fromProto(
-        {} as { errorType: UnixFSErrorType },
-      )
+      const err = UnixFSError.fromProto({} as { errorType: UnixFSErrorType })
       expect(err).toBeInstanceOf(UnixFSError)
       expect(err!.type).toBe(UnixFSErrorType.OTHER)
     })
@@ -154,10 +152,7 @@ describe('UnixFSError', () => {
     })
 
     it('round-trips a custom-message error', () => {
-      const original = new UnixFSError(
-        UnixFSErrorType.OTHER,
-        'custom problem',
-      )
+      const original = new UnixFSError(UnixFSErrorType.OTHER, 'custom problem')
       const proto = original.toProto()
       expect(proto.errorType).toBe(UnixFSErrorType.OTHER)
       expect(proto.errorBody).toBe('custom problem')
@@ -202,9 +197,7 @@ describe('UnixFSError', () => {
       expect(ErrOutOfBounds.type).toBe(UnixFSErrorType.OUT_OF_BOUNDS)
       expect(ErrEmptyPath.type).toBe(UnixFSErrorType.EMPTY_PATH)
       expect(ErrAbsolutePath.type).toBe(UnixFSErrorType.ABSOLUTE_PATH)
-      expect(ErrInodeUnresolvable.type).toBe(
-        UnixFSErrorType.INODE_UNRESOLVABLE,
-      )
+      expect(ErrInodeUnresolvable.type).toBe(UnixFSErrorType.INODE_UNRESOLVABLE)
       expect(ErrNotSymlink.type).toBe(UnixFSErrorType.NOT_SYMLINK)
       expect(ErrEmptyTimestamp.type).toBe(UnixFSErrorType.EMPTY_TIMESTAMP)
       expect(ErrMoveToSelf.type).toBe(UnixFSErrorType.MOVE_TO_SELF)

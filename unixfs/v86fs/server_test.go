@@ -677,7 +677,7 @@ func TestRelayMountManagement(t *testing.T) {
 
 	// READDIR to confirm readme.md is visible.
 	reply = sendRecv(t, strm, &V86FsMessage{
-		Tag: nextTag(),
+		Tag:  nextTag(),
 		Body: &V86FsMessage_ReaddirRequest{ReaddirRequest: &V86FsReaddirRequest{DirId: wsRootID}},
 	})
 	found := false

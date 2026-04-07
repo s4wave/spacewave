@@ -147,9 +147,7 @@ function buildMockService(opts: {
     OpsLookup: vi.fn(async () => ({ cursorHandleId: 0n })),
     OpsReaddirAll: vi.fn(
       () =>
-        createAsyncIterable([]) as ReturnType<
-          FSCursorService['OpsReaddirAll']
-        >,
+        createAsyncIterable([]) as ReturnType<FSCursorService['OpsReaddirAll']>,
     ),
     OpsMknod: vi.fn(async () => ({})),
     OpsSymlink: vi.fn(async () => ({})),
@@ -240,10 +238,9 @@ describe('FSCursorClient', () => {
       const service: FSCursorService = {
         FSCursorClient: vi.fn(
           () =>
-            createAsyncIterable(
-              [nonInitMsg],
-              holdPromise,
-            ) as ReturnType<FSCursorService['FSCursorClient']>,
+            createAsyncIterable([nonInitMsg], holdPromise) as ReturnType<
+              FSCursorService['FSCursorClient']
+            >,
         ),
         GetProxyCursor: vi.fn(async () => ({})),
         GetCursorOps: vi.fn(async () => ({})),
@@ -436,12 +433,7 @@ describe('FSCursorClient', () => {
       })
 
       const fsc = await FSCursorClient.build(service)
-      const ops = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
+      const ops = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
       expect(ops).toBeInstanceOf(RemoteFSCursorOps)
       expect(ops.handleId).toBe(10n)
       expect(ops.name).toBe('root')
@@ -458,18 +450,8 @@ describe('FSCursorClient', () => {
       })
 
       const fsc = await FSCursorClient.build(service)
-      const ops1 = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
-      const ops2 = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
+      const ops1 = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
+      const ops2 = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
       expect(ops2).toBe(ops1)
 
       fsc.release()
@@ -486,12 +468,7 @@ describe('FSCursorClient', () => {
 
       const fsc = await FSCursorClient.build(service)
       const rootCursor = fsc.rootCursor
-      const ops = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
+      const ops = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
 
       expect(fsc.released).toBe(false)
       expect(rootCursor.released).toBe(false)
@@ -542,22 +519,12 @@ describe('FSCursorClient', () => {
       })
 
       const fsc = await FSCursorClient.build(service)
-      const ops = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
+      const ops = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
 
       fsc.removeOps(10n)
 
       // Creating ops with same ID now creates a new instance.
-      const ops2 = fsc.resolveOps(
-        1n,
-        10n,
-        NodeType.NodeType_DIRECTORY,
-        'root',
-      )
+      const ops2 = fsc.resolveOps(1n, 10n, NodeType.NodeType_DIRECTORY, 'root')
       expect(ops2).not.toBe(ops)
 
       fsc.release()

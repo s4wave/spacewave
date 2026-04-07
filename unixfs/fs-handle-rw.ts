@@ -18,11 +18,7 @@ export class FSHandleReadWriter {
 
   // constructor constructs a new ReadWriter from a FSHandle.
   // If ts is null, uses Date.now.
-  constructor(
-    signal: AbortSignal,
-    h: FSHandle,
-    ts?: () => Date,
-  ) {
+  constructor(signal: AbortSignal, h: FSHandle, ts?: () => Date) {
     this.signal = signal
     this.h = h
     this.ts = ts ?? (() => new Date())

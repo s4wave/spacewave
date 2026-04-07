@@ -253,11 +253,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
   }
 
   // truncate shrinks or extends a file to the specified size.
-  async truncate(
-    nsize: bigint,
-    ts: Date,
-    signal?: AbortSignal,
-  ): Promise<void> {
+  async truncate(nsize: bigint, ts: Date, signal?: AbortSignal): Promise<void> {
     if (this.checkReleased()) {
       throw ErrReleased
     }
@@ -598,11 +594,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
   }
 
   // remove deletes entries from a directory.
-  async remove(
-    names: string[],
-    ts: Date,
-    signal?: AbortSignal,
-  ): Promise<void> {
+  async remove(names: string[], ts: Date, signal?: AbortSignal): Promise<void> {
     if (this.checkReleased()) {
       throw ErrReleased
     }

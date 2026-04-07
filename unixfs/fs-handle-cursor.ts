@@ -1,8 +1,4 @@
-import type {
-  FSCursor,
-  FSCursorChangeCb,
-  FSCursorOps,
-} from './fs-cursor.js'
+import type { FSCursor, FSCursorChangeCb, FSCursorOps } from './fs-cursor.js'
 import { ErrReleased } from './errors/errors.js'
 import type { FSHandle } from './fs-handle.js'
 
@@ -44,7 +40,9 @@ export class FSHandleCursor implements FSCursor {
       this.released = true
       throw ErrReleased
     }
-    const { ops } = await this.handle.getOps(signal ?? new AbortController().signal)
+    const { ops } = await this.handle.getOps(
+      signal ?? new AbortController().signal,
+    )
     return ops
   }
 
@@ -66,9 +64,7 @@ export class FSHandleCursor implements FSCursor {
   addChangeCb(_cb: FSCursorChangeCb): void {}
 
   // getProxyCursor is not applicable to a FSHandle cursor.
-  async getProxyCursor(
-    _signal?: AbortSignal,
-  ): Promise<FSCursor | null> {
+  async getProxyCursor(_signal?: AbortSignal): Promise<FSCursor | null> {
     return null
   }
 

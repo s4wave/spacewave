@@ -73,7 +73,6 @@ func TestExtractBlockRefs_SubBlockRefs(t *testing.T) {
 	}
 
 	refs, err := block.ExtractBlockRefs(root)
-
 	if err != nil {
 		t.Fatal(err.Error())
 	}

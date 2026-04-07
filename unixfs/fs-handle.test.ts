@@ -75,7 +75,10 @@ class MockFSCursorOps implements FSCursorOps {
   }
   async readAtTo(
     offset: bigint,
-    data: { readonly length: number; set(source: ArrayLike<number>, offset?: number): void },
+    data: {
+      readonly length: number
+      set(source: ArrayLike<number>, offset?: number): void
+    },
   ): Promise<bigint> {
     const len = Math.min(data.length, this.readDataVal.length)
     data.set(this.readDataVal.subarray(0, len))
@@ -117,10 +120,7 @@ class MockFSCursor implements FSCursor {
   private ops: MockFSCursorOps
   private proxyCursor: FSCursor | null = null
 
-  constructor(opts?: {
-    ops?: MockFSCursorOps
-    proxyCursor?: FSCursor | null
-  }) {
+  constructor(opts?: { ops?: MockFSCursorOps; proxyCursor?: FSCursor | null }) {
     this.ops = opts?.ops ?? new MockFSCursorOps()
     this.proxyCursor = opts?.proxyCursor ?? null
   }
@@ -236,7 +236,11 @@ describe('FSHandle', () => {
 
   describe('getOps', () => {
     it('returns the resolved cursor and ops', async () => {
-      const ops = new MockFSCursorOps({ name: 'root', isDir: true, isFile: false })
+      const ops = new MockFSCursorOps({
+        name: 'root',
+        isDir: true,
+        isFile: false,
+      })
       const cursor = new MockFSCursor({ ops })
       const handle = FSHandle.create(cursor)
       const ctrl = new AbortController()
