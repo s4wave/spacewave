@@ -142,3 +142,71 @@ test.describe('cross-tab communication', () => {
     }).toPass({ timeout: 30_000 })
   })
 })
+
+// Create a browser context where SharedWorker is unavailable,
+// forcing DedicatedWorker runtime mode with Web Lock singleton.
+async function newDedicatedRuntimeContext(
+  browser: import('@playwright/test').Browser,
+) {
+  const context = await browser.newContext()
+  await context.addInitScript(() => {
+    Object.defineProperty(globalThis, 'SharedWorker', {
+      value: undefined,
+      configurable: true,
+    })
+  })
+  return context
+}
+
+test.describe('singleton coordinator (no SharedWorker)', () => {
+  test('only one tab runs plugins', async ({ browser }) => {
+    const context = await newDedicatedRuntimeContext(browser)
+
+    const pageA = await context.newPage()
+    const pageB = await context.newPage()
+
+    // Page A loads and acquires the singleton plugin lock.
+    await pageA.goto('/')
+    await waitForConsole(pageA, 'acquired plugin singleton lock')
+    await waitForConsole(pageA, 'starting native plugin')
+
+    // Page B loads. Wait until Go has attempted CreateWebWorker and is
+    // blocked on the singleton lock (deterministic, not a timeout).
+    await pageB.goto('/')
+    await waitForConsole(pageB, 'waiting for plugin singleton lock')
+
+    // Page B is blocked - verify no plugin started.
+    const pluginStartB: string[] = []
+    pageB.on('console', (msg) => {
+      if (msg.text().includes('starting native plugin'))
+        pluginStartB.push(msg.text())
+    })
+    expect(pluginStartB.length).toBe(0)
+
+    await context.close()
+  })
+
+  test('singleton handoff on tab close', async ({ browser }) => {
+    const context = await newDedicatedRuntimeContext(browser)
+
+    const pageA = await context.newPage()
+    const pageB = await context.newPage()
+
+    // Page A acquires the singleton.
+    await pageA.goto('/')
+    await waitForConsole(pageA, 'starting native plugin')
+
+    // Page B is blocked on the lock.
+    await pageB.goto('/')
+    await waitForConsole(pageB, 'waiting for plugin singleton lock')
+
+    // Close page A, releasing the singleton lock.
+    await pageA.close()
+
+    // Page B should acquire the lock and start plugins.
+    await waitForConsole(pageB, 'acquired plugin singleton lock')
+    await waitForConsole(pageB, 'starting native plugin')
+
+    await context.close()
+  })
+})

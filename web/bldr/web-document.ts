@@ -513,6 +513,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   public readonly crossTabManager: CrossTabManager
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
+  // pluginSingletonReady resolves when this tab can create plugin workers.
+  // In DedicatedWorker runtime mode (no SharedWorker), a Web Lock ensures only
+  // one tab creates plugin workers at a time (single-instance invariant).
+  private pluginSingletonReady: Promise<void> = Promise.resolve()
+  // singletonAbort aborts the singleton lock request on close.
+  private singletonAbort?: AbortController
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -707,6 +713,31 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
     }
 
+    // In DedicatedWorker runtime mode, acquire a Web Lock to ensure only one
+    // tab creates plugin workers at a time. SharedWorker mode doesn't need this
+    // because the Go runtime's singletonWorkerDoc handles it within the shared
+    // process. The lock is held until this document closes.
+    if (useDedicatedRuntime && !this.isElectron && 'locks' in navigator) {
+      this.singletonAbort = new AbortController()
+      this.pluginSingletonReady = new Promise<void>((resolve, reject) => {
+        navigator.locks
+          .request(
+            `bldr-plugin-singleton-${this.webRuntimeId}`,
+            { signal: this.singletonAbort!.signal },
+            () => {
+              console.log('WebDocument: acquired plugin singleton lock')
+              resolve()
+              return new Promise<void>(() => {})
+            },
+          )
+          .catch((err: unknown) => {
+            reject(err)
+          })
+      })
+      // Suppress unhandled rejection when abort fires without an active awaiter.
+      this.pluginSingletonReady.catch(() => {})
+    }
+
     // we don't expect any messages directly from the main worker port.
     this.webRuntimePort!.start()
 
@@ -877,6 +908,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       throw new Error('web worker path is required')
     }
 
+    if (request.initData) {
+      try {
+        console.log('WebDocument: waiting for plugin singleton lock')
+        await this.pluginSingletonReady
+      } catch {
+        return { created: false, shared: false }
+      }
+      if (this.closed) {
+        return { created: false, shared: false }
+      }
+    }
+
     const old = this.webWorkers[request.id]
     if (old) {
       delete this.webWorkers[request.id]
@@ -1040,7 +1083,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.closedCallback(err)
     }
 
-    // Release the Web Lock last, after all cleanup is done.
+    // Release Web Locks last, after all cleanup is done.
+    if (this.singletonAbort) {
+      this.singletonAbort.abort()
+      this.singletonAbort = undefined
+    }
     if (this.abortController) {
       this.abortController.abort()
       this.abortController = undefined
