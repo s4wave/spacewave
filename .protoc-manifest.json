@@ -1165,6 +1165,19 @@
         "volume/js/indexeddb/indexeddb.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/volume/js/opfs": {
+      "hash": "e75c1258315bdb469330b7c6047c06f1f6b8e6ac2b7575e12d53ed9be1f5cbf8",
+      "generatedFiles": [
+        "volume/js/opfs/opfs.pb.cc",
+        "volume/js/opfs/opfs.pb.go",
+        "volume/js/opfs/opfs.pb.h",
+        "volume/js/opfs/opfs.pb.rs",
+        "volume/js/opfs/opfs.pb.ts"
+      ],
+      "protoFiles": [
+        "volume/js/opfs/opfs.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/volume/kvfile": {
       "hash": "a4b3d7e6194b2984b8796b95f4ca93a6c3855190e7492952228f07fbff316453",
       "generatedFiles": [

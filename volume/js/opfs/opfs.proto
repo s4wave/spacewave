@@ -1,0 +1,28 @@
+syntax = "proto3";
+package volume.opfs;
+
+import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/kvtx.proto";
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
+
+// Config is the OPFS volume controller config.
+message Config {
+  // RootPath is the OPFS directory path for this volume.
+  // The volume data is stored under this path.
+  string root_path = 1;
+  // LockPrefix is the WebLock name prefix for this volume.
+  // Defaults to RootPath if empty.
+  string lock_prefix = 2;
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 3;
+  // NoGenerateKey disables auto-generating a peer private key.
+  bool no_generate_key = 4;
+  // NoWriteKey disables writing the generated key to storage.
+  bool no_write_key = 5;
+  // Verbose enables verbose logging.
+  bool verbose = 6;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 7;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 8;
+}
