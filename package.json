@@ -31,7 +31,7 @@
     "start:desktop": "bun run bldr -- start --plugins web desktop",
     "start:desktop:release": "bun run build:release && cd ./.bldr/build/desktop/$(go env GOOS)/$(go env GOARCH)/bldr-demo-release/dist && ./bldr-demo",
     "start:web": "bun run bldr -- --minify-entrypoint=false start --plugins web web",
-    "start:web:wasm": "bun run bldr -- --minify-entrypoint=false start web --wasm",
+    "start:web:wasm": "bun run bldr -- --log-level debug --minify-entrypoint=false start web --wasm",
     "start:web:wasm:browser": "node scripts/start-web-wasm-browser.js",
     "start:web:release": "bun run build:release:web && bun run bldr -- static --path ./.bldr-dist/build/web/js/wasm/bldr-demo-release/dist",
     "start:web:release:debug": "bun run build:release:web:debug && bun run bldr -- static --path ./.bldr-dist/build/web/js/wasm/bldr-demo-release/dist",

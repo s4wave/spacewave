@@ -4,6 +4,9 @@ go 1.26.0
 
 require github.com/aperturerobotics/hydra v0.0.0-20260407092210-a7744f5582f4 // opfs
 
+// local development: opfs txcache fix
+replace github.com/aperturerobotics/hydra => /Users/cjs/company/repos/hydra
+
 // This uses wasi-reactor
 require (
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.12.2-0.20260216043809-e2be8a854e6e // master
