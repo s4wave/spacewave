@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OPFS Benchmark (OQ-9)</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+    h1 { color: #0f9; font-size: 18px; }
+    h2 { color: #0cf; font-size: 14px; margin-top: 20px; }
+    pre { background: #16213e; padding: 12px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+    button { background: #0f9; color: #000; border: none; padding: 8px 16px; cursor: pointer; font-family: monospace; margin: 4px; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    .warn { color: #fa0; }
+    .good { color: #0f9; }
+    .bad { color: #f44; }
+    table { border-collapse: collapse; margin: 8px 0; }
+    td, th { border: 1px solid #333; padding: 4px 10px; text-align: right; }
+    th { background: #16213e; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>OPFS Benchmark - OQ-9 Validation</h1>
+  <p>Measures per-file cost for the OPFS volume architecture. Target: &lt;1ms per file op.</p>
+  <div>
+    <button id="runAll" onclick="runAll()">Run All Benchmarks</button>
+    <button id="cleanup" onclick="cleanup()">Cleanup OPFS</button>
+  </div>
+  <pre id="log">Ready. Click "Run All Benchmarks" to start.
+</pre>
+  <script type="module" src="bench.js"></script>
+</body>
+</html>
