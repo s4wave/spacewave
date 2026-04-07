@@ -7,13 +7,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/hydra/opfs"
+	"github.com/aperturerobotics/hydra/unixfs"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
-	"github.com/pkg/errors"
+	volume_opfs "github.com/aperturerobotics/hydra/volume/js/opfs"
 )
 
 // OpfsStorage implements OPFS-backed browser storage.
-// Currently a stub that returns "not implemented" errors.
-// Will be replaced by the OPFS volume implementation.
 type OpfsStorage struct {
 	prefix string
 }
@@ -30,17 +30,41 @@ func (s *OpfsStorage) GetStorageInfo() *storage.StorageInfo {
 
 // AddFactories adds the factories to the resolver.
 func (s *OpfsStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
-	// No factories yet: OPFS volume not implemented.
+	sr.AddFactory(volume_opfs.NewFactory(b))
 }
 
 // BuildVolumeConfig creates the volume config for the store ID.
 func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
-	return nil, errors.New("OPFS volume storage not yet implemented")
+	rootPath := s.prefix + id
+	return &volume_opfs.Config{
+		RootPath:     rootPath,
+		VolumeConfig: baseVolCtrlConf,
+	}, nil
 }
 
-// DeleteVolume removes the volume.
+// DeleteVolume removes the OPFS directory for the given volume ID.
 func (s *OpfsStorage) DeleteVolume(id string) error {
-	return errors.New("OPFS volume storage not yet implemented")
+	rootPath := s.prefix + id
+	root, err := opfs.GetRoot()
+	if err != nil {
+		return err
+	}
+	parts, _ := unixfs.SplitPath(rootPath)
+	parent := root
+	for _, p := range parts[:len(parts)-1] {
+		parent, err = opfs.GetDirectory(parent, p, false)
+		if err != nil {
+			if opfs.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+	}
+	err = opfs.DeleteEntry(parent, parts[len(parts)-1], true)
+	if err != nil && !opfs.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 func init() {
@@ -49,5 +73,5 @@ func init() {
 	})
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ storage.Storage = ((*OpfsStorage)(nil))

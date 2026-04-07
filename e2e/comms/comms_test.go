@@ -992,6 +992,85 @@ func TestSabRpc(t *testing.T) {
 	}
 }
 
+// TestOpfsVolume verifies the full volume lifecycle: create, write, read,
+// persistence across reopen, WebLock isolation, and delete.
+func TestOpfsVolume(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			results := runFixture(t, browser, "opfs-volume")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("opfs volume failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "createVolume", true)
+			assertBoolResult(t, results, "writeEntries", true)
+			assertBoolResult(t, results, "readEntries", true)
+			assertBoolResult(t, results, "persistence", true)
+			assertBoolResult(t, results, "deleteVolume", true)
+			assertBoolResult(t, results, "webLockIsolation", true)
+
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
+// TestOpfsKvtx verifies OPFS kvtx.Store operations: WebLock transactions,
+// read/write/delete, prefix scan, iteration, size, and crash recovery.
+func TestOpfsKvtx(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			results := runFixture(t, browser, "opfs-kvtx")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("opfs kvtx failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "readTx", true)
+			assertBoolResult(t, results, "writeTx", true)
+			assertBoolResult(t, results, "deleteTx", true)
+			assertBoolResult(t, results, "scanPrefix", true)
+			assertBoolResult(t, results, "scanPrefixKeys", true)
+			assertBoolResult(t, results, "iterate", true)
+			assertBoolResult(t, results, "size", true)
+			assertBoolResult(t, results, "crashRecovery", true)
+
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
+// TestOpfsPrimitives verifies OPFS file operations: directory creation,
+// file read/write/delete, listing, and error handling (NotFoundError).
+// OPFS requires a secure context; WebKit may not support it on localhost.
+func TestOpfsPrimitives(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			results := runFixture(t, browser, "opfs-primitives")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("opfs primitives failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "getRoot", true)
+			assertBoolResult(t, results, "createDir", true)
+			assertBoolResult(t, results, "nestedDir", true)
+			assertBoolResult(t, results, "writeRead", true)
+			assertBoolResult(t, results, "overwrite", true)
+			assertBoolResult(t, results, "deleteFile", true)
+			assertBoolResult(t, results, "listDir", true)
+			assertBoolResult(t, results, "notFoundFile", true)
+			assertBoolResult(t, results, "notFoundDir", true)
+			assertBoolResult(t, results, "deleteNotFound", true)
+
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
 // TestConfigAFallback verifies that without Cross-Origin Isolation headers,
 // detection returns Config A (no SAB, no SharedWorker hosting for plugins).
 // Uses a separate test server without COOP/COEP headers.
