@@ -7,9 +7,9 @@ import (
 	"syscall/js"
 )
 
-// acquireWebLock requests a WebLock via navigator.locks.request.
+// AcquireWebLock requests a WebLock via navigator.locks.request.
 // The returned function releases the lock. It is safe to call once.
-func acquireWebLock(name string, exclusive bool) (func(), error) {
+func AcquireWebLock(name string, exclusive bool) (func(), error) {
 	acquiredCh := make(chan struct{})
 	var resolveFunc js.Value
 

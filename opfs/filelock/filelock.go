@@ -35,7 +35,7 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (*opfs.Sync
 	}
 	lockCh := make(chan lockResult, 1)
 	go func() {
-		rel, err := acquireWebLock(lockName, true)
+		rel, err := AcquireWebLock(lockName, true)
 		lockCh <- lockResult{rel, err}
 	}()
 
