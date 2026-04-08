@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.26.0
 
-require github.com/aperturerobotics/hydra v0.0.0-20260408050459-18a910bc6908 // opfs
+require github.com/aperturerobotics/hydra v0.0.0-20260408061845-a22cbb084d93 // opfs
 
 // This uses wasi-reactor
 require (
@@ -149,6 +149,7 @@ require (
 	github.com/ncruces/go-sqlite3-wasm v1.0.4-0.20260329114232-2491c387476c // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
+	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
 	github.com/pion/ice/v4 v4.2.1 // indirect
 	github.com/pion/interceptor v0.1.44 // indirect

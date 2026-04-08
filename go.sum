@@ -50,8 +50,8 @@ github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-202602
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e/go.mod h1:gS+eAiBNo9GdTHy//HK+Jcdwl4vY3gmVLakNbK1vKGM=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h1:Utc1F7jdCc6/HrwwIikJFXt/hXxkWIWETLp/CsG6Gl0=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
-github.com/aperturerobotics/hydra v0.0.0-20260408050459-18a910bc6908 h1:Y+plpnuu3bvhHZPeorAKw6FSLrI9ZEZ8aWJEK6EkWT4=
-github.com/aperturerobotics/hydra v0.0.0-20260408050459-18a910bc6908/go.mod h1:yAodWBbvgaRZtD9dGJNYI7OFOxhb4sSeiOPnfbPqknA=
+github.com/aperturerobotics/hydra v0.0.0-20260408061845-a22cbb084d93 h1:G9n25ZKFhGyNtjm2A56+4T/x8IkhvUyevDRmlOcG7Mc=
+github.com/aperturerobotics/hydra v0.0.0-20260408061845-a22cbb084d93/go.mod h1:8uPg9u/xWv/7PhS6Y25h0ydAqiKCQXNAl3m0RnzjdQ4=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
@@ -224,12 +224,15 @@ github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOF
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=
 github.com/ncruces/julianday v1.0.0/go.mod h1:Dusn2KvZrrovOMJuOt0TNXL6tB7U2E8kvza5fFc9G7g=
+github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
+github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/ncruces-go-sqlite3 v0.0.0-20260401074639-d457cedd05d9 h1:x52zQKAM/gasA4g4HOh5oKjFHf8zKVGtm5vAPc/brxg=
 github.com/paralin/ncruces-go-sqlite3 v0.0.0-20260401074639-d457cedd05d9/go.mod h1:xhwGW9DTCj/XvJQAOn1oyodYFYN7/nsw5bTH+Y9wPyE=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
+github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pierrec/lz4/v4 v4.1.21 h1:yOVMLb6qSIDP67pl/5F7RepeKYu/VmTyEXvuMI5d9mQ=
 github.com/pierrec/lz4/v4 v4.1.21/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pion/datachannel v1.6.0 h1:XecBlj+cvsxhAMZWFfFcPyUaDZtd7IJvrXqlXD/53i0=
