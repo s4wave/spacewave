@@ -94,7 +94,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.49.3 // latest
-	github.com/aperturerobotics/util v1.33.1-0.20260329221307-e6a0e4bc7143 // latest
+	github.com/aperturerobotics/util v1.33.1 // latest
 )
 
 require (
@@ -103,7 +103,6 @@ require (
 	github.com/klauspost/compress v1.18.4
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0
-	github.com/oklog/ulid/v2 v2.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
 	github.com/pion/sdp/v3 v3.0.18 // indirect
