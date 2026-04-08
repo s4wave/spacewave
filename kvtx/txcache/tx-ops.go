@@ -67,7 +67,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 	if tc == nil {
 		return kvtx.ErrDiscarded
 	}
-	return t.ScanPrefixKeys(ctx, prefix, cb)
+	return tc.ScanPrefixKeys(ctx, prefix, cb)
 }
 
 // Iterate returns an iterator with a given key prefix.
