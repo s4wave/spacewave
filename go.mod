@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.26.0
 
-require github.com/aperturerobotics/hydra v0.0.0-20260408035519-420176bd94d0 // opfs
+require github.com/aperturerobotics/hydra v0.0.0-20260408040300-683a53786255 // opfs
 
 // This uses wasi-reactor
 require (
