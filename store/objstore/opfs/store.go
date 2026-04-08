@@ -10,13 +10,13 @@ package store_objstore_opfs
 
 import (
 	"context"
-	"encoding/hex"
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
 	"github.com/aperturerobotics/hydra/opfs"
 	store_kvtx_opfs "github.com/aperturerobotics/hydra/store/kvtx/js/opfs"
+	b58 "github.com/mr-tron/base58/base58"
 )
 
 // Store is an OPFS-backed object store with per-file write locking.
@@ -80,9 +80,9 @@ func (s *Store) Execute(ctx context.Context) error {
 	return nil
 }
 
-// encodeKey hex-encodes a key for use as an OPFS filename.
+// encodeKey b58-encodes a key for use as an OPFS filename.
 func encodeKey(key []byte) string {
-	return hex.EncodeToString(key)
+	return b58.FastBase58Encoding(key)
 }
 
 // shardPrefix returns the 2-char shard directory name for an encoded key.

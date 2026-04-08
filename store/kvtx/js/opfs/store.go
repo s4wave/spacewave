@@ -4,13 +4,13 @@ package store_kvtx_opfs
 
 import (
 	"context"
-	"encoding/hex"
 	"sync"
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
 	"github.com/aperturerobotics/hydra/opfs"
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 )
 
@@ -80,14 +80,14 @@ func (s *Store) Execute(ctx context.Context) error {
 	return nil
 }
 
-// encodeKey hex-encodes a key for use as an OPFS filename.
+// encodeKey b58-encodes a key for use as an OPFS filename.
 func encodeKey(key []byte) string {
-	return hex.EncodeToString(key)
+	return b58.FastBase58Encoding(key)
 }
 
-// decodeKey hex-decodes an OPFS filename back to a key.
+// decodeKey b58-decodes an OPFS filename back to a key.
 func decodeKey(encoded string) ([]byte, error) {
-	return hex.DecodeString(encoded)
+	return b58.FastBase58Decoding(encoded)
 }
 
 // shardPrefix returns the 2-char shard directory name for an encoded key.
