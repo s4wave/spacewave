@@ -47,6 +47,11 @@ func NewWriter(dir js.Value, lockPrefix, orderLock, stwLock string) *Writer {
 	}
 }
 
+// Dir returns the OPFS directory handle for the WAL files.
+func (w *Writer) Dir() js.Value {
+	return w.dir
+}
+
 // Append serializes the given edges into a WALEntry, allocates a durable
 // sequence number, and writes the entry as a single OPFS file.
 // Acquires the STW lock in shared mode for the duration of the append.
