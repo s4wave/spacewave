@@ -31,7 +31,9 @@ type Volume struct {
 	// kvKey is the underlying kvkey
 	kvKey *store_kvkey.KVKey
 	// refGraph is the volume's GC reference graph.
-	refGraph *block_gc.RefGraph
+	refGraph block_gc.RefGraphOps
+	// walAppender is the optional WAL appender for deferred GC updates.
+	walAppender block_gc.WALAppender
 	// statsFn returns storage stats, may be nil.
 	statsFn StatsFn
 	// closeFn is the close func, may be nil
@@ -113,6 +115,36 @@ func NewVolumeWithBlockStore(
 	return initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
 }
 
+// NewVolumeWithBlockStoreAndGC builds a key/value volume with a custom block
+// store and a pre-built GC reference graph. The Cayley RefGraph is not created.
+func NewVolumeWithBlockStoreAndGC(
+	ctx context.Context,
+	storeID string,
+	kvkey *store_kvkey.KVKey,
+	store kvtx.Store,
+	blk block.StoreOps,
+	rg block_gc.RefGraphOps,
+	conf *store_kvtx.Config,
+	noGenerateKey,
+	noWriteKey bool,
+	statsFn StatsFn,
+	closeFn func() error,
+	deleteFn ...func() error,
+) (*Volume, error) {
+	v := &Volume{
+		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
+		kvtxStore: store,
+		kvKey:     kvkey,
+		refGraph:  rg,
+		statsFn:   statsFn,
+		closeFn:   closeFn,
+	}
+	if len(deleteFn) != 0 {
+		v.deleteFn = deleteFn[0]
+	}
+	return initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
+}
+
 // initVolume performs common volume initialization: peer key generation,
 // volume ID computation, and GC reference graph setup.
 func initVolume(
@@ -120,6 +152,30 @@ func initVolume(
 	v *Volume,
 	storeID string,
 	store kvtx.Store,
+	noGenerateKey,
+	noWriteKey bool,
+) (*Volume, error) {
+	v, err := initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
+	if err != nil {
+		return nil, err
+	}
+
+	rg, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		return nil, err
+	}
+	v.refGraph = rg
+
+	return v, nil
+}
+
+// initVolumeSkipGC performs common volume initialization without creating
+// a Cayley-backed GC reference graph. Used when the caller provides its
+// own RefGraphOps (e.g. OPFS GCGraph).
+func initVolumeSkipGC(
+	ctx context.Context,
+	v *Volume,
+	storeID string,
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
@@ -152,12 +208,6 @@ func initVolume(
 
 	// calcuate the volume id based on the peer id
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
-
-	rg, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
-	if err != nil {
-		return nil, err
-	}
-	v.refGraph = rg
 
 	return v, nil
 }
@@ -202,10 +252,19 @@ func (v *Volume) GetStorageStats(ctx context.Context) (*volume.StorageStats, err
 
 // GetRefGraph returns the volume's GC reference graph.
 func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
-	if v.refGraph == nil {
-		return nil
-	}
 	return v.refGraph
+}
+
+// GetWALAppender returns the volume's WAL appender, if any.
+// When non-nil, GCStoreOps should use this for FlushPending instead
+// of calling ApplyRefBatch on the RefGraph directly.
+func (v *Volume) GetWALAppender() block_gc.WALAppender {
+	return v.walAppender
+}
+
+// SetWALAppender sets the WAL appender on the volume.
+func (v *Volume) SetWALAppender(wal block_gc.WALAppender) {
+	v.walAppender = wal
 }
 
 // Close closes the volume, returning any errors.

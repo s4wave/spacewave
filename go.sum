@@ -83,10 +83,6 @@ github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 h
 github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621/go.mod h1:qF9xHPYAk6bpnRjk/7IvUa9YxPdyktjzmAblwqm/P78=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 h1:vaGKrZ/ti7T9RcrPHyqrAzrG9ThuhBF1lhVRExS01bg=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
-github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
-github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h1:Utc1F7jdCc6/HrwwIikJFXt/hXxkWIWETLp/CsG6Gl0=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
@@ -97,8 +93,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.12.2 h1:ujwTKgpIYAVsv8VljB6PPMY5
 github.com/aperturerobotics/protobuf-go-lite v0.12.2/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
 github.com/aperturerobotics/starpc v0.49.3 h1:CDpPuzMajokuiTa3g2vRPDUAXnA3hCwoOfsX7IeEX8A=
 github.com/aperturerobotics/starpc v0.49.3/go.mod h1:pq1TmEYUUQvmbhRpnjxcmLHdcKi3e1DGcmxsvMAW23Q=
-github.com/aperturerobotics/util v1.33.0 h1:l7Aql7rlFZaGPRS+lzFC7h0zuLE0WyR3nPVXgCYMW88=
-github.com/aperturerobotics/util v1.33.0/go.mod h1:FOKm51ZpgLsRszA4e7mjvqrt6J6Pju5GjSJg1Qz4Ouo=
+github.com/aperturerobotics/util v1.33.1 h1:V/xhxNOGLmCsfH2th52pwDyDNwOQGRukrL9leille/w=
+github.com/aperturerobotics/util v1.33.1/go.mod h1:nMtLh9k0mGQrqFrlECZIxLurJT/QZiTh/F3KcLqpAEU=
 github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe h1:hbfgpCHsmTzgr1mH+m/rqxxrei+jKSE3w6KbGbBJVJc=
 github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -433,6 +429,8 @@ github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt
 github.com/ncruces/julianday v1.0.0/go.mod h1:Dusn2KvZrrovOMJuOt0TNXL6tB7U2E8kvza5fFc9G7g=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
+github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
+github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -457,6 +455,7 @@ github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
+github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/performancecopilot/speed v3.0.0+incompatible/go.mod h1:/CLtqpZ5gBg1M9iaPbIdPPGyKcA8hKdoy6hAWba7Yac=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=

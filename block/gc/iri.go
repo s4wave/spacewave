@@ -49,6 +49,12 @@ func ObjectIRI(key string) string {
 	return prefixObject + key
 }
 
+// parseObjectIRI parses an "object:{key}" IRI back to the object key.
+// Returns the key and true if valid.
+func parseObjectIRI(iri string) (string, bool) {
+	return strings.CutPrefix(iri, prefixObject)
+}
+
 // BucketIRI returns the IRI for a bucket node: "bucket:{bucketID}".
 func BucketIRI(bucketID string) string {
 	return prefixBucket + bucketID

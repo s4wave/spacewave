@@ -10,7 +10,7 @@ import (
 
 // Engine wraps the Engine interface with a verbose logger.
 type Engine struct {
-	txInc uint64
+	txInc atomic.Uint64
 	// Engine is the underlying engine.
 	world.Engine
 	// le is the logger instance
@@ -30,7 +30,7 @@ func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
-	txid := atomic.AddUint64(&e.txInc, 1)
+	txid := e.txInc.Add(1)
 	le := e.le.WithField("world-vlogger-txid", txid)
 	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil {

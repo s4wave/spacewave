@@ -129,8 +129,8 @@ func GetBoltDB(vol volume.Volume) *bdb.DB {
 	if !ok {
 		return nil
 	}
-	var store interface{} = kv.GetKvtxStore()
-	for i := 0; i < 10; i++ {
+	var store any = kv.GetKvtxStore()
+	for range 10 {
 		if p, ok := store.(boltDBProvider); ok {
 			return p.GetDB()
 		}

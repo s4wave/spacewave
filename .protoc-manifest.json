@@ -99,6 +99,19 @@
         "block/gc/rpc/refgraph.proto"
       ]
     },
+    "github.com/aperturerobotics/hydra/block/gc/wal": {
+      "hash": "26916ad44a2023b20303bd3297878bc5e98c32668cbdaeae554cd57592ef0eeb",
+      "generatedFiles": [
+        "block/gc/wal/wal.pb.cc",
+        "block/gc/wal/wal.pb.go",
+        "block/gc/wal/wal.pb.h",
+        "block/gc/wal/wal.pb.rs",
+        "block/gc/wal/wal.pb.ts"
+      ],
+      "protoFiles": [
+        "block/gc/wal/wal.proto"
+      ]
+    },
     "github.com/aperturerobotics/hydra/block/mock": {
       "hash": "7eb5cf645a5d3f4550d13fe9929be28dc0f2b1326933c8a87f849d3b22fe1f33",
       "generatedFiles": [

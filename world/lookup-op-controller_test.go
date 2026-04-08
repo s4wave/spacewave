@@ -24,12 +24,12 @@ func TestLookupOpController(t *testing.T) {
 	}
 
 	engineID := "test-engine"
-	var ncalled uint32
+	var ncalled atomic.Uint32
 	testCtrl := NewLookupOpController(
 		"hydra/world/operation/test",
 		engineID,
 		func(ctx context.Context, opTypeID string) (Operation, error) {
-			atomic.AddUint32(&ncalled, 1)
+			ncalled.Add(1)
 			return nil, nil
 		},
 	)
@@ -52,7 +52,7 @@ func TestLookupOpController(t *testing.T) {
 	if op != nil {
 		t.Fatal("expected object op to be nil")
 	}
-	nc := atomic.LoadUint32(&ncalled)
+	nc := ncalled.Load()
 	if nc != 1 {
 		t.Fatalf("expected %d calls but got %d", 1, nc)
 	}

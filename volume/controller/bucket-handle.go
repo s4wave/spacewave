@@ -88,6 +88,15 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 			block_gc.BucketIRI(b.bucketID),
 			block_gc.BucketFlushTask(),
 		)
+		// Propagate WAL appender if the volume provides one.
+		type walProvider interface {
+			GetWALAppender() block_gc.WALAppender
+		}
+		if wp, ok := vol.(walProvider); ok {
+			if wal := wp.GetWALAppender(); wal != nil {
+				handle.gcOps.SetWALAppender(wal)
+			}
+		}
 	}
 
 	b.handleCtr.SetValue(handle)

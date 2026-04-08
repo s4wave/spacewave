@@ -5,6 +5,9 @@ package volume_opfs
 import (
 	"context"
 
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
+	"github.com/aperturerobotics/hydra/block/gc/gcgraph"
+	block_gc_wal "github.com/aperturerobotics/hydra/block/gc/wal"
 	block_store_opfs "github.com/aperturerobotics/hydra/block/store/opfs"
 	"github.com/aperturerobotics/hydra/opfs"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
@@ -97,17 +100,53 @@ func NewOpfs(
 		}, nil
 	}
 
-	return kvtx.NewVolumeWithBlockStore(
+	// GC graph store: own OPFS subdirectory with per-file locking.
+	gcDir, err := opfs.GetDirectory(volDir, "gc", true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create gc directory")
+	}
+	graphDir, err := opfs.GetDirectory(gcDir, "graph", true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create gc/graph directory")
+	}
+	walDir, err := opfs.GetDirectory(gcDir, "wal", true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create gc/wal directory")
+	}
+
+	gcGraph, err := gcgraph.NewGCGraph(graphDir, lockPrefix+"/gc/graph")
+	if err != nil {
+		return nil, errors.Wrap(err, "create GC graph store")
+	}
+
+	// Register volume-context roots.
+	if err := gcGraph.AddRoot(context.Background(), block_gc.NodeGCRoot); err != nil {
+		return nil, errors.Wrap(err, "register gcroot")
+	}
+	if err := gcGraph.AddRoot(context.Background(), block_gc.NodeUnreferenced); err != nil {
+		return nil, errors.Wrap(err, "register unreferenced root")
+	}
+
+	// WAL writer with STW and ordering locks.
+	stwLockName := lockPrefix + "|gc-stw"
+	orderLockName := lockPrefix + "|gc-wal-order"
+	walWriter := block_gc_wal.NewWriter(walDir, lockPrefix+"/gc/wal", orderLockName, stwLockName)
+	walAppender := block_gc_wal.NewAppender(walWriter)
+
+	vol, err := kvtx.NewVolumeWithBlockStoreAndGC(
 		ctx,
 		ControllerID,
 		kk,
 		store,
 		blkStore,
+		gcGraph,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		statsFn,
-		nil, // close: no-op (OPFS has no handles to release)
+		func() error {
+			return gcGraph.Close()
+		},
 		func() error {
 			// Delete: navigate to the parent, then remove the leaf directory.
 			parts, _ := unixfs.SplitPath(rootPath)
@@ -125,4 +164,13 @@ func NewOpfs(
 			return opfs.DeleteEntry(parent, parts[len(parts)-1], true)
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the WAL appender on the volume so the volume controller
+	// and bucket handles can propagate it to GCStoreOps instances.
+	vol.SetWALAppender(walAppender)
+
+	return vol, nil
 }

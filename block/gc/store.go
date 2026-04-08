@@ -15,6 +15,13 @@ type pendingRef struct {
 	source, target string
 }
 
+// WALAppender appends batched ref graph edge operations to a write-ahead
+// log. When set on GCStoreOps, FlushPending writes to the WAL instead
+// of calling ApplyRefBatch on the RefGraph directly.
+type WALAppender interface {
+	Append(ctx context.Context, adds, removes []RefEdge) error
+}
+
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.
 //
 // PutBlock and RecordBlockRefs are called from Transaction.Write's
@@ -29,6 +36,7 @@ type pendingRef struct {
 type GCStoreOps struct {
 	store     block.StoreOps
 	refGraph  RefGraphOps
+	wal       WALAppender
 	parentIRI string
 	flushTask string
 
@@ -92,6 +100,13 @@ func NewGCStoreOpsWithParentAndTraceTask(store block.StoreOps, refGraph RefGraph
 		parentIRI: parentIRI,
 		flushTask: flushTask,
 	}
+}
+
+// SetWALAppender sets the WAL appender for deferred ref graph updates.
+// When set, FlushPending writes to the WAL instead of calling
+// ApplyRefBatch on the RefGraph directly.
+func (g *GCStoreOps) SetWALAppender(wal WALAppender) {
+	g.wal = wal
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -232,6 +247,16 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	removes := make([]RefEdge, 0, len(ununrefs))
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
+	}
+
+	if g.wal != nil {
+		if err := g.wal.Append(ctx, adds, removes); err != nil {
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+			return errors.Wrap(err, "flush WAL append")
+		}
+		return nil
 	}
 
 	if err := g.refGraph.ApplyRefBatch(ctx, adds, removes); err != nil {

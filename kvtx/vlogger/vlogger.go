@@ -12,7 +12,7 @@ import (
 type VLoggerStore struct {
 	kvtx.Store
 	le    *logrus.Entry
-	txInc uint64
+	txInc atomic.Uint64
 }
 
 func NewVLogger(le *logrus.Entry, store kvtx.Store) *VLoggerStore {
@@ -28,7 +28,7 @@ func (l *VLoggerStore) Unwrap() kvtx.Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (l *VLoggerStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	txid := atomic.AddUint64(&l.txInc, 1)
+	txid := l.txInc.Add(1)
 	le := l.le.WithField("kvtx-vlogger-txid", txid)
 	le.Debugf("NewTransaction(%v)", write)
 	ntx, err := l.Store.NewTransaction(ctx, write)
