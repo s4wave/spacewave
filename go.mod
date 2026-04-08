@@ -2,6 +2,8 @@ module github.com/aperturerobotics/hydra
 
 go 1.26.0
 
+replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260402175306-bb66efc41c1e // fix-os-js
+
 require (
 	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
 	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
