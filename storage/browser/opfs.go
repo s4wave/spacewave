@@ -19,7 +19,7 @@ type OpfsStorage struct {
 }
 
 // NewOpfsStorage constructs an OPFS storage handle.
-func NewOpfsStorage(prefix string) storage.Storage {
+func NewOpfsStorage(prefix string) *OpfsStorage {
 	return &OpfsStorage{prefix: prefix}
 }
 
