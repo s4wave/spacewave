@@ -5,12 +5,13 @@ package volume_opfs
 import (
 	"context"
 
+	block_store_opfs "github.com/aperturerobotics/hydra/block/store/opfs"
 	"github.com/aperturerobotics/hydra/opfs"
-	"github.com/aperturerobotics/hydra/unixfs"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
-	sopfs "github.com/aperturerobotics/hydra/store/kvtx/js/opfs"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	store_objstore_opfs "github.com/aperturerobotics/hydra/store/objstore/opfs"
+	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/hydra/volume"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver/v4"
@@ -56,35 +57,52 @@ func NewOpfs(
 		return nil, errors.Wrap(err, "create volume directory")
 	}
 
-	// Create the kvtx.Store backed by OPFS.
-	lockName := lockPrefix + "|kvtx"
-	ostore := sopfs.NewStore(volDir, lockName)
+	// Create the blocks/ subdirectory for the per-file block store.
+	blocksDir, err := opfs.GetDirectory(volDir, "blocks", true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create blocks directory")
+	}
 
-	var store skvtx.Store = ostore
+	// Per-file block store: no transaction-level WebLock, just per-file locks.
+	blkStore := block_store_opfs.NewBlockStore(
+		blocksDir,
+		lockPrefix+"/blocks",
+		conf.GetStoreConfig().GetHashType(),
+	)
+
+	// Object store: per-file write locking with readers-writer WebLock for ACID.
+	objStore := store_objstore_opfs.NewStore(
+		volDir,
+		lockPrefix+"|objstore",
+		lockPrefix+"/obj",
+	)
+
+	var store skvtx.Store = objStore
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
 
 	statsFn := func(ctx context.Context) (*volume.StorageStats, error) {
-		tx, err := ostore.NewTransaction(ctx, false)
-		if err != nil {
-			return nil, err
+		tx, txErr := objStore.NewTransaction(ctx, false)
+		if txErr != nil {
+			return nil, txErr
 		}
 		defer tx.Discard()
-		count, err := tx.Size(ctx)
-		if err != nil {
-			return nil, err
+		count, txErr := tx.Size(ctx)
+		if txErr != nil {
+			return nil, txErr
 		}
 		return &volume.StorageStats{
 			BlockCount: count,
 		}, nil
 	}
 
-	return kvtx.NewVolume(
+	return kvtx.NewVolumeWithBlockStore(
 		ctx,
 		ControllerID,
 		kk,
 		store,
+		blkStore,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),

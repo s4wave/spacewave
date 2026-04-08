@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/block"
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/kvtx"
 	hstore "github.com/aperturerobotics/hydra/store"
@@ -79,7 +80,49 @@ func NewVolume(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
+	return initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+}
 
+// NewVolumeWithBlockStore builds a key/value volume with a custom block store.
+//
+// blk is used for block operations instead of creating a KVTxBlock from the
+// kvtx store. This supports per-file locking block stores (e.g. OPFS).
+func NewVolumeWithBlockStore(
+	ctx context.Context,
+	storeID string,
+	kvkey *store_kvkey.KVKey,
+	store kvtx.Store,
+	blk block.StoreOps,
+	conf *store_kvtx.Config,
+	noGenerateKey,
+	noWriteKey bool,
+	statsFn StatsFn,
+	closeFn func() error,
+	deleteFn ...func() error,
+) (*Volume, error) {
+	v := &Volume{
+		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
+		kvtxStore: store,
+		kvKey:     kvkey,
+		statsFn:   statsFn,
+		closeFn:   closeFn,
+	}
+	if len(deleteFn) != 0 {
+		v.deleteFn = deleteFn[0]
+	}
+	return initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+}
+
+// initVolume performs common volume initialization: peer key generation,
+// volume ID computation, and GC reference graph setup.
+func initVolume(
+	ctx context.Context,
+	v *Volume,
+	storeID string,
+	store kvtx.Store,
+	noGenerateKey,
+	noWriteKey bool,
+) (*Volume, error) {
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
 		return nil, err
