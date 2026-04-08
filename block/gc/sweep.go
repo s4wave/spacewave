@@ -92,24 +92,24 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 	}
 	result.WALEntriesPhase2 = n2
 
-	// 2b: Transitive rescue for newly reachable nodes.
-	// After replaying Phase 2 WAL entries, re-check each candidate:
-	// if it now has incoming refs (besides unreferenced), rescue it
-	// and its descendants.
-	rescued := 0
-	for _, c := range candidates {
-		if !willDelete[c] {
-			continue
-		}
-		has, err := cfg.Graph.HasIncomingRefs(phase2Ctx, c)
+	// 2b: Re-mark after Phase 2 WAL replay. Nodes that were white in
+	// Phase 1 but are now reachable (due to edges added during Phase 2)
+	// are rescued. Only nodes white in both marks are swept.
+	if n2 > 0 {
+		marker2 := NewMarker(cfg.Graph)
+		_, colors2, err := marker2.Mark(phase2Ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "check rescue")
+			return nil, errors.Wrap(err, "phase 2 re-mark")
 		}
-		if has {
-			rescued += transitiveRescue(phase2Ctx, cfg.Graph, c, willDelete)
+		rescued := 0
+		for c := range willDelete {
+			if colors2[c] != White {
+				delete(willDelete, c)
+				rescued++
+			}
 		}
+		result.Rescued = rescued
 	}
-	result.Rescued = rescued
 
 	// 2c: Execute sweep. Delete-first ordering for crash safety.
 	sweepCtx, sweepTask := trace.NewTask(phase2Ctx, "hydra/block-gc/sweep-cycle/sweep")
@@ -127,33 +127,12 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 	return result, nil
 }
 
-// transitiveRescue removes a node and its descendants from the willDelete
-// set. Returns the count of nodes rescued.
-func transitiveRescue(ctx context.Context, graph CollectorGraph, node string, willDelete map[string]bool) int {
-	if !willDelete[node] {
-		return 0
-	}
-	delete(willDelete, node)
-	rescued := 1
-
-	targets, err := graph.GetOutgoingRefs(ctx, node)
-	if err != nil {
-		return rescued
-	}
-	for _, t := range targets {
-		if willDelete[t] {
-			rescued += transitiveRescue(ctx, graph, t, willDelete)
-		}
-	}
-	return rescued
-}
-
 // sweepNode performs the delete-first, graph-cleanup-second sweep for
 // a single node.
 func sweepNode(ctx context.Context, cfg SweepConfig, node string) error {
 	// Step 1: Backend physical delete first.
-	if ref, ok := ParseBlockIRI(node); ok {
-		if err := cfg.Target.DeleteBlock(ctx, BlockIRI(ref)); err != nil {
+	if _, ok := ParseBlockIRI(node); ok {
+		if err := cfg.Target.DeleteBlock(ctx, node); err != nil {
 			return errors.Wrap(err, "delete block")
 		}
 	} else if _, ok := parseObjectIRI(node); ok {
@@ -179,21 +158,8 @@ func sweepNode(ctx context.Context, cfg SweepConfig, node string) error {
 	}
 
 	// Step 4: Remove from root set and node inventory.
-	// These are collector-graph-level operations. We call them if the
-	// graph supports them (the interface check is done at compile time
-	// via CollectorGraph, but RemoveRoot/RemoveNode are separate methods).
-	type rootRemover interface {
-		RemoveRoot(ctx context.Context, iri string) error
-	}
-	type nodeRemover interface {
-		RemoveNode(ctx context.Context, iri string) error
-	}
-	if rr, ok := cfg.Graph.(rootRemover); ok {
-		_ = rr.RemoveRoot(ctx, node)
-	}
-	if nr, ok := cfg.Graph.(nodeRemover); ok {
-		_ = nr.RemoveNode(ctx, node)
-	}
+	_ = cfg.Graph.RemoveRoot(ctx, node)
+	_ = cfg.Graph.RemoveNode(ctx, node)
 
 	return nil
 }

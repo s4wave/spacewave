@@ -10,14 +10,7 @@ import (
 
 // ManagerConfig holds the configuration for a GC manager.
 type ManagerConfig struct {
-	// Graph is the collector graph backend.
-	Graph CollectorGraph
-	// Target provides backend-specific block/object deletion.
-	Target SweepTarget
-	// ReplayWAL replays WAL entries into the graph.
-	ReplayWAL WALReplayFunc
-	// AcquireSTW acquires the STW lock in exclusive mode.
-	AcquireSTW STWLockFunc
+	SweepConfig
 	// SweepInterval is the periodic sweep interval. Default 30s.
 	SweepInterval time.Duration
 }
@@ -54,31 +47,26 @@ func (m *Manager) Run(ctx context.Context) error {
 	}
 
 	// Periodic sweep loop.
+	timer := time.NewTimer(m.cfg.SweepInterval)
+	defer timer.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(m.cfg.SweepInterval):
+		case <-timer.C:
 		}
 
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		sweepCfg := SweepConfig{
-			Graph:      m.cfg.Graph,
-			Target:     m.cfg.Target,
-			ReplayWAL:  m.cfg.ReplayWAL,
-			AcquireSTW: m.cfg.AcquireSTW,
-		}
-
-		_, err := SweepCycle(ctx, sweepCfg)
+		_, err := SweepCycle(ctx, m.cfg.SweepConfig)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
 			trace.Logf(ctx, "gc-manager", "sweep failed: %v", err)
-			continue
 		}
+		timer.Reset(m.cfg.SweepInterval)
 	}
 }

@@ -33,23 +33,43 @@ func hashName(iri string) string {
 	return hex.EncodeToString(h[:16])
 }
 
+// unreferencedHash is the pre-computed hash of NodeUnreferenced for
+// fast filename comparison in HasIncomingRefs.
+var unreferencedHash = hashName(block_gc.NodeUnreferenced)
+
 // GCGraph is an OPFS-backed GC reference graph.
 type GCGraph struct {
 	root       js.Value
 	lockPrefix string
+	// Cached directory handles to avoid repeated GetDirectory calls.
+	nodesDir    js.Value
+	edgesDir    js.Value
+	incomingDir js.Value
+	rootsDir    js.Value
 }
 
 // NewGCGraph creates a GCGraph rooted at the given OPFS directory.
-// The directory should be dedicated to the GC graph (e.g. <vol>/gc/graph/).
 // lockPrefix is prepended to per-file WebLock names.
 func NewGCGraph(root js.Value, lockPrefix string) (*GCGraph, error) {
-	// Ensure subdirectories exist.
-	for _, name := range []string{dirNodes, dirEdges, dirIncoming, dirRoots} {
-		if _, err := opfs.GetDirectory(root, name, true); err != nil {
-			return nil, errors.Wrap(err, "create "+name)
-		}
+	g := &GCGraph{root: root, lockPrefix: lockPrefix}
+	var err error
+	g.nodesDir, err = opfs.GetDirectory(root, dirNodes, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create "+dirNodes)
 	}
-	return &GCGraph{root: root, lockPrefix: lockPrefix}, nil
+	g.edgesDir, err = opfs.GetDirectory(root, dirEdges, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create "+dirEdges)
+	}
+	g.incomingDir, err = opfs.GetDirectory(root, dirIncoming, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create "+dirIncoming)
+	}
+	g.rootsDir, err = opfs.GetDirectory(root, dirRoots, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create "+dirRoots)
+	}
+	return g, nil
 }
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
@@ -67,20 +87,20 @@ func (g *GCGraph) AddRef(ctx context.Context, subject, object string) error {
 	content := []byte(subject + "\n" + object)
 
 	// Forward edge: edges/<subject-hash>/<object-hash>
-	edgesDir, err := g.getSubSubDir(dirEdges, sh, true)
+	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, sh, true)
 	if err != nil {
 		return errors.Wrap(err, "edges subdir")
 	}
-	if err := g.writeFile(edgesDir, oh, content); err != nil {
+	if err := g.writeFile(edgeSubDir, oh, content); err != nil {
 		return errors.Wrap(err, "write forward edge")
 	}
 
 	// Reverse edge: incoming/<object-hash>/<subject-hash>
-	inDir, err := g.getSubSubDir(dirIncoming, oh, true)
+	inSubDir, err := opfs.GetDirectory(g.incomingDir, oh, true)
 	if err != nil {
 		return errors.Wrap(err, "incoming subdir")
 	}
-	return errors.Wrap(g.writeFile(inDir, sh, content), "write reverse edge")
+	return errors.Wrap(g.writeFile(inSubDir, sh, content), "write reverse edge")
 }
 
 // RemoveRef removes a single gc/ref edge from subject to object.
@@ -90,75 +110,50 @@ func (g *GCGraph) RemoveRef(ctx context.Context, subject, object string) error {
 	oh := hashName(object)
 
 	// Forward edge.
-	edgesDir, err := g.getSubSubDir(dirEdges, sh, false)
+	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, sh, false)
 	if err == nil {
-		_ = g.deleteFile(edgesDir, oh)
+		_ = g.deleteFile(edgeSubDir, oh)
 	}
 
 	// Reverse edge.
-	inDir, err := g.getSubSubDir(dirIncoming, oh, false)
+	inSubDir, err := opfs.GetDirectory(g.incomingDir, oh, false)
 	if err == nil {
-		_ = g.deleteFile(inDir, sh)
+		_ = g.deleteFile(inSubDir, sh)
 	}
 	return nil
 }
 
 // ensureNode creates a node inventory entry if it does not exist.
 func (g *GCGraph) ensureNode(iri string) error {
-	nodesDir, err := opfs.GetDirectory(g.root, dirNodes, true)
-	if err != nil {
-		return err
-	}
 	h := hashName(iri)
-	exists, err := opfs.FileExists(nodesDir, h)
+	exists, err := opfs.FileExists(g.nodesDir, h)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return nil
 	}
-	return g.writeFile(nodesDir, h, []byte(iri))
+	return g.writeFile(g.nodesDir, h, []byte(iri))
 }
 
 // AddRoot adds a node to the root set.
 func (g *GCGraph) AddRoot(ctx context.Context, iri string) error {
-	rootsDir, err := opfs.GetDirectory(g.root, dirRoots, true)
-	if err != nil {
-		return errors.Wrap(err, "roots dir")
-	}
 	if err := g.ensureNode(iri); err != nil {
 		return errors.Wrap(err, "ensure root node")
 	}
-	return g.writeFile(rootsDir, hashName(iri), []byte(iri))
+	return g.writeFile(g.rootsDir, hashName(iri), []byte(iri))
 }
 
 // RemoveRoot removes a node from the root set.
 func (g *GCGraph) RemoveRoot(ctx context.Context, iri string) error {
-	rootsDir, err := opfs.GetDirectory(g.root, dirRoots, false)
-	if err != nil {
-		return nil
-	}
-	_ = g.deleteFile(rootsDir, hashName(iri))
+	_ = g.deleteFile(g.rootsDir, hashName(iri))
 	return nil
 }
 
 // RemoveNode removes a node from the node inventory.
 func (g *GCGraph) RemoveNode(ctx context.Context, iri string) error {
-	nodesDir, err := opfs.GetDirectory(g.root, dirNodes, false)
-	if err != nil {
-		return nil
-	}
-	_ = g.deleteFile(nodesDir, hashName(iri))
+	_ = g.deleteFile(g.nodesDir, hashName(iri))
 	return nil
-}
-
-// getSubSubDir gets or creates a nested subdirectory (e.g. edges/<hash>/).
-func (g *GCGraph) getSubSubDir(parent, child string, create bool) (js.Value, error) {
-	pDir, err := opfs.GetDirectory(g.root, parent, create)
-	if err != nil {
-		return js.Undefined(), err
-	}
-	return opfs.GetDirectory(pDir, child, create)
 }
 
 // writeFile writes content to a file using per-file locking.
@@ -214,4 +209,4 @@ func parseEdgeContent(data []byte) (subject, object string, ok bool) {
 }
 
 // _ is a type assertion
-var _ block_gc.RefGraphOps = (*GCGraph)(nil)
+var _ block_gc.CollectorGraph = (*GCGraph)(nil)

@@ -127,12 +127,10 @@ func TestSweepCycleGraphCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Only orphan is swept this cycle. child was reachable from orphan
-	// during marking (grey -> black), so it is not a candidate. It becomes
-	// unreachable after orphan's edges are removed and will be swept in the
-	// next cycle (cascading behavior per plan).
-	if result.Swept != 1 {
-		t.Errorf("Swept = %d, want 1", result.Swept)
+	// Both orphan and child are unreachable (orphan has no incoming root
+	// edge, and child is only reachable from orphan). Both are swept.
+	if result.Swept != 2 {
+		t.Errorf("Swept = %d, want 2", result.Swept)
 	}
 
 	// After sweep, orphan's outgoing edges should be cleaned up.

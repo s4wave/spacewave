@@ -295,17 +295,15 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 	const writers = 4
 	const blocksPerWriter = 5
 
-	// Collect all refs so we can verify they survive.
-	type refResult struct {
-		iri string
-	}
-	results := make([][]refResult, writers)
+	// Collect all block IRIs so we can verify they survive.
+	results := make([][]string, writers)
 
 	for w := range writers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			wOps := h.newGCStoreOps(bucketIRI)
+			var iris []string
 			for j := range blocksPerWriter {
 				data := []byte("writer-" + strconv.Itoa(w) + "-block-" + strconv.Itoa(j))
 				ref, _, err := wOps.PutBlock(ctx, data, nil)
@@ -313,11 +311,12 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				results[w] = append(results[w], refResult{iri: block_gc.BlockIRI(ref)})
+				iris = append(iris, block_gc.BlockIRI(ref))
 			}
 			if err := wOps.FlushPending(ctx); err != nil {
 				t.Error(err)
 			}
+			results[w] = iris
 		}()
 	}
 
@@ -343,11 +342,11 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 	}
 
 	// All written blocks should still exist (all are bucket-owned).
-	for w, rr := range results {
-		for j, r := range rr {
-			ref, ok := block_gc.ParseBlockIRI(r.iri)
+	for w, iris := range results {
+		for j, iri := range iris {
+			ref, ok := block_gc.ParseBlockIRI(iri)
 			if !ok {
-				t.Errorf("writer %d block %d: bad IRI %s", w, j, r.iri)
+				t.Errorf("writer %d block %d: bad IRI %s", w, j, iri)
 				continue
 			}
 			data, found, err := h.blkStore.GetBlock(ctx, ref)
@@ -356,7 +355,7 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 				continue
 			}
 			if !found {
-				t.Errorf("writer %d block %d: not found after sweep (IRI %s)", w, j, r.iri)
+				t.Errorf("writer %d block %d: not found after sweep (IRI %s)", w, j, iri)
 				continue
 			}
 			want := []byte("writer-" + strconv.Itoa(w) + "-block-" + strconv.Itoa(j))

@@ -18,14 +18,19 @@ const (
 	Black
 )
 
-// CollectorGraph is the interface required by the marker for graph traversal.
-// It extends RefGraphOps with node inventory and root set queries.
+// CollectorGraph is the interface required by the marker and sweep for
+// graph traversal. It extends RefGraphOps with node inventory, root set,
+// and cleanup operations.
 type CollectorGraph interface {
 	RefGraphOps
 	// IterateNodes returns all node IRIs in the node inventory.
 	IterateNodes(ctx context.Context) ([]string, error)
 	// GetRootNodes returns all node IRIs in the root set.
 	GetRootNodes(ctx context.Context) ([]string, error)
+	// RemoveRoot removes a node from the root set.
+	RemoveRoot(ctx context.Context, iri string) error
+	// RemoveNode removes a node from the node inventory.
+	RemoveNode(ctx context.Context, iri string) error
 }
 
 // Marker performs an in-memory tri-color mark traversal over a CollectorGraph.

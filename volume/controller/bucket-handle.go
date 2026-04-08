@@ -82,12 +82,15 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 
 	// Wrap block operations with GC tracking if the volume has a RefGraph.
 	if rg := vol.GetRefGraph(); rg != nil {
+		bucketIRI := block_gc.BucketIRI(b.bucketID)
 		handle.gcOps = block_gc.NewGCStoreOpsWithParentAndTraceTask(
 			vol,
 			rg,
-			block_gc.BucketIRI(b.bucketID),
+			bucketIRI,
 			block_gc.BucketFlushTask(),
 		)
+		// Root the bucket node so the marker can reach bucket-owned blocks.
+		_ = rg.AddRef(ctx, block_gc.NodeGCRoot, bucketIRI)
 		// Propagate WAL appender if the volume provides one.
 		type walProvider interface {
 			GetWALAppender() block_gc.WALAppender

@@ -138,7 +138,7 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return nil, false, err
 	}
 	if !existed && ref != nil && !ref.GetEmpty() {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
+		_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
 		iri := BlockIRI(ref)
 		g.mu.Lock()
 		g.pendingUnref = append(g.pendingUnref, iri)

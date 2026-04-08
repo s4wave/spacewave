@@ -104,7 +104,8 @@ func (w *Writer) Append(ctx context.Context, adds, removes []*RefEdge) error {
 }
 
 // allocSequence acquires the ordering lock, reads the current counter,
-// increments it, persists, and returns the new value.
+// increments it, persists, and returns the new value. The ordering lock
+// provides mutual exclusion so the counter file needs no per-file lock.
 func (w *Writer) allocSequence() (uint64, error) {
 	release, err := filelock.AcquireWebLock(w.orderLock, true)
 	if err != nil {
@@ -112,59 +113,30 @@ func (w *Writer) allocSequence() (uint64, error) {
 	}
 	defer release()
 
-	seq, _ := w.readCounter()
+	// Open counter file once for both read and write.
+	f, err := opfs.CreateSyncFile(w.dir, seqCounterFile)
+	if err != nil {
+		return 0, errors.Wrap(err, "open counter file")
+	}
+	defer f.Close()
+
+	var seq uint64
+	if size := f.Size(); size > 0 {
+		buf := make([]byte, size)
+		n, err := f.ReadAt(buf, 0)
+		if err == nil {
+			seq, _ = strconv.ParseUint(string(buf[:n]), 10, 64)
+		}
+	}
+
 	seq++
-	if err := w.writeCounter(seq); err != nil {
-		return 0, err
-	}
-	return seq, nil
-}
-
-// readCounter reads the persisted sequence counter. Returns 0 if the
-// file does not exist or cannot be parsed.
-func (w *Writer) readCounter() (uint64, error) {
-	exists, err := opfs.FileExists(w.dir, seqCounterFile)
-	if err != nil || !exists {
-		return 0, err
-	}
-	f, release, err := filelock.AcquireFile(w.dir, seqCounterFile, w.lockPrefix, false)
-	if err != nil {
-		return 0, err
-	}
-	defer release()
-
-	size, err := f.Size()
-	if err != nil || size == 0 {
-		return 0, err
-	}
-	buf := make([]byte, size)
-	n, err := f.ReadAt(buf, 0)
-	if err != nil {
-		return 0, err
-	}
-	v, err := strconv.ParseUint(string(buf[:n]), 10, 64)
-	if err != nil {
-		return 0, nil
-	}
-	return v, nil
-}
-
-// writeCounter persists the sequence counter.
-func (w *Writer) writeCounter(seq uint64) error {
-	f, release, err := filelock.AcquireFile(w.dir, seqCounterFile, w.lockPrefix, true)
-	if err != nil {
-		return errors.Wrap(err, "acquire counter file")
-	}
-	defer release()
-
 	data := []byte(strconv.FormatUint(seq, 10))
-	if err := f.Truncate(0); err != nil {
-		return errors.Wrap(err, "truncate counter")
-	}
+	f.Truncate(0)
 	if _, err := f.WriteAt(data, 0); err != nil {
-		return errors.Wrap(err, "write counter")
+		return 0, errors.Wrap(err, "write counter")
 	}
-	return f.Flush()
+	f.Flush()
+	return seq, nil
 }
 
 // formatFilename produces a WAL filename: <zero-padded seq>-<ulid>.wal

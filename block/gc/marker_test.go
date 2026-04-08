@@ -125,6 +125,22 @@ func (m *mockCollectorGraph) RemoveObjectRoot(_ context.Context, _ string, _ *bl
 	return nil
 }
 
+func (m *mockCollectorGraph) RemoveRoot(_ context.Context, iri string) error {
+	idx := slices.Index(m.roots, iri)
+	if idx >= 0 {
+		m.roots = slices.Delete(m.roots, idx, idx+1)
+	}
+	return nil
+}
+
+func (m *mockCollectorGraph) RemoveNode(_ context.Context, iri string) error {
+	idx := slices.Index(m.nodes, iri)
+	if idx >= 0 {
+		m.nodes = slices.Delete(m.nodes, idx, idx+1)
+	}
+	return nil
+}
+
 func (m *mockCollectorGraph) Close() error {
 	if m.closeFn != nil {
 		return m.closeFn()
