@@ -41,6 +41,10 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	if !write {
 		return readTx, nil
 	}
+	// Eagerly clean up stale .pending marker from a crashed write.
+	// Safe without exclusive lock: an in-progress commit does not
+	// re-check the marker, and deletion is idempotent.
+	_ = opfs.DeleteFile(s.root, pendingMarker)
 	return kvtx_txcache.NewTxWithCbs(readTx, true, readTx.Discard, func() (kvtx.Tx, error) {
 		return s.newRawTransaction(ctx, true)
 	}, true)

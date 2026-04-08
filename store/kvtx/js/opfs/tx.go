@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"sort"
-	"strings"
 	"sync/atomic"
 	"syscall/js"
 
@@ -332,18 +331,23 @@ type kvEntry struct {
 
 // collectEntries returns all keys matching the prefix, sorted.
 // If loadValues is true, values are read from OPFS.
+//
+// b58 encoding does not preserve prefix relationships, so all shards
+// are scanned and filtering is performed on decoded keys.
 func (t *Tx) collectEntries(prefix []byte, loadValues bool) ([]kvEntry, error) {
-	hexPrefix := encodeKey(prefix)
 	seen := make(map[string]struct{})
 	var entries []kvEntry
 
-	// Determine matching shards.
-	shards, err := t.matchingShards(hexPrefix)
+	// Scan all shard directories.
+	shardNames, err := opfs.ListDirectory(t.store.root)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, shard := range shards {
+	for _, shard := range shardNames {
+		if len(shard) != 2 {
+			continue
+		}
 		shardDir, err := t.getShardDir(shard, false)
 		if err != nil {
 			if opfs.IsNotFound(err) {
@@ -356,9 +360,6 @@ func (t *Tx) collectEntries(prefix []byte, loadValues bool) ([]kvEntry, error) {
 			return nil, err
 		}
 		for _, name := range names {
-			if len(hexPrefix) > 0 && !strings.HasPrefix(name, hexPrefix) {
-				continue
-			}
 			if t.write {
 				if _, deleted := t.deletes[name]; deleted {
 					continue
@@ -366,6 +367,9 @@ func (t *Tx) collectEntries(prefix []byte, loadValues bool) ([]kvEntry, error) {
 			}
 			key, err := decodeKey(name)
 			if err != nil {
+				continue
+			}
+			if len(prefix) > 0 && !bytes.HasPrefix(key, prefix) {
 				continue
 			}
 			seen[name] = struct{}{}
@@ -395,11 +399,11 @@ func (t *Tx) collectEntries(prefix []byte, loadValues bool) ([]kvEntry, error) {
 			if _, ok := seen[encoded]; ok {
 				continue
 			}
-			if len(hexPrefix) > 0 && !strings.HasPrefix(encoded, hexPrefix) {
-				continue
-			}
 			key, err := decodeKey(encoded)
 			if err != nil {
+				continue
+			}
+			if len(prefix) > 0 && !bytes.HasPrefix(key, prefix) {
 				continue
 			}
 			v := val
@@ -414,28 +418,6 @@ func (t *Tx) collectEntries(prefix []byte, loadValues bool) ([]kvEntry, error) {
 		return bytes.Compare(entries[i].key, entries[j].key) < 0
 	})
 	return entries, nil
-}
-
-// matchingShards returns shard directory names that could contain keys with the given hex prefix.
-func (t *Tx) matchingShards(hexPrefix string) ([]string, error) {
-	if len(hexPrefix) < 2 {
-		// Empty or 1-char prefix: scan all existing shards.
-		names, err := opfs.ListDirectory(t.store.root)
-		if err != nil {
-			return nil, err
-		}
-		var shards []string
-		for _, name := range names {
-			if len(name) == 2 && name != pendingMarker {
-				if len(hexPrefix) == 1 && name[0] != hexPrefix[0] {
-					continue
-				}
-				shards = append(shards, name)
-			}
-		}
-		return shards, nil
-	}
-	return []string{hexPrefix[:2]}, nil
 }
 
 // Commit commits the transaction to storage.
@@ -502,8 +484,23 @@ func (t *Tx) Discard() {
 	t.release()
 }
 
-// cleanupPending detects and cleans up a .pending marker from a crashed write.
-// Called at the start of a new write transaction.
+// cleanupPending detects and cleans up a .pending marker from a crashed
+// write transaction. Called at the start of each new write transaction.
+//
+// Crash semantics: OPFS file writes are atomic per file (createWritable
+// replaces the entire file on close, sync access handles flush atomically).
+// A crash mid-commit leaves some keys updated and others not, but no
+// individual key value is corrupted. This is acceptable because:
+//
+//   - Block store keys are content-addressed and idempotent.
+//   - Object store keys are overwritten completely on the next commit.
+//   - GC ref graph edges use ignore_duplicate/ignore_missing, so partial
+//     ref writes are safe (missing refs may cause premature collection
+//     of unreferenced blocks, but this is bounded by the GC grace period).
+//
+// Read transactions do NOT check or clean the marker. They may observe
+// partial state from a crashed write until the next write transaction
+// runs cleanup.
 func (t *Tx) cleanupPending() error {
 	exists, err := opfs.FileExists(t.store.root, pendingMarker)
 	if err != nil {
@@ -512,10 +509,6 @@ func (t *Tx) cleanupPending() error {
 	if !exists {
 		return nil
 	}
-	// A previous write crashed. Remove the marker.
-	// The partial writes remain in the store - they are harmless since
-	// the content-addressed block store is idempotent and the object store
-	// overwrites entries atomically per file.
 	err = opfs.DeleteFile(t.store.root, pendingMarker)
 	if err != nil && !opfs.IsNotFound(err) {
 		return err
