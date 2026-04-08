@@ -66,7 +66,7 @@ func decodeIndex(buf []byte) ([]IndexEntry, error) {
 // Returns the data block byte offset to start scanning from,
 // and the byte offset limit (end of the scan window).
 // If dataBlockSize is provided, the last window extends to the end of the data block.
-func searchIndex(index []IndexEntry, key []byte, dataBlockSize uint32) (start, limit uint32) {
+func SearchIndex(index []IndexEntry, key []byte, dataBlockSize uint32) (start, limit uint32) {
 	if len(index) == 0 {
 		return 0, dataBlockSize
 	}

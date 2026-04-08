@@ -168,7 +168,7 @@ func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
 	dataSize := rd.header.DataSize
 
 	// Use sparse index to narrow the scan window.
-	start, limit := searchIndex(rd.index, key, dataSize)
+	start, limit := SearchIndex(rd.index, key, dataSize)
 	windowSize := limit - start
 	window := make([]byte, windowSize)
 	if _, err := rd.r.ReadAt(window, int64(rd.header.DataOffset)+int64(start)); err != nil {
