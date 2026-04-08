@@ -82,14 +82,20 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	defer release()
 
 	// Content-addressed: if the file already has data, the block exists.
-	if file.Size() > 0 {
+	size, err := file.Size()
+	if err != nil {
+		return nil, false, err
+	}
+	if size > 0 {
 		return ref, true, nil
 	}
 
 	if _, err := file.WriteAt(data, 0); err != nil {
 		return nil, false, err
 	}
-	file.Flush()
+	if err := file.Flush(); err != nil {
+		return nil, false, err
+	}
 	return ref, false, nil
 }
 
@@ -126,7 +132,10 @@ func (s *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	}
 	defer release()
 
-	size := file.Size()
+	size, err := file.Size()
+	if err != nil {
+		return nil, false, err
+	}
 	if size == 0 {
 		return nil, false, nil
 	}

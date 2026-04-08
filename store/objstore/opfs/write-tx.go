@@ -51,12 +51,13 @@ func (t *writeTx) Set(ctx context.Context, key, value []byte) error {
 	}
 	defer rel()
 
-	file.Truncate(0)
+	if err := file.Truncate(0); err != nil {
+		return errors.Wrap(err, "truncate")
+	}
 	if _, err := file.WriteAt(value, 0); err != nil {
 		return errors.Wrap(err, "write")
 	}
-	file.Flush()
-	return nil
+	return file.Flush()
 }
 
 // Delete removes a key.
