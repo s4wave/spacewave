@@ -14,16 +14,17 @@ import (
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/gc/gcgraph"
 	block_gc_wal "github.com/aperturerobotics/hydra/block/gc/wal"
-	block_store_opfs "github.com/aperturerobotics/hydra/block/store/opfs"
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/opfs/filelock"
+	"github.com/aperturerobotics/hydra/volume/js/opfs/blockshard"
 )
 
 // testHarness sets up real OPFS-backed block store, GC graph, and WAL writer.
 type testHarness struct {
 	t          *testing.T
 	root       func() // cleanup
-	blkStore   *block_store_opfs.BlockStore
+	blkStore   block.StoreOps
+	engine     *blockshard.Engine
 	gcGraph    *gcgraph.GCGraph
 	walWriter  *block_gc_wal.Writer
 	appender   *block_gc_wal.Appender
@@ -69,7 +70,14 @@ func newTestHarness(t *testing.T, name string) *testHarness {
 	}
 
 	lockPrefix := name
-	blkStore := block_store_opfs.NewBlockStore(blocksDir, lockPrefix+"/blocks", hash.HashType_HashType_BLAKE3)
+	ctx := context.Background()
+
+	engine, err := blockshard.NewEngine(ctx, blocksDir, lockPrefix+"/blocks", blockshard.DefaultShardCount)
+	if err != nil {
+		cleanup()
+		t.Fatal(err)
+	}
+	blkStore := blockshard.NewBlockStore(engine, hash.HashType_HashType_BLAKE3)
 
 	gcGraph, err := gcgraph.NewGCGraph(graphDir, lockPrefix+"/gc/graph")
 	if err != nil {
@@ -78,7 +86,6 @@ func newTestHarness(t *testing.T, name string) *testHarness {
 	}
 
 	// Register volume-context roots.
-	ctx := context.Background()
 	if err := gcGraph.AddRoot(ctx, block_gc.NodeGCRoot); err != nil {
 		cleanup()
 		t.Fatal(err)
@@ -97,6 +104,7 @@ func newTestHarness(t *testing.T, name string) *testHarness {
 		t:          t,
 		root:       cleanup,
 		blkStore:   blkStore,
+		engine:     engine,
 		gcGraph:    gcGraph,
 		walWriter:  walWriter,
 		appender:   appender,
@@ -105,6 +113,9 @@ func newTestHarness(t *testing.T, name string) *testHarness {
 }
 
 func (h *testHarness) cleanup() {
+	if h.engine != nil {
+		h.engine.Close()
+	}
 	h.root()
 }
 
@@ -158,7 +169,7 @@ func (h *testHarness) acquireSTW() block_gc.STWLockFunc {
 
 // sweepTarget wraps the block store for GC sweep deletion.
 type sweepTarget struct {
-	blk *block_store_opfs.BlockStore
+	blk block.StoreOps
 }
 
 func (s *sweepTarget) DeleteBlock(ctx context.Context, iri string) error {
