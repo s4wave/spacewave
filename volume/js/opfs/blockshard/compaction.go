@@ -4,6 +4,7 @@ package blockshard
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
@@ -12,6 +13,10 @@ import (
 
 // DefaultL0Trigger is the L0 segment count threshold before compaction.
 const DefaultL0Trigger = 4
+
+// DefaultRetireGracePeriod is the minimum wall-clock delay before reclaiming
+// retired segments.
+const DefaultRetireGracePeriod = 250 * time.Millisecond
 
 // CompactionPlan describes a set of segments to compact.
 type CompactionPlan struct {
@@ -49,23 +54,13 @@ func PlanCompaction(shard *Shard, trigger int) *CompactionPlan {
 
 // ExecuteCompaction runs compaction for a plan. Caller must hold the publish lock.
 func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
-	// Verify inputs still present in current manifest.
 	m := shard.Manifest()
 	inputNames := make(map[string]bool, len(plan.InputSegs))
 	for _, seg := range plan.InputSegs {
 		inputNames[seg.Filename] = true
 	}
-	for name := range inputNames {
-		found := false
-		for _, seg := range m.Segments {
-			if seg.Filename == name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.Errorf("input segment %s no longer in manifest", name)
-		}
+	if err := verifyCompactionInputs(m, inputNames); err != nil {
+		return err
 	}
 
 	// Read input segments into memory.
@@ -93,6 +88,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 
 	// Build output SSTable.
 	w := segment.NewWriter()
+	w.SetBloomFPR(shard.bloomFPR)
 	for i := range merged {
 		if merged[i].Tombstone {
 			w.AddTombstone(merged[i].Key)
@@ -144,18 +140,18 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 
 	// Build new manifest: remove inputs, add L1 output.
 	shard.mu.Lock()
-	var newSegs []SegmentMeta
-	for _, seg := range shard.manifest.Segments {
-		if !inputNames[seg.Filename] {
-			newSegs = append(newSegs, seg)
-		}
-	}
-	newSegs = append(newSegs, outMeta)
-	newManifest := &Manifest{
-		Generation: gen,
-		Segments:   newSegs,
-	}
+	newManifest, err := buildCompactedManifest(
+		shard.manifest,
+		inputNames,
+		outMeta,
+		gen,
+		uint64(shard.nowFn().UnixMilli()),
+		uint64(DefaultRetireGracePeriod/time.Millisecond),
+	)
 	shard.mu.Unlock()
+	if err != nil {
+		return err
+	}
 
 	if err := shard.writeManifest(newManifest); err != nil {
 		return errors.Wrap(err, "write compaction manifest")

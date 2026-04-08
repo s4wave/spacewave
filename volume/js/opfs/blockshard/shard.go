@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall/js"
+	"time"
 
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/opfs/filelock"
@@ -29,15 +30,23 @@ type Shard struct {
 	mu       sync.Mutex
 	manifest *Manifest
 	seqNum   uint64 // monotonic segment filename counter
+	nowFn    func() time.Time
+	bloomFPR float64
+
+	lookupCache map[string]*segment.LookupMeta
 }
 
 // NewShard opens or creates a shard in the given OPFS directory.
 // It reads both manifest slots and picks the higher valid generation.
-func NewShard(id int, dir js.Value, lockPrefix string) (*Shard, error) {
+func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Shard, error) {
+	settings = normalizeSettings(settings)
 	s := &Shard{
-		id:         id,
-		dir:        dir,
-		lockPrefix: lockPrefix,
+		id:          id,
+		dir:         dir,
+		lockPrefix:  lockPrefix,
+		nowFn:       time.Now,
+		bloomFPR:    settings.BloomFPR,
+		lookupCache: make(map[string]*segment.LookupMeta),
 	}
 
 	// Read both manifest slots.
@@ -64,7 +73,7 @@ func (s *Shard) ID() int {
 func (s *Shard) Manifest() *Manifest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.manifest
+	return s.manifest.Clone()
 }
 
 // Publish writes a batch of key-value entries as a new SSTable segment,
@@ -76,6 +85,7 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 
 	// Build the SSTable in memory.
 	w := segment.NewWriter()
+	w.SetBloomFPR(s.bloomFPR)
 	for i := range entries {
 		if entries[i].Tombstone {
 			w.AddTombstone(entries[i].Key)
@@ -128,6 +138,7 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 		MinKey:     rd.MinKey(),
 		MaxKey:     rd.MaxKey(),
 	}
+	lookup := lookupFromReader(rd)
 
 	// Update manifest.
 	s.mu.Lock()
@@ -137,7 +148,11 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 	}
 	s.mu.Unlock()
 
-	return s.writeManifest(newManifest)
+	if err := s.writeManifest(newManifest); err != nil {
+		return err
+	}
+	s.cacheLookup(filename, lookup)
+	return nil
 }
 
 // writeManifest writes a manifest to the alternate slot and commits in-memory.
@@ -162,7 +177,7 @@ func (s *Shard) writeManifest(m *Manifest) error {
 	}
 
 	s.mu.Lock()
-	s.manifest = m
+	s.setManifestLocked(m)
 	s.mu.Unlock()
 	return nil
 }
@@ -187,6 +202,15 @@ func (s *Shard) deriveSeqNum() uint64 {
 			}
 		}
 	}
+	for _, seg := range s.manifest.PendingDelete {
+		if len(seg.Filename) >= 14 {
+			if n, err := strconv.ParseUint(seg.Filename[4:10], 10, 64); err == nil {
+				if n > max {
+					max = n
+				}
+			}
+		}
+	}
 	return max
 }
 
@@ -200,10 +224,7 @@ func (s *Shard) CleanOrphans() error {
 
 	// Build set of referenced segment filenames.
 	s.mu.Lock()
-	refs := make(map[string]struct{}, len(s.manifest.Segments))
-	for _, seg := range s.manifest.Segments {
-		refs[seg.Filename] = struct{}{}
-	}
+	refs := s.manifest.ReferencedFiles()
 	s.mu.Unlock()
 
 	// Delete .sst files not in the manifest.
@@ -217,6 +238,37 @@ func (s *Shard) CleanOrphans() error {
 		opfs.DeleteFile(s.dir, name)
 	}
 	return nil
+}
+
+// ReclaimPendingDelete removes manifest-retired segment files once both the
+// generation gate and grace-period gate say they are safe to reclaim. Caller
+// must hold the shard publish lock.
+func (s *Shard) ReclaimPendingDelete() (bool, error) {
+	s.mu.Lock()
+	current := s.manifest.Clone()
+	nowUnixMilli := uint64(s.nowFn().UnixMilli())
+	keep, reclaim := selectReclaimablePending(current, nowUnixMilli)
+	if len(reclaim) == 0 {
+		s.mu.Unlock()
+		return false, nil
+	}
+	next := buildReclaimManifest(current, keep)
+	s.mu.Unlock()
+
+	if err := s.writeManifest(next); err != nil {
+		return false, errors.Wrap(err, "write reclaim manifest")
+	}
+
+	for _, seg := range reclaim {
+		err := opfs.DeleteFile(s.dir, seg.Filename)
+		if err == nil || opfs.IsNotFound(err) {
+			continue
+		}
+		// Best-effort: the manifest no longer references this file, so a failed
+		// delete leaves an orphan to be cleaned up later rather than reopening
+		// stale-reader risk.
+	}
+	return true, nil
 }
 
 // readFileBytes reads the full contents of an OPFS file, returning nil on error.

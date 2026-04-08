@@ -4,6 +4,7 @@ package volume_opfs
 
 import (
 	"context"
+	"time"
 
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/gc/gcgraph"
@@ -67,19 +68,33 @@ func NewOpfs(
 		return nil, errors.Wrap(err, "create blocks directory")
 	}
 
-	blkEngine, err := blockshard.NewEngine(ctx, blocksDir, lockPrefix+"/blocks", blockshard.DefaultShardCount)
+	blockSettings := &blockshard.Settings{
+		ShardCount:        int(conf.GetBlockShardCount()),
+		BloomFPR:          conf.GetBlockBloomFpr(),
+		FlushThreshold:    int(conf.GetBlockFlushThreshold()),
+		FlushMaxAge:       time.Duration(conf.GetBlockFlushMaxAgeMillis()) * time.Millisecond,
+		CompactionTrigger: int(conf.GetBlockCompactionTrigger()),
+	}
+	blkEngine, err := blockshard.NewEngineWithSettings(ctx, blocksDir, lockPrefix+"/blocks", blockSettings)
 	if err != nil {
 		return nil, errors.Wrap(err, "create block shard engine")
 	}
 	blkStore := blockshard.NewBlockStore(blkEngine, conf.GetStoreConfig().GetHashType())
 
 	// Meta page store: single B+tree page file with dual superblocks.
+	metaShardCount := conf.GetMetaShardCount()
+	if metaShardCount == 0 {
+		metaShardCount = 1
+	}
+	if metaShardCount != 1 {
+		return nil, errors.Errorf("meta shard count must be 1, got %d", metaShardCount)
+	}
 	metaDir, err := opfs.GetDirectory(volDir, "meta", true)
 	if err != nil {
 		return nil, errors.Wrap(err, "create meta directory")
 	}
 
-	meta, err := metashard.NewMetaShard(metaDir, lockPrefix+"/meta", 0)
+	meta, err := metashard.NewMetaShard(metaDir, lockPrefix+"/meta", int(conf.GetPageSize()))
 	if err != nil {
 		return nil, errors.Wrap(err, "create meta shard")
 	}
@@ -91,16 +106,12 @@ func NewOpfs(
 	}
 
 	statsFn := func(ctx context.Context) (*volume.StorageStats, error) {
-		tx, txErr := metaStore.NewTransaction(ctx, false)
-		if txErr != nil {
-			return nil, txErr
-		}
-		defer tx.Discard()
-		count, txErr := tx.Size(ctx)
+		count, totalBytes, txErr := blkEngine.LiveStats()
 		if txErr != nil {
 			return nil, txErr
 		}
 		return &volume.StorageStats{
+			TotalBytes: totalBytes,
 			BlockCount: count,
 		}, nil
 	}

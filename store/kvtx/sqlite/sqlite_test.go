@@ -1,3 +1,5 @@
+//go:build !js
+
 package store_kvtx_sqlite
 
 import (

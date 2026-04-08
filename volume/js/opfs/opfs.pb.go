@@ -5,8 +5,10 @@
 package volume_opfs
 
 import (
+	binary "encoding/binary"
 	fmt "fmt"
 	io "io"
+	math "math"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
@@ -39,6 +41,21 @@ type Config struct {
 	VolumeConfig *controller.Config `protobuf:"bytes,7,opt,name=volume_config,json=volumeConfig,proto3" json:"volumeConfig,omitempty"`
 	// StoreConfig is the store configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,8,opt,name=store_config,json=storeConfig,proto3" json:"storeConfig,omitempty"`
+	// BlockShardCount is the number of OPFS block shards.
+	BlockShardCount uint32 `protobuf:"varint,9,opt,name=block_shard_count,json=blockShardCount,proto3" json:"blockShardCount,omitempty"`
+	// MetaShardCount is the number of metadata shards.
+	// The current implementation requires exactly 1 when set.
+	MetaShardCount uint32 `protobuf:"varint,10,opt,name=meta_shard_count,json=metaShardCount,proto3" json:"metaShardCount,omitempty"`
+	// BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
+	BlockBloomFpr float64 `protobuf:"fixed64,11,opt,name=block_bloom_fpr,json=blockBloomFpr,proto3" json:"blockBloomFpr,omitempty"`
+	// BlockFlushThreshold is the per-shard write coalescing flush threshold.
+	BlockFlushThreshold uint32 `protobuf:"varint,12,opt,name=block_flush_threshold,json=blockFlushThreshold,proto3" json:"blockFlushThreshold,omitempty"`
+	// BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
+	BlockFlushMaxAgeMillis uint32 `protobuf:"varint,13,opt,name=block_flush_max_age_millis,json=blockFlushMaxAgeMillis,proto3" json:"blockFlushMaxAgeMillis,omitempty"`
+	// BlockCompactionTrigger is the L0 compaction trigger per shard.
+	BlockCompactionTrigger uint32 `protobuf:"varint,14,opt,name=block_compaction_trigger,json=blockCompactionTrigger,proto3" json:"blockCompactionTrigger,omitempty"`
+	// PageSize is the metadata page size in bytes.
+	PageSize uint32 `protobuf:"varint,15,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -103,6 +120,55 @@ func (x *Config) GetStoreConfig() *kvtx.Config {
 	return nil
 }
 
+func (x *Config) GetBlockShardCount() uint32 {
+	if x != nil {
+		return x.BlockShardCount
+	}
+	return 0
+}
+
+func (x *Config) GetMetaShardCount() uint32 {
+	if x != nil {
+		return x.MetaShardCount
+	}
+	return 0
+}
+
+func (x *Config) GetBlockBloomFpr() float64 {
+	if x != nil {
+		return x.BlockBloomFpr
+	}
+	return 0
+}
+
+func (x *Config) GetBlockFlushThreshold() uint32 {
+	if x != nil {
+		return x.BlockFlushThreshold
+	}
+	return 0
+}
+
+func (x *Config) GetBlockFlushMaxAgeMillis() uint32 {
+	if x != nil {
+		return x.BlockFlushMaxAgeMillis
+	}
+	return 0
+}
+
+func (x *Config) GetBlockCompactionTrigger() uint32 {
+	if x != nil {
+		return x.BlockCompactionTrigger
+	}
+	return 0
+}
+
+func (x *Config) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -113,6 +179,13 @@ func (m *Config) CloneVT() *Config {
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
+	r.BlockShardCount = m.BlockShardCount
+	r.MetaShardCount = m.MetaShardCount
+	r.BlockBloomFpr = m.BlockBloomFpr
+	r.BlockFlushThreshold = m.BlockFlushThreshold
+	r.BlockFlushMaxAgeMillis = m.BlockFlushMaxAgeMillis
+	r.BlockCompactionTrigger = m.BlockCompactionTrigger
+	r.PageSize = m.PageSize
 	if rhs := m.KvKeyOpts; rhs != nil {
 		r.KvKeyOpts = rhs.CloneVT()
 	}
@@ -160,6 +233,27 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !this.StoreConfig.EqualVT(that.StoreConfig) {
+		return false
+	}
+	if this.BlockShardCount != that.BlockShardCount {
+		return false
+	}
+	if this.MetaShardCount != that.MetaShardCount {
+		return false
+	}
+	if this.BlockBloomFpr != that.BlockBloomFpr {
+		return false
+	}
+	if this.BlockFlushThreshold != that.BlockFlushThreshold {
+		return false
+	}
+	if this.BlockFlushMaxAgeMillis != that.BlockFlushMaxAgeMillis {
+		return false
+	}
+	if this.BlockCompactionTrigger != that.BlockCompactionTrigger {
+		return false
+	}
+	if this.PageSize != that.PageSize {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -221,6 +315,41 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("storeConfig")
 		x.StoreConfig.MarshalProtoJSON(s.WithField("storeConfig"))
 	}
+	if x.BlockShardCount != 0 || s.HasField("blockShardCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockShardCount")
+		s.WriteUint32(x.BlockShardCount)
+	}
+	if x.MetaShardCount != 0 || s.HasField("metaShardCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("metaShardCount")
+		s.WriteUint32(x.MetaShardCount)
+	}
+	if x.BlockBloomFpr != 0 || s.HasField("blockBloomFpr") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockBloomFpr")
+		s.WriteFloat64(x.BlockBloomFpr)
+	}
+	if x.BlockFlushThreshold != 0 || s.HasField("blockFlushThreshold") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockFlushThreshold")
+		s.WriteUint32(x.BlockFlushThreshold)
+	}
+	if x.BlockFlushMaxAgeMillis != 0 || s.HasField("blockFlushMaxAgeMillis") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockFlushMaxAgeMillis")
+		s.WriteUint32(x.BlockFlushMaxAgeMillis)
+	}
+	if x.BlockCompactionTrigger != 0 || s.HasField("blockCompactionTrigger") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockCompactionTrigger")
+		s.WriteUint32(x.BlockCompactionTrigger)
+	}
+	if x.PageSize != 0 || s.HasField("pageSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pageSize")
+		s.WriteUint32(x.PageSize)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -274,6 +403,27 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.StoreConfig = &kvtx.Config{}
 			x.StoreConfig.UnmarshalProtoJSON(s.WithField("store_config", true))
+		case "block_shard_count", "blockShardCount":
+			s.AddField("block_shard_count")
+			x.BlockShardCount = s.ReadUint32()
+		case "meta_shard_count", "metaShardCount":
+			s.AddField("meta_shard_count")
+			x.MetaShardCount = s.ReadUint32()
+		case "block_bloom_fpr", "blockBloomFpr":
+			s.AddField("block_bloom_fpr")
+			x.BlockBloomFpr = s.ReadFloat64()
+		case "block_flush_threshold", "blockFlushThreshold":
+			s.AddField("block_flush_threshold")
+			x.BlockFlushThreshold = s.ReadUint32()
+		case "block_flush_max_age_millis", "blockFlushMaxAgeMillis":
+			s.AddField("block_flush_max_age_millis")
+			x.BlockFlushMaxAgeMillis = s.ReadUint32()
+		case "block_compaction_trigger", "blockCompactionTrigger":
+			s.AddField("block_compaction_trigger")
+			x.BlockCompactionTrigger = s.ReadUint32()
+		case "page_size", "pageSize":
+			s.AddField("page_size")
+			x.PageSize = s.ReadUint32()
 		}
 	})
 }
@@ -312,6 +462,42 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PageSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.BlockCompactionTrigger != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockCompactionTrigger))
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.BlockFlushMaxAgeMillis != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockFlushMaxAgeMillis))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.BlockFlushThreshold != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockFlushThreshold))
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.BlockBloomFpr != 0 {
+		i -= 8
+		binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.BlockBloomFpr))))
+		i--
+		dAtA[i] = 0x59
+	}
+	if m.MetaShardCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MetaShardCount))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.BlockShardCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockShardCount))
+		i--
+		dAtA[i] = 0x48
 	}
 	if m.StoreConfig != nil {
 		size, err := m.StoreConfig.MarshalToSizedBufferVT(dAtA[:i])
@@ -425,6 +611,27 @@ func (m *Config) SizeVT() (n int) {
 		l = m.StoreConfig.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.BlockShardCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockShardCount))
+	}
+	if m.MetaShardCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.MetaShardCount))
+	}
+	if m.BlockBloomFpr != 0 {
+		n += 9
+	}
+	if m.BlockFlushThreshold != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockFlushThreshold))
+	}
+	if m.BlockFlushMaxAgeMillis != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockFlushMaxAgeMillis))
+	}
+	if m.BlockCompactionTrigger != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockCompactionTrigger))
+	}
+	if m.PageSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -487,6 +694,55 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("store_config: ")
 		sb.WriteString(x.StoreConfig.MarshalProtoText())
+	}
+	if x.BlockShardCount != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_shard_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockShardCount), 10))
+	}
+	if x.MetaShardCount != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("meta_shard_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.MetaShardCount), 10))
+	}
+	if x.BlockBloomFpr != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_bloom_fpr: ")
+		sb.WriteString(strconv.FormatFloat(x.BlockBloomFpr, 'g', -1, 64))
+	}
+	if x.BlockFlushThreshold != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_flush_threshold: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockFlushThreshold), 10))
+	}
+	if x.BlockFlushMaxAgeMillis != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_flush_max_age_millis: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockFlushMaxAgeMillis), 10))
+	}
+	if x.BlockCompactionTrigger != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_compaction_trigger: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockCompactionTrigger), 10))
+	}
+	if x.PageSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("page_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.PageSize), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -680,6 +936,72 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockShardCount", wireType)
+			}
+			m.BlockShardCount = 0
+			m.BlockShardCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MetaShardCount", wireType)
+			}
+			m.MetaShardCount = 0
+			m.MetaShardCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockBloomFpr", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.BlockBloomFpr = float64(math.Float64frombits(v))
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockFlushThreshold", wireType)
+			}
+			m.BlockFlushThreshold = 0
+			m.BlockFlushThreshold, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockFlushMaxAgeMillis", wireType)
+			}
+			m.BlockFlushMaxAgeMillis = 0
+			m.BlockFlushMaxAgeMillis, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockCompactionTrigger", wireType)
+			}
+			m.BlockCompactionTrigger = 0
+			m.BlockCompactionTrigger, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			m.PageSize, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

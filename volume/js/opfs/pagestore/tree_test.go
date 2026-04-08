@@ -142,6 +142,59 @@ func TestTreeScanPrefix(t *testing.T) {
 	}
 }
 
+func TestTreeSnapshotIsolationOnPutAndDelete(t *testing.T) {
+	pager := NewMemPager(DefaultPageSize)
+	tree := NewTree(pager)
+
+	if err := tree.Put([]byte("key"), []byte("v1")); err != nil {
+		t.Fatalf("Put(v1): %v", err)
+	}
+	rootV1 := tree.RootID()
+
+	if err := tree.Put([]byte("key"), []byte("v2")); err != nil {
+		t.Fatalf("Put(v2): %v", err)
+	}
+	snapV1 := OpenTree(pager, rootV1)
+
+	val, found, err := snapV1.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("snap Get(v1): %v", err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("snap Get(v1): found=%v val=%q", found, val)
+	}
+
+	val, found, err = tree.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("live Get(v2): %v", err)
+	}
+	if !found || string(val) != "v2" {
+		t.Fatalf("live Get(v2): found=%v val=%q", found, val)
+	}
+
+	rootV2 := tree.RootID()
+	if _, err := tree.Delete([]byte("key")); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	snapV2 := OpenTree(pager, rootV2)
+
+	val, found, err = snapV2.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("snap Get(v2): %v", err)
+	}
+	if !found || string(val) != "v2" {
+		t.Fatalf("snap Get(v2): found=%v val=%q", found, val)
+	}
+
+	_, found, err = tree.Get([]byte("key"))
+	if err != nil {
+		t.Fatalf("live Get(after delete): %v", err)
+	}
+	if found {
+		t.Fatal("live tree should not find deleted key")
+	}
+}
+
 func TestSuperblockRoundTrip(t *testing.T) {
 	sb := Superblock{
 		Magic:        SuperblockMagic,

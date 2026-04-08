@@ -292,6 +292,53 @@ func TestBloomInSSTable(t *testing.T) {
 	}
 }
 
+func TestLookupMetaGet(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(4)
+	for i := 0; i < 32; i++ {
+		w.Add([]byte("key-"+zeroPad(i, 3)), []byte("val-"+strconv.Itoa(i)))
+	}
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	data := buf.Bytes()
+
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+	if string(meta.MinKey) != "key-000" {
+		t.Fatalf("min key: got %q", meta.MinKey)
+	}
+	if string(meta.MaxKey) != "key-031" {
+		t.Fatalf("max key: got %q", meta.MaxKey)
+	}
+	if len(meta.Index) == 0 {
+		t.Fatal("expected sparse index entries")
+	}
+	if meta.Bloom == nil {
+		t.Fatal("expected bloom filter")
+	}
+
+	val, found, err := meta.Get(bytes.NewReader(data), []byte("key-017"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Get: %v", err)
+	}
+	if !found || string(val) != "val-17" {
+		t.Fatalf("LookupMeta.Get: found=%v val=%q want val-17", found, val)
+	}
+
+	_, found, err = meta.Get(bytes.NewReader(data), []byte("key-999"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Get(missing): %v", err)
+	}
+	if found {
+		t.Fatal("LookupMeta.Get(missing): should not be found")
+	}
+}
+
 func TestTombstones(t *testing.T) {
 	w := NewWriter()
 	w.Add([]byte("alive"), []byte("value"))

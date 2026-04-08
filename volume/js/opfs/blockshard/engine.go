@@ -38,6 +38,7 @@ type Engine struct {
 	wg          sync.WaitGroup
 	flushN      int
 	flushAge    time.Duration
+	compactionN int
 	broadcaster *Broadcaster
 	listener    *Listener
 }
@@ -45,17 +46,27 @@ type Engine struct {
 // NewEngine creates a new block shard engine in the given OPFS directory.
 // It creates shard subdirectories and starts per-shard write actors.
 func NewEngine(ctx context.Context, dir js.Value, lockPrefix string, shardCount int) (*Engine, error) {
-	if shardCount < 1 {
-		shardCount = DefaultShardCount
-	}
+	settings := DefaultSettings()
+	settings.ShardCount = shardCount
+	return NewEngineWithSettings(ctx, dir, lockPrefix, settings)
+}
 
+// NewEngineWithSettings creates a block shard engine with explicit settings.
+func NewEngineWithSettings(
+	ctx context.Context,
+	dir js.Value,
+	lockPrefix string,
+	settings *Settings,
+) (*Engine, error) {
+	settings = normalizeSettings(settings)
 	ctx, cancel := context.WithCancel(ctx)
 	e := &Engine{
-		shards:      make([]*Shard, shardCount),
-		actors:      make([]chan writeReq, shardCount),
+		shards:      make([]*Shard, settings.ShardCount),
+		actors:      make([]chan writeReq, settings.ShardCount),
 		cancel:      cancel,
-		flushN:      DefaultFlushThreshold,
-		flushAge:    DefaultFlushMaxAge,
+		flushN:      settings.FlushThreshold,
+		flushAge:    settings.FlushMaxAge,
+		compactionN: settings.CompactionTrigger,
 		broadcaster: NewBroadcaster(),
 		listener:    NewListener(),
 	}
@@ -67,11 +78,22 @@ func NewEngine(ctx context.Context, dir js.Value, lockPrefix string, shardCount 
 			cancel()
 			return nil, errors.Errorf("create shard %d directory: %v", i, err)
 		}
-		shard, err := NewShard(i, shardDir, lockPrefix)
+		shard, err := NewShard(i, shardDir, lockPrefix, settings)
 		if err != nil {
 			cancel()
 			return nil, errors.Errorf("open shard %d: %v", i, err)
 		}
+		release, err := shard.AcquirePublishLock()
+		if err != nil {
+			cancel()
+			return nil, errors.Errorf("lock shard %d recovery: %v", i, err)
+		}
+		if _, err := shard.ReclaimPendingDelete(); err != nil {
+			release()
+			cancel()
+			return nil, errors.Errorf("reclaim shard %d pending delete: %v", i, err)
+		}
+		release()
 		if err := shard.CleanOrphans(); err != nil {
 			cancel()
 			return nil, errors.Errorf("clean shard %d orphans: %v", i, err)
@@ -155,6 +177,10 @@ func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
 
 // GetFromShard looks up a key in a specific shard by scanning segments newest-first.
 func (e *Engine) GetFromShard(shardIdx int, key []byte) ([]byte, bool, error) {
+	return e.getFromShard(shardIdx, key, false)
+}
+
+func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, bool, error) {
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
 
@@ -165,12 +191,34 @@ func (e *Engine) GetFromShard(shardIdx int, key []byte) ([]byte, bool, error) {
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		sr, err := OpenSegment(shard.dir, seg.Filename)
+		lookup, err := shard.getLookup(seg)
 		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getFromShard(shardIdx, key, true)
+				}
+			}
+			return nil, false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+		}
+		f, err := opfs.OpenAsyncFile(shard.dir, seg.Filename)
+		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getFromShard(shardIdx, key, true)
+				}
+			}
 			return nil, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
-		val, found, err := sr.Get(key)
+		val, found, err := lookup.Get(f, key)
 		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getFromShard(shardIdx, key, true)
+				}
+			}
 			return nil, false, err
 		}
 		if found {
@@ -178,6 +226,20 @@ func (e *Engine) GetFromShard(shardIdx int, key []byte) ([]byte, bool, error) {
 		}
 	}
 	return nil, false, nil
+}
+
+func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
+	shard := e.shards[shardIdx]
+	a := readFileBytes(shard.dir, manifestSlotA)
+	b := readFileBytes(shard.dir, manifestSlotB)
+	m := PickManifest(a, b)
+	if m == nil {
+		return nil, nil
+	}
+	shard.mu.Lock()
+	shard.setManifestLocked(m)
+	shard.mu.Unlock()
+	return m.Clone(), nil
 }
 
 // Get looks up a key across all shards.
@@ -263,6 +325,9 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		}
 
 		err = shard.Publish(merged)
+		if err == nil {
+			_, err = shard.ReclaimPendingDelete()
+		}
 		gen := shard.Manifest().Generation
 		release()
 
@@ -278,16 +343,13 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 
 		// Check if compaction is needed after publish.
 		if err == nil {
-			plan := PlanCompaction(shard, DefaultL0Trigger)
+			plan := PlanCompaction(shard, e.compactionN)
 			if plan != nil {
 				release, lockErr := shard.AcquirePublishLock()
 				if lockErr == nil {
 					compErr := ExecuteCompaction(shard, plan)
 					if compErr == nil {
-						// Delete old input segments under the same lock hold.
-						for _, seg := range plan.InputSegs {
-							opfs.DeleteFile(shard.dir, seg.Filename)
-						}
+						_, compErr = shard.ReclaimPendingDelete()
 					}
 					compGen := shard.Manifest().Generation
 					release()
@@ -314,14 +376,8 @@ func (e *Engine) runInvalidationListener(ctx context.Context) {
 			shard := e.shards[idx]
 			current := shard.Manifest()
 			if msg.Generation > current.Generation {
-				// Re-read manifests from OPFS to pick up the new generation.
-				a := readFileBytes(shard.dir, manifestSlotA)
-				b := readFileBytes(shard.dir, manifestSlotB)
-				m := PickManifest(a, b)
-				if m != nil && m.Generation > current.Generation {
-					shard.mu.Lock()
-					shard.manifest = m
-					shard.mu.Unlock()
+				if _, err := e.refreshShardManifest(idx); err != nil {
+					continue
 				}
 			}
 		case <-ctx.Done():

@@ -43,7 +43,14 @@ inline constexpr Config::Impl_::Impl_(
         store_config_{nullptr},
         no_generate_key_{false},
         no_write_key_{false},
-        verbose_{false} {}
+        verbose_{false},
+        block_shard_count_{0u},
+        block_bloom_fpr_{0},
+        meta_shard_count_{0u},
+        block_flush_threshold_{0u},
+        block_flush_max_age_millis_{0u},
+        block_compaction_trigger_{0u},
+        page_size_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -75,7 +82,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_._has_bits_),
-        11, // hasbit index offset
+        18, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.root_path_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.lock_prefix_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.kv_key_opts_),
@@ -84,6 +91,13 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.verbose_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.volume_config_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.store_config_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_shard_count_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.meta_shard_count_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_bloom_fpr_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_flush_threshold_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_flush_max_age_millis_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_compaction_trigger_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.page_size_),
         0,
         1,
         2,
@@ -92,6 +106,13 @@ const ::uint32_t
         7,
         3,
         4,
+        8,
+        10,
+        9,
+        11,
+        12,
+        13,
+        14,
 };
 
 static const ::_pbi::MigrationSchema
@@ -109,13 +130,18 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fv
     "y/kvkey.proto\0327github.com/apertureroboti"
     "cs/hydra/store/kvtx/kvtx.proto\032Dgithub.c"
     "om/aperturerobotics/hydra/volume/control"
-    "ler/controller.proto\"\366\001\n\006Config\022\021\n\troot_"
+    "ler/controller.proto\"\274\003\n\006Config\022\021\n\troot_"
     "path\030\001 \001(\t\022\023\n\013lock_prefix\030\002 \001(\t\022(\n\013kv_ke"
     "y_opts\030\003 \001(\0132\023.store.kvkey.Config\022\027\n\017no_"
     "generate_key\030\004 \001(\010\022\024\n\014no_write_key\030\005 \001(\010"
     "\022\017\n\007verbose\030\006 \001(\010\0220\n\rvolume_config\030\007 \001(\013"
     "2\031.volume.controller.Config\022(\n\014store_con"
-    "fig\030\010 \001(\0132\022.store.kvtx.Configb\006proto3"
+    "fig\030\010 \001(\0132\022.store.kvtx.Config\022\031\n\021block_s"
+    "hard_count\030\t \001(\r\022\030\n\020meta_shard_count\030\n \001"
+    "(\r\022\027\n\017block_bloom_fpr\030\013 \001(\001\022\035\n\025block_flu"
+    "sh_threshold\030\014 \001(\r\022\"\n\032block_flush_max_ag"
+    "e_millis\030\r \001(\r\022 \n\030block_compaction_trigg"
+    "er\030\016 \001(\r\022\021\n\tpage_size\030\017 \001(\rb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fjs_2fopfs_2fopfs_2eproto_deps[3] = {
@@ -127,7 +153,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fjs_2fopfs_2fopfs_2eproto = {
     false,
     false,
-    517,
+    715,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fjs_2fopfs_2fopfs_2eproto,
     "github.com/aperturerobotics/hydra/volume/js/opfs/opfs.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fjs_2fopfs_2fopfs_2eproto_once,
@@ -215,9 +241,9 @@ Config::Config(
                offsetof(Impl_, no_generate_key_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, no_generate_key_),
-           offsetof(Impl_, verbose_) -
+           offsetof(Impl_, page_size_) -
                offsetof(Impl_, no_generate_key_) +
-               sizeof(Impl_::verbose_));
+               sizeof(Impl_::page_size_));
 
   // @@protoc_insertion_point(copy_constructor:volume.opfs.Config)
 }
@@ -233,9 +259,9 @@ inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, kv_key_opts_),
            0,
-           offsetof(Impl_, verbose_) -
+           offsetof(Impl_, page_size_) -
                offsetof(Impl_, kv_key_opts_) +
-               sizeof(Impl_::verbose_));
+               sizeof(Impl_::page_size_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:volume.opfs.Config)
@@ -299,16 +325,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 3, 55, 2>
+const ::_pbi::TcParseTable<4, 15, 3, 55, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    8, 56,  // max_field_number, fast_idx_mask
+    15, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967040,  // skipmap
+    4294934528,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    15,  // num_field_entries
     3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -318,10 +344,7 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::volume::opfs::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .store.kvtx.Config store_config = 8;
-    {::_pbi::TcParser::FastMtS1,
-     {66, 4, 2,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string root_path = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -350,6 +373,38 @@ Config::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {58, 3, 1,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_config_)}},
+    // .store.kvtx.Config store_config = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 4, 2,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_)}},
+    // uint32 block_shard_count = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_shard_count_), 8>(),
+     {72, 8, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_shard_count_)}},
+    // uint32 meta_shard_count = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.meta_shard_count_), 10>(),
+     {80, 10, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.meta_shard_count_)}},
+    // double block_bloom_fpr = 11;
+    {::_pbi::TcParser::FastF64S1,
+     {89, 9, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_bloom_fpr_)}},
+    // uint32 block_flush_threshold = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_flush_threshold_), 11>(),
+     {96, 11, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_flush_threshold_)}},
+    // uint32 block_flush_max_age_millis = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_flush_max_age_millis_), 12>(),
+     {104, 12, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_flush_max_age_millis_)}},
+    // uint32 block_compaction_trigger = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_compaction_trigger_), 13>(),
+     {112, 13, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_)}},
+    // uint32 page_size = 15;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.page_size_), 14>(),
+     {120, 14, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -369,6 +424,20 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_config_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .store.kvtx.Config store_config = 8;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 block_shard_count = 9;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_shard_count_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 meta_shard_count = 10;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.meta_shard_count_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // double block_bloom_fpr = 11;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_bloom_fpr_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kDouble)},
+    // uint32 block_flush_threshold = 12;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_flush_threshold_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 block_flush_max_age_millis = 13;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_flush_max_age_millis_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 block_compaction_trigger = 14;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 page_size = 15;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::store::kvkey::Config>()},
@@ -410,9 +479,16 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.store_config_->Clear();
     }
   }
-  ::memset(&_impl_.no_generate_key_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.verbose_) -
-      reinterpret_cast<char*>(&_impl_.no_generate_key_)) + sizeof(_impl_.verbose_));
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
+    ::memset(&_impl_.no_generate_key_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.verbose_) -
+        reinterpret_cast<char*>(&_impl_.no_generate_key_)) + sizeof(_impl_.verbose_));
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007f00U)) {
+    ::memset(&_impl_.block_shard_count_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.page_size_) -
+        reinterpret_cast<char*>(&_impl_.block_shard_count_)) + sizeof(_impl_.page_size_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -504,6 +580,69 @@ PROTOBUF_NOINLINE void Config::Clear() {
         stream);
   }
 
+  // uint32 block_shard_count = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_block_shard_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          9, this_._internal_block_shard_count(), target);
+    }
+  }
+
+  // uint32 meta_shard_count = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_meta_shard_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          10, this_._internal_meta_shard_count(), target);
+    }
+  }
+
+  // double block_bloom_fpr = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (::absl::bit_cast<::uint64_t>(this_._internal_block_bloom_fpr()) != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+          11, this_._internal_block_bloom_fpr(), target);
+    }
+  }
+
+  // uint32 block_flush_threshold = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_block_flush_threshold() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          12, this_._internal_block_flush_threshold(), target);
+    }
+  }
+
+  // uint32 block_flush_max_age_millis = 13;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_block_flush_max_age_millis() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          13, this_._internal_block_flush_max_age_millis(), target);
+    }
+  }
+
+  // uint32 block_compaction_trigger = 14;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_block_compaction_trigger() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          14, this_._internal_block_compaction_trigger(), target);
+    }
+  }
+
+  // uint32 page_size = 15;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_page_size() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          15, this_._internal_page_size(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -575,6 +714,56 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_verbose() != 0) {
         total_size += 2;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007f00U)) {
+    // uint32 block_shard_count = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_block_shard_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_block_shard_count());
+      }
+    }
+    // double block_bloom_fpr = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (::absl::bit_cast<::uint64_t>(this_._internal_block_bloom_fpr()) != 0) {
+        total_size += 9;
+      }
+    }
+    // uint32 meta_shard_count = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_meta_shard_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_meta_shard_count());
+      }
+    }
+    // uint32 block_flush_threshold = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_block_flush_threshold() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_block_flush_threshold());
+      }
+    }
+    // uint32 block_flush_max_age_millis = 13;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_block_flush_max_age_millis() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_block_flush_max_age_millis());
+      }
+    }
+    // uint32 block_compaction_trigger = 14;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_block_compaction_trigger() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_block_compaction_trigger());
+      }
+    }
+    // uint32 page_size = 15;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_page_size() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_page_size());
       }
     }
   }
@@ -656,6 +845,43 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_block_shard_count() != 0) {
+        _this->_impl_.block_shard_count_ = from._impl_.block_shard_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (::absl::bit_cast<::uint64_t>(from._internal_block_bloom_fpr()) != 0) {
+        _this->_impl_.block_bloom_fpr_ = from._impl_.block_bloom_fpr_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_meta_shard_count() != 0) {
+        _this->_impl_.meta_shard_count_ = from._impl_.meta_shard_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_block_flush_threshold() != 0) {
+        _this->_impl_.block_flush_threshold_ = from._impl_.block_flush_threshold_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_block_flush_max_age_millis() != 0) {
+        _this->_impl_.block_flush_max_age_millis_ = from._impl_.block_flush_max_age_millis_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_block_compaction_trigger() != 0) {
+        _this->_impl_.block_compaction_trigger_ = from._impl_.block_compaction_trigger_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_page_size() != 0) {
+        _this->_impl_.page_size_ = from._impl_.page_size_;
+      }
+    }
+  }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -678,8 +904,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.root_path_, &other->_impl_.root_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.lock_prefix_, &other->_impl_.lock_prefix_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_)
-      + sizeof(Config::_impl_.verbose_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_)
+      + sizeof(Config::_impl_.page_size_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.kv_key_opts_)>(
           reinterpret_cast<char*>(&_impl_.kv_key_opts_),
           reinterpret_cast<char*>(&other->_impl_.kv_key_opts_));

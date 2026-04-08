@@ -94,3 +94,131 @@ func TestMergeSegmentsDuplicateKeys(t *testing.T) {
 		t.Errorf("got %q, want v3", merged[0].Value)
 	}
 }
+
+func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
+	current := &Manifest{
+		Generation: 4,
+		Segments: []SegmentMeta{
+			{Filename: "seg-000001.sst", Level: 0, MinKey: []byte("a"), MaxKey: []byte("b")},
+			{Filename: "seg-000002.sst", Level: 0, MinKey: []byte("c"), MaxKey: []byte("d")},
+			{Filename: "seg-000003.sst", Level: 1, MinKey: []byte("e"), MaxKey: []byte("f")},
+		},
+		PendingDelete: []RetiredSegmentMeta{
+			{
+				SegmentMeta:          SegmentMeta{Filename: "seg-000000.sst", Level: 0},
+				RetireGeneration:     3,
+				DeleteAfterUnixMilli: 1000,
+			},
+		},
+	}
+	inputs := map[string]bool{
+		"seg-000001.sst": true,
+		"seg-000002.sst": true,
+	}
+	output := SegmentMeta{
+		Filename: "seg-000004.sst",
+		Level:    1,
+		MinKey:   []byte("a"),
+		MaxKey:   []byte("d"),
+	}
+
+	next, err := buildCompactedManifest(current, inputs, output, 5, 2000, 250)
+	if err != nil {
+		t.Fatalf("buildCompactedManifest: %v", err)
+	}
+
+	if next.Generation != 5 {
+		t.Fatalf("generation: got %d want 5", next.Generation)
+	}
+	if len(next.Segments) != 2 {
+		t.Fatalf("segments: got %d want 2", len(next.Segments))
+	}
+	if next.Segments[0].Filename != "seg-000003.sst" {
+		t.Fatalf("kept segment: got %q", next.Segments[0].Filename)
+	}
+	if next.Segments[1].Filename != "seg-000004.sst" {
+		t.Fatalf("output segment: got %q", next.Segments[1].Filename)
+	}
+	if len(next.PendingDelete) != 3 {
+		t.Fatalf("pending delete: got %d want 3", len(next.PendingDelete))
+	}
+	if next.PendingDelete[1].Filename != "seg-000001.sst" {
+		t.Fatalf("retired[1] filename: got %q", next.PendingDelete[1].Filename)
+	}
+	if next.PendingDelete[1].RetireGeneration != 5 {
+		t.Fatalf("retired[1] generation: got %d want 5", next.PendingDelete[1].RetireGeneration)
+	}
+	if next.PendingDelete[1].DeleteAfterUnixMilli != 2250 {
+		t.Fatalf("retired[1] delete-after: got %d want 2250", next.PendingDelete[1].DeleteAfterUnixMilli)
+	}
+	if next.PendingDelete[2].Filename != "seg-000002.sst" {
+		t.Fatalf("retired[2] filename: got %q", next.PendingDelete[2].Filename)
+	}
+	if len(current.PendingDelete) != 1 {
+		t.Fatalf("current manifest mutated: pending=%d want 1", len(current.PendingDelete))
+	}
+	if len(current.Segments) != 3 {
+		t.Fatalf("current manifest mutated: segments=%d want 3", len(current.Segments))
+	}
+}
+
+func TestSelectReclaimablePendingRequiresGenerationAndTime(t *testing.T) {
+	current := &Manifest{
+		Generation: 10,
+		PendingDelete: []RetiredSegmentMeta{
+			{
+				SegmentMeta:          SegmentMeta{Filename: "seg-safe.sst"},
+				RetireGeneration:     8,
+				DeleteAfterUnixMilli: 500,
+			},
+			{
+				SegmentMeta:          SegmentMeta{Filename: "seg-too-new.sst"},
+				RetireGeneration:     9,
+				DeleteAfterUnixMilli: 500,
+			},
+			{
+				SegmentMeta:          SegmentMeta{Filename: "seg-too-early.sst"},
+				RetireGeneration:     8,
+				DeleteAfterUnixMilli: 1500,
+			},
+		},
+	}
+
+	keep, reclaim := selectReclaimablePending(current, 1000)
+	if len(reclaim) != 1 {
+		t.Fatalf("reclaim count: got %d want 1", len(reclaim))
+	}
+	if reclaim[0].Filename != "seg-safe.sst" {
+		t.Fatalf("reclaim filename: got %q", reclaim[0].Filename)
+	}
+	if len(keep) != 2 {
+		t.Fatalf("keep count: got %d want 2", len(keep))
+	}
+}
+
+func TestBuildReclaimManifestAdvancesGeneration(t *testing.T) {
+	current := &Manifest{
+		Generation: 10,
+		Segments:   []SegmentMeta{{Filename: "live.sst"}},
+		PendingDelete: []RetiredSegmentMeta{
+			{
+				SegmentMeta:          SegmentMeta{Filename: "old.sst"},
+				RetireGeneration:     8,
+				DeleteAfterUnixMilli: 500,
+			},
+		},
+	}
+	next := buildReclaimManifest(current, nil)
+	if next.Generation != 11 {
+		t.Fatalf("generation: got %d want 11", next.Generation)
+	}
+	if len(next.Segments) != 1 || next.Segments[0].Filename != "live.sst" {
+		t.Fatalf("segments changed unexpectedly: %+v", next.Segments)
+	}
+	if len(next.PendingDelete) != 0 {
+		t.Fatalf("pending delete: got %d want 0", len(next.PendingDelete))
+	}
+	if len(current.PendingDelete) != 1 {
+		t.Fatalf("current manifest mutated: pending=%d want 1", len(current.PendingDelete))
+	}
+}

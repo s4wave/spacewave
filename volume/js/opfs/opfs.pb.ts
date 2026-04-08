@@ -66,6 +66,49 @@ export interface Config {
    * @generated from field: store.kvtx.Config store_config = 8;
    */
   storeConfig?: Config$3
+  /**
+   * BlockShardCount is the number of OPFS block shards.
+   *
+   * @generated from field: uint32 block_shard_count = 9;
+   */
+  blockShardCount?: number
+  /**
+   * MetaShardCount is the number of metadata shards.
+   * The current implementation requires exactly 1 when set.
+   *
+   * @generated from field: uint32 meta_shard_count = 10;
+   */
+  metaShardCount?: number
+  /**
+   * BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
+   *
+   * @generated from field: double block_bloom_fpr = 11;
+   */
+  blockBloomFpr?: number
+  /**
+   * BlockFlushThreshold is the per-shard write coalescing flush threshold.
+   *
+   * @generated from field: uint32 block_flush_threshold = 12;
+   */
+  blockFlushThreshold?: number
+  /**
+   * BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
+   *
+   * @generated from field: uint32 block_flush_max_age_millis = 13;
+   */
+  blockFlushMaxAgeMillis?: number
+  /**
+   * BlockCompactionTrigger is the L0 compaction trigger per shard.
+   *
+   * @generated from field: uint32 block_compaction_trigger = 14;
+   */
+  blockCompactionTrigger?: number
+  /**
+   * PageSize is the metadata page size in bytes.
+   *
+   * @generated from field: uint32 page_size = 15;
+   */
+  pageSize?: number
 }
 
 // Config contains the message type declaration for Config.
@@ -80,6 +123,28 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 8, name: 'store_config', kind: 'message', T: () => Config$3 },
+    { no: 9, name: 'block_shard_count', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 10, name: 'meta_shard_count', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 11, name: 'block_bloom_fpr', kind: 'scalar', T: ScalarType.DOUBLE },
+    {
+      no: 12,
+      name: 'block_flush_threshold',
+      kind: 'scalar',
+      T: ScalarType.UINT32,
+    },
+    {
+      no: 13,
+      name: 'block_flush_max_age_millis',
+      kind: 'scalar',
+      T: ScalarType.UINT32,
+    },
+    {
+      no: 14,
+      name: 'block_compaction_trigger',
+      kind: 'scalar',
+      T: ScalarType.UINT32,
+    },
+    { no: 15, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

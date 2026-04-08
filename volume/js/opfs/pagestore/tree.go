@@ -6,19 +6,17 @@ import (
 
 // Tree is a B+tree backed by a Pager.
 type Tree struct {
-	pager    Pager
-	rootID   PageID
-	pageBuf  []byte // reusable page buffer
-	pageBuf2 []byte // second buffer for splits
+	pager   Pager
+	rootID  PageID
+	pageBuf []byte // reusable page buffer
 }
 
 // NewTree creates a new B+tree with an empty root leaf.
 func NewTree(pager Pager) *Tree {
 	t := &Tree{
-		pager:    pager,
-		rootID:   InvalidPage,
-		pageBuf:  make([]byte, pager.PageSize()),
-		pageBuf2: make([]byte, pager.PageSize()),
+		pager:   pager,
+		rootID:  InvalidPage,
+		pageBuf: make([]byte, pager.PageSize()),
 	}
 	return t
 }
@@ -26,10 +24,9 @@ func NewTree(pager Pager) *Tree {
 // OpenTree opens an existing B+tree with the given root page.
 func OpenTree(pager Pager, rootID PageID) *Tree {
 	return &Tree{
-		pager:    pager,
-		rootID:   rootID,
-		pageBuf:  make([]byte, pager.PageSize()),
-		pageBuf2: make([]byte, pager.PageSize()),
+		pager:   pager,
+		rootID:  rootID,
+		pageBuf: make([]byte, pager.PageSize()),
 	}
 }
 
@@ -79,43 +76,42 @@ func (t *Tree) Get(key []byte) ([]byte, bool, error) {
 func (t *Tree) Put(key, value []byte) error {
 	if t.rootID == InvalidPage {
 		// Create initial leaf.
-		id := t.pager.AllocPage()
-		clear(t.pageBuf)
-		EncodeLeafPage(t.pageBuf, []LeafEntry{{Key: key, Value: value}})
-		if err := t.pager.WritePage(id, t.pageBuf); err != nil {
+		id, err := t.writeLeafPage([]LeafEntry{{Key: key, Value: value}})
+		if err != nil {
 			return err
 		}
 		t.rootID = id
 		return nil
 	}
 
-	splitKey, splitPage, err := t.insert(t.rootID, key, value)
+	newRoot, splitKey, splitPage, err := t.insert(t.rootID, key, value)
 	if err != nil {
 		return err
 	}
 
 	// If insert caused a root split, create a new branch root.
 	if splitPage != InvalidPage {
-		newRoot := t.pager.AllocPage()
-		clear(t.pageBuf)
-		EncodeBranchPage(t.pageBuf, []BranchEntry{
-			{Key: nil, ChildID: t.rootID},
+		rootID, writeErr := t.writeBranchPage([]BranchEntry{
+			{Key: nil, ChildID: newRoot},
 			{Key: splitKey, ChildID: splitPage},
 		})
-		if err := t.pager.WritePage(newRoot, t.pageBuf); err != nil {
-			return err
+		if writeErr != nil {
+			return writeErr
 		}
-		t.rootID = newRoot
+		t.rootID = rootID
+		return nil
 	}
+	t.rootID = newRoot
 	return nil
 }
 
 // insert recursively inserts into the subtree rooted at pageID.
-// Returns (splitKey, splitPageID) if the page split, or (nil, InvalidPage).
-func (t *Tree) insert(pageID PageID, key, value []byte) ([]byte, PageID, error) {
+// Returns the replacement page ID for the mutated subtree. If the page split,
+// also returns the separator key and right-side page ID.
+func (t *Tree) insert(pageID PageID, key, value []byte) (PageID, []byte, PageID, error) {
 	buf := make([]byte, t.pager.PageSize())
 	if err := t.pager.ReadPage(pageID, buf); err != nil {
-		return nil, InvalidPage, err
+		return InvalidPage, nil, InvalidPage, err
 	}
 	h := DecodePageHeader(buf)
 
@@ -125,15 +121,15 @@ func (t *Tree) insert(pageID PageID, key, value []byte) ([]byte, PageID, error) 
 	case PageTypeBranch:
 		return t.insertBranch(pageID, buf, key, value)
 	default:
-		return nil, InvalidPage, errors.Errorf("unexpected page type %d in insert", h.Type)
+		return InvalidPage, nil, InvalidPage, errors.Errorf("unexpected page type %d in insert", h.Type)
 	}
 }
 
 // insertLeaf handles leaf insertion with potential split.
-func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) ([]byte, PageID, error) {
+func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) (PageID, []byte, PageID, error) {
 	entries, err := DecodeLeafPage(buf)
 	if err != nil {
-		return nil, InvalidPage, err
+		return InvalidPage, nil, InvalidPage, err
 	}
 
 	// Upsert: find position and replace or insert.
@@ -157,24 +153,14 @@ func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) ([]byte,
 	}
 
 	// Try to fit in one page.
-	clear(buf)
-	written := EncodeLeafPage(buf, entries)
+	work := make([]byte, t.pager.PageSize())
+	written := EncodeLeafPage(work, entries)
 	if written == len(entries) {
-		// COW: write to new page, free old.
-		newID := t.pager.AllocPage()
-		if err := t.pager.WritePage(newID, buf); err != nil {
-			return nil, InvalidPage, err
+		newID, writeErr := t.writePage(work)
+		if writeErr != nil {
+			return InvalidPage, nil, InvalidPage, writeErr
 		}
-		// Update parent's pointer to this new page.
-		// For root, the caller updates rootID.
-		// For non-root, the caller updates the branch entry.
-		// We reuse the pageID slot by writing to the same ID (COW deferred).
-		// Actually for simplicity, overwrite in place for now.
-		if err := t.pager.WritePage(pageID, buf); err != nil {
-			return nil, InvalidPage, err
-		}
-		t.pager.FreePage(newID)
-		return nil, InvalidPage, nil
+		return newID, nil, InvalidPage, nil
 	}
 
 	// Split: first half stays, second half goes to new page.
@@ -182,60 +168,51 @@ func (t *Tree) insertLeaf(pageID PageID, buf []byte, key, value []byte) ([]byte,
 	left := entries[:mid]
 	right := entries[mid:]
 
-	clear(buf)
-	EncodeLeafPage(buf, left)
-	if err := t.pager.WritePage(pageID, buf); err != nil {
-		return nil, InvalidPage, err
+	leftID, writeErr := t.writeLeafPage(left)
+	if writeErr != nil {
+		return InvalidPage, nil, InvalidPage, writeErr
+	}
+	rightID, writeErr := t.writeLeafPage(right)
+	if writeErr != nil {
+		return InvalidPage, nil, InvalidPage, writeErr
 	}
 
-	rightID := t.pager.AllocPage()
-	rightBuf := make([]byte, t.pager.PageSize())
-	EncodeLeafPage(rightBuf, right)
-	if err := t.pager.WritePage(rightID, rightBuf); err != nil {
-		return nil, InvalidPage, err
-	}
-
-	return right[0].Key, rightID, nil
+	return leftID, right[0].Key, rightID, nil
 }
 
 // insertBranch handles branch insertion with potential split.
-func (t *Tree) insertBranch(pageID PageID, buf []byte, key, value []byte) ([]byte, PageID, error) {
+func (t *Tree) insertBranch(pageID PageID, buf []byte, key, value []byte) (PageID, []byte, PageID, error) {
 	entries, err := DecodeBranchPage(buf)
 	if err != nil {
-		return nil, InvalidPage, err
+		return InvalidPage, nil, InvalidPage, err
 	}
 
-	childID := findChild(entries, key)
-	splitKey, splitPage, err := t.insert(childID, key, value)
+	childIdx := findChildIndex(entries, key)
+	childID := entries[childIdx].ChildID
+	newChildID, splitKey, splitPage, err := t.insert(childID, key, value)
 	if err != nil {
-		return nil, InvalidPage, err
+		return InvalidPage, nil, InvalidPage, err
 	}
 
-	if splitPage == InvalidPage {
-		return nil, InvalidPage, nil
+	entries[childIdx].ChildID = newChildID
+	if splitPage != InvalidPage {
+		// Insert the new separator + child pointer after the split child.
+		newEntry := BranchEntry{Key: splitKey, ChildID: splitPage}
+		insertPos := childIdx + 1
+		entries = append(entries, BranchEntry{})
+		copy(entries[insertPos+1:], entries[insertPos:])
+		entries[insertPos] = newEntry
 	}
-
-	// Insert the new separator + child pointer.
-	newEntry := BranchEntry{Key: splitKey, ChildID: splitPage}
-	insertPos := len(entries)
-	for i := 1; i < len(entries); i++ {
-		if string(entries[i].Key) > string(splitKey) {
-			insertPos = i
-			break
-		}
-	}
-	entries = append(entries, BranchEntry{})
-	copy(entries[insertPos+1:], entries[insertPos:])
-	entries[insertPos] = newEntry
 
 	// Try to fit in one page.
-	clear(buf)
-	written := EncodeBranchPage(buf, entries)
+	work := make([]byte, t.pager.PageSize())
+	written := EncodeBranchPage(work, entries)
 	if written == len(entries) {
-		if err := t.pager.WritePage(pageID, buf); err != nil {
-			return nil, InvalidPage, err
+		newID, writeErr := t.writePage(work)
+		if writeErr != nil {
+			return InvalidPage, nil, InvalidPage, writeErr
 		}
-		return nil, InvalidPage, nil
+		return newID, nil, InvalidPage, nil
 	}
 
 	// Split the branch.
@@ -246,20 +223,16 @@ func (t *Tree) insertBranch(pageID PageID, buf []byte, key, value []byte) ([]byt
 	// The promoted key's child becomes the leftmost child of the right branch.
 	right[0].Key = nil
 
-	clear(buf)
-	EncodeBranchPage(buf, left)
-	if err := t.pager.WritePage(pageID, buf); err != nil {
-		return nil, InvalidPage, err
+	leftID, writeErr := t.writeBranchPage(left)
+	if writeErr != nil {
+		return InvalidPage, nil, InvalidPage, writeErr
+	}
+	rightID, writeErr := t.writeBranchPage(right)
+	if writeErr != nil {
+		return InvalidPage, nil, InvalidPage, writeErr
 	}
 
-	rightID := t.pager.AllocPage()
-	rightBuf := make([]byte, t.pager.PageSize())
-	EncodeBranchPage(rightBuf, right)
-	if err := t.pager.WritePage(rightID, rightBuf); err != nil {
-		return nil, InvalidPage, err
-	}
-
-	return promoteKey, rightID, nil
+	return leftID, promoteKey, rightID, nil
 }
 
 // Delete removes a key from the tree. Returns true if the key was found.
@@ -267,14 +240,21 @@ func (t *Tree) Delete(key []byte) (bool, error) {
 	if t.rootID == InvalidPage {
 		return false, nil
 	}
-	return t.deleteFrom(t.rootID, key)
+	found, newRoot, err := t.deleteFrom(t.rootID, key)
+	if err != nil {
+		return false, err
+	}
+	if found {
+		t.rootID = newRoot
+	}
+	return found, nil
 }
 
 // deleteFrom removes a key from the subtree. Simple version without rebalancing.
-func (t *Tree) deleteFrom(pageID PageID, key []byte) (bool, error) {
+func (t *Tree) deleteFrom(pageID PageID, key []byte) (bool, PageID, error) {
 	buf := make([]byte, t.pager.PageSize())
 	if err := t.pager.ReadPage(pageID, buf); err != nil {
-		return false, err
+		return false, InvalidPage, err
 	}
 	h := DecodePageHeader(buf)
 
@@ -282,7 +262,7 @@ func (t *Tree) deleteFrom(pageID PageID, key []byte) (bool, error) {
 	case PageTypeLeaf:
 		entries, err := DecodeLeafPage(buf)
 		if err != nil {
-			return false, err
+			return false, InvalidPage, err
 		}
 		found := false
 		for i := range entries {
@@ -293,22 +273,36 @@ func (t *Tree) deleteFrom(pageID PageID, key []byte) (bool, error) {
 			}
 		}
 		if !found {
-			return false, nil
+			return false, pageID, nil
 		}
-		clear(buf)
-		EncodeLeafPage(buf, entries)
-		return true, t.pager.WritePage(pageID, buf)
+		newID, writeErr := t.writeLeafPage(entries)
+		if writeErr != nil {
+			return false, InvalidPage, writeErr
+		}
+		return true, newID, nil
 
 	case PageTypeBranch:
 		entries, err := DecodeBranchPage(buf)
 		if err != nil {
-			return false, err
+			return false, InvalidPage, err
 		}
-		childID := findChild(entries, key)
-		return t.deleteFrom(childID, key)
+		childIdx := findChildIndex(entries, key)
+		found, newChildID, deleteErr := t.deleteFrom(entries[childIdx].ChildID, key)
+		if deleteErr != nil {
+			return false, InvalidPage, deleteErr
+		}
+		if !found {
+			return false, pageID, nil
+		}
+		entries[childIdx].ChildID = newChildID
+		newID, writeErr := t.writeBranchPage(entries)
+		if writeErr != nil {
+			return false, InvalidPage, writeErr
+		}
+		return true, newID, nil
 
 	default:
-		return false, errors.Errorf("unexpected page type %d", h.Type)
+		return false, InvalidPage, errors.Errorf("unexpected page type %d", h.Type)
 	}
 }
 
@@ -368,14 +362,45 @@ func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte)
 
 // findChild returns the child page for a given key in a branch page.
 func findChild(entries []BranchEntry, key []byte) PageID {
+	return entries[findChildIndex(entries, key)].ChildID
+}
+
+// findChildIndex returns the child entry index for a given key in a branch page.
+func findChildIndex(entries []BranchEntry, key []byte) int {
 	// Linear search (branch pages are small).
-	child := entries[0].ChildID
+	childIdx := 0
 	for i := 1; i < len(entries); i++ {
 		if string(key) >= string(entries[i].Key) {
-			child = entries[i].ChildID
+			childIdx = i
 		} else {
 			break
 		}
 	}
-	return child
+	return childIdx
+}
+
+func (t *Tree) writeLeafPage(entries []LeafEntry) (PageID, error) {
+	buf := make([]byte, t.pager.PageSize())
+	written := EncodeLeafPage(buf, entries)
+	if written != len(entries) {
+		return InvalidPage, errors.New("leaf entries exceed page size")
+	}
+	return t.writePage(buf)
+}
+
+func (t *Tree) writeBranchPage(entries []BranchEntry) (PageID, error) {
+	buf := make([]byte, t.pager.PageSize())
+	written := EncodeBranchPage(buf, entries)
+	if written != len(entries) {
+		return InvalidPage, errors.New("branch entries exceed page size")
+	}
+	return t.writePage(buf)
+}
+
+func (t *Tree) writePage(buf []byte) (PageID, error) {
+	id := t.pager.AllocPage()
+	if err := t.pager.WritePage(id, buf); err != nil {
+		return InvalidPage, err
+	}
+	return id, nil
 }

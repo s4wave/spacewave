@@ -19,7 +19,8 @@ type OpfsPager struct {
 	pageCount uint32
 	freed     []pagestore.PageID
 	// syncFile is opened lazily on first write.
-	syncFile *opfs.SyncFile
+	syncFile      *opfs.SyncFile
+	freelistPages []pagestore.PageID
 }
 
 // NewOpfsPager creates a pager backed by an OPFS file.
@@ -106,6 +107,77 @@ func (p *OpfsPager) Close() error {
 		return err
 	}
 	return nil
+}
+
+// LoadFreelist restores the free-page state from the committed freelist chain.
+func (p *OpfsPager) LoadFreelist(root pagestore.PageID) error {
+	p.freed = nil
+	p.freelistPages = nil
+	if root == pagestore.InvalidPage {
+		return nil
+	}
+
+	buf := make([]byte, p.pgSize)
+	pageID := root
+	for pageID != pagestore.InvalidPage {
+		if err := p.ReadPage(pageID, buf); err != nil {
+			return errors.Wrap(err, "read freelist page")
+		}
+		nextPage, ids, err := pagestore.DecodeFreelistPage(buf)
+		if err != nil {
+			return errors.Wrap(err, "decode freelist page")
+		}
+		p.freelistPages = append(p.freelistPages, pageID)
+		p.freed = append(p.freed, ids...)
+		pageID = nextPage
+	}
+	return nil
+}
+
+// PersistFreelist writes the current free-page state to freelist pages.
+// Returns the root freelist page ID, or InvalidPage if the freelist is empty.
+func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
+	if len(p.freelistPages) > 0 {
+		p.freed = append(p.freed, p.freelistPages...)
+		p.freelistPages = nil
+	}
+	if len(p.freed) == 0 {
+		return pagestore.InvalidPage, nil
+	}
+
+	capacity := pagestore.FreelistPageCapacity(p.pgSize)
+	if capacity < 1 {
+		return pagestore.InvalidPage, errors.New("page size too small for freelist")
+	}
+
+	freed := append([]pagestore.PageID(nil), p.freed...)
+	pageCount := (len(freed) + capacity - 1) / capacity
+	pages := make([]pagestore.PageID, pageCount)
+	for i := range pages {
+		pages[i] = pagestore.PageID(p.pageCount)
+		p.pageCount++
+	}
+
+	buf := make([]byte, p.pgSize)
+	off := 0
+	for i := len(pages) - 1; i >= 0; i-- {
+		nextPage := pagestore.InvalidPage
+		if i+1 < len(pages) {
+			nextPage = pages[i+1]
+		}
+		clear(buf)
+		written := pagestore.EncodeFreelistPage(buf, nextPage, freed[off:])
+		if written == 0 {
+			return pagestore.InvalidPage, errors.New("freelist page wrote zero entries")
+		}
+		if err := p.WritePage(pages[i], buf); err != nil {
+			return pagestore.InvalidPage, errors.Wrap(err, "write freelist page")
+		}
+		off += written
+	}
+
+	p.freelistPages = pages
+	return pages[0], nil
 }
 
 // _ is a type assertion.

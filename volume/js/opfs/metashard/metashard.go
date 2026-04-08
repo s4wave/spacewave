@@ -5,6 +5,7 @@
 package metashard
 
 import (
+	"sync"
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/opfs"
@@ -20,8 +21,11 @@ type MetaShard struct {
 	lockPrefix string
 	pageSize   int
 	pager      *OpfsPager
-	tree       *pagestore.Tree
+
+	mu         sync.RWMutex
+	rootPage   pagestore.PageID
 	generation uint64
+	testHook   func(string) error
 }
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
@@ -40,14 +44,15 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 
 	sb := pagestore.PickSuperblock(aBuf, bBuf)
 
-	var tree *pagestore.Tree
+	rootPage := pagestore.InvalidPage
 	var gen uint64
 	if sb != nil {
 		pager.SetPageCount(sb.PageCount)
-		tree = pagestore.OpenTree(pager, sb.RootPage)
+		rootPage = sb.RootPage
 		gen = sb.Generation
-	} else {
-		tree = pagestore.NewTree(pager)
+		if err := pager.LoadFreelist(sb.FreelistPage); err != nil {
+			return nil, errors.Wrap(err, "load freelist")
+		}
 	}
 
 	return &MetaShard{
@@ -55,14 +60,15 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 		lockPrefix: lockPrefix,
 		pageSize:   pageSize,
 		pager:      pager,
-		tree:       tree,
+		rootPage:   rootPage,
 		generation: gen,
 	}, nil
 }
 
 // Get looks up a key. Returns value, found, error.
 func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
-	return ms.tree.Get(key)
+	tree, _ := ms.OpenCommittedTree()
+	return tree.Get(key)
 }
 
 // WriteTx executes a write transaction. The function fn receives the tree
@@ -76,25 +82,57 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	}
 	defer release()
 
+	tree, gen := ms.OpenCommittedTree()
+
 	// Execute mutations.
-	if err := fn(ms.tree); err != nil {
+	if err := fn(tree); err != nil {
+		if closeErr := ms.pager.Close(); closeErr != nil {
+			return errors.Wrapf(closeErr, "close page file after failed write tx (%v)", err)
+		}
+		return err
+	}
+	if err := ms.callTestHook("after-mutate"); err != nil {
+		if closeErr := ms.pager.Close(); closeErr != nil {
+			return errors.Wrapf(closeErr, "close page file after test hook (%v)", err)
+		}
 		return err
 	}
 
-	// Flush dirty pages (pager writes through).
-	// Commit: flip superblock.
-	ms.generation++
+	// Commit ordering:
+	// 1. All mutated pages are written into pages.dat through the pager.
+	// 2. Flush and close pages.dat so the new root never points at not-yet-
+	//    durable page bytes.
+	// 3. Flip the alternate superblock.
+	freelistPage, err := ms.pager.PersistFreelist()
+	if err != nil {
+		return errors.Wrap(err, "persist freelist")
+	}
+	if err := ms.callTestHook("after-freelist"); err != nil {
+		if closeErr := ms.pager.Close(); closeErr != nil {
+			return errors.Wrapf(closeErr, "close page file after test hook (%v)", err)
+		}
+		return err
+	}
+	ms.pager.Flush()
+	if err := ms.pager.Close(); err != nil {
+		return errors.Wrap(err, "close page file before superblock flip")
+	}
+	if err := ms.callTestHook("after-page-close"); err != nil {
+		return err
+	}
+
+	gen++
 	sb := pagestore.Superblock{
 		Magic:        pagestore.SuperblockMagic,
 		Version:      1,
-		Generation:   ms.generation,
-		RootPage:     ms.tree.RootID(),
-		FreelistPage: pagestore.InvalidPage,
+		Generation:   gen,
+		RootPage:     tree.RootID(),
+		FreelistPage: freelistPage,
 		PageCount:    ms.pager.PageCount(),
 	}
 
 	slot := "super-a"
-	if ms.generation%2 == 0 {
+	if gen%2 == 0 {
 		slot = "super-b"
 	}
 	var sbBuf [pagestore.SuperblockSize]byte
@@ -103,18 +141,45 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	if err := writeSuper(ms.dir, slot, sbBuf[:]); err != nil {
 		return errors.Wrap(err, "write superblock")
 	}
+	if err := ms.callTestHook("after-superblock-write"); err != nil {
+		return err
+	}
+
+	ms.mu.Lock()
+	ms.rootPage = tree.RootID()
+	ms.generation = gen
+	ms.mu.Unlock()
 
 	return nil
 }
 
 // ScanPrefix iterates over entries matching the prefix.
 func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error {
-	return ms.tree.ScanPrefix(prefix, fn)
+	tree, _ := ms.OpenCommittedTree()
+	return tree.ScanPrefix(prefix, fn)
 }
 
 // Generation returns the current commit generation.
 func (ms *MetaShard) Generation() uint64 {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
 	return ms.generation
+}
+
+// OpenCommittedTree opens a tree at the currently committed root.
+func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
+	ms.mu.RLock()
+	rootPage := ms.rootPage
+	generation := ms.generation
+	ms.mu.RUnlock()
+	return pagestore.OpenTree(ms.pager, rootPage), generation
+}
+
+func (ms *MetaShard) callTestHook(stage string) error {
+	if ms.testHook != nil {
+		return ms.testHook(stage)
+	}
+	return nil
 }
 
 // readSuper reads a superblock file into buf, ignoring errors.

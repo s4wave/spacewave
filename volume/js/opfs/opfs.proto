@@ -25,4 +25,19 @@ message Config {
   .volume.controller.Config volume_config = 7;
   // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 8;
+  // BlockShardCount is the number of OPFS block shards.
+  uint32 block_shard_count = 9;
+  // MetaShardCount is the number of metadata shards.
+  // The current implementation requires exactly 1 when set.
+  uint32 meta_shard_count = 10;
+  // BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
+  double block_bloom_fpr = 11;
+  // BlockFlushThreshold is the per-shard write coalescing flush threshold.
+  uint32 block_flush_threshold = 12;
+  // BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
+  uint32 block_flush_max_age_millis = 13;
+  // BlockCompactionTrigger is the L0 compaction trigger per shard.
+  uint32 block_compaction_trigger = 14;
+  // PageSize is the metadata page size in bytes.
+  uint32 page_size = 15;
 }
