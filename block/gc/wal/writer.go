@@ -76,7 +76,7 @@ func (w *Writer) Append(ctx context.Context, adds, removes []*RefEdge) error {
 	}
 
 	entry := &WALEntry{
-		Sequence: seq,
+		Sequence:  seq,
 		Timestamp: time.Now().UnixNano(),
 		Adds:      adds,
 		Removes:   removes,

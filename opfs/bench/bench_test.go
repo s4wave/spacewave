@@ -17,12 +17,12 @@ type actorMetrics struct {
 }
 
 type memoryMetrics struct {
-	baseHeapSys   uint64
-	baseHeapInuse uint64
-	maxHeapSys    uint64
-	maxHeapInuse  uint64
-	maxHeapAlloc  uint64
-	finalHeapSys  uint64
+	baseHeapSys    uint64
+	baseHeapInuse  uint64
+	maxHeapSys     uint64
+	maxHeapInuse   uint64
+	maxHeapAlloc   uint64
+	finalHeapSys   uint64
 	finalHeapInuse uint64
 	finalHeapAlloc uint64
 }
@@ -33,23 +33,26 @@ func TestWriteActorCoalescing(t *testing.T) {
 		burstSize = 32
 	)
 
-	for _, tc := range []struct {
-		name  string
-		yield bool
-	}{
-		{name: "no-yield", yield: false},
-		{name: "gosched", yield: true},
-	} {
-		m := runActorScenario(bursts, burstSize, tc.yield)
-		t.Logf(
-			"actor policy=%s bursts=%d burstSize=%d avgBatch=%.2f p95Batch=%d maxBatch=%d",
-			tc.name,
-			bursts,
-			burstSize,
-			m.avgBatch,
-			m.p95Batch,
-			m.maxBatch,
-		)
+	for _, bufferSize := range []int{1, burstSize} {
+		for _, tc := range []struct {
+			name  string
+			yield bool
+		}{
+			{name: "no-yield", yield: false},
+			{name: "gosched", yield: true},
+		} {
+			m := runActorScenario(bursts, burstSize, bufferSize, tc.yield)
+			t.Logf(
+				"actor policy=%s buffer=%d bursts=%d burstSize=%d avgBatch=%.2f p95Batch=%d maxBatch=%d",
+				tc.name,
+				bufferSize,
+				bursts,
+				burstSize,
+				m.avgBatch,
+				m.p95Batch,
+				m.maxBatch,
+			)
+		}
 	}
 }
 
@@ -83,8 +86,8 @@ func TestWasmMemoryGrowth(t *testing.T) {
 	}
 }
 
-func runActorScenario(bursts, burstSize int, yield bool) actorMetrics {
-	reqCh := make(chan struct{}, bursts*burstSize)
+func runActorScenario(bursts, burstSize, bufferSize int, yield bool) actorMetrics {
+	reqCh := make(chan struct{}, bufferSize)
 	batchCh := make(chan int, bursts)
 	doneCh := make(chan actorMetrics, 1)
 	go func() {

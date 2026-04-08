@@ -91,7 +91,7 @@ type syncAdapter struct {
 	f *opfs.SyncFile
 }
 
-func (a *syncAdapter) ReadAt(p []byte, off int64) (int, error) { return a.f.ReadAt(p, off) }
+func (a *syncAdapter) ReadAt(p []byte, off int64) (int, error)  { return a.f.ReadAt(p, off) }
 func (a *syncAdapter) WriteAt(p []byte, off int64) (int, error) { return a.f.WriteAt(p, off) }
 func (a *syncAdapter) Size() (int64, error)                     { return a.f.Size(), nil }
 func (a *syncAdapter) Truncate(size int64) error                { a.f.Truncate(size); return nil }
@@ -102,7 +102,7 @@ type asyncAdapter struct {
 	f *opfs.AsyncFile
 }
 
-func (a *asyncAdapter) ReadAt(p []byte, off int64) (int, error) { return a.f.ReadAt(p, off) }
+func (a *asyncAdapter) ReadAt(p []byte, off int64) (int, error)  { return a.f.ReadAt(p, off) }
 func (a *asyncAdapter) WriteAt(p []byte, off int64) (int, error) { return a.f.WriteAt(p, off) }
 func (a *asyncAdapter) Size() (int64, error)                     { return a.f.Size() }
 func (a *asyncAdapter) Truncate(size int64) error                { return a.f.Truncate(size) }

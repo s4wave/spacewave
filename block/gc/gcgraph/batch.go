@@ -5,8 +5,8 @@ package gcgraph
 import (
 	"context"
 
-	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 )
 
 // ApplyRefBatch applies ref graph edge additions followed by removals.

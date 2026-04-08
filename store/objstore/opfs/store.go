@@ -65,8 +65,8 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	}
 
 	return kvtx_txcache.NewTxWithCbs(
-		readTx,        // underlying read ops (shared WebLock)
-		true,          // write
+		readTx,         // underlying read ops (shared WebLock)
+		true,           // write
 		readTx.Discard, // closeReadTx: releases the shared lock
 		func() (kvtx.Tx, error) {
 			return newWriteTx(s)

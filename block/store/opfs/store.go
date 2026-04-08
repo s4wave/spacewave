@@ -21,8 +21,8 @@ import (
 // Blocks are base58-encoded filenames organized in 2-char shard directories.
 // No ACID transactions: content addressing makes puts idempotent.
 type BlockStore struct {
-	root       js.Value    // OPFS directory for blocks
-	lockPrefix string      // WebLock name prefix (e.g. "vol-id/blocks")
+	root       js.Value // OPFS directory for blocks
+	lockPrefix string   // WebLock name prefix (e.g. "vol-id/blocks")
 	hashType   hash.HashType
 }
 

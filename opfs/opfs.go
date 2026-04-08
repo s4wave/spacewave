@@ -496,12 +496,12 @@ type syncFileInfo struct {
 	size int64
 }
 
-func (fi *syncFileInfo) Name() string      { return fi.name }
-func (fi *syncFileInfo) Size() int64       { return fi.size }
-func (fi *syncFileInfo) Mode() fs.FileMode { return 0o644 }
+func (fi *syncFileInfo) Name() string       { return fi.name }
+func (fi *syncFileInfo) Size() int64        { return fi.size }
+func (fi *syncFileInfo) Mode() fs.FileMode  { return 0o644 }
 func (fi *syncFileInfo) ModTime() time.Time { return time.Time{} }
-func (fi *syncFileInfo) IsDir() bool       { return false }
-func (fi *syncFileInfo) Sys() any          { return nil }
+func (fi *syncFileInfo) IsDir() bool        { return false }
+func (fi *syncFileInfo) Sys() any           { return nil }
 
 // _ is a type assertion.
 var (
