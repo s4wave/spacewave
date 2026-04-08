@@ -125,10 +125,10 @@ func NewOpfs(
 	}
 
 	// Register volume-context roots.
-	if err := gcGraph.AddRoot(context.Background(), block_gc.NodeGCRoot); err != nil {
+	if err := gcGraph.AddRoot(ctx, block_gc.NodeGCRoot); err != nil {
 		return nil, errors.Wrap(err, "register gcroot")
 	}
-	if err := gcGraph.AddRoot(context.Background(), block_gc.NodeUnreferenced); err != nil {
+	if err := gcGraph.AddRoot(ctx, block_gc.NodeUnreferenced); err != nil {
 		return nil, errors.Wrap(err, "register unreferenced root")
 	}
 

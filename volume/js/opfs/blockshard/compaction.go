@@ -108,9 +108,14 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	}
 
 	outData := outBuf.Bytes()
-	outRd, err := segment.NewReader(bytes.NewReader(outData), written)
-	if err != nil {
-		return errors.Wrap(err, "parse compacted segment")
+
+	// Derive metadata directly from the merged entries (no re-parse needed).
+	outMeta := SegmentMeta{
+		EntryCount: uint32(len(merged)),
+		Size:       uint32(written),
+		Level:      1,
+		MinKey:     merged[0].Key,
+		MaxKey:     merged[len(merged)-1].Key,
 	}
 
 	// Allocate sequence number and filename.
@@ -121,6 +126,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	shard.mu.Unlock()
 
 	filename := "seg-" + zeroPad(seq, 6) + ".sst"
+	outMeta.Filename = filename
 
 	// Write output segment via sync handle.
 	sf, err := opfs.CreateSyncFile(shard.dir, filename)
@@ -144,45 +150,16 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 			newSegs = append(newSegs, seg)
 		}
 	}
-	newSegs = append(newSegs, SegmentMeta{
-		Filename:   filename,
-		EntryCount: outRd.EntryCount(),
-		Size:       uint32(written),
-		Level:      1,
-		MinKey:     outRd.MinKey(),
-		MaxKey:     outRd.MaxKey(),
-	})
+	newSegs = append(newSegs, outMeta)
 	newManifest := &Manifest{
 		Generation: gen,
 		Segments:   newSegs,
 	}
 	shard.mu.Unlock()
 
-	// Write manifest slot.
-	slot := "manifest-a"
-	if gen%2 == 0 {
-		slot = "manifest-b"
-	}
-	mdata := newManifest.Encode()
-	mf, err := opfs.CreateSyncFile(shard.dir, slot)
-	if err != nil {
-		return errors.Wrap(err, "create compaction manifest")
-	}
-	mf.Truncate(0)
-	if _, err := mf.WriteAt(mdata, 0); err != nil {
-		mf.Close()
+	if err := shard.writeManifest(newManifest); err != nil {
 		return errors.Wrap(err, "write compaction manifest")
 	}
-	mf.Flush()
-	if err := mf.Close(); err != nil {
-		return errors.Wrap(err, "close compaction manifest")
-	}
-
-	// Commit in-memory.
-	shard.mu.Lock()
-	shard.manifest = newManifest
-	shard.mu.Unlock()
-
 	return nil
 }
 

@@ -155,8 +155,10 @@ func (rd *Reader) ReadEntries() ([]Entry, error) {
 // Returns the value and true if found, nil and false if not found.
 // Tombstoned keys return nil and false.
 func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
+	keyStr := string(key)
+
 	// Quick range check.
-	if string(key) < string(rd.minKey) || string(key) > string(rd.maxKey) {
+	if keyStr < string(rd.minKey) || keyStr > string(rd.maxKey) {
 		return nil, false, nil
 	}
 
@@ -186,7 +188,7 @@ func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
 		if off+keyLen > len(window) {
 			break
 		}
-		entryKey := window[off : off+keyLen]
+		entryKey := string(window[off : off+keyLen])
 		off += keyLen
 		if off+4 > len(window) {
 			break
@@ -194,8 +196,7 @@ func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
 		valLen := binary.BigEndian.Uint32(window[off : off+4])
 		off += 4
 
-		k := string(entryKey)
-		if k == string(key) {
+		if entryKey == keyStr {
 			if valLen == TombstoneLen {
 				return nil, false, nil
 			}
@@ -206,7 +207,7 @@ func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
 			copy(val, window[off:off+int(valLen)])
 			return val, true, nil
 		}
-		if k > string(key) {
+		if entryKey > keyStr {
 			return nil, false, nil
 		}
 		if valLen != TombstoneLen {

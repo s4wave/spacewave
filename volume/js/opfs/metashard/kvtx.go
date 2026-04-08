@@ -41,8 +41,7 @@ func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 
 // metaReadTx is a read-only transaction delegating to MetaShard.
 type metaReadTx struct {
-	shard    *MetaShard
-	discard  bool
+	shard *MetaShard
 }
 
 // Size returns the number of keys. Scans the entire tree.
@@ -118,9 +117,8 @@ func (t *metaReadTx) Commit(ctx context.Context) error {
 	return nil
 }
 
-// Discard marks the transaction as discarded.
+// Discard is a no-op for read transactions.
 func (t *metaReadTx) Discard() {
-	t.discard = true
 }
 
 // mutation is a buffered Set or Delete operation.
@@ -212,7 +210,6 @@ func (t *metaWriteTx) Commit(ctx context.Context) error {
 // Discard discards pending mutations.
 func (t *metaWriteTx) Discard() {
 	t.pending = nil
-	t.discard = true
 }
 
 // _ is a type assertion.

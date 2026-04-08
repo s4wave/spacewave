@@ -39,26 +39,16 @@ func OpenSegment(dir js.Value, filename string) (*SegmentReader, error) {
 		return nil, errors.New("segment file too small")
 	}
 
-	// Read and validate the full file for CRC32 verification.
-	// For production, we could validate lazily, but correctness first.
-	contentSize := size - 4
-	content := make([]byte, contentSize)
-	if _, err := f.ReadAt(content, 0); err != nil {
-		return nil, errors.Wrap(err, "read segment content")
+	// Read the entire file in one round-trip for CRC32 validation.
+	buf := make([]byte, size)
+	if _, err := f.ReadAt(buf, 0); err != nil {
+		return nil, errors.Wrap(err, "read segment file")
 	}
 
-	var footerBuf [4]byte
-	if _, err := f.ReadAt(footerBuf[:], contentSize); err != nil {
-		return nil, errors.Wrap(err, "read segment footer")
-	}
-
-	// Verify CRC32 using the segment package's import.
-	expected := binary.BigEndian.Uint32(footerBuf[:])
-	rd, err := segment.NewReader(newByteReaderAt(content, footerBuf[:]), size)
+	rd, err := segment.NewReader(newByteReaderAt(buf), size)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse segment")
 	}
-	_ = expected // CRC32 validated inside NewReader
 
 	sr := &SegmentReader{
 		file:   f,
@@ -76,8 +66,10 @@ func OpenSegment(dir js.Value, filename string) (*SegmentReader, error) {
 // Uses bloom filter for fast rejection, sparse index for window narrowing,
 // then linear scan within the data window. All reads are async (no WebLock).
 func (sr *SegmentReader) Get(key []byte) ([]byte, bool, error) {
+	keyStr := string(key)
+
 	// Range check.
-	if string(key) < string(sr.minKey) || string(key) > string(sr.maxKey) {
+	if keyStr < string(sr.minKey) || keyStr > string(sr.maxKey) {
 		return nil, false, nil
 	}
 
@@ -108,7 +100,7 @@ func (sr *SegmentReader) Get(key []byte) ([]byte, bool, error) {
 		if off+keyLen > len(window) {
 			break
 		}
-		entryKey := window[off : off+keyLen]
+		entryKey := string(window[off : off+keyLen])
 		off += keyLen
 		if off+4 > len(window) {
 			break
@@ -116,8 +108,7 @@ func (sr *SegmentReader) Get(key []byte) ([]byte, bool, error) {
 		valLen := binary.BigEndian.Uint32(window[off : off+4])
 		off += 4
 
-		k := string(entryKey)
-		if k == string(key) {
+		if entryKey == keyStr {
 			if valLen == segment.TombstoneLen {
 				return nil, false, nil
 			}
@@ -128,7 +119,7 @@ func (sr *SegmentReader) Get(key []byte) ([]byte, bool, error) {
 			copy(val, window[off:off+int(valLen)])
 			return val, true, nil
 		}
-		if k > string(key) {
+		if entryKey > keyStr {
 			return nil, false, nil
 		}
 		if valLen != segment.TombstoneLen {
@@ -147,16 +138,13 @@ func (sr *SegmentReader) MaxKey() []byte { return sr.maxKey }
 // EntryCount returns the number of entries.
 func (sr *SegmentReader) EntryCount() uint32 { return sr.header.EntryCount }
 
-// byteReaderAt wraps content + footer into an io.ReaderAt for segment.NewReader.
+// byteReaderAt wraps a byte slice as an io.ReaderAt for segment.NewReader.
 type byteReaderAt struct {
 	data []byte
 }
 
-func newByteReaderAt(content, footer []byte) *byteReaderAt {
-	combined := make([]byte, len(content)+len(footer))
-	copy(combined, content)
-	copy(combined[len(content):], footer)
-	return &byteReaderAt{data: combined}
+func newByteReaderAt(data []byte) *byteReaderAt {
+	return &byteReaderAt{data: data}
 }
 
 func (b *byteReaderAt) ReadAt(p []byte, off int64) (int, error) {

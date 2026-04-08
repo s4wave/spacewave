@@ -283,20 +283,16 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 				release, lockErr := shard.AcquirePublishLock()
 				if lockErr == nil {
 					compErr := ExecuteCompaction(shard, plan)
+					if compErr == nil {
+						// Delete old input segments under the same lock hold.
+						for _, seg := range plan.InputSegs {
+							opfs.DeleteFile(shard.dir, seg.Filename)
+						}
+					}
 					compGen := shard.Manifest().Generation
 					release()
 					if compErr == nil {
 						e.broadcaster.Send(shardIdx, compGen)
-						// Delete old segments after compaction.
-						names := make([]string, len(plan.InputSegs))
-						for i, seg := range plan.InputSegs {
-							names[i] = seg.Filename
-						}
-						deleteRelease, delErr := shard.AcquirePublishLock()
-						if delErr == nil {
-							DeleteOldSegments(shard, names)
-							deleteRelease()
-						}
 					}
 				}
 			}
@@ -319,8 +315,8 @@ func (e *Engine) runInvalidationListener(ctx context.Context) {
 			current := shard.Manifest()
 			if msg.Generation > current.Generation {
 				// Re-read manifests from OPFS to pick up the new generation.
-				a := readFileBytes(shard.dir, "manifest-a")
-				b := readFileBytes(shard.dir, "manifest-b")
+				a := readFileBytes(shard.dir, manifestSlotA)
+				b := readFileBytes(shard.dir, manifestSlotB)
 				m := PickManifest(a, b)
 				if m != nil && m.Generation > current.Generation {
 					shard.mu.Lock()

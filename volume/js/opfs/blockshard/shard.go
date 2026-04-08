@@ -14,6 +14,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	manifestSlotA = "manifest-a"
+	manifestSlotB = "manifest-b"
+)
+
 // Shard is a single block shard backed by an OPFS directory.
 // It owns a set of immutable SSTable segment files and a double-buffered manifest.
 type Shard struct {
@@ -36,8 +41,8 @@ func NewShard(id int, dir js.Value, lockPrefix string) (*Shard, error) {
 	}
 
 	// Read both manifest slots.
-	a := readFileBytes(dir, "manifest-a")
-	b := readFileBytes(dir, "manifest-b")
+	a := readFileBytes(dir, manifestSlotA)
+	b := readFileBytes(dir, manifestSlotB)
 	m := PickManifest(a, b)
 	if m == nil {
 		m = &Manifest{Generation: 0}
@@ -132,12 +137,16 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 	}
 	s.mu.Unlock()
 
-	// Write the alternate manifest slot.
-	slot := "manifest-a"
-	if gen%2 == 0 {
-		slot = "manifest-b"
+	return s.writeManifest(newManifest)
+}
+
+// writeManifest writes a manifest to the alternate slot and commits in-memory.
+func (s *Shard) writeManifest(m *Manifest) error {
+	slot := manifestSlotA
+	if m.Generation%2 == 0 {
+		slot = manifestSlotB
 	}
-	mdata := newManifest.Encode()
+	mdata := m.Encode()
 	mf, err := opfs.CreateSyncFile(s.dir, slot)
 	if err != nil {
 		return errors.Wrap(err, "create manifest file")
@@ -152,11 +161,9 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 		return errors.Wrap(err, "close manifest")
 	}
 
-	// Commit: update in-memory manifest.
 	s.mu.Lock()
-	s.manifest = newManifest
+	s.manifest = m
 	s.mu.Unlock()
-
 	return nil
 }
 
