@@ -1,0 +1,195 @@
+//go:build js
+
+package blockshard
+
+import (
+	"bytes"
+
+	"github.com/aperturerobotics/hydra/opfs"
+	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
+	"github.com/pkg/errors"
+)
+
+// DefaultL0Trigger is the L0 segment count threshold before compaction.
+const DefaultL0Trigger = 4
+
+// CompactionPlan describes a set of segments to compact.
+type CompactionPlan struct {
+	ShardID   int
+	InputSegs []SegmentMeta
+	// Generation is the manifest generation at plan time.
+	Generation uint64
+}
+
+// PlanCompaction identifies L0 segments exceeding the trigger threshold.
+// Reads manifest outside the publish lock (snapshot-based).
+func PlanCompaction(shard *Shard, trigger int) *CompactionPlan {
+	if trigger < 2 {
+		trigger = DefaultL0Trigger
+	}
+
+	m := shard.Manifest()
+	var l0 []SegmentMeta
+	for _, seg := range m.Segments {
+		if seg.Level == 0 {
+			l0 = append(l0, seg)
+		}
+	}
+
+	if len(l0) < trigger {
+		return nil
+	}
+
+	return &CompactionPlan{
+		ShardID:    shard.ID(),
+		InputSegs:  l0,
+		Generation: m.Generation,
+	}
+}
+
+// ExecuteCompaction runs compaction for a plan. Caller must hold the publish lock.
+func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
+	// Verify inputs still present in current manifest.
+	m := shard.Manifest()
+	inputNames := make(map[string]bool, len(plan.InputSegs))
+	for _, seg := range plan.InputSegs {
+		inputNames[seg.Filename] = true
+	}
+	for name := range inputNames {
+		found := false
+		for _, seg := range m.Segments {
+			if seg.Filename == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.Errorf("input segment %s no longer in manifest", name)
+		}
+	}
+
+	// Read input segments into memory.
+	readers := make([]*segment.Reader, len(plan.InputSegs))
+	for i, meta := range plan.InputSegs {
+		data := readFileBytes(shard.dir, meta.Filename)
+		if data == nil {
+			return errors.Errorf("read input segment %s: not found", meta.Filename)
+		}
+		rd, err := segment.NewReader(bytes.NewReader(data), int64(len(data)))
+		if err != nil {
+			return errors.Errorf("parse input segment %s: %v", meta.Filename, err)
+		}
+		readers[i] = rd
+	}
+
+	// K-way merge.
+	merged, err := MergeSegments(readers)
+	if err != nil {
+		return errors.Wrap(err, "merge segments")
+	}
+	if len(merged) == 0 {
+		return nil
+	}
+
+	// Build output SSTable.
+	w := segment.NewWriter()
+	for i := range merged {
+		if merged[i].Tombstone {
+			w.AddTombstone(merged[i].Key)
+		} else {
+			w.Add(merged[i].Key, merged[i].Value)
+		}
+	}
+
+	var outBuf bytes.Buffer
+	written, err := w.Build(&outBuf)
+	if err != nil {
+		return errors.Wrap(err, "build compacted segment")
+	}
+
+	outData := outBuf.Bytes()
+	outRd, err := segment.NewReader(bytes.NewReader(outData), written)
+	if err != nil {
+		return errors.Wrap(err, "parse compacted segment")
+	}
+
+	// Allocate sequence number and filename.
+	shard.mu.Lock()
+	shard.seqNum++
+	seq := shard.seqNum
+	gen := shard.manifest.Generation + 1
+	shard.mu.Unlock()
+
+	filename := "seg-" + zeroPad(seq, 6) + ".sst"
+
+	// Write output segment via sync handle.
+	sf, err := opfs.CreateSyncFile(shard.dir, filename)
+	if err != nil {
+		return errors.Wrap(err, "create compacted segment file")
+	}
+	if _, err := sf.WriteAt(outData, 0); err != nil {
+		sf.Close()
+		return errors.Wrap(err, "write compacted segment")
+	}
+	sf.Flush()
+	if err := sf.Close(); err != nil {
+		return errors.Wrap(err, "close compacted segment")
+	}
+
+	// Build new manifest: remove inputs, add L1 output.
+	shard.mu.Lock()
+	var newSegs []SegmentMeta
+	for _, seg := range shard.manifest.Segments {
+		if !inputNames[seg.Filename] {
+			newSegs = append(newSegs, seg)
+		}
+	}
+	newSegs = append(newSegs, SegmentMeta{
+		Filename:   filename,
+		EntryCount: outRd.EntryCount(),
+		Size:       uint32(written),
+		Level:      1,
+		MinKey:     outRd.MinKey(),
+		MaxKey:     outRd.MaxKey(),
+	})
+	newManifest := &Manifest{
+		Generation: gen,
+		Segments:   newSegs,
+	}
+	shard.mu.Unlock()
+
+	// Write manifest slot.
+	slot := "manifest-a"
+	if gen%2 == 0 {
+		slot = "manifest-b"
+	}
+	mdata := newManifest.Encode()
+	mf, err := opfs.CreateSyncFile(shard.dir, slot)
+	if err != nil {
+		return errors.Wrap(err, "create compaction manifest")
+	}
+	mf.Truncate(0)
+	if _, err := mf.WriteAt(mdata, 0); err != nil {
+		mf.Close()
+		return errors.Wrap(err, "write compaction manifest")
+	}
+	mf.Flush()
+	if err := mf.Close(); err != nil {
+		return errors.Wrap(err, "close compaction manifest")
+	}
+
+	// Commit in-memory.
+	shard.mu.Lock()
+	shard.manifest = newManifest
+	shard.mu.Unlock()
+
+	return nil
+}
+
+// DeleteOldSegments removes input segment files after compaction.
+// Should be called after a grace period. Caller must hold publish lock.
+func DeleteOldSegments(shard *Shard, filenames []string) {
+	for _, name := range filenames {
+		opfs.DeleteFile(shard.dir, name)
+	}
+}

@@ -271,6 +271,32 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		for _, r := range reqs {
 			r.err <- err
 		}
+
+		// Check if compaction is needed after publish.
+		if err == nil {
+			plan := PlanCompaction(shard, DefaultL0Trigger)
+			if plan != nil {
+				release, lockErr := shard.AcquirePublishLock()
+				if lockErr == nil {
+					compErr := ExecuteCompaction(shard, plan)
+					compGen := shard.Manifest().Generation
+					release()
+					if compErr == nil {
+						e.broadcaster.Send(shardIdx, compGen)
+						// Delete old segments after compaction.
+						names := make([]string, len(plan.InputSegs))
+						for i, seg := range plan.InputSegs {
+							names[i] = seg.Filename
+						}
+						deleteRelease, delErr := shard.AcquirePublishLock()
+						if delErr == nil {
+							DeleteOldSegments(shard, names)
+							deleteRelease()
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
