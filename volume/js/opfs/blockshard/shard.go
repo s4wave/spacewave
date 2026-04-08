@@ -183,6 +183,35 @@ func (s *Shard) deriveSeqNum() uint64 {
 	return max
 }
 
+// CleanOrphans removes segment files not referenced by the current manifest.
+// Called during startup to clean up after interrupted writes.
+func (s *Shard) CleanOrphans() error {
+	entries, err := opfs.ListDirectory(s.dir)
+	if err != nil {
+		return errors.Wrap(err, "list shard directory")
+	}
+
+	// Build set of referenced segment filenames.
+	s.mu.Lock()
+	refs := make(map[string]struct{}, len(s.manifest.Segments))
+	for _, seg := range s.manifest.Segments {
+		refs[seg.Filename] = struct{}{}
+	}
+	s.mu.Unlock()
+
+	// Delete .sst files not in the manifest.
+	for _, name := range entries {
+		if len(name) < 4 || name[len(name)-4:] != ".sst" {
+			continue
+		}
+		if _, ok := refs[name]; ok {
+			continue
+		}
+		opfs.DeleteFile(s.dir, name)
+	}
+	return nil
+}
+
 // readFileBytes reads the full contents of an OPFS file, returning nil on error.
 func readFileBytes(dir js.Value, name string) []byte {
 	f, err := opfs.OpenAsyncFile(dir, name)

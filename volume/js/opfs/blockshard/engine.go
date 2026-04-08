@@ -72,6 +72,10 @@ func NewEngine(ctx context.Context, dir js.Value, lockPrefix string, shardCount 
 			cancel()
 			return nil, errors.Errorf("open shard %d: %v", i, err)
 		}
+		if err := shard.CleanOrphans(); err != nil {
+			cancel()
+			return nil, errors.Errorf("clean shard %d orphans: %v", i, err)
+		}
 		e.shards[i] = shard
 		e.actors[i] = make(chan writeReq, 64)
 

@@ -8,16 +8,16 @@ import (
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/gc/gcgraph"
 	block_gc_wal "github.com/aperturerobotics/hydra/block/gc/wal"
-	block_store_opfs "github.com/aperturerobotics/hydra/block/store/opfs"
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/opfs/filelock"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
-	store_objstore_opfs "github.com/aperturerobotics/hydra/store/objstore/opfs"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/hydra/volume"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
+	"github.com/aperturerobotics/hydra/volume/js/opfs/blockshard"
+	"github.com/aperturerobotics/hydra/volume/js/opfs/metashard"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -61,33 +61,37 @@ func NewOpfs(
 		return nil, errors.Wrap(err, "create volume directory")
 	}
 
-	// Create the blocks/ subdirectory for the per-file block store.
+	// Block shard engine: sharded SSTable segments with per-shard write actors.
 	blocksDir, err := opfs.GetDirectory(volDir, "blocks", true)
 	if err != nil {
 		return nil, errors.Wrap(err, "create blocks directory")
 	}
 
-	// Per-file block store: no transaction-level WebLock, just per-file locks.
-	blkStore := block_store_opfs.NewBlockStore(
-		blocksDir,
-		lockPrefix+"/blocks",
-		conf.GetStoreConfig().GetHashType(),
-	)
+	blkEngine, err := blockshard.NewEngine(ctx, blocksDir, lockPrefix+"/blocks", blockshard.DefaultShardCount)
+	if err != nil {
+		return nil, errors.Wrap(err, "create block shard engine")
+	}
+	blkStore := blockshard.NewBlockStore(blkEngine, conf.GetStoreConfig().GetHashType())
 
-	// Object store: per-file write locking with readers-writer WebLock for ACID.
-	objStore := store_objstore_opfs.NewStore(
-		volDir,
-		lockPrefix+"|objstore",
-		lockPrefix+"/obj",
-	)
+	// Meta page store: single B+tree page file with dual superblocks.
+	metaDir, err := opfs.GetDirectory(volDir, "meta", true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create meta directory")
+	}
 
-	var store skvtx.Store = objStore
+	meta, err := metashard.NewMetaShard(metaDir, lockPrefix+"/meta", 0)
+	if err != nil {
+		return nil, errors.Wrap(err, "create meta shard")
+	}
+	metaStore := metashard.NewMetaStore(meta)
+
+	var store skvtx.Store = metaStore
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
 
 	statsFn := func(ctx context.Context) (*volume.StorageStats, error) {
-		tx, txErr := objStore.NewTransaction(ctx, false)
+		tx, txErr := metaStore.NewTransaction(ctx, false)
 		if txErr != nil {
 			return nil, txErr
 		}
@@ -146,6 +150,7 @@ func NewOpfs(
 		conf.GetNoWriteKey(),
 		statsFn,
 		func() error {
+			blkEngine.Close()
 			return gcGraph.Close()
 		},
 		func() error {
