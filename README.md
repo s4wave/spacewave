@@ -75,6 +75,7 @@ The following volume types are currently implemented in this repository:
  - [BoltDB]: embedded key/value data store, using bbolt.
  - [In-memory]: in-memory key/value store for temporary data.
  - [IndexedDB]: with GopherJS/WASM in the web browser.
+ - [OPFS]: Origin Private Filesystem with WASM in the web browser.
  - [RPC]: access a Volume on a remote Bus via a RPC service.
  - [Redis]: key/value storage with a remote Redis database.
  - [World]: nested volume backed by Object in a shared World.
@@ -94,6 +95,7 @@ to create a shared Volume, which can be encrypted or compressed by adding a
 [BoltDB]: ./volume/bolt/bolt.proto#L9
 [In-memory]: ./volume/kvtxinmem/kvtxinmem.proto#L9
 [IndexedDB]: ./volume/js/indexeddb/indexeddb.proto#L10
+[OPFS]: ./volume/js/opfs/opfs.proto#L9
 [Redis]: ./volume/redis/redis.proto#L10
 [RPC]: ./volume/rpc/volume.proto
 [Store]: ./store/store.go
