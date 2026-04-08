@@ -4,7 +4,6 @@ package volume_opfs
 
 import (
 	"context"
-	"time"
 
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	"github.com/aperturerobotics/hydra/block/gc/gcgraph"
@@ -71,8 +70,6 @@ func NewOpfs(
 	blockSettings := &blockshard.Settings{
 		ShardCount:        int(conf.GetBlockShardCount()),
 		BloomFPR:          conf.GetBlockBloomFpr(),
-		FlushThreshold:    int(conf.GetBlockFlushThreshold()),
-		FlushMaxAge:       time.Duration(conf.GetBlockFlushMaxAgeMillis()) * time.Millisecond,
 		CompactionTrigger: int(conf.GetBlockCompactionTrigger()),
 		AsyncIO:           conf.GetAsyncIo(),
 	}

@@ -32,17 +32,13 @@ message Config {
   uint32 meta_shard_count = 10;
   // BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
   double block_bloom_fpr = 11;
-  // BlockFlushThreshold is the per-shard write coalescing flush threshold.
-  uint32 block_flush_threshold = 12;
-  // BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
-  uint32 block_flush_max_age_millis = 13;
   // BlockCompactionTrigger is the L0 compaction trigger per shard.
-  uint32 block_compaction_trigger = 14;
+  uint32 block_compaction_trigger = 12;
   // PageSize is the metadata page size in bytes.
-  uint32 page_size = 15;
+  uint32 page_size = 13;
   // AsyncIo forces using the async OPFS API instead of the sync API.
   // When enabled, writes yield the Go thread via AwaitPromise, allowing
   // other goroutines to continue encoding and enqueuing while I/O is
-  // in flight. Only available in DedicatedWorker contexts.
-  bool async_io = 16;
+  // in flight.
+  bool async_io = 14;
 }

@@ -369,8 +369,26 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
+// BeginDeferFlush enters a deferred-flush scope for bucket-level GC.
+// While deferred, PutBlock skips per-block FlushPending calls.
+func (b *bucketHandle) BeginDeferFlush() {
+	if b.gcOps != nil {
+		b.gcOps.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush exits a deferred-flush scope and flushes all
+// accumulated bucket-level GC operations in one batch.
+func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
+	if b.gcOps != nil {
+		return b.gcOps.EndDeferFlush(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
 var (
-	_ bucket.Bucket       = ((*bucketHandle)(nil))
-	_ bucket.BucketHandle = ((*bucketHandle)(nil))
+	_ bucket.Bucket              = ((*bucketHandle)(nil))
+	_ bucket.BucketHandle        = ((*bucketHandle)(nil))
+	_ block_gc.DeferFlushable    = ((*bucketHandle)(nil))
 )

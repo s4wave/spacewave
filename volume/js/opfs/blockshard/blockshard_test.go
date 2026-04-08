@@ -12,8 +12,12 @@ import (
 )
 
 func newTestEngine(t *testing.T, dirName, lockPrefix string) (*Engine, func()) {
+	return newTestEngineWithSettings(t, dirName, lockPrefix, nil)
+}
+
+func newTestEngineWithSettings(t *testing.T, dirName, lockPrefix string, settings *Settings) (*Engine, func()) {
 	t.Helper()
-	if !opfs.SyncAvailable() {
+	if (settings == nil || !settings.AsyncIO) && !opfs.SyncAvailable() {
 		t.Skip("sync access handles not available")
 	}
 	root, err := opfs.GetRoot()
@@ -24,7 +28,11 @@ func newTestEngine(t *testing.T, dirName, lockPrefix string) (*Engine, func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e, err := NewEngine(context.Background(), dir, lockPrefix, 1)
+	if settings == nil {
+		settings = DefaultSettings()
+		settings.ShardCount = 1
+	}
+	e, err := NewEngineWithSettings(context.Background(), dir, lockPrefix, settings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +73,68 @@ func compactShard(t *testing.T, s *Shard) {
 	}
 	if _, err := s.ReclaimPendingDelete(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSingletonPutDoesNotWaitForFlushAge(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-singleton-no-wait",
+		"test-blockshard-singleton-no-wait",
+		settings,
+	)
+	defer cleanup()
+
+	start := time.Now()
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("singleton"),
+		Value: []byte("value"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	dur := time.Since(start)
+	if dur >= 40*time.Millisecond {
+		t.Fatalf("singleton put took %v; expected no pre-publish wait", dur)
+	}
+
+	val, found, err := e.Get([]byte("singleton"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "value" {
+		t.Fatalf("singleton get: found=%v val=%q want value", found, val)
+	}
+}
+
+func TestAsyncIOWriteAndRead(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-async-io",
+		"test-blockshard-async-io",
+		settings,
+	)
+	defer cleanup()
+
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("async"),
+		Value: []byte("mode"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	val, found, err := e.Get([]byte("async"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "mode" {
+		t.Fatalf("async get: found=%v val=%q want mode", found, val)
 	}
 }
 

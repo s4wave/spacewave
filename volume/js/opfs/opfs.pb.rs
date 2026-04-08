@@ -39,23 +39,17 @@ pub struct Config {
     /// BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
     #[prost(double, tag="11")]
     pub block_bloom_fpr: f64,
-    /// BlockFlushThreshold is the per-shard write coalescing flush threshold.
-    #[prost(uint32, tag="12")]
-    pub block_flush_threshold: u32,
-    /// BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
-    #[prost(uint32, tag="13")]
-    pub block_flush_max_age_millis: u32,
     /// BlockCompactionTrigger is the L0 compaction trigger per shard.
-    #[prost(uint32, tag="14")]
+    #[prost(uint32, tag="12")]
     pub block_compaction_trigger: u32,
     /// PageSize is the metadata page size in bytes.
-    #[prost(uint32, tag="15")]
+    #[prost(uint32, tag="13")]
     pub page_size: u32,
     /// AsyncIo forces using the async OPFS API instead of the sync API.
     /// When enabled, writes yield the Go thread via AwaitPromise, allowing
     /// other goroutines to continue encoding and enqueuing while I/O is
-    /// in flight. Only available in DedicatedWorker contexts.
-    #[prost(bool, tag="16")]
+    /// in flight.
+    #[prost(bool, tag="14")]
     pub async_io: bool,
 }
 // @@protoc_insertion_point(module)

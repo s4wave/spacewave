@@ -228,14 +228,12 @@ class Config final : public ::google::protobuf::Message
     kNoGenerateKeyFieldNumber = 4,
     kNoWriteKeyFieldNumber = 5,
     kVerboseFieldNumber = 6,
-    kAsyncIoFieldNumber = 16,
+    kAsyncIoFieldNumber = 14,
     kBlockShardCountFieldNumber = 9,
     kBlockBloomFprFieldNumber = 11,
     kMetaShardCountFieldNumber = 10,
-    kBlockFlushThresholdFieldNumber = 12,
-    kBlockFlushMaxAgeMillisFieldNumber = 13,
-    kBlockCompactionTriggerFieldNumber = 14,
-    kPageSizeFieldNumber = 15,
+    kBlockCompactionTriggerFieldNumber = 12,
+    kPageSizeFieldNumber = 13,
   };
   // string root_path = 1;
   void clear_root_path() ;
@@ -342,7 +340,7 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_verbose(bool value);
 
   public:
-  // bool async_io = 16;
+  // bool async_io = 14;
   void clear_async_io() ;
   bool async_io() const;
   void set_async_io(bool value);
@@ -382,27 +380,7 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_meta_shard_count(::uint32_t value);
 
   public:
-  // uint32 block_flush_threshold = 12;
-  void clear_block_flush_threshold() ;
-  ::uint32_t block_flush_threshold() const;
-  void set_block_flush_threshold(::uint32_t value);
-
-  private:
-  ::uint32_t _internal_block_flush_threshold() const;
-  void _internal_set_block_flush_threshold(::uint32_t value);
-
-  public:
-  // uint32 block_flush_max_age_millis = 13;
-  void clear_block_flush_max_age_millis() ;
-  ::uint32_t block_flush_max_age_millis() const;
-  void set_block_flush_max_age_millis(::uint32_t value);
-
-  private:
-  ::uint32_t _internal_block_flush_max_age_millis() const;
-  void _internal_set_block_flush_max_age_millis(::uint32_t value);
-
-  public:
-  // uint32 block_compaction_trigger = 14;
+  // uint32 block_compaction_trigger = 12;
   void clear_block_compaction_trigger() ;
   ::uint32_t block_compaction_trigger() const;
   void set_block_compaction_trigger(::uint32_t value);
@@ -412,7 +390,7 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_block_compaction_trigger(::uint32_t value);
 
   public:
-  // uint32 page_size = 15;
+  // uint32 page_size = 13;
   void clear_page_size() ;
   ::uint32_t page_size() const;
   void set_page_size(::uint32_t value);
@@ -426,8 +404,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 16,
-                                   3, 63,
+  static const ::google::protobuf::internal::TcParseTable<4, 14,
+                                   3, 55,
                                    2>
       _table_;
 
@@ -460,8 +438,6 @@ class Config final : public ::google::protobuf::Message
     ::uint32_t block_shard_count_;
     double block_bloom_fpr_;
     ::uint32_t meta_shard_count_;
-    ::uint32_t block_flush_threshold_;
-    ::uint32_t block_flush_max_age_millis_;
     ::uint32_t block_compaction_trigger_;
     ::uint32_t page_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -1047,62 +1023,12 @@ inline void Config::_internal_set_block_bloom_fpr(double value) {
   _impl_.block_bloom_fpr_ = value;
 }
 
-// uint32 block_flush_threshold = 12;
-inline void Config::clear_block_flush_threshold() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.block_flush_threshold_ = 0u;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00001000U);
-}
-inline ::uint32_t Config::block_flush_threshold() const {
-  // @@protoc_insertion_point(field_get:volume.opfs.Config.block_flush_threshold)
-  return _internal_block_flush_threshold();
-}
-inline void Config::set_block_flush_threshold(::uint32_t value) {
-  _internal_set_block_flush_threshold(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
-  // @@protoc_insertion_point(field_set:volume.opfs.Config.block_flush_threshold)
-}
-inline ::uint32_t Config::_internal_block_flush_threshold() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.block_flush_threshold_;
-}
-inline void Config::_internal_set_block_flush_threshold(::uint32_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.block_flush_threshold_ = value;
-}
-
-// uint32 block_flush_max_age_millis = 13;
-inline void Config::clear_block_flush_max_age_millis() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.block_flush_max_age_millis_ = 0u;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00002000U);
-}
-inline ::uint32_t Config::block_flush_max_age_millis() const {
-  // @@protoc_insertion_point(field_get:volume.opfs.Config.block_flush_max_age_millis)
-  return _internal_block_flush_max_age_millis();
-}
-inline void Config::set_block_flush_max_age_millis(::uint32_t value) {
-  _internal_set_block_flush_max_age_millis(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
-  // @@protoc_insertion_point(field_set:volume.opfs.Config.block_flush_max_age_millis)
-}
-inline ::uint32_t Config::_internal_block_flush_max_age_millis() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.block_flush_max_age_millis_;
-}
-inline void Config::_internal_set_block_flush_max_age_millis(::uint32_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.block_flush_max_age_millis_ = value;
-}
-
-// uint32 block_compaction_trigger = 14;
+// uint32 block_compaction_trigger = 12;
 inline void Config::clear_block_compaction_trigger() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_compaction_trigger_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00004000U);
+                  0x00001000U);
 }
 inline ::uint32_t Config::block_compaction_trigger() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_compaction_trigger)
@@ -1110,7 +1036,7 @@ inline ::uint32_t Config::block_compaction_trigger() const {
 }
 inline void Config::set_block_compaction_trigger(::uint32_t value) {
   _internal_set_block_compaction_trigger(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_compaction_trigger)
 }
 inline ::uint32_t Config::_internal_block_compaction_trigger() const {
@@ -1122,12 +1048,12 @@ inline void Config::_internal_set_block_compaction_trigger(::uint32_t value) {
   _impl_.block_compaction_trigger_ = value;
 }
 
-// uint32 page_size = 15;
+// uint32 page_size = 13;
 inline void Config::clear_page_size() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.page_size_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00008000U);
+                  0x00002000U);
 }
 inline ::uint32_t Config::page_size() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.page_size)
@@ -1135,7 +1061,7 @@ inline ::uint32_t Config::page_size() const {
 }
 inline void Config::set_page_size(::uint32_t value) {
   _internal_set_page_size(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.page_size)
 }
 inline ::uint32_t Config::_internal_page_size() const {
@@ -1147,7 +1073,7 @@ inline void Config::_internal_set_page_size(::uint32_t value) {
   _impl_.page_size_ = value;
 }
 
-// bool async_io = 16;
+// bool async_io = 14;
 inline void Config::clear_async_io() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.async_io_ = false;

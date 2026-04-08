@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"sync"
 	"syscall/js"
-	"time"
 
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
@@ -17,12 +16,6 @@ import (
 
 // DefaultShardCount is the default number of block shards.
 const DefaultShardCount = 4
-
-// DefaultFlushThreshold is the default entry count that triggers a flush.
-const DefaultFlushThreshold = 4
-
-// DefaultFlushMaxAge is the default maximum age before flushing.
-const DefaultFlushMaxAge = 50 * time.Millisecond
 
 // writeReq is an internal request to the shard write actor.
 type writeReq struct {
@@ -314,8 +307,22 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		}
 		reqs = reqs[:0]
 
-		// Check if compaction is needed after publish.
-		if err == nil {
+		// Pipeline overlap: drain entries that arrived during publish.
+		// If any accumulated, the next loop iteration skips the blocking
+		// wait and publishes them immediately. Compaction runs only when
+		// there is no pending foreground work.
+	overlap:
+		for {
+			select {
+			case req := <-ch:
+				reqs = append(reqs, req)
+			default:
+				break overlap
+			}
+		}
+
+		// Run compaction only when no foreground entries are waiting.
+		if err == nil && len(reqs) == 0 {
 			plan := PlanCompaction(shard, e.compactionN)
 			if plan != nil {
 				release, lockErr := shard.AcquirePublishLock()
@@ -330,19 +337,6 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 						e.broadcaster.Send(shardIdx, compGen)
 					}
 				}
-			}
-		}
-
-		// Pipeline overlap: drain entries that arrived during publish and
-		// compaction. If any accumulated, the next loop iteration skips the
-		// blocking wait and publishes them immediately.
-	overlap:
-		for {
-			select {
-			case req := <-ch:
-				reqs = append(reqs, req)
-			default:
-				break overlap
 			}
 		}
 	}

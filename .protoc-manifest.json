@@ -1179,7 +1179,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/volume/js/opfs": {
-      "hash": "c3c4a19ef06bc921917dc85af1e3e1572b40f3b289d4c05fc45a609e23dbfd91",
+      "hash": "fa1d3f220f4ba0df56684e32fcce2eb1f6594fce5cea7d56184e4679d8c22c5a",
       "generatedFiles": [
         "volume/js/opfs/opfs.pb.cc",
         "volume/js/opfs/opfs.pb.go",

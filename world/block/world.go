@@ -472,16 +472,38 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		return err
 	}
 
+	// Defer bucket-level GC flushes during the block write so they
+	// accumulate and flush once at the end instead of per-PutBlock.
+	if df, ok := t.store.(block_gc.DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+
 	var bcs *block.Cursor
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
 	_, bcs, err = t.btx.Write(taskCtx, true)
 	subtask.End()
 	if err != nil {
+		// End the deferred scope even on error to flush any partial work.
+		if df, ok := t.store.(block_gc.DeferFlushable); ok {
+			_ = df.EndDeferFlush(ctx)
+		}
 		return err
 	}
-	// Flush buffered GC ref graph operations after Write releases the cursor mutex.
-	// With the deferred journal wired, FlushPending appends to the journal instead
-	// of mutating the Cayley graph directly.
+
+	// End the deferred bucket-level flush scope: one batched flush.
+	if df, ok := t.store.(block_gc.DeferFlushable); ok {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending/bucket-batch")
+		err := df.EndDeferFlush(taskCtx)
+		subtask.End()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Flush buffered world-level GC ref graph operations after Write
+	// releases the cursor mutex. With the deferred journal wired,
+	// FlushPending appends to the journal instead of mutating the
+	// Cayley graph directly.
 	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending")
 		err := gcOps.FlushPending(taskCtx)

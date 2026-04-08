@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime/trace"
 	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
@@ -22,6 +23,15 @@ type WALAppender interface {
 	Append(ctx context.Context, adds, removes []RefEdge) error
 }
 
+// DeferFlushable is implemented by stores that support deferred GC flushing.
+// Higher layers call BeginDeferFlush before a batch of block writes and
+// EndDeferFlush after, so FlushPending calls within the scope accumulate
+// without doing work. EndDeferFlush performs one batched flush.
+type DeferFlushable interface {
+	BeginDeferFlush()
+	EndDeferFlush(ctx context.Context) error
+}
+
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.
 //
 // PutBlock and RecordBlockRefs are called from Transaction.Write's
@@ -34,11 +44,12 @@ type WALAppender interface {
 // instead of the "unreferenced" staging node. This allows
 // bucket-level ownership of blocks.
 type GCStoreOps struct {
-	store     block.StoreOps
-	refGraph  RefGraphOps
-	wal       WALAppender
-	parentIRI string
-	flushTask string
+	store      block.StoreOps
+	refGraph   RefGraphOps
+	wal        WALAppender
+	parentIRI  string
+	flushTask  string
+	deferFlush atomic.Int32
 
 	mu             sync.Mutex
 	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
@@ -206,11 +217,36 @@ func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, 
 	return nil
 }
 
+// BeginDeferFlush enters a deferred-flush scope. While deferred,
+// FlushPending returns immediately without flushing; pending
+// operations accumulate in the buffer. Supports nesting.
+func (g *GCStoreOps) BeginDeferFlush() {
+	g.deferFlush.Add(1)
+}
+
+// EndDeferFlush exits a deferred-flush scope. When the outermost
+// scope ends, calls FlushPending to flush all accumulated operations
+// in one batch.
+func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
+	if g.deferFlush.Add(-1) == 0 {
+		return g.FlushPending(ctx)
+	}
+	return nil
+}
+
 // FlushPending writes all buffered PutBlock and RecordBlockRefs
 // operations to the RefGraph, using batched ref graph updates when
 // the implementation supports them. Must be called after
 // Transaction.Write completes and the cursor mutex is no longer held.
+//
+// When a deferred-flush scope is active (via BeginDeferFlush),
+// returns nil without flushing. The pending operations accumulate
+// and are flushed when EndDeferFlush closes the outermost scope.
 func (g *GCStoreOps) FlushPending(ctx context.Context) error {
+	if g.deferFlush.Load() > 0 {
+		return nil
+	}
+
 	taskName := g.flushTask
 	if taskName == "" {
 		taskName = defaultFlushTask

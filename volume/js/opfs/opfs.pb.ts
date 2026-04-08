@@ -86,36 +86,24 @@ export interface Config {
    */
   blockBloomFpr?: number
   /**
-   * BlockFlushThreshold is the per-shard write coalescing flush threshold.
-   *
-   * @generated from field: uint32 block_flush_threshold = 12;
-   */
-  blockFlushThreshold?: number
-  /**
-   * BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
-   *
-   * @generated from field: uint32 block_flush_max_age_millis = 13;
-   */
-  blockFlushMaxAgeMillis?: number
-  /**
    * BlockCompactionTrigger is the L0 compaction trigger per shard.
    *
-   * @generated from field: uint32 block_compaction_trigger = 14;
+   * @generated from field: uint32 block_compaction_trigger = 12;
    */
   blockCompactionTrigger?: number
   /**
    * PageSize is the metadata page size in bytes.
    *
-   * @generated from field: uint32 page_size = 15;
+   * @generated from field: uint32 page_size = 13;
    */
   pageSize?: number
   /**
    * AsyncIo forces using the async OPFS API instead of the sync API.
    * When enabled, writes yield the Go thread via AwaitPromise, allowing
    * other goroutines to continue encoding and enqueuing while I/O is
-   * in flight. Only available in DedicatedWorker contexts.
+   * in flight.
    *
-   * @generated from field: bool async_io = 16;
+   * @generated from field: bool async_io = 14;
    */
   asyncIo?: boolean
 }
@@ -137,24 +125,12 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 11, name: 'block_bloom_fpr', kind: 'scalar', T: ScalarType.DOUBLE },
     {
       no: 12,
-      name: 'block_flush_threshold',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 13,
-      name: 'block_flush_max_age_millis',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 14,
       name: 'block_compaction_trigger',
       kind: 'scalar',
       T: ScalarType.UINT32,
     },
-    { no: 15, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 16, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 13, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 14, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
