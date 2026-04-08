@@ -28,6 +28,10 @@ pub struct World {
     /// Stores gc/ref quads for garbage collection of unreferenced blocks.
     #[prost(message, optional, tag="5")]
     pub gc_graph: ::core::option::Option<super::super::kvtx::block::KeyValueStore>,
+    /// GcJournal is the deferred GC journal key/value store.
+    /// Stores pending ref edge batches that are reconciled into gc_graph later.
+    #[prost(message, optional, tag="6")]
+    pub gc_journal: ::core::option::Option<super::super::kvtx::block::KeyValueStore>,
 }
 /// Object is an atomic unit for a object in a World graph.
 #[derive(Clone, PartialEq, ::prost::Message)]

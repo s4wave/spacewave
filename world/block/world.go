@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,8 +48,10 @@ type WorldState struct {
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
-	gcTree    kvtx.BlockTx
-	refGraph  *block_gc.RefGraph
+	gcTree        kvtx.BlockTx
+	refGraph      *block_gc.RefGraph
+	gcJournalTree kvtx.BlockTx
+	gcJournal     *gcJournal
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
@@ -327,9 +330,11 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		return err
 	}
 
-	// Build GC ref graph for writable transactions with a store.
+	// Build GC ref graph and deferred journal for writable transactions with a store.
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
+	var journalTree kvtx.BlockTx
+	var journal *gcJournal
 	if t.write && t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
 		gcTree, refGraph, err = t.buildGCTree(taskCtx, bcs)
@@ -340,9 +345,32 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 			objTree.Discard()
 			return err
 		}
-		// Wrap the transaction's store with GCStoreOps.
+		// Build the deferred GC journal tree at sub-block 6.
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-journal")
+		journalTree, err = kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(gcJournalSubBlock), true)
+		subtask.End()
+		if err != nil {
+			_ = refGraph.Close()
+			gcTree.Discard()
+			_ = graphHandle.Close()
+			graphTree.Discard()
+			objTree.Discard()
+			return err
+		}
+		journal, err = newGCJournal(journalTree)
+		if err != nil {
+			journalTree.Discard()
+			_ = refGraph.Close()
+			gcTree.Discard()
+			_ = graphHandle.Close()
+			graphTree.Discard()
+			objTree.Discard()
+			return err
+		}
+		// Wrap the transaction's store with GCStoreOps using the journal as WAL.
 		if btx != nil {
 			gcOps := block_gc.NewGCStoreOpsWithTraceTask(t.store, refGraph, block_gc.WorldFlushTask())
+			gcOps.SetWALAppender(journal)
 			btx.SetStoreOps(gcOps)
 		}
 	}
@@ -364,8 +392,12 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	if t.gcTree != nil {
 		t.gcTree.Discard()
 	}
+	if t.gcJournalTree != nil {
+		t.gcJournalTree.Discard()
+	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
 	t.gcTree, t.refGraph = gcTree, refGraph
+	t.gcJournalTree, t.gcJournal = journalTree, journal
 	subtask.End()
 
 	// Ensure gcroot -> world edge exists (idempotent).
@@ -400,6 +432,9 @@ func (t *WorldState) Discard() {
 	}
 	if t.gcTree != nil {
 		t.gcTree.Discard()
+	}
+	if t.gcJournalTree != nil {
+		t.gcJournalTree.Discard()
 	}
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
@@ -445,9 +480,20 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		return err
 	}
 	// Flush buffered GC ref graph operations after Write releases the cursor mutex.
+	// With the deferred journal wired, FlushPending appends to the journal instead
+	// of mutating the Cayley graph directly.
 	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending")
 		err := gcOps.FlushPending(taskCtx)
+		subtask.End()
+		if err != nil {
+			return err
+		}
+	}
+	// Reconcile the journal if it exceeds the threshold.
+	if t.gcJournal != nil && t.gcJournal.Entries() >= gcJournalReconcileThreshold {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/reconcile-gc-journal")
+		_, err := t.ReconcileGCJournal(taskCtx)
 		subtask.End()
 		if err != nil {
 			return err
@@ -467,15 +513,67 @@ func (t *WorldState) GetRefGraph() block_gc.RefGraphOps {
 	return t.refGraph
 }
 
+// gcJournalReconcileThreshold is the journal entry count that triggers
+// automatic reconciliation during Commit.
+const gcJournalReconcileThreshold = 64
+
 // GarbageCollect sweeps unreferenced nodes from the GC ref graph.
 // Only valid on writable WorldState instances with GC enabled.
 // Returns nil stats if GC is not enabled.
+// Reconciles any pending GC journal entries before collecting.
 func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error) {
 	if t.refGraph == nil {
 		return nil, nil
 	}
+	// Reconcile deferred journal before collecting.
+	if _, err := t.ReconcileGCJournal(ctx); err != nil {
+		return nil, errors.Wrap(err, "reconcile gc journal before collect")
+	}
 	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
 	return c.Collect(ctx)
+}
+
+// ReconcileGCJournal applies pending GC journal entries to the Cayley ref graph
+// and clears the journal. Call during idle periods or forced checkpoints. The
+// caller must commit the world state afterward to persist the reconciled graph
+// and cleared journal.
+//
+// Returns the number of journal entries applied, or 0 if the journal was empty
+// or GC is not enabled.
+func (t *WorldState) ReconcileGCJournal(ctx context.Context) (int, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/reconcile-gc-journal")
+	defer task.End()
+
+	if t.refGraph == nil || t.gcJournal == nil {
+		return 0, nil
+	}
+
+	// Collect all journal entries into one merged batch.
+	var allAdds, allRemoves []block_gc.RefEdge
+	count := 0
+	err := t.gcJournal.Iterate(ctx, func(adds, removes []block_gc.RefEdge) error {
+		allAdds = append(allAdds, adds...)
+		allRemoves = append(allRemoves, removes...)
+		count++
+		return nil
+	})
+	if err != nil {
+		return 0, errors.Wrap(err, "iterate gc journal")
+	}
+	if count == 0 {
+		return 0, nil
+	}
+
+	// Apply the merged batch to the Cayley ref graph.
+	if err := t.refGraph.ApplyRefBatch(ctx, allAdds, allRemoves); err != nil {
+		return 0, errors.Wrap(err, "apply gc journal batch")
+	}
+
+	// Clear the journal.
+	if err := t.gcJournal.Clear(ctx); err != nil {
+		return 0, errors.Wrap(err, "clear gc journal")
+	}
+	return count, nil
 }
 
 // buildObjectTree builds the object tree handle.

@@ -93,6 +93,9 @@ type World struct {
 	// GcGraph is the gc reference graph key/value store.
 	// Stores gc/ref quads for garbage collection of unreferenced blocks.
 	GcGraph *block.KeyValueStore `protobuf:"bytes,5,opt,name=gc_graph,json=gcGraph,proto3" json:"gcGraph,omitempty"`
+	// GcJournal is the deferred GC journal key/value store.
+	// Stores pending ref edge batches that are reconciled into gc_graph later.
+	GcJournal *block.KeyValueStore `protobuf:"bytes,6,opt,name=gc_journal,json=gcJournal,proto3" json:"gcJournal,omitempty"`
 }
 
 func (x *World) Reset() {
@@ -132,6 +135,13 @@ func (x *World) GetLastChangeDisable() bool {
 func (x *World) GetGcGraph() *block.KeyValueStore {
 	if x != nil {
 		return x.GcGraph
+	}
+	return nil
+}
+
+func (x *World) GetGcJournal() *block.KeyValueStore {
+	if x != nil {
+		return x.GcJournal
 	}
 	return nil
 }
@@ -385,11 +395,20 @@ func (m *World) CloneVT() *World {
 		return (*World)(nil)
 	}
 	r := new(World)
-	r.ObjectKeyValue = m.ObjectKeyValue.CloneVT()
-	r.GraphKeyValue = m.GraphKeyValue.CloneVT()
 	r.LastChange = m.LastChange.CloneVT()
 	r.LastChangeDisable = m.LastChangeDisable
-	r.GcGraph = m.GcGraph.CloneVT()
+	if rhs := m.ObjectKeyValue; rhs != nil {
+		r.ObjectKeyValue = rhs.CloneVT()
+	}
+	if rhs := m.GraphKeyValue; rhs != nil {
+		r.GraphKeyValue = rhs.CloneVT()
+	}
+	if rhs := m.GcGraph; rhs != nil {
+		r.GcGraph = rhs.CloneVT()
+	}
+	if rhs := m.GcJournal; rhs != nil {
+		r.GcJournal = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -406,8 +425,10 @@ func (m *Object) CloneVT() *Object {
 	}
 	r := new(Object)
 	r.Key = m.Key
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -425,11 +446,19 @@ func (m *WorldChange) CloneVT() *WorldChange {
 	r := new(WorldChange)
 	r.ChangeType = m.ChangeType
 	r.Key = m.Key
-	r.Quad = m.Quad.CloneVT()
-	r.TransactionRef = m.TransactionRef.CloneVT()
-	r.ObjectRef = m.ObjectRef.CloneVT()
-	r.PrevObjectRef = m.PrevObjectRef.CloneVT()
 	r.ObjectRev = m.ObjectRev
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
+	if rhs := m.TransactionRef; rhs != nil {
+		r.TransactionRef = rhs.CloneVT()
+	}
+	if rhs := m.ObjectRef; rhs != nil {
+		r.ObjectRef = rhs.CloneVT()
+	}
+	if rhs := m.PrevObjectRef; rhs != nil {
+		r.PrevObjectRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -446,8 +475,10 @@ func (m *WorldChangeLL) CloneVT() *WorldChangeLL {
 	}
 	r := new(WorldChangeLL)
 	r.Height = m.Height
-	r.PrevRef = m.PrevRef.CloneVT()
 	r.TotalSize = m.TotalSize
+	if rhs := m.PrevRef; rhs != nil {
+		r.PrevRef = rhs.CloneVT()
+	}
 	if rhs := m.Changes; rhs != nil {
 		r.Changes = make([]*WorldChange, len(rhs))
 		for k, v := range rhs {
@@ -470,10 +501,14 @@ func (m *ChangeLogLL) CloneVT() *ChangeLogLL {
 	}
 	r := new(ChangeLogLL)
 	r.Seqno = m.Seqno
-	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeBatch = m.ChangeBatch.CloneVT()
 	r.ChangeType = m.ChangeType
-	r.KeyFilters = m.KeyFilters.CloneVT()
+	if rhs := m.PrevRef; rhs != nil {
+		r.PrevRef = rhs.CloneVT()
+	}
+	if rhs := m.KeyFilters; rhs != nil {
+		r.KeyFilters = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -503,6 +538,9 @@ func (this *World) EqualVT(that *World) bool {
 		return false
 	}
 	if !this.GcGraph.EqualVT(that.GcGraph) {
+		return false
+	}
+	if !this.GcJournal.EqualVT(that.GcJournal) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -728,6 +766,11 @@ func (x *World) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("gcGraph")
 		x.GcGraph.MarshalProtoJSON(s.WithField("gcGraph"))
 	}
+	if x.GcJournal != nil || s.HasField("gcJournal") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("gcJournal")
+		x.GcJournal.MarshalProtoJSON(s.WithField("gcJournal"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -776,6 +819,13 @@ func (x *World) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.GcGraph = &block.KeyValueStore{}
 			x.GcGraph.UnmarshalProtoJSON(s.WithField("gc_graph", true))
+		case "gc_journal", "gcJournal":
+			if s.ReadNil() {
+				x.GcJournal = nil
+				return
+			}
+			x.GcJournal = &block.KeyValueStore{}
+			x.GcJournal.UnmarshalProtoJSON(s.WithField("gc_journal", true))
 		}
 	})
 }
@@ -1160,6 +1210,16 @@ func (m *World) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.GcJournal != nil {
+		size, err := m.GcJournal.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.GcGraph != nil {
 		size, err := m.GcGraph.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1521,6 +1581,10 @@ func (m *World) SizeVT() (n int) {
 		l = m.GcGraph.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.GcJournal != nil {
+		l = m.GcJournal.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1677,6 +1741,13 @@ func (x *World) MarshalProtoText() string {
 		}
 		sb.WriteString("gc_graph: ")
 		sb.WriteString(x.GcGraph.MarshalProtoText())
+	}
+	if x.GcJournal != nil {
+		if sb.Len() > 7 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("gc_journal: ")
+		sb.WriteString(x.GcJournal.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2014,6 +2085,34 @@ func (m *World) UnmarshalVT(dAtA []byte) error {
 				m.GcGraph = &block.KeyValueStore{}
 			}
 			if err := m.GcGraph.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GcJournal", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.GcJournal == nil {
+				m.GcJournal = &block.KeyValueStore{}
+			}
+			if err := m.GcJournal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

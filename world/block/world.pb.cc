@@ -155,6 +155,7 @@ inline constexpr World::Impl_::Impl_(
         graph_key_value_{nullptr},
         last_change_{nullptr},
         gc_graph_{nullptr},
+        gc_journal_{nullptr},
         last_change_disable_{false} {}
 
 template <typename>
@@ -187,17 +188,19 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_._has_bits_),
-        8, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.object_key_value_),
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.graph_key_value_),
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.last_change_),
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.last_change_disable_),
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.gc_graph_),
+        PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_.gc_journal_),
         0,
         1,
         2,
-        4,
+        5,
         3,
+        4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::Object, _impl_._has_bits_),
         6, // hasbit index offset
@@ -253,10 +256,10 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::world::block::World)},
-        {13, sizeof(::world::block::Object)},
-        {22, sizeof(::world::block::WorldChange)},
-        {39, sizeof(::world::block::WorldChangeLL)},
-        {50, sizeof(::world::block::ChangeLogLL)},
+        {15, sizeof(::world::block::Object)},
+        {24, sizeof(::world::block::WorldChange)},
+        {41, sizeof(::world::block::WorldChangeLL)},
+        {52, sizeof(::world::block::ChangeLogLL)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::_World_default_instance_._instance,
@@ -278,34 +281,35 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "rturerobotics/hydra/kvtx/block/kvtx.prot"
     "o\0325github.com/aperturerobotics/hydra/buc"
     "ket/bucket.proto\032\037google/protobuf/timest"
-    "amp.proto\"\351\001\n\005World\0223\n\020object_key_value\030"
+    "amp.proto\"\230\002\n\005World\0223\n\020object_key_value\030"
     "\001 \001(\0132\031.kvtx.block.KeyValueStore\0222\n\017grap"
     "h_key_value\030\002 \001(\0132\031.kvtx.block.KeyValueS"
     "tore\022-\n\013last_change\030\003 \001(\0132\030.world.block."
     "ChangeLogLL\022\033\n\023last_change_disable\030\004 \001(\010"
     "\022+\n\010gc_graph\030\005 \001(\0132\031.kvtx.block.KeyValue"
-    "Store\"G\n\006Object\022\013\n\003key\030\001 \001(\t\022#\n\010root_ref"
-    "\030\002 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030\003 \001(\004\"\364"
-    "\001\n\013WorldChange\0221\n\013change_type\030\001 \001(\0162\034.wo"
-    "rld.block.WorldChangeType\022\013\n\003key\030\002 \001(\t\022\030"
-    "\n\004quad\030\003 \001(\0132\n.quad.Quad\022(\n\017transaction_"
-    "ref\030\004 \001(\0132\017.block.BlockRef\022#\n\nobject_ref"
-    "\030\005 \001(\0132\017.block.BlockRef\022(\n\017prev_object_r"
-    "ef\030\006 \001(\0132\017.block.BlockRef\022\022\n\nobject_rev\030"
-    "\007 \001(\004\"\201\001\n\rWorldChangeLL\022\016\n\006height\030\001 \001(\r\022"
-    "!\n\010prev_ref\030\002 \001(\0132\017.block.BlockRef\022\022\n\nto"
-    "tal_size\030\003 \001(\r\022)\n\007changes\030\004 \003(\0132\030.world."
-    "block.WorldChange\"\316\001\n\013ChangeLogLL\022\r\n\005seq"
-    "no\030\001 \001(\004\022!\n\010prev_ref\030\002 \001(\0132\017.block.Block"
-    "Ref\0220\n\014change_batch\030\003 \001(\0132\032.world.block."
-    "WorldChangeLL\0221\n\013change_type\030\004 \001(\0162\034.wor"
-    "ld.block.WorldChangeType\022(\n\013key_filters\030"
-    "\005 \001(\0132\023.filters.KeyFilters*\276\001\n\017WorldChan"
-    "geType\022\027\n\023WorldChange_INVALID\020\000\022\032\n\026World"
-    "Change_OBJECT_SET\020\001\022\036\n\032WorldChange_OBJEC"
-    "T_INC_REV\020\002\022\035\n\031WorldChange_OBJECT_DELETE"
-    "\020\003\022\031\n\025WorldChange_GRAPH_SET\020\005\022\034\n\030WorldCh"
-    "ange_GRAPH_DELETE\020\006b\006proto3"
+    "Store\022-\n\ngc_journal\030\006 \001(\0132\031.kvtx.block.K"
+    "eyValueStore\"G\n\006Object\022\013\n\003key\030\001 \001(\t\022#\n\010r"
+    "oot_ref\030\002 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030"
+    "\003 \001(\004\"\364\001\n\013WorldChange\0221\n\013change_type\030\001 \001"
+    "(\0162\034.world.block.WorldChangeType\022\013\n\003key\030"
+    "\002 \001(\t\022\030\n\004quad\030\003 \001(\0132\n.quad.Quad\022(\n\017trans"
+    "action_ref\030\004 \001(\0132\017.block.BlockRef\022#\n\nobj"
+    "ect_ref\030\005 \001(\0132\017.block.BlockRef\022(\n\017prev_o"
+    "bject_ref\030\006 \001(\0132\017.block.BlockRef\022\022\n\nobje"
+    "ct_rev\030\007 \001(\004\"\201\001\n\rWorldChangeLL\022\016\n\006height"
+    "\030\001 \001(\r\022!\n\010prev_ref\030\002 \001(\0132\017.block.BlockRe"
+    "f\022\022\n\ntotal_size\030\003 \001(\r\022)\n\007changes\030\004 \003(\0132\030"
+    ".world.block.WorldChange\"\316\001\n\013ChangeLogLL"
+    "\022\r\n\005seqno\030\001 \001(\004\022!\n\010prev_ref\030\002 \001(\0132\017.bloc"
+    "k.BlockRef\0220\n\014change_batch\030\003 \001(\0132\032.world"
+    ".block.WorldChangeLL\0221\n\013change_type\030\004 \001("
+    "\0162\034.world.block.WorldChangeType\022(\n\013key_f"
+    "ilters\030\005 \001(\0132\023.filters.KeyFilters*\276\001\n\017Wo"
+    "rldChangeType\022\027\n\023WorldChange_INVALID\020\000\022\032"
+    "\n\026WorldChange_OBJECT_SET\020\001\022\036\n\032WorldChang"
+    "e_OBJECT_INC_REV\020\002\022\035\n\031WorldChange_OBJECT"
+    "_DELETE\020\003\022\031\n\025WorldChange_GRAPH_SET\020\005\022\034\n\030"
+    "WorldChange_GRAPH_DELETE\020\006b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_deps[7] = {
@@ -321,7 +325,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto = {
     false,
     false,
-    1547,
+    1594,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
     "github.com/aperturerobotics/hydra/world/block/world.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_once,
@@ -370,6 +374,12 @@ void World::clear_gc_graph() {
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
+void World::clear_gc_journal() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.gc_journal_ != nullptr) _impl_.gc_journal_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
 World::World(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, World_class_data_.base()) {
@@ -412,6 +422,9 @@ World::World(
   _impl_.gc_graph_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.gc_graph_)
                 : nullptr;
+  _impl_.gc_journal_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.gc_journal_)
+                : nullptr;
   _impl_.last_change_disable_ = from._impl_.last_change_disable_;
 
   // @@protoc_insertion_point(copy_constructor:world.block.World)
@@ -445,6 +458,7 @@ inline void World::SharedDtor(MessageLite& self) {
   delete this_._impl_.graph_key_value_;
   delete this_._impl_.last_change_;
   delete this_._impl_.gc_graph_;
+  delete this_._impl_.gc_journal_;
   this_._impl_.~Impl_();
 }
 
@@ -491,17 +505,17 @@ World::GetClassData() const {
   return World_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 4, 0, 2>
+const ::_pbi::TcParseTable<3, 6, 5, 0, 2>
 World::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(World, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    4,  // num_aux_entries
+    6,  // num_field_entries
+    5,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     World_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -524,14 +538,17 @@ World::_table_ = {
      {26, 2, 2,
       PROTOBUF_FIELD_OFFSET(World, _impl_.last_change_)}},
     // bool last_change_disable = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(World, _impl_.last_change_disable_), 4>(),
-     {32, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(World, _impl_.last_change_disable_), 5>(),
+     {32, 5, 0,
       PROTOBUF_FIELD_OFFSET(World, _impl_.last_change_disable_)}},
     // .kvtx.block.KeyValueStore gc_graph = 5;
     {::_pbi::TcParser::FastMtS1,
      {42, 3, 3,
       PROTOBUF_FIELD_OFFSET(World, _impl_.gc_graph_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .kvtx.block.KeyValueStore gc_journal = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 4, 4,
+      PROTOBUF_FIELD_OFFSET(World, _impl_.gc_journal_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -543,14 +560,17 @@ World::_table_ = {
     // .world.block.ChangeLogLL last_change = 3;
     {PROTOBUF_FIELD_OFFSET(World, _impl_.last_change_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool last_change_disable = 4;
-    {PROTOBUF_FIELD_OFFSET(World, _impl_.last_change_disable_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(World, _impl_.last_change_disable_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .kvtx.block.KeyValueStore gc_graph = 5;
     {PROTOBUF_FIELD_OFFSET(World, _impl_.gc_graph_), _Internal::kHasBitsOffset + 3, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .kvtx.block.KeyValueStore gc_journal = 6;
+    {PROTOBUF_FIELD_OFFSET(World, _impl_.gc_journal_), _Internal::kHasBitsOffset + 4, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
       {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
       {::_pbi::TcParser::GetTable<::world::block::ChangeLogLL>()},
+      {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
       {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
   }},
   {{
@@ -564,7 +584,7 @@ PROTOBUF_NOINLINE void World::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(_impl_.object_key_value_ != nullptr);
       _impl_.object_key_value_->Clear();
@@ -580,6 +600,10 @@ PROTOBUF_NOINLINE void World::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.gc_graph_ != nullptr);
       _impl_.gc_graph_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.gc_journal_ != nullptr);
+      _impl_.gc_journal_->Clear();
     }
   }
   _impl_.last_change_disable_ = false;
@@ -628,7 +652,7 @@ PROTOBUF_NOINLINE void World::Clear() {
   }
 
   // bool last_change_disable = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_last_change_disable() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -640,6 +664,13 @@ PROTOBUF_NOINLINE void World::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         5, *this_._impl_.gc_graph_, this_._impl_.gc_graph_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .kvtx.block.KeyValueStore gc_journal = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.gc_journal_, this_._impl_.gc_journal_->GetCachedSize(), target,
         stream);
   }
 
@@ -668,7 +699,7 @@ PROTOBUF_NOINLINE void World::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // .kvtx.block.KeyValueStore object_key_value = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -689,8 +720,13 @@ PROTOBUF_NOINLINE void World::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.gc_graph_);
     }
-    // bool last_change_disable = 4;
+    // .kvtx.block.KeyValueStore gc_journal = 6;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.gc_journal_);
+    }
+    // bool last_change_disable = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_last_change_disable() != 0) {
         total_size += 2;
       }
@@ -715,7 +751,7 @@ void World::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.object_key_value_ != nullptr);
       if (_this->_impl_.object_key_value_ == nullptr) {
@@ -749,6 +785,14 @@ void World::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.gc_journal_ != nullptr);
+      if (_this->_impl_.gc_journal_ == nullptr) {
+        _this->_impl_.gc_journal_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.gc_journal_);
+      } else {
+        _this->_impl_.gc_journal_->MergeFrom(*from._impl_.gc_journal_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_last_change_disable() != 0) {
         _this->_impl_.last_change_disable_ = from._impl_.last_change_disable_;
       }

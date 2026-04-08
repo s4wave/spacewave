@@ -307,6 +307,13 @@ export interface World {
    * @generated from field: kvtx.block.KeyValueStore gc_graph = 5;
    */
   gcGraph?: KeyValueStore
+  /**
+   * GcJournal is the deferred GC journal key/value store.
+   * Stores pending ref edge batches that are reconciled into gc_graph later.
+   *
+   * @generated from field: kvtx.block.KeyValueStore gc_journal = 6;
+   */
+  gcJournal?: KeyValueStore
 }
 
 // World contains the message type declaration for World.
@@ -323,6 +330,7 @@ export const World: MessageType<World> = createMessageType({
     { no: 3, name: 'last_change', kind: 'message', T: () => ChangeLogLL },
     { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'gc_graph', kind: 'message', T: () => KeyValueStore },
+    { no: 6, name: 'gc_journal', kind: 'message', T: () => KeyValueStore },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

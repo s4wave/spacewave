@@ -36,8 +36,6 @@ type Engine struct {
 	actors      []chan writeReq
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
-	flushN      int
-	flushAge    time.Duration
 	compactionN int
 	broadcaster *Broadcaster
 	listener    *Listener
@@ -64,8 +62,6 @@ func NewEngineWithSettings(
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]chan writeReq, settings.ShardCount),
 		cancel:      cancel,
-		flushN:      settings.FlushThreshold,
-		flushAge:    settings.FlushMaxAge,
 		compactionN: settings.CompactionTrigger,
 		broadcaster: NewBroadcaster(),
 		listener:    NewListener(),
@@ -249,64 +245,39 @@ func (e *Engine) Get(key []byte) ([]byte, bool, error) {
 }
 
 // runActor is the per-shard write actor goroutine.
-// It coalesces queued writes using yield + non-blocking drain.
+// Pipeline model: publish immediately on first entry, accumulate the queue
+// behind running I/O, and batch whatever arrived during publish as the next
+// round. Singleton writes pay only publish cost (no idle wait). Bursty writes
+// batch naturally because entries collect while I/O is in flight.
 func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 	defer e.wg.Done()
 	ch := e.actors[shardIdx]
 	shard := e.shards[shardIdx]
 
+	var reqs []writeReq
 	for {
-		// Block for the first request.
-		var reqs []writeReq
-		select {
-		case req := <-ch:
-			reqs = append(reqs, req)
-		case <-ctx.Done():
-			return
+		// If no pending entries, block for the next request.
+		if len(reqs) == 0 {
+			select {
+			case req := <-ch:
+				reqs = append(reqs, req)
+			case <-ctx.Done():
+				return
+			}
 		}
 
 		// Yield so sibling goroutines can enqueue.
 		runtime.Gosched()
 
-		// Non-blocking drain up to flush threshold.
-		maxDrain := e.flushN - len(reqs)
-		if maxDrain < 0 {
-			maxDrain = 0
-		}
+		// Non-blocking drain: collect whatever accumulated during the yield.
 	drain:
-		for range maxDrain {
+		for {
 			select {
 			case req := <-ch:
 				reqs = append(reqs, req)
 			default:
 				break drain
 			}
-		}
-
-		// If we haven't hit the threshold, wait up to flushAge for more.
-		entryCount := 0
-		for i := range reqs {
-			entryCount += len(reqs[i].entries)
-		}
-		if entryCount < e.flushN {
-			timer := time.NewTimer(e.flushAge)
-		wait:
-			for entryCount < e.flushN {
-				select {
-				case req := <-ch:
-					reqs = append(reqs, req)
-					entryCount += len(req.entries)
-				case <-timer.C:
-					break wait
-				case <-ctx.Done():
-					timer.Stop()
-					for _, r := range reqs {
-						r.err <- ctx.Err()
-					}
-					return
-				}
-			}
-			timer.Stop()
 		}
 
 		// Merge all entries.
@@ -321,6 +292,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			for _, r := range reqs {
 				r.err <- errors.Wrap(err, "acquire publish lock")
 			}
+			reqs = reqs[:0]
 			continue
 		}
 
@@ -340,6 +312,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		for _, r := range reqs {
 			r.err <- err
 		}
+		reqs = reqs[:0]
 
 		// Check if compaction is needed after publish.
 		if err == nil {
@@ -357,6 +330,19 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 						e.broadcaster.Send(shardIdx, compGen)
 					}
 				}
+			}
+		}
+
+		// Pipeline overlap: drain entries that arrived during publish and
+		// compaction. If any accumulated, the next loop iteration skips the
+		// blocking wait and publishes them immediately.
+	overlap:
+		for {
+			select {
+			case req := <-ch:
+				reqs = append(reqs, req)
+			default:
+				break overlap
 			}
 		}
 	}

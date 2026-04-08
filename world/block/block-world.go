@@ -62,6 +62,12 @@ func (w *World) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 		w.GcGraph = v
+	case gcJournalSubBlock:
+		v, ok := next.(*block_kvtx.KeyValueStore)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		w.GcJournal = v
 	}
 	return nil
 }
@@ -74,6 +80,7 @@ func (w *World) GetSubBlocks() map[uint32]block.SubBlock {
 	m[2] = w.GetGraphKeyValue()
 	m[3] = w.GetLastChange()
 	m[5] = w.GetGcGraph()
+	m[gcJournalSubBlock] = w.GetGcJournal()
 	return m
 }
 
@@ -89,6 +96,8 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return NewChangeLogLLSubBlockCtor(&w.LastChange)
 	case 5:
 		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.GcGraph)
+	case gcJournalSubBlock:
+		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.GcJournal)
 	default:
 		return nil
 	}
