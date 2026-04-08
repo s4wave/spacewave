@@ -124,18 +124,9 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	filename := "seg-" + zeroPad(seq, 6) + ".sst"
 	outMeta.Filename = filename
 
-	// Write output segment via sync handle.
-	sf, err := opfs.CreateSyncFile(shard.dir, filename)
-	if err != nil {
-		return errors.Wrap(err, "create compacted segment file")
-	}
-	if _, err := sf.WriteAt(outData, 0); err != nil {
-		sf.Close()
+	// Write output segment.
+	if err := shard.writeFileData(filename, outData); err != nil {
 		return errors.Wrap(err, "write compacted segment")
-	}
-	sf.Flush()
-	if err := sf.Close(); err != nil {
-		return errors.Wrap(err, "close compacted segment")
 	}
 
 	// Build new manifest: remove inputs, add L1 output.

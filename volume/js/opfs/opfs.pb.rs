@@ -51,5 +51,11 @@ pub struct Config {
     /// PageSize is the metadata page size in bytes.
     #[prost(uint32, tag="15")]
     pub page_size: u32,
+    /// AsyncIo forces using the async OPFS API instead of the sync API.
+    /// When enabled, writes yield the Go thread via AwaitPromise, allowing
+    /// other goroutines to continue encoding and enqueuing while I/O is
+    /// in flight. Only available in DedicatedWorker contexts.
+    #[prost(bool, tag="16")]
+    pub async_io: bool,
 }
 // @@protoc_insertion_point(module)

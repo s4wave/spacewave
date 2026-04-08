@@ -228,6 +228,7 @@ class Config final : public ::google::protobuf::Message
     kNoGenerateKeyFieldNumber = 4,
     kNoWriteKeyFieldNumber = 5,
     kVerboseFieldNumber = 6,
+    kAsyncIoFieldNumber = 16,
     kBlockShardCountFieldNumber = 9,
     kBlockBloomFprFieldNumber = 11,
     kMetaShardCountFieldNumber = 10,
@@ -341,6 +342,16 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_verbose(bool value);
 
   public:
+  // bool async_io = 16;
+  void clear_async_io() ;
+  bool async_io() const;
+  void set_async_io(bool value);
+
+  private:
+  bool _internal_async_io() const;
+  void _internal_set_async_io(bool value);
+
+  public:
   // uint32 block_shard_count = 9;
   void clear_block_shard_count() ;
   ::uint32_t block_shard_count() const;
@@ -415,8 +426,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 15,
-                                   3, 55,
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   3, 63,
                                    2>
       _table_;
 
@@ -445,6 +456,7 @@ class Config final : public ::google::protobuf::Message
     bool no_generate_key_;
     bool no_write_key_;
     bool verbose_;
+    bool async_io_;
     ::uint32_t block_shard_count_;
     double block_bloom_fpr_;
     ::uint32_t meta_shard_count_;
@@ -965,7 +977,7 @@ inline void Config::clear_block_shard_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_shard_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline ::uint32_t Config::block_shard_count() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_shard_count)
@@ -973,7 +985,7 @@ inline ::uint32_t Config::block_shard_count() const {
 }
 inline void Config::set_block_shard_count(::uint32_t value) {
   _internal_set_block_shard_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_shard_count)
 }
 inline ::uint32_t Config::_internal_block_shard_count() const {
@@ -990,7 +1002,7 @@ inline void Config::clear_meta_shard_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.meta_shard_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::uint32_t Config::meta_shard_count() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.meta_shard_count)
@@ -998,7 +1010,7 @@ inline ::uint32_t Config::meta_shard_count() const {
 }
 inline void Config::set_meta_shard_count(::uint32_t value) {
   _internal_set_meta_shard_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.meta_shard_count)
 }
 inline ::uint32_t Config::_internal_meta_shard_count() const {
@@ -1015,7 +1027,7 @@ inline void Config::clear_block_bloom_fpr() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_bloom_fpr_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline double Config::block_bloom_fpr() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_bloom_fpr)
@@ -1023,7 +1035,7 @@ inline double Config::block_bloom_fpr() const {
 }
 inline void Config::set_block_bloom_fpr(double value) {
   _internal_set_block_bloom_fpr(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_bloom_fpr)
 }
 inline double Config::_internal_block_bloom_fpr() const {
@@ -1040,7 +1052,7 @@ inline void Config::clear_block_flush_threshold() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_flush_threshold_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::uint32_t Config::block_flush_threshold() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_flush_threshold)
@@ -1048,7 +1060,7 @@ inline ::uint32_t Config::block_flush_threshold() const {
 }
 inline void Config::set_block_flush_threshold(::uint32_t value) {
   _internal_set_block_flush_threshold(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_flush_threshold)
 }
 inline ::uint32_t Config::_internal_block_flush_threshold() const {
@@ -1065,7 +1077,7 @@ inline void Config::clear_block_flush_max_age_millis() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_flush_max_age_millis_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00001000U);
+                  0x00002000U);
 }
 inline ::uint32_t Config::block_flush_max_age_millis() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_flush_max_age_millis)
@@ -1073,7 +1085,7 @@ inline ::uint32_t Config::block_flush_max_age_millis() const {
 }
 inline void Config::set_block_flush_max_age_millis(::uint32_t value) {
   _internal_set_block_flush_max_age_millis(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_flush_max_age_millis)
 }
 inline ::uint32_t Config::_internal_block_flush_max_age_millis() const {
@@ -1090,7 +1102,7 @@ inline void Config::clear_block_compaction_trigger() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_compaction_trigger_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00002000U);
+                  0x00004000U);
 }
 inline ::uint32_t Config::block_compaction_trigger() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_compaction_trigger)
@@ -1098,7 +1110,7 @@ inline ::uint32_t Config::block_compaction_trigger() const {
 }
 inline void Config::set_block_compaction_trigger(::uint32_t value) {
   _internal_set_block_compaction_trigger(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_compaction_trigger)
 }
 inline ::uint32_t Config::_internal_block_compaction_trigger() const {
@@ -1115,7 +1127,7 @@ inline void Config::clear_page_size() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.page_size_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00004000U);
+                  0x00008000U);
 }
 inline ::uint32_t Config::page_size() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.page_size)
@@ -1123,7 +1135,7 @@ inline ::uint32_t Config::page_size() const {
 }
 inline void Config::set_page_size(::uint32_t value) {
   _internal_set_page_size(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.page_size)
 }
 inline ::uint32_t Config::_internal_page_size() const {
@@ -1133,6 +1145,31 @@ inline ::uint32_t Config::_internal_page_size() const {
 inline void Config::_internal_set_page_size(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.page_size_ = value;
+}
+
+// bool async_io = 16;
+inline void Config::clear_async_io() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.async_io_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline bool Config::async_io() const {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.async_io)
+  return _internal_async_io();
+}
+inline void Config::set_async_io(bool value) {
+  _internal_set_async_io(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.async_io)
+}
+inline bool Config::_internal_async_io() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.async_io_;
+}
+inline void Config::_internal_set_async_io(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.async_io_ = value;
 }
 
 #ifdef __GNUC__

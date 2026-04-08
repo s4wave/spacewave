@@ -25,17 +25,11 @@ func NewBloomFilter(n int, fpr float64) *BloomFilter {
 
 	// Optimal bit count: m = -n * ln(fpr) / (ln(2))^2
 	m := -float64(n) * math.Log(fpr) / (math.Ln2 * math.Ln2)
-	bitCount := uint32(math.Ceil(m))
-	if bitCount < 8 {
-		bitCount = 8
-	}
+	bitCount := max(uint32(math.Ceil(m)), 8)
 
 	// Optimal hash count: k = (m/n) * ln(2)
 	k := float64(bitCount) / float64(n) * math.Ln2
-	numHashes := uint8(math.Ceil(k))
-	if numHashes < 1 {
-		numHashes = 1
-	}
+	numHashes := max(uint8(math.Ceil(k)), 1)
 
 	byteCount := (bitCount + 7) / 8
 	return &BloomFilter{

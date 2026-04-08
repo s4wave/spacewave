@@ -74,6 +74,7 @@ func NewOpfs(
 		FlushThreshold:    int(conf.GetBlockFlushThreshold()),
 		FlushMaxAge:       time.Duration(conf.GetBlockFlushMaxAgeMillis()) * time.Millisecond,
 		CompactionTrigger: int(conf.GetBlockCompactionTrigger()),
+		AsyncIO:           conf.GetAsyncIo(),
 	}
 	blkEngine, err := blockshard.NewEngineWithSettings(ctx, blocksDir, lockPrefix+"/blocks", blockSettings)
 	if err != nil {

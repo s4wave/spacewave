@@ -109,6 +109,15 @@ export interface Config {
    * @generated from field: uint32 page_size = 15;
    */
   pageSize?: number
+  /**
+   * AsyncIo forces using the async OPFS API instead of the sync API.
+   * When enabled, writes yield the Go thread via AwaitPromise, allowing
+   * other goroutines to continue encoding and enqueuing while I/O is
+   * in flight. Only available in DedicatedWorker contexts.
+   *
+   * @generated from field: bool async_io = 16;
+   */
+  asyncIo?: boolean
 }
 
 // Config contains the message type declaration for Config.
@@ -145,6 +154,7 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.UINT32,
     },
     { no: 15, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 16, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

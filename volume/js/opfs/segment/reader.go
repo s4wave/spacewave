@@ -221,7 +221,7 @@ func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
 func decodeDataBlock(buf []byte, count uint32) ([]Entry, error) {
 	entries := make([]Entry, 0, count)
 	off := 0
-	for i := uint32(0); i < count; i++ {
+	for i := range count {
 		if off+2 > len(buf) {
 			return nil, errors.Errorf("truncated entry %d: key length", i)
 		}

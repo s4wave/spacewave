@@ -151,7 +151,7 @@ func TestSparseIndex1K(t *testing.T) {
 	w.SetIndexInterval(16)
 
 	// Add 1000 entries with zero-padded keys for proper sort order.
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		key := "key-" + zeroPad(i, 4)
 		val := "val-" + strconv.Itoa(i)
 		w.Add([]byte(key), []byte(val))
@@ -216,12 +216,12 @@ func TestBloomFilter(t *testing.T) {
 	bf := NewBloomFilter(n, fpr)
 
 	// Insert n keys.
-	for i := 0; i < n; i++ {
+	for i := range n {
 		bf.Add([]byte("bloom-" + zeroPad(i, 5)))
 	}
 
 	// All inserted keys must be found.
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if !bf.MayContain([]byte("bloom-" + zeroPad(i, 5))) {
 			t.Fatalf("false negative at i=%d", i)
 		}
@@ -230,7 +230,7 @@ func TestBloomFilter(t *testing.T) {
 	// Test false-positive rate with non-inserted keys.
 	fp := 0
 	tests := 100000
-	for i := 0; i < tests; i++ {
+	for i := range tests {
 		key := []byte("nope-" + zeroPad(i, 6))
 		if bf.MayContain(key) {
 			fp++
@@ -248,7 +248,7 @@ func TestBloomFilter(t *testing.T) {
 
 func TestBloomInSSTable(t *testing.T) {
 	w := NewWriter()
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		w.Add([]byte("key-"+zeroPad(i, 3)), []byte("val"))
 	}
 
@@ -295,7 +295,7 @@ func TestBloomInSSTable(t *testing.T) {
 func TestLookupMetaGet(t *testing.T) {
 	w := NewWriter()
 	w.SetIndexInterval(4)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		w.Add([]byte("key-"+zeroPad(i, 3)), []byte("val-"+strconv.Itoa(i)))
 	}
 

@@ -56,6 +56,11 @@ type Config struct {
 	BlockCompactionTrigger uint32 `protobuf:"varint,14,opt,name=block_compaction_trigger,json=blockCompactionTrigger,proto3" json:"blockCompactionTrigger,omitempty"`
 	// PageSize is the metadata page size in bytes.
 	PageSize uint32 `protobuf:"varint,15,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
+	// AsyncIo forces using the async OPFS API instead of the sync API.
+	// When enabled, writes yield the Go thread via AwaitPromise, allowing
+	// other goroutines to continue encoding and enqueuing while I/O is
+	// in flight. Only available in DedicatedWorker contexts.
+	AsyncIo bool `protobuf:"varint,16,opt,name=async_io,json=asyncIo,proto3" json:"asyncIo,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -169,6 +174,13 @@ func (x *Config) GetPageSize() uint32 {
 	return 0
 }
 
+func (x *Config) GetAsyncIo() bool {
+	if x != nil {
+		return x.AsyncIo
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -186,6 +198,7 @@ func (m *Config) CloneVT() *Config {
 	r.BlockFlushMaxAgeMillis = m.BlockFlushMaxAgeMillis
 	r.BlockCompactionTrigger = m.BlockCompactionTrigger
 	r.PageSize = m.PageSize
+	r.AsyncIo = m.AsyncIo
 	if rhs := m.KvKeyOpts; rhs != nil {
 		r.KvKeyOpts = rhs.CloneVT()
 	}
@@ -254,6 +267,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PageSize != that.PageSize {
+		return false
+	}
+	if this.AsyncIo != that.AsyncIo {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -350,6 +366,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pageSize")
 		s.WriteUint32(x.PageSize)
 	}
+	if x.AsyncIo || s.HasField("asyncIo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("asyncIo")
+		s.WriteBool(x.AsyncIo)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -424,6 +445,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "page_size", "pageSize":
 			s.AddField("page_size")
 			x.PageSize = s.ReadUint32()
+		case "async_io", "asyncIo":
+			s.AddField("async_io")
+			x.AsyncIo = s.ReadBool()
 		}
 	})
 }
@@ -462,6 +486,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.AsyncIo {
+		i--
+		if m.AsyncIo {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
 	if m.PageSize != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageSize))
@@ -632,6 +668,9 @@ func (m *Config) SizeVT() (n int) {
 	if m.PageSize != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
 	}
+	if m.AsyncIo {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -743,6 +782,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("page_size: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.PageSize), 10))
+	}
+	if x.AsyncIo != false {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("async_io: ")
+		sb.WriteString(strconv.FormatBool(x.AsyncIo))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1002,6 +1048,18 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AsyncIo", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.AsyncIo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

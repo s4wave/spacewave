@@ -15,6 +15,7 @@ type Settings struct {
 	FlushThreshold    int
 	FlushMaxAge       time.Duration
 	CompactionTrigger int
+	AsyncIO           bool
 }
 
 // DefaultSettings returns the benchmark-selected default block shard settings.

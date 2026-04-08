@@ -26,6 +26,7 @@ type Shard struct {
 	id         int
 	dir        js.Value
 	lockPrefix string
+	asyncIO    bool
 
 	mu       sync.Mutex
 	manifest *Manifest
@@ -44,6 +45,7 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		id:          id,
 		dir:         dir,
 		lockPrefix:  lockPrefix,
+		asyncIO:     settings.AsyncIO,
 		nowFn:       time.Now,
 		bloomFPR:    settings.BloomFPR,
 		lookupCache: make(map[string]*segment.LookupMeta),
@@ -108,19 +110,10 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 
 	filename := "seg-" + zeroPad(seq, 6) + ".sst"
 
-	// Write the segment file to OPFS using sync handle.
-	segFile, err := opfs.CreateSyncFile(s.dir, filename)
-	if err != nil {
-		return errors.Wrap(err, "create segment file")
-	}
+	// Write the segment file to OPFS.
 	segData := buf.Bytes()
-	if _, err := segFile.WriteAt(segData, 0); err != nil {
-		segFile.Close()
+	if err := s.writeFileData(filename, segData); err != nil {
 		return errors.Wrap(err, "write segment")
-	}
-	segFile.Flush()
-	if err := segFile.Close(); err != nil {
-		return errors.Wrap(err, "close segment")
 	}
 
 	// Build sorted entries to get min/max keys.
@@ -162,24 +155,38 @@ func (s *Shard) writeManifest(m *Manifest) error {
 		slot = manifestSlotB
 	}
 	mdata := m.Encode()
-	mf, err := opfs.CreateSyncFile(s.dir, slot)
-	if err != nil {
-		return errors.Wrap(err, "create manifest file")
-	}
-	mf.Truncate(0)
-	if _, err := mf.WriteAt(mdata, 0); err != nil {
-		mf.Close()
+	if err := s.writeFileData(slot, mdata); err != nil {
 		return errors.Wrap(err, "write manifest")
-	}
-	mf.Flush()
-	if err := mf.Close(); err != nil {
-		return errors.Wrap(err, "close manifest")
 	}
 
 	s.mu.Lock()
 	s.setManifestLocked(m)
 	s.mu.Unlock()
 	return nil
+}
+
+// writeFileData writes data to a file in the shard directory.
+// Uses async OPFS API when asyncIO is enabled, sync otherwise.
+func (s *Shard) writeFileData(name string, data []byte) error {
+	if s.asyncIO {
+		f, err := opfs.CreateAsyncFile(s.dir, name)
+		if err != nil {
+			return err
+		}
+		_, err = f.WriteAt(data, 0)
+		return err
+	}
+	f, err := opfs.CreateSyncFile(s.dir, name)
+	if err != nil {
+		return err
+	}
+	f.Truncate(int64(len(data)))
+	if _, err := f.WriteAt(data, 0); err != nil {
+		f.Close()
+		return err
+	}
+	f.Flush()
+	return f.Close()
 }
 
 // AcquirePublishLock acquires the exclusive per-shard publish WebLock.
