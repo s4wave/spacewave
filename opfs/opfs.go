@@ -387,12 +387,31 @@ type SyncFile struct {
 	pos  int64
 }
 
+// IsNoModificationAllowed checks if an error is a "NoModificationAllowedError"
+// DOMException. This occurs when createSyncAccessHandle is called while another
+// access handle or writable stream is open on the same file.
+func IsNoModificationAllowed(err error) bool {
+	var jsErr *JSError
+	return errors.As(err, &jsErr) && jsErr.Name == "NoModificationAllowedError"
+}
+
+// syncAccessHandleRetries is the number of times to retry createSyncAccessHandle
+// when it fails with NoModificationAllowedError (stale handle closing).
+const syncAccessHandleRetries = 3
+
 func newSyncFile(name string, fileHandle js.Value) (*SyncFile, error) {
-	ah, err := AwaitPromise(fileHandle.Call("createSyncAccessHandle"))
-	if err != nil {
-		return nil, errors.Wrap(err, "createSyncAccessHandle")
+	var lastErr error
+	for range syncAccessHandleRetries {
+		ah, err := AwaitPromise(fileHandle.Call("createSyncAccessHandle"))
+		if err == nil {
+			return &SyncFile{name: name, ah: ah}, nil
+		}
+		if !IsNoModificationAllowed(err) {
+			return nil, errors.Wrap(err, "createSyncAccessHandle")
+		}
+		lastErr = err
 	}
-	return &SyncFile{name: name, ah: ah}, nil
+	return nil, errors.Wrap(lastErr, "createSyncAccessHandle")
 }
 
 // Read reads up to len(p) bytes from the current position.
