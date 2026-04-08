@@ -1,5 +1,15 @@
-// OPFS Benchmark Suite - OQ-9 Validation
-// Measures: async write, sync write, block read, prefix scan, WebLock contention.
+import {
+  average,
+  cleanupBenchRoot,
+  fmtStats,
+  getDirectory,
+  loadTableMetadata,
+  rangeReadManySlices,
+  rangeReadWholeSlice,
+  resetPath,
+  runLookupSeries,
+  stats,
+} from './bench-lib.js'
 
 const log = document.getElementById('log')
 const runBtn = document.getElementById('runAll')
@@ -9,321 +19,559 @@ function print(msg) {
   log.scrollTop = log.scrollHeight
 }
 
-function stats(times) {
-  const sorted = [...times].sort((a, b) => a - b)
-  const n = sorted.length
-  const sum = sorted.reduce((a, b) => a + b, 0)
-  return {
-    n,
-    mean: sum / n,
-    median: sorted[Math.floor(n / 2)],
-    p95: sorted[Math.floor(n * 0.95)],
-    p99: sorted[Math.floor(n * 0.99)],
-    min: sorted[0],
-    max: sorted[n - 1],
-  }
+function section(title) {
+  print(`\n=== ${title} ===`)
 }
 
-function fmtStats(s) {
-  const f = (v) => v.toFixed(3)
-  return `  n=${s.n}  mean=${f(s.mean)}ms  median=${f(s.median)}ms  p95=${f(s.p95)}ms  p99=${f(s.p99)}ms  min=${f(s.min)}ms  max=${f(s.max)}ms`
-}
-
-const BENCH_DIR = '.opfs-bench'
-
-async function getDir(sub) {
-  const root = await navigator.storage.getDirectory()
-  const benchDir = await root.getDirectoryHandle(BENCH_DIR, { create: true })
-  return benchDir.getDirectoryHandle(sub, { create: true })
-}
-
-async function rmDir(dirHandle) {
-  for await (const name of dirHandle.keys()) {
-    await dirHandle.removeEntry(name, { recursive: true })
-  }
-}
-
-// B1: Async write via createWritable()
-async function benchAsyncWrite(count, sizeBytes) {
-  print(`\n--- B1: Async Write (createWritable) ---`)
-  print(`  files=${count}  size=${sizeBytes}B`)
-  const dir = await getDir('async-write')
-  await rmDir(dir)
-
-  const data = new Uint8Array(sizeBytes)
-  crypto.getRandomValues(data)
-  const blob = new Blob([data])
-  const times = []
-
+function repeatKeys(keys, count) {
+  const out = []
   for (let i = 0; i < count; i++) {
-    const name = 'f' + i.toString(36).padStart(4, '0')
-    const fh = await dir.getFileHandle(name, { create: true })
-    const t0 = performance.now()
-    const w = await fh.createWritable()
-    await w.write(blob)
-    await w.close()
-    times.push(performance.now() - t0)
+    out.push(keys[i % keys.length])
   }
-
-  const s = stats(times)
-  print(fmtStats(s))
-  return s
+  return out
 }
 
-// B2: Sync write via createSyncAccessHandle (DedicatedWorker)
-async function benchSyncWrite(count, sizeBytes) {
-  print(`\n--- B2: Sync Write (createSyncAccessHandle) ---`)
-  print(`  files=${count}  size=${sizeBytes}B`)
-  const dir = await getDir('sync-write')
-  await rmDir(dir)
-
-  const worker = new Worker('sync-worker.js')
-  const result = await new Promise((resolve) => {
-    worker.onmessage = (ev) => resolve(ev.data)
-    worker.postMessage({ cmd: 'sync-write', dir: BENCH_DIR + '/sync-write', count, sizeBytes })
-  })
-  worker.terminate()
-
-  if (!result.ok) {
-    print(`  ERROR: ${result.error}`)
-    return null
-  }
-
-  const s = stats(result.times)
-  print(fmtStats(s))
-  return s
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// B3: Async read via getFile() + arrayBuffer()
-async function benchAsyncRead(count, sizeBytes) {
-  print(`\n--- B3: Async Read (getFile + arrayBuffer) ---`)
-  print(`  files=${count}  size=${sizeBytes}B`)
-
-  // Ensure files exist (write first).
-  const dir = await getDir('async-read')
-  await rmDir(dir)
-  const data = new Uint8Array(sizeBytes)
-  crypto.getRandomValues(data)
-  const blob = new Blob([data])
-  for (let i = 0; i < count; i++) {
-    const name = 'f' + i.toString(36).padStart(4, '0')
-    const fh = await dir.getFileHandle(name, { create: true })
-    const w = await fh.createWritable()
-    await w.write(blob)
-    await w.close()
-  }
-
-  // Benchmark reads.
-  const times = []
-  for (let i = 0; i < count; i++) {
-    const name = 'f' + i.toString(36).padStart(4, '0')
-    const fh = await dir.getFileHandle(name)
-    const t0 = performance.now()
-    const file = await fh.getFile()
-    const buf = await file.arrayBuffer()
-    void buf // ensure read completes
-    times.push(performance.now() - t0)
-  }
-
-  const s = stats(times)
-  print(fmtStats(s))
-  return s
-}
-
-// B3b: Sync read via createSyncAccessHandle (DedicatedWorker)
-async function benchSyncRead(count, sizeBytes) {
-  print(`\n--- B3b: Sync Read (createSyncAccessHandle) ---`)
-  print(`  files=${count}  size=${sizeBytes}B`)
-
-  // Ensure files exist in the sync-write dir (reuse from B2 or write new).
-  const dir = await getDir('sync-read')
-  await rmDir(dir)
-  const writeWorker = new Worker('sync-worker.js')
-  await new Promise((resolve) => {
-    writeWorker.onmessage = (ev) => resolve(ev.data)
-    writeWorker.postMessage({ cmd: 'sync-write', dir: BENCH_DIR + '/sync-read', count, sizeBytes })
-  })
-  writeWorker.terminate()
-
-  // Benchmark sync reads.
-  const worker = new Worker('sync-worker.js')
-  const result = await new Promise((resolve) => {
-    worker.onmessage = (ev) => resolve(ev.data)
-    worker.postMessage({ cmd: 'sync-read', dir: BENCH_DIR + '/sync-read', count, sizeBytes })
-  })
-  worker.terminate()
-
-  if (!result.ok) {
-    print(`  ERROR: ${result.error}`)
-    return null
-  }
-
-  const s = stats(result.times)
-  print(fmtStats(s))
-  return s
-}
-
-// B4: Prefix scan (directory listing + sort)
-async function benchPrefixScan(counts) {
-  print(`\n--- B4: Prefix Scan (directory listing + sort) ---`)
-
-  for (const count of counts) {
-    const subDir = 'scan-' + count
-    const dir = await getDir(subDir)
-    await rmDir(dir)
-
-    // Create N files with sortable names.
-    const data = new Uint8Array(64)
-    const blob = new Blob([data])
-    for (let i = 0; i < count; i++) {
-      const name = 'k' + i.toString(36).padStart(6, '0')
-      const fh = await dir.getFileHandle(name, { create: true })
-      const w = await fh.createWritable()
-      await w.write(blob)
-      await w.close()
-    }
-
-    // Benchmark: list all entries + sort.
-    const iterations = Math.max(1, Math.floor(50 / Math.max(1, count / 100)))
-    const times = []
-    for (let r = 0; r < iterations; r++) {
-      const t0 = performance.now()
-      const names = []
-      for await (const name of dir.keys()) {
-        names.push(name)
+class BenchWorker {
+  constructor() {
+    this.worker = new Worker('worker.js', { type: 'module' })
+    this.seq = 1
+    this.pending = new Map()
+    this.worker.onmessage = (ev) => {
+      const pending = this.pending.get(ev.data.id)
+      if (!pending) {
+        return
       }
-      names.sort()
-      times.push(performance.now() - t0)
+      this.pending.delete(ev.data.id)
+      if (ev.data.ok) {
+        pending.resolve(ev.data.result)
+        return
+      }
+      pending.reject(new Error(ev.data.error))
     }
+  }
 
-    const s = stats(times)
-    print(`  count=${count}` + fmtStats(s))
+  call(cmd, params) {
+    const id = this.seq++
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject })
+      this.worker.postMessage({ id, cmd, params })
+    })
+  }
+
+  close() {
+    this.worker.terminate()
   }
 }
 
-// B5: WebLock acquisition latency under contention
-async function benchWebLockContention(workers, count, sizeBytes) {
-  print(`\n--- B5: WebLock Contention (${workers} workers, exclusive) ---`)
-  print(`  workers=${workers}  filesPerWorker=${count}  size=${sizeBytes}B`)
+async function withWorker(fn) {
+  const worker = new BenchWorker()
+  try {
+    return await fn(worker)
+  } finally {
+    worker.close()
+  }
+}
 
-  const dir = await getDir('lock-contention')
-  await rmDir(dir)
+async function benchIntegrityPublishVisibility() {
+  section('Integrity: publish visibility')
+  const path = 'integrity/publish-visibility'
+  await resetPath(path)
+  const writer = new BenchWorker()
+  const reader = new BenchWorker()
+  const failures = []
+  const latencies = []
+  try {
+    for (let i = 0; i < 40; i++) {
+      const published = await writer.call('publish-once', {
+        path,
+        entryCount: 64,
+        valueSize: 4096,
+        keyBase: i * 1000,
+        indexEvery: 16,
+        falsePositiveRate: 0.01,
+      })
+      const validated = await reader.call('validate-latest', {
+        path,
+        expectedVersion: published.version,
+        expectedName: published.name,
+        expectedKey: published.expectedKey,
+        expectedBytes: published.bytes,
+      })
+      if (!validated.ok) {
+        failures.push(validated.reason)
+      } else {
+        latencies.push(validated.latencyMs)
+      }
+    }
+  } finally {
+    writer.close()
+    reader.close()
+  }
+  const result = {
+    iterations: 40,
+    failures,
+    readerLatency: stats(latencies),
+  }
+  print(`iterations=40 failures=${failures.length}`)
+  print(`reader latency ${fmtStats(result.readerLatency)}`)
+  if (failures.length) {
+    print(`first failure: ${failures[0]}`)
+  }
+  return result
+}
 
-  const lockName = 'opfs-bench-lock-' + Date.now()
-  const promises = []
+async function benchB1() {
+  section('B-1 SSTable write throughput vs batch size')
+  const batchSizes = [1, 10, 50, 100, 500]
+  return withWorker(async (worker) => {
+    const scenarios = []
+    for (const batchSize of batchSizes) {
+      const result = await worker.call('publish-batch-series', {
+        path: 'b1',
+        batchSize,
+        repeats: 6,
+        valueSize: 4096,
+        indexEvery: 16,
+        falsePositiveRate: 0.01,
+      })
+      scenarios.push(result)
+      print(`batch=${batchSize} total ${fmtStats(result.total)} throughput=${result.throughputMBps.toFixed(2)}MB/s`)
+    }
+    return { valueSize: 4096, scenarios }
+  })
+}
 
-  for (let w = 0; w < workers; w++) {
-    const worker = new Worker('sync-worker.js')
-    promises.push(
-      new Promise((resolve) => {
-        worker.onmessage = (ev) => {
-          worker.terminate()
-          resolve(ev.data)
-        }
-        worker.postMessage({
-          cmd: 'contended-lock-write',
-          dir: BENCH_DIR + '/lock-contention',
-          count,
-          sizeBytes,
-          lockName,
-        })
+async function benchB2(selectedScenarios = null) {
+  section('B-2 SSTable read latency (cold and warm)')
+  const scenarios = selectedScenarios ?? [
+    { totalEntries: 1000, tableCount: 1 },
+    { totalEntries: 1000, tableCount: 5 },
+    { totalEntries: 1000, tableCount: 10 },
+    { totalEntries: 1000, tableCount: 20 },
+    { totalEntries: 10000, tableCount: 1 },
+    { totalEntries: 10000, tableCount: 5 },
+    { totalEntries: 10000, tableCount: 10 },
+    { totalEntries: 10000, tableCount: 20 },
+    { totalEntries: 50000, tableCount: 1 },
+    { totalEntries: 50000, tableCount: 5 },
+    { totalEntries: 50000, tableCount: 10 },
+    { totalEntries: 50000, tableCount: 20 },
+  ]
+  const worker = new BenchWorker()
+  try {
+    const rows = []
+    for (const scenario of scenarios) {
+      const path = `b2/e${scenario.totalEntries}-t${scenario.tableCount}`
+      const setup = await worker.call('setup-dataset', {
+        path,
+        tableCount: scenario.tableCount,
+        entriesPerTable: Math.max(1, Math.floor(scenario.totalEntries / scenario.tableCount)),
+        valueSize: 1024,
+        keySpace: scenario.totalEntries * 8,
+        falsePositiveRate: 0.01,
+        indexEvery: 32,
+      })
+      const dir = await getDirectory(path, true)
+      const keys = repeatKeys(setup.positiveKeys, 30)
+      const warm = await runLookupSeries(dir, setup.manifest, keys, {
+        useCache: true,
+        cache: new Map(),
+        skipBloom: true,
+      })
+      const coldNoBloom = await runLookupSeries(dir, setup.manifest, keys, {
+        useCache: false,
+        skipBloom: true,
+      })
+      const row = {
+        ...scenario,
+        valueSize: 1024,
+        cold: coldNoBloom,
+        warm,
+      }
+      rows.push(row)
+      print(
+        `entries=${scenario.totalEntries} tables=${scenario.tableCount} cold=${coldNoBloom.latency.p95.toFixed(3)}ms warm=${warm.latency.p95.toFixed(3)}ms`,
+      )
+    }
+    return { scenarios: rows }
+  } finally {
+    worker.close()
+  }
+}
+
+async function benchB3() {
+  section('B-3 Bloom filter effectiveness')
+  const worker = new BenchWorker()
+  try {
+    const scenarios = []
+    for (const falsePositiveRate of [0.01, 0.001]) {
+      const row = await worker.call('measure-bloom', {
+        tableCount: 10,
+        entriesPerTable: 3000,
+        keySpace: 120000,
+        falsePositiveRate,
+        negatives: 200,
+      })
+      scenarios.push(row)
+      print(
+        `fpr=${falsePositiveRate} observedRate=${row.observedRate.toFixed(4)} estDataReads/lookup=${row.estimatedDataReadsPerLookup.toFixed(3)} p95=${row.queryLatency.p95.toFixed(3)}ms`,
+      )
+    }
+    return { scenarios }
+  } finally {
+    worker.close()
+  }
+}
+
+function aggregateLoadResults(results, totalMs) {
+  const batchTimes = results.flatMap((row) => row.batchTimes)
+  const publishLockMs = results.flatMap((row) => row.publishLockMs)
+  const totalBlocks = results.reduce((sum, row) => sum + row.totalBlocks, 0)
+  return {
+    totalMs,
+    throughputBlocksPerSec: totalBlocks / Math.max(0.0001, totalMs / 1000),
+    batchLatency: stats(batchTimes),
+    publishLock: stats(publishLockMs),
+    meanTouchedShards: average(results.map((row) => row.meanTouchedShards)),
+  }
+}
+
+async function runShardLoadScenario(path, withCompaction) {
+  await withWorker((worker) =>
+    worker.call('seed-shard', {
+      path,
+      shard: 0,
+      tables: 8,
+      entriesPerTable: 32,
+      valueSize: 4096,
+      falsePositiveRate: 0.01,
+      indexEvery: 16,
+      reset: true,
+    }),
+  )
+  const workers = Array.from({ length: 4 }, () => new BenchWorker())
+  const t0 = performance.now()
+  const loadPromise = Promise.all(
+    workers.map((worker, workerId) =>
+      worker.call('shard-write-load', {
+        path,
+        workerId,
+        batches: 20,
+        blocksPerBatch: 50,
+        shards: 8,
+        valueSize: 4096,
+        skew: 0.7,
+        falsePositiveRate: 0.01,
+        indexEvery: 16,
+      }),
+    ),
+  )
+  let compaction = null
+  if (withCompaction) {
+    await sleep(25)
+    compaction = await withWorker((worker) =>
+      worker.call('compact-existing-shard', {
+        path,
+        shard: 0,
+        takeCount: 8,
+        valueSize: 4096,
+        falsePositiveRate: 0.01,
+        indexEvery: 16,
       }),
     )
   }
+  const loadRows = await loadPromise
+  const totalMs = performance.now() - t0
+  for (const worker of workers) {
+    worker.close()
+  }
+  return {
+    ...aggregateLoadResults(loadRows, totalMs),
+    compaction,
+  }
+}
 
-  const results = await Promise.all(promises)
-  const lockTimes = results.filter((r) => r.ok).map((r) => r.lockAcquired)
+async function benchB4() {
+  section('B-4 Compaction cost under load')
+  const baseline = await runShardLoadScenario('b4/baseline', false)
+  const withCompaction = await runShardLoadScenario('b4/with-compaction', true)
+  print(`baseline throughput=${baseline.throughputBlocksPerSec.toFixed(1)} blocks/s p95=${baseline.batchLatency.p95.toFixed(3)}ms`)
+  print(
+    `with compaction throughput=${withCompaction.throughputBlocksPerSec.toFixed(1)} blocks/s p95=${withCompaction.batchLatency.p95.toFixed(3)}ms`,
+  )
+  if (withCompaction.compaction) {
+    print(
+      `compaction total=${withCompaction.compaction.totalMs.toFixed(3)}ms lockHold=${withCompaction.compaction.lockHoldMs.toFixed(3)}ms`,
+    )
+  }
+  return { baseline, withCompaction }
+}
 
-  if (lockTimes.length === 0) {
-    print(`  ERROR: all workers failed`)
-    for (const r of results) {
-      if (!r.ok) print(`    ${r.error}`)
+async function benchB5() {
+  section('B-5 Overwrite pattern on SSTables')
+  return withWorker(async (worker) => {
+    const result = await worker.call('overwrite-sstable-meta', {
+      path: 'b5/meta-sstable',
+      keyCount: 1000,
+      rounds: 10,
+      overwriteFraction: 0.5,
+      batchSize: 50,
+      valueSize: 256,
+      falsePositiveRate: 0.01,
+      indexEvery: 16,
+      compactAt: 8,
+    })
+    print(
+      `final tables=${result.finalTableCount} max tables=${result.maxTableCount} compactions=${result.compactions}`,
+    )
+    print(`publish ${fmtStats(result.publishLatency)} obsoleteVersions=${result.obsoleteVersions}`)
+    return result
+  })
+}
+
+async function benchB6() {
+  section('B-6 Page store prototype')
+  return withWorker(async (worker) => {
+    const result = await worker.call('page-store-benchmark', {
+      path: 'b6/page-store',
+      keyCount: 1000,
+      rounds: 10,
+      overwriteFraction: 0.5,
+      batchSize: 50,
+      valueSize: 256,
+    })
+    print(`commit ${fmtStats(result.commitLatency)} meanPages=${result.meanPagesPerCommit.toFixed(2)}`)
+    print(`read ${fmtStats(result.readLatency)}`)
+    return result
+  })
+}
+
+async function benchB7() {
+  section('B-7 Shard count vs contention')
+  const scenarios = []
+  for (const skew of [0, 0.7]) {
+    for (const shards of [4, 8, 16, 32]) {
+      const workers = Array.from({ length: 4 }, () => new BenchWorker())
+      const t0 = performance.now()
+      const rows = await Promise.all(
+        workers.map((worker, workerId) =>
+          worker.call('shard-write-load', {
+            path: `b7/${skew === 0 ? 'uniform' : 'hot'}/shards-${shards}`,
+            workerId,
+            batches: 20,
+            blocksPerBatch: 50,
+            shards,
+            valueSize: 4096,
+            skew,
+            falsePositiveRate: 0.01,
+            indexEvery: 16,
+          }),
+        ),
+      )
+      const totalMs = performance.now() - t0
+      for (const worker of workers) {
+        worker.close()
+      }
+      const aggregate = aggregateLoadResults(rows, totalMs)
+      const row = {
+        skew,
+        shards,
+        ...aggregate,
+      }
+      scenarios.push(row)
+      print(
+        `${skew === 0 ? 'uniform' : 'hot70'} shards=${shards} throughput=${aggregate.throughputBlocksPerSec.toFixed(1)} blocks/s p95=${aggregate.batchLatency.p95.toFixed(3)}ms`,
+      )
     }
-    return
   }
+  return { scenarios }
+}
 
-  const s = stats(lockTimes)
-  print(`  lock acquisition:` + fmtStats(s))
-
-  // Also report per-file write times across all workers.
-  const allWriteTimes = results.filter((r) => r.ok).flatMap((r) => r.writeTimes)
-  if (allWriteTimes.length > 0) {
-    const ws = stats(allWriteTimes)
-    print(`  per-file write:` + fmtStats(ws))
+async function benchB8() {
+  section('B-8 Async read concurrency')
+  const path = 'b8/async-read'
+  const publish = await withWorker((worker) =>
+    worker.call('publish-once', {
+      path,
+      entryCount: 500,
+      valueSize: 4096,
+      keyBase: 0,
+      indexEvery: 16,
+      falsePositiveRate: 0.01,
+    }),
+  )
+  const workers = Array.from({ length: 4 }, () => new BenchWorker())
+  try {
+    const rows = await Promise.all(
+      workers.map((worker) =>
+        worker.call('read-file-slices', {
+          path,
+          name: publish.name,
+          start: 0,
+          length: publish.bytes,
+          iterations: 40,
+        }),
+      ),
+    )
+    const latencies = rows.map((row) => row.latency)
+    const throughputMBps = rows.reduce((sum, row) => sum + row.throughputMBps, 0)
+    for (const [index, row] of rows.entries()) {
+      print(`worker=${index} ${fmtStats(row.latency)} throughput=${row.throughputMBps.toFixed(2)}MB/s`)
+    }
+    return {
+      fileBytes: publish.bytes,
+      perWorker: rows,
+      aggregateThroughputMBps: throughputMBps,
+      meanP95Ms: average(latencies.map((row) => row.p95)),
+    }
+  } finally {
+    for (const worker of workers) {
+      worker.close()
+    }
   }
 }
 
-// Summary verdict
-function verdict(results) {
-  print(`\n${'='.repeat(60)}`)
-  print(`SUMMARY`)
-  print(`${'='.repeat(60)}`)
-
-  const threshold = 1.0 // ms
-  let pass = true
-
-  for (const [label, s] of Object.entries(results)) {
-    if (!s) continue
-    const ok = s.p95 < threshold
-    if (!ok) pass = false
-    const tag = ok ? 'PASS' : 'FAIL'
-    print(`  [${tag}] ${label}: p95=${s.p95.toFixed(3)}ms (threshold: ${threshold}ms)`)
+async function benchB9() {
+  section('B-9 Large slice vs multiple small slices')
+  const path = 'b9/range'
+  const publish = await withWorker((worker) =>
+    worker.call('publish-once', {
+      path,
+      entryCount: 500,
+      valueSize: 1024,
+      keyBase: 0,
+      indexEvery: 16,
+      falsePositiveRate: 0.01,
+    }),
+  )
+  const dir = await getDirectory(path, true)
+  const meta = await loadTableMetadata(dir, publish.name)
+  const whole = []
+  const split = []
+  for (let i = 0; i < 50; i++) {
+    whole.push(await rangeReadWholeSlice(dir, publish.name, meta, 100, 100))
+    split.push(await rangeReadManySlices(dir, publish.name, meta, 100, 10, 10))
   }
+  const result = {
+    wholeSlice: stats(whole),
+    tenSlices: stats(split),
+  }
+  print(`whole slice ${fmtStats(result.wholeSlice)}`)
+  print(`ten slices ${fmtStats(result.tenSlices)}`)
+  return result
+}
 
-  print('')
-  if (pass) {
-    print('VERDICT: file-per-key OPFS design is viable. No batching needed for day one.')
-  } else {
-    print('VERDICT: some operations exceed 1ms p95. Consider batching or kvfile compaction.')
+async function benchB10(selectedScenarios = null) {
+  section('B-10 Memtable flush threshold')
+  const scenarios = selectedScenarios ?? [
+    { threshold: 1, timerMs: 10 },
+    { threshold: 1, timerMs: 50 },
+    { threshold: 1, timerMs: 100 },
+    { threshold: 4, timerMs: 10 },
+    { threshold: 4, timerMs: 50 },
+    { threshold: 4, timerMs: 100 },
+    { threshold: 16, timerMs: 10 },
+    { threshold: 16, timerMs: 50 },
+    { threshold: 16, timerMs: 100 },
+    { threshold: 64, timerMs: 10 },
+    { threshold: 64, timerMs: 50 },
+    { threshold: 64, timerMs: 100 },
+  ]
+  const worker = new BenchWorker()
+  try {
+    const rows = []
+    for (const scenario of scenarios) {
+      const result = await worker.call('memtable-sim', {
+        path: `b10/t${scenario.threshold}-m${scenario.timerMs}`,
+        threshold: scenario.threshold,
+        timerMs: scenario.timerMs,
+        writes: 128,
+        interWriteMs: 2,
+        valueSize: 4096,
+        falsePositiveRate: 0.01,
+        indexEvery: 16,
+      })
+      rows.push(result)
+      print(
+        `threshold=${scenario.threshold} timer=${scenario.timerMs}ms flushes=${result.flushCount} p95=${result.ackLatency.p95.toFixed(3)}ms visibilityP95=${result.visibilityLatency.p95.toFixed(3)}ms`,
+      )
+    }
+    return { scenarios: rows }
+  } finally {
+    worker.close()
   }
 }
 
-window.runAll = async function () {
+async function runFullSuite() {
+  const results = {
+    integrity: await benchIntegrityPublishVisibility(),
+    benchmarks: {},
+  }
+  results.benchmarks.B1 = await benchB1()
+  results.benchmarks.B2 = await benchB2()
+  results.benchmarks.B3 = await benchB3()
+  results.benchmarks.B4 = await benchB4()
+  results.benchmarks.B5 = await benchB5()
+  results.benchmarks.B6 = await benchB6()
+  results.benchmarks.B7 = await benchB7()
+  results.benchmarks.B8 = await benchB8()
+  results.benchmarks.B9 = await benchB9()
+  results.benchmarks.B10 = await benchB10()
+  return results
+}
+
+async function runSmokeSuite() {
+  const results = {
+    integrity: await benchIntegrityPublishVisibility(),
+    benchmarks: {},
+  }
+  results.benchmarks.B2 = await benchB2([
+    { totalEntries: 10000, tableCount: 10 },
+  ])
+  results.benchmarks.B4 = await benchB4()
+  results.benchmarks.B8 = await benchB8()
+  results.benchmarks.B10 = await benchB10([
+    { threshold: 16, timerMs: 50 },
+    { threshold: 64, timerMs: 100 },
+  ])
+  return results
+}
+
+window.runAll = async function runAll(suite = 'full') {
   runBtn.disabled = true
   log.textContent = ''
-  print('OPFS Benchmark Suite - OQ-9')
+  print('Browser OPFS benchmark suite')
+  print(`suite: ${suite}`)
   print(`crossOriginIsolated: ${self.crossOriginIsolated}`)
   print(`userAgent: ${navigator.userAgent}`)
   print(`date: ${new Date().toISOString()}`)
-
-  const results = {}
-
-  // Small files (typical block refs, object store entries): 64-256 bytes
-  results['B1 async-write 100x256B'] = await benchAsyncWrite(100, 256)
-  results['B2 sync-write 100x256B'] = await benchSyncWrite(100, 256)
-  results['B3 async-read 100x256B'] = await benchAsyncRead(100, 256)
-  results['B3b sync-read 100x256B'] = await benchSyncRead(100, 256)
-
-  // Larger files (block data): 4KB, 64KB
-  results['B1 async-write 50x4KB'] = await benchAsyncWrite(50, 4096)
-  results['B2 sync-write 50x4KB'] = await benchSyncWrite(50, 4096)
-  results['B3 async-read 50x4KB'] = await benchAsyncRead(50, 4096)
-
-  results['B1 async-write 20x64KB'] = await benchAsyncWrite(20, 65536)
-  results['B2 sync-write 20x64KB'] = await benchSyncWrite(20, 65536)
-  results['B3 async-read 20x64KB'] = await benchAsyncRead(20, 65536)
-
-  // Prefix scan at varying directory sizes
-  await benchPrefixScan([100, 1000, 5000])
-
-  // WebLock contention
-  await benchWebLockContention(4, 10, 256)
-  await benchWebLockContention(8, 5, 256)
-
-  verdict(results)
-
-  // Store for programmatic access.
+  await cleanupBenchRoot()
+  const startedAt = performance.now()
+  const results = suite === 'smoke' ? await runSmokeSuite() : await runFullSuite()
+  results.meta = {
+    suite,
+    userAgent: navigator.userAgent,
+    crossOriginIsolated: self.crossOriginIsolated,
+    startedAt: new Date().toISOString(),
+    elapsedMs: performance.now() - startedAt,
+  }
+  section('Summary')
+  print(`elapsed=${results.meta.elapsedMs.toFixed(1)}ms`)
+  if (results.integrity.failures.length) {
+    print(`integrity failures=${results.integrity.failures.length}`)
+  } else {
+    print('integrity failures=0')
+  }
   window.__benchResults = results
   runBtn.disabled = false
+  return results
 }
 
-window.cleanup = async function () {
-  print('\nCleaning up OPFS benchmark data...')
-  const root = await navigator.storage.getDirectory()
-  try {
-    await root.removeEntry(BENCH_DIR, { recursive: true })
-    print('Done.')
-  } catch (e) {
-    print('Cleanup: ' + e.message)
-  }
+window.cleanup = async function cleanup() {
+  await cleanupBenchRoot()
+  print('\nCleanup complete.')
 }
