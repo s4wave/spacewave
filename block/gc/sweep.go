@@ -158,8 +158,12 @@ func sweepNode(ctx context.Context, cfg SweepConfig, node string) error {
 	}
 
 	// Step 4: Remove from root set and node inventory.
-	_ = cfg.Graph.RemoveRoot(ctx, node)
-	_ = cfg.Graph.RemoveNode(ctx, node)
+	if err := cfg.Graph.RemoveRoot(ctx, node); err != nil {
+		return errors.Wrap(err, "remove root")
+	}
+	if err := cfg.Graph.RemoveNode(ctx, node); err != nil {
+		return errors.Wrap(err, "remove node")
+	}
 
 	return nil
 }

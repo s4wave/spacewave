@@ -15,6 +15,14 @@ type ManagerConfig struct {
 	SweepInterval time.Duration
 }
 
+// ManagerHooks are the GC manager dependencies supplied by a storage backend.
+// The controller/runtime provides the sweep target and interval.
+type ManagerHooks struct {
+	Graph      CollectorGraph
+	ReplayWAL  WALReplayFunc
+	AcquireSTW STWLockFunc
+}
+
 // Manager owns the GC graph store and sweep executor lifecycle.
 // It runs startup WAL replay and periodic sweep cycles.
 type Manager struct {

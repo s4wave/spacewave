@@ -2,7 +2,9 @@ package block_gc
 
 import (
 	"context"
+	"errors"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -169,5 +171,41 @@ func TestSweepCycleObjectDelete(t *testing.T) {
 	}
 	if !slices.Contains(target.deletedObjects, "object:stale-key") {
 		t.Errorf("object not deleted: %v", target.deletedObjects)
+	}
+}
+
+func TestSweepCycleRemoveRootError(t *testing.T) {
+	g := newMockGraph()
+	target := &mockSweepTarget{}
+
+	g.addNode("orphan")
+	g.removeRootErr = errors.New("remove root failed")
+
+	_, err := SweepCycle(context.Background(), SweepConfig{
+		Graph:      g,
+		Target:     target,
+		ReplayWAL:  noopReplay,
+		AcquireSTW: noopSTW,
+	})
+	if err == nil || !strings.Contains(err.Error(), "remove root") {
+		t.Fatalf("expected remove root error, got %v", err)
+	}
+}
+
+func TestSweepCycleRemoveNodeError(t *testing.T) {
+	g := newMockGraph()
+	target := &mockSweepTarget{}
+
+	g.addNode("orphan")
+	g.removeNodeErr = errors.New("remove node failed")
+
+	_, err := SweepCycle(context.Background(), SweepConfig{
+		Graph:      g,
+		Target:     target,
+		ReplayWAL:  noopReplay,
+		AcquireSTW: noopSTW,
+	})
+	if err == nil || !strings.Contains(err.Error(), "remove node") {
+		t.Fatalf("expected remove node error, got %v", err)
 	}
 }

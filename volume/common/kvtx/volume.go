@@ -34,6 +34,8 @@ type Volume struct {
 	refGraph block_gc.RefGraphOps
 	// walAppender is the optional WAL appender for deferred GC updates.
 	walAppender block_gc.WALAppender
+	// gcManagerHooks are the optional WAL-backed GC manager hooks.
+	gcManagerHooks *block_gc.ManagerHooks
 	// statsFn returns storage stats, may be nil.
 	statsFn StatsFn
 	// closeFn is the close func, may be nil
@@ -265,6 +267,19 @@ func (v *Volume) GetWALAppender() block_gc.WALAppender {
 // SetWALAppender sets the WAL appender on the volume.
 func (v *Volume) SetWALAppender(wal block_gc.WALAppender) {
 	v.walAppender = wal
+}
+
+// GetGCManagerHooks returns the volume's WAL-backed GC manager hooks, if any.
+func (v *Volume) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
+	if v.gcManagerHooks == nil {
+		return block_gc.ManagerHooks{}, false
+	}
+	return *v.gcManagerHooks, true
+}
+
+// SetGCManagerHooks stores the WAL-backed GC manager hooks on the volume.
+func (v *Volume) SetGCManagerHooks(hooks block_gc.ManagerHooks) {
+	v.gcManagerHooks = &hooks
 }
 
 // Close closes the volume, returning any errors.

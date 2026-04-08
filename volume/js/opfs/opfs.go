@@ -10,6 +10,7 @@ import (
 	block_gc_wal "github.com/aperturerobotics/hydra/block/gc/wal"
 	block_store_opfs "github.com/aperturerobotics/hydra/block/store/opfs"
 	"github.com/aperturerobotics/hydra/opfs"
+	"github.com/aperturerobotics/hydra/opfs/filelock"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
@@ -171,6 +172,35 @@ func NewOpfs(
 	// Store the WAL appender on the volume so the volume controller
 	// and bucket handles can propagate it to GCStoreOps instances.
 	vol.SetWALAppender(walAppender)
+	vol.SetGCManagerHooks(block_gc.ManagerHooks{
+		Graph: gcGraph,
+		ReplayWAL: func(ctx context.Context, graph block_gc.CollectorGraph) (int, error) {
+			entries, filenames, err := block_gc_wal.ReadWAL(walDir, lockPrefix+"/gc/wal")
+			if err != nil {
+				return 0, err
+			}
+			for i, entry := range entries {
+				adds := make([]block_gc.RefEdge, len(entry.GetAdds()))
+				for j, e := range entry.GetAdds() {
+					adds[j] = block_gc.RefEdge{Subject: e.GetSubject(), Object: e.GetObject()}
+				}
+				removes := make([]block_gc.RefEdge, len(entry.GetRemoves()))
+				for j, e := range entry.GetRemoves() {
+					removes[j] = block_gc.RefEdge{Subject: e.GetSubject(), Object: e.GetObject()}
+				}
+				if err := graph.ApplyRefBatch(ctx, adds, removes); err != nil {
+					return i, err
+				}
+				if err := block_gc_wal.DeleteWALEntry(walDir, filenames[i]); err != nil {
+					return i, err
+				}
+			}
+			return len(entries), nil
+		},
+		AcquireSTW: func() (func(), error) {
+			return filelock.AcquireWebLock(stwLockName, true)
+		},
+	})
 
 	return vol, nil
 }

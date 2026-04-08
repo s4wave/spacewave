@@ -5,11 +5,13 @@ import (
 	"time"
 
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
+	volume "github.com/aperturerobotics/hydra/volume"
 )
 
 // runGCSweep runs the periodic GC sweep goroutine.
-// It waits for the volume to become ready, performs bootstrap if needed,
-// then runs Collector.Collect on a configurable interval.
+// It waits for the volume to become ready, then prefers the WAL-backed
+// concurrent GC manager when the volume provides the required hooks.
+// Otherwise it falls back to the legacy unreferenced-node collector.
 func (c *Controller) runGCSweep(ctx context.Context) error {
 	interval, err := c.config.ParseGCIntervalDur()
 	if err != nil {
@@ -24,6 +26,28 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	vol, err := c.GetVolume(ctx)
 	if err != nil {
 		return err
+	}
+
+	type gcManagerHooksProvider interface {
+		GetGCManagerHooks() (block_gc.ManagerHooks, bool)
+	}
+	if provider, ok := vol.(gcManagerHooksProvider); ok {
+		if hooks, ok := provider.GetGCManagerHooks(); ok &&
+			hooks.Graph != nil &&
+			hooks.ReplayWAL != nil &&
+			hooks.AcquireSTW != nil {
+			manager := block_gc.NewManager(block_gc.ManagerConfig{
+				SweepConfig: block_gc.SweepConfig{
+					Graph:      hooks.Graph,
+					Target:     volumeSweepTarget{vol: vol},
+					ReplayWAL:  hooks.ReplayWAL,
+					AcquireSTW: hooks.AcquireSTW,
+				},
+				SweepInterval: interval,
+			})
+			c.le.WithField("interval", interval.String()).Debug("gc manager routine started")
+			return manager.Run(ctx)
+		}
 	}
 
 	rg := vol.GetRefGraph()
@@ -58,3 +82,26 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		}
 	}
 }
+
+// volumeSweepTarget adapts a volume to the concurrent sweep target interface.
+// Object nodes represent world objects that have already been deleted from the
+// backing store before becoming sweep candidates, so only graph cleanup remains.
+type volumeSweepTarget struct {
+	vol volume.Volume
+}
+
+// DeleteBlock removes a block from the current volume block store.
+func (t volumeSweepTarget) DeleteBlock(ctx context.Context, iri string) error {
+	ref, ok := block_gc.ParseBlockIRI(iri)
+	if !ok {
+		return nil
+	}
+	return t.vol.RmBlock(ctx, ref)
+}
+
+// DeleteObject performs no backend action for object nodes.
+func (t volumeSweepTarget) DeleteObject(_ context.Context, _ string) error {
+	return nil
+}
+
+var _ block_gc.SweepTarget = volumeSweepTarget{}

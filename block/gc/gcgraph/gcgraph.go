@@ -146,14 +146,12 @@ func (g *GCGraph) AddRoot(ctx context.Context, iri string) error {
 
 // RemoveRoot removes a node from the root set.
 func (g *GCGraph) RemoveRoot(ctx context.Context, iri string) error {
-	_ = g.deleteFile(g.rootsDir, hashName(iri))
-	return nil
+	return g.deleteFile(g.rootsDir, hashName(iri))
 }
 
 // RemoveNode removes a node from the node inventory.
 func (g *GCGraph) RemoveNode(ctx context.Context, iri string) error {
-	_ = g.deleteFile(g.nodesDir, hashName(iri))
-	return nil
+	return g.deleteFile(g.nodesDir, hashName(iri))
 }
 
 // writeFile writes content to a file using per-file locking.

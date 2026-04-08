@@ -5,6 +5,7 @@ import (
 
 	hash "github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
+	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 )
 
@@ -48,6 +49,18 @@ func (v *VolumeBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (
 // RmBlock deletes a block from the bucket.
 func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return v.store.RmBlock(ctx, ref)
+}
+
+// GetGCManagerHooks forwards WAL-backed GC manager hooks from the wrapped
+// volume when available.
+func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
+	provider, ok := v.Volume.(interface {
+		GetGCManagerHooks() (block_gc.ManagerHooks, bool)
+	})
+	if !ok {
+		return block_gc.ManagerHooks{}, false
+	}
+	return provider.GetGCManagerHooks()
 }
 
 // _ is a type assertion

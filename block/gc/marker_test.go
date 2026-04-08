@@ -10,10 +10,12 @@ import (
 
 // mockCollectorGraph is a simple in-memory CollectorGraph for testing.
 type mockCollectorGraph struct {
-	nodes   []string
-	roots   []string
-	edges   map[string][]string // subject -> []object
-	closeFn func() error
+	nodes         []string
+	roots         []string
+	edges         map[string][]string // subject -> []object
+	closeFn       func() error
+	removeRootErr error
+	removeNodeErr error
 }
 
 func newMockGraph() *mockCollectorGraph {
@@ -126,6 +128,9 @@ func (m *mockCollectorGraph) RemoveObjectRoot(_ context.Context, _ string, _ *bl
 }
 
 func (m *mockCollectorGraph) RemoveRoot(_ context.Context, iri string) error {
+	if m.removeRootErr != nil {
+		return m.removeRootErr
+	}
 	idx := slices.Index(m.roots, iri)
 	if idx >= 0 {
 		m.roots = slices.Delete(m.roots, idx, idx+1)
@@ -134,6 +139,9 @@ func (m *mockCollectorGraph) RemoveRoot(_ context.Context, iri string) error {
 }
 
 func (m *mockCollectorGraph) RemoveNode(_ context.Context, iri string) error {
+	if m.removeNodeErr != nil {
+		return m.removeNodeErr
+	}
 	idx := slices.Index(m.nodes, iri)
 	if idx >= 0 {
 		m.nodes = slices.Delete(m.nodes, idx, idx+1)
