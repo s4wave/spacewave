@@ -12,10 +12,8 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
-	plugin_host_storage "github.com/aperturerobotics/bldr/plugin/host/storage"
 	plugin_host_storage_volume "github.com/aperturerobotics/bldr/plugin/host/storage/volume"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
-	"github.com/aperturerobotics/bldr/storage"
 	storage_controller "github.com/aperturerobotics/bldr/storage/controller"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -244,12 +242,13 @@ func ExecutePluginEntrypoint(
 		}()
 	}
 
-	// start the plugin host storage controller and use the default storage id
-	hostStorage := plugin_host_storage.NewPluginHostStorage()
-	hostStorage.AddFactories(b, sr)
+	// start the plugin storage controller and use the default storage id
+	// on js/wasm, this resolves to direct OPFS access
+	// on native, this proxies through the plugin host via RPC
+	storages := buildPluginStorages(b, sr)
 	hostStorageCtrl := storage_controller.BuildStorageController(
 		bldr_plugin.HostStorageID,
-		[]storage.Storage{hostStorage},
+		storages,
 		controller.NewInfo(
 			"plugin/host/storage",
 			Version,
