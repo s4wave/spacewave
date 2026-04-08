@@ -1071,6 +1071,32 @@ func TestOpfsPrimitives(t *testing.T) {
 	}
 }
 
+// TestOpfsPerFileLock verifies the per-file WebLock protocol used by hydra's
+// OPFS volume stores: per-file exclusive locks, parallel writes to distinct
+// files, serialized writes to the same file, block store shard pattern, and
+// object store readers-writer ACID isolation.
+func TestOpfsPerFileLock(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			results := runFixture(t, browser, "opfs-perfile-lock")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("opfs per-file lock failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "perFileLock", true)
+			assertBoolResult(t, results, "parallelDistinct", true)
+			assertBoolResult(t, results, "serialSameFile", true)
+			assertBoolResult(t, results, "blockStorePattern", true)
+			assertBoolResult(t, results, "objStoreReadWrite", true)
+			assertBoolResult(t, results, "objStoreAcid", true)
+
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
 // TestConfigAFallback verifies that without Cross-Origin Isolation headers,
 // detection returns Config A (no SAB, no SharedWorker hosting for plugins).
 // Uses a separate test server without COOP/COEP headers.

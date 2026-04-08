@@ -2,10 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.26.0
 
-require github.com/aperturerobotics/hydra v0.0.0-20260407092210-a7744f5582f4 // opfs
-
-// local development: opfs txcache fix
-replace github.com/aperturerobotics/hydra => /Users/cjs/company/repos/hydra
+require github.com/aperturerobotics/hydra v0.0.0-20260408025920-bd86e6549a1c // opfs
 
 // This uses wasi-reactor
 require (
