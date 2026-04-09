@@ -298,5 +298,32 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	}
 }
 
+// BeginDeferFlush forwards to upper and lower stores that support deferred flushing.
+func (o *StoreOverlay) BeginDeferFlush() {
+	if df, ok := o.upper.(DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+	if df, ok := o.lower.(DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards to upper and lower stores that support deferred flushing.
+func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
+	var err error
+	if df, ok := o.upper.(DeferFlushable); ok {
+		err = df.EndDeferFlush(ctx)
+	}
+	if df, ok := o.lower.(DeferFlushable); ok {
+		if lerr := df.EndDeferFlush(ctx); lerr != nil && err == nil {
+			err = lerr
+		}
+	}
+	return err
+}
+
 // _ is a type assertion
-var _ StoreOps = ((*StoreOverlay)(nil))
+var (
+	_ StoreOps       = ((*StoreOverlay)(nil))
+	_ DeferFlushable = ((*StoreOverlay)(nil))
+)

@@ -214,18 +214,30 @@ func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, 
 // BeginDeferFlush enters a deferred-flush scope. While deferred,
 // FlushPending returns immediately without flushing; pending
 // operations accumulate in the buffer. Supports nesting.
+// Also forwards to the inner store if it implements DeferFlushable,
+// so nested GC layers (e.g. bucket-level gcOps inside bucketHandle)
+// are also deferred.
 func (g *GCStoreOps) BeginDeferFlush() {
 	g.deferFlush.Add(1)
+	if df, ok := g.store.(block.DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
 }
 
 // EndDeferFlush exits a deferred-flush scope. When the outermost
 // scope ends, calls FlushPending to flush all accumulated operations
-// in one batch.
+// in one batch. Also forwards to the inner store.
 func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
-	if g.deferFlush.Add(-1) == 0 {
-		return g.FlushPending(ctx)
+	var innerErr error
+	if df, ok := g.store.(block.DeferFlushable); ok {
+		innerErr = df.EndDeferFlush(ctx)
 	}
-	return nil
+	if g.deferFlush.Add(-1) == 0 {
+		if err := g.FlushPending(ctx); err != nil {
+			return err
+		}
+	}
+	return innerErr
 }
 
 // FlushPending writes all buffered PutBlock and RecordBlockRefs

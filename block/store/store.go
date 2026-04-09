@@ -41,5 +41,23 @@ func (s *store) GetID() string {
 	return s.id
 }
 
+// BeginDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+func (s *store) BeginDeferFlush() {
+	if df, ok := s.StoreOps.(block.DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+func (s *store) EndDeferFlush(ctx context.Context) error {
+	if df, ok := s.StoreOps.(block.DeferFlushable); ok {
+		return df.EndDeferFlush(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
-var _ Store = ((*store)(nil))
+var (
+	_ Store              = ((*store)(nil))
+	_ block.DeferFlushable = ((*store)(nil))
+)
