@@ -38,6 +38,7 @@ func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_contr
 	rootPath := s.prefix + id
 	return &volume_opfs.Config{
 		RootPath:     rootPath,
+		AsyncIo:      true,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
 }
