@@ -4,6 +4,8 @@ package blockshard
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"testing"
 	"time"
 
@@ -138,6 +140,48 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 }
 
+func TestAsyncIOPutComparison(t *testing.T) {
+	if !opfs.SyncAvailable() {
+		t.Skip("sync access handles not available")
+	}
+
+	ctx := context.Background()
+	syncSettings := DefaultSettings()
+	syncSettings.ShardCount = 4
+
+	asyncSettings := DefaultSettings()
+	asyncSettings.ShardCount = 4
+	asyncSettings.AsyncIO = true
+
+	syncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-sync-single", syncSettings, 24)
+	asyncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-async-single", asyncSettings, 24)
+	t.Logf(
+		"single put sync avg=%s p50=%s p95=%s max=%s | async avg=%s p50=%s p95=%s max=%s",
+		syncSingle.avg,
+		syncSingle.p50,
+		syncSingle.p95,
+		syncSingle.max,
+		asyncSingle.avg,
+		asyncSingle.p50,
+		asyncSingle.p95,
+		asyncSingle.max,
+	)
+
+	syncBatch := measureBatchPutLatency(t, ctx, "test-blockshard-compare-sync-batch", syncSettings, 12, 32)
+	asyncBatch := measureBatchPutLatency(t, ctx, "test-blockshard-compare-async-batch", asyncSettings, 12, 32)
+	t.Logf(
+		"batch put sync avg=%s p50=%s p95=%s max=%s | async avg=%s p50=%s p95=%s max=%s",
+		syncBatch.avg,
+		syncBatch.p50,
+		syncBatch.p95,
+		syncBatch.max,
+		asyncBatch.avg,
+		asyncBatch.p50,
+		asyncBatch.p95,
+		asyncBatch.max,
+	)
+}
+
 func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	writer, cleanupWriter := newTestEngine(t, "test-blockshard-stale-reader", "test-blockshard-stale-reader")
 	defer cleanupWriter()
@@ -191,5 +235,87 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	}
 	if !found || string(val) != "v6" {
 		t.Fatalf("stale reader result: found=%v val=%q want v6", found, val)
+	}
+}
+
+type latencyStats struct {
+	avg time.Duration
+	p50 time.Duration
+	p95 time.Duration
+	max time.Duration
+}
+
+func measureSinglePutLatency(
+	t *testing.T,
+	ctx context.Context,
+	dirName string,
+	settings *Settings,
+	count int,
+) latencyStats {
+	t.Helper()
+	e, cleanup := newTestEngineWithSettings(t, dirName, dirName, settings)
+	defer cleanup()
+
+	durs := make([]time.Duration, 0, count)
+	for i := range count {
+		start := time.Now()
+		err := e.Put(ctx, []segment.Entry{{
+			Key:   []byte("single-" + strconv.Itoa(i)),
+			Value: make([]byte, 4096),
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		durs = append(durs, time.Since(start))
+	}
+	return buildLatencyStats(durs)
+}
+
+func measureBatchPutLatency(
+	t *testing.T,
+	ctx context.Context,
+	dirName string,
+	settings *Settings,
+	rounds int,
+	batchSize int,
+) latencyStats {
+	t.Helper()
+	e, cleanup := newTestEngineWithSettings(t, dirName, dirName, settings)
+	defer cleanup()
+
+	durs := make([]time.Duration, 0, rounds)
+	for round := range rounds {
+		entries := make([]segment.Entry, batchSize)
+		for i := range entries {
+			n := round*batchSize + i
+			entries[i] = segment.Entry{
+				Key:   []byte("batch-" + strconv.Itoa(n)),
+				Value: make([]byte, 4096),
+			}
+		}
+		start := time.Now()
+		if err := e.Put(ctx, entries); err != nil {
+			t.Fatal(err)
+		}
+		durs = append(durs, time.Since(start))
+	}
+	return buildLatencyStats(durs)
+}
+
+func buildLatencyStats(durs []time.Duration) latencyStats {
+	if len(durs) == 0 {
+		return latencyStats{}
+	}
+	sorted := append([]time.Duration(nil), durs...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+	var total time.Duration
+	for _, dur := range durs {
+		total += dur
+	}
+	return latencyStats{
+		avg: total / time.Duration(len(durs)),
+		p50: sorted[len(sorted)/2],
+		p95: sorted[(len(sorted)-1)*95/100],
+		max: sorted[len(sorted)-1],
 	}
 }

@@ -113,6 +113,23 @@ func (w *Writer) allocSequence() (uint64, error) {
 	}
 	defer release()
 
+	if !opfs.SyncAvailable() {
+		var seq uint64
+		data, err := opfs.ReadFile(w.dir, seqCounterFile)
+		if err != nil && !opfs.IsNotFound(err) {
+			return 0, errors.Wrap(err, "read counter")
+		}
+		if len(data) != 0 {
+			seq, _ = strconv.ParseUint(string(data), 10, 64)
+		}
+		seq++
+		data = []byte(strconv.FormatUint(seq, 10))
+		if err := opfs.WriteFile(w.dir, seqCounterFile, data); err != nil {
+			return 0, errors.Wrap(err, "write counter")
+		}
+		return seq, nil
+	}
+
 	// Open counter file once for both read and write.
 	f, err := opfs.CreateSyncFile(w.dir, seqCounterFile)
 	if err != nil {

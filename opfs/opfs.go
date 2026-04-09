@@ -353,7 +353,16 @@ func FileExists(dir js.Value, name string) (bool, error) {
 // SyncAvailable returns true if sync access handles are available.
 // Sync access handles are only available in DedicatedWorker contexts.
 func SyncAvailable() bool {
-	return !js.Global().Get("FileSystemSyncAccessHandle").IsUndefined()
+	fileHandleCtor := js.Global().Get("FileSystemFileHandle")
+	if fileHandleCtor.IsUndefined() || fileHandleCtor.IsNull() {
+		return false
+	}
+	proto := fileHandleCtor.Get("prototype")
+	if proto.IsUndefined() || proto.IsNull() {
+		return false
+	}
+	method := proto.Get("createSyncAccessHandle")
+	return !method.IsUndefined() && !method.IsNull() && method.Type() == js.TypeFunction
 }
 
 // OpenSyncFile opens an existing file with a sync access handle.
@@ -400,6 +409,10 @@ func IsNoModificationAllowed(err error) bool {
 const syncAccessHandleRetries = 3
 
 func newSyncFile(name string, fileHandle js.Value) (*SyncFile, error) {
+	method := fileHandle.Get("createSyncAccessHandle")
+	if method.IsUndefined() || method.IsNull() || method.Type() != js.TypeFunction {
+		return nil, errors.New("createSyncAccessHandle unavailable")
+	}
 	var lastErr error
 	for range syncAccessHandleRetries {
 		ah, err := AwaitPromise(fileHandle.Call("createSyncAccessHandle"))

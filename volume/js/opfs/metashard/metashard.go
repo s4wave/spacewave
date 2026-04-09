@@ -193,6 +193,9 @@ func readSuper(dir js.Value, name string, buf []byte) {
 
 // writeSuper writes a superblock to OPFS.
 func writeSuper(dir js.Value, name string, data []byte) error {
+	if !opfs.SyncAvailable() {
+		return opfs.WriteFile(dir, name, data)
+	}
 	f, err := opfs.CreateSyncFile(dir, name)
 	if err != nil {
 		return err

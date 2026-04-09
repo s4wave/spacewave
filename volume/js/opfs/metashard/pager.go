@@ -18,8 +18,9 @@ type OpfsPager struct {
 	pgSize    int
 	pageCount uint32
 	freed     []pagestore.PageID
-	// syncFile is opened lazily on first write.
+	// Files are opened lazily on first write.
 	syncFile      *opfs.SyncFile
+	asyncFile     *opfs.AsyncFile
 	freelistPages []pagestore.PageID
 }
 
@@ -58,17 +59,29 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 	return err
 }
 
-// WritePage writes a page. Uses a sync file handle (opened lazily).
+// WritePage writes a page. Uses a sync handle when available, async otherwise.
 func (p *OpfsPager) WritePage(id pagestore.PageID, buf []byte) error {
-	if p.syncFile == nil {
-		f, err := opfs.CreateSyncFile(p.dir, p.filename)
-		if err != nil {
-			return errors.Wrap(err, "open page file for write")
+	if opfs.SyncAvailable() {
+		if p.syncFile == nil {
+			f, err := opfs.CreateSyncFile(p.dir, p.filename)
+			if err != nil {
+				return errors.Wrap(err, "open page file for write")
+			}
+			p.syncFile = f
 		}
-		p.syncFile = f
+		off := int64(id) * int64(p.pgSize)
+		_, err := p.syncFile.WriteAt(buf[:p.pgSize], off)
+		return err
+	}
+	if p.asyncFile == nil {
+		f, err := opfs.CreateAsyncFile(p.dir, p.filename)
+		if err != nil {
+			return errors.Wrap(err, "open page file for async write")
+		}
+		p.asyncFile = f
 	}
 	off := int64(id) * int64(p.pgSize)
-	_, err := p.syncFile.WriteAt(buf[:p.pgSize], off)
+	_, err := p.asyncFile.WriteAt(buf[:p.pgSize], off)
 	return err
 }
 
@@ -101,6 +114,11 @@ func (p *OpfsPager) Flush() {
 
 // Close closes the sync file handle if open.
 func (p *OpfsPager) Close() error {
+	if p.asyncFile != nil {
+		err := p.asyncFile.Close()
+		p.asyncFile = nil
+		return err
+	}
 	if p.syncFile != nil {
 		err := p.syncFile.Close()
 		p.syncFile = nil
