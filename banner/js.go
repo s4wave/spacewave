@@ -12,6 +12,19 @@ func WriteToConsole() {
 	}()
 
 	// write aperture banner
+	buildInfo := getBuildInfo()
+	js.Global().Set(
+		"__BLDR_BUILD_INFO__",
+		js.ValueOf(map[string]any{
+			"mainVersion":  buildInfo.mainVersion,
+			"version":      buildInfo.normalizedMainVersion(),
+			"goVersion":    buildInfo.goVersion,
+			"goos":         buildInfo.goos,
+			"goarch":       buildInfo.goarch,
+			"runtimeLabel": buildInfo.runtimeLabel(),
+			"cornerLabel":  buildInfo.cornerLabel(),
+		}),
+	)
 	js.Global().Get("console").Call(
 		"log",
 		"%c"+FormatBanner(),
