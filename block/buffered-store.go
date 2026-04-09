@@ -11,11 +11,6 @@ import (
 	"github.com/aperturerobotics/util/routine"
 )
 
-const (
-	defaultBufferedStoreMaxPendingEntries = 4096
-	defaultBufferedStoreMaxPendingBytes   = 64 << 20
-)
-
 type pendingBlock struct {
 	ref       *BlockRef
 	data      []byte
@@ -41,12 +36,13 @@ type BufferedStore struct {
 	inner StoreOps
 	rc    *routine.RoutineContainer
 
-	mtx              sync.Mutex
-	pending          map[string]*pendingBlock
-	pendingRefs      []pendingRefRecord
-	pendingBytes     int
-	maxPendingBytes  int
-	maxPendingBlocks int
+	mtx               sync.Mutex
+	pending           map[string]*pendingBlock
+	pendingRefs       []pendingRefRecord
+	pendingBytes      int
+	maxPendingBytes   int
+	maxPendingBlocks  int
+	drainBatchEntries int
 
 	queue      []string
 	nextSeq    uint64
@@ -59,16 +55,27 @@ type BufferedStore struct {
 // NewBufferedStore constructs a buffered store around an inner
 // store and uses ctx for background draining.
 func NewBufferedStore(ctx context.Context, inner StoreOps) *BufferedStore {
+	return NewBufferedStoreWithSettings(ctx, inner, nil)
+}
+
+// NewBufferedStoreWithSettings constructs a buffered store with explicit settings.
+func NewBufferedStoreWithSettings(
+	ctx context.Context,
+	inner StoreOps,
+	settings *BufferedStoreSettings,
+) *BufferedStore {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	settings = normalizeBufferedStoreSettings(settings)
 	s := &BufferedStore{
-		inner:            inner,
-		rc:               routine.NewRoutineContainer(),
-		pending:          make(map[string]*pendingBlock),
-		maxPendingBytes:  defaultBufferedStoreMaxPendingBytes,
-		maxPendingBlocks: defaultBufferedStoreMaxPendingEntries,
-		waitCh:           make(chan struct{}),
+		inner:             inner,
+		rc:                routine.NewRoutineContainer(),
+		pending:           make(map[string]*pendingBlock),
+		maxPendingBytes:   settings.MaxPendingBytes,
+		maxPendingBlocks:  settings.MaxPendingEntries,
+		drainBatchEntries: settings.DrainBatchEntries,
+		waitCh:            make(chan struct{}),
 	}
 	_, _ = s.rc.SetRoutine(s.drainLoop)
 	_ = s.rc.SetContext(ctx, false)
@@ -346,8 +353,14 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 		return nil
 	}
 
-	keys := slices.Clone(s.queue)
-	s.queue = nil
+	keys := s.queue
+	if s.drainBatchEntries > 0 && len(keys) > s.drainBatchEntries {
+		keys = slices.Clone(keys[:s.drainBatchEntries])
+		s.queue = s.queue[s.drainBatchEntries:]
+	} else {
+		keys = slices.Clone(keys)
+		s.queue = nil
+	}
 
 	batch := &drainBatch{
 		keys:    keys,

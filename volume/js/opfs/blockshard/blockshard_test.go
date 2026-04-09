@@ -13,11 +13,11 @@ import (
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
 )
 
-func newTestEngine(t *testing.T, dirName, lockPrefix string) (*Engine, func()) {
+func newTestEngine(t testing.TB, dirName, lockPrefix string) (*Engine, func()) {
 	return newTestEngineWithSettings(t, dirName, lockPrefix, nil)
 }
 
-func newTestEngineWithSettings(t *testing.T, dirName, lockPrefix string, settings *Settings) (*Engine, func()) {
+func newTestEngineWithSettings(t testing.TB, dirName, lockPrefix string, settings *Settings) (*Engine, func()) {
 	t.Helper()
 	if (settings == nil || !settings.AsyncIO) && !opfs.SyncAvailable() {
 		t.Skip("sync access handles not available")
@@ -44,7 +44,7 @@ func newTestEngineWithSettings(t *testing.T, dirName, lockPrefix string, setting
 	}
 }
 
-func publishEntries(t *testing.T, s *Shard, entries []segment.Entry) {
+func publishEntries(t testing.TB, s *Shard, entries []segment.Entry) {
 	t.Helper()
 	release, err := s.AcquirePublishLock()
 	if err != nil {
@@ -59,7 +59,7 @@ func publishEntries(t *testing.T, s *Shard, entries []segment.Entry) {
 	}
 }
 
-func compactShard(t *testing.T, s *Shard) {
+func compactShard(t testing.TB, s *Shard) {
 	t.Helper()
 	plan := PlanCompaction(s, DefaultL0Trigger)
 	if plan == nil {
@@ -236,6 +236,51 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	if !found || string(val) != "v6" {
 		t.Fatalf("stale reader result: found=%v val=%q want v6", found, val)
 	}
+}
+
+func BenchmarkBlockshardPutBatchMatrix(b *testing.B) {
+	ctx := context.Background()
+	compactionTriggers := []int{DefaultL0Trigger, DefaultL0Trigger * 2}
+
+	for _, shardCount := range []int{4, 8} {
+		for _, compactionTrigger := range compactionTriggers {
+			name := "shards-" + strconv.Itoa(shardCount) + "/compact-" + strconv.Itoa(compactionTrigger)
+			b.Run(name, func(b *testing.B) {
+				settings := DefaultSettings()
+				settings.AsyncIO = true
+				settings.ShardCount = shardCount
+				settings.CompactionTrigger = compactionTrigger
+
+				engine, cleanup := newTestEngineWithSettings(
+					b,
+					"bench-blockshard-"+strconv.Itoa(shardCount)+"-"+strconv.Itoa(compactionTrigger),
+					"bench-blockshard-"+strconv.Itoa(shardCount)+"-"+strconv.Itoa(compactionTrigger),
+					settings,
+				)
+				b.Cleanup(cleanup)
+				b.ReportAllocs()
+				b.ResetTimer()
+
+				for i := 0; b.Loop(); i++ {
+					if err := engine.Put(ctx, buildBenchmarkEntries(i*32, 32)); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
+	}
+}
+
+func buildBenchmarkEntries(start, count int) []segment.Entry {
+	entries := make([]segment.Entry, count)
+	for i := range count {
+		n := start + i
+		entries[i] = segment.Entry{
+			Key:   []byte("bench-key-" + strconv.Itoa(n)),
+			Value: []byte("bench-value-" + strconv.Itoa(n)),
+		}
+	}
+	return entries
 }
 
 type latencyStats struct {
