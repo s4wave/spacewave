@@ -45,9 +45,9 @@ type WorldState struct {
 	// onSwept is called for each node swept during GC (optional).
 	onSwept func(context.Context, string) error
 
-	objTree   kvtx.BlockTx
-	graphTree kvtx.BlockTx
-	graphHd   *cayley.Handle
+	objTree       kvtx.BlockTx
+	graphTree     kvtx.BlockTx
+	graphHd       *cayley.Handle
 	gcTree        kvtx.BlockTx
 	refGraph      *block_gc.RefGraph
 	gcJournalTree kvtx.BlockTx

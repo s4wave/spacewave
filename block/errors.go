@@ -29,4 +29,6 @@ var (
 	ErrNotClonable = errors.New("block: unable to clone")
 	// ErrBlockRefMismatch is returned if the data does not match the expected ref.
 	ErrBlockRefMismatch = errors.New("block: block ref hash mismatch")
+	// ErrBufferedStoreFull is returned when a buffered store reaches its memory limits.
+	ErrBufferedStoreFull = errors.New("block: buffered store is full")
 )

@@ -5,8 +5,8 @@ package blockshard
 import (
 	"bytes"
 	"context"
-	"strconv"
 	"runtime/trace"
+	"strconv"
 	"sync"
 	"syscall/js"
 	"time"

@@ -48,6 +48,6 @@ func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ Bucket              = ((*bucketRW)(nil))
+	_ Bucket               = ((*bucketRW)(nil))
 	_ block.DeferFlushable = ((*bucketRW)(nil))
 )

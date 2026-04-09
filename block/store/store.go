@@ -58,6 +58,6 @@ func (s *store) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ Store              = ((*store)(nil))
+	_ Store                = ((*store)(nil))
 	_ block.DeferFlushable = ((*store)(nil))
 )

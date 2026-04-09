@@ -15,12 +15,12 @@ const SuperblockSize = 32
 
 // Superblock describes the root state of the page store at a generation.
 type Superblock struct {
-	Magic          [4]byte
-	Version        uint16
-	Generation     uint64
-	RootPage       PageID
-	FreelistPage   PageID
-	PageCount      uint32 // total pages allocated
+	Magic        [4]byte
+	Version      uint16
+	Generation   uint64
+	RootPage     PageID
+	FreelistPage PageID
+	PageCount    uint32 // total pages allocated
 }
 
 // EncodeSuperblock writes a superblock to buf (32 bytes).

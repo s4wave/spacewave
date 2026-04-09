@@ -5,8 +5,8 @@ package blockshard
 import (
 	"context"
 	"hash/fnv"
-	"runtime/trace"
 	"runtime"
+	"runtime/trace"
 	"sync"
 	"syscall/js"
 

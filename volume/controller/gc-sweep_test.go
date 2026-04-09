@@ -20,30 +20,39 @@ func (stubCollectorGraph) AddRef(context.Context, string, string) error { return
 func (stubCollectorGraph) RemoveRef(context.Context, string, string) error {
 	return nil
 }
+
 func (stubCollectorGraph) ApplyRefBatch(context.Context, []block_gc.RefEdge, []block_gc.RefEdge) error {
 	return nil
 }
+
 func (stubCollectorGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
 	return nil, nil
 }
+
 func (stubCollectorGraph) HasIncomingRefs(context.Context, string) (bool, error) {
 	return false, nil
 }
+
 func (stubCollectorGraph) GetOutgoingRefs(context.Context, string) ([]string, error) {
 	return nil, nil
 }
+
 func (stubCollectorGraph) GetIncomingRefs(context.Context, string) ([]string, error) {
 	return nil, nil
 }
+
 func (stubCollectorGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
 	return nil, nil
 }
+
 func (stubCollectorGraph) AddBlockRef(context.Context, *block.BlockRef, *block.BlockRef) error {
 	return nil
 }
+
 func (stubCollectorGraph) AddObjectRoot(context.Context, string, *block.BlockRef) error {
 	return nil
 }
+
 func (stubCollectorGraph) RemoveObjectRoot(context.Context, string, *block.BlockRef) error {
 	return nil
 }
@@ -51,6 +60,7 @@ func (stubCollectorGraph) Close() error { return nil }
 func (stubCollectorGraph) IterateNodes(context.Context) ([]string, error) {
 	return nil, nil
 }
+
 func (stubCollectorGraph) GetRootNodes(context.Context) ([]string, error) {
 	return nil, nil
 }

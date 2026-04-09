@@ -220,11 +220,16 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return writeRoot.ref, nil, nil
 	}
 
+	writeStore := t.store
+	if writeStore != nil {
+		writeStore = NewBufferedStore(ctx, writeStore)
+	}
+
 	// begin deferred GC flushing if the store supports it.
 	// only activated for dirty transactions so a non-dirty WriteAtRoot
 	// never touches the shared flush counter or flushes another
 	// transaction's buffered refs.
-	if dfImpl, ok := t.store.(DeferFlushable); ok {
+	if dfImpl, ok := writeStore.(DeferFlushable); ok {
 		df = dfImpl
 		deferFlushActive = true
 		df.BeginDeferFlush()
@@ -421,7 +426,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 						// Extract block refs before enqueuing write, since
 						// bn.blk may be cleared by clearTree after this point.
 						var blockTargets []*BlockRef
-						recorder, hasRecorder := t.store.(BlockRefRecorder)
+						recorder, hasRecorder := writeStore.(BlockRefRecorder)
 						if hasRecorder {
 							blockTargets, err = ExtractBlockRefs(bn.blk)
 							if err != nil {
@@ -432,7 +437,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 						writeQueue.Enqueue(func() {
 							// ensure that the wrote ref == the expected.
-							wroteRef, _, err := t.store.PutBlock(ctx, dat, putOpts)
+							wroteRef, _, err := writeStore.PutBlock(ctx, dat, putOpts)
 							if err == nil && !wroteRef.EqualsRef(blkRef) {
 								err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
 							}
@@ -517,6 +522,14 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	subtask.End()
 	if err != nil {
 		return nil, nil, err
+	}
+	if fs, ok := writeStore.(Flushable); ok {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/flush-write-store")
+		err = fs.Flush(taskCtx)
+		subtask.End()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// check there are no remaining queued errors

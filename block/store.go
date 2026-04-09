@@ -45,6 +45,12 @@ type DeferFlushable interface {
 	EndDeferFlush(ctx context.Context) error
 }
 
+// Flushable is implemented by stores that expose an explicit durability
+// boundary. Callers use Flush to force buffered writes into the wrapped store.
+type Flushable interface {
+	Flush(ctx context.Context) error
+}
+
 // BlockStat contains metadata about a stored block.
 type BlockStat struct {
 	// Ref is the block reference.

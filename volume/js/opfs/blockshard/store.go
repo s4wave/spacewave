@@ -65,14 +65,34 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	}
 
 	// Write to shard engine.
-	entry := segment.Entry{
+	if err := s.engine.Put(ctx, []segment.Entry{{
 		Key:   []byte(key),
 		Value: data,
-	}
-	if err := s.engine.Put(ctx, []segment.Entry{entry}); err != nil {
+	}}); err != nil {
 		return nil, false, err
 	}
 	return ref, false, nil
+}
+
+// PutBlockBatch writes multiple blocks as one lower-layer engine batch.
+func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	batch := make([]segment.Entry, 0, len(entries))
+	for _, entry := range entries {
+		key, err := encodeRef(entry.Ref)
+		if err != nil {
+			return err
+		}
+		batch = append(batch, segment.Entry{
+			Key:       []byte(key),
+			Value:     entry.Data,
+			Tombstone: entry.Tombstone,
+		})
+	}
+	return s.engine.Put(ctx, batch)
 }
 
 // GetBlock gets a block by reference.
@@ -143,3 +163,6 @@ func encodeRef(ref *block.BlockRef) (string, error) {
 
 // _ is a type assertion.
 var _ block.StoreOps = (*BlockStore)(nil)
+
+// _ is a type assertion.
+var _ block.BatchPutStore = (*BlockStore)(nil)
