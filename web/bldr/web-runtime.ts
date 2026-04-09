@@ -73,6 +73,12 @@ class WebRuntimeClientInstance {
     port.onmessage = this.onClientMessage.bind(this)
     port.start()
 
+    // Ack that the runtime registered this client so the page-side
+    // WebRuntimeClient.openClientChannel() can distinguish a live
+    // connection from a dead MessagePort.
+    const ack: WebRuntimeToClient = { connected: true }
+    port.postMessage(ack)
+
     // Note: Web Lock watching is NOT started here to avoid a race condition.
     // The WebDocument must acquire its lock first, then send an armWebLock message.
     // See armWebLock() method.

@@ -24,6 +24,9 @@ export interface WebRuntimeToClient {
   // receiver should ack the stream immediately.
   // the port is passed in the event.ports field
   openStream?: true
+  // connected acks that the runtime registered this client successfully.
+  // sent as the first message on the channel from WebRuntimeClientInstance.
+  connected?: true
 }
 
 // WebDocumentToWebRuntime is a message sent to the WebRuntime from the WebDocument.

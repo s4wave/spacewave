@@ -108,6 +108,7 @@ export class WebRuntimeClient {
   }
 
   // openClientChannel opens the client MessagePort to the WebRuntimeHost.
+  // waits for a connected ack from the runtime before caching the port.
   private async openClientChannel(): Promise<MessagePort> {
     if (this.clientChannel) {
       return this.clientChannel
@@ -119,6 +120,31 @@ export class WebRuntimeClient {
       clientType: this.clientType,
       disableWebLocks: this.disableWebLocks,
     })
+
+    // Wait for connected ack from the runtime before treating the port as live.
+    // The ack is the first message sent by WebRuntimeClientInstance after
+    // registration. Without this, reconnect can cache a dead MessagePort.
+    const acked = await Promise.race([
+      new Promise<true>((resolve) => {
+        port.onmessage = (ev) => {
+          const data = ev.data
+          if (typeof data === 'object' && data.connected) {
+            resolve(true)
+          }
+        }
+        port.start()
+      }),
+      timeoutPromise(3000).then(() => false as const),
+    ])
+
+    if (!acked) {
+      port.close()
+      throw new Error(
+        `WebRuntimeClient: ${this.clientId}: timeout waiting for runtime connected ack`,
+      )
+    }
+
+    // Ack received. Switch to normal message handler and cache the port.
     port.onmessage = (ev) => {
       const data = ev.data
       if (typeof data !== 'object') {
@@ -127,7 +153,6 @@ export class WebRuntimeClient {
       this.handleMessage(data, ev.ports)
     }
     this.clientChannel = port
-    port.start()
 
     // Tell the WebRuntime to start watching our Web Lock for disconnect detection.
     // This is sent after we've acquired the lock (in WebDocument constructor),
