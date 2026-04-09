@@ -23,14 +23,8 @@ type WALAppender interface {
 	Append(ctx context.Context, adds, removes []RefEdge) error
 }
 
-// DeferFlushable is implemented by stores that support deferred GC flushing.
-// Higher layers call BeginDeferFlush before a batch of block writes and
-// EndDeferFlush after, so FlushPending calls within the scope accumulate
-// without doing work. EndDeferFlush performs one batched flush.
-type DeferFlushable interface {
-	BeginDeferFlush()
-	EndDeferFlush(ctx context.Context) error
-}
+// DeferFlushable is an alias for block.DeferFlushable.
+type DeferFlushable = block.DeferFlushable
 
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.
 //

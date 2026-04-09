@@ -188,6 +188,22 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		writeRoot = subRoot.pos
 	}
 
+	// deferFlush batches GC flushes for dirty writes (see below).
+	// registered BEFORE t.mtx.Lock so EndDeferFlush runs AFTER
+	// t.mtx.Unlock in LIFO order. FlushPending must run after the
+	// cursor mutex is released because the RefGraph may share it.
+	// Uses the parent ctx because subCtxCancel runs first in LIFO.
+	var df DeferFlushable
+	var deferFlushActive bool
+	deferFlushCtx := ctx
+	defer func() {
+		if deferFlushActive {
+			if err := df.EndDeferFlush(deferFlushCtx); err != nil && rerr == nil {
+				rerr = err
+			}
+		}
+	}()
+
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
@@ -202,6 +218,16 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 	if !t.dirty {
 		return writeRoot.ref, nil, nil
+	}
+
+	// begin deferred GC flushing if the store supports it.
+	// only activated for dirty transactions so a non-dirty WriteAtRoot
+	// never touches the shared flush counter or flushes another
+	// transaction's buffered refs.
+	if dfImpl, ok := t.store.(DeferFlushable); ok {
+		df = dfImpl
+		deferFlushActive = true
+		df.BeginDeferFlush()
 	}
 
 	// create a sub-context

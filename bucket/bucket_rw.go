@@ -1,6 +1,8 @@
 package bucket
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -29,5 +31,23 @@ func (b *bucketRW) GetBucketConfig() *Config {
 	return b.conf
 }
 
+// BeginDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+func (b *bucketRW) BeginDeferFlush() {
+	if df, ok := b.StoreOps.(block.DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
+	if df, ok := b.StoreOps.(block.DeferFlushable); ok {
+		return df.EndDeferFlush(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
-var _ Bucket = ((*bucketRW)(nil))
+var (
+	_ Bucket              = ((*bucketRW)(nil))
+	_ block.DeferFlushable = ((*bucketRW)(nil))
+)

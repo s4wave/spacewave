@@ -36,6 +36,15 @@ type StoreOps interface {
 	StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error)
 }
 
+// DeferFlushable is implemented by stores that support deferred GC flushing.
+// Higher layers call BeginDeferFlush before a batch of block writes and
+// EndDeferFlush after, so FlushPending calls within the scope accumulate
+// without doing work. EndDeferFlush performs one batched flush.
+type DeferFlushable interface {
+	BeginDeferFlush()
+	EndDeferFlush(ctx context.Context) error
+}
+
 // BlockStat contains metadata about a stored block.
 type BlockStat struct {
 	// Ref is the block reference.

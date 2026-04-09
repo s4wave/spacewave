@@ -71,5 +71,23 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 	return b.writeHandle.RmBlock(ctx, ref)
 }
 
+// BeginDeferFlush forwards to the write handle if it supports deferred flushing.
+func (b *StoreRW) BeginDeferFlush() {
+	if df, ok := b.writeHandle.(DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards to the write handle if it supports deferred flushing.
+func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
+	if df, ok := b.writeHandle.(DeferFlushable); ok {
+		return df.EndDeferFlush(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
-var _ StoreOps = ((*StoreRW)(nil))
+var (
+	_ StoreOps       = ((*StoreRW)(nil))
+	_ DeferFlushable = ((*StoreRW)(nil))
+)
