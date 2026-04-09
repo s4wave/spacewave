@@ -335,11 +335,12 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	// Build GC ref graph and deferred journal for writable transactions with a store.
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
+	var initGCRootEdge bool
 	var journalTree kvtx.BlockTx
 	var journal *gcJournal
 	if t.write && t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
-		gcTree, refGraph, err = t.buildGCTree(taskCtx, bcs)
+		gcTree, refGraph, initGCRootEdge, err = t.buildGCTree(taskCtx, bcs)
 		subtask.End()
 		if err != nil {
 			_ = graphHandle.Close()
@@ -402,8 +403,10 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	t.gcJournalTree, t.gcJournal = journalTree, journal
 	subtask.End()
 
-	// Ensure gcroot -> world edge exists (idempotent).
-	if refGraph != nil {
+	// Initialize the permanent gcroot -> world edge only when the
+	// GC graph backing store is first created. Replaying this
+	// idempotent Cayley write on every rebuild is expensive.
+	if refGraph != nil && initGCRootEdge {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/add-gc-root-ref")
 		err := refGraph.AddRef(taskCtx, block_gc.NodeGCRoot, "world")
 		subtask.End()
@@ -608,24 +611,34 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 }
 
 // buildGCTree builds the GC reference graph tree and RefGraph handle.
-func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, error) {
+// Returns whether the caller should initialize the gcroot -> world edge.
+func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree")
 	defer task.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
-	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(5), true)
+	gcTreeBcs := bcs.FollowSubBlock(5)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/load-kv-store")
+	kvs, err := kvtx_block.LoadKeyValueStore(taskCtx, gcTreeBcs)
 	subtask.End()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
+	}
+	initGCRootEdge := kvs.GetIavlRoot() == nil
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
+	ktx, err := kvs.BuildKvTransaction(taskCtx, gcTreeBcs, true)
+	subtask.End()
+	if err != nil {
+		return nil, nil, false, err
 	}
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
 	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()
-		return nil, nil, err
+		return nil, nil, false, err
 	}
-	return ktx, rg, nil
+	return ktx, rg, initGCRootEdge, nil
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.
