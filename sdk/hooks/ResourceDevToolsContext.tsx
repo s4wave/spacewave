@@ -78,7 +78,9 @@ function extractDebugInfo(value: unknown): ResourceDebugInfo | null {
 // hasWatchDebugInfo checks if a resource has a watchDebugInfo method.
 function hasWatchDebugInfo(
   value: unknown,
-): value is { watchDebugInfo: () => AsyncIterable<ResourceDebugInfo> } {
+): value is {
+  watchDebugInfo: (abortSignal?: AbortSignal) => AsyncIterable<ResourceDebugInfo>
+} {
   if (!value || typeof value !== 'object') return false
   return (
     typeof (value as { watchDebugInfo?: unknown }).watchDebugInfo === 'function'
@@ -234,7 +236,7 @@ function ResourceDevToolsProviderInner({
         // Start watching in background
         void (async () => {
           try {
-            for await (const info of value.watchDebugInfo()) {
+            for await (const info of value.watchDebugInfo(abortController.signal)) {
               if (abortController.signal.aborted) break
               setResources((prev) => {
                 const existing = prev.get(id)
