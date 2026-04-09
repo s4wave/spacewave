@@ -184,16 +184,21 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction")
 	defer task.End()
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/read-lock")
 	e.rmtx.RLock()
+	subtask.End()
 	defer e.rmtx.RUnlock()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
 	ws, err := e.buildWorldState(taskCtx, !write)
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(ws), nil
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
+	tx := NewTx(ws)
+	subtask.End()
+	return tx, nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
@@ -307,9 +312,13 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
 	defer task.End()
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
 	store := e.root.GetBucket()
+	subtask.End()
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
 	xfrm := e.root.GetTransformer()
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
+	subtask.End()
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
 	btx, bcs := e.root.BuildTransaction(nil)
 	subtask.End()
 	if readOnly {

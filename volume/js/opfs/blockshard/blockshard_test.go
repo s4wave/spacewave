@@ -51,7 +51,7 @@ func publishEntries(t *testing.T, s *Shard, entries []segment.Entry) {
 		t.Fatal(err)
 	}
 	defer release()
-	if err := s.Publish(entries); err != nil {
+	if err := s.Publish(context.Background(), entries); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.ReclaimPendingDelete(); err != nil {

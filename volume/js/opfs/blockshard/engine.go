@@ -5,6 +5,7 @@ package blockshard
 import (
 	"context"
 	"hash/fnv"
+	"runtime/trace"
 	"runtime"
 	"sync"
 	"syscall/js"
@@ -119,16 +120,21 @@ func (e *Engine) ShardForKey(key []byte) int {
 // Put enqueues entries to the appropriate shard write actor.
 // Blocks until the entries are flushed to OPFS.
 func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/put")
+	defer task.End()
+
 	if len(entries) == 0 {
 		return nil
 	}
 
 	// Partition by shard.
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/put/partition-by-shard")
 	buckets := make([][]segment.Entry, len(e.shards))
 	for i := range entries {
 		idx := e.ShardForKey(entries[i].Key)
 		buckets[idx] = append(buckets[idx], entries[i])
 	}
+	subtask.End()
 
 	// Dispatch to shard actors and collect results.
 	var wg sync.WaitGroup
@@ -141,15 +147,21 @@ func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
 		go func(idx int, b []segment.Entry) {
 			defer wg.Done()
 			ch := make(chan error, 1)
+			reqCtx, reqTask := trace.NewTask(taskCtx, "hydra/opfs-blockshard/put/queue-request")
 			select {
 			case e.actors[idx] <- writeReq{entries: b, err: ch}:
+				reqTask.End()
 			case <-ctx.Done():
+				reqTask.End()
 				errs[idx] = ctx.Err()
 				return
 			}
+			_, waitTask := trace.NewTask(reqCtx, "hydra/opfs-blockshard/put/wait-request")
 			select {
 			case errs[idx] = <-ch:
+				waitTask.End()
 			case <-ctx.Done():
+				waitTask.End()
 				errs[idx] = ctx.Err()
 			}
 		}(i, batch)
@@ -280,8 +292,10 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		}
 
 		// Acquire publish lock and flush.
+		publishCtx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
 		release, err := shard.AcquirePublishLock()
 		if err != nil {
+			publishTask.End()
 			for _, r := range reqs {
 				r.err <- errors.Wrap(err, "acquire publish lock")
 			}
@@ -289,12 +303,13 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			continue
 		}
 
-		err = shard.Publish(merged)
+		err = shard.Publish(publishCtx, merged)
 		if err == nil {
 			_, err = shard.ReclaimPendingDelete()
 		}
 		gen := shard.Manifest().Generation
 		release()
+		publishTask.End()
 
 		// Broadcast invalidation to peer workers.
 		if err == nil {

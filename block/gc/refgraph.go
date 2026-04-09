@@ -3,6 +3,7 @@ package block_gc
 import (
 	"context"
 	"io"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
@@ -53,8 +54,17 @@ func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) e
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
 func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref/build-quad")
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
-	return rg.handle.AddQuad(ctx, q)
+	subtask.End()
+
+	taskCtx, subtask = trace.NewTask(taskCtx, "hydra/block-gc/refgraph/add-ref/add-quad")
+	err := rg.handle.AddQuad(taskCtx, q)
+	subtask.End()
+	return err
 }
 
 // RemoveRef removes a single gc/ref edge from subject to object.

@@ -88,6 +88,7 @@ func NewWorldState(
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/init-struct")
 	tx := &WorldState{
 		btx:     btx,
 		bcs:     bcs,
@@ -102,7 +103,8 @@ func NewWorldState(
 		storage:  storage,
 		lookupOp: lookupOp,
 	}
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
+	subtask.End()
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
 	err := tx.SetBlockTransaction(taskCtx, btx, bcs)
 	subtask.End()
 	if err != nil {

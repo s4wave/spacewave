@@ -4,6 +4,7 @@ package blockshard
 
 import (
 	"bytes"
+	"context"
 	"time"
 
 	"github.com/aperturerobotics/hydra/opfs"
@@ -125,7 +126,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	outMeta.Filename = filename
 
 	// Write output segment.
-	if err := shard.writeFileData(filename, outData); err != nil {
+	if err := shard.writeFileData(context.Background(), filename, outData); err != nil {
 		return errors.Wrap(err, "write compacted segment")
 	}
 

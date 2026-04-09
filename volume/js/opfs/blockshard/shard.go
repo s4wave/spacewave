@@ -4,7 +4,9 @@ package blockshard
 
 import (
 	"bytes"
+	"context"
 	"strconv"
+	"runtime/trace"
 	"sync"
 	"syscall/js"
 	"time"
@@ -80,12 +82,16 @@ func (s *Shard) Manifest() *Manifest {
 
 // Publish writes a batch of key-value entries as a new SSTable segment,
 // then flips the manifest to include it. Caller must hold the shard publish lock.
-func (s *Shard) Publish(entries []segment.Entry) error {
+func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish")
+	defer task.End()
+
 	if len(entries) == 0 {
 		return nil
 	}
 
 	// Build the SSTable in memory.
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-segment")
 	w := segment.NewWriter()
 	w.SetBloomFPR(s.bloomFPR)
 	for i := range entries {
@@ -98,28 +104,36 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 
 	var buf bytes.Buffer
 	written, err := w.Build(&buf)
+	subtask.End()
 	if err != nil {
 		return errors.Wrap(err, "build segment")
 	}
 
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/allocate-seqno")
 	s.mu.Lock()
 	s.seqNum++
 	seq := s.seqNum
 	gen := s.manifest.Generation + 1
 	s.mu.Unlock()
+	subtask.End()
 
 	filename := "seg-" + zeroPad(seq, 6) + ".sst"
 
 	// Write the segment file to OPFS.
 	segData := buf.Bytes()
-	if err := s.writeFileData(filename, segData); err != nil {
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-segment-file")
+	if err := s.writeFileData(taskCtx, filename, segData); err != nil {
+		subtask.End()
 		return errors.Wrap(err, "write segment")
 	}
+	subtask.End()
 
 	// Build sorted entries to get min/max keys.
 	// The writer sorts them, so re-read from the built SSTable.
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-metadata")
 	rd, err := segment.NewReader(bytes.NewReader(segData), written)
 	if err != nil {
+		subtask.End()
 		return errors.Wrap(err, "read built segment for metadata")
 	}
 
@@ -132,8 +146,10 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 		MaxKey:     rd.MaxKey(),
 	}
 	lookup := lookupFromReader(rd)
+	subtask.End()
 
 	// Update manifest.
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-manifest")
 	s.mu.Lock()
 	newManifest := &Manifest{
 		Generation: gen,
@@ -142,9 +158,11 @@ func (s *Shard) Publish(entries []segment.Entry) error {
 	s.mu.Unlock()
 
 	if err := s.writeManifest(newManifest); err != nil {
+		subtask.End()
 		return err
 	}
 	s.cacheLookup(filename, lookup)
+	subtask.End()
 	return nil
 }
 
@@ -155,7 +173,7 @@ func (s *Shard) writeManifest(m *Manifest) error {
 		slot = manifestSlotB
 	}
 	mdata := m.Encode()
-	if err := s.writeFileData(slot, mdata); err != nil {
+	if err := s.writeFileData(context.Background(), slot, mdata); err != nil {
 		return errors.Wrap(err, "write manifest")
 	}
 
@@ -167,26 +185,45 @@ func (s *Shard) writeManifest(m *Manifest) error {
 
 // writeFileData writes data to a file in the shard directory.
 // Uses async OPFS API when asyncIO is enabled, sync otherwise.
-func (s *Shard) writeFileData(name string, data []byte) error {
+func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data")
+	defer task.End()
+
 	if s.asyncIO {
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-async-file")
 		f, err := opfs.CreateAsyncFile(s.dir, name)
+		subtask.End()
 		if err != nil {
 			return err
 		}
+		_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-async")
 		_, err = f.WriteAt(data, 0)
+		subtask.End()
 		return err
 	}
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-sync-file")
 	f, err := opfs.CreateSyncFile(s.dir, name)
+	subtask.End()
 	if err != nil {
 		return err
 	}
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/truncate")
 	f.Truncate(int64(len(data)))
+	subtask.End()
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-sync")
 	if _, err := f.WriteAt(data, 0); err != nil {
+		subtask.End()
 		f.Close()
 		return err
 	}
+	subtask.End()
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/flush-sync")
 	f.Flush()
-	return f.Close()
+	subtask.End()
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/close-sync")
+	err = f.Close()
+	subtask.End()
+	return err
 }
 
 // AcquirePublishLock acquires the exclusive per-shard publish WebLock.

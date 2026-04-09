@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"runtime/trace"
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -275,19 +276,32 @@ func AccessObject(
 	ref *bucket.ObjectRef,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world/access-object")
+	defer task.End()
+
 	var outRef *bucket.ObjectRef
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+		_, subtask := trace.NewTask(ctx, "hydra/world/access-object/build-transaction")
 		btx, bcs := bls.BuildTransaction(nil)
+		subtask.End()
 		if ref.GetRootRef().GetEmpty() {
+			_, subtask = trace.NewTask(ctx, "hydra/world/access-object/init-empty-root")
 			// bcs.SetBlock(nil, false)
 			bcs.SetRefAtCursor(nil, true)
+			subtask.End()
 		}
+		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/callback")
 		berr := cb(bcs)
+		subtask.End()
 		if berr != nil {
 			return berr
 		}
+		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/clone-out-ref")
 		outRef = bls.GetRef().Clone()
+		subtask.End()
+		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/write-transaction")
 		outRef.RootRef, _, berr = btx.Write(ctx, true)
+		subtask.End()
 		return berr
 	})
 	return outRef, err
@@ -361,26 +375,37 @@ func AccessObjectState(
 	updateWorld bool,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world/access-object-state")
+	defer task.End()
+
 	if obj == nil {
 		return nil, false, ErrObjectNotFound
 	}
-	initRef, _, err := obj.GetRootRef(ctx)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/get-root-ref")
+	initRef, _, err := obj.GetRootRef(taskCtx)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
-	outRef, err := AccessObject(ctx, obj.AccessWorldState, initRef, cb)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
+	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
 	var dirty bool
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/compare-root-ref")
 	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
 		dirty = true
 	}
 	if !outRef.GetRootRef().EqualsRef(initRef.GetRootRef()) {
 		dirty = true
 	}
+	subtask.End()
 	if updateWorld && dirty {
-		_, err = obj.SetRootRef(ctx, outRef)
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/set-root-ref")
+		_, err = obj.SetRootRef(taskCtx, outRef)
+		subtask.End()
 	}
 	return outRef, dirty, err
 }
