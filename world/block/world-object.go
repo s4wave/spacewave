@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/hydra/block"
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
@@ -82,16 +83,23 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 // getObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/get-object")
+	defer task.End()
+
 	if t.discarded.Load() {
 		return nil, false, tx.ErrDiscarded
 	}
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
-	bcs, err := ot.GetCursorAtKey(ctx, k)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/get-object/get-cursor-at-key")
+	bcs, err := ot.GetCursorAtKey(taskCtx, k)
+	subtask.End()
 	if err != nil || bcs == nil {
 		return nil, false, err
 	}
-	ost, err := NewObjectState(ctx, t, bcs)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/get-object/new-object-state")
+	ost, err := NewObjectState(taskCtx, t, bcs)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}

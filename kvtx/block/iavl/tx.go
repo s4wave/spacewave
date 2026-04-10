@@ -3,6 +3,7 @@ package kvtx_block_iavl
 import (
 	"bytes"
 	"context"
+	"runtime/trace"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -139,16 +140,23 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 //
 // Returns nil, nil if not found.
 func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-cursor-at-key")
+	defer task.End()
+
 	if len(key) == 0 {
 		return nil, kvtx.ErrEmptyKey
 	}
 	if t.root.GetSize() == 0 {
 		return nil, nil
 	}
-	bcs, nod, err := t.getFromRoot(ctx, key)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-cursor-at-key/get-from-root")
+	bcs, nod, err := t.getFromRoot(taskCtx, key)
+	subtask.End()
 	if err != nil || bcs == nil || nod == nil {
 		return nil, err
 	}
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-cursor-at-key/follow-value")
+	defer subtask.End()
 	if nod.ValueIsBlob() {
 		return bcs.FollowSubBlock(8), nil
 	}
@@ -358,6 +366,9 @@ func (t *Tx) setFromRoot(ctx context.Context, key []byte, valueCursor *block.Cur
 // getFromRoot calls getFromNode at the root of the tree.
 // returns the *block.Cursor located at the node.
 func (t *Tx) getFromRoot(ctx context.Context, key []byte) (*block.Cursor, *Node, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-from-root")
+	defer task.End()
+
 	return t.getFromNode(ctx, t.bcs, t.root, key)
 }
 

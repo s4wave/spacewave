@@ -14,11 +14,12 @@ import (
 type EngineTxObjectState struct {
 	t   *EngineTx
 	key string
+	obj world.ObjectState
 }
 
 // newEngineTxObjectState constructs a new EngineTx ObjectState object.
-func newEngineTxObjectState(t *EngineTx, key string) *EngineTxObjectState {
-	return &EngineTxObjectState{t: t, key: key}
+func newEngineTxObjectState(t *EngineTx, key string, obj world.ObjectState) *EngineTxObjectState {
+	return &EngineTxObjectState{t: t, key: key, obj: obj}
 }
 
 // GetKey returns the key this state object is for.
@@ -153,6 +154,10 @@ func (t *EngineTxObjectState) WaitRev(
 
 // lookupObject returns the object or ErrObjectNotFound
 func (t *EngineTxObjectState) lookupObject(ctx context.Context, tx *Tx) (world.ObjectState, error) {
+	if t.obj != nil && t.t.writeTx != nil {
+		return t.obj, nil
+	}
+
 	obj, found, err := tx.GetObject(ctx, t.key)
 	if err != nil {
 		return nil, err
@@ -161,6 +166,9 @@ func (t *EngineTxObjectState) lookupObject(ctx context.Context, tx *Tx) (world.O
 	// if the object key exists. it must have been deleted since.
 	if !found {
 		return nil, world.ErrObjectNotFound
+	}
+	if t.t.writeTx != nil {
+		t.obj = obj
 	}
 	return obj, nil
 }

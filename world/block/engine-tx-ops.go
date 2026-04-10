@@ -53,14 +53,16 @@ func (e *EngineTx) ApplyWorldOp(
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	var obj world.ObjectState
 	if err := e.performOp(func(tx *Tx) error {
-		_, err := tx.CreateObject(ctx, key, rootRef)
+		var err error
+		obj, err = tx.CreateObject(ctx, key, rootRef)
 		return err
 	}); err != nil {
 		return nil, err
 	}
 
-	return newEngineTxObjectState(e, key), nil
+	return newEngineTxObjectState(e, key, obj), nil
 }
 
 // GetObject looks up an object by key.
@@ -68,16 +70,20 @@ func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket
 func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	// check if object exists
 	var found bool
+	var obj world.ObjectState
 	err := e.performOp(func(tx *Tx) error {
 		var nerr error
-		_, found, nerr = tx.GetObject(ctx, key)
+		obj, found, nerr = tx.GetObject(ctx, key)
 		return nerr
 	})
 	if err != nil || !found {
 		return nil, found, err
 	}
 
-	return newEngineTxObjectState(e, key), true, nil
+	if e.writeTx == nil {
+		obj = nil
+	}
+	return newEngineTxObjectState(e, key, obj), true, nil
 }
 
 // IterateObjects returns an iterator with the given object key prefix.
