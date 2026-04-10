@@ -270,6 +270,91 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	return br, existed, nil
 }
 
+// PutBlockBatch writes a batch of blocks through the bucket in a single
+// lower-layer operation. Routes through GCStoreOps.PutBlockBatch when GC
+// tracking is enabled, otherwise falls back to per-entry volume PutBlock.
+// FlushPending is called once for the entire batch. Reconciler events are
+// published for all new (non-existed) blocks.
+func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
+	defer task.End()
+
+	if b.err != nil {
+		return b.err
+	}
+	if b.bucketConf == nil {
+		return bucket.ErrBucketNotFound
+	}
+	if len(entries) == 0 {
+		return nil
+	}
+
+	if b.gcOps != nil {
+		if err := b.gcOps.PutBlockBatch(ctx, entries); err != nil {
+			return err
+		}
+		flushCtx, flushTask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch/gc-flush-pending")
+		if err := b.gcOps.FlushPending(flushCtx); err != nil {
+			flushTask.End()
+			return err
+		}
+		flushTask.End()
+	} else {
+		batcher, ok := b.v.(block.BatchPutStore)
+		if ok {
+			if err := batcher.PutBlockBatch(ctx, entries); err != nil {
+				return err
+			}
+		} else {
+			for _, entry := range entries {
+				if entry.Tombstone {
+					if err := b.v.RmBlock(ctx, entry.Ref); err != nil {
+						return err
+					}
+					continue
+				}
+				if _, _, err := b.v.PutBlock(ctx, entry.Data, &block.PutOpts{
+					ForceBlockRef: entry.Ref.Clone(),
+				}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Publish reconciler events for all non-tombstone entries.
+	for _, entry := range entries {
+		if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+			continue
+		}
+		var eventData []byte
+		ev := &bucket_event.PutBlock{
+			BlockCommon: &bucket_event.BlockCommon{
+				VolumeId:      b.v.GetID(),
+				BucketId:      b.bucketConf.GetId(),
+				BucketConfRev: b.bucketConf.GetRev(),
+				BlockRef:      entry.Ref,
+			},
+		}
+		_ = b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
+			if eventData != nil {
+				return eventData, nil
+			}
+			ed, err := (&bucket_event.Event{
+				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
+				PutBlock:  ev,
+			}).MarshalVT()
+			if err != nil {
+				return nil, err
+			}
+			eventData = ed
+			return ed, nil
+		})
+	}
+
+	return nil
+}
+
 // GetHashType returns the preferred hash type for the store.
 // This should return as fast as possible (called frequently).
 // If 0 is returned, uses a default defined by Hydra.
@@ -390,5 +475,6 @@ func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
 var (
 	_ bucket.Bucket           = ((*bucketHandle)(nil))
 	_ bucket.BucketHandle     = ((*bucketHandle)(nil))
+	_ block.BatchPutStore     = ((*bucketHandle)(nil))
 	_ block_gc.DeferFlushable = ((*bucketHandle)(nil))
 )

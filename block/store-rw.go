@@ -71,6 +71,27 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 	return b.writeHandle.RmBlock(ctx, ref)
 }
 
+// PutBlockBatch forwards to the write handle if it supports batched writes.
+func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+	if batcher, ok := b.writeHandle.(BatchPutStore); ok {
+		return batcher.PutBlockBatch(ctx, entries)
+	}
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := b.writeHandle.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, _, err := b.writeHandle.PutBlock(ctx, entry.Data, &PutOpts{
+			ForceBlockRef: entry.Ref.Clone(),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // BeginDeferFlush forwards to the write handle if it supports deferred flushing.
 func (b *StoreRW) BeginDeferFlush() {
 	if df, ok := b.writeHandle.(DeferFlushable); ok {
@@ -89,5 +110,6 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 // _ is a type assertion
 var (
 	_ StoreOps       = ((*StoreRW)(nil))
+	_ BatchPutStore  = ((*StoreRW)(nil))
 	_ DeferFlushable = ((*StoreRW)(nil))
 )
