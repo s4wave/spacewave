@@ -513,3 +513,128 @@ func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
 		t.Fatalf("expected %v, got %v", expected, sorted)
 	}
 }
+
+// buildBatchEntry creates a PutBatchEntry from a mock block message.
+func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
+	t.Helper()
+	ex := block_mock.NewExample(msg)
+	data, err := ex.MarshalBlock()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return &block.PutBatchEntry{Ref: ref, Data: data}
+}
+
+// TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge tests that
+// PutBlockBatch does not revive unreferenced edges for blocks that
+// already exist in the store.
+func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
+	env := newGCTestEnv(t)
+
+	// Put a block via single put and root it.
+	ref := env.putBlock(t, "batch-dup")
+	blockIRI := BlockIRI(ref)
+	if err := env.gcStore.AddGCRef(env.ctx, "entity:root", blockIRI); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Block should not be unreferenced (it has a real ref).
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(nodes) != 0 {
+		t.Fatalf("expected 0 unreferenced before batch, got %d", len(nodes))
+	}
+
+	// Re-write the same block via batch path.
+	entry := buildBatchEntry(t, "batch-dup")
+	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	// Should still have 0 unreferenced nodes. The batch path must
+	// not revive the unreferenced edge for an already-existing block.
+	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(nodes) != 0 {
+		t.Fatalf("expected 0 unreferenced after batch dup, got %d", len(nodes))
+	}
+}
+
+// TestGCStoreOps_PutBlockBatch_TombstoneCleansGraph tests that
+// tombstone entries in PutBlockBatch go through full RmBlock graph
+// cleanup (outgoing ref removal, orphan cascade).
+func TestGCStoreOps_PutBlockBatch_TombstoneCleansGraph(t *testing.T) {
+	env := newGCTestEnv(t)
+
+	aRef := env.putBlock(t, "batch-tomb-a")
+	bRef := env.putBlock(t, "batch-tomb-b")
+
+	// Record a->b ref.
+	if err := env.gcStore.RecordBlockRefs(env.ctx, aRef, []*block.BlockRef{bRef}); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	// b should not be unreferenced (a references it).
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(nodes, BlockIRI(bRef)) {
+		t.Fatal("b should not be unreferenced before tombstone")
+	}
+
+	// Tombstone a via batch path.
+	tombstone := &block.PutBatchEntry{Ref: aRef.Clone(), Tombstone: true}
+	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{tombstone}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// a's outgoing refs should be cleaned up.
+	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, BlockIRI(aRef))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(outgoing) != 0 {
+		t.Fatalf("expected 0 outgoing refs from tombstoned block, got %d", len(outgoing))
+	}
+
+	// b should now be unreferenced (orphan cascade from a's removal).
+	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Contains(nodes, BlockIRI(bRef)) {
+		t.Fatal("b should be unreferenced after a is tombstoned via batch")
+	}
+}
+
+// TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge tests that
+// PutBlockBatch adds unreferenced edges for genuinely new blocks.
+func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
+	env := newGCTestEnv(t)
+
+	e1 := buildBatchEntry(t, "batch-new-a")
+	e2 := buildBatchEntry(t, "batch-new-b")
+	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{e1, e2}); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(nodes) != 2 {
+		t.Fatalf("expected 2 unreferenced nodes from batch, got %d", len(nodes))
+	}
+}

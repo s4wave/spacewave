@@ -157,22 +157,52 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 // GC ref edges for all new non-tombstone blocks. When the inner store
 // implements BatchPutStore, the batch flows through as a single lower-layer
 // operation. Otherwise falls back to per-entry PutBlock/RmBlock.
+//
+// Tombstone entries are handled via GCStoreOps.RmBlock so refgraph
+// cleanup (outgoing edge removal, orphan cascade) is preserved.
+// Non-tombstone entries that already exist in the store are skipped
+// for GC edge buffering to avoid reviving unreferenced edges.
 func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
 	defer task.End()
 
+	// Separate tombstones from puts. Tombstones must go through
+	// GCStoreOps.RmBlock for refgraph cleanup.
+	var puts []*block.PutBatchEntry
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := g.RmBlock(ctx, entry.Ref.Clone()); err != nil {
+				return err
+			}
+			continue
+		}
+		puts = append(puts, entry)
+	}
+
+	if len(puts) == 0 {
+		return nil
+	}
+
+	// Check which blocks already exist so we only buffer GC edges
+	// for genuinely new blocks (matching the single-put !existed guard).
+	newBlock := make([]bool, len(puts))
+	for i, entry := range puts {
+		if entry.Ref == nil || entry.Ref.GetEmpty() {
+			continue
+		}
+		exists, err := g.store.GetBlockExists(ctx, entry.Ref)
+		if err != nil {
+			return err
+		}
+		newBlock[i] = !exists
+	}
+
 	if batcher, ok := g.store.(block.BatchPutStore); ok {
-		if err := batcher.PutBlockBatch(ctx, entries); err != nil {
+		if err := batcher.PutBlockBatch(ctx, puts); err != nil {
 			return err
 		}
 	} else {
-		for _, entry := range entries {
-			if entry.Tombstone {
-				if err := g.store.RmBlock(ctx, entry.Ref.Clone()); err != nil {
-					return err
-				}
-				continue
-			}
+		for _, entry := range puts {
 			if _, _, err := g.store.PutBlock(ctx, entry.Data, &block.PutOpts{
 				ForceBlockRef: entry.Ref.Clone(),
 			}); err != nil {
@@ -181,10 +211,10 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		}
 	}
 
-	// Buffer GC ref edges for non-tombstone blocks.
+	// Buffer GC ref edges only for genuinely new blocks.
 	g.mu.Lock()
-	for _, entry := range entries {
-		if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+	for i, entry := range puts {
+		if !newBlock[i] || entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
 		g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
