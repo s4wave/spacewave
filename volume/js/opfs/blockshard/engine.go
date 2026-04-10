@@ -339,18 +339,24 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 	var reqs []writeReq
 	var fgOnly int // consecutive foreground-only cycles
 	for {
-		// If no pending entries, block for the next request from
-		// either channel. Foreground takes priority via the select
-		// ordering but Go select is random, so we drain foreground
-		// first after waking.
+		// If no pending entries, block for the next request.
+		// Prefer foreground: try fgCh first, only fall through to
+		// bgCh when fgCh is not ready.
 		if len(reqs) == 0 {
 			select {
 			case req := <-fgCh:
 				reqs = append(reqs, req)
-			case req := <-bgCh:
-				reqs = append(reqs, req)
 			case <-ctx.Done():
 				return
+			default:
+				select {
+				case req := <-fgCh:
+					reqs = append(reqs, req)
+				case req := <-bgCh:
+					reqs = append(reqs, req)
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
 
@@ -361,7 +367,8 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		// starvation limit is reached.
 		hasBg := len(bgCh) > 0
 		hasFg := len(reqs) > 0
-		if hasBg && (!hasFg || fgOnly >= bgStarvationLimit) {
+		drainBg := hasBg && (!hasFg || fgOnly >= bgStarvationLimit)
+		if drainBg {
 			e.drainCh(bgCh, &reqs)
 			fgOnly = 0
 		} else if hasFg && !hasBg {
@@ -371,11 +378,16 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		// Coalescing yield-drain loop: repeat yield+drain until no new
 		// requests arrive or maxCoalesceRounds is reached. Singleton puts
 		// (nothing queued after first round) publish immediately.
+		// Only drain the background channel during coalescing when the
+		// starvation/empty condition was met for this cycle, otherwise
+		// background entries would inflate foreground publish latency.
 		for range maxCoalesceRounds {
 			runtime.Gosched()
 			prevLen := len(reqs)
 			e.drainCh(fgCh, &reqs)
-			e.drainCh(bgCh, &reqs)
+			if drainBg {
+				e.drainCh(bgCh, &reqs)
+			}
 			if len(reqs) == prevLen {
 				break
 			}
