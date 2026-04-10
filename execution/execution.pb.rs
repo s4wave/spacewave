@@ -26,6 +26,23 @@ pub struct Execution {
     /// Result is information about the outcome of a completed execution.
     #[prost(message, optional, tag="6")]
     pub result: ::core::option::Option<super::value::Result>,
+    /// LogEntries contains log output from the execution.
+    /// Appended while the execution is in RUNNING state.
+    #[prost(message, repeated, tag="7")]
+    pub log_entries: ::prost::alloc::vec::Vec<LogEntry>,
+}
+/// LogEntry is a single log line from an execution.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LogEntry {
+    /// Timestamp is when the log entry was created.
+    #[prost(message, optional, tag="1")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    /// Level is the log level (e.g. "info", "warn", "error", "debug").
+    #[prost(string, tag="2")]
+    pub level: ::prost::alloc::string::String,
+    /// Message is the log message text.
+    #[prost(string, tag="3")]
+    pub message: ::prost::alloc::string::String,
 }
 /// Spec contains information specified when creating a Execution.
 #[derive(Clone, PartialEq, ::prost::Message)]

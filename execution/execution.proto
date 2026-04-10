@@ -25,6 +25,19 @@ message Execution {
   .block.BlockRef target_ref = 5;
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 6;
+  // LogEntries contains log output from the execution.
+  // Appended while the execution is in RUNNING state.
+  repeated LogEntry log_entries = 7;
+}
+
+// LogEntry is a single log line from an execution.
+message LogEntry {
+  // Timestamp is when the log entry was created.
+  google.protobuf.Timestamp timestamp = 1;
+  // Level is the log level (e.g. "info", "warn", "error", "debug").
+  string level = 2;
+  // Message is the log message text.
+  string message = 3;
 }
 
 // Spec contains information specified when creating a Execution.

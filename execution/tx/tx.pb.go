@@ -11,6 +11,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	execution "github.com/aperturerobotics/forge/execution"
 	value "github.com/aperturerobotics/forge/value"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -27,6 +28,8 @@ const (
 	TxType_TxType_SET_OUTPUTS TxType = 2
 	// TxType_COMPLETE sets the result of the execution.
 	TxType_TxType_COMPLETE TxType = 3
+	// TxType_APPEND_LOG appends log entries to the execution.
+	TxType_TxType_APPEND_LOG TxType = 4
 )
 
 // Enum value maps for TxType.
@@ -36,12 +39,14 @@ var (
 		1: "TxType_START",
 		2: "TxType_SET_OUTPUTS",
 		3: "TxType_COMPLETE",
+		4: "TxType_APPEND_LOG",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":     0,
 		"TxType_START":       1,
 		"TxType_SET_OUTPUTS": 2,
 		"TxType_COMPLETE":    3,
+		"TxType_APPEND_LOG":  4,
 	}
 )
 
@@ -73,6 +78,9 @@ type Tx struct {
 	// TxComplete contains the complete tx.
 	// TxType_COMPLETE
 	TxComplete *TxComplete `protobuf:"bytes,4,opt,name=tx_complete,json=txComplete,proto3" json:"txComplete,omitempty"`
+	// TxAppendLog contains the append log tx.
+	// TxType_APPEND_LOG
+	TxAppendLog *TxAppendLog `protobuf:"bytes,5,opt,name=tx_append_log,json=txAppendLog,proto3" json:"txAppendLog,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -105,6 +113,13 @@ func (x *Tx) GetTxSetOutputs() *TxSetOutputs {
 func (x *Tx) GetTxComplete() *TxComplete {
 	if x != nil {
 		return x.TxComplete
+	}
+	return nil
+}
+
+func (x *Tx) GetTxAppendLog() *TxAppendLog {
+	if x != nil {
+		return x.TxAppendLog
 	}
 	return nil
 }
@@ -188,6 +203,29 @@ func (x *TxComplete) GetResult() *value.Result {
 	return nil
 }
 
+// TxAppendLog appends log entries to the execution.
+// Execution must be in the RUNNING state.
+// Sender must be the peer_id specified on the Execution.
+// TxType: TxType_APPEND_LOG
+type TxAppendLog struct {
+	unknownFields []byte
+	// Entries is the set of log entries to append.
+	Entries []*execution.LogEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+}
+
+func (x *TxAppendLog) Reset() {
+	*x = TxAppendLog{}
+}
+
+func (*TxAppendLog) ProtoMessage() {}
+
+func (x *TxAppendLog) GetEntries() []*execution.LogEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
 func (m *Tx) CloneVT() *Tx {
 	if m == nil {
 		return (*Tx)(nil)
@@ -197,6 +235,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxStart = m.TxStart.CloneVT()
 	r.TxSetOutputs = m.TxSetOutputs.CloneVT()
 	r.TxComplete = m.TxComplete.CloneVT()
+	r.TxAppendLog = m.TxAppendLog.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -250,7 +289,9 @@ func (m *TxComplete) CloneVT() *TxComplete {
 		return (*TxComplete)(nil)
 	}
 	r := new(TxComplete)
-	r.Result = m.Result.CloneVT()
+	if rhs := m.Result; rhs != nil {
+		r.Result = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -258,6 +299,27 @@ func (m *TxComplete) CloneVT() *TxComplete {
 }
 
 func (m *TxComplete) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxAppendLog) CloneVT() *TxAppendLog {
+	if m == nil {
+		return (*TxAppendLog)(nil)
+	}
+	r := new(TxAppendLog)
+	if rhs := m.Entries; rhs != nil {
+		r.Entries = make([]*execution.LogEntry, len(rhs))
+		for k, v := range rhs {
+			r.Entries[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxAppendLog) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -277,6 +339,9 @@ func (this *Tx) EqualVT(that *Tx) bool {
 		return false
 	}
 	if !this.TxComplete.EqualVT(that.TxComplete) {
+		return false
+	}
+	if !this.TxAppendLog.EqualVT(that.TxAppendLog) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -367,6 +432,40 @@ func (this *TxComplete) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TxAppendLog) EqualVT(that *TxAppendLog) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Entries) != len(that.Entries) {
+		return false
+	}
+	for i, vx := range this.Entries {
+		vy := that.Entries[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &execution.LogEntry{}
+			}
+			if q == nil {
+				q = &execution.LogEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxAppendLog) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxAppendLog)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the TxType to JSON.
 func (x TxType) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), TxType_name)
@@ -435,6 +534,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txComplete")
 		x.TxComplete.MarshalProtoJSON(s.WithField("txComplete"))
 	}
+	if x.TxAppendLog != nil || s.HasField("txAppendLog") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txAppendLog")
+		x.TxAppendLog.MarshalProtoJSON(s.WithField("txAppendLog"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -476,6 +580,13 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxComplete = &TxComplete{}
 			x.TxComplete.UnmarshalProtoJSON(s.WithField("tx_complete", true))
+		case "tx_append_log", "txAppendLog":
+			if s.ReadNil() {
+				x.TxAppendLog = nil
+				return
+			}
+			x.TxAppendLog = &TxAppendLog{}
+			x.TxAppendLog.UnmarshalProtoJSON(s.WithField("tx_append_log", true))
 		}
 	})
 }
@@ -644,6 +755,69 @@ func (x *TxComplete) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TxAppendLog message to JSON.
+func (x *TxAppendLog) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Entries) > 0 || s.HasField("entries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxAppendLog to JSON.
+func (x *TxAppendLog) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxAppendLog message from JSON.
+func (x *TxAppendLog) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entries":
+			s.AddField("entries")
+			if s.ReadNil() {
+				x.Entries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entries = append(x.Entries, nil)
+					return
+				}
+				v := &execution.LogEntry{}
+				v.UnmarshalProtoJSON(s.WithField("entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entries = append(x.Entries, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxAppendLog from JSON.
+func (x *TxAppendLog) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Tx) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -673,6 +847,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.TxAppendLog != nil {
+		size, err := m.TxAppendLog.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.TxComplete != nil {
 		size, err := m.TxComplete.MarshalToSizedBufferVT(dAtA[:i])
@@ -850,6 +1034,51 @@ func (m *TxComplete) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TxAppendLog) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxAppendLog) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxAppendLog) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Tx) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -869,6 +1098,10 @@ func (m *Tx) SizeVT() (n int) {
 	}
 	if m.TxComplete != nil {
 		l = m.TxComplete.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.TxAppendLog != nil {
+		l = m.TxAppendLog.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -922,6 +1155,22 @@ func (m *TxComplete) SizeVT() (n int) {
 	return n
 }
 
+func (m *TxAppendLog) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Entries) > 0 {
+		for _, e := range m.Entries {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x TxType) MarshalProtoText() string {
 	return x.String()
 }
@@ -958,6 +1207,13 @@ func (x *Tx) MarshalProtoText() string {
 		}
 		sb.WriteString("tx_complete: ")
 		sb.WriteString(x.TxComplete.MarshalProtoText())
+	}
+	if x.TxAppendLog != nil {
+		if sb.Len() > 4 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tx_append_log: ")
+		sb.WriteString(x.TxAppendLog.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1031,6 +1287,30 @@ func (x *TxComplete) MarshalProtoText() string {
 }
 
 func (x *TxComplete) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxAppendLog) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TxAppendLog {")
+	if len(x.Entries) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entries: [")
+		for i, v := range x.Entries {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TxAppendLog) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1146,6 +1426,34 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				m.TxComplete = &TxComplete{}
 			}
 			if err := m.TxComplete.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxAppendLog", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TxAppendLog == nil {
+				m.TxAppendLog = &TxAppendLog{}
+			}
+			if err := m.TxAppendLog.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1363,6 +1671,75 @@ func (m *TxComplete) UnmarshalVT(dAtA []byte) error {
 				m.Result = &value.Result{}
 			}
 			if err := m.Result.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxAppendLog) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxAppendLog: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxAppendLog: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entries = append(m.Entries, &execution.LogEntry{})
+			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

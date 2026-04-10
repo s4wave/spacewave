@@ -8,10 +8,10 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { ValueSet } from '../target/target.pb.js'
 import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
-import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'forge.execution'
 
@@ -61,6 +61,43 @@ export const State_Enum = createEnumType('forge.execution.State', [
 ])
 
 /**
+ * LogEntry is a single log line from an execution.
+ *
+ * @generated from message forge.execution.LogEntry
+ */
+export interface LogEntry {
+  /**
+   * Timestamp is when the log entry was created.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 1;
+   */
+  timestamp?: Date
+  /**
+   * Level is the log level (e.g. "info", "warn", "error", "debug").
+   *
+   * @generated from field: string level = 2;
+   */
+  level?: string
+  /**
+   * Message is the log message text.
+   *
+   * @generated from field: string message = 3;
+   */
+  message?: string
+}
+
+// LogEntry contains the message type declaration for LogEntry.
+export const LogEntry: MessageType<LogEntry> = createMessageType({
+  typeName: 'forge.execution.LogEntry',
+  fields: [
+    { no: 1, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    { no: 2, name: 'level', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * World graph links:
  *  - <parent> -> usually a Pass which created the Execution
  *
@@ -107,6 +144,13 @@ export interface Execution {
    * @generated from field: forge.value.Result result = 6;
    */
   result?: Result
+  /**
+   * LogEntries contains log output from the execution.
+   * Appended while the execution is in RUNNING state.
+   *
+   * @generated from field: repeated forge.execution.LogEntry log_entries = 7;
+   */
+  logEntries?: LogEntry[]
 }
 
 // Execution contains the message type declaration for Execution.
@@ -119,6 +163,13 @@ export const Execution: MessageType<Execution> = createMessageType({
     { no: 4, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 5, name: 'target_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'result', kind: 'message', T: () => Result },
+    {
+      no: 7,
+      name: 'log_entries',
+      kind: 'message',
+      T: () => LogEntry,
+      repeated: true,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

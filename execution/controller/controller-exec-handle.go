@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
@@ -93,6 +94,36 @@ func (h *execControllerHandle) SetOutputs(
 	}
 
 	// execution_transaction.ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
+	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
+	return err
+}
+
+// WriteLog appends a log entry to the execution.
+func (h *execControllerHandle) WriteLog(ctx context.Context, level, message string) error {
+	select {
+	case <-h.ctx.Done():
+		return h.ctx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	entry := &forge_execution.LogEntry{
+		Timestamp: timestamp.Now(),
+		Level:     level,
+		Message:   message,
+	}
+
+	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
+	if err != nil {
+		return err
+	}
+
+	tx, err := execution_transaction.NewTxAppendLog([]*forge_execution.LogEntry{entry})
+	if err != nil {
+		return err
+	}
+
 	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
 	return err
 }

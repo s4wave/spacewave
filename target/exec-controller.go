@@ -55,4 +55,8 @@ type ExecControllerHandle interface {
 		outps forge_value.ValueSlice,
 		clearOld bool,
 	) error
+	// WriteLog appends log entries to the execution.
+	// Each entry is a (level, message) pair. The timestamp is set automatically.
+	// Returns context.Canceled if the handle ctx is canceled.
+	WriteLog(ctx context.Context, level, message string) error
 }

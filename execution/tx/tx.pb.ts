@@ -9,6 +9,7 @@ import {
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Result, Value } from '../../value/value.pb.js'
+import { LogEntry } from '../execution.pb.js'
 
 export const protobufPackage = 'execution.tx'
 
@@ -43,6 +44,13 @@ export enum TxType {
    * @generated from enum value: TxType_COMPLETE = 3;
    */
   TxType_COMPLETE = 3,
+
+  /**
+   * TxType_APPEND_LOG appends log entries to the execution.
+   *
+   * @generated from enum value: TxType_APPEND_LOG = 4;
+   */
+  TxType_APPEND_LOG = 4,
 }
 
 // TxType_Enum is the enum type for TxType.
@@ -51,6 +59,7 @@ export const TxType_Enum = createEnumType('execution.tx.TxType', [
   { no: 1, name: 'TxType_START' },
   { no: 2, name: 'TxType_SET_OUTPUTS' },
   { no: 3, name: 'TxType_COMPLETE' },
+  { no: 4, name: 'TxType_APPEND_LOG' },
 ])
 
 /**
@@ -140,6 +149,38 @@ export const TxComplete: MessageType<TxComplete> = createMessageType({
 })
 
 /**
+ * TxAppendLog appends log entries to the execution.
+ * Execution must be in the RUNNING state.
+ * Sender must be the peer_id specified on the Execution.
+ * TxType: TxType_APPEND_LOG
+ *
+ * @generated from message execution.tx.TxAppendLog
+ */
+export interface TxAppendLog {
+  /**
+   * Entries is the set of log entries to append.
+   *
+   * @generated from field: repeated forge.execution.LogEntry entries = 1;
+   */
+  entries?: LogEntry[]
+}
+
+// TxAppendLog contains the message type declaration for TxAppendLog.
+export const TxAppendLog: MessageType<TxAppendLog> = createMessageType({
+  typeName: 'execution.tx.TxAppendLog',
+  fields: [
+    {
+      no: 1,
+      name: 'entries',
+      kind: 'message',
+      T: () => LogEntry,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Tx is the on-the-wire representation of a transaction.
  *
  * @generated from message execution.tx.Tx
@@ -172,6 +213,13 @@ export interface Tx {
    * @generated from field: execution.tx.TxComplete tx_complete = 4;
    */
   txComplete?: TxComplete
+  /**
+   * TxAppendLog contains the append log tx.
+   * TxType_APPEND_LOG
+   *
+   * @generated from field: execution.tx.TxAppendLog tx_append_log = 5;
+   */
+  txAppendLog?: TxAppendLog
 }
 
 // Tx contains the message type declaration for Tx.
@@ -182,6 +230,7 @@ export const Tx: MessageType<Tx> = createMessageType({
     { no: 2, name: 'tx_start', kind: 'message', T: () => TxStart },
     { no: 3, name: 'tx_set_outputs', kind: 'message', T: () => TxSetOutputs },
     { no: 4, name: 'tx_complete', kind: 'message', T: () => TxComplete },
+    { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

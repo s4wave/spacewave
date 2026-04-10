@@ -1,6 +1,7 @@
 syntax = "proto3";
 package execution.tx;
 
+import "github.com/aperturerobotics/forge/execution/execution.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 
 // Tx is the on-the-wire representation of a transaction.
@@ -17,6 +18,9 @@ message Tx {
   // TxComplete contains the complete tx.
   // TxType_COMPLETE
   TxComplete tx_complete = 4;
+  // TxAppendLog contains the append log tx.
+  // TxType_APPEND_LOG
+  TxAppendLog tx_append_log = 5;
 }
 
 // TxType indicates the kind of transaction.
@@ -28,6 +32,8 @@ enum TxType {
   TxType_SET_OUTPUTS = 2;
   // TxType_COMPLETE sets the result of the execution.
   TxType_COMPLETE = 3;
+  // TxType_APPEND_LOG appends log entries to the execution.
+  TxType_APPEND_LOG = 4;
 }
 
 // TxStart starts the execution with a peer id.
@@ -58,4 +64,13 @@ message TxSetOutputs {
 message TxComplete {
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 1;
+}
+
+// TxAppendLog appends log entries to the execution.
+// Execution must be in the RUNNING state.
+// Sender must be the peer_id specified on the Execution.
+// TxType: TxType_APPEND_LOG
+message TxAppendLog {
+  // Entries is the set of log entries to append.
+  repeated .forge.execution.LogEntry entries = 1;
 }

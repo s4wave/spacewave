@@ -18,6 +18,10 @@ pub struct Tx {
     /// TxType_COMPLETE
     #[prost(message, optional, tag="4")]
     pub tx_complete: ::core::option::Option<TxComplete>,
+    /// TxAppendLog contains the append log tx.
+    /// TxType_APPEND_LOG
+    #[prost(message, optional, tag="5")]
+    pub tx_append_log: ::core::option::Option<TxAppendLog>,
 }
 /// TxStart starts the execution with a peer id.
 /// Execution must be in the PENDING state.
@@ -53,6 +57,16 @@ pub struct TxComplete {
     #[prost(message, optional, tag="1")]
     pub result: ::core::option::Option<super::super::forge::value::Result>,
 }
+/// TxAppendLog appends log entries to the execution.
+/// Execution must be in the RUNNING state.
+/// Sender must be the peer_id specified on the Execution.
+/// TxType: TxType_APPEND_LOG
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TxAppendLog {
+    /// Entries is the set of log entries to append.
+    #[prost(message, repeated, tag="1")]
+    pub entries: ::prost::alloc::vec::Vec<super::super::forge::execution::LogEntry>,
+}
 /// TxType indicates the kind of transaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -64,6 +78,8 @@ pub enum TxType {
     SetOutputs = 2,
     /// TxType_COMPLETE sets the result of the execution.
     Complete = 3,
+    /// TxType_APPEND_LOG appends log entries to the execution.
+    AppendLog = 4,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -76,6 +92,7 @@ impl TxType {
             Self::Start => "TxType_START",
             Self::SetOutputs => "TxType_SET_OUTPUTS",
             Self::Complete => "TxType_COMPLETE",
+            Self::AppendLog => "TxType_APPEND_LOG",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -85,6 +102,7 @@ impl TxType {
             "TxType_START" => Some(Self::Start),
             "TxType_SET_OUTPUTS" => Some(Self::SetOutputs),
             "TxType_COMPLETE" => Some(Self::Complete),
+            "TxType_APPEND_LOG" => Some(Self::AppendLog),
             _ => None,
         }
     }

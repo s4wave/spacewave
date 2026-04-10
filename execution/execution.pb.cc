@@ -29,6 +29,37 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace forge {
 namespace execution {
 
+inline constexpr LogEntry::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        level_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        timestamp_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LogEntry::LogEntry(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(LogEntry_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LogEntryDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LogEntryDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LogEntryDefaultTypeInternal() {}
+  union {
+    LogEntry _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LogEntryDefaultTypeInternal _LogEntry_default_instance_;
+
 inline constexpr Spec::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -61,6 +92,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr Execution::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        log_entries_{},
         peer_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
@@ -100,19 +132,30 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.execution_state_),
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.peer_id_),
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.timestamp_),
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.value_set_),
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.target_ref_),
         PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.result_),
-        5,
-        0,
+        PROTOBUF_FIELD_OFFSET(::forge::execution::Execution, _impl_.log_entries_),
+        6,
         1,
         2,
         3,
         4,
+        5,
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::forge::execution::LogEntry, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::forge::execution::LogEntry, _impl_.timestamp_),
+        PROTOBUF_FIELD_OFFSET(::forge::execution::LogEntry, _impl_.level_),
+        PROTOBUF_FIELD_OFFSET(::forge::execution::LogEntry, _impl_.message_),
+        2,
+        0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::execution::Spec, _impl_._has_bits_),
         6, // hasbit index offset
@@ -127,10 +170,12 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::forge::execution::Execution)},
-        {15, sizeof(::forge::execution::Spec)},
+        {17, sizeof(::forge::execution::LogEntry)},
+        {26, sizeof(::forge::execution::Spec)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::execution::_Execution_default_instance_._instance,
+    &::forge::execution::_LogEntry_default_instance_._instance,
     &::forge::execution::_Spec_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -141,19 +186,23 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fe
     "/target.proto\0323github.com/apertureroboti"
     "cs/forge/value/value.proto\0323github.com/a"
     "perturerobotics/hydra/block/block.proto\032"
-    "\037google/protobuf/timestamp.proto\"\361\001\n\tExe"
+    "\037google/protobuf/timestamp.proto\"\241\002\n\tExe"
     "cution\022/\n\017execution_state\030\001 \001(\0162\026.forge."
     "execution.State\022\017\n\007peer_id\030\002 \001(\t\022-\n\ttime"
     "stamp\030\003 \001(\0132\032.google.protobuf.Timestamp\022"
     ")\n\tvalue_set\030\004 \001(\0132\026.forge.target.ValueS"
     "et\022#\n\ntarget_ref\030\005 \001(\0132\017.block.BlockRef\022"
-    "#\n\006result\030\006 \001(\0132\023.forge.value.Result\"g\n\004"
-    "Spec\022\017\n\007peer_id\030\001 \001(\t\022)\n\tvalue_set\030\002 \001(\013"
-    "2\026.forge.target.ValueSet\022#\n\ntarget_ref\030\003"
-    " \001(\0132\017.block.BlockRef*x\n\005State\022\032\n\026Execut"
-    "ionState_UNKNOWN\020\000\022\032\n\026ExecutionState_PEN"
-    "DING\020\001\022\032\n\026ExecutionState_RUNNING\020\002\022\033\n\027Ex"
-    "ecutionState_COMPLETE\020\003b\006proto3"
+    "#\n\006result\030\006 \001(\0132\023.forge.value.Result\022.\n\013"
+    "log_entries\030\007 \003(\0132\031.forge.execution.LogE"
+    "ntry\"Y\n\010LogEntry\022-\n\ttimestamp\030\001 \001(\0132\032.go"
+    "ogle.protobuf.Timestamp\022\r\n\005level\030\002 \001(\t\022\017"
+    "\n\007message\030\003 \001(\t\"g\n\004Spec\022\017\n\007peer_id\030\001 \001(\t"
+    "\022)\n\tvalue_set\030\002 \001(\0132\026.forge.target.Value"
+    "Set\022#\n\ntarget_ref\030\003 \001(\0132\017.block.BlockRef"
+    "*x\n\005State\022\032\n\026ExecutionState_UNKNOWN\020\000\022\032\n"
+    "\026ExecutionState_PENDING\020\001\022\032\n\026ExecutionSt"
+    "ate_RUNNING\020\002\022\033\n\027ExecutionState_COMPLETE"
+    "\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto_deps[4] = {
@@ -166,13 +215,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforg
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto = {
     false,
     false,
-    751,
+    890,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto,
     "github.com/aperturerobotics/forge/execution/execution.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto_deps,
     4,
-    2,
+    3,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto::offsets,
@@ -201,25 +250,25 @@ void Execution::clear_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 void Execution::clear_value_set() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.value_set_ != nullptr) _impl_.value_set_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 void Execution::clear_target_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.target_ref_ != nullptr) _impl_.target_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 void Execution::clear_result() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.result_ != nullptr) _impl_.result_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 Execution::Execution(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -236,6 +285,7 @@ PROTOBUF_NDEBUG_INLINE Execution::Impl_::Impl_(
     [[maybe_unused]] const ::forge::execution::Execution& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        log_entries_{visibility, arena, from.log_entries_},
         peer_id_(arena, from.peer_id_) {}
 
 Execution::Execution(
@@ -252,16 +302,16 @@ Execution::Execution(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
                 : nullptr;
-  _impl_.value_set_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.value_set_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.value_set_)
                 : nullptr;
-  _impl_.target_ref_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.target_ref_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.target_ref_)
                 : nullptr;
-  _impl_.result_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+  _impl_.result_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_)
                 : nullptr;
   _impl_.execution_state_ = from._impl_.execution_state_;
@@ -272,6 +322,7 @@ PROTOBUF_NDEBUG_INLINE Execution::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        log_entries_{visibility, arena},
         peer_id_(arena) {}
 
 inline void Execution::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
@@ -308,8 +359,20 @@ inline void* PROTOBUF_NONNULL Execution::PlacementNew_(
   return ::new (mem) Execution(arena);
 }
 constexpr auto Execution::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Execution),
-                                            alignof(Execution));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(Execution, _impl_.log_entries_) +
+          decltype(Execution::_impl_.log_entries_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(Execution), alignof(Execution), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&Execution::PlacementNew_,
+                                 sizeof(Execution),
+                                 alignof(Execution));
+  }
 }
 constexpr auto Execution::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -345,17 +408,17 @@ Execution::GetClassData() const {
   return Execution_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 4, 41, 2>
+const ::_pbi::TcParseTable<3, 7, 5, 41, 2>
 Execution::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Execution, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
-    4,  // num_aux_entries
+    7,  // num_field_entries
+    5,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Execution_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -366,51 +429,57 @@ Execution::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .forge.execution.State execution_state = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Execution, _impl_.execution_state_), 5>(),
-     {8, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Execution, _impl_.execution_state_), 6>(),
+     {8, 6, 0,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.execution_state_)}},
     // string peer_id = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 0, 0,
+     {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.peer_id_)}},
     // .google.protobuf.Timestamp timestamp = 3;
     {::_pbi::TcParser::FastMtS1,
-     {26, 1, 0,
+     {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.timestamp_)}},
     // .forge.target.ValueSet value_set = 4;
     {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
+     {34, 3, 1,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.value_set_)}},
     // .block.BlockRef target_ref = 5;
     {::_pbi::TcParser::FastMtS1,
-     {42, 3, 2,
+     {42, 4, 2,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.target_ref_)}},
     // .forge.value.Result result = 6;
     {::_pbi::TcParser::FastMtS1,
-     {50, 4, 3,
+     {50, 5, 3,
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.result_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .forge.execution.LogEntry log_entries = 7;
+    {::_pbi::TcParser::FastMtR1,
+     {58, 0, 4,
+      PROTOBUF_FIELD_OFFSET(Execution, _impl_.log_entries_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .forge.execution.State execution_state = 1;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.execution_state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.execution_state_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string peer_id = 2;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.peer_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .google.protobuf.Timestamp timestamp = 3;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.timestamp_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .forge.target.ValueSet value_set = 4;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.value_set_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.value_set_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .block.BlockRef target_ref = 5;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.target_ref_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.target_ref_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .forge.value.Result result = 6;
-    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.result_), _Internal::kHasBitsOffset + 4, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.result_), _Internal::kHasBitsOffset + 5, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .forge.execution.LogEntry log_entries = 7;
+    {PROTOBUF_FIELD_OFFSET(Execution, _impl_.log_entries_), _Internal::kHasBitsOffset + 0, 4, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
       {::_pbi::TcParser::GetTable<::forge::target::ValueSet>()},
       {::_pbi::TcParser::GetTable<::block::BlockRef>()},
       {::_pbi::TcParser::GetTable<::forge::value::Result>()},
+      {::_pbi::TcParser::GetTable<::forge::execution::LogEntry>()},
   }},
   {{
     "\31\0\7\0\0\0\0\0"
@@ -426,23 +495,26 @@ PROTOBUF_NOINLINE void Execution::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.peer_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.log_entries_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.timestamp_ != nullptr);
       _impl_.timestamp_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.value_set_ != nullptr);
       _impl_.value_set_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.target_ref_ != nullptr);
       _impl_.target_ref_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.result_ != nullptr);
       _impl_.result_->Clear();
     }
@@ -472,7 +544,7 @@ PROTOBUF_NOINLINE void Execution::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .forge.execution.State execution_state = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_execution_state() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -481,7 +553,7 @@ PROTOBUF_NOINLINE void Execution::Clear() {
   }
 
   // string peer_id = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_peer_id().empty()) {
       const ::std::string& _s = this_._internal_peer_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -491,31 +563,44 @@ PROTOBUF_NOINLINE void Execution::Clear() {
   }
 
   // .google.protobuf.Timestamp timestamp = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         3, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
         stream);
   }
 
   // .forge.target.ValueSet value_set = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.value_set_, this_._impl_.value_set_->GetCachedSize(), target,
         stream);
   }
 
   // .block.BlockRef target_ref = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         5, *this_._impl_.target_ref_, this_._impl_.target_ref_->GetCachedSize(), target,
         stream);
   }
 
   // .forge.value.Result result = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         6, *this_._impl_.result_, this_._impl_.result_->GetCachedSize(), target,
         stream);
+  }
+
+  // repeated .forge.execution.LogEntry log_entries = 7;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_log_entries_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_log_entries().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              7, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -543,36 +628,43 @@ PROTOBUF_NOINLINE void Execution::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // repeated .forge.execution.LogEntry log_entries = 7;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_log_entries_size();
+      for (const auto& msg : this_._internal_log_entries()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string peer_id = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_peer_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_peer_id());
       }
     }
     // .google.protobuf.Timestamp timestamp = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
     }
     // .forge.target.ValueSet value_set = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.value_set_);
     }
     // .block.BlockRef target_ref = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.target_ref_);
     }
     // .forge.value.Result result = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.result_);
     }
     // .forge.execution.State execution_state = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_execution_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_execution_state());
@@ -598,8 +690,13 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_log_entries()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_log_entries());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_peer_id().empty()) {
         _this->_internal_set_peer_id(from._internal_peer_id());
       } else {
@@ -608,7 +705,7 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
       if (_this->_impl_.timestamp_ == nullptr) {
         _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
@@ -616,7 +713,7 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(from._impl_.value_set_ != nullptr);
       if (_this->_impl_.value_set_ == nullptr) {
         _this->_impl_.value_set_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.value_set_);
@@ -624,7 +721,7 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.value_set_->MergeFrom(*from._impl_.value_set_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.target_ref_ != nullptr);
       if (_this->_impl_.target_ref_ == nullptr) {
         _this->_impl_.target_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.target_ref_);
@@ -632,7 +729,7 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.target_ref_->MergeFrom(*from._impl_.target_ref_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(from._impl_.result_ != nullptr);
       if (_this->_impl_.result_ == nullptr) {
         _this->_impl_.result_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_);
@@ -640,7 +737,7 @@ void Execution::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.result_->MergeFrom(*from._impl_.result_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_execution_state() != 0) {
         _this->_impl_.execution_state_ = from._impl_.execution_state_;
       }
@@ -665,6 +762,7 @@ void Execution::InternalSwap(Execution* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.log_entries_.InternalSwap(&other->_impl_.log_entries_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Execution, _impl_.execution_state_)
@@ -675,6 +773,373 @@ void Execution::InternalSwap(Execution* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
 }
 
 ::google::protobuf::Metadata Execution::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LogEntry::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<LogEntry>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(LogEntry, _impl_._has_bits_);
+};
+
+void LogEntry::clear_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+LogEntry::LogEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LogEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:forge.execution.LogEntry)
+}
+PROTOBUF_NDEBUG_INLINE LogEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::forge::execution::LogEntry& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        level_(arena, from.level_),
+        message_(arena, from.message_) {}
+
+LogEntry::LogEntry(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const LogEntry& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, LogEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LogEntry* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:forge.execution.LogEntry)
+}
+PROTOBUF_NDEBUG_INLINE LogEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        level_(arena),
+        message_(arena) {}
+
+inline void LogEntry::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.timestamp_ = {};
+}
+LogEntry::~LogEntry() {
+  // @@protoc_insertion_point(destructor:forge.execution.LogEntry)
+  SharedDtor(*this);
+}
+inline void LogEntry::SharedDtor(MessageLite& self) {
+  LogEntry& this_ = static_cast<LogEntry&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.level_.Destroy();
+  this_._impl_.message_.Destroy();
+  delete this_._impl_.timestamp_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL LogEntry::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) LogEntry(arena);
+}
+constexpr auto LogEntry::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(LogEntry),
+                                            alignof(LogEntry));
+}
+constexpr auto LogEntry::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_LogEntry_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &LogEntry::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<LogEntry>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &LogEntry::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<LogEntry>(), &LogEntry::ByteSizeLong,
+              &LogEntry::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(LogEntry, _impl_._cached_size_),
+          false,
+      },
+      &LogEntry::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull LogEntry_class_data_ =
+        LogEntry::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+LogEntry::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&LogEntry_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(LogEntry_class_data_.tc_table);
+  return LogEntry_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 45, 2>
+LogEntry::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(LogEntry, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    LogEntry_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::forge::execution::LogEntry>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .google.protobuf.Timestamp timestamp = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.timestamp_)}},
+    // string level = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.level_)}},
+    // string message = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.message_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .google.protobuf.Timestamp timestamp = 1;
+    {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string level = 2;
+    {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.level_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string message = 3;
+    {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+  }},
+  {{
+    "\30\0\5\7\0\0\0\0"
+    "forge.execution.LogEntry"
+    "level"
+    "message"
+  }},
+};
+PROTOBUF_NOINLINE void LogEntry::Clear() {
+// @@protoc_insertion_point(message_clear_start:forge.execution.LogEntry)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.level_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.message_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.timestamp_ != nullptr);
+      _impl_.timestamp_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL LogEntry::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const LogEntry& this_ = static_cast<const LogEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL LogEntry::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const LogEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:forge.execution.LogEntry)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .google.protobuf.Timestamp timestamp = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string level = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_level().empty()) {
+      const ::std::string& _s = this_._internal_level();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "forge.execution.LogEntry.level");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string message = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_message().empty()) {
+      const ::std::string& _s = this_._internal_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "forge.execution.LogEntry.message");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:forge.execution.LogEntry)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t LogEntry::ByteSizeLong(const MessageLite& base) {
+  const LogEntry& this_ = static_cast<const LogEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t LogEntry::ByteSizeLong() const {
+  const LogEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:forge.execution.LogEntry)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string level = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_level().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_level());
+      }
+    }
+    // string message = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_message());
+      }
+    }
+    // .google.protobuf.Timestamp timestamp = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void LogEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<LogEntry*>(&to_msg);
+  auto& from = static_cast<const LogEntry&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:forge.execution.LogEntry)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_level().empty()) {
+        _this->_internal_set_level(from._internal_level());
+      } else {
+        if (_this->_impl_.level_.IsDefault()) {
+          _this->_internal_set_level("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_message().empty()) {
+        _this->_internal_set_message(from._internal_message());
+      } else {
+        if (_this->_impl_.message_.IsDefault()) {
+          _this->_internal_set_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
+      if (_this->_impl_.timestamp_ == nullptr) {
+        _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
+      } else {
+        _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void LogEntry::CopyFrom(const LogEntry& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:forge.execution.LogEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LogEntry::InternalSwap(LogEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.level_, &other->_impl_.level_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.message_, &other->_impl_.message_, arena);
+  swap(_impl_.timestamp_, other->_impl_.timestamp_);
+}
+
+::google::protobuf::Metadata LogEntry::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

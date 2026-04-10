@@ -32,6 +32,7 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
+#include "../execution.pb.h"
 #include "../../value/value.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -64,6 +65,10 @@ class Tx;
 struct TxDefaultTypeInternal;
 extern TxDefaultTypeInternal _Tx_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Tx_class_data_;
+class TxAppendLog;
+struct TxAppendLogDefaultTypeInternal;
+extern TxAppendLogDefaultTypeInternal _TxAppendLog_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TxAppendLog_class_data_;
 class TxComplete;
 struct TxCompleteDefaultTypeInternal;
 extern TxCompleteDefaultTypeInternal _TxComplete_default_instance_;
@@ -93,6 +98,7 @@ enum TxType : int {
   TxType_START = 1,
   TxType_SET_OUTPUTS = 2,
   TxType_COMPLETE = 3,
+  TxType_APPEND_LOG = 4,
   TxType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   TxType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -103,11 +109,11 @@ extern const uint32_t TxType_internal_data_[];
 inline constexpr TxType TxType_MIN =
     static_cast<TxType>(0);
 inline constexpr TxType TxType_MAX =
-    static_cast<TxType>(3);
+    static_cast<TxType>(4);
 inline bool TxType_IsValid(int value) {
-  return 0 <= value && value <= 3;
+  return 0 <= value && value <= 4;
 }
-inline constexpr int TxType_ARRAYSIZE = 3 + 1;
+inline constexpr int TxType_ARRAYSIZE = 4 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor();
 template <typename T>
 const ::std::string& TxType_Name(T value) {
@@ -118,7 +124,7 @@ const ::std::string& TxType_Name(T value) {
 }
 template <>
 inline const ::std::string& TxType_Name(TxType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 3>(
+  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 4>(
       static_cast<int>(value));
 }
 inline bool TxType_Parse(
@@ -522,6 +528,203 @@ class TxComplete final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TxComplete_class_data_;
 // -------------------------------------------------------------------
 
+class TxAppendLog final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:execution.tx.TxAppendLog) */ {
+ public:
+  inline TxAppendLog() : TxAppendLog(nullptr) {}
+  ~TxAppendLog() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TxAppendLog* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TxAppendLog));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TxAppendLog(::google::protobuf::internal::ConstantInitialized);
+
+  inline TxAppendLog(const TxAppendLog& from) : TxAppendLog(nullptr, from) {}
+  inline TxAppendLog(TxAppendLog&& from) noexcept
+      : TxAppendLog(nullptr, ::std::move(from)) {}
+  inline TxAppendLog& operator=(const TxAppendLog& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TxAppendLog& operator=(TxAppendLog&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TxAppendLog& default_instance() {
+    return *reinterpret_cast<const TxAppendLog*>(
+        &_TxAppendLog_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(TxAppendLog& a, TxAppendLog& b) { a.Swap(&b); }
+  inline void Swap(TxAppendLog* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TxAppendLog* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TxAppendLog* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TxAppendLog>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TxAppendLog& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TxAppendLog& from) { TxAppendLog::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TxAppendLog* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "execution.tx.TxAppendLog"; }
+
+  explicit TxAppendLog(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TxAppendLog(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TxAppendLog& from);
+  TxAppendLog(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TxAppendLog&& from) noexcept
+      : TxAppendLog(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEntriesFieldNumber = 1,
+  };
+  // repeated .forge.execution.LogEntry entries = 1;
+  int entries_size() const;
+  private:
+  int _internal_entries_size() const;
+
+  public:
+  void clear_entries() ;
+  ::forge::execution::LogEntry* PROTOBUF_NONNULL mutable_entries(int index);
+  ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL mutable_entries();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& _internal_entries() const;
+  ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL _internal_mutable_entries();
+  public:
+  const ::forge::execution::LogEntry& entries(int index) const;
+  ::forge::execution::LogEntry* PROTOBUF_NONNULL add_entries();
+  const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& entries() const;
+  // @@protoc_insertion_point(class_scope:execution.tx.TxAppendLog)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TxAppendLog& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::forge::execution::LogEntry > entries_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fexecution_2ftx_2ftx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TxAppendLog_class_data_;
+// -------------------------------------------------------------------
+
 class TxSetOutputs final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:execution.tx.TxSetOutputs) */ {
  public:
@@ -876,6 +1079,7 @@ class Tx final : public ::google::protobuf::Message
     kTxStartFieldNumber = 2,
     kTxSetOutputsFieldNumber = 3,
     kTxCompleteFieldNumber = 4,
+    kTxAppendLogFieldNumber = 5,
     kTxTypeFieldNumber = 1,
   };
   // .execution.tx.TxStart tx_start = 2;
@@ -923,6 +1127,21 @@ class Tx final : public ::google::protobuf::Message
   ::execution::tx::TxComplete* PROTOBUF_NONNULL _internal_mutable_tx_complete();
 
   public:
+  // .execution.tx.TxAppendLog tx_append_log = 5;
+  bool has_tx_append_log() const;
+  void clear_tx_append_log() ;
+  const ::execution::tx::TxAppendLog& tx_append_log() const;
+  [[nodiscard]] ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE release_tx_append_log();
+  ::execution::tx::TxAppendLog* PROTOBUF_NONNULL mutable_tx_append_log();
+  void set_allocated_tx_append_log(::execution::tx::TxAppendLog* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_tx_append_log(::execution::tx::TxAppendLog* PROTOBUF_NULLABLE value);
+  ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE unsafe_arena_release_tx_append_log();
+
+  private:
+  const ::execution::tx::TxAppendLog& _internal_tx_append_log() const;
+  ::execution::tx::TxAppendLog* PROTOBUF_NONNULL _internal_mutable_tx_append_log();
+
+  public:
   // .execution.tx.TxType tx_type = 1;
   void clear_tx_type() ;
   ::execution::tx::TxType tx_type() const;
@@ -937,8 +1156,8 @@ class Tx final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   3, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   4, 0,
                                    2>
       _table_;
 
@@ -962,6 +1181,7 @@ class Tx final : public ::google::protobuf::Message
     ::execution::tx::TxStart* PROTOBUF_NULLABLE tx_start_;
     ::execution::tx::TxSetOutputs* PROTOBUF_NULLABLE tx_set_outputs_;
     ::execution::tx::TxComplete* PROTOBUF_NULLABLE tx_complete_;
+    ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE tx_append_log_;
     int tx_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -992,7 +1212,7 @@ inline void Tx::clear_tx_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.tx_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline ::execution::tx::TxType Tx::tx_type() const {
   // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_type)
@@ -1000,7 +1220,7 @@ inline ::execution::tx::TxType Tx::tx_type() const {
 }
 inline void Tx::set_tx_type(::execution::tx::TxType value) {
   _internal_set_tx_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:execution.tx.Tx.tx_type)
 }
 inline ::execution::tx::TxType Tx::_internal_tx_type() const {
@@ -1309,6 +1529,105 @@ inline void Tx::set_allocated_tx_complete(::execution::tx::TxComplete* PROTOBUF_
   // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_complete)
 }
 
+// .execution.tx.TxAppendLog tx_append_log = 5;
+inline bool Tx::has_tx_append_log() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.tx_append_log_ != nullptr);
+  return value;
+}
+inline void Tx::clear_tx_append_log() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_append_log_ != nullptr) _impl_.tx_append_log_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::execution::tx::TxAppendLog& Tx::_internal_tx_append_log() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::execution::tx::TxAppendLog* p = _impl_.tx_append_log_;
+  return p != nullptr ? *p : reinterpret_cast<const ::execution::tx::TxAppendLog&>(::execution::tx::_TxAppendLog_default_instance_);
+}
+inline const ::execution::tx::TxAppendLog& Tx::tx_append_log() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_append_log)
+  return _internal_tx_append_log();
+}
+inline void Tx::unsafe_arena_set_allocated_tx_append_log(
+    ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_append_log_);
+  }
+  _impl_.tx_append_log_ = reinterpret_cast<::execution::tx::TxAppendLog*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:execution.tx.Tx.tx_append_log)
+}
+inline ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE Tx::release_tx_append_log() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::execution::tx::TxAppendLog* released = _impl_.tx_append_log_;
+  _impl_.tx_append_log_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE Tx::unsafe_arena_release_tx_append_log() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.Tx.tx_append_log)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::execution::tx::TxAppendLog* temp = _impl_.tx_append_log_;
+  _impl_.tx_append_log_ = nullptr;
+  return temp;
+}
+inline ::execution::tx::TxAppendLog* PROTOBUF_NONNULL Tx::_internal_mutable_tx_append_log() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_append_log_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::execution::tx::TxAppendLog>(GetArena());
+    _impl_.tx_append_log_ = reinterpret_cast<::execution::tx::TxAppendLog*>(p);
+  }
+  return _impl_.tx_append_log_;
+}
+inline ::execution::tx::TxAppendLog* PROTOBUF_NONNULL Tx::mutable_tx_append_log()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::execution::tx::TxAppendLog* _msg = _internal_mutable_tx_append_log();
+  // @@protoc_insertion_point(field_mutable:execution.tx.Tx.tx_append_log)
+  return _msg;
+}
+inline void Tx::set_allocated_tx_append_log(::execution::tx::TxAppendLog* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_append_log_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.tx_append_log_ = reinterpret_cast<::execution::tx::TxAppendLog*>(value);
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_append_log)
+}
+
 // -------------------------------------------------------------------
 
 // TxStart
@@ -1552,6 +1871,60 @@ inline void TxComplete::set_allocated_result(::forge::value::Result* PROTOBUF_NU
 
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   // @@protoc_insertion_point(field_set_allocated:execution.tx.TxComplete.result)
+}
+
+// -------------------------------------------------------------------
+
+// TxAppendLog
+
+// repeated .forge.execution.LogEntry entries = 1;
+inline int TxAppendLog::_internal_entries_size() const {
+  return _internal_entries().size();
+}
+inline int TxAppendLog::entries_size() const {
+  return _internal_entries_size();
+}
+inline ::forge::execution::LogEntry* PROTOBUF_NONNULL TxAppendLog::mutable_entries(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxAppendLog.entries)
+  return _internal_mutable_entries()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL TxAppendLog::mutable_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:execution.tx.TxAppendLog.entries)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_entries();
+}
+inline const ::forge::execution::LogEntry& TxAppendLog::entries(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxAppendLog.entries)
+  return _internal_entries().Get(index);
+}
+inline ::forge::execution::LogEntry* PROTOBUF_NONNULL TxAppendLog::add_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::forge::execution::LogEntry* _add =
+      _internal_mutable_entries()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:execution.tx.TxAppendLog.entries)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& TxAppendLog::entries() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:execution.tx.TxAppendLog.entries)
+  return _internal_entries();
+}
+inline const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>&
+TxAppendLog::_internal_entries() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entries_;
+}
+inline ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL
+TxAppendLog::_internal_mutable_entries() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.entries_;
 }
 
 #ifdef __GNUC__

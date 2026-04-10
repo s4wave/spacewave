@@ -67,6 +67,10 @@ class Execution;
 struct ExecutionDefaultTypeInternal;
 extern ExecutionDefaultTypeInternal _Execution_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull Execution_class_data_;
+class LogEntry;
+struct LogEntryDefaultTypeInternal;
+extern LogEntryDefaultTypeInternal _LogEntry_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LogEntry_class_data_;
 class Spec;
 struct SpecDefaultTypeInternal;
 extern SpecDefaultTypeInternal _Spec_default_instance_;
@@ -127,6 +131,235 @@ inline bool State_Parse(
 
 // -------------------------------------------------------------------
 
+class LogEntry final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:forge.execution.LogEntry) */ {
+ public:
+  inline LogEntry() : LogEntry(nullptr) {}
+  ~LogEntry() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LogEntry* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LogEntry));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LogEntry(::google::protobuf::internal::ConstantInitialized);
+
+  inline LogEntry(const LogEntry& from) : LogEntry(nullptr, from) {}
+  inline LogEntry(LogEntry&& from) noexcept
+      : LogEntry(nullptr, ::std::move(from)) {}
+  inline LogEntry& operator=(const LogEntry& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LogEntry& operator=(LogEntry&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LogEntry& default_instance() {
+    return *reinterpret_cast<const LogEntry*>(
+        &_LogEntry_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(LogEntry& a, LogEntry& b) { a.Swap(&b); }
+  inline void Swap(LogEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LogEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LogEntry* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LogEntry>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LogEntry& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LogEntry& from) { LogEntry::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LogEntry* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "forge.execution.LogEntry"; }
+
+  explicit LogEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LogEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LogEntry& from);
+  LogEntry(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LogEntry&& from) noexcept
+      : LogEntry(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLevelFieldNumber = 2,
+    kMessageFieldNumber = 3,
+    kTimestampFieldNumber = 1,
+  };
+  // string level = 2;
+  void clear_level() ;
+  const ::std::string& level() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_level(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_level();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_level();
+  void set_allocated_level(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_level() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_level(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_level();
+
+  public:
+  // string message = 3;
+  void clear_message() ;
+  const ::std::string& message() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_message(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_message();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_message();
+  void set_allocated_message(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_message() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_message(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_message();
+
+  public:
+  // .google.protobuf.Timestamp timestamp = 1;
+  bool has_timestamp() const;
+  void clear_timestamp() ;
+  const ::google::protobuf::Timestamp& timestamp() const;
+  [[nodiscard]] ::google::protobuf::Timestamp* PROTOBUF_NULLABLE release_timestamp();
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL mutable_timestamp();
+  void set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value);
+  ::google::protobuf::Timestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp();
+
+  private:
+  const ::google::protobuf::Timestamp& _internal_timestamp() const;
+  ::google::protobuf::Timestamp* PROTOBUF_NONNULL _internal_mutable_timestamp();
+
+  public:
+  // @@protoc_insertion_point(class_scope:forge.execution.LogEntry)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 45,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LogEntry& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr level_;
+    ::google::protobuf::internal::ArenaStringPtr message_;
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fexecution_2fexecution_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LogEntry_class_data_;
+// -------------------------------------------------------------------
+
 class Spec final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:forge.execution.Spec) */ {
  public:
@@ -182,7 +415,7 @@ class Spec final : public ::google::protobuf::Message
     return *reinterpret_cast<const Spec*>(
         &_Spec_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(Spec& a, Spec& b) { a.Swap(&b); }
   inline void Swap(Spec* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -498,6 +731,7 @@ class Execution final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kLogEntriesFieldNumber = 7,
     kPeerIdFieldNumber = 2,
     kTimestampFieldNumber = 3,
     kValueSetFieldNumber = 4,
@@ -505,6 +739,23 @@ class Execution final : public ::google::protobuf::Message
     kResultFieldNumber = 6,
     kExecutionStateFieldNumber = 1,
   };
+  // repeated .forge.execution.LogEntry log_entries = 7;
+  int log_entries_size() const;
+  private:
+  int _internal_log_entries_size() const;
+
+  public:
+  void clear_log_entries() ;
+  ::forge::execution::LogEntry* PROTOBUF_NONNULL mutable_log_entries(int index);
+  ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL mutable_log_entries();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& _internal_log_entries() const;
+  ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL _internal_mutable_log_entries();
+  public:
+  const ::forge::execution::LogEntry& log_entries(int index) const;
+  ::forge::execution::LogEntry* PROTOBUF_NONNULL add_log_entries();
+  const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& log_entries() const;
   // string peer_id = 2;
   void clear_peer_id() ;
   const ::std::string& peer_id() const;
@@ -594,8 +845,8 @@ class Execution final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   4, 41,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   5, 41,
                                    2>
       _table_;
 
@@ -616,6 +867,7 @@ class Execution final : public ::google::protobuf::Message
         const Execution& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::forge::execution::LogEntry > log_entries_;
     ::google::protobuf::internal::ArenaStringPtr peer_id_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
     ::forge::target::ValueSet* PROTOBUF_NULLABLE value_set_;
@@ -651,7 +903,7 @@ inline void Execution::clear_execution_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.execution_state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::forge::execution::State Execution::execution_state() const {
   // @@protoc_insertion_point(field_get:forge.execution.Execution.execution_state)
@@ -659,7 +911,7 @@ inline ::forge::execution::State Execution::execution_state() const {
 }
 inline void Execution::set_execution_state(::forge::execution::State value) {
   _internal_set_execution_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:forge.execution.Execution.execution_state)
 }
 inline ::forge::execution::State Execution::_internal_execution_state() const {
@@ -676,7 +928,7 @@ inline void Execution::clear_peer_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.peer_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 inline const ::std::string& Execution::peer_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -686,13 +938,13 @@ inline const ::std::string& Execution::peer_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Execution::set_peer_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:forge.execution.Execution.peer_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Execution::mutable_peer_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_peer_id();
   // @@protoc_insertion_point(field_mutable:forge.execution.Execution.peer_id)
   return _s;
@@ -712,10 +964,10 @@ inline ::std::string* PROTOBUF_NONNULL Execution::_internal_mutable_peer_id() {
 inline ::std::string* PROTOBUF_NULLABLE Execution::release_peer_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.execution.Execution.peer_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   auto* released = _impl_.peer_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.peer_id_.Set("", GetArena());
@@ -725,9 +977,9 @@ inline ::std::string* PROTOBUF_NULLABLE Execution::release_peer_id() {
 inline void Execution::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   _impl_.peer_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
@@ -738,7 +990,7 @@ inline void Execution::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE va
 
 // .google.protobuf.Timestamp timestamp = 3;
 inline bool Execution::has_timestamp() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
   return value;
 }
@@ -759,16 +1011,16 @@ inline void Execution::unsafe_arena_set_allocated_timestamp(
   }
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.execution.Execution.timestamp)
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Execution::release_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::google::protobuf::Timestamp* released = _impl_.timestamp_;
   _impl_.timestamp_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -788,7 +1040,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Execution::unsafe_arena_
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.execution.Execution.timestamp)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
   _impl_.timestamp_ = nullptr;
   return temp;
@@ -803,7 +1055,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Execution::_internal_muta
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Execution::mutable_timestamp()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
   // @@protoc_insertion_point(field_mutable:forge.execution.Execution.timestamp)
   return _msg;
@@ -820,9 +1072,9 @@ inline void Execution::set_allocated_timestamp(::google::protobuf::Timestamp* PR
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
@@ -831,7 +1083,7 @@ inline void Execution::set_allocated_timestamp(::google::protobuf::Timestamp* PR
 
 // .forge.target.ValueSet value_set = 4;
 inline bool Execution::has_value_set() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
   PROTOBUF_ASSUME(!value || _impl_.value_set_ != nullptr);
   return value;
 }
@@ -852,16 +1104,16 @@ inline void Execution::unsafe_arena_set_allocated_value_set(
   }
   _impl_.value_set_ = reinterpret_cast<::forge::target::ValueSet*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.execution.Execution.value_set)
 }
 inline ::forge::target::ValueSet* PROTOBUF_NULLABLE Execution::release_value_set() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::forge::target::ValueSet* released = _impl_.value_set_;
   _impl_.value_set_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -881,7 +1133,7 @@ inline ::forge::target::ValueSet* PROTOBUF_NULLABLE Execution::unsafe_arena_rele
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.execution.Execution.value_set)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::forge::target::ValueSet* temp = _impl_.value_set_;
   _impl_.value_set_ = nullptr;
   return temp;
@@ -896,7 +1148,7 @@ inline ::forge::target::ValueSet* PROTOBUF_NONNULL Execution::_internal_mutable_
 }
 inline ::forge::target::ValueSet* PROTOBUF_NONNULL Execution::mutable_value_set()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::forge::target::ValueSet* _msg = _internal_mutable_value_set();
   // @@protoc_insertion_point(field_mutable:forge.execution.Execution.value_set)
   return _msg;
@@ -913,9 +1165,9 @@ inline void Execution::set_allocated_value_set(::forge::target::ValueSet* PROTOB
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
 
   _impl_.value_set_ = reinterpret_cast<::forge::target::ValueSet*>(value);
@@ -924,7 +1176,7 @@ inline void Execution::set_allocated_value_set(::forge::target::ValueSet* PROTOB
 
 // .block.BlockRef target_ref = 5;
 inline bool Execution::has_target_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.target_ref_ != nullptr);
   return value;
 }
@@ -945,16 +1197,16 @@ inline void Execution::unsafe_arena_set_allocated_target_ref(
   }
   _impl_.target_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.execution.Execution.target_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE Execution::release_target_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* released = _impl_.target_ref_;
   _impl_.target_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -974,7 +1226,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE Execution::unsafe_arena_release_targ
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.execution.Execution.target_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* temp = _impl_.target_ref_;
   _impl_.target_ref_ = nullptr;
   return temp;
@@ -989,7 +1241,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL Execution::_internal_mutable_target_r
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL Execution::mutable_target_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* _msg = _internal_mutable_target_ref();
   // @@protoc_insertion_point(field_mutable:forge.execution.Execution.target_ref)
   return _msg;
@@ -1006,9 +1258,9 @@ inline void Execution::set_allocated_target_ref(::block::BlockRef* PROTOBUF_NULL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.target_ref_ = reinterpret_cast<::block::BlockRef*>(value);
@@ -1017,7 +1269,7 @@ inline void Execution::set_allocated_target_ref(::block::BlockRef* PROTOBUF_NULL
 
 // .forge.value.Result result = 6;
 inline bool Execution::has_result() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.result_ != nullptr);
   return value;
 }
@@ -1038,16 +1290,16 @@ inline void Execution::unsafe_arena_set_allocated_result(
   }
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.execution.Execution.result)
 }
 inline ::forge::value::Result* PROTOBUF_NULLABLE Execution::release_result() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::value::Result* released = _impl_.result_;
   _impl_.result_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1067,7 +1319,7 @@ inline ::forge::value::Result* PROTOBUF_NULLABLE Execution::unsafe_arena_release
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:forge.execution.Execution.result)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::value::Result* temp = _impl_.result_;
   _impl_.result_ = nullptr;
   return temp;
@@ -1082,7 +1334,7 @@ inline ::forge::value::Result* PROTOBUF_NONNULL Execution::_internal_mutable_res
 }
 inline ::forge::value::Result* PROTOBUF_NONNULL Execution::mutable_result()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::value::Result* _msg = _internal_mutable_result();
   // @@protoc_insertion_point(field_mutable:forge.execution.Execution.result)
   return _msg;
@@ -1099,13 +1351,296 @@ inline void Execution::set_allocated_result(::forge::value::Result* PROTOBUF_NUL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   // @@protoc_insertion_point(field_set_allocated:forge.execution.Execution.result)
+}
+
+// repeated .forge.execution.LogEntry log_entries = 7;
+inline int Execution::_internal_log_entries_size() const {
+  return _internal_log_entries().size();
+}
+inline int Execution::log_entries_size() const {
+  return _internal_log_entries_size();
+}
+inline void Execution::clear_log_entries() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.log_entries_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::forge::execution::LogEntry* PROTOBUF_NONNULL Execution::mutable_log_entries(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:forge.execution.Execution.log_entries)
+  return _internal_mutable_log_entries()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL Execution::mutable_log_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:forge.execution.Execution.log_entries)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_log_entries();
+}
+inline const ::forge::execution::LogEntry& Execution::log_entries(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.execution.Execution.log_entries)
+  return _internal_log_entries().Get(index);
+}
+inline ::forge::execution::LogEntry* PROTOBUF_NONNULL Execution::add_log_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::forge::execution::LogEntry* _add =
+      _internal_mutable_log_entries()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:forge.execution.Execution.log_entries)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& Execution::log_entries() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:forge.execution.Execution.log_entries)
+  return _internal_log_entries();
+}
+inline const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>&
+Execution::_internal_log_entries() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.log_entries_;
+}
+inline ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTOBUF_NONNULL
+Execution::_internal_mutable_log_entries() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.log_entries_;
+}
+
+// -------------------------------------------------------------------
+
+// LogEntry
+
+// .google.protobuf.Timestamp timestamp = 1;
+inline bool LogEntry::has_timestamp() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
+  return value;
+}
+inline const ::google::protobuf::Timestamp& LogEntry::_internal_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::google::protobuf::Timestamp* p = _impl_.timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::google::protobuf::Timestamp&>(::google::protobuf::_Timestamp_default_instance_);
+}
+inline const ::google::protobuf::Timestamp& LogEntry::timestamp() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.execution.LogEntry.timestamp)
+  return _internal_timestamp();
+}
+inline void LogEntry::unsafe_arena_set_allocated_timestamp(
+    ::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:forge.execution.LogEntry.timestamp)
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE LogEntry::release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* released = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE LogEntry::unsafe_arena_release_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:forge.execution.LogEntry.timestamp)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
+  _impl_.timestamp_ = nullptr;
+  return temp;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL LogEntry::_internal_mutable_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::google::protobuf::Timestamp>(GetArena());
+    _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(p);
+  }
+  return _impl_.timestamp_;
+}
+inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL LogEntry::mutable_timestamp()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:forge.execution.LogEntry.timestamp)
+  return _msg;
+}
+inline void LogEntry::set_allocated_timestamp(::google::protobuf::Timestamp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.timestamp_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:forge.execution.LogEntry.timestamp)
+}
+
+// string level = 2;
+inline void LogEntry::clear_level() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.level_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& LogEntry::level() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.execution.LogEntry.level)
+  return _internal_level();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LogEntry::set_level(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.level_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:forge.execution.LogEntry.level)
+}
+inline ::std::string* PROTOBUF_NONNULL LogEntry::mutable_level()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_level();
+  // @@protoc_insertion_point(field_mutable:forge.execution.LogEntry.level)
+  return _s;
+}
+inline const ::std::string& LogEntry::_internal_level() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.level_.Get();
+}
+inline void LogEntry::_internal_set_level(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.level_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LogEntry::_internal_mutable_level() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.level_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LogEntry::release_level() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:forge.execution.LogEntry.level)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.level_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.level_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LogEntry::set_allocated_level(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.level_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.level_.IsDefault()) {
+    _impl_.level_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:forge.execution.LogEntry.level)
+}
+
+// string message = 3;
+inline void LogEntry::clear_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& LogEntry::message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:forge.execution.LogEntry.message)
+  return _internal_message();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LogEntry::set_message(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:forge.execution.LogEntry.message)
+}
+inline ::std::string* PROTOBUF_NONNULL LogEntry::mutable_message()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_message();
+  // @@protoc_insertion_point(field_mutable:forge.execution.LogEntry.message)
+  return _s;
+}
+inline const ::std::string& LogEntry::_internal_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.message_.Get();
+}
+inline void LogEntry::_internal_set_message(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LogEntry::_internal_mutable_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.message_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LogEntry::release_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:forge.execution.LogEntry.message)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.message_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.message_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LogEntry::set_allocated_message(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.message_.IsDefault()) {
+    _impl_.message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:forge.execution.LogEntry.message)
 }
 
 // -------------------------------------------------------------------

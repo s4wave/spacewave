@@ -85,6 +85,9 @@ type Execution struct {
 	TargetRef *block.BlockRef `protobuf:"bytes,5,opt,name=target_ref,json=targetRef,proto3" json:"targetRef,omitempty"`
 	// Result is information about the outcome of a completed execution.
 	Result *value.Result `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
+	// LogEntries contains log output from the execution.
+	// Appended while the execution is in RUNNING state.
+	LogEntries []*LogEntry `protobuf:"bytes,7,rep,name=log_entries,json=logEntries,proto3" json:"logEntries,omitempty"`
 }
 
 func (x *Execution) Reset() {
@@ -135,6 +138,51 @@ func (x *Execution) GetResult() *value.Result {
 	return nil
 }
 
+func (x *Execution) GetLogEntries() []*LogEntry {
+	if x != nil {
+		return x.LogEntries
+	}
+	return nil
+}
+
+// LogEntry is a single log line from an execution.
+type LogEntry struct {
+	unknownFields []byte
+	// Timestamp is when the log entry was created.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Level is the log level (e.g. "info", "warn", "error", "debug").
+	Level string `protobuf:"bytes,2,opt,name=level,proto3" json:"level,omitempty"`
+	// Message is the log message text.
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *LogEntry) Reset() {
+	*x = LogEntry{}
+}
+
+func (*LogEntry) ProtoMessage() {}
+
+func (x *LogEntry) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *LogEntry) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *LogEntry) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 // Spec contains information specified when creating a Execution.
 type Spec struct {
 	unknownFields []byte
@@ -183,13 +231,23 @@ func (m *Execution) CloneVT() *Execution {
 	r := new(Execution)
 	r.ExecutionState = m.ExecutionState
 	r.PeerId = m.PeerId
-	r.ValueSet = m.ValueSet.CloneVT()
-	r.Result = m.Result.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
+	if rhs := m.ValueSet; rhs != nil {
+		r.ValueSet = rhs.CloneVT()
+	}
 	if rhs := m.TargetRef; rhs != nil {
 		r.TargetRef = rhs.CloneVT()
+	}
+	if rhs := m.Result; rhs != nil {
+		r.Result = rhs.CloneVT()
+	}
+	if rhs := m.LogEntries; rhs != nil {
+		r.LogEntries = make([]*LogEntry, len(rhs))
+		for k, v := range rhs {
+			r.LogEntries[k] = v.CloneVT()
+		}
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -201,13 +259,35 @@ func (m *Execution) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *LogEntry) CloneVT() *LogEntry {
+	if m == nil {
+		return (*LogEntry)(nil)
+	}
+	r := new(LogEntry)
+	r.Level = m.Level
+	r.Message = m.Message
+	if rhs := m.Timestamp; rhs != nil {
+		r.Timestamp = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LogEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Spec) CloneVT() *Spec {
 	if m == nil {
 		return (*Spec)(nil)
 	}
 	r := new(Spec)
 	r.PeerId = m.PeerId
-	r.ValueSet = m.ValueSet.CloneVT()
+	if rhs := m.ValueSet; rhs != nil {
+		r.ValueSet = rhs.CloneVT()
+	}
 	if rhs := m.TargetRef; rhs != nil {
 		r.TargetRef = rhs.CloneVT()
 	}
@@ -245,11 +325,54 @@ func (this *Execution) EqualVT(that *Execution) bool {
 	if !this.Result.EqualVT(that.Result) {
 		return false
 	}
+	if len(this.LogEntries) != len(that.LogEntries) {
+		return false
+	}
+	for i, vx := range this.LogEntries {
+		vy := that.LogEntries[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &LogEntry{}
+			}
+			if q == nil {
+				q = &LogEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Execution) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Execution)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LogEntry) EqualVT(that *LogEntry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
+	if this.Level != that.Level {
+		return false
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LogEntry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LogEntry)
 	if !ok {
 		return false
 	}
@@ -360,6 +483,17 @@ func (x *Execution) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("result")
 		x.Result.MarshalProtoJSON(s.WithField("result"))
 	}
+	if len(x.LogEntries) > 0 || s.HasField("logEntries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("logEntries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.LogEntries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("logEntries"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -411,12 +545,92 @@ func (x *Execution) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Result = &value.Result{}
 			x.Result.UnmarshalProtoJSON(s.WithField("result", true))
+		case "log_entries", "logEntries":
+			s.AddField("log_entries")
+			if s.ReadNil() {
+				x.LogEntries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.LogEntries = append(x.LogEntries, nil)
+					return
+				}
+				v := &LogEntry{}
+				v.UnmarshalProtoJSON(s.WithField("log_entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.LogEntries = append(x.LogEntries, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Execution from JSON.
 func (x *Execution) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LogEntry message to JSON.
+func (x *LogEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if x.Level != "" || s.HasField("level") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("level")
+		s.WriteString(x.Level)
+	}
+	if x.Message != "" || s.HasField("message") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("message")
+		s.WriteString(x.Message)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LogEntry to JSON.
+func (x *LogEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LogEntry message from JSON.
+func (x *LogEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "level":
+			s.AddField("level")
+			x.Level = s.ReadString()
+		case "message":
+			s.AddField("message")
+			x.Message = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LogEntry from JSON.
+func (x *LogEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -516,6 +730,18 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.LogEntries) > 0 {
+		for iNdEx := len(m.LogEntries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.LogEntries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
 	if m.Result != nil {
 		size, err := m.Result.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -567,6 +793,63 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExecutionState))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LogEntry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LogEntry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LogEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Message) > 0 {
+		i -= len(m.Message)
+		copy(dAtA[i:], m.Message)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Message)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Level) > 0 {
+		i -= len(m.Level)
+		copy(dAtA[i:], m.Level)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Level)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -660,6 +943,34 @@ func (m *Execution) SizeVT() (n int) {
 		l = m.Result.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.LogEntries) > 0 {
+		for _, e := range m.LogEntries {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LogEntry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Level)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -737,11 +1048,56 @@ func (x *Execution) MarshalProtoText() string {
 		sb.WriteString("result: ")
 		sb.WriteString(x.Result.MarshalProtoText())
 	}
+	if len(x.LogEntries) > 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("log_entries: [")
+		for i, v := range x.LogEntries {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *Execution) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LogEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LogEntry {")
+	if x.Timestamp != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("timestamp: ")
+		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
+	if x.Level != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("level: ")
+		sb.WriteString(strconv.Quote(x.Level))
+	}
+	if x.Message != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("message: ")
+		sb.WriteString(strconv.Quote(x.Message))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *LogEntry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -941,6 +1297,147 @@ func (m *Execution) UnmarshalVT(dAtA []byte) error {
 			if err := m.Result.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LogEntries", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LogEntries = append(m.LogEntries, &LogEntry{})
+			if err := m.LogEntries[len(m.LogEntries)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LogEntry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LogEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LogEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Level", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Level = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

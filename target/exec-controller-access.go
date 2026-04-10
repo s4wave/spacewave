@@ -80,5 +80,10 @@ func (h *accessHandle) SetOutputs(context.Context, forge_value.ValueSlice, bool)
 	return errors.New("set outputs unavailable in access-only handle")
 }
 
+// WriteLog appends a log entry to the execution.
+func (h *accessHandle) WriteLog(context.Context, string, string) error {
+	return errors.New("write log unavailable in access-only handle")
+}
+
 // _ is a type assertion
 var _ ExecControllerHandle = ((*accessHandle)(nil))
