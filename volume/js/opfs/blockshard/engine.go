@@ -29,6 +29,7 @@ type writeReq struct {
 type Engine struct {
 	shards      []*Shard
 	actors      []chan writeReq
+	bgActors    []chan writeReq
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
 	compactionN int
@@ -56,6 +57,7 @@ func NewEngineWithSettings(
 	e := &Engine{
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]chan writeReq, settings.ShardCount),
+		bgActors:    make([]chan writeReq, settings.ShardCount),
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
 		broadcaster: NewBroadcaster(),
@@ -91,6 +93,7 @@ func NewEngineWithSettings(
 		}
 		e.shards[i] = shard
 		e.actors[i] = make(chan writeReq, 64)
+		e.bgActors[i] = make(chan writeReq, 64)
 
 		e.wg.Add(1)
 		go e.runActor(ctx, i)
@@ -163,6 +166,58 @@ func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
 				waitTask.End()
 			case <-ctx.Done():
 				waitTask.End()
+				errs[idx] = ctx.Err()
+			}
+		}(i, batch)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// PutBackground enqueues entries to the low-priority background channel.
+// Background requests are processed only when no foreground work is pending.
+// Used for GC block writes and other non-latency-sensitive operations.
+func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/put-background")
+	defer task.End()
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/put-background/partition-by-shard")
+	buckets := make([][]segment.Entry, len(e.shards))
+	for i := range entries {
+		idx := e.ShardForKey(entries[i].Key)
+		buckets[idx] = append(buckets[idx], entries[i])
+	}
+	subtask.End()
+
+	var wg sync.WaitGroup
+	errs := make([]error, len(e.shards))
+	for i, batch := range buckets {
+		if len(batch) == 0 {
+			continue
+		}
+		wg.Add(1)
+		go func(idx int, b []segment.Entry) {
+			defer wg.Done()
+			ch := make(chan error, 1)
+			select {
+			case e.bgActors[idx] <- writeReq{entries: b, err: ch}:
+			case <-ctx.Done():
+				errs[idx] = ctx.Err()
+				return
+			}
+			select {
+			case errs[idx] = <-ch:
+			case <-ctx.Done():
 				errs[idx] = ctx.Err()
 			}
 		}(i, batch)
@@ -255,11 +310,21 @@ func (e *Engine) Get(key []byte) ([]byte, bool, error) {
 // when requests arrive faster than the drain rate.
 const maxCoalesceRounds = 16
 
+// bgStarvationLimit is the maximum number of consecutive foreground-only
+// publish cycles before the actor forces one background drain. Prevents
+// background requests from starving under sustained foreground load.
+const bgStarvationLimit = 4
+
 // runActor is the per-shard write actor goroutine.
 // Pipeline model: publish immediately on first entry, accumulate the queue
 // behind running I/O, and batch whatever arrived during publish as the next
 // round. Singleton writes pay only publish cost (no idle wait). Bursty writes
 // batch naturally because entries collect while I/O is in flight.
+//
+// Priority channels: foreground requests (actors[i]) are always drained
+// before background requests (bgActors[i]). Background requests are only
+// processed when the foreground channel is empty, or when bgStarvationLimit
+// consecutive foreground-only cycles have occurred.
 //
 // Coalescing: after the first request, the actor yields and drains repeatedly
 // until no new requests arrive or maxCoalesceRounds is reached. This collapses
@@ -267,19 +332,40 @@ const maxCoalesceRounds = 16
 // singleton puts.
 func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 	defer e.wg.Done()
-	ch := e.actors[shardIdx]
+	fgCh := e.actors[shardIdx]
+	bgCh := e.bgActors[shardIdx]
 	shard := e.shards[shardIdx]
 
 	var reqs []writeReq
+	var fgOnly int // consecutive foreground-only cycles
 	for {
-		// If no pending entries, block for the next request.
+		// If no pending entries, block for the next request from
+		// either channel. Foreground takes priority via the select
+		// ordering but Go select is random, so we drain foreground
+		// first after waking.
 		if len(reqs) == 0 {
 			select {
-			case req := <-ch:
+			case req := <-fgCh:
+				reqs = append(reqs, req)
+			case req := <-bgCh:
 				reqs = append(reqs, req)
 			case <-ctx.Done():
 				return
 			}
+		}
+
+		// Drain foreground channel (always first priority).
+		e.drainCh(fgCh, &reqs)
+
+		// Drain background channel when foreground is empty or
+		// starvation limit is reached.
+		hasBg := len(bgCh) > 0
+		hasFg := len(reqs) > 0
+		if hasBg && (!hasFg || fgOnly >= bgStarvationLimit) {
+			e.drainCh(bgCh, &reqs)
+			fgOnly = 0
+		} else if hasFg && !hasBg {
+			fgOnly++
 		}
 
 		// Coalescing yield-drain loop: repeat yield+drain until no new
@@ -288,15 +374,8 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		for range maxCoalesceRounds {
 			runtime.Gosched()
 			prevLen := len(reqs)
-		drainRound:
-			for {
-				select {
-				case req := <-ch:
-					reqs = append(reqs, req)
-				default:
-					break drainRound
-				}
-			}
+			e.drainCh(fgCh, &reqs)
+			e.drainCh(bgCh, &reqs)
 			if len(reqs) == prevLen {
 				break
 			}
@@ -340,19 +419,10 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		}
 		reqs = reqs[:0]
 
-		// Pipeline overlap: drain entries that arrived during publish.
-		// If any accumulated, the next loop iteration skips the blocking
-		// wait and publishes them immediately. Compaction runs only when
-		// there is no pending foreground work.
-	overlap:
-		for {
-			select {
-			case req := <-ch:
-				reqs = append(reqs, req)
-			default:
-				break overlap
-			}
-		}
+		// Pipeline overlap: drain foreground entries that arrived during
+		// publish. Background entries are picked up at the top of the
+		// next iteration after foreground is serviced.
+		e.drainCh(fgCh, &reqs)
 
 		// Run compaction only when no foreground entries are waiting.
 		if err == nil && len(reqs) == 0 {
@@ -371,6 +441,18 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// drainCh non-blocking drains all available requests from ch into reqs.
+func (e *Engine) drainCh(ch <-chan writeReq, reqs *[]writeReq) {
+	for {
+		select {
+		case req := <-ch:
+			*reqs = append(*reqs, req)
+		default:
+			return
 		}
 	}
 }

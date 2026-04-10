@@ -18,3 +18,12 @@ type BatchPutStore interface {
 	// lower-layer batch.
 	PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error
 }
+
+// BackgroundPutStore is implemented by stores that support low-priority
+// background block writes. Background writes are deprioritized relative
+// to foreground writes, useful for GC operations and other non-latency-
+// sensitive work.
+type BackgroundPutStore interface {
+	// PutBlockBackground writes a single block at background priority.
+	PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error)
+}

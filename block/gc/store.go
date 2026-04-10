@@ -153,6 +153,31 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	return ref, existed, nil
 }
 
+// PutBlockBackground puts a block at background priority when the inner
+// store supports it. Falls back to regular PutBlock otherwise. Used by
+// GC operations to avoid competing with foreground commit writes.
+func (g *GCStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	bg, ok := g.store.(block.BackgroundPutStore)
+	if !ok {
+		return g.PutBlock(ctx, data, opts)
+	}
+
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-background")
+	defer task.End()
+
+	ref, existed, err := bg.PutBlockBackground(ctx, data, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	if !existed && ref != nil && !ref.GetEmpty() {
+		iri := BlockIRI(ref)
+		g.mu.Lock()
+		g.pendingUnref = append(g.pendingUnref, iri)
+		g.mu.Unlock()
+	}
+	return ref, existed, nil
+}
+
 // PutBlockBatch writes a batch of blocks through the inner store and buffers
 // GC ref edges for all new non-tombstone blocks. When the inner store
 // implements BatchPutStore, the batch flows through as a single lower-layer
@@ -420,7 +445,8 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 
 // _ is a type assertion
 var (
-	_ block.StoreOps         = ((*GCStoreOps)(nil))
-	_ block.BlockRefRecorder = ((*GCStoreOps)(nil))
-	_ block.BatchPutStore    = ((*GCStoreOps)(nil))
+	_ block.StoreOps          = ((*GCStoreOps)(nil))
+	_ block.BlockRefRecorder  = ((*GCStoreOps)(nil))
+	_ block.BatchPutStore     = ((*GCStoreOps)(nil))
+	_ block.BackgroundPutStore = ((*GCStoreOps)(nil))
 )

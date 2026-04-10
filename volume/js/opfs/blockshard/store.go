@@ -95,6 +95,51 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	return s.engine.Put(ctx, batch)
 }
 
+// PutBlockBackground writes a single block at background priority.
+func (s *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if len(data) == 0 {
+		return nil, false, block.ErrEmptyBlock
+	}
+
+	if opts == nil {
+		opts = &block.PutOpts{}
+	} else {
+		opts = opts.CloneVT()
+	}
+	opts.HashType = opts.SelectHashType(s.hashType)
+
+	ref, err := block.BuildBlockRef(data, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	if forceRef := opts.GetForceBlockRef(); !forceRef.GetEmpty() {
+		if !ref.EqualsRef(forceRef) {
+			return ref, false, block.ErrBlockRefMismatch
+		}
+	}
+
+	key, err := encodeRef(ref)
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, found, err := s.engine.Get([]byte(key))
+	if err != nil {
+		return nil, false, err
+	}
+	if found {
+		return ref, true, nil
+	}
+
+	if err := s.engine.PutBackground(ctx, []segment.Entry{{
+		Key:   []byte(key),
+		Value: data,
+	}}); err != nil {
+		return nil, false, err
+	}
+	return ref, false, nil
+}
+
 // GetBlock gets a block by reference.
 func (s *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if err := ref.Validate(false); err != nil {
@@ -166,3 +211,6 @@ var _ block.StoreOps = (*BlockStore)(nil)
 
 // _ is a type assertion.
 var _ block.BatchPutStore = (*BlockStore)(nil)
+
+// _ is a type assertion.
+var _ block.BackgroundPutStore = (*BlockStore)(nil)
