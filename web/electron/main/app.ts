@@ -120,6 +120,36 @@ export class BldrElectronApp {
 
   // onAppReady handles when the app becomes ready.
   private onAppReady() {
+    // Set a custom application menu to prevent the default Electron/macOS
+    // menu from intercepting keyboard shortcuts (e.g. Cmd+K) before they
+    // reach the renderer's KeyboardManager.
+    const menuTemplate: Electron.MenuItemConstructorOptions[] = [
+      ...(isMac
+        ? [{ role: 'appMenu' as const }]
+        : []),
+      { role: 'editMenu' as const },
+      {
+        label: 'View',
+        submenu: [
+          ...(isDebug
+            ? [
+                { role: 'toggleDevTools' as const },
+                { type: 'separator' as const },
+              ]
+            : []),
+          { role: 'resetZoom' as const },
+          { role: 'zoomIn' as const },
+          { role: 'zoomOut' as const },
+          { type: 'separator' as const },
+          { role: 'togglefullscreen' as const },
+        ],
+      },
+      { role: 'windowMenu' as const },
+    ]
+    electron.Menu.setApplicationMenu(
+      electron.Menu.buildFromTemplate(menuTemplate),
+    )
+
     // init the app protocol for fetching index.html and .js.map files
     electron.protocol.handle(APP_SCHEME, (req) =>
       appRequestHandler(this.serviceWorkerFetch.bind(this), req),

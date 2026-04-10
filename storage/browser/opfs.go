@@ -37,9 +37,10 @@ func (s *OpfsStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
 func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
 	rootPath := s.prefix + id
 	return &volume_opfs.Config{
-		RootPath:     rootPath,
-		AsyncIo:      true,
-		VolumeConfig: baseVolCtrlConf,
+		RootPath:               rootPath,
+		AsyncIo:                true,
+		BlockCompactionTrigger: 8,
+		VolumeConfig:           baseVolCtrlConf,
 	}, nil
 }
 
