@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"runtime"
 	"runtime/trace"
+	"strconv"
 	"sync"
 	"syscall/js"
 
@@ -249,11 +250,21 @@ func (e *Engine) Get(key []byte) ([]byte, bool, error) {
 	return e.GetFromShard(idx, key)
 }
 
+// maxCoalesceRounds is the maximum number of yield+drain cycles the actor
+// performs before publishing a coalesced batch. Prevents unbounded looping
+// when requests arrive faster than the drain rate.
+const maxCoalesceRounds = 16
+
 // runActor is the per-shard write actor goroutine.
 // Pipeline model: publish immediately on first entry, accumulate the queue
 // behind running I/O, and batch whatever arrived during publish as the next
 // round. Singleton writes pay only publish cost (no idle wait). Bursty writes
 // batch naturally because entries collect while I/O is in flight.
+//
+// Coalescing: after the first request, the actor yields and drains repeatedly
+// until no new requests arrive or maxCoalesceRounds is reached. This collapses
+// commit-burst traffic into fewer, larger publishes without adding latency to
+// singleton puts.
 func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 	defer e.wg.Done()
 	ch := e.actors[shardIdx]
@@ -271,17 +282,23 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			}
 		}
 
-		// Yield so sibling goroutines can enqueue.
-		runtime.Gosched()
-
-		// Non-blocking drain: collect whatever accumulated during the yield.
-	drain:
-		for {
-			select {
-			case req := <-ch:
-				reqs = append(reqs, req)
-			default:
-				break drain
+		// Coalescing yield-drain loop: repeat yield+drain until no new
+		// requests arrive or maxCoalesceRounds is reached. Singleton puts
+		// (nothing queued after first round) publish immediately.
+		for range maxCoalesceRounds {
+			runtime.Gosched()
+			prevLen := len(reqs)
+		drainRound:
+			for {
+				select {
+				case req := <-ch:
+					reqs = append(reqs, req)
+				default:
+					break drainRound
+				}
+			}
+			if len(reqs) == prevLen {
+				break
 			}
 		}
 
@@ -293,6 +310,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 
 		// Acquire publish lock and flush.
 		publishCtx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
+		trace.Log(publishCtx, "coalesce", "reqs="+strconv.Itoa(len(reqs))+" entries="+strconv.Itoa(len(merged)))
 		release, err := shard.AcquirePublishLock()
 		if err != nil {
 			publishTask.End()
