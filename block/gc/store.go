@@ -153,6 +153,47 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	return ref, existed, nil
 }
 
+// PutBlockBatch writes a batch of blocks through the inner store and buffers
+// GC ref edges for all new non-tombstone blocks. When the inner store
+// implements BatchPutStore, the batch flows through as a single lower-layer
+// operation. Otherwise falls back to per-entry PutBlock/RmBlock.
+func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
+	defer task.End()
+
+	if batcher, ok := g.store.(block.BatchPutStore); ok {
+		if err := batcher.PutBlockBatch(ctx, entries); err != nil {
+			return err
+		}
+	} else {
+		for _, entry := range entries {
+			if entry.Tombstone {
+				if err := g.store.RmBlock(ctx, entry.Ref.Clone()); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, _, err := g.store.PutBlock(ctx, entry.Data, &block.PutOpts{
+				ForceBlockRef: entry.Ref.Clone(),
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Buffer GC ref edges for non-tombstone blocks.
+	g.mu.Lock()
+	for _, entry := range entries {
+		if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+			continue
+		}
+		g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
+	}
+	g.mu.Unlock()
+
+	return nil
+}
+
 // GetBlock gets a block with the given reference.
 func (g *GCStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return g.store.GetBlock(ctx, ref)
@@ -351,4 +392,5 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 var (
 	_ block.StoreOps         = ((*GCStoreOps)(nil))
 	_ block.BlockRefRecorder = ((*GCStoreOps)(nil))
+	_ block.BatchPutStore    = ((*GCStoreOps)(nil))
 )
