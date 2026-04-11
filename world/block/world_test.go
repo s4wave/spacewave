@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
+	world_block_tx "github.com/aperturerobotics/hydra/world/block/tx"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1081,5 +1082,144 @@ func TestWorldState_GC_FullLifecycle(t *testing.T) {
 	}
 	if len(delIn) != 0 {
 		t.Fatalf("deleted object should have no incoming refs, got: %v", delIn)
+	}
+}
+
+// TestWorldState_GC_SweepTx verifies that a TxGCSweep transaction executed
+// through the EngineTx path sweeps unreferenced objects.
+func TestWorldState_GC_SweepTx(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	eng, err := world_block.NewEngine(ctx, le, ocs, world_mock.LookupMockOp, nil, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	sender := tb.Volume.GetPeerID()
+	objKey := "sweep-tx-obj"
+
+	// Create an object via engine tx.
+	{
+		btx, err := eng.NewBlockEngineTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+		_, err = btx.CreateObject(ctx, objKey, &bucket.ObjectRef{BucketId: "test"})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		ref, err := btx.CommitBlockTransaction(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := eng.SetRootRef(ctx, ref); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Delete the object via engine tx.
+	{
+		btx, err := eng.NewBlockEngineTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+		deleted, err := btx.DeleteObject(ctx, objKey)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !deleted {
+			t.Fatal("expected object to be deleted")
+		}
+		ref, err := btx.CommitBlockTransaction(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := eng.SetRootRef(ctx, ref); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Verify unreferenced nodes exist before sweep.
+	{
+		ocs.SetRootRef(eng.GetRootRef().GetRootRef())
+		ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		rg := ws.GetRefGraph()
+		if rg == nil {
+			t.Fatal("no refgraph on world state")
+		}
+		unrefs, err := rg.GetUnreferencedNodes(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		objIRI := block_gc.ObjectIRI(objKey)
+		if !slices.Contains(unrefs, objIRI) {
+			t.Fatalf("expected %s in unreferenced nodes before sweep, got: %v", objIRI, unrefs)
+		}
+	}
+
+	// Execute GC sweep tx through the engine tx path.
+	{
+		sweepTx, err := world_block_tx.NewTxGCSweep()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		ttx, err := sweepTx.LocateTx()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		btx, err := eng.NewBlockEngineTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+		_, err = ttx.ExecuteTx(ctx, sender, world_mock.LookupMockOp, btx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		ref, err := btx.CommitBlockTransaction(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := eng.SetRootRef(ctx, ref); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Verify no unreferenced nodes remain after sweep.
+	{
+		ocs.SetRootRef(eng.GetRootRef().GetRootRef())
+		ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		rg := ws.GetRefGraph()
+		if rg == nil {
+			t.Fatal("no refgraph on world state")
+		}
+		unrefs, err := rg.GetUnreferencedNodes(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(unrefs) != 0 {
+			t.Fatalf("expected no unreferenced nodes after sweep, got: %v", unrefs)
+		}
 	}
 }

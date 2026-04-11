@@ -37,6 +37,10 @@ message Tx {
 
   // TxBatch is a batch of multiple txs.
   TxBatch tx_batch = 10;
+
+  // TxGCSweep triggers a garbage collection sweep.
+  // TxType_GC_SWEEP
+  TxGCSweep tx_gc_sweep = 11;
 }
 
 // TxType indicates the kind of transaction.
@@ -64,6 +68,9 @@ enum TxType {
 
   // TxType_BATCH applies multiple sub-transactions.
   TxType_BATCH = 9;
+
+  // TxType_GC_SWEEP triggers a garbage collection sweep.
+  TxType_GC_SWEEP = 10;
 }
 
 // TxBatch is a batch of multiple transactions.
@@ -138,4 +145,9 @@ message TxSetGraphQuad {
 message TxDeleteGraphQuad {
   // Quad is the graph quad to delete.
   .quad.Quad quad = 1;
+}
+
+// TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
+// TxType: TxType_GC_SWEEP
+message TxGCSweep {
 }

@@ -44,6 +44,7 @@ func (t TxType) Validate() error {
 	case TxType_TxType_SET_GRAPH_QUAD:
 	case TxType_TxType_DELETE_GRAPH_QUAD:
 	case TxType_TxType_BATCH:
+	case TxType_TxType_GC_SWEEP:
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -106,6 +107,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxDeleteGraphQuad(), nil
 	case TxType_TxType_BATCH:
 		return t.GetTxBatch(), nil
+	case TxType_TxType_GC_SWEEP:
+		return t.GetTxGcSweep(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.GetTxType().String())
 	}
@@ -144,6 +147,8 @@ func (t *Tx) ApplySubBlock(id uint32, next block.SubBlock) error {
 		return block.ApplySubBlock(&t.TxDeleteGraphQuad, next)
 	case 10:
 		return block.ApplySubBlock(&t.TxBatch, next)
+	case 11:
+		return block.ApplySubBlock(&t.TxGcSweep, next)
 	}
 	return nil
 }
@@ -170,6 +175,8 @@ func (t *Tx) GetSubBlocks() map[uint32]block.SubBlock {
 		m[9] = t.GetTxDeleteGraphQuad()
 	case TxType_TxType_BATCH:
 		m[10] = t.GetTxBatch()
+	case TxType_TxType_GC_SWEEP:
+		m[11] = t.GetTxGcSweep()
 	}
 	return m
 }
@@ -196,6 +203,8 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return block.NewSubBlockCtor(&t.TxDeleteGraphQuad, func() *TxDeleteGraphQuad { return &TxDeleteGraphQuad{} })
 	case 10:
 		return block.NewSubBlockCtor(&t.TxBatch, func() *TxBatch { return &TxBatch{} })
+	case 11:
+		return block.NewSubBlockCtor(&t.TxGcSweep, func() *TxGCSweep { return &TxGCSweep{} })
 	}
 	return nil
 }

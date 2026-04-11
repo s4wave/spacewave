@@ -39,6 +39,10 @@ pub struct Tx {
     /// TxBatch is a batch of multiple txs.
     #[prost(message, optional, tag="10")]
     pub tx_batch: ::core::option::Option<TxBatch>,
+    /// TxGCSweep triggers a garbage collection sweep.
+    /// TxType_GC_SWEEP
+    #[prost(message, optional, tag="11")]
+    pub tx_gc_sweep: ::core::option::Option<TxGcSweep>,
 }
 /// TxBatch is a batch of multiple transactions.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -129,6 +133,11 @@ pub struct TxDeleteGraphQuad {
     #[prost(message, optional, tag="1")]
     pub quad: ::core::option::Option<super::super::super::quad::Quad>,
 }
+/// TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
+/// TxType: TxType_GC_SWEEP
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxGcSweep {
+}
 /// TxType indicates the kind of transaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -152,6 +161,8 @@ pub enum TxType {
     DeleteGraphQuad = 8,
     /// TxType_BATCH applies multiple sub-transactions.
     Batch = 9,
+    /// TxType_GC_SWEEP triggers a garbage collection sweep.
+    GcSweep = 10,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -170,6 +181,7 @@ impl TxType {
             Self::SetGraphQuad => "TxType_SET_GRAPH_QUAD",
             Self::DeleteGraphQuad => "TxType_DELETE_GRAPH_QUAD",
             Self::Batch => "TxType_BATCH",
+            Self::GcSweep => "TxType_GC_SWEEP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -185,6 +197,7 @@ impl TxType {
             "TxType_SET_GRAPH_QUAD" => Some(Self::SetGraphQuad),
             "TxType_DELETE_GRAPH_QUAD" => Some(Self::DeleteGraphQuad),
             "TxType_BATCH" => Some(Self::Batch),
+            "TxType_GC_SWEEP" => Some(Self::GcSweep),
             _ => None,
         }
     }

@@ -41,21 +41,24 @@ const (
 	TxType_TxType_DELETE_GRAPH_QUAD TxType = 8
 	// TxType_BATCH applies multiple sub-transactions.
 	TxType_TxType_BATCH TxType = 9
+	// TxType_GC_SWEEP triggers a garbage collection sweep.
+	TxType_TxType_GC_SWEEP TxType = 10
 )
 
 // Enum value maps for TxType.
 var (
 	TxType_name = map[int32]string{
-		0: "TxType_INVALID",
-		1: "TxType_APPLY_WORLD_OP",
-		2: "TxType_APPLY_OBJECT_OP",
-		3: "TxType_CREATE_OBJECT",
-		4: "TxType_OBJECT_SET",
-		5: "TxType_OBJECT_INC_REV",
-		6: "TxType_DELETE_OBJECT",
-		7: "TxType_SET_GRAPH_QUAD",
-		8: "TxType_DELETE_GRAPH_QUAD",
-		9: "TxType_BATCH",
+		0:  "TxType_INVALID",
+		1:  "TxType_APPLY_WORLD_OP",
+		2:  "TxType_APPLY_OBJECT_OP",
+		3:  "TxType_CREATE_OBJECT",
+		4:  "TxType_OBJECT_SET",
+		5:  "TxType_OBJECT_INC_REV",
+		6:  "TxType_DELETE_OBJECT",
+		7:  "TxType_SET_GRAPH_QUAD",
+		8:  "TxType_DELETE_GRAPH_QUAD",
+		9:  "TxType_BATCH",
+		10: "TxType_GC_SWEEP",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":           0,
@@ -68,6 +71,7 @@ var (
 		"TxType_SET_GRAPH_QUAD":    7,
 		"TxType_DELETE_GRAPH_QUAD": 8,
 		"TxType_BATCH":             9,
+		"TxType_GC_SWEEP":          10,
 	}
 )
 
@@ -114,6 +118,9 @@ type Tx struct {
 	TxDeleteGraphQuad *TxDeleteGraphQuad `protobuf:"bytes,9,opt,name=tx_delete_graph_quad,json=txDeleteGraphQuad,proto3" json:"txDeleteGraphQuad,omitempty"`
 	// TxBatch is a batch of multiple txs.
 	TxBatch *TxBatch `protobuf:"bytes,10,opt,name=tx_batch,json=txBatch,proto3" json:"txBatch,omitempty"`
+	// TxGCSweep triggers a garbage collection sweep.
+	// TxType_GC_SWEEP
+	TxGcSweep *TxGCSweep `protobuf:"bytes,11,opt,name=tx_gc_sweep,json=txGcSweep,proto3" json:"txGcSweep,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -188,6 +195,13 @@ func (x *Tx) GetTxDeleteGraphQuad() *TxDeleteGraphQuad {
 func (x *Tx) GetTxBatch() *TxBatch {
 	if x != nil {
 		return x.TxBatch
+	}
+	return nil
+}
+
+func (x *Tx) GetTxGcSweep() *TxGCSweep {
+	if x != nil {
+		return x.TxGcSweep
 	}
 	return nil
 }
@@ -434,6 +448,18 @@ func (x *TxDeleteGraphQuad) GetQuad() *quad.Quad {
 	return nil
 }
 
+// TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
+// TxType: TxType_GC_SWEEP
+type TxGCSweep struct {
+	unknownFields []byte
+}
+
+func (x *TxGCSweep) Reset() {
+	*x = TxGCSweep{}
+}
+
+func (*TxGCSweep) ProtoMessage() {}
+
 func (m *Tx) CloneVT() *Tx {
 	if m == nil {
 		return (*Tx)(nil)
@@ -449,6 +475,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxSetGraphQuad = m.TxSetGraphQuad.CloneVT()
 	r.TxDeleteGraphQuad = m.TxDeleteGraphQuad.CloneVT()
 	r.TxBatch = m.TxBatch.CloneVT()
+	r.TxGcSweep = m.TxGcSweep.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -525,7 +552,9 @@ func (m *TxCreateObject) CloneVT() *TxCreateObject {
 	}
 	r := new(TxCreateObject)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -542,7 +571,9 @@ func (m *TxObjectSet) CloneVT() *TxObjectSet {
 	}
 	r := new(TxObjectSet)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -591,7 +622,9 @@ func (m *TxSetGraphQuad) CloneVT() *TxSetGraphQuad {
 		return (*TxSetGraphQuad)(nil)
 	}
 	r := new(TxSetGraphQuad)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -607,7 +640,9 @@ func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 		return (*TxDeleteGraphQuad)(nil)
 	}
 	r := new(TxDeleteGraphQuad)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -615,6 +650,21 @@ func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 }
 
 func (m *TxDeleteGraphQuad) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxGCSweep) CloneVT() *TxGCSweep {
+	if m == nil {
+		return (*TxGCSweep)(nil)
+	}
+	r := new(TxGCSweep)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxGCSweep) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -652,6 +702,9 @@ func (this *Tx) EqualVT(that *Tx) bool {
 		return false
 	}
 	if !this.TxBatch.EqualVT(that.TxBatch) {
+		return false
+	}
+	if !this.TxGcSweep.EqualVT(that.TxGcSweep) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -877,6 +930,23 @@ func (this *TxDeleteGraphQuad) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TxGCSweep) EqualVT(that *TxGCSweep) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxGCSweep) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxGCSweep)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the TxType to JSON.
 func (x TxType) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), TxType_name)
@@ -975,6 +1045,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txBatch")
 		x.TxBatch.MarshalProtoJSON(s.WithField("txBatch"))
 	}
+	if x.TxGcSweep != nil || s.HasField("txGcSweep") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txGcSweep")
+		x.TxGcSweep.MarshalProtoJSON(s.WithField("txGcSweep"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1058,6 +1133,13 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxBatch = &TxBatch{}
 			x.TxBatch.UnmarshalProtoJSON(s.WithField("tx_batch", true))
+		case "tx_gc_sweep", "txGcSweep":
+			if s.ReadNil() {
+				x.TxGcSweep = nil
+				return
+			}
+			x.TxGcSweep = &TxGCSweep{}
+			x.TxGcSweep.UnmarshalProtoJSON(s.WithField("tx_gc_sweep", true))
 		}
 	})
 }
@@ -1530,6 +1612,36 @@ func (x *TxDeleteGraphQuad) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TxGCSweep message to JSON.
+func (x *TxGCSweep) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxGCSweep to JSON.
+func (x *TxGCSweep) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxGCSweep message from JSON.
+func (x *TxGCSweep) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the TxGCSweep from JSON.
+func (x *TxGCSweep) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Tx) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1559,6 +1671,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.TxGcSweep != nil {
+		size, err := m.TxGcSweep.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
 	}
 	if m.TxBatch != nil {
 		size, err := m.TxBatch.MarshalToSizedBufferVT(dAtA[:i])
@@ -2080,6 +2202,39 @@ func (m *TxDeleteGraphQuad) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TxGCSweep) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxGCSweep) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxGCSweep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Tx) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2123,6 +2278,10 @@ func (m *Tx) SizeVT() (n int) {
 	}
 	if m.TxBatch != nil {
 		l = m.TxBatch.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.TxGcSweep != nil {
+		l = m.TxGcSweep.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -2280,6 +2439,16 @@ func (m *TxDeleteGraphQuad) SizeVT() (n int) {
 	return n
 }
 
+func (m *TxGCSweep) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x TxType) MarshalProtoText() string {
 	return x.String()
 }
@@ -2358,6 +2527,13 @@ func (x *Tx) MarshalProtoText() string {
 		}
 		sb.WriteString("tx_batch: ")
 		sb.WriteString(x.TxBatch.MarshalProtoText())
+	}
+	if x.TxGcSweep != nil {
+		if sb.Len() > 4 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tx_gc_sweep: ")
+		sb.WriteString(x.TxGcSweep.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2578,6 +2754,17 @@ func (x *TxDeleteGraphQuad) MarshalProtoText() string {
 }
 
 func (x *TxDeleteGraphQuad) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxGCSweep) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TxGCSweep {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TxGCSweep) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2861,6 +3048,34 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				m.TxBatch = &TxBatch{}
 			}
 			if err := m.TxBatch.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxGcSweep", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TxGcSweep == nil {
+				m.TxGcSweep = &TxGCSweep{}
+			}
+			if err := m.TxGcSweep.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3607,6 +3822,49 @@ func (m *TxDeleteGraphQuad) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxGCSweep) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxGCSweep: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxGCSweep: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

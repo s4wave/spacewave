@@ -86,6 +86,13 @@ export enum TxType {
    * @generated from enum value: TxType_BATCH = 9;
    */
   TxType_BATCH = 9,
+
+  /**
+   * TxType_GC_SWEEP triggers a garbage collection sweep.
+   *
+   * @generated from enum value: TxType_GC_SWEEP = 10;
+   */
+  TxType_GC_SWEEP = 10,
 }
 
 // TxType_Enum is the enum type for TxType.
@@ -100,6 +107,7 @@ export const TxType_Enum = createEnumType('world.block.tx.TxType', [
   { no: 7, name: 'TxType_SET_GRAPH_QUAD' },
   { no: 8, name: 'TxType_DELETE_GRAPH_QUAD' },
   { no: 9, name: 'TxType_BATCH' },
+  { no: 10, name: 'TxType_GC_SWEEP' },
 ])
 
 /**
@@ -361,6 +369,21 @@ export const TxBatch: MessageType<TxBatch> = createMessageType({
 })
 
 /**
+ * TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
+ * TxType: TxType_GC_SWEEP
+ *
+ * @generated from message world.block.tx.TxGCSweep
+ */
+export interface TxGCSweep {}
+
+// TxGCSweep contains the message type declaration for TxGCSweep.
+export const TxGCSweep: MessageType<TxGCSweep> = createMessageType({
+  typeName: 'world.block.tx.TxGCSweep',
+  fields: [] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Tx is the on-the-wire representation of a World transaction.
  *
  * @generated from message world.block.tx.Tx
@@ -432,6 +455,13 @@ export interface Tx {
    * @generated from field: world.block.tx.TxBatch tx_batch = 10;
    */
   txBatch?: TxBatch
+  /**
+   * TxGCSweep triggers a garbage collection sweep.
+   * TxType_GC_SWEEP
+   *
+   * @generated from field: world.block.tx.TxGCSweep tx_gc_sweep = 11;
+   */
+  txGcSweep?: TxGCSweep
 }
 
 // Tx contains the message type declaration for Tx.
@@ -483,6 +513,7 @@ export const Tx: MessageType<Tx> = createMessageType({
       T: () => TxDeleteGraphQuad,
     },
     { no: 10, name: 'tx_batch', kind: 'message', T: () => TxBatch },
+    { no: 11, name: 'tx_gc_sweep', kind: 'message', T: () => TxGCSweep },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

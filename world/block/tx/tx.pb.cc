@@ -56,6 +56,24 @@ struct TxObjectIncRevDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxObjectIncRevDefaultTypeInternal _TxObjectIncRev_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR TxGCSweep::TxGCSweep(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(TxGCSweep_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct TxGCSweepDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TxGCSweepDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TxGCSweepDefaultTypeInternal() {}
+  union {
+    TxGCSweep _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxGCSweepDefaultTypeInternal _TxGCSweep_default_instance_;
 
 inline constexpr TxDeleteObject::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -266,6 +284,7 @@ inline constexpr Tx::Impl_::Impl_(
         tx_set_graph_quad_{nullptr},
         tx_delete_graph_quad_{nullptr},
         tx_batch_{nullptr},
+        tx_gc_sweep_{nullptr},
         tx_type_{static_cast< ::world::block::tx::TxType >(0)} {}
 
 template <typename>
@@ -324,7 +343,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_._has_bits_),
-        13, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_type_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_apply_world_op_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_apply_object_op_),
@@ -335,7 +354,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_set_graph_quad_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_delete_graph_quad_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_batch_),
-        9,
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_gc_sweep_),
+        10,
         0,
         1,
         2,
@@ -345,6 +365,7 @@ const ::uint32_t
         6,
         7,
         8,
+        9,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxBatch, _impl_._has_bits_),
         4, // hasbit index offset
@@ -402,20 +423,22 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxDeleteGraphQuad, _impl_.quad_),
         0,
+        0x000, // bitmap
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::world::block::tx::Tx)},
-        {23, sizeof(::world::block::tx::TxBatch)},
-        {28, sizeof(::world::block::tx::TxApplyWorldOp)},
-        {35, sizeof(::world::block::tx::TxApplyObjectOp)},
-        {44, sizeof(::world::block::tx::TxCreateObject)},
-        {51, sizeof(::world::block::tx::TxObjectSet)},
-        {58, sizeof(::world::block::tx::TxObjectIncRev)},
-        {63, sizeof(::world::block::tx::TxDeleteObject)},
-        {70, sizeof(::world::block::tx::TxSetGraphQuad)},
-        {75, sizeof(::world::block::tx::TxDeleteGraphQuad)},
+        {25, sizeof(::world::block::tx::TxBatch)},
+        {30, sizeof(::world::block::tx::TxApplyWorldOp)},
+        {37, sizeof(::world::block::tx::TxApplyObjectOp)},
+        {46, sizeof(::world::block::tx::TxCreateObject)},
+        {53, sizeof(::world::block::tx::TxObjectSet)},
+        {60, sizeof(::world::block::tx::TxObjectIncRev)},
+        {65, sizeof(::world::block::tx::TxDeleteObject)},
+        {72, sizeof(::world::block::tx::TxSetGraphQuad)},
+        {77, sizeof(::world::block::tx::TxDeleteGraphQuad)},
+        {82, sizeof(::world::block::tx::TxGCSweep)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_Tx_default_instance_._instance,
@@ -428,6 +451,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_TxDeleteObject_default_instance_._instance,
     &::world::block::tx::_TxSetGraphQuad_default_instance_._instance,
     &::world::block::tx::_TxDeleteGraphQuad_default_instance_._instance,
+    &::world::block::tx::_TxGCSweep_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -435,7 +459,7 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "d/block/tx/tx.proto\022\016world.block.tx\0325git"
     "hub.com/aperturerobotics/hydra/bucket/bu"
     "cket.proto\0327github.com/aperturerobotics/"
-    "hydra/block/quad/quad.proto\"\257\004\n\002Tx\022\'\n\007tx"
+    "hydra/block/quad/quad.proto\"\337\004\n\002Tx\022\'\n\007tx"
     "_type\030\001 \001(\0162\026.world.block.tx.TxType\0229\n\021t"
     "x_apply_world_op\030\002 \001(\0132\036.world.block.tx."
     "TxApplyWorldOp\022;\n\022tx_apply_object_op\030\003 \001"
@@ -449,28 +473,30 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "uad\030\010 \001(\0132\036.world.block.tx.TxSetGraphQua"
     "d\022\?\n\024tx_delete_graph_quad\030\t \001(\0132!.world."
     "block.tx.TxDeleteGraphQuad\022)\n\010tx_batch\030\n"
-    " \001(\0132\027.world.block.tx.TxBatch\"*\n\007TxBatch"
-    "\022\037\n\003txs\030\001 \003(\0132\022.world.block.tx.Tx\"C\n\016TxA"
-    "pplyWorldOp\022\031\n\021operation_type_id\030\001 \001(\t\022\026"
-    "\n\016operation_body\030\002 \001(\014\"X\n\017TxApplyObjectO"
-    "p\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n\016operatio"
-    "n_body\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t\"I\n\016TxCr"
-    "eateObject\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_r"
-    "ef\030\002 \001(\0132\021.bucket.ObjectRef\"F\n\013TxObjectS"
-    "et\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\013"
-    "2\021.bucket.ObjectRef\"$\n\016TxObjectIncRev\022\022\n"
-    "\nobject_key\030\001 \001(\t\"\?\n\016TxDeleteObject\022\022\n\no"
-    "bject_key\030\001 \001(\t\022\031\n\021fail_if_not_found\030\002 \001"
-    "(\010\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001(\0132\n.qua"
-    "d.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004quad\030\001 \001("
-    "\0132\n.quad.Quad*\204\002\n\006TxType\022\022\n\016TxType_INVAL"
-    "ID\020\000\022\031\n\025TxType_APPLY_WORLD_OP\020\001\022\032\n\026TxTyp"
-    "e_APPLY_OBJECT_OP\020\002\022\030\n\024TxType_CREATE_OBJ"
-    "ECT\020\003\022\025\n\021TxType_OBJECT_SET\020\004\022\031\n\025TxType_O"
-    "BJECT_INC_REV\020\005\022\030\n\024TxType_DELETE_OBJECT\020"
-    "\006\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022\034\n\030TxType_D"
-    "ELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_BATCH\020\tb\006pr"
-    "oto3"
+    " \001(\0132\027.world.block.tx.TxBatch\022.\n\013tx_gc_s"
+    "weep\030\013 \001(\0132\031.world.block.tx.TxGCSweep\"*\n"
+    "\007TxBatch\022\037\n\003txs\030\001 \003(\0132\022.world.block.tx.T"
+    "x\"C\n\016TxApplyWorldOp\022\031\n\021operation_type_id"
+    "\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\"X\n\017TxAppl"
+    "yObjectOp\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n\016"
+    "operation_body\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t"
+    "\"I\n\016TxCreateObject\022\022\n\nobject_key\030\001 \001(\t\022#"
+    "\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\"F\n\013T"
+    "xObjectSet\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_r"
+    "ef\030\002 \001(\0132\021.bucket.ObjectRef\"$\n\016TxObjectI"
+    "ncRev\022\022\n\nobject_key\030\001 \001(\t\"\?\n\016TxDeleteObj"
+    "ect\022\022\n\nobject_key\030\001 \001(\t\022\031\n\021fail_if_not_f"
+    "ound\030\002 \001(\010\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001"
+    "(\0132\n.quad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004q"
+    "uad\030\001 \001(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\231\002\n\006T"
+    "xType\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPL"
+    "Y_WORLD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002"
+    "\022\030\n\024TxType_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJ"
+    "ECT_SET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024"
+    "TxType_DELETE_OBJECT\020\006\022\031\n\025TxType_SET_GRA"
+    "PH_QUAD\020\007\022\034\n\030TxType_DELETE_GRAPH_QUAD\020\010\022"
+    "\020\n\014TxType_BATCH\020\t\022\023\n\017TxType_GC_SWEEP\020\nb\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
@@ -481,13 +507,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto = {
     false,
     false,
-    1564,
+    1646,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
     "github.com/aperturerobotics/hydra/world/block/tx/tx.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps,
     2,
-    10,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto::offsets,
@@ -502,7 +528,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor() {
   return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t TxType_internal_data_[] = {
-    655360u, 0u, };
+    720896u, 0u, };
 // ===================================================================
 
 class Tx::_Internal {
@@ -570,6 +596,9 @@ Tx::Tx(
   _impl_.tx_batch_ = (CheckHasBit(cached_has_bits, 0x00000100U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_batch_)
                 : nullptr;
+  _impl_.tx_gc_sweep_ = (CheckHasBit(cached_has_bits, 0x00000200U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_gc_sweep_)
+                : nullptr;
   _impl_.tx_type_ = from._impl_.tx_type_;
 
   // @@protoc_insertion_point(copy_constructor:world.block.tx.Tx)
@@ -608,6 +637,7 @@ inline void Tx::SharedDtor(MessageLite& self) {
   delete this_._impl_.tx_set_graph_quad_;
   delete this_._impl_.tx_delete_graph_quad_;
   delete this_._impl_.tx_batch_;
+  delete this_._impl_.tx_gc_sweep_;
   this_._impl_.~Impl_();
 }
 
@@ -654,17 +684,17 @@ Tx::GetClassData() const {
   return Tx_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 9, 0, 2>
+const ::_pbi::TcParseTable<4, 11, 10, 0, 2>
 Tx::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Tx, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
-    9,  // num_aux_entries
+    11,  // num_field_entries
+    10,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Tx_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -675,8 +705,8 @@ Tx::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .world.block.tx.TxType tx_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 9>(),
-     {8, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 10>(),
+     {8, 10, 0,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_)}},
     // .world.block.tx.TxApplyWorldOp tx_apply_world_op = 2;
     {::_pbi::TcParser::FastMtS1,
@@ -714,7 +744,10 @@ Tx::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {82, 8, 8,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_batch_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .world.block.tx.TxGCSweep tx_gc_sweep = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 9, 9,
+      PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_gc_sweep_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -723,7 +756,7 @@ Tx::_table_ = {
     65535, 65535
   }}, {{
     // .world.block.tx.TxType tx_type = 1;
-    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .world.block.tx.TxApplyWorldOp tx_apply_world_op = 2;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_apply_world_op_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .world.block.tx.TxApplyObjectOp tx_apply_object_op = 3;
@@ -742,6 +775,8 @@ Tx::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_delete_graph_quad_), _Internal::kHasBitsOffset + 7, 7, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .world.block.tx.TxBatch tx_batch = 10;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_batch_), _Internal::kHasBitsOffset + 8, 8, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .world.block.tx.TxGCSweep tx_gc_sweep = 11;
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_gc_sweep_), _Internal::kHasBitsOffset + 9, 9, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::world::block::tx::TxApplyWorldOp>()},
@@ -753,6 +788,7 @@ Tx::_table_ = {
       {::_pbi::TcParser::GetTable<::world::block::tx::TxSetGraphQuad>()},
       {::_pbi::TcParser::GetTable<::world::block::tx::TxDeleteGraphQuad>()},
       {::_pbi::TcParser::GetTable<::world::block::tx::TxBatch>()},
+      {::_pbi::TcParser::GetTable<::world::block::tx::TxGCSweep>()},
   }},
   {{
   }},
@@ -799,9 +835,15 @@ PROTOBUF_NOINLINE void Tx::Clear() {
       _impl_.tx_delete_graph_quad_->Clear();
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    ABSL_DCHECK(_impl_.tx_batch_ != nullptr);
-    _impl_.tx_batch_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(_impl_.tx_batch_ != nullptr);
+      _impl_.tx_batch_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(_impl_.tx_gc_sweep_ != nullptr);
+      _impl_.tx_gc_sweep_->Clear();
+    }
   }
   _impl_.tx_type_ = 0;
   _impl_._has_bits_.Clear();
@@ -828,7 +870,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .world.block.tx.TxType tx_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_tx_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -899,6 +941,13 @@ PROTOBUF_NOINLINE void Tx::Clear() {
         stream);
   }
 
+  // .world.block.tx.TxGCSweep tx_gc_sweep = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.tx_gc_sweep_, this_._impl_.tx_gc_sweep_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -966,14 +1015,19 @@ PROTOBUF_NOINLINE void Tx::Clear() {
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_delete_graph_quad_);
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // .world.block.tx.TxBatch tx_batch = 10;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_batch_);
     }
-    // .world.block.tx.TxType tx_type = 1;
+    // .world.block.tx.TxGCSweep tx_gc_sweep = 11;
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_gc_sweep_);
+    }
+    // .world.block.tx.TxType tx_type = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_tx_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_tx_type());
@@ -1065,7 +1119,7 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       ABSL_DCHECK(from._impl_.tx_batch_ != nullptr);
       if (_this->_impl_.tx_batch_ == nullptr) {
@@ -1075,6 +1129,14 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(from._impl_.tx_gc_sweep_ != nullptr);
+      if (_this->_impl_.tx_gc_sweep_ == nullptr) {
+        _this->_impl_.tx_gc_sweep_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_gc_sweep_);
+      } else {
+        _this->_impl_.tx_gc_sweep_->MergeFrom(*from._impl_.tx_gc_sweep_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_tx_type() != 0) {
         _this->_impl_.tx_type_ = from._impl_.tx_type_;
       }
@@ -3855,6 +3917,115 @@ void TxDeleteGraphQuad::InternalSwap(TxDeleteGraphQuad* PROTOBUF_RESTRICT PROTOB
 
 ::google::protobuf::Metadata TxDeleteGraphQuad::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TxGCSweep::_Internal {
+ public:
+};
+
+TxGCSweep::TxGCSweep(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxGCSweep_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:world.block.tx.TxGCSweep)
+}
+TxGCSweep::TxGCSweep(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TxGCSweep& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxGCSweep_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TxGCSweep* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:world.block.tx.TxGCSweep)
+}
+
+inline void* PROTOBUF_NONNULL TxGCSweep::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TxGCSweep(arena);
+}
+constexpr auto TxGCSweep::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(TxGCSweep),
+                                            alignof(TxGCSweep));
+}
+constexpr auto TxGCSweep::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TxGCSweep_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TxGCSweep::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<TxGCSweep>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TxGCSweep::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<TxGCSweep>(), &TxGCSweep::ByteSizeLong,
+              &TxGCSweep::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_._cached_size_),
+          false,
+      },
+      &TxGCSweep::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TxGCSweep_class_data_ =
+        TxGCSweep::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TxGCSweep::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TxGCSweep_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TxGCSweep_class_data_.tc_table);
+  return TxGCSweep_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+TxGCSweep::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TxGCSweep_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::world::block::tx::TxGCSweep>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata TxGCSweep::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace tx
