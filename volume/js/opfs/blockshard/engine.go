@@ -240,6 +240,12 @@ func (e *Engine) GetFromShard(shardIdx int, key []byte) ([]byte, bool, error) {
 func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, bool, error) {
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
+	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
+		refreshed, err := e.refreshShardManifest(shardIdx)
+		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
+			m = refreshed
+		}
+	}
 
 	// Scan segments newest-first (last in manifest = newest).
 	for i := len(m.Segments) - 1; i >= 0; i-- {
@@ -279,6 +285,12 @@ func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, b
 			return nil, false, err
 		}
 		if found {
+			if !retried && shard.getLatestGeneration() <= m.Generation {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getFromShard(shardIdx, key, true)
+				}
+			}
 			return val, true, nil
 		}
 	}
@@ -423,6 +435,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			reclaimTask.End()
 		}
 		gen := shard.Manifest().Generation
+		shard.observeGeneration(gen)
 		release()
 		publishTask.End()
 
@@ -453,6 +466,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 						_, compErr = shard.ReclaimPendingDelete()
 					}
 					compGen := shard.Manifest().Generation
+					shard.observeGeneration(compGen)
 					release()
 					if compErr == nil {
 						e.broadcaster.Send(shardIdx, compGen)
@@ -487,6 +501,7 @@ func (e *Engine) runInvalidationListener(ctx context.Context) {
 				continue
 			}
 			shard := e.shards[idx]
+			shard.observeGeneration(msg.Generation)
 			current := shard.Manifest()
 			if msg.Generation > current.Generation {
 				if _, err := e.refreshShardManifest(idx); err != nil {

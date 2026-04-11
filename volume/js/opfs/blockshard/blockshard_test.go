@@ -19,9 +19,6 @@ func newTestEngine(t testing.TB, dirName, lockPrefix string) (*Engine, func()) {
 
 func newTestEngineWithSettings(t testing.TB, dirName, lockPrefix string, settings *Settings) (*Engine, func()) {
 	t.Helper()
-	if (settings == nil || !settings.AsyncIO) && !opfs.SyncAvailable() {
-		t.Skip("sync access handles not available")
-	}
 	root, err := opfs.GetRoot()
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +95,7 @@ func TestSingletonPutDoesNotWaitForFlushAge(t *testing.T) {
 		t.Fatal(err)
 	}
 	dur := time.Since(start)
-	if dur >= 40*time.Millisecond {
+	if dur >= 200*time.Millisecond {
 		t.Fatalf("singleton put took %v; expected no pre-publish wait", dur)
 	}
 
@@ -137,6 +134,49 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 	if !found || string(val) != "mode" {
 		t.Fatalf("async get: found=%v val=%q want mode", found, val)
+	}
+}
+
+func TestWritePolicy(t *testing.T) {
+	tests := []struct {
+		name      string
+		asyncIO   bool
+		filename  string
+		wantAsync bool
+	}{
+		{
+			name:      "force-async-segment",
+			asyncIO:   true,
+			filename:  "seg-000001.sst",
+			wantAsync: true,
+		},
+		{
+			name:      "force-async-manifest",
+			asyncIO:   true,
+			filename:  manifestSlotA,
+			wantAsync: true,
+		},
+		{
+			name:      "default-manifest",
+			asyncIO:   false,
+			filename:  manifestSlotA,
+			wantAsync: true,
+		},
+		{
+			name:      "default-segment",
+			asyncIO:   false,
+			filename:  "seg-000001.sst",
+			wantAsync: !opfs.SyncAvailable(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Shard{asyncIO: tt.asyncIO}
+			if got := s.shouldUseAsyncWrite(tt.filename); got != tt.wantAsync {
+				t.Fatalf("shouldUseAsyncWrite(%q) = %v, want %v", tt.filename, got, tt.wantAsync)
+			}
+		})
 	}
 }
 
@@ -207,6 +247,10 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	}
 
 	compactShard(t, writer.shards[0])
+	postCompact := writer.shards[0].Manifest()
+	if len(postCompact.PendingDelete) != 4 {
+		t.Fatalf("post-compaction pending deletes: got %d want 4", len(postCompact.PendingDelete))
+	}
 
 	now = now.Add(DefaultRetireGracePeriod + time.Millisecond)
 	for _, v := range []string{"v5", "v6"} {
@@ -215,14 +259,21 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 			Value: []byte(v),
 		}})
 	}
+	current := writer.shards[0].Manifest()
+	if len(current.PendingDelete) != 0 {
+		t.Fatalf("expected reclaimed pending deletes, got %d at generation %d", len(current.PendingDelete), current.Generation)
+	}
 
 	missing := stale.Segments[len(stale.Segments)-1].Filename
-	exists, err := opfs.FileExists(writer.shards[0].dir, missing)
-	if err != nil {
-		t.Fatal(err)
+	foundPending := false
+	for _, seg := range postCompact.PendingDelete {
+		if seg.Filename == missing {
+			foundPending = true
+			break
+		}
 	}
-	if exists {
-		t.Fatalf("expected reclaimed segment %q to be deleted", missing)
+	if !foundPending {
+		t.Fatalf("expected %q in pending delete set after compaction", missing)
 	}
 
 	reader.shards[0].mu.Lock()

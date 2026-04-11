@@ -87,6 +87,24 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 	return result, jsErr
 }
 
+func yieldMicrotask() error {
+	promiseCtor := js.Global().Get("Promise")
+	var cb js.Func
+	exec := js.FuncOf(func(this js.Value, args []js.Value) any {
+		resolve := args[0]
+		cb = js.FuncOf(func(this js.Value, args []js.Value) any {
+			resolve.Invoke(js.Undefined())
+			cb.Release()
+			return nil
+		})
+		js.Global().Call("queueMicrotask", cb)
+		return nil
+	})
+	defer exec.Release()
+	_, err := AwaitPromise(promiseCtor.New(exec))
+	return err
+}
+
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
 func GetRoot() (js.Value, error) {
 	storage := js.Global().Get("navigator").Get("storage")
@@ -327,14 +345,49 @@ func ReadFile(dir js.Value, name string) ([]byte, error) {
 func DeleteEntry(dir js.Value, name string, recursive bool) error {
 	opts := js.Global().Get("Object").New()
 	opts.Set("recursive", recursive)
-	_, err := AwaitPromise(dir.Call("removeEntry", name, opts))
-	return err
+	var lastErr error
+	for range syncAccessHandleRetries {
+		_, err := AwaitPromise(dir.Call("removeEntry", name, opts))
+		if err == nil {
+			return nil
+		}
+		if !IsNoModificationAllowed(err) {
+			return err
+		}
+		lastErr = err
+		if err := yieldMicrotask(); err != nil {
+			return err
+		}
+	}
+	return lastErr
 }
 
 // DeleteFile removes a file from the given directory.
 // Returns a "not found" JSError if the file does not exist.
 func DeleteFile(dir js.Value, name string) error {
-	return DeleteEntry(dir, name, false)
+	if err := DeleteEntry(dir, name, false); err != nil {
+		return err
+	}
+	for range deleteVisibilityRetries {
+		exists, err := FileExists(dir, name)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return nil
+		}
+		if err := yieldMicrotask(); err != nil {
+			return err
+		}
+	}
+	exists, err := FileExists(dir, name)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.Errorf("delete file %s: still exists after delete", name)
+	}
+	return nil
 }
 
 // ListDirectory returns sorted entry names in the given directory.
@@ -430,6 +483,10 @@ func IsNoModificationAllowed(err error) bool {
 // when it fails with NoModificationAllowedError (stale handle closing).
 const syncAccessHandleRetries = 3
 
+// deleteVisibilityRetries is the number of event-loop turns to wait for
+// removeEntry() visibility before treating the delete as failed.
+const deleteVisibilityRetries = 16
+
 func newSyncFile(name string, fileHandle js.Value) (*SyncFile, error) {
 	method := fileHandle.Get("createSyncAccessHandle")
 	if method.IsUndefined() || method.IsNull() || method.Type() != js.TypeFunction {
@@ -445,6 +502,9 @@ func newSyncFile(name string, fileHandle js.Value) (*SyncFile, error) {
 			return nil, errors.Wrap(err, "createSyncAccessHandle")
 		}
 		lastErr = err
+		if err := yieldMicrotask(); err != nil {
+			return nil, err
+		}
 	}
 	return nil, errors.Wrap(lastErr, "createSyncAccessHandle")
 }

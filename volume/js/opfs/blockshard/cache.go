@@ -12,6 +12,9 @@ import (
 
 func (s *Shard) setManifestLocked(m *Manifest) {
 	s.manifest = m
+	if m.Generation > s.latestGen {
+		s.latestGen = m.Generation
+	}
 	refs := m.ReferencedFiles()
 	for name := range s.lookupCache {
 		if _, ok := refs[name]; ok {

@@ -133,6 +133,46 @@ func TestSyncFile(t *testing.T) {
 	f.Close()
 }
 
+func TestSyncFileDeleteAfterClose(t *testing.T) {
+	if !SyncAvailable() {
+		t.Skip("sync access handles not available (SharedWorker context)")
+	}
+
+	root, err := GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer DeleteEntry(root, "test-sync-delete", true) //nolint
+
+	dir, err := GetDirectory(root, "test-sync-delete", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := CreateSyncFile(dir, "test.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("delete me")); err != nil {
+		t.Fatal(err)
+	}
+	f.Flush()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := DeleteFile(dir, "test.bin"); err != nil {
+		t.Fatal(err)
+	}
+	exists, err := FileExists(dir, "test.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("expected file to be deleted")
+	}
+}
+
 func TestGetDirectoryPath(t *testing.T) {
 	root, err := GetRoot()
 	if err != nil {

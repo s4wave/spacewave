@@ -28,13 +28,15 @@ type Shard struct {
 	id         int
 	dir        js.Value
 	lockPrefix string
-	asyncIO    bool
+	// asyncIO forces async OPFS writes for all shard files.
+	asyncIO bool
 
-	mu       sync.Mutex
-	manifest *Manifest
-	seqNum   uint64 // monotonic segment filename counter
-	nowFn    func() time.Time
-	bloomFPR float64
+	mu        sync.Mutex
+	manifest  *Manifest
+	latestGen uint64
+	seqNum    uint64 // monotonic segment filename counter
+	nowFn     func() time.Time
+	bloomFPR  float64
 
 	lookupCache map[string]*segment.LookupMeta
 }
@@ -61,6 +63,7 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		m = &Manifest{Generation: 0}
 	}
 	s.manifest = m
+	s.latestGen = m.Generation
 
 	// Derive the next segment sequence number from existing segments.
 	s.seqNum = s.deriveSeqNum()
@@ -78,6 +81,20 @@ func (s *Shard) Manifest() *Manifest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.manifest.Clone()
+}
+
+func (s *Shard) getLatestGeneration() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.latestGen
+}
+
+func (s *Shard) observeGeneration(gen uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if gen > s.latestGen {
+		s.latestGen = gen
+	}
 }
 
 // Publish writes a batch of key-value entries as a new SSTable segment,
@@ -184,12 +201,13 @@ func (s *Shard) writeManifest(m *Manifest) error {
 }
 
 // writeFileData writes data to a file in the shard directory.
-// Uses async OPFS API when asyncIO is enabled, sync otherwise.
+// By default, immutable segment files use sync access handles when available
+// while manifest writes stay async. asyncIO forces the all-async behavior.
 func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) error {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data")
 	defer task.End()
 
-	if s.asyncIO {
+	if s.shouldUseAsyncWrite(name) {
 		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-async-file")
 		f, err := opfs.CreateAsyncFile(s.dir, name)
 		subtask.End()
@@ -224,6 +242,23 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 	err = f.Close()
 	subtask.End()
 	return err
+}
+
+func (s *Shard) shouldUseAsyncWrite(name string) bool {
+	if s.asyncIO {
+		return true
+	}
+	if !opfs.SyncAvailable() {
+		return true
+	}
+	return !isSegmentFilename(name)
+}
+
+func isSegmentFilename(name string) bool {
+	if len(name) < 4 || name[len(name)-4:] != ".sst" {
+		return false
+	}
+	return true
 }
 
 // AcquirePublishLock acquires the exclusive per-shard publish WebLock.
