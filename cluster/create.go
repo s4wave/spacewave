@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/aperturerobotics/identity"
 	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/sirupsen/logrus"
 )
@@ -39,12 +40,12 @@ func CreateCluster(
 }
 
 // Validate performs cursory validation of the operation.
-// Should not block.
+// PeerId is optional here: defaults to sender in ApplyWorldOp.
 func (o *ClusterCreateOp) Validate() error {
 	if o.GetClusterKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
-	if err := o.BuildCluster().Validate(); err != nil {
+	if err := identity.ValidateEntityID(o.GetName()); err != nil {
 		return err
 	}
 	return nil
@@ -70,6 +71,11 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Default peer_id to sender when not specified.
+	if o.GetPeerId() == "" && sender != "" {
+		o.PeerId = sender.String()
+	}
+
 	clusterKey := o.GetClusterKey()
 	clstr := o.BuildCluster()
 	err = clstr.Validate()
