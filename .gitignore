@@ -2,6 +2,7 @@
 /coverage
 /build
 /.log
+/.aptre
 /.tmp
 
 # misc
