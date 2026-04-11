@@ -540,6 +540,15 @@ func (t *WorldState) GetRefGraph() block_gc.RefGraphOps {
 	return t.refGraph
 }
 
+// GetGCJournalEntries returns the number of pending GC journal entries.
+// Returns 0 if the journal is not initialized.
+func (t *WorldState) GetGCJournalEntries() uint64 {
+	if t.gcJournal == nil {
+		return 0
+	}
+	return t.gcJournal.Entries()
+}
+
 // gcJournalReconcileThreshold is the journal entry count that triggers
 // automatic reconciliation during Commit.
 const gcJournalReconcileThreshold = 64

@@ -157,6 +157,17 @@ func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 	})
 }
 
+// GetGCJournalEntries returns the number of pending GC journal entries.
+// Returns 0 if the journal is not initialized or the read tx is nil.
+func (e *EngineTx) GetGCJournalEntries() uint64 {
+	var entries uint64
+	_ = e.performOp(func(tx *Tx) error {
+		entries = tx.state.GetGCJournalEntries()
+		return nil
+	})
+	return entries
+}
+
 // GarbageCollect sweeps unreferenced nodes from the GC ref graph.
 // Only valid on writable EngineTx instances with GC enabled.
 func (e *EngineTx) GarbageCollect(ctx context.Context) error {

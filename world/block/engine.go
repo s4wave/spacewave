@@ -90,6 +90,18 @@ func (e *Engine) GetRootRef() *bucket.ObjectRef {
 	return ref
 }
 
+// GetGCJournalEntries returns the number of pending GC journal entries.
+// Safe to call concurrently. Returns 0 if the read tx or journal is not initialized.
+func (e *Engine) GetGCJournalEntries() uint64 {
+	e.rmtx.RLock()
+	rtx := e.readTx
+	e.rmtx.RUnlock()
+	if rtx == nil {
+		return 0
+	}
+	return rtx.state.GetGCJournalEntries()
+}
+
 // SetRootRef updates the root cursor to point to a new reference.
 // Re-creates the internal read transaction with the updated state.
 // Cancels any ongoing write tx (to be re-created against new state).
