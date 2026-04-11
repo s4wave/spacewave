@@ -92,6 +92,14 @@ func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) e
 	return nil
 }
 
+// PutBlockBackground forwards to the write handle if it supports background writes.
+func (b *StoreRW) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	if bg, ok := b.writeHandle.(BackgroundPutStore); ok {
+		return bg.PutBlockBackground(ctx, data, opts)
+	}
+	return b.writeHandle.PutBlock(ctx, data, opts)
+}
+
 // BeginDeferFlush forwards to the write handle if it supports deferred flushing.
 func (b *StoreRW) BeginDeferFlush() {
 	if df, ok := b.writeHandle.(DeferFlushable); ok {
@@ -109,7 +117,8 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ StoreOps       = ((*StoreRW)(nil))
-	_ BatchPutStore  = ((*StoreRW)(nil))
-	_ DeferFlushable = ((*StoreRW)(nil))
+	_ StoreOps           = ((*StoreRW)(nil))
+	_ BatchPutStore      = ((*StoreRW)(nil))
+	_ BackgroundPutStore = ((*StoreRW)(nil))
+	_ DeferFlushable     = ((*StoreRW)(nil))
 )

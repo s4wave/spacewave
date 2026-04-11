@@ -255,6 +255,77 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	}
 }
 
+// PutBlockBatch writes a batch of blocks using the same target-store policy as
+// PutBlock.
+func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+	cacheMode := func(s1, s2 StoreOps) error {
+		if err := putBatchEntries(ctx, s1, entries); err != nil {
+			return err
+		}
+		return putBatchEntries(ctx, s2, entries)
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_LOWER_ONLY:
+		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_LOWER_READ_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return putBatchEntries(ctx, o.lower, entries)
+	}
+}
+
+// PutBlockBackground writes a block in the background using the same target-store
+// policy as PutBlock.
+func (o *StoreOverlay) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	cacheMode := func(s1, s2 StoreOps) (*BlockRef, bool, error) {
+		ref, existed, err := putBlockBackground(ctx, s1, data, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		lowerOpts := opts.CloneVT()
+		lowerOpts.ForceBlockRef = ref
+		_, lowerExisted, err := putBlockBackground(ctx, s2, data, lowerOpts)
+		if err != nil {
+			return nil, false, err
+		}
+		return ref, existed && lowerExisted, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_LOWER_ONLY:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_LOWER_READ_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	}
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
@@ -322,8 +393,37 @@ func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
 	return err
 }
 
+func putBatchEntries(ctx context.Context, store StoreOps, entries []*PutBatchEntry) error {
+	if batcher, ok := store.(BatchPutStore); ok {
+		return batcher.PutBlockBatch(ctx, entries)
+	}
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := store.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, _, err := store.PutBlock(ctx, entry.Data, &PutOpts{
+			ForceBlockRef: entry.Ref.Clone(),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func putBlockBackground(ctx context.Context, store StoreOps, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	if bg, ok := store.(BackgroundPutStore); ok {
+		return bg.PutBlockBackground(ctx, data, opts)
+	}
+	return store.PutBlock(ctx, data, opts)
+}
+
 // _ is a type assertion
 var (
-	_ StoreOps       = ((*StoreOverlay)(nil))
-	_ DeferFlushable = ((*StoreOverlay)(nil))
+	_ StoreOps           = ((*StoreOverlay)(nil))
+	_ BatchPutStore      = ((*StoreOverlay)(nil))
+	_ BackgroundPutStore = ((*StoreOverlay)(nil))
+	_ DeferFlushable     = ((*StoreOverlay)(nil))
 )

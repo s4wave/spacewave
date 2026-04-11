@@ -48,5 +48,56 @@ func (k *KVTx) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return k.blk.RmBlock(ctx, ref)
 }
 
+// PutBlockBatch forwards batched writes to the underlying block store when supported.
+func (k *KVTx) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	batcher, ok := k.blk.(block.BatchPutStore)
+	if !ok {
+		for _, entry := range entries {
+			if entry.Tombstone {
+				if err := k.blk.RmBlock(ctx, entry.Ref); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, _, err := k.blk.PutBlock(ctx, entry.Data, &block.PutOpts{
+				ForceBlockRef: entry.Ref.Clone(),
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return batcher.PutBlockBatch(ctx, entries)
+}
+
+// PutBlockBackground forwards background writes to the underlying block store when supported.
+func (k *KVTx) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	bg, ok := k.blk.(block.BackgroundPutStore)
+	if !ok {
+		return k.blk.PutBlock(ctx, data, opts)
+	}
+	return bg.PutBlockBackground(ctx, data, opts)
+}
+
+// BeginDeferFlush forwards deferred-flush scope entry to the underlying block store when supported.
+func (k *KVTx) BeginDeferFlush() {
+	if df, ok := k.blk.(block.DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards deferred-flush scope exit to the underlying block store when supported.
+func (k *KVTx) EndDeferFlush(ctx context.Context) error {
+	if df, ok := k.blk.(block.DeferFlushable); ok {
+		return df.EndDeferFlush(ctx)
+	}
+	return nil
+}
+
 // _ is a type assertion
-var _ block.StoreOps = ((*KVTx)(nil))
+var (
+	_ block.StoreOps           = ((*KVTx)(nil))
+	_ block.BatchPutStore      = ((*KVTx)(nil))
+	_ block.BackgroundPutStore = ((*KVTx)(nil))
+	_ block.DeferFlushable     = ((*KVTx)(nil))
+)

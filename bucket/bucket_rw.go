@@ -31,6 +31,37 @@ func (b *bucketRW) GetBucketConfig() *Config {
 	return b.conf
 }
 
+// PutBlockBatch forwards batched writes to the inner StoreOps when supported.
+func (b *bucketRW) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	batcher, ok := b.StoreOps.(block.BatchPutStore)
+	if !ok {
+		for _, entry := range entries {
+			if entry.Tombstone {
+				if err := b.StoreOps.RmBlock(ctx, entry.Ref); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, _, err := b.StoreOps.PutBlock(ctx, entry.Data, &block.PutOpts{
+				ForceBlockRef: entry.Ref.Clone(),
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return batcher.PutBlockBatch(ctx, entries)
+}
+
+// PutBlockBackground forwards background writes to the inner StoreOps when supported.
+func (b *bucketRW) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	bg, ok := b.StoreOps.(block.BackgroundPutStore)
+	if !ok {
+		return b.StoreOps.PutBlock(ctx, data, opts)
+	}
+	return bg.PutBlockBackground(ctx, data, opts)
+}
+
 // BeginDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
 func (b *bucketRW) BeginDeferFlush() {
 	if df, ok := b.StoreOps.(block.DeferFlushable); ok {
@@ -48,6 +79,8 @@ func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ Bucket               = ((*bucketRW)(nil))
-	_ block.DeferFlushable = ((*bucketRW)(nil))
+	_ Bucket                   = ((*bucketRW)(nil))
+	_ block.BatchPutStore      = ((*bucketRW)(nil))
+	_ block.BackgroundPutStore = ((*bucketRW)(nil))
+	_ block.DeferFlushable     = ((*bucketRW)(nil))
 )

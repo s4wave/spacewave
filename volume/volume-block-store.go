@@ -51,6 +51,37 @@ func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) err
 	return v.store.RmBlock(ctx, ref)
 }
 
+// PutBlockBatch forwards batched writes to the wrapped block store when supported.
+func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	batcher, ok := v.store.(block.BatchPutStore)
+	if !ok {
+		for _, entry := range entries {
+			if entry.Tombstone {
+				if err := v.store.RmBlock(ctx, entry.Ref); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, _, err := v.store.PutBlock(ctx, entry.Data, &block.PutOpts{
+				ForceBlockRef: entry.Ref.Clone(),
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return batcher.PutBlockBatch(ctx, entries)
+}
+
+// PutBlockBackground forwards background writes to the wrapped block store when supported.
+func (v *VolumeBlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	bg, ok := v.store.(block.BackgroundPutStore)
+	if !ok {
+		return v.store.PutBlock(ctx, data, opts)
+	}
+	return bg.PutBlockBackground(ctx, data, opts)
+}
+
 // GetGCManagerHooks forwards WAL-backed GC manager hooks from the wrapped
 // volume when available.
 func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
@@ -65,6 +96,8 @@ func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
 
 // _ is a type assertion
 var (
-	_ Volume            = ((*VolumeBlockStore)(nil))
-	_ block_store.Store = ((*VolumeBlockStore)(nil))
+	_ Volume                   = ((*VolumeBlockStore)(nil))
+	_ block_store.Store        = ((*VolumeBlockStore)(nil))
+	_ block.BatchPutStore      = ((*VolumeBlockStore)(nil))
+	_ block.BackgroundPutStore = ((*VolumeBlockStore)(nil))
 )
