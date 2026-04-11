@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cayley/quad"
-	"github.com/aperturerobotics/cayley/query/path"
+	"github.com/aperturerobotics/cayley/query/shape"
 	"github.com/aperturerobotics/hydra/world"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 )
@@ -31,25 +31,27 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 	}
 
 	result := make([]*ObjectMetadata, len(keys))
+	subjects := make([]quad.Value, len(keys))
+	resultByKey := make(map[string][]*ObjectMetadata, len(keys))
 	for i, key := range keys {
-		result[i] = &ObjectMetadata{ObjectKey: key}
+		md := &ObjectMetadata{ObjectKey: key}
+		result[i] = md
+		subjects[i] = world.KeyToGraphValue(key)
+		resultByKey[key] = append(resultByKey[key], md)
 	}
 
 	err := ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
-		for i, key := range keys {
-			gv := world.KeyToGraphValue(key)
-
-			// Type lookup: subject.Out(TypePred) uses (subject,predicate) index.
-			if err := lookupTypeBatch(ctx, h, gv, result[i]); err != nil {
-				return err
-			}
-
-			// Parent lookup: subject+ParentPred filter uses (subject,predicate) index.
-			if err := lookupParentBatch(ctx, h, gv, result[i]); err != nil {
-				return err
-			}
+		// Type lookup: batched subject+predicate pass uses the (subject,predicate) index.
+		if err := iterateSubjectPredicateQuads(ctx, h, subjects, TypePred, func(q quad.Quad) error {
+			return setTypeBatch(q, resultByKey)
+		}); err != nil {
+			return err
 		}
-		return nil
+
+		// Parent lookup: batched subject+predicate pass uses the same index.
+		return iterateSubjectPredicateQuads(ctx, h, subjects, world_parent.ParentPred, func(q quad.Quad) error {
+			return setParentBatch(q, resultByKey)
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -58,47 +60,66 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 	return result, nil
 }
 
-// lookupTypeBatch resolves the type for a single object within an open graph handle.
-func lookupTypeBatch(ctx context.Context, h world.CayleyHandle, gv quad.Value, md *ObjectMetadata) error {
-	it := path.StartPath(h, gv).
-		Out(TypePred).
-		BuildIterator(ctx).
-		Iterate(ctx)
-	defer it.Close()
-
-	for it.Next(ctx) && md.TypeID == "" {
-		res, err := it.Result(ctx)
-		if err != nil {
-			return err
-		}
-		qv, err := h.NameOf(ctx, res)
-		if err != nil {
-			return err
-		}
-		key, err := world.QuadValueToKey(qv)
-		if err != nil {
-			return err
-		}
-		if strings.HasPrefix(key, TypesPrefix) {
-			md.TypeID = key[len(TypesPrefix):]
-		}
+// iterateSubjectPredicateQuads iterates quads matching any of the given subjects and one predicate.
+func iterateSubjectPredicateQuads(
+	ctx context.Context,
+	h world.CayleyHandle,
+	subjects []quad.Value,
+	predicate quad.Value,
+	cb func(q quad.Quad) error,
+) error {
+	if len(subjects) == 0 {
+		return nil
 	}
-	return it.Err()
+
+	return world.OptimizeIterateQuads(ctx, h, shape.Quads{
+		{Dir: quad.Subject, Values: shape.Lookup(subjects)},
+		{Dir: quad.Predicate, Values: shape.Lookup([]quad.Value{predicate})},
+	}, cb)
 }
 
-// lookupParentBatch resolves the parent for a single object within an open graph handle.
-func lookupParentBatch(ctx context.Context, h world.CayleyHandle, gv quad.Value, md *ObjectMetadata) error {
-	return world.FilterIterateQuads(ctx, h, quad.Quad{
-		Subject:   gv,
-		Predicate: world_parent.ParentPred,
-	}, func(q quad.Quad) error {
-		if q.Object != nil {
-			parentKey, err := world.QuadValueToKey(q.Object)
-			if err != nil {
-				return err
-			}
-			md.ParentObjectKey = parentKey
-		}
+// setTypeBatch updates result metadata from a type quad.
+func setTypeBatch(q quad.Quad, resultByKey map[string][]*ObjectMetadata) error {
+	if q.Subject == nil || q.Object == nil {
 		return nil
-	})
+	}
+
+	objKey, err := world.QuadValueToKey(q.Subject)
+	if err != nil {
+		return err
+	}
+	typeKey, err := world.QuadValueToKey(q.Object)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(typeKey, TypesPrefix) {
+		return nil
+	}
+	typeID := typeKey[len(TypesPrefix):]
+	for _, md := range resultByKey[objKey] {
+		if md.TypeID == "" {
+			md.TypeID = typeID
+		}
+	}
+	return nil
+}
+
+// setParentBatch updates result metadata from a parent quad.
+func setParentBatch(q quad.Quad, resultByKey map[string][]*ObjectMetadata) error {
+	if q.Subject == nil || q.Object == nil {
+		return nil
+	}
+
+	objKey, err := world.QuadValueToKey(q.Subject)
+	if err != nil {
+		return err
+	}
+	parentKey, err := world.QuadValueToKey(q.Object)
+	if err != nil {
+		return err
+	}
+	for _, md := range resultByKey[objKey] {
+		md.ParentObjectKey = parentKey
+	}
+	return nil
 }

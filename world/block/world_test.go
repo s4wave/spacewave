@@ -17,6 +17,8 @@ import (
 	world_block "github.com/aperturerobotics/hydra/world/block"
 	world_block_tx "github.com/aperturerobotics/hydra/world/block/tx"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
+	world_parent "github.com/aperturerobotics/hydra/world/parent"
+	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -59,6 +61,75 @@ func TestWorldEngine(t *testing.T) {
 
 	// success
 	t.Log("tests successful")
+}
+
+// TestWorldState_GetObjectMetadataBatch checks batched parent+type lookup behavior.
+func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	for _, key := range []string{"parent", "child-a", "child-b", "child-c"} {
+		if _, err := ws.CreateObject(ctx, key, oref); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	if err := world_types.SetObjectType(ctx, ws, "child-a", "type/a"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_types.SetObjectType(ctx, ws, "child-b", "type/b"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_parent.SetObjectParent(ctx, ws, "child-a", "parent", false); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	mds, err := world_types.GetObjectMetadataBatch(ctx, ws, []string{"child-b", "child-c", "child-a", "child-a"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(mds) != 4 {
+		t.Fatalf("expected 4 metadata results, got %d", len(mds))
+	}
+
+	checkMetadata := func(md *world_types.ObjectMetadata, key, typeID, parentKey string) {
+		if md.ObjectKey != key || md.TypeID != typeID || md.ParentObjectKey != parentKey {
+			t.Fatalf(
+				"unexpected metadata for %s: got key=%q type=%q parent=%q",
+				key,
+				md.ObjectKey,
+				md.TypeID,
+				md.ParentObjectKey,
+			)
+		}
+	}
+
+	checkMetadata(mds[0], "child-b", "type/b", "")
+	checkMetadata(mds[1], "child-c", "", "")
+	checkMetadata(mds[2], "child-a", "type/a", "parent")
+	checkMetadata(mds[3], "child-a", "type/a", "parent")
 }
 
 // TestWorldState_DeleteObject tests the DeleteObject functionality
