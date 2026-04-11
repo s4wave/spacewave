@@ -237,6 +237,12 @@ func (e *Engine) GetFromShard(shardIdx int, key []byte) ([]byte, bool, error) {
 	return e.getFromShard(shardIdx, key, false)
 }
 
+// GetExistsFromShard checks whether a key exists in a specific shard without
+// loading its value.
+func (e *Engine) GetExistsFromShard(shardIdx int, key []byte) (bool, error) {
+	return e.getExistsFromShard(shardIdx, key, false)
+}
+
 func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, bool, error) {
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
@@ -274,7 +280,7 @@ func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, b
 			}
 			return nil, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
-		val, found, err := lookup.Get(f, key)
+		val, found, tombstone, err := lookup.Locate(f, key, true)
 		if err != nil {
 			if !retried && opfs.IsNotFound(err) {
 				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
@@ -283,6 +289,9 @@ func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, b
 				}
 			}
 			return nil, false, err
+		}
+		if tombstone {
+			return nil, false, nil
 		}
 		if found {
 			if !retried && shard.getLatestGeneration() <= m.Generation {
@@ -295,6 +304,67 @@ func (e *Engine) getFromShard(shardIdx int, key []byte, retried bool) ([]byte, b
 		}
 	}
 	return nil, false, nil
+}
+
+func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (bool, error) {
+	shard := e.shards[shardIdx]
+	m := shard.Manifest()
+	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
+		refreshed, err := e.refreshShardManifest(shardIdx)
+		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
+			m = refreshed
+		}
+	}
+
+	for i := len(m.Segments) - 1; i >= 0; i-- {
+		seg := &m.Segments[i]
+		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
+			continue
+		}
+		lookup, err := shard.getLookup(seg)
+		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getExistsFromShard(shardIdx, key, true)
+				}
+			}
+			return false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+		}
+		f, err := opfs.OpenAsyncFile(shard.dir, seg.Filename)
+		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getExistsFromShard(shardIdx, key, true)
+				}
+			}
+			return false, errors.Errorf("open segment %s: %v", seg.Filename, err)
+		}
+		_, found, tombstone, err := lookup.Locate(f, key, false)
+		if err != nil {
+			if !retried && opfs.IsNotFound(err) {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getExistsFromShard(shardIdx, key, true)
+				}
+			}
+			return false, err
+		}
+		if tombstone {
+			return false, nil
+		}
+		if found {
+			if !retried && shard.getLatestGeneration() <= m.Generation {
+				refreshed, refreshErr := e.refreshShardManifest(shardIdx)
+				if refreshErr == nil && refreshed != nil && refreshed.Generation > m.Generation {
+					return e.getExistsFromShard(shardIdx, key, true)
+				}
+			}
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
@@ -315,6 +385,13 @@ func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 func (e *Engine) Get(key []byte) ([]byte, bool, error) {
 	idx := e.ShardForKey(key)
 	return e.GetFromShard(idx, key)
+}
+
+// GetExists checks whether a key exists across all shards without loading its
+// value.
+func (e *Engine) GetExists(key []byte) (bool, error) {
+	idx := e.ShardForKey(key)
+	return e.GetExistsFromShard(idx, key)
 }
 
 // maxCoalesceRounds is the maximum number of yield+drain cycles the actor

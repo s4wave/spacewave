@@ -172,8 +172,7 @@ func (s *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 		return false, err
 	}
 
-	_, found, err := s.engine.Get([]byte(key))
-	return found, err
+	return s.engine.GetExists([]byte(key))
 }
 
 // RmBlock deletes a block by writing a tombstone.

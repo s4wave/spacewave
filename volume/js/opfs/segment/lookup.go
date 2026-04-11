@@ -91,19 +91,33 @@ func LoadLookupMeta(r io.ReaderAt, size int64) (*LookupMeta, error) {
 
 // Get looks up a key using cached metadata and a single data-window read.
 func (m *LookupMeta) Get(r io.ReaderAt, key []byte) ([]byte, bool, error) {
+	val, found, _, err := m.Locate(r, key, true)
+	return val, found, err
+}
+
+// Has checks whether a key exists using cached metadata and a single data-window
+// read. Tombstoned keys return false.
+func (m *LookupMeta) Has(r io.ReaderAt, key []byte) (bool, error) {
+	_, found, _, err := m.Locate(r, key, false)
+	return found, err
+}
+
+// Locate resolves a key using cached metadata and a single data-window read.
+// Returns either a live value, a tombstone marker, or a miss.
+func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, bool, bool, error) {
 	keyStr := string(key)
 	if keyStr < string(m.MinKey) || keyStr > string(m.MaxKey) {
-		return nil, false, nil
+		return nil, false, false, nil
 	}
 	if m.Bloom != nil && !m.Bloom.MayContain(key) {
-		return nil, false, nil
+		return nil, false, false, nil
 	}
 
 	start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
 	windowSize := int(limit - start)
 	window := make([]byte, windowSize)
 	if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
-		return nil, false, errors.Wrap(err, "read data window")
+		return nil, false, false, errors.Wrap(err, "read data window")
 	}
 
 	off := 0
@@ -126,21 +140,24 @@ func (m *LookupMeta) Get(r io.ReaderAt, key []byte) ([]byte, bool, error) {
 
 		if entryKey == keyStr {
 			if valLen == TombstoneLen {
-				return nil, false, nil
+				return nil, false, true, nil
+			}
+			if !loadValue {
+				return nil, true, false, nil
 			}
 			if off+int(valLen) > len(window) {
-				return nil, false, errors.New("truncated value in data window")
+				return nil, false, false, errors.New("truncated value in data window")
 			}
 			val := make([]byte, valLen)
 			copy(val, window[off:off+int(valLen)])
-			return val, true, nil
+			return val, true, false, nil
 		}
 		if entryKey > keyStr {
-			return nil, false, nil
+			return nil, false, false, nil
 		}
 		if valLen != TombstoneLen {
 			off += int(valLen)
 		}
 	}
-	return nil, false, nil
+	return nil, false, false, nil
 }

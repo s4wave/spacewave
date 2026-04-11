@@ -339,6 +339,50 @@ func TestLookupMetaGet(t *testing.T) {
 	}
 }
 
+func TestLookupMetaHas(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(4)
+	for i := range 32 {
+		w.Add([]byte("key-"+zeroPad(i, 3)), []byte("val-"+strconv.Itoa(i)))
+	}
+	w.AddTombstone([]byte("key-040"))
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	data := buf.Bytes()
+
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	found, err := meta.Has(bytes.NewReader(data), []byte("key-017"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Has(existing): %v", err)
+	}
+	if !found {
+		t.Fatal("LookupMeta.Has(existing): not found")
+	}
+
+	found, err = meta.Has(bytes.NewReader(data), []byte("key-040"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Has(tombstone): %v", err)
+	}
+	if found {
+		t.Fatal("LookupMeta.Has(tombstone): should not be found")
+	}
+
+	found, err = meta.Has(bytes.NewReader(data), []byte("key-999"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Has(missing): %v", err)
+	}
+	if found {
+		t.Fatal("LookupMeta.Has(missing): should not be found")
+	}
+}
+
 func TestTombstones(t *testing.T) {
 	w := NewWriter()
 	w.Add([]byte("alive"), []byte("value"))

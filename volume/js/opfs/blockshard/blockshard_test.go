@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
 )
@@ -134,6 +135,48 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 	if !found || string(val) != "mode" {
 		t.Fatalf("async get: found=%v val=%q want mode", found, val)
+	}
+}
+
+func TestBlockStoreGetBlockExists(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-store-exists", "test-blockshard-store-exists")
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	ref, existed, err := store.PutBlock(context.Background(), []byte("value"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if existed {
+		t.Fatal("put should create a new block")
+	}
+
+	found, err := store.GetBlockExists(context.Background(), ref.Clone())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("GetBlockExists(existing): not found")
+	}
+
+	if err := store.RmBlock(context.Background(), ref.Clone()); err != nil {
+		t.Fatal(err)
+	}
+
+	found, err = store.GetBlockExists(context.Background(), ref.Clone())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("GetBlockExists(tombstoned): should not be found")
+	}
+
+	_, found, err = store.GetBlock(context.Background(), ref.Clone())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("GetBlock(tombstoned): should not be found")
 	}
 }
 
