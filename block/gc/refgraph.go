@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"runtime/trace"
+	"sync"
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
@@ -21,6 +22,9 @@ import (
 // RefGraph is a unified reference graph for garbage collection backed by Cayley.
 type RefGraph struct {
 	handle *cayley.Handle
+
+	mu         sync.Mutex
+	iriRefKeys map[string]any
 }
 
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
@@ -149,21 +153,15 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	defer task.End()
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded")
-	excludedVals := make([]quad.Value, 0, len(excluded)+1)
-	excludedVals = append(excludedVals, quad.IRI(NodeUnreferenced))
+	excludedIRIs := make([]string, 0, len(excluded)+1)
+	excludedIRIs = append(excludedIRIs, NodeUnreferenced)
 	for _, src := range excluded {
-		excludedVals = append(excludedVals, quad.IRI(src))
+		excludedIRIs = append(excludedIRIs, src)
 	}
-	excludedSet := make(map[any]struct{}, len(excludedVals))
-	for _, v := range excludedVals {
-		ref, err := rg.handle.ValueOf(ctx, v)
-		if err != nil {
-			return false, err
-		}
-		if ref == nil {
-			continue
-		}
-		excludedSet[refs.ToKey(ref)] = struct{}{}
+	excludedSet, err := rg.resolveIRIRefKeys(taskCtx, excludedIRIs)
+	if err != nil {
+		subtask.End()
+		return false, err
 	}
 	subtask.End()
 
@@ -184,6 +182,67 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	}
 	subtask.End()
 	return found, err
+}
+
+func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[any]struct{}, error) {
+	excludedSet := make(map[any]struct{}, len(iris))
+	toResolve := make([]quad.Value, 0, len(iris))
+	toResolveIRIs := make([]string, 0, len(iris))
+
+	rg.mu.Lock()
+	for _, iri := range iris {
+		if key, ok := rg.iriRefKeys[iri]; ok {
+			excludedSet[key] = struct{}{}
+			continue
+		}
+		toResolveIRIs = append(toResolveIRIs, iri)
+		toResolve = append(toResolve, quad.IRI(iri))
+	}
+	rg.mu.Unlock()
+
+	if len(toResolve) == 0 {
+		return excludedSet, nil
+	}
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded/refs-of")
+	var (
+		resolved []graph.Ref
+		err      error
+	)
+	if bq, ok := rg.handle.QuadStore.(refs.BatchNamer); ok {
+		resolved, err = bq.RefsOf(taskCtx, toResolve)
+	} else {
+		resolved = make([]graph.Ref, len(toResolve))
+		for i, node := range toResolve {
+			resolved[i], err = rg.handle.ValueOf(taskCtx, node)
+			if err != nil {
+				break
+			}
+		}
+	}
+	subtask.End()
+	if err != nil {
+		return nil, err
+	}
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded/cache-refs")
+	rg.mu.Lock()
+	for i, ref := range resolved {
+		if ref == nil {
+			continue
+		}
+		key := refs.ToKey(ref)
+		iri := toResolveIRIs[i]
+		if rg.iriRefKeys == nil {
+			rg.iriRefKeys = make(map[string]any)
+		}
+		rg.iriRefKeys[iri] = key
+		excludedSet[key] = struct{}{}
+	}
+	rg.mu.Unlock()
+	subtask.End()
+
+	return excludedSet, nil
 }
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.
