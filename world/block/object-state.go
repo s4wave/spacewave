@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -105,30 +106,38 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 
 	// GC: swap object -> block edge (old -> new).
 	if rg := o.w.refGraph; rg != nil {
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/object-state/set-root-ref/update-gc-refs")
 		oldBlockRef := prevBlk.GetRootRef().GetRootRef()
 		newBlockRef := nref.GetRootRef()
-		if err := rg.RemoveObjectRoot(ctx, o.key, oldBlockRef); err != nil {
-			return r, err
-		}
-		if err := rg.AddObjectRoot(ctx, o.key, newBlockRef); err != nil {
-			return r, err
-		}
-		// Mark old block unreferenced if it lost all incoming refs.
+		objIRI := block_gc.ObjectIRI(o.key)
+		var adds []block_gc.RefEdge
+		var removes []block_gc.RefEdge
 		if oldBlockRef != nil && !oldBlockRef.GetEmpty() {
 			oldIRI := block_gc.BlockIRI(oldBlockRef)
-			has, err := rg.HasIncomingRefs(ctx, oldIRI)
+			removes = append(removes, block_gc.RefEdge{Subject: objIRI, Object: oldIRI})
+
+			queryCtx, queryTask := trace.NewTask(taskCtx, "hydra/world-block/object-state/set-root-ref/has-incoming-refs-excluding")
+			has, err := rg.HasIncomingRefsExcluding(queryCtx, oldIRI, objIRI)
+			queryTask.End()
 			if err != nil {
+				subtask.End()
 				return r, err
 			}
 			if !has {
-				if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, oldIRI); err != nil {
-					return r, err
-				}
+				adds = append(adds, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: oldIRI})
 			}
 		}
-		// Remove unreferenced edge from new block.
 		if newBlockRef != nil && !newBlockRef.GetEmpty() {
-			_ = rg.RemoveRef(ctx, block_gc.NodeUnreferenced, block_gc.BlockIRI(newBlockRef))
+			newIRI := block_gc.BlockIRI(newBlockRef)
+			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: newIRI})
+			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: newIRI})
+		}
+		applyCtx, applyTask := trace.NewTask(taskCtx, "hydra/world-block/object-state/set-root-ref/apply-ref-batch")
+		err := rg.ApplyRefBatch(applyCtx, adds, removes)
+		applyTask.End()
+		subtask.End()
+		if err != nil {
+			return r, err
 		}
 	}
 

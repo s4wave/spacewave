@@ -157,6 +157,15 @@ func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 	})
 }
 
+// GarbageCollect sweeps unreferenced nodes from the GC ref graph.
+// Only valid on writable EngineTx instances with GC enabled.
+func (e *EngineTx) GarbageCollect(ctx context.Context) error {
+	return e.performOp(func(tx *Tx) error {
+		_, err := tx.state.GarbageCollect(ctx)
+		return err
+	})
+}
+
 // performOp performs an operation while retrying if the read tx was discarded
 // if ErrTxDiscarded is returned, retries against the updated txn
 func (e *EngineTx) performOp(cb func(tx *Tx) error) error {
