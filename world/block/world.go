@@ -332,12 +332,10 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		return err
 	}
 
-	// Build GC ref graph and deferred journal for writable transactions with a store.
+	// Build GC ref graph for writable transactions with a store.
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
 	var initGCRootEdge bool
-	var journalTree kvtx.BlockTx
-	var journal *gcJournal
 	if t.write && t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
 		gcTree, refGraph, initGCRootEdge, err = t.buildGCTree(taskCtx, bcs)
@@ -348,13 +346,23 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 			objTree.Discard()
 			return err
 		}
-		// Build the deferred GC journal tree at sub-block 6.
+	}
+
+	// Build the deferred GC journal tree at sub-block 6.
+	// Read-side uses it for Entries(); write-side also uses it as a WAL.
+	var journalTree kvtx.BlockTx
+	var journal *gcJournal
+	if t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-journal")
-		journalTree, err = kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(gcJournalSubBlock), true)
+		journalTree, err = kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(gcJournalSubBlock), t.write)
 		subtask.End()
 		if err != nil {
-			_ = refGraph.Close()
-			gcTree.Discard()
+			if refGraph != nil {
+				_ = refGraph.Close()
+			}
+			if gcTree != nil {
+				gcTree.Discard()
+			}
 			_ = graphHandle.Close()
 			graphTree.Discard()
 			objTree.Discard()
@@ -363,15 +371,19 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		journal, err = newGCJournal(journalTree)
 		if err != nil {
 			journalTree.Discard()
-			_ = refGraph.Close()
-			gcTree.Discard()
+			if refGraph != nil {
+				_ = refGraph.Close()
+			}
+			if gcTree != nil {
+				gcTree.Discard()
+			}
 			_ = graphHandle.Close()
 			graphTree.Discard()
 			objTree.Discard()
 			return err
 		}
-		// Wrap the transaction's store with GCStoreOps using the journal as WAL.
-		if btx != nil {
+		// Wrap the transaction's store with GCStoreOps using the journal as WAL (write path only).
+		if t.write && btx != nil {
 			gcOps := block_gc.NewGCStoreOpsWithTraceTask(t.store, refGraph, block_gc.WorldFlushTask())
 			gcOps.SetWALAppender(journal)
 			btx.SetStoreOps(gcOps)

@@ -22,11 +22,6 @@ func NewTxGCSweep() (*Tx, error) {
 	}, nil
 }
 
-// NewTxGCSweepTxn constructs a new GC_SWEEP transaction.
-func NewTxGCSweepTxn() Transaction {
-	return &TxGCSweep{}
-}
-
 // IsNil checks if the object is nil.
 func (t *TxGCSweep) IsNil() bool {
 	return t == nil

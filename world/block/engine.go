@@ -344,7 +344,7 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		btx, bcs,
 		store,
 		xfrm,
-		nil, // onSwept: wired in Phase 3
+		nil,
 		e,
 		e.lookupOp,
 		e.verbose,
