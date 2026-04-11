@@ -61,8 +61,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 h1:G9ziqzF7
 github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
 github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff h1:73bGCAMNhq9fIfRQhqz9+3SHbHHt12zcdorDVtRtX2I=
 github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff/go.mod h1:gRr3c2ktFZ1zAsI4d4NU1jisDKGqgs9HsPlVllglWoc=
-github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 h1:/GtpPF0AtzK06Ymtl6ybMZaWJwbtWr/1lrHlQ7YxFe0=
-github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20/go.mod h1:XSzKC1ihG//p+wH93rfeIfWgBPiuRvKjtKHcXOW905E=
+github.com/aperturerobotics/cayley v0.11.2-0.20260411204018-9b97868d4989 h1:tENEbgcS07e1vMj1dFkYrtNoVDLYcbO/GainUzEDlnk=
+github.com/aperturerobotics/cayley v0.11.2-0.20260411204018-9b97868d4989/go.mod h1:XSzKC1ihG//p+wH93rfeIfWgBPiuRvKjtKHcXOW905E=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
 github.com/aperturerobotics/common v0.32.2 h1:YAZfvBphNxGTF7x+O/e7UIFw8cCf5Pog6ptw7Y+PjTU=
@@ -83,10 +83,6 @@ github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 h
 github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621/go.mod h1:qF9xHPYAk6bpnRjk/7IvUa9YxPdyktjzmAblwqm/P78=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 h1:vaGKrZ/ti7T9RcrPHyqrAzrG9ThuhBF1lhVRExS01bg=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0/go.mod h1:IfcO7/FBaGwUpw5ZwlpV13Dmf2wfvHTT/JLdsOQX5lw=
-github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
-github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h1:Utc1F7jdCc6/HrwwIikJFXt/hXxkWIWETLp/CsG6Gl0=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=

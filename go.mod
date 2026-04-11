@@ -6,7 +6,7 @@ replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-2
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
-	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
+	github.com/aperturerobotics/cayley v0.11.2-0.20260411204018-9b97868d4989 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.0 // master
