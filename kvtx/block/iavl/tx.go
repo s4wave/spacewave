@@ -40,7 +40,12 @@ func NewTx(
 	write bool,
 	rootChangedCb func(*block.Cursor),
 ) (*Tx, error) {
-	rn, err := block.UnmarshalBlock[*Node](ctx, bcs, NewNodeBlock)
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block-iavl/new-tx")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block-iavl/new-tx/unmarshal-root")
+	rn, err := block.UnmarshalBlock[*Node](taskCtx, bcs, NewNodeBlock)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}

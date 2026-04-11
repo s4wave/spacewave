@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
+	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
@@ -29,6 +30,9 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 	opts := graph.Options{
 		"ignore_duplicate": true,
 		"ignore_missing":   true,
+		// RefGraph always uses Cayley's default index set; skip reading the
+		// index metadata on every world-state rebuild.
+		cayley_kv.OptAssumeDefaultIdx: true,
 	}
 	h, err := kvtx_cayley.NewGraph(ctx, prefixed, opts)
 	if err != nil {

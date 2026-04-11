@@ -2,6 +2,7 @@ package kvtx_block
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -25,7 +26,12 @@ func NewKeyValueStore(impl KVImplType) *KeyValueStore {
 
 // LoadKeyValueStore loads a key-value store block from a block cursor.
 func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, error) {
-	b, err := block.UnmarshalBlock[*KeyValueStore](ctx, bcs, NewKeyValueStoreBlock)
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block/load-key-value-store")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/load-key-value-store/unmarshal")
+	b, err := block.UnmarshalBlock[*KeyValueStore](taskCtx, bcs, NewKeyValueStoreBlock)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +45,19 @@ func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, 
 //
 // The root ref field in bcs is updated when commit is called.
 func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
-	kvs, err := LoadKeyValueStore(ctx, bcs)
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction")
+	defer task.End()
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction/load-key-value-store")
+	kvs, err := LoadKeyValueStore(taskCtx, bcs)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}
 
-	return kvs.BuildKvTransaction(ctx, bcs, write)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/kvtx-block/build-kv-transaction/build-impl")
+	defer subtask.End()
+	return kvs.BuildKvTransaction(taskCtx, bcs, write)
 }
 
 // Validate checks if the implementation is in the known set.
@@ -70,11 +83,16 @@ func (k *KeyValueStore) Validate() error {
 
 // BuildKvTransaction constructs the kvtx tx from the underlying key value structure.
 func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction")
+	defer task.End()
+
 	impl := k.GetImplType()
 	switch impl {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		treeBcs := bcs.FollowSubBlock(2)
-		return iavl.NewTx(ctx, treeBcs, nil, write, func(ncs *block.Cursor) {
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/iavl-new-tx")
+		defer subtask.End()
+		return iavl.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(2, bcs)
 		})
 	default:
