@@ -4,6 +4,7 @@ package blockshard
 
 import (
 	"context"
+	"runtime/trace"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
@@ -76,14 +77,19 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch writes multiple blocks as one lower-layer engine batch.
 func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch")
+	defer task.End()
+
 	if len(entries) == 0 {
 		return nil
 	}
 
+	_, encodeTask := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch/encode-entries")
 	batch := make([]segment.Entry, 0, len(entries))
 	for _, entry := range entries {
 		key, err := encodeRef(entry.Ref)
 		if err != nil {
+			encodeTask.End()
 			return err
 		}
 		batch = append(batch, segment.Entry{
@@ -92,7 +98,12 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 			Tombstone: entry.Tombstone,
 		})
 	}
-	return s.engine.Put(ctx, batch)
+	encodeTask.End()
+
+	putCtx, putTask := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch/engine-put")
+	err := s.engine.Put(putCtx, batch)
+	putTask.End()
+	return err
 }
 
 // PutBlockBackground writes a single block at background priority.

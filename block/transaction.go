@@ -436,8 +436,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 						}
 
 						writeQueue.Enqueue(func() {
+							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							// ensure that the wrote ref == the expected.
-							wroteRef, _, err := writeStore.PutBlock(ctx, dat, putOpts)
+							wroteRef, _, err := writeStore.PutBlock(writeCtx, dat, putOpts)
+							writeTask.End()
 							if err == nil && !wroteRef.EqualsRef(blkRef) {
 								err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
 							}
@@ -447,9 +449,13 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							}
 							// Record block refs in the GC graph after successful write.
 							if hasRecorder && len(blockTargets) > 0 {
-								if err := recorder.RecordBlockRefs(ctx, blkRef, blockTargets); err != nil {
+								recordCtx, recordTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/record-block-refs")
+								if err := recorder.RecordBlockRefs(recordCtx, blkRef, blockTargets); err != nil {
+									recordTask.End()
 									handleErr(err)
+									return
 								}
+								recordTask.End()
 							}
 						})
 					}

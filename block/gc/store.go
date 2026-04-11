@@ -211,32 +211,42 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	// Check which blocks already exist so we only buffer GC edges
 	// for genuinely new blocks (matching the single-put !existed guard).
 	newBlock := make([]bool, len(puts))
+	checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
 	for i, entry := range puts {
 		if entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
-		exists, err := g.store.GetBlockExists(ctx, entry.Ref)
+		exists, err := g.store.GetBlockExists(checkCtx, entry.Ref)
 		if err != nil {
+			checkTask.End()
 			return err
 		}
 		newBlock[i] = !exists
 	}
+	checkTask.End()
 
 	if batcher, ok := g.store.(block.BatchPutStore); ok {
-		if err := batcher.PutBlockBatch(ctx, puts); err != nil {
+		writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
+		if err := batcher.PutBlockBatch(writeCtx, puts); err != nil {
+			writeTask.End()
 			return err
 		}
+		writeTask.End()
 	} else {
 		for _, entry := range puts {
-			if _, _, err := g.store.PutBlock(ctx, entry.Data, &block.PutOpts{
+			writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block")
+			if _, _, err := g.store.PutBlock(writeCtx, entry.Data, &block.PutOpts{
 				ForceBlockRef: entry.Ref.Clone(),
 			}); err != nil {
+				writeTask.End()
 				return err
 			}
+			writeTask.End()
 		}
 	}
 
 	// Buffer GC ref edges only for genuinely new blocks.
+	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
 	g.mu.Lock()
 	for i, entry := range puts {
 		if !newBlock[i] || entry.Ref == nil || entry.Ref.GetEmpty() {
@@ -245,6 +255,7 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
 	}
 	g.mu.Unlock()
+	subtask.End()
 
 	return nil
 }
@@ -445,8 +456,8 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 
 // _ is a type assertion
 var (
-	_ block.StoreOps          = ((*GCStoreOps)(nil))
-	_ block.BlockRefRecorder  = ((*GCStoreOps)(nil))
-	_ block.BatchPutStore     = ((*GCStoreOps)(nil))
+	_ block.StoreOps           = ((*GCStoreOps)(nil))
+	_ block.BlockRefRecorder   = ((*GCStoreOps)(nil))
+	_ block.BatchPutStore      = ((*GCStoreOps)(nil))
 	_ block.BackgroundPutStore = ((*GCStoreOps)(nil))
 )

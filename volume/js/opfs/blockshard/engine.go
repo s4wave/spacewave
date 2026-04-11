@@ -402,7 +402,9 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		// Acquire publish lock and flush.
 		publishCtx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
 		trace.Log(publishCtx, "coalesce", "reqs="+strconv.Itoa(len(reqs))+" entries="+strconv.Itoa(len(merged)))
+		_, lockTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/acquire-lock")
 		release, err := shard.AcquirePublishLock()
+		lockTask.End()
 		if err != nil {
 			publishTask.End()
 			for _, r := range reqs {
@@ -412,9 +414,13 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			continue
 		}
 
-		err = shard.Publish(publishCtx, merged)
+		writeCtx, writeTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/shard-publish")
+		err = shard.Publish(writeCtx, merged)
+		writeTask.End()
 		if err == nil {
+			_, reclaimTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/reclaim-pending-delete")
 			_, err = shard.ReclaimPendingDelete()
+			reclaimTask.End()
 		}
 		gen := shard.Manifest().Generation
 		release()

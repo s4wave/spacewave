@@ -389,20 +389,29 @@ func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry
 		return nil
 	}
 	if batcher, ok := s.inner.(BatchPutStore); ok {
-		return batcher.PutBlockBatch(ctx, entries)
+		batchCtx, batchTask := trace.NewTask(ctx, "hydra/block/buffered-store/write-batch/put-block-batch")
+		err := batcher.PutBlockBatch(batchCtx, entries)
+		batchTask.End()
+		return err
 	}
 	for _, entry := range entries {
 		if entry.Tombstone {
-			if err := s.inner.RmBlock(ctx, entry.Ref.Clone()); err != nil {
+			rmCtx, rmTask := trace.NewTask(ctx, "hydra/block/buffered-store/write-batch/rm-block")
+			if err := s.inner.RmBlock(rmCtx, entry.Ref.Clone()); err != nil {
+				rmTask.End()
 				return err
 			}
+			rmTask.End()
 			continue
 		}
-		if _, _, err := s.inner.PutBlock(ctx, entry.Data, &PutOpts{
+		putCtx, putTask := trace.NewTask(ctx, "hydra/block/buffered-store/write-batch/put-block")
+		if _, _, err := s.inner.PutBlock(putCtx, entry.Data, &PutOpts{
 			ForceBlockRef: entry.Ref.Clone(),
 		}); err != nil {
+			putTask.End()
 			return err
 		}
+		putTask.End()
 	}
 	return nil
 }
@@ -423,11 +432,14 @@ func (s *BufferedStore) waitForDurable(ctx context.Context) error {
 		waitCh := s.waitCh
 		s.mtx.Unlock()
 
+		_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/flush/wait-durable/wait-notify")
 		select {
 		case <-ctx.Done():
+			waitTask.End()
 			return ctx.Err()
 		case <-waitCh:
 		}
+		waitTask.End()
 	}
 }
 
