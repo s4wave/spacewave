@@ -148,6 +148,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding")
 	defer task.End()
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded")
 	excludedVals := make([]quad.Value, 0, len(excluded)+1)
 	excludedVals = append(excludedVals, quad.IRI(NodeUnreferenced))
 	for _, src := range excluded {
@@ -164,9 +165,11 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 		}
 		excludedSet[refs.ToKey(ref)] = struct{}{}
 	}
+	subtask.End()
 
 	var found bool
-	err := iterateFilteredNodeRefs(ctx, rg.handle, quad.Quad{
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/iterate-candidates")
+	err := iterateFilteredNodeRefs(taskCtx, rg.handle, quad.Quad{
 		Predicate: quad.IRI(PredGCRef),
 		Object:    quad.IRI(node),
 	}, quad.Subject, func(ref graph.Ref) error {
@@ -176,6 +179,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 		}
 		return nil
 	})
+	subtask.End()
 	return found, err
 }
 
@@ -262,23 +266,29 @@ func iterateFilteredNodeRefs(
 	dir quad.Direction,
 	cb func(ref graph.Ref) error,
 ) error {
-	sh, _, err := shape.Optimize(ctx, shape.NodesFrom{
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/iterate-filtered-node-refs/optimize-shape")
+	sh, _, err := shape.Optimize(taskCtx, shape.NodesFrom{
 		Dir:   dir,
 		Quads: buildQuadFilters(gq),
 	}, h)
+	subtask.End()
 	if err != nil {
 		return err
 	}
-	it := sh.BuildIterator(ctx, h).Iterate(ctx)
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/iterate-filtered-node-refs/build-iterator")
+	it := sh.BuildIterator(taskCtx, h).Iterate(taskCtx)
+	subtask.End()
 	defer it.Close()
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/iterate-filtered-node-refs/iterate")
+	defer subtask.End()
 	for {
-		if !it.Next(ctx) {
+		if !it.Next(taskCtx) {
 			if err := it.Err(); err != nil {
 				return err
 			}
 			return nil
 		}
-		ref, err := it.Result(ctx)
+		ref, err := it.Result(taskCtx)
 		if err != nil {
 			return err
 		}
