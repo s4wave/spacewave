@@ -169,16 +169,19 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 
 	var found bool
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/iterate-candidates")
-	err := iterateFilteredNodeRefs(taskCtx, rg.handle, quad.Quad{
-		Predicate: quad.IRI(PredGCRef),
-		Object:    quad.IRI(node),
-	}, quad.Subject, func(ref graph.Ref) error {
-		if _, ok := excludedSet[refs.ToKey(ref)]; !ok {
-			found = true
-			return io.EOF
-		}
-		return nil
-	})
+	found, usedFast, err := rg.hasIncomingRefsExcludingFast(taskCtx, node, excludedSet)
+	if err == nil && !usedFast {
+		err = iterateFilteredNodeRefs(taskCtx, rg.handle, quad.Quad{
+			Predicate: quad.IRI(PredGCRef),
+			Object:    quad.IRI(node),
+		}, quad.Subject, func(ref graph.Ref) error {
+			if _, ok := excludedSet[refs.ToKey(ref)]; !ok {
+				found = true
+				return io.EOF
+			}
+			return nil
+		})
+	}
 	subtask.End()
 	return found, err
 }
@@ -256,6 +259,55 @@ func buildQuadFilters(gq quad.Quad) shape.Quads {
 		q = append(q, shape.QuadFilter{Dir: quad.Label, Values: shape.Lookup([]quad.Value{gq.Label})})
 	}
 	return q
+}
+
+func (rg *RefGraph) hasIncomingRefsExcludingFast(
+	ctx context.Context,
+	node string,
+	excludedSet map[any]struct{},
+) (bool, bool, error) {
+	qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore)
+	if !ok {
+		return false, false, nil
+	}
+	predRef, err := rg.handle.ValueOf(ctx, quad.IRI(PredGCRef))
+	if err != nil {
+		return false, true, err
+	}
+	objRef, err := rg.handle.ValueOf(ctx, quad.IRI(node))
+	if err != nil {
+		return false, true, err
+	}
+	predID, predOK := predRef.(cayley_kv.Int64Value)
+	objID, objOK := objRef.(cayley_kv.Int64Value)
+	if !predOK || !objOK || predID == 0 || objID == 0 {
+		return false, true, nil
+	}
+
+	var found bool
+	err = qs.IterateIndexPrefixNextRefs(
+		ctx,
+		cayley_kv.DefaultQuadIndexes[1],
+		[]uint64{uint64(objID), uint64(predID)},
+		func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
+			if _, ok := excludedSet[refs.ToKey(ref)]; ok {
+				return nil
+			}
+			live, err := hasLive()
+			if err != nil {
+				return err
+			}
+			if !live {
+				return nil
+			}
+			found = true
+			return io.EOF
+		},
+	)
+	if err != nil {
+		return false, true, err
+	}
+	return found, true, nil
 }
 
 // iterateFilteredNodeRefs iterates node refs on dir from quads matching gq.

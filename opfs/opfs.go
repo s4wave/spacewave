@@ -3,8 +3,10 @@
 package opfs
 
 import (
+	"context"
 	"io"
 	"io/fs"
+	"runtime/trace"
 	"syscall/js"
 	"time"
 
@@ -190,20 +192,33 @@ func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 // Write writes len(p) bytes at the current position.
 // Opens a writable stream, seeks, writes, and closes per call.
 func (f *AsyncFile) Write(p []byte) (int, error) {
-	n, err := f.WriteAt(p, f.pos)
+	n, err := f.WriteAtContext(context.Background(), p, f.pos)
 	f.pos += int64(n)
 	return n, err
 }
 
 // WriteAt writes len(p) bytes to the file starting at byte offset off.
 func (f *AsyncFile) WriteAt(p []byte, off int64) (int, error) {
+	return f.WriteAtContext(context.Background(), p, off)
+}
+
+// WriteAtContext writes len(p) bytes to the file starting at byte offset off.
+func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (int, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs/async-file/write-at")
+	defer task.End()
+
+	writeCtx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at/create-writable")
 	writable, err := AwaitPromise(f.handle.Call("createWritable"))
+	writeTask.End()
 	if err != nil {
 		return 0, errors.Wrap(err, "createWritable")
 	}
 
 	if off > 0 {
-		if _, err := AwaitPromise(writable.Call("seek", off)); err != nil {
+		_, seekTask := trace.NewTask(writeCtx, "hydra/opfs/async-file/write-at/seek")
+		_, err := AwaitPromise(writable.Call("seek", off))
+		seekTask.End()
+		if err != nil {
 			AwaitPromise(writable.Call("close")) //nolint
 			return 0, errors.Wrap(err, "seek")
 		}
@@ -212,11 +227,18 @@ func (f *AsyncFile) WriteAt(p []byte, off int64) (int, error) {
 	arr := js.Global().Get("Uint8Array").New(len(p))
 	js.CopyBytesToJS(arr, p)
 
-	if _, err := AwaitPromise(writable.Call("write", arr)); err != nil {
+	writeDataCtx, writeDataTask := trace.NewTask(writeCtx, "hydra/opfs/async-file/write-at/write")
+	_, err = AwaitPromise(writable.Call("write", arr))
+	writeDataTask.End()
+	if err != nil {
 		AwaitPromise(writable.Call("close")) //nolint
 		return 0, errors.Wrap(err, "write")
 	}
-	if _, err := AwaitPromise(writable.Call("close")); err != nil {
+
+	_, closeTask := trace.NewTask(writeDataCtx, "hydra/opfs/async-file/write-at/close-writable")
+	_, err = AwaitPromise(writable.Call("close"))
+	closeTask.End()
+	if err != nil {
 		return len(p), errors.Wrap(err, "close writable")
 	}
 	return len(p), nil

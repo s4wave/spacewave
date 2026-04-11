@@ -197,7 +197,7 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 			return err
 		}
 		_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-async")
-		_, err = f.WriteAt(data, 0)
+		_, err = f.WriteAtContext(ctx, data, 0)
 		subtask.End()
 		return err
 	}
