@@ -218,14 +218,9 @@ func IterateObjectsWithType(
 }
 
 // ListObjectsWithType returns the list of object keys with the given type id.
-//
-// If objKeyPrefix is set, limits the object keys to those with the given prefix.
-func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID, objKeyPrefix string) ([]string, error) {
+func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string) ([]string, error) {
 	var objKeys []string
 	err := IterateObjectsWithType(ctx, ws, typeID, func(objKey string) (bool, error) {
-		if !strings.HasPrefix(objKey, objKeyPrefix) {
-			return true, nil
-		}
 		objKeys = append(objKeys, objKey)
 		return true, nil
 	})
@@ -238,14 +233,12 @@ func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID, objKe
 // ListCollectObjectsWithType returns the list of object keys with the given type id.
 // Unmarshals the bodies of the matched objects.
 //
-// If objKeyPrefix is set, limits the object keys to those with the given prefix.
-//
 // ctor must return an object of type T
 // returns two slices of length objKeys
 // if any objects are not found, returns nil for that object state / value and objs, objsStates, ErrNotFound
 // returns nil, nil, err for any other error
-func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID, objKeyPrefix string, ctor func() block.Block) ([]T, []string, error) {
-	objKeys, err := ListObjectsWithType(ctx, ws, typeID, objKeyPrefix)
+func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID string, ctor func() block.Block) ([]T, []string, error) {
+	objKeys, err := ListObjectsWithType(ctx, ws, typeID)
 	if err != nil {
 		return nil, nil, err
 	}
