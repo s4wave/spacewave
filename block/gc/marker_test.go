@@ -77,6 +77,27 @@ func (m *mockCollectorGraph) HasIncomingRefs(_ context.Context, node string) (bo
 	return false, nil
 }
 
+func (m *mockCollectorGraph) HasIncomingRefsExcluding(
+	_ context.Context,
+	node string,
+	excluded ...string,
+) (bool, error) {
+	excludedSet := make(map[string]struct{}, len(excluded)+1)
+	excludedSet[NodeUnreferenced] = struct{}{}
+	for _, src := range excluded {
+		excludedSet[src] = struct{}{}
+	}
+	for s, targets := range m.edges {
+		if _, ok := excludedSet[s]; ok {
+			continue
+		}
+		if slices.Contains(targets, node) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (m *mockCollectorGraph) GetUnreferencedNodes(ctx context.Context) ([]string, error) {
 	return m.GetOutgoingRefs(ctx, NodeUnreferenced)
 }

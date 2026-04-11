@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
 	"github.com/aperturerobotics/hydra/block"
@@ -77,6 +78,9 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 // ApplyRefBatch applies a batch of ref graph edge additions and removals
 // in a single Cayley transaction.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
+	defer task.End()
+
 	n := len(adds) + len(removes)
 	if n == 0 {
 		return nil
@@ -127,48 +131,67 @@ func (rg *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphane
 // HasIncomingRefs checks if a node has any incoming gc/ref edges.
 // Excludes edges from "unreferenced" (those don't count as real refs).
 func (rg *RefGraph) HasIncomingRefs(ctx context.Context, node string) (bool, error) {
+	return rg.HasIncomingRefsExcluding(ctx, node)
+}
+
+// HasIncomingRefsExcluding checks if a node has any incoming gc/ref edges.
+// Excludes edges from "unreferenced" and the specified source nodes.
+func (rg *RefGraph) HasIncomingRefsExcluding(
+	ctx context.Context,
+	node string,
+	excluded ...string,
+) (bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding")
+	defer task.End()
+
+	excludedVals := make([]quad.Value, 0, len(excluded)+1)
+	excludedVals = append(excludedVals, quad.IRI(NodeUnreferenced))
+	for _, src := range excluded {
+		excludedVals = append(excludedVals, quad.IRI(src))
+	}
+	excludedSet := make(map[any]struct{}, len(excludedVals))
+	for _, v := range excludedVals {
+		ref, err := rg.handle.ValueOf(ctx, v)
+		if err != nil {
+			return false, err
+		}
+		if ref == nil {
+			continue
+		}
+		excludedSet[refs.ToKey(ref)] = struct{}{}
+	}
+
 	var found bool
-	err := filterIterateQuads(ctx, rg.handle, quad.Quad{
+	err := iterateFilteredNodeRefs(ctx, rg.handle, quad.Quad{
 		Predicate: quad.IRI(PredGCRef),
 		Object:    quad.IRI(node),
-	}, func(q quad.Quad) error {
-		subj := iriString(q.Subject)
-		if subj != NodeUnreferenced {
+	}, quad.Subject, func(ref graph.Ref) error {
+		if _, ok := excludedSet[refs.ToKey(ref)]; !ok {
 			found = true
 			return io.EOF
 		}
 		return nil
 	})
-	if err == io.EOF {
-		err = nil
-	}
 	return found, err
 }
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.
 func (rg *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string, error) {
-	var targets []string
-	err := filterIterateQuads(ctx, rg.handle, quad.Quad{
+	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{
 		Subject:   quad.IRI(node),
 		Predicate: quad.IRI(PredGCRef),
-	}, func(q quad.Quad) error {
-		targets = append(targets, iriString(q.Object))
-		return nil
-	})
-	return targets, err
+	}, quad.Object)
 }
 
 // GetIncomingRefs returns all sources that have gc/ref edges pointing to the given node.
 func (rg *RefGraph) GetIncomingRefs(ctx context.Context, node string) ([]string, error) {
-	var sources []string
-	err := filterIterateQuads(ctx, rg.handle, quad.Quad{
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/get-incoming-refs")
+	defer task.End()
+
+	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{
 		Predicate: quad.IRI(PredGCRef),
 		Object:    quad.IRI(node),
-	}, func(q quad.Quad) error {
-		sources = append(sources, iriString(q.Subject))
-		return nil
-	})
-	return sources, err
+	}, quad.Subject)
 }
 
 // GetUnreferencedNodes returns all nodes that have a gc/ref from "unreferenced".
@@ -209,9 +232,8 @@ func (rg *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref 
 	return rg.RemoveRef(ctx, ObjectIRI(objectKey), t)
 }
 
-// filterIterateQuads iterates over quads matching the input quad.
-// Empty fields in the filter quad are ignored (wildcard).
-func filterIterateQuads(ctx context.Context, h *cayley.Handle, gq quad.Quad, cb func(q quad.Quad) error) error {
+// buildQuadFilters builds quad filters for the non-empty directions in gq.
+func buildQuadFilters(gq quad.Quad) shape.Quads {
 	var q shape.Quads
 	if gq.Subject != nil {
 		q = append(q, shape.QuadFilter{Dir: quad.Subject, Values: shape.Lookup([]quad.Value{gq.Subject})})
@@ -225,26 +247,72 @@ func filterIterateQuads(ctx context.Context, h *cayley.Handle, gq quad.Quad, cb 
 	if gq.Label != nil {
 		q = append(q, shape.QuadFilter{Dir: quad.Label, Values: shape.Lookup([]quad.Value{gq.Label})})
 	}
+	return q
+}
 
-	sh, _, err := shape.Optimize(ctx, q, h)
+// iterateFilteredNodeRefs iterates node refs on dir from quads matching gq.
+func iterateFilteredNodeRefs(
+	ctx context.Context,
+	h *cayley.Handle,
+	gq quad.Quad,
+	dir quad.Direction,
+	cb func(ref graph.Ref) error,
+) error {
+	sh, _, err := shape.Optimize(ctx, shape.NodesFrom{
+		Dir:   dir,
+		Quads: buildQuadFilters(gq),
+	}, h)
 	if err != nil {
 		return err
 	}
 	it := sh.BuildIterator(ctx, h).Iterate(ctx)
 	defer it.Close()
-	rsc := graph.NewResultReader(ctx, h, it)
 	for {
-		rd, err := rsc.ReadQuad(ctx)
-		if err == nil {
-			err = cb(rd)
+		if !it.Next(ctx) {
+			if err := it.Err(); err != nil {
+				return err
+			}
+			return nil
 		}
+		ref, err := it.Result(ctx)
 		if err != nil {
+			return err
+		}
+		if err := cb(ref); err != nil {
 			if err == io.EOF {
 				return nil
 			}
 			return err
 		}
 	}
+}
+
+// collectFilteredNodeIRIs collects node IRIs on dir from quads matching gq.
+func collectFilteredNodeIRIs(
+	ctx context.Context,
+	h *cayley.Handle,
+	gq quad.Quad,
+	dir quad.Direction,
+) ([]string, error) {
+	var nodeRefs []graph.Ref
+	if err := iterateFilteredNodeRefs(ctx, h, gq, dir, func(ref graph.Ref) error {
+		nodeRefs = append(nodeRefs, ref)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	if len(nodeRefs) == 0 {
+		return nil, nil
+	}
+	vals, err := graph.ValuesOf(ctx, h, nodeRefs)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(vals))
+	for _, v := range vals {
+		out = append(out, iriString(v))
+	}
+	return out, nil
 }
 
 // iriString extracts the string value from a quad.Value, assuming it is an IRI.

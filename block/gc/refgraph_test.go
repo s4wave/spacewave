@@ -201,6 +201,37 @@ func TestHasIncomingRefsExcludesUnreferenced(t *testing.T) {
 	}
 }
 
+func TestHasIncomingRefsExcluding(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	if err := rg.AddRef(ctx, "object:foo", "block:bar"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.AddRef(ctx, NodeUnreferenced, "block:bar"); err != nil {
+		t.Fatal(err)
+	}
+
+	has, err := rg.HasIncomingRefsExcluding(ctx, "block:bar", "object:foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has {
+		t.Fatal("expected only excluded and unreferenced edges to be ignored")
+	}
+
+	if err := rg.AddRef(ctx, "object:other", "block:bar"); err != nil {
+		t.Fatal(err)
+	}
+	has, err = rg.HasIncomingRefsExcluding(ctx, "block:bar", "object:foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !has {
+		t.Fatal("expected remaining non-excluded incoming ref to be detected")
+	}
+}
+
 func TestGetUnreferencedNodes(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)

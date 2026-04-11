@@ -78,6 +78,30 @@ func (r *RefGraph) HasIncomingRefs(ctx context.Context, node string) (bool, erro
 	return resp.GetHasRefs(), nil
 }
 
+// HasIncomingRefsExcluding checks if a node has any incoming gc/ref edges
+// excluding edges from "unreferenced" and the specified source nodes.
+func (r *RefGraph) HasIncomingRefsExcluding(
+	ctx context.Context,
+	node string,
+	excluded ...string,
+) (bool, error) {
+	sources, err := r.GetIncomingRefs(ctx, node)
+	if err != nil {
+		return false, err
+	}
+	excludedSet := make(map[string]struct{}, len(excluded)+1)
+	excludedSet[block_gc.NodeUnreferenced] = struct{}{}
+	for _, src := range excluded {
+		excludedSet[src] = struct{}{}
+	}
+	for _, src := range sources {
+		if _, ok := excludedSet[src]; !ok {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetOutgoingRefs returns all targets of gc/ref edges from a node.
 func (r *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string, error) {
 	resp, err := r.client.GetOutgoingRefs(ctx, &block_gc_rpc.GetOutgoingRefsRequest{

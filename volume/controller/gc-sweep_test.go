@@ -33,6 +33,10 @@ func (stubCollectorGraph) HasIncomingRefs(context.Context, string) (bool, error)
 	return false, nil
 }
 
+func (stubCollectorGraph) HasIncomingRefsExcluding(context.Context, string, ...string) (bool, error) {
+	return false, nil
+}
+
 func (stubCollectorGraph) GetOutgoingRefs(context.Context, string) ([]string, error) {
 	return nil, nil
 }

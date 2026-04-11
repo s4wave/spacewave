@@ -41,6 +41,16 @@ func (g *GCGraph) GetIncomingRefs(ctx context.Context, node string) ([]string, e
 // besides those from "unreferenced". Uses the pre-computed hash of
 // NodeUnreferenced for filename comparison to avoid file I/O.
 func (g *GCGraph) HasIncomingRefs(ctx context.Context, node string) (bool, error) {
+	return g.HasIncomingRefsExcluding(ctx, node)
+}
+
+// HasIncomingRefsExcluding checks if a node has any incoming gc/ref edges
+// besides those from "unreferenced" and the specified source nodes.
+func (g *GCGraph) HasIncomingRefsExcluding(
+	ctx context.Context,
+	node string,
+	excluded ...string,
+) (bool, error) {
 	h := hashName(node)
 	dir, err := opfs.GetDirectory(g.incomingDir, h, false)
 	if err != nil {
@@ -55,8 +65,13 @@ func (g *GCGraph) HasIncomingRefs(ctx context.Context, node string) (bool, error
 		return false, errors.Wrap(err, "list incoming")
 	}
 
+	excludedHashes := make(map[string]struct{}, len(excluded)+1)
+	excludedHashes[unreferencedHash] = struct{}{}
+	for _, src := range excluded {
+		excludedHashes[hashName(src)] = struct{}{}
+	}
 	for _, name := range names {
-		if name != unreferencedHash {
+		if _, ok := excludedHashes[name]; !ok {
 			return true, nil
 		}
 	}

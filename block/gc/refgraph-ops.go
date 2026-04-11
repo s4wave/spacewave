@@ -28,6 +28,9 @@ type RefGraphOps interface {
 	// HasIncomingRefs checks if a node has any incoming gc/ref edges.
 	// Excludes edges from "unreferenced".
 	HasIncomingRefs(ctx context.Context, node string) (bool, error)
+	// HasIncomingRefsExcluding checks if a node has any incoming gc/ref edges
+	// excluding edges from "unreferenced" and the specified source nodes.
+	HasIncomingRefsExcluding(ctx context.Context, node string, excluded ...string) (bool, error)
 	// GetOutgoingRefs returns all targets of gc/ref edges from a node.
 	GetOutgoingRefs(ctx context.Context, node string) ([]string, error)
 	// GetIncomingRefs returns all sources with gc/ref edges to a node.
