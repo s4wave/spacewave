@@ -2,11 +2,11 @@ package logfile
 
 import (
 	"bytes"
-	"encoding/json"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/sirupsen/logrus"
 )
 
@@ -69,15 +69,16 @@ func TestFileHookJSONFormat(t *testing.T) {
 	hook.Close()
 
 	out := buf.String()
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &parsed); err != nil {
+	var p fastjson.Parser
+	v, err := p.Parse(strings.TrimSpace(out))
+	if err != nil {
 		t.Fatalf("output is not valid JSON: %v\noutput: %q", err, out)
 	}
-	if parsed["msg"] != "json test" {
-		t.Errorf("expected msg 'json test', got %v", parsed["msg"])
+	if msg := string(v.GetStringBytes("msg")); msg != "json test" {
+		t.Errorf("expected msg 'json test', got %v", msg)
 	}
-	if parsed["key"] != "value" {
-		t.Errorf("expected key 'value', got %v", parsed["key"])
+	if key := string(v.GetStringBytes("key")); key != "value" {
+		t.Errorf("expected key 'value', got %v", key)
 	}
 }
 

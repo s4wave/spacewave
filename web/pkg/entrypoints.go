@@ -3,11 +3,11 @@
 package web_pkg
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 )
 
@@ -91,18 +91,23 @@ func resolveNodeModuleEntrypoints(
 	}
 
 	// Parse package.json to find exports or main.
-	var pkg packageJSON
-	if err := json.Unmarshal(pkgJsonData, &pkg); err != nil {
+	var p fastjson.Parser
+	v, err := p.ParseBytes(pkgJsonData)
+	if err != nil {
 		return nil, errors.Wrap(err, "parse package.json")
 	}
 
 	// Try exports field first.
-	if len(pkg.Exports) > 0 {
-		return resolvePackageJSONExports(pkg.Exports)
+	if exports := v.Get("exports"); exports != nil {
+		imports := resolvePackageJSONExports(exports)
+		if len(imports) != 0 {
+			return imports, nil
+		}
 	}
 
 	// Fall back to main or module field.
-	for _, entry := range []string{pkg.Module, pkg.Main} {
+	for _, entryBytes := range [][]byte{v.GetStringBytes("module"), v.GetStringBytes("main")} {
+		entry := string(entryBytes)
 		if entry == "" {
 			continue
 		}
@@ -117,14 +122,7 @@ func resolveNodeModuleEntrypoints(
 	return resolveLocalEntrypoints(pkgRoot, nil)
 }
 
-// packageJSON holds the fields we need from package.json.
-type packageJSON struct {
-	Main    string                     `json:"main"`
-	Module  string                     `json:"module"`
-	Exports map[string]json.RawMessage `json:"exports"`
-}
-
-// resolvePackageJSONExports extracts entry points from a package.json exports map.
+// resolvePackageJSONExports extracts entry points from a package.json exports value.
 //
 // Handles the common patterns:
 //
@@ -134,86 +132,102 @@ type packageJSON struct {
 //	{ "./jsx-runtime": { "import": { "default": "./jsx-runtime.js" } } }
 //
 // Skips entries that resolve to non-bundleable files (types, binary).
-func resolvePackageJSONExports(exports map[string]json.RawMessage) ([]string, error) {
-	var imports []string
+func resolvePackageJSONExports(exports *fastjson.Value) []string {
+	if exports == nil {
+		return nil
+	}
+	if resolved := resolveExportCondition(exports); resolved != "" {
+		if importPath, ok := normalizeResolvedExport(resolved); ok {
+			return []string{importPath}
+		}
+		return []string{"index.js"}
+	}
 
-	for subpath, raw := range exports {
+	var imports []string
+	obj := exports.GetObject()
+	if obj == nil {
+		return []string{"index.js"}
+	}
+	obj.Visit(func(k []byte, raw *fastjson.Value) {
+		subpath := string(k)
 		// Skip internal/private exports.
 		if strings.HasPrefix(subpath, "#") {
-			continue
+			return
 		}
 
 		// Skip wildcard exports (e.g. "./*", "./*.css", "./files/*").
 		if strings.Contains(subpath, "*") {
-			continue
+			return
 		}
 
 		resolved := resolveExportCondition(raw)
 		if resolved == "" {
-			continue
+			return
 		}
 
-		// Skip wildcard resolved paths.
-		if strings.Contains(resolved, "*") {
-			continue
+		importPath, ok := normalizeResolvedExport(resolved)
+		if !ok {
+			return
 		}
-
-		// Skip non-bundleable exports (types, binary, license).
-		ext := filepath.Ext(resolved)
-		switch ext {
-		case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".css":
-			// Bundleable entry point.
-		default:
-			continue
-		}
-
-		// Strip leading "./" from export paths.
-		resolved = strings.TrimPrefix(resolved, "./")
-		imports = append(imports, resolved)
-	}
+		imports = append(imports, importPath)
+	})
 
 	if len(imports) == 0 {
-		return []string{"index.js"}, nil
+		return []string{"index.js"}
 	}
-	return imports, nil
+	return imports
 }
 
 // resolveExportCondition resolves a package.json export value to a file path.
 // Handles string values and nested condition objects (import > default > require).
-func resolveExportCondition(raw json.RawMessage) string {
-	if len(raw) == 0 {
+func resolveExportCondition(raw *fastjson.Value) string {
+	if raw == nil {
 		return ""
 	}
 
 	// Try string first.
-	var s string
-	if json.Unmarshal(raw, &s) == nil {
+	if s := string(raw.GetStringBytes()); s != "" {
 		return s
 	}
 
 	// Try condition object.
-	var obj map[string]json.RawMessage
-	if json.Unmarshal(raw, &obj) != nil {
+	obj := raw.GetObject()
+	if obj == nil {
 		return ""
 	}
 
 	// Prefer import > default > require.
 	for _, key := range []string{"import", "default", "require"} {
-		if val, ok := obj[key]; ok {
-			if result := resolveExportCondition(val); result != "" {
-				return result
-			}
-		}
-	}
-
-	// If no standard condition matched, try the first value.
-	for _, val := range obj {
-		if result := resolveExportCondition(val); result != "" {
+		if result := resolveExportCondition(raw.Get(key)); result != "" {
 			return result
 		}
 	}
 
-	return ""
+	// If no standard condition matched, try the first value.
+	first := ""
+	obj.Visit(func(_ []byte, val *fastjson.Value) {
+		if first == "" {
+			first = resolveExportCondition(val)
+		}
+	})
+	return first
+}
+
+func normalizeResolvedExport(resolved string) (string, bool) {
+	// Skip wildcard resolved paths.
+	if strings.Contains(resolved, "*") {
+		return "", false
+	}
+
+	// Skip non-bundleable exports (types, binary, license).
+	ext := filepath.Ext(resolved)
+	switch ext {
+	case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".css":
+	default:
+		return "", false
+	}
+
+	return strings.TrimPrefix(resolved, "./"), true
 }
 
 // resolveSubpathEntrypoints resolves a subpath specifier (like ".", "./object")

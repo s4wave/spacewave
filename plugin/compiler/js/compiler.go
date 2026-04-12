@@ -4,7 +4,6 @@ package bldr_plugin_compiler_js
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
@@ -467,8 +466,8 @@ func (c *Controller) BuildManifest(
 	}
 
 	// Parse the metafile to find the actual output path for our entrypoint
-	metafileData := &bldr_esbuild_build.EsbuildMetafile{}
-	if err := json.Unmarshal([]byte(result.Metafile), metafileData); err != nil {
+	metafileData, err := bldr_esbuild_build.ParseEsbuildMetafile([]byte(result.Metafile))
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse esbuild metafile")
 	}
 

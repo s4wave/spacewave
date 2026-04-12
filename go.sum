@@ -32,6 +32,8 @@ github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023/go.mod h1:FQBD9mZEmDiw7WGFKtyd5aMOhLTPnNIXmRscCji7WkM=
+github.com/aperturerobotics/fastjson v0.1.1 h1:3ErKDjTNW8jFD6lLLnx1kyU+55TSq0ocFWaYTJBo4Ns=
+github.com/aperturerobotics/fastjson v0.1.1/go.mod h1:ArP9Q7MVDi8jMPR3ljopH5drxs/qen12Hv2L7qRcPb4=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab h1:QFauzuS4QNsVPYh/PRbfGzaIoW18eBlUsLdYf9jPjOg=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab/go.mod h1:+DWSr6dA/jMpVPJVw5uQ7MXAli8s0hch7cuMZV5fyWk=
 github.com/aperturerobotics/go-indexeddb v0.2.3 h1:DfquIk9YEZjWD/lJyBWZWGCtRga43/a96bx0Ulv9VhQ=

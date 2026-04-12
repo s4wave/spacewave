@@ -1,12 +1,12 @@
 package determine_cjs_exports
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/esbuild/pkg/cjsexports"
 	"github.com/pkg/errors"
 )
@@ -280,14 +280,19 @@ func getJSONKeys(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var obj map[string]json.RawMessage
-	if err := json.Unmarshal(data, &obj); err != nil {
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
 		// Not an object (could be array, string, etc.).
 		return nil, nil
 	}
-	keys := make([]string, 0, len(obj))
-	for k := range obj {
-		keys = append(keys, k)
+	obj := v.GetObject()
+	if obj == nil {
+		return nil, nil
 	}
+	var keys []string
+	obj.Visit(func(k []byte, _ *fastjson.Value) {
+		keys = append(keys, string(k))
+	})
 	return keys, nil
 }

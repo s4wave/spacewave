@@ -3,7 +3,6 @@
 package bldr_web_bundler_esbuild_compiler
 
 import (
-	"encoding/json"
 	"maps"
 	"path/filepath"
 	"slices"
@@ -136,8 +135,8 @@ func BuildEsbuildBundle(
 		return nil, nil, nil, errors.New("esbuild: expected at least one output file but got none")
 	}
 
-	metaFile := &bldr_esbuild_build.EsbuildMetafile{}
-	if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
+	metaFile, err := bldr_esbuild_build.ParseEsbuildMetafile([]byte(result.Metafile))
+	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "parse esbuild metafile")
 	}
 

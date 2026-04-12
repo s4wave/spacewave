@@ -1,9 +1,10 @@
 package web_entrypoint_index
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/aperturerobotics/fastjson"
 )
 
 func TestImportMapString(t *testing.T) {
@@ -62,19 +63,14 @@ func TestImportMapJSONMarshal(t *testing.T) {
 		},
 	}
 
-	// Test direct JSON marshaling
-	b, err := json.Marshal(im)
+	rendered := im.String()
+
+	var p fastjson.Parser
+	v, err := p.Parse(rendered)
 	if err != nil {
-		t.Fatalf("json.Marshal() error = %v", err)
+		t.Fatalf("parse import map JSON error = %v", err)
 	}
-
-	// Verify the JSON structure
-	var unmarshaled ImportMap
-	if err := json.Unmarshal(b, &unmarshaled); err != nil {
-		t.Fatalf("json.Unmarshal() error = %v", err)
-	}
-
-	if unmarshaled.Imports["react"] != "./pkgs/react/index.mjs" {
-		t.Error("JSON marshaling/unmarshaling didn't preserve import map values")
+	if got := string(v.GetStringBytes("imports", "react")); got != "./pkgs/react/index.mjs" {
+		t.Errorf("import map value mismatch: got %q", got)
 	}
 }

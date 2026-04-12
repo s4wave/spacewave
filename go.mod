@@ -113,6 +113,7 @@ require (
 )
 
 require (
+	github.com/aperturerobotics/fastjson v0.1.1
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/mattn/go-isatty v0.0.20

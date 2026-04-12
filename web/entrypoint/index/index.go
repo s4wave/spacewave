@@ -2,8 +2,10 @@ package web_entrypoint_index
 
 import (
 	"bytes"
-	"encoding/json"
+	"slices"
 	"text/template"
+
+	"github.com/aperturerobotics/fastjson"
 
 	// _ enables embed
 	_ "embed"
@@ -25,8 +27,19 @@ type IndexData struct {
 
 // String returns the JSON string representation of ImportMap
 func (m ImportMap) String() string {
-	b, _ := json.Marshal(m)
-	return string(b)
+	var a fastjson.Arena
+	obj := a.NewObject()
+	imports := a.NewObject()
+	keys := make([]string, 0, len(m.Imports))
+	for key := range m.Imports {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		imports.Set(key, a.NewString(m.Imports[key]))
+	}
+	obj.Set("imports", imports)
+	return string(obj.MarshalTo(nil))
 }
 
 // RenderIndexHTML processes the index.html template with the provided data.

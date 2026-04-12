@@ -4,7 +4,6 @@ package entrypoint_browser_bundle
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"slices"
@@ -18,6 +17,7 @@ import (
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
+	"github.com/aperturerobotics/fastjson"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -46,10 +46,17 @@ type BuildManifest struct {
 
 // WriteBuildManifest writes a manifest.json to the given directory.
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
-	data, err := json.MarshalIndent(manifest, "", "  ")
-	if err != nil {
-		return err
+	var a fastjson.Arena
+	obj := a.NewObject()
+	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
+	obj.Set("sharedWorker", a.NewString(manifest.SharedWorker))
+	obj.Set("wasm", a.NewString(manifest.Wasm))
+	css := a.NewArray()
+	for _, path := range manifest.CSS {
+		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
 	}
+	obj.Set("css", css)
+	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
 }
 

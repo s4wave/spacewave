@@ -1,11 +1,12 @@
 package determine_cjs_exports
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/aperturerobotics/fastjson"
 )
 
 // resolveExtensions is the ordered list of extensions to try when resolving.
@@ -142,13 +143,12 @@ func readPackageMain(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var pkg struct {
-		Main string `json:"main"`
-	}
-	if err := json.Unmarshal(data, &pkg); err != nil {
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
 		return "", err
 	}
-	return pkg.Main, nil
+	return string(v.GetStringBytes("main")), nil
 }
 
 // hasExtension checks if the path has one of the supported extensions.
