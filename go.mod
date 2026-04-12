@@ -6,7 +6,7 @@ replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-2
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
-	github.com/aperturerobotics/cayley v0.11.2-0.20260412014025-0a1eec4890e6 // latest
+	github.com/aperturerobotics/cayley v0.12.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.0 // master
@@ -61,7 +61,7 @@ require (
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.32.2 // latest
+	github.com/aperturerobotics/common v0.32.3 // latest
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
@@ -83,7 +83,7 @@ require (
 	github.com/hack-pad/safejs v0.1.1
 	github.com/klauspost/compress v1.18.4
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/mr-tron/base58 v1.2.0
+	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.33.2 // latest
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
@@ -173,7 +173,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	golang.org/x/mod v0.34.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c // indirect
 	golang.org/x/text v0.35.0 // indirect
