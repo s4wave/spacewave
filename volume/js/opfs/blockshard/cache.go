@@ -4,12 +4,143 @@ package blockshard
 
 import (
 	"context"
+	"io"
 	"runtime/trace"
+	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
 	"github.com/pkg/errors"
 )
+
+const (
+	cachedSegmentBlockSize = 64 * 1024
+	maxCachedSegmentBlocks = 4
+	maxCachedSegmentRead   = cachedSegmentBlockSize * maxCachedSegmentBlocks
+)
+
+type segmentReader interface {
+	io.ReaderAt
+	Size() (int64, error)
+}
+
+type cachedSegmentFile struct {
+	rd   segmentReader
+	size int64
+
+	mu     sync.Mutex
+	blocks map[int64][]byte
+	order  []int64
+}
+
+func newCachedSegmentFile(rd segmentReader, size int64) *cachedSegmentFile {
+	if size == 0 {
+		if resolved, err := rd.Size(); err == nil {
+			size = resolved
+		}
+	}
+	return &cachedSegmentFile{
+		rd:     rd,
+		size:   size,
+		blocks: make(map[int64][]byte),
+	}
+}
+
+func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if len(p) > maxCachedSegmentRead {
+		return f.rd.ReadAt(p, off)
+	}
+	if off >= f.size {
+		return 0, io.EOF
+	}
+
+	readEnd := off + int64(len(p))
+	if readEnd > f.size {
+		readEnd = f.size
+	}
+
+	startBlock := alignSegmentOffset(off)
+	endBlock := alignSegmentOffset(readEnd - 1)
+	for blockOff := startBlock; blockOff <= endBlock; blockOff += cachedSegmentBlockSize {
+		block, err := f.getBlock(blockOff)
+		if err != nil {
+			return 0, err
+		}
+		blockStart := maxInt64(off, blockOff)
+		blockEnd := minInt64(readEnd, blockOff+int64(len(block)))
+		copyStart := blockStart - off
+		copyEnd := blockEnd - off
+		if copyEnd <= copyStart {
+			continue
+		}
+		srcStart := blockStart - blockOff
+		srcEnd := blockEnd - blockOff
+		copy(p[copyStart:copyEnd], block[srcStart:srcEnd])
+	}
+
+	n := int(readEnd - off)
+	if n < len(p) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+func (f *cachedSegmentFile) getBlock(blockOff int64) ([]byte, error) {
+	f.mu.Lock()
+	if block := f.blocks[blockOff]; block != nil {
+		f.touchBlockLocked(blockOff)
+		f.mu.Unlock()
+		return block, nil
+	}
+	f.mu.Unlock()
+
+	blockEnd := minInt64(blockOff+cachedSegmentBlockSize, f.size)
+	if blockEnd <= blockOff {
+		return nil, io.EOF
+	}
+	buf := make([]byte, blockEnd-blockOff)
+	n, err := f.rd.ReadAt(buf, blockOff)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	if n <= 0 {
+		return nil, io.EOF
+	}
+	block := buf[:n]
+
+	f.mu.Lock()
+	if existing := f.blocks[blockOff]; existing != nil {
+		f.touchBlockLocked(blockOff)
+		block = existing
+	} else {
+		f.blocks[blockOff] = block
+		f.order = append(f.order, blockOff)
+		if len(f.order) > maxCachedSegmentBlocks {
+			evict := f.order[0]
+			f.order = f.order[1:]
+			delete(f.blocks, evict)
+		}
+	}
+	f.mu.Unlock()
+	return block, nil
+}
+
+func (f *cachedSegmentFile) touchBlockLocked(blockOff int64) {
+	idx := slices.Index(f.order, blockOff)
+	if idx < 0 || idx == len(f.order)-1 {
+		return
+	}
+	copy(f.order[idx:], f.order[idx+1:])
+	f.order[len(f.order)-1] = blockOff
+}
+
+func (f *cachedSegmentFile) Size() (int64, error) {
+	return f.size, nil
+}
 
 func (s *Shard) setManifestLocked(m *Manifest) {
 	s.manifest = m
@@ -69,7 +200,7 @@ func (s *Shard) getLookup(ctx context.Context, meta *SegmentMeta) (*segment.Look
 	return lookup, nil
 }
 
-func (s *Shard) getSegmentFile(ctx context.Context, meta *SegmentMeta) (*opfs.AsyncFile, error) {
+func (s *Shard) getSegmentFile(ctx context.Context, meta *SegmentMeta) (*cachedSegmentFile, error) {
 	s.mu.Lock()
 	f := s.segmentFileCache[meta.Filename]
 	s.mu.Unlock()
@@ -78,11 +209,12 @@ func (s *Shard) getSegmentFile(ctx context.Context, meta *SegmentMeta) (*opfs.As
 	}
 
 	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-segment-file/open-file")
-	f, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
+	af, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
+	f = newCachedSegmentFile(af, int64(meta.Size))
 
 	s.mu.Lock()
 	if existing := s.segmentFileCache[meta.Filename]; existing != nil {
@@ -100,7 +232,7 @@ func (s *Shard) dropSegmentFile(filename string) {
 	s.mu.Unlock()
 }
 
-func loadLookupMeta(ctx context.Context, f *opfs.AsyncFile, meta *SegmentMeta) (*segment.LookupMeta, error) {
+func loadLookupMeta(ctx context.Context, f segmentReader, meta *SegmentMeta) (*segment.LookupMeta, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta")
 	defer task.End()
 
@@ -143,4 +275,22 @@ func cloneIndex(idx []segment.IndexEntry) []segment.IndexEntry {
 		}
 	}
 	return out
+}
+
+func alignSegmentOffset(off int64) int64 {
+	return (off / cachedSegmentBlockSize) * cachedSegmentBlockSize
+}
+
+func minInt64(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -3,7 +3,9 @@
 package blockshard
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"sort"
 	"strconv"
 	"testing"
@@ -135,6 +137,69 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 	if !found || string(val) != "mode" {
 		t.Fatalf("async get: found=%v val=%q want mode", found, val)
+	}
+}
+
+type fakeSegmentReader struct {
+	buf   []byte
+	reads int
+}
+
+func (f *fakeSegmentReader) ReadAt(p []byte, off int64) (int, error) {
+	f.reads++
+	if off >= int64(len(f.buf)) {
+		return 0, io.EOF
+	}
+	n := copy(p, f.buf[off:])
+	if n < len(p) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+func (f *fakeSegmentReader) Size() (int64, error) {
+	return int64(len(f.buf)), nil
+}
+
+func TestCachedSegmentFileCachesWindow(t *testing.T) {
+	data := bytes.Repeat([]byte("abcdefghijklmnopqrstuvwxyz"), (cachedSegmentBlockSize*3)/26+2)
+	rd := &fakeSegmentReader{
+		buf: data[:cachedSegmentBlockSize*3],
+	}
+	f := newCachedSegmentFile(rd, int64(len(rd.buf)))
+
+	buf := make([]byte, 16)
+	off := int64(cachedSegmentBlockSize - 8)
+	want := string(rd.buf[off : off+16])
+	if _, err := f.ReadAt(buf, off); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(buf); got != want {
+		t.Fatalf("first read got %q want %q", got, want)
+	}
+	if rd.reads != 2 {
+		t.Fatalf("reads after cross-block call: got %d want 2", rd.reads)
+	}
+
+	buf = make([]byte, 8)
+	off = int64(cachedSegmentBlockSize - 4)
+	want = string(rd.buf[off : off+8])
+	if _, err := f.ReadAt(buf, off); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(buf); got != want {
+		t.Fatalf("cached overlap got %q want %q", got, want)
+	}
+	if rd.reads != 2 {
+		t.Fatalf("cached overlap should not reread: got %d reads", rd.reads)
+	}
+
+	buf = make([]byte, 4)
+	if _, err := f.ReadAt(buf, int64(cachedSegmentBlockSize*2)); err != nil {
+		t.Fatal(err)
+	}
+	if rd.reads != 3 {
+		t.Fatalf("third block should reread once: got %d reads", rd.reads)
 	}
 }
 

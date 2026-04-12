@@ -41,7 +41,7 @@ type Shard struct {
 	bloomFPR  float64
 
 	lookupCache      map[string]*segment.LookupMeta
-	segmentFileCache map[string]*opfs.AsyncFile
+	segmentFileCache map[string]*cachedSegmentFile
 }
 
 // NewShard opens or creates a shard in the given OPFS directory.
@@ -56,7 +56,7 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		nowFn:            time.Now,
 		bloomFPR:         settings.BloomFPR,
 		lookupCache:      make(map[string]*segment.LookupMeta),
-		segmentFileCache: make(map[string]*opfs.AsyncFile),
+		segmentFileCache: make(map[string]*cachedSegmentFile),
 	}
 
 	// Read both manifest slots.
