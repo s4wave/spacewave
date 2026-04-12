@@ -464,13 +464,24 @@ func OpenSyncFile(dir js.Value, name string) (*SyncFile, error) {
 // CreateSyncFile opens or creates a file with a sync access handle.
 // Only available in DedicatedWorker contexts (check SyncAvailable first).
 func CreateSyncFile(dir js.Value, name string) (*SyncFile, error) {
+	return CreateSyncFileContext(context.Background(), dir, name)
+}
+
+// CreateSyncFileContext opens or creates a file with a sync access handle and
+// attributes the handle lookup and access-handle creation work to ctx.
+// Only available in DedicatedWorker contexts (check SyncAvailable first).
+func CreateSyncFileContext(ctx context.Context, dir js.Value, name string) (*SyncFile, error) {
+	// Split lookup from sync-handle creation so traces show which OPFS call is expensive.
+	_, subtask := trace.NewTask(ctx, "hydra/opfs/create-sync-file/get-file-handle")
 	opts := js.Global().Get("Object").New()
 	opts.Set("create", true)
 	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name, opts))
+	subtask.End()
+
 	if err != nil {
 		return nil, errors.Wrap(err, "getFileHandle")
 	}
-	return newSyncFile(name, fileHandle)
+	return newSyncFileContext(ctx, name, fileHandle)
 }
 
 // SyncFile wraps a FileSystemSyncAccessHandle as an fs.File.
@@ -499,20 +510,33 @@ const syncAccessHandleRetries = 3
 const deleteVisibilityRetries = 16
 
 func newSyncFile(name string, fileHandle js.Value) (*SyncFile, error) {
+	return newSyncFileContext(context.Background(), name, fileHandle)
+}
+
+func newSyncFileContext(ctx context.Context, name string, fileHandle js.Value) (*SyncFile, error) {
 	method := fileHandle.Get("createSyncAccessHandle")
 	if method.IsUndefined() || method.IsNull() || method.Type() != js.TypeFunction {
 		return nil, errors.New("createSyncAccessHandle unavailable")
 	}
+
 	var lastErr error
 	for range syncAccessHandleRetries {
+		// Trace each open attempt separately so contention retries stay visible.
+		_, subtask := trace.NewTask(ctx, "hydra/opfs/create-sync-file/create-sync-access-handle")
 		ah, err := AwaitPromise(fileHandle.Call("createSyncAccessHandle"))
+		subtask.End()
+
 		if err == nil {
 			return &SyncFile{name: name, ah: ah}, nil
 		}
 		if !IsNoModificationAllowed(err) {
 			return nil, errors.Wrap(err, "createSyncAccessHandle")
 		}
+
+		_, subtask = trace.NewTask(ctx, "hydra/opfs/create-sync-file/no-modification-allowed")
+		subtask.End()
 		lastErr = err
+
 		if err := yieldMicrotask(); err != nil {
 			return nil, err
 		}

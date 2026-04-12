@@ -143,10 +143,21 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	// Write the segment file to OPFS.
 	segData := buf.Bytes()
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-segment-file")
+
+	// Tag the publish with a few coarse buckets so trace output is easier to group.
+	_, shardTask := trace.NewTask(taskCtx, publishShardTaskName(s.id))
+	_, sizeTask := trace.NewTask(taskCtx, publishSegmentSizeTaskName(len(segData)))
+	_, entryTask := trace.NewTask(taskCtx, publishEntryCountTaskName(len(entries)))
 	if err := s.writeFileData(taskCtx, filename, segData); err != nil {
+		entryTask.End()
+		sizeTask.End()
+		shardTask.End()
 		subtask.End()
 		return errors.Wrap(err, "write segment")
 	}
+	entryTask.End()
+	sizeTask.End()
+	shardTask.End()
 	subtask.End()
 
 	// Build sorted entries to get min/max keys.
@@ -222,6 +233,8 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 	} else if !isSegmentFilename(name) {
 		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/non-segment"
 	}
+
+	// Emit a zero-work branch marker so traces show why this write picked sync vs async.
 	_, selectTask := trace.NewTask(ctx, taskName)
 	selectTask.End()
 
@@ -237,15 +250,18 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 		subtask.End()
 		return err
 	}
+
 	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-sync-file")
-	f, err := opfs.CreateSyncFile(s.dir, name)
+	f, err := opfs.CreateSyncFileContext(ctx, s.dir, name)
 	subtask.End()
 	if err != nil {
 		return err
 	}
+
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/truncate")
 	f.Truncate(int64(len(data)))
 	subtask.End()
+
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-sync")
 	if _, err := f.WriteAt(data, 0); err != nil {
 		subtask.End()
@@ -253,9 +269,11 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 		return err
 	}
 	subtask.End()
+
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/flush-sync")
 	f.Flush()
 	subtask.End()
+
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/close-sync")
 	err = f.Close()
 	subtask.End()
@@ -433,4 +451,36 @@ func zeroPad(n uint64, width int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+func publishEntryCountTaskName(n int) string {
+	switch {
+	case n <= 8:
+		return "hydra/opfs-blockshard/shard/publish/entry-count/1-8"
+	case n <= 16:
+		return "hydra/opfs-blockshard/shard/publish/entry-count/9-16"
+	case n <= 32:
+		return "hydra/opfs-blockshard/shard/publish/entry-count/17-32"
+	case n <= 64:
+		return "hydra/opfs-blockshard/shard/publish/entry-count/33-64"
+	default:
+		return "hydra/opfs-blockshard/shard/publish/entry-count/65+"
+	}
+}
+
+func publishSegmentSizeTaskName(n int) string {
+	switch {
+	case n <= 64*1024:
+		return "hydra/opfs-blockshard/shard/publish/segment-size/0-64k"
+	case n <= 256*1024:
+		return "hydra/opfs-blockshard/shard/publish/segment-size/64k-256k"
+	case n <= 1024*1024:
+		return "hydra/opfs-blockshard/shard/publish/segment-size/256k-1m"
+	default:
+		return "hydra/opfs-blockshard/shard/publish/segment-size/1m+"
+	}
+}
+
+func publishShardTaskName(id int) string {
+	return "hydra/opfs-blockshard/shard/publish/shard/" + strconv.Itoa(id)
 }
