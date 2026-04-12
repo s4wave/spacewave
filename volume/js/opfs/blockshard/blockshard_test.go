@@ -138,6 +138,44 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 }
 
+func TestShardCachesSegmentFiles(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-segment-cache", "test-blockshard-segment-cache")
+	defer cleanup()
+
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("cached"),
+		Value: []byte("value"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 1 {
+		t.Fatalf("segments: got %d want 1", len(m.Segments))
+	}
+	seg := &m.Segments[0]
+
+	f1, err := e.shards[0].getSegmentFile(context.Background(), seg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f2, err := e.shards[0].getSegmentFile(context.Background(), seg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f1 != f2 {
+		t.Fatal("expected cached segment file handle")
+	}
+
+	e.shards[0].mu.Lock()
+	e.shards[0].setManifestLocked(&Manifest{Generation: m.Generation + 1})
+	_, ok := e.shards[0].segmentFileCache[seg.Filename]
+	e.shards[0].mu.Unlock()
+	if ok {
+		t.Fatal("expected segment file cache eviction after manifest update")
+	}
+}
+
 func TestBlockStoreGetBlockExists(t *testing.T) {
 	e, cleanup := newTestEngine(t, "test-blockshard-store-exists", "test-blockshard-store-exists")
 	defer cleanup()
@@ -369,6 +407,7 @@ func TestStaleReaderRefreshesAfterCompactionReclaim(t *testing.T) {
 	reader.shards[0].mu.Lock()
 	reader.shards[0].manifest = stale.Clone()
 	reader.shards[0].mu.Unlock()
+	reader.shards[0].observeGeneration(current.Generation)
 
 	val, found, err := reader.GetFromShard(0, key)
 	if err != nil {

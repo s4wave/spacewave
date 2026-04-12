@@ -4,6 +4,7 @@ package blockshard
 
 import (
 	"encoding/binary"
+	"sync"
 	"syscall/js"
 )
 
@@ -67,7 +68,9 @@ func (b *Broadcaster) Close() {
 // Listener receives shard generation invalidation messages.
 type Listener struct {
 	channel js.Value
-	msgs    chan InvalidationMsg
+	mu      sync.Mutex
+	pending map[uint16]uint64
+	notify  chan struct{}
 	cleanup js.Func
 }
 
@@ -76,7 +79,8 @@ func NewListener() *Listener {
 	ch := js.Global().Get("BroadcastChannel").New(BroadcastChannelName)
 	l := &Listener{
 		channel: ch,
-		msgs:    make(chan InvalidationMsg, 32),
+		pending: make(map[uint16]uint64),
+		notify:  make(chan struct{}, 1),
 	}
 	l.cleanup = js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) == 0 {
@@ -91,8 +95,13 @@ func NewListener() *Listener {
 		js.CopyBytesToGo(buf, arr)
 		msg := DecodeInvalidationMsg(buf)
 		if msg != nil {
+			l.mu.Lock()
+			if msg.Generation > l.pending[msg.ShardID] {
+				l.pending[msg.ShardID] = msg.Generation
+			}
+			l.mu.Unlock()
 			select {
-			case l.msgs <- *msg:
+			case l.notify <- struct{}{}:
 			default:
 			}
 		}
@@ -102,9 +111,25 @@ func NewListener() *Listener {
 	return l
 }
 
-// Messages returns the channel for receiving invalidation messages.
-func (l *Listener) Messages() <-chan InvalidationMsg {
-	return l.msgs
+// Notify returns the wakeup channel for invalidation processing.
+func (l *Listener) Notify() <-chan struct{} {
+	return l.notify
+}
+
+// DrainPending returns the latest pending generation per shard and clears it.
+func (l *Listener) DrainPending() []InvalidationMsg {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	msgs := make([]InvalidationMsg, 0, len(l.pending))
+	for shardID, generation := range l.pending {
+		msgs = append(msgs, InvalidationMsg{
+			ShardID:    shardID,
+			Generation: generation,
+		})
+	}
+	clear(l.pending)
+	return msgs
 }
 
 // Close closes the BroadcastChannel listener.

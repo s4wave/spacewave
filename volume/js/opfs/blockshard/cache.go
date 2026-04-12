@@ -5,7 +5,6 @@ package blockshard
 import (
 	"context"
 	"runtime/trace"
-	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/opfs"
 	"github.com/aperturerobotics/hydra/volume/js/opfs/segment"
@@ -23,6 +22,12 @@ func (s *Shard) setManifestLocked(m *Manifest) {
 			continue
 		}
 		delete(s.lookupCache, name)
+	}
+	for name := range s.segmentFileCache {
+		if _, ok := refs[name]; ok {
+			continue
+		}
+		delete(s.segmentFileCache, name)
 	}
 }
 
@@ -46,7 +51,10 @@ func (s *Shard) getLookup(ctx context.Context, meta *SegmentMeta) (*segment.Look
 		return lookup, nil
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-lookup/load-meta")
-	lookup, err := loadLookupMeta(taskCtx, s.dir, meta)
+	f, err := s.getSegmentFile(taskCtx, meta)
+	if err == nil {
+		lookup, err = loadLookupMeta(taskCtx, f, meta)
+	}
 	subtask.End()
 	if err != nil {
 		return nil, err
@@ -61,16 +69,43 @@ func (s *Shard) getLookup(ctx context.Context, meta *SegmentMeta) (*segment.Look
 	return lookup, nil
 }
 
-func loadLookupMeta(ctx context.Context, dir js.Value, meta *SegmentMeta) (*segment.LookupMeta, error) {
+func (s *Shard) getSegmentFile(ctx context.Context, meta *SegmentMeta) (*opfs.AsyncFile, error) {
+	s.mu.Lock()
+	f := s.segmentFileCache[meta.Filename]
+	s.mu.Unlock()
+	if f != nil {
+		return f, nil
+	}
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-segment-file/open-file")
+	f, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
+	subtask.End()
+	if err != nil {
+		return nil, err
+	}
+
+	s.mu.Lock()
+	if existing := s.segmentFileCache[meta.Filename]; existing != nil {
+		f = existing
+	} else {
+		s.segmentFileCache[meta.Filename] = f
+	}
+	s.mu.Unlock()
+	return f, nil
+}
+
+func (s *Shard) dropSegmentFile(filename string) {
+	s.mu.Lock()
+	delete(s.segmentFileCache, filename)
+	s.mu.Unlock()
+}
+
+func loadLookupMeta(ctx context.Context, f *opfs.AsyncFile, meta *SegmentMeta) (*segment.LookupMeta, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta")
 	defer task.End()
 
-	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/open-segment")
-	f, err := opfs.OpenAsyncFile(dir, meta.Filename)
-	subtask.End()
-	if err != nil {
-		return nil, errors.Wrap(err, "open segment file")
-	}
+	var err error
+	var subtask *trace.Task
 	size := int64(meta.Size)
 	if size == 0 {
 		_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/stat-size")

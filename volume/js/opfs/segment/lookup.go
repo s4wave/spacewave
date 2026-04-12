@@ -1,8 +1,11 @@
 package segment
 
 import (
+	"context"
 	"encoding/binary"
 	"io"
+	"runtime/trace"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -105,6 +108,10 @@ func (m *LookupMeta) Has(r io.ReaderAt, key []byte) (bool, error) {
 // Locate resolves a key using cached metadata and a single data-window read.
 // Returns either a live value, a tombstone marker, or a miss.
 func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, bool, bool, error) {
+	ctx := context.Background()
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate")
+	defer task.End()
+
 	keyStr := string(key)
 	if keyStr < string(m.MinKey) || keyStr > string(m.MaxKey) {
 		return nil, false, false, nil
@@ -113,13 +120,20 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 		return nil, false, false, nil
 	}
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/search-index")
 	start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
+	subtask.End()
 	windowSize := int(limit - start)
 	window := make([]byte, windowSize)
+	trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/read-window")
 	if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
+		subtask.End()
 		return nil, false, false, errors.Wrap(err, "read data window")
 	}
+	subtask.End()
 
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window")
 	off := 0
 	for off < len(window) {
 		if off+2 > len(window) {
@@ -140,24 +154,32 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 
 		if entryKey == keyStr {
 			if valLen == TombstoneLen {
+				subtask.End()
 				return nil, false, true, nil
 			}
 			if !loadValue {
+				subtask.End()
 				return nil, true, false, nil
 			}
 			if off+int(valLen) > len(window) {
+				subtask.End()
 				return nil, false, false, errors.New("truncated value in data window")
 			}
+			_, copyTask := trace.NewTask(taskCtx, "hydra/opfs-segment/lookup-meta/locate/copy-value")
 			val := make([]byte, valLen)
 			copy(val, window[off:off+int(valLen)])
+			copyTask.End()
+			subtask.End()
 			return val, true, false, nil
 		}
 		if entryKey > keyStr {
+			subtask.End()
 			return nil, false, false, nil
 		}
 		if valLen != TombstoneLen {
 			off += int(valLen)
 		}
 	}
+	subtask.End()
 	return nil, false, false, nil
 }

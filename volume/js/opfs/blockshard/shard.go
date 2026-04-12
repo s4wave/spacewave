@@ -40,7 +40,8 @@ type Shard struct {
 	nowFn     func() time.Time
 	bloomFPR  float64
 
-	lookupCache map[string]*segment.LookupMeta
+	lookupCache      map[string]*segment.LookupMeta
+	segmentFileCache map[string]*opfs.AsyncFile
 }
 
 // NewShard opens or creates a shard in the given OPFS directory.
@@ -48,13 +49,14 @@ type Shard struct {
 func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Shard, error) {
 	settings = normalizeSettings(settings)
 	s := &Shard{
-		id:          id,
-		dir:         dir,
-		lockPrefix:  lockPrefix,
-		asyncIO:     settings.AsyncIO,
-		nowFn:       time.Now,
-		bloomFPR:    settings.BloomFPR,
-		lookupCache: make(map[string]*segment.LookupMeta),
+		id:               id,
+		dir:              dir,
+		lockPrefix:       lockPrefix,
+		asyncIO:          settings.AsyncIO,
+		nowFn:            time.Now,
+		bloomFPR:         settings.BloomFPR,
+		lookupCache:      make(map[string]*segment.LookupMeta),
+		segmentFileCache: make(map[string]*opfs.AsyncFile),
 	}
 
 	// Read both manifest slots.
@@ -364,26 +366,40 @@ func readFileBytesContext(ctx context.Context, dir js.Value, name string) []byte
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes")
 	defer task.End()
 
-	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/open-file")
-	f, err := opfs.OpenAsyncFile(dir, name)
+	if name == manifestGen && opfs.SyncAvailable() {
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-sync")
+		buf, err := readSyncFileBytes(dir, name)
+		subtask.End()
+		if err == nil || !opfs.IsNoModificationAllowed(err) {
+			return buf
+		}
+	}
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-all")
+	buf, err := opfs.ReadFile(dir, name)
 	subtask.End()
-	if err != nil {
+	if err != nil || len(buf) == 0 {
 		return nil
 	}
-	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/file-size")
-	size, err := f.Size()
-	subtask.End()
-	if err != nil || size == 0 {
-		return nil
+	return buf
+}
+
+func readSyncFileBytes(dir js.Value, name string) ([]byte, error) {
+	f, err := opfs.OpenSyncFile(dir, name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	size := f.Size()
+	if size == 0 {
+		return nil, nil
 	}
 	buf := make([]byte, size)
-	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-at")
 	if _, err := f.ReadAt(buf, 0); err != nil {
-		subtask.End()
-		return nil
+		return nil, err
 	}
-	subtask.End()
-	return buf
+	return buf, nil
 }
 
 func decodeManifestGeneration(buf []byte) (uint64, bool) {
