@@ -212,16 +212,34 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	// for genuinely new blocks (matching the single-put !existed guard).
 	newBlock := make([]bool, len(puts))
 	checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
-	for i, entry := range puts {
-		if entry.Ref == nil || entry.Ref.GetEmpty() {
-			continue
+	if batcher, ok := g.store.(block.BatchExistsStore); ok {
+		refs := make([]*block.BlockRef, len(puts))
+		for i, entry := range puts {
+			if entry.Ref == nil || entry.Ref.GetEmpty() {
+				continue
+			}
+			refs[i] = entry.Ref
 		}
-		exists, err := g.store.GetBlockExists(checkCtx, entry.Ref)
+		exists, err := batcher.GetBlockExistsBatch(checkCtx, refs)
 		if err != nil {
 			checkTask.End()
 			return err
 		}
-		newBlock[i] = !exists
+		for i, found := range exists {
+			newBlock[i] = !found
+		}
+	} else {
+		for i, entry := range puts {
+			if entry.Ref == nil || entry.Ref.GetEmpty() {
+				continue
+			}
+			exists, err := g.store.GetBlockExists(checkCtx, entry.Ref)
+			if err != nil {
+				checkTask.End()
+				return err
+			}
+			newBlock[i] = !exists
+		}
 	}
 	checkTask.End()
 

@@ -245,6 +245,38 @@ func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[a
 	return excludedSet, nil
 }
 
+// CloneIRIRefKeys returns a snapshot of the positive IRI ref-key cache.
+func (rg *RefGraph) CloneIRIRefKeys() map[string]any {
+	rg.mu.Lock()
+	defer rg.mu.Unlock()
+
+	if len(rg.iriRefKeys) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(rg.iriRefKeys))
+	for iri, key := range rg.iriRefKeys {
+		out[iri] = key
+	}
+	return out
+}
+
+// ImportIRIRefKeys seeds the positive IRI ref-key cache.
+func (rg *RefGraph) ImportIRIRefKeys(keys map[string]any) {
+	if len(keys) == 0 {
+		return
+	}
+
+	rg.mu.Lock()
+	defer rg.mu.Unlock()
+
+	if rg.iriRefKeys == nil {
+		rg.iriRefKeys = make(map[string]any, len(keys))
+	}
+	for iri, key := range keys {
+		rg.iriRefKeys[iri] = key
+	}
+}
+
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.
 func (rg *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string, error) {
 	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{

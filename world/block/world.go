@@ -332,6 +332,11 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		return err
 	}
 
+	var refGraphIRIRefKeys map[string]any
+	if t.refGraph != nil {
+		refGraphIRIRefKeys = t.refGraph.CloneIRIRefKeys()
+	}
+
 	// Build GC ref graph for writable transactions with a store.
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
@@ -346,6 +351,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 			objTree.Discard()
 			return err
 		}
+		refGraph.ImportIRIRefKeys(refGraphIRIRefKeys)
 	}
 
 	// Build the deferred GC journal tree at sub-block 6.
