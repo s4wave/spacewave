@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -307,13 +308,13 @@ func (w *Writer) Truncate(size uint64) error {
 	if size < oldSize {
 		// drop/trim any ranges that are outside the new file
 		removeFrom := -1
-		for i := len(w.root.Ranges) - 1; i >= 0; i-- {
-			irange := w.root.Ranges[i]
+		for i, v := range slices.Backward(w.root.Ranges) {
+			irange := v
 			irangeStart := irange.GetStart()
 			if irangeStart >= size {
 				removeFrom = i
 				rangesBcs.ClearRef(uint32(i)) //nolint:gosec
-				w.root.Ranges[i] = nil
+				v = nil
 				continue
 			}
 

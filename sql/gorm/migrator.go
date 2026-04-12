@@ -2,6 +2,7 @@ package sql_gorm
 
 import (
 	"database/sql"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -86,8 +87,8 @@ func (m Migrator) DropTable(values ...any) error {
 	values = m.ReorderModels(values, false)
 	tx := m.DB.Session(&gorm.Session{})
 	tx.Exec("SET FOREIGN_KEY_CHECKS = 0;")
-	for i := len(values) - 1; i >= 0; i-- {
-		if err := m.RunWithValue(values[i], func(stmt *gorm.Statement) error {
+	for _, v := range slices.Backward(values) {
+		if err := m.RunWithValue(v, func(stmt *gorm.Statement) error {
 			return tx.Exec("DROP TABLE IF EXISTS ? CASCADE", clause.Table{Name: stmt.Table}).Error
 		}); err != nil {
 			return err

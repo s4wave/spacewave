@@ -2,6 +2,7 @@ package unixfs_block_fs
 
 import (
 	"context"
+	"slices"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -297,12 +298,12 @@ func (f *FSCursor) getOrBuildPath(ctx context.Context, locked bool) ([]string, e
 		}
 		stk = append(stk, nparent)
 	}
-	for i := len(stk) - 1; i >= 0; i-- {
-		nname := stk[i].name
+	for _, v := range slices.Backward(stk) {
+		nname := v.name
 		if nname != "" {
 			npath = append(npath, nname)
 			npathAtI := npath
-			stk[i].path.Store(&npathAtI)
+			v.path.Store(&npathAtI)
 		}
 	}
 	return npath, nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime"
 	"runtime/trace"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/hash"
@@ -312,8 +313,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	var unreachableNodes []*handle
 	if clearTree && subRoot == nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/collect-unreachable")
-		for ni := len(nods) - 1; ni >= 0; ni-- {
-			nod := nods[ni]
+		for _, v := range slices.Backward(nods) {
+			nod := v
 			nodID := nod.ID()
 			bn, ok := nod.(*handle)
 			if !ok || bn == nil {
@@ -334,8 +335,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// after hashing: write the updated BlockRef to parent blocks.
 	// push the marshalled blocks to the block write queue.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/schedule-workers")
-	for ni := len(nods) - 1; ni >= 0; ni-- {
-		nod := nods[ni]
+	for _, v := range slices.Backward(nods) {
+		nod := v
 		nodID := nod.ID()
 		bn, ok := nod.(*handle)
 		if !ok || bn == nil {

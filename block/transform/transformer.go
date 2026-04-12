@@ -1,6 +1,8 @@
 package block_transform
 
 import (
+	"slices"
+
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
@@ -66,8 +68,8 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 	}
 
 	var err error
-	for i := len(t.steps) - 1; i >= 0; i-- {
-		s := t.steps[i]
+	for _, v := range slices.Backward(t.steps) {
+		s := v
 		data, err = s.DecodeBlock(data)
 		if err != nil {
 			return nil, err

@@ -177,10 +177,10 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 
 	// remove any released cursors from last -> first
 	cursorStack := i.fsCursors
-	for i := len(cursorStack) - 1; i >= 0; i-- {
-		prevCursor := cursorStack[i]
+	for i, v := range slices.Backward(cursorStack) {
+		prevCursor := v
 		if prevCursor.CheckReleased() {
-			cursorStack[i] = nil
+			v = nil
 			cursorStack = cursorStack[:i]
 		}
 	}
@@ -291,8 +291,8 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	if relErr != nil {
 		// context canceled
 		// make sure we don't leak cursors
-		for i := len(cursorStack) - 1; i >= 0; i-- {
-			cursorStack[i].Release()
+		for _, v := range slices.Backward(cursorStack) {
+			v.Release()
 		}
 		return
 	}

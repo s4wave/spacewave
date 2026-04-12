@@ -103,9 +103,9 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 		}
 
 		// Compare the paths and drop entries that don't match.
-		for i := len(prevPathPts) - 1; i >= 0; i-- {
+		for i, v := range slices.Backward(prevPathPts) {
 			// If the previous path at i does not match the new path:
-			if i >= len(pathPts) || pathPts[i] != prevPathPts[i] {
+			if i >= len(pathPts) || pathPts[i] != v {
 				// Release handle at this index + all after it.
 				// Note that handles[0] is the access handle.
 				// prevPathPts[i] corresponds to handles[i+1]
@@ -340,9 +340,9 @@ func (w *FSWatcher) getStateLocked() ([]*unixfs.FSHandle, *[]string) {
 	}
 
 	// drop all released handles
-	for i := len(w.handles) - 1; i >= 0; i-- {
-		if w.handles[i].CheckReleased() {
-			w.handles[i] = nil
+	for i, v := range slices.Backward(w.handles) {
+		if v.CheckReleased() {
+			v = nil
 			w.handles = w.handles[:i]
 		}
 	}

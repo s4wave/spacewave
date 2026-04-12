@@ -104,8 +104,8 @@ func syncToBillyOnce(
 		}
 	}
 	defer func() {
-		for i := len(stack) - 1; i >= 0; i-- {
-			stack[i].fsHandle.Release()
+		for _, v := range slices.Backward(stack) {
+			v.fsHandle.Release()
 		}
 	}()
 

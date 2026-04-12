@@ -199,8 +199,8 @@ func (i *fsInode) mergeWithNodeLocked(node *fsInode, err error) {
 	}
 
 	// release in the correct order (bottom-up)
-	for i := len(toRelease) - 1; i >= 0; i-- {
-		next := toRelease[i]
+	for i, v := range slices.Backward(toRelease) {
+		next := v
 		next.releaseLocked(err)
 		toRelease = toRelease[:i]
 	}
@@ -237,13 +237,13 @@ func (i *fsInode) clearCursorsWithChildrenLocked() {
 	}
 
 	// release in the correct order (bottom-up)
-	for i := len(toRelease) - 1; i >= 0; i-- {
-		next := toRelease[i]
+	for i, v := range slices.Backward(toRelease) {
+		next := v
 		toRelease = toRelease[:i]
 
 		next.fsOps = nil
-		for i := len(next.fsCursors) - 1; i >= 0; i-- {
-			next.fsCursors[i].Release()
+		for _, v := range slices.Backward(next.fsCursors) {
+			v.Release()
 		}
 		next.fsCursors = nil
 	}
@@ -404,8 +404,8 @@ func (i *fsInode) releaseLocked(err error) {
 	// release all fs cursors
 	cursors := i.fsCursors
 	i.fsCursors = nil
-	for ix := len(cursors) - 1; ix >= 0; ix-- {
-		cursors[ix].Release()
+	for _, v := range slices.Backward(cursors) {
+		v.Release()
 	}
 
 	// call release callbacks in new goroutines

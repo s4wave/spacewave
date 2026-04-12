@@ -3,6 +3,7 @@ package block_gc
 import (
 	"context"
 	"io"
+	"maps"
 	"runtime/trace"
 	"sync"
 
@@ -254,9 +255,7 @@ func (rg *RefGraph) CloneIRIRefKeys() map[string]any {
 		return nil
 	}
 	out := make(map[string]any, len(rg.iriRefKeys))
-	for iri, key := range rg.iriRefKeys {
-		out[iri] = key
-	}
+	maps.Copy(out, rg.iriRefKeys)
 	return out
 }
 
@@ -272,9 +271,7 @@ func (rg *RefGraph) ImportIRIRefKeys(keys map[string]any) {
 	if rg.iriRefKeys == nil {
 		rg.iriRefKeys = make(map[string]any, len(keys))
 	}
-	for iri, key := range keys {
-		rg.iriRefKeys[iri] = key
-	}
+	maps.Copy(rg.iriRefKeys, keys)
 }
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.

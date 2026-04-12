@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"slices"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -441,12 +442,12 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	ciChunksBcs := ciBcs.FollowSubBlock(1)
 
 	// delete any chunks that start outside the new size
-	for i := len(ciChunks) - 1; i >= 0; i-- {
-		chk := ciChunks[i]
+	for i, v := range slices.Backward(ciChunks) {
+		chk := v
 		if chk.GetStart() < uint64(nsize) { //nolint:gosec
 			break
 		}
-		ciChunks[i] = nil
+		v = nil
 		ciChunks = ciChunks[:i]
 		ciChunksBcs.ClearRef(uint32(i)) //nolint:gosec
 	}
