@@ -98,7 +98,7 @@ func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
 		return err
 	}
 
-	dat, err := json.MarshalIndent(ni, "", "\t")
+	dat, err := ni.MarshalJSON()
 	if err != nil {
 		return err
 	}

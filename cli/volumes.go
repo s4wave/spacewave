@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"os"
 
 	"github.com/aperturerobotics/cli"
@@ -23,7 +22,7 @@ func (a *ClientArgs) RunListVolumes(_ *cli.Context) error {
 		return err
 	}
 
-	dat, err := json.MarshalIndent(ni, "", "\t")
+	dat, err := ni.MarshalJSON()
 	if err != nil {
 		return err
 	}

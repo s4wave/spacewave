@@ -2,7 +2,6 @@ package reconciler_example
 
 import (
 	"context"
-	"encoding/json"
 
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/reconciler"
@@ -45,7 +44,7 @@ func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) erro
 		if err := e.UnmarshalVT(m.GetData()); err != nil {
 			return err
 		}
-		dat, err := json.Marshal(e)
+		dat, err := e.MarshalJSON()
 		if err != nil {
 			return err
 		}

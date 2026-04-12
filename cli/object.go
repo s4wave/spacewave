@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -37,7 +36,7 @@ func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
 
 	data := resp.GetData()
 	resp.Data = nil
-	d, err := json.Marshal(resp)
+	d, err := resp.MarshalJSON()
 	if err != nil {
 		return err
 	}
@@ -71,7 +70,7 @@ func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
 
 	data := resp.GetData()
 	resp.Data = nil
-	d, err := json.Marshal(resp)
+	d, err := resp.MarshalJSON()
 	if err != nil {
 		return err
 	}

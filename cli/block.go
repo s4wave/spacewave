@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"io"
 	"os"
 
@@ -41,7 +40,7 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 		return err
 	}
 
-	d, err := json.Marshal(resp)
+	d, err := resp.MarshalJSON()
 	if err != nil {
 		le.WithError(err).Warn("unable to marshal put block result")
 		return err
@@ -83,7 +82,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 
 	data := resp.GetData()
 	resp.Data = nil
-	d, err := json.Marshal(resp)
+	d, err := resp.MarshalJSON()
 	if err != nil {
 		return err
 	}
