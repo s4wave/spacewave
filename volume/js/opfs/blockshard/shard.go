@@ -5,6 +5,7 @@ package blockshard
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"runtime/trace"
 	"strconv"
 	"sync"
@@ -20,6 +21,7 @@ import (
 const (
 	manifestSlotA = "manifest-a"
 	manifestSlotB = "manifest-b"
+	manifestGen   = "manifest-gen"
 )
 
 // Shard is a single block shard backed by an OPFS directory.
@@ -193,6 +195,9 @@ func (s *Shard) writeManifest(m *Manifest) error {
 	if err := s.writeFileData(context.Background(), slot, mdata); err != nil {
 		return errors.Wrap(err, "write manifest")
 	}
+	if err := s.writeFileData(context.Background(), manifestGen, encodeManifestGeneration(m.Generation)); err != nil {
+		return errors.Wrap(err, "write manifest generation")
+	}
 
 	s.mu.Lock()
 	s.setManifestLocked(m)
@@ -352,18 +357,45 @@ func (s *Shard) ReclaimPendingDelete() (bool, error) {
 
 // readFileBytes reads the full contents of an OPFS file, returning nil on error.
 func readFileBytes(dir js.Value, name string) []byte {
+	return readFileBytesContext(context.Background(), dir, name)
+}
+
+func readFileBytesContext(ctx context.Context, dir js.Value, name string) []byte {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes")
+	defer task.End()
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/open-file")
 	f, err := opfs.OpenAsyncFile(dir, name)
+	subtask.End()
 	if err != nil {
 		return nil
 	}
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/file-size")
 	size, err := f.Size()
+	subtask.End()
 	if err != nil || size == 0 {
 		return nil
 	}
 	buf := make([]byte, size)
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/read-file-bytes/read-at")
 	if _, err := f.ReadAt(buf, 0); err != nil {
+		subtask.End()
 		return nil
 	}
+	subtask.End()
+	return buf
+}
+
+func decodeManifestGeneration(buf []byte) (uint64, bool) {
+	if len(buf) != 8 {
+		return 0, false
+	}
+	return binary.BigEndian.Uint64(buf), true
+}
+
+func encodeManifestGeneration(gen uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, gen)
 	return buf
 }
 

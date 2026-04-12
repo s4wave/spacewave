@@ -180,6 +180,53 @@ func TestBlockStoreGetBlockExists(t *testing.T) {
 	}
 }
 
+func TestBlockStoreGetBlockExistsBatch(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-store-exists-batch", "test-blockshard-store-exists-batch")
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	ref1, _, err := store.PutBlock(context.Background(), []byte("value-1"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref2, _, err := store.PutBlock(context.Background(), []byte("value-2"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref3, err := block.BuildBlockRef([]byte("missing"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RmBlock(context.Background(), ref2.Clone()); err != nil {
+		t.Fatal(err)
+	}
+
+	batcher, ok := any(store).(block.BatchExistsStore)
+	if !ok {
+		t.Fatal("expected block store to implement BatchExistsStore")
+	}
+	found, err := batcher.GetBlockExistsBatch(context.Background(), []*block.BlockRef{
+		ref1.Clone(),
+		ref2.Clone(),
+		ref3.Clone(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(found) != 3 {
+		t.Fatalf("expected 3 batch results, got %d", len(found))
+	}
+	if !found[0] {
+		t.Fatal("GetBlockExistsBatch(existing): not found")
+	}
+	if found[1] {
+		t.Fatal("GetBlockExistsBatch(tombstoned): should not be found")
+	}
+	if found[2] {
+		t.Fatal("GetBlockExistsBatch(missing): should not be found")
+	}
+}
+
 func TestWritePolicy(t *testing.T) {
 	tests := []struct {
 		name      string

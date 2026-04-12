@@ -153,16 +153,24 @@ func (s *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *
 
 // GetBlock gets a block by reference.
 func (s *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/get-block")
+	defer task.End()
+
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
 	}
 
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/get-block/encode-ref")
 	key, err := encodeRef(ref)
+	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
 
-	return s.engine.Get([]byte(key))
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/get-block/engine-get")
+	data, found, err := s.engine.GetContext(taskCtx, []byte(key))
+	subtask.End()
+	return data, found, err
 }
 
 // GetBlockExists checks if a block exists.
@@ -173,6 +181,22 @@ func (s *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 	}
 
 	return s.engine.GetExists([]byte(key))
+}
+
+// GetBlockExistsBatch checks whether a batch of block refs exists.
+func (s *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	keys := make([][]byte, len(refs))
+	for i, ref := range refs {
+		if ref == nil || ref.GetEmpty() {
+			continue
+		}
+		key, err := encodeRef(ref)
+		if err != nil {
+			return nil, err
+		}
+		keys[i] = []byte(key)
+	}
+	return s.engine.GetExistsBatch(ctx, keys)
 }
 
 // RmBlock deletes a block by writing a tombstone.
@@ -218,6 +242,9 @@ func encodeRef(ref *block.BlockRef) (string, error) {
 
 // _ is a type assertion.
 var _ block.StoreOps = (*BlockStore)(nil)
+
+// _ is a type assertion.
+var _ block.BatchExistsStore = (*BlockStore)(nil)
 
 // _ is a type assertion.
 var _ block.BatchPutStore = (*BlockStore)(nil)

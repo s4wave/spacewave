@@ -3,6 +3,8 @@
 package blockshard
 
 import (
+	"context"
+	"runtime/trace"
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/opfs"
@@ -33,14 +35,19 @@ func (s *Shard) cacheLookup(filename string, lookup *segment.LookupMeta) {
 	s.lookupCache[filename] = lookup
 }
 
-func (s *Shard) getLookup(meta *SegmentMeta) (*segment.LookupMeta, error) {
+func (s *Shard) getLookup(ctx context.Context, meta *SegmentMeta) (*segment.LookupMeta, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/get-lookup")
+	defer task.End()
+
 	s.mu.Lock()
 	lookup := s.lookupCache[meta.Filename]
 	s.mu.Unlock()
 	if lookup != nil {
 		return lookup, nil
 	}
-	lookup, err := loadLookupMeta(s.dir, meta)
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-lookup/load-meta")
+	lookup, err := loadLookupMeta(taskCtx, s.dir, meta)
+	subtask.End()
 	if err != nil {
 		return nil, err
 	}
@@ -54,19 +61,28 @@ func (s *Shard) getLookup(meta *SegmentMeta) (*segment.LookupMeta, error) {
 	return lookup, nil
 }
 
-func loadLookupMeta(dir js.Value, meta *SegmentMeta) (*segment.LookupMeta, error) {
+func loadLookupMeta(ctx context.Context, dir js.Value, meta *SegmentMeta) (*segment.LookupMeta, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta")
+	defer task.End()
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/open-segment")
 	f, err := opfs.OpenAsyncFile(dir, meta.Filename)
+	subtask.End()
 	if err != nil {
 		return nil, errors.Wrap(err, "open segment file")
 	}
 	size := int64(meta.Size)
 	if size == 0 {
+		_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/stat-size")
 		size, err = f.Size()
+		subtask.End()
 		if err != nil {
 			return nil, errors.Wrap(err, "get segment size")
 		}
 	}
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/load")
 	lookup, err := segment.LoadLookupMeta(f, size)
+	subtask.End()
 	if err != nil {
 		return nil, errors.Wrap(err, "load segment lookup metadata")
 	}
