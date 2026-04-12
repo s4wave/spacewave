@@ -53,6 +53,23 @@ func (b *bucketRW) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 	return batcher.PutBlockBatch(ctx, entries)
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the inner StoreOps when supported.
+func (b *bucketRW) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if batcher, ok := b.StoreOps.(block.BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := b.StoreOps.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // PutBlockBackground forwards background writes to the inner StoreOps when supported.
 func (b *bucketRW) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	bg, ok := b.StoreOps.(block.BackgroundPutStore)
@@ -80,6 +97,7 @@ func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
 // _ is a type assertion
 var (
 	_ Bucket                   = ((*bucketRW)(nil))
+	_ block.BatchExistsStore   = ((*bucketRW)(nil))
 	_ block.BatchPutStore      = ((*bucketRW)(nil))
 	_ block.BackgroundPutStore = ((*bucketRW)(nil))
 	_ block.DeferFlushable     = ((*bucketRW)(nil))

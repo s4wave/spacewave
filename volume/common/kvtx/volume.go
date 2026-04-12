@@ -278,6 +278,23 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	return nil
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the embedded store when supported.
+func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if batcher, ok := v.Store.(block.BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := v.Store.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // PutBlockBackground forwards background writes to the embedded store when supported.
 func (v *Volume) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if bg, ok := v.Store.(block.BackgroundPutStore); ok {

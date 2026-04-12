@@ -35,6 +35,23 @@ func (k *KVTx) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, e
 	return k.blk.GetBlockExists(ctx, ref)
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the underlying block store when supported.
+func (k *KVTx) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if batcher, ok := k.blk.(block.BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := k.blk.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KVTx) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -97,6 +114,7 @@ func (k *KVTx) EndDeferFlush(ctx context.Context) error {
 // _ is a type assertion
 var (
 	_ block.StoreOps           = ((*KVTx)(nil))
+	_ block.BatchExistsStore   = ((*KVTx)(nil))
 	_ block.BatchPutStore      = ((*KVTx)(nil))
 	_ block.BackgroundPutStore = ((*KVTx)(nil))
 	_ block.DeferFlushable     = ((*KVTx)(nil))

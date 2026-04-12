@@ -8,10 +8,11 @@ import (
 )
 
 type overlayBatchTestStore struct {
-	putCalls        int
-	rmCalls         int
-	batchCalls      int
-	backgroundCalls int
+	putCalls         int
+	rmCalls          int
+	batchCalls       int
+	backgroundCalls  int
+	existsBatchCalls int
 }
 
 func (s *overlayBatchTestStore) GetHashType() hash.HashType {
@@ -50,6 +51,11 @@ func (s *overlayBatchTestStore) PutBlockBackground(_ context.Context, _ []byte, 
 	return opts.GetForceBlockRef(), false, nil
 }
 
+func (s *overlayBatchTestStore) GetBlockExistsBatch(_ context.Context, refs []*BlockRef) ([]bool, error) {
+	s.existsBatchCalls++
+	return make([]bool, len(refs)), nil
+}
+
 func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := &overlayBatchTestStore{}
@@ -86,5 +92,27 @@ func TestStoreOverlayPutBlockBackgroundForwards(t *testing.T) {
 	}
 	if upper.putCalls != 0 {
 		t.Fatalf("expected no foreground fallback PutBlock calls, got %d", upper.putCalls)
+	}
+}
+
+func TestStoreOverlayGetBlockExistsBatchForwards(t *testing.T) {
+	ctx := context.Background()
+	lower := &overlayBatchTestStore{}
+	upper := &overlayBatchTestStore{}
+	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_READ_CACHE, 0, nil)
+	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{3})}
+
+	batcher, ok := any(overlay).(BatchExistsStore)
+	if !ok {
+		t.Fatal("expected overlay to implement BatchExistsStore")
+	}
+	if _, err := batcher.GetBlockExistsBatch(ctx, []*BlockRef{ref}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if upper.existsBatchCalls != 1 {
+		t.Fatalf("expected upper batch exists call, got %d", upper.existsBatchCalls)
+	}
+	if lower.existsBatchCalls != 1 {
+		t.Fatalf("expected lower batch exists call for cache miss fallback, got %d", lower.existsBatchCalls)
 	}
 }

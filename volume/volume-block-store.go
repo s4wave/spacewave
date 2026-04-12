@@ -40,6 +40,23 @@ func (v *VolumeBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockR
 	return v.store.GetBlockExists(ctx, ref)
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the wrapped block store when supported.
+func (v *VolumeBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if batcher, ok := v.store.(block.BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := v.store.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (v *VolumeBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -98,6 +115,7 @@ func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
 var (
 	_ Volume                   = ((*VolumeBlockStore)(nil))
 	_ block_store.Store        = ((*VolumeBlockStore)(nil))
+	_ block.BatchExistsStore   = ((*VolumeBlockStore)(nil))
 	_ block.BatchPutStore      = ((*VolumeBlockStore)(nil))
 	_ block.BackgroundPutStore = ((*VolumeBlockStore)(nil))
 )

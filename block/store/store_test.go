@@ -9,10 +9,11 @@ import (
 )
 
 type wrapperBatchTestStore struct {
-	putCalls        int
-	rmCalls         int
-	batchCalls      int
-	backgroundCalls int
+	putCalls         int
+	rmCalls          int
+	batchCalls       int
+	backgroundCalls  int
+	existsBatchCalls int
 }
 
 func (s *wrapperBatchTestStore) GetHashType() hash.HashType {
@@ -51,6 +52,11 @@ func (s *wrapperBatchTestStore) PutBlockBackground(_ context.Context, _ []byte, 
 	return opts.GetForceBlockRef(), false, nil
 }
 
+func (s *wrapperBatchTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	s.existsBatchCalls++
+	return make([]bool, len(refs)), nil
+}
+
 func TestStoreForwardsBatchAndBackground(t *testing.T) {
 	ctx := context.Background()
 	inner := &wrapperBatchTestStore{}
@@ -77,5 +83,16 @@ func TestStoreForwardsBatchAndBackground(t *testing.T) {
 	}
 	if inner.backgroundCalls != 1 || inner.putCalls != 0 {
 		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", inner.backgroundCalls, inner.putCalls)
+	}
+
+	existsBatcher, ok := any(store).(block.BatchExistsStore)
+	if !ok {
+		t.Fatal("expected store to implement block.BatchExistsStore")
+	}
+	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.existsBatchCalls != 1 {
+		t.Fatalf("expected one batch exists call, got %d", inner.existsBatchCalls)
 	}
 }

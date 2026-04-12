@@ -58,6 +58,23 @@ func (b *StoreRW) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, erro
 	return b.readHandle.GetBlockExists(ctx, ref)
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the read handle when supported.
+func (b *StoreRW) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	if batcher, ok := b.readHandle.(BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := b.readHandle.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (b *StoreRW) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
@@ -118,6 +135,7 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 // _ is a type assertion
 var (
 	_ StoreOps           = ((*StoreRW)(nil))
+	_ BatchExistsStore   = ((*StoreRW)(nil))
 	_ BatchPutStore      = ((*StoreRW)(nil))
 	_ BackgroundPutStore = ((*StoreRW)(nil))
 	_ DeferFlushable     = ((*StoreRW)(nil))

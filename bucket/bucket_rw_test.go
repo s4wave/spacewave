@@ -11,12 +11,13 @@ import (
 )
 
 type bucketRWTestStore struct {
-	mtx             sync.Mutex
-	putCalls        int
-	rmCalls         int
-	batchCalls      int
-	batchEntries    int
-	backgroundCalls int
+	mtx              sync.Mutex
+	putCalls         int
+	rmCalls          int
+	batchCalls       int
+	batchEntries     int
+	backgroundCalls  int
+	existsBatchCalls int
 }
 
 func (s *bucketRWTestStore) GetHashType() hash.HashType {
@@ -64,10 +65,17 @@ func (s *bucketRWTestStore) PutBlockBackground(_ context.Context, _ []byte, opts
 	return opts.GetForceBlockRef(), false, nil
 }
 
-func (s *bucketRWTestStore) getCounts() (int, int, int, int, int) {
+func (s *bucketRWTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	s.mtx.Lock()
+	s.existsBatchCalls++
+	s.mtx.Unlock()
+	return make([]bool, len(refs)), nil
+}
+
+func (s *bucketRWTestStore) getCounts() (int, int, int, int, int, int) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	return s.putCalls, s.rmCalls, s.batchCalls, s.batchEntries, s.backgroundCalls
+	return s.putCalls, s.rmCalls, s.batchCalls, s.batchEntries, s.backgroundCalls, s.existsBatchCalls
 }
 
 type bucketRWTestBucket struct {
@@ -101,7 +109,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	if err := batcher.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
-	putCalls, _, batchCalls, _, _ := writeStore.getCounts()
+	putCalls, _, batchCalls, _, _, _ := writeStore.getCounts()
 	if batchCalls != 1 || putCalls != 0 {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", batchCalls, putCalls)
 	}
@@ -113,9 +121,21 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	if _, _, err := bg.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
-	putCalls, _, _, _, backgroundCalls := writeStore.getCounts()
+	putCalls, _, _, _, backgroundCalls, _ := writeStore.getCounts()
 	if backgroundCalls != 1 || putCalls != 0 {
 		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", backgroundCalls, putCalls)
+	}
+
+	existsBatcher, ok := b.(block.BatchExistsStore)
+	if !ok {
+		t.Fatal("expected bucketRW to implement block.BatchExistsStore")
+	}
+	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
+		t.Fatal(err.Error())
+	}
+	_, _, _, _, _, existsBatchCalls := readStore.getCounts()
+	if existsBatchCalls != 1 {
+		t.Fatalf("expected one exists batch call and no fallback, got %d", existsBatchCalls)
 	}
 }
 
@@ -142,7 +162,7 @@ func TestBucketRWTransactionWriteUsesBatchPutStore(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	putCalls, _, batchCalls, batchEntries, _ := writeStore.getCounts()
+	putCalls, _, batchCalls, batchEntries, _, _ := writeStore.getCounts()
 	if batchCalls == 0 {
 		t.Fatal("expected transaction write to use PutBlockBatch on the write bucket")
 	}

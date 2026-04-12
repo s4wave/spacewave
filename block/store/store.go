@@ -63,6 +63,23 @@ func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntr
 	return batcher.PutBlockBatch(ctx, entries)
 }
 
+// GetBlockExistsBatch forwards batched existence probes to the inner StoreOps when supported.
+func (s *store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if batcher, ok := s.StoreOps.(block.BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := s.StoreOps.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // PutBlockBackground forwards background writes to the inner StoreOps when supported.
 func (s *store) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	bg, ok := s.StoreOps.(block.BackgroundPutStore)
@@ -90,6 +107,7 @@ func (s *store) EndDeferFlush(ctx context.Context) error {
 // _ is a type assertion
 var (
 	_ Store                    = ((*store)(nil))
+	_ block.BatchExistsStore   = ((*store)(nil))
 	_ block.BatchPutStore      = ((*store)(nil))
 	_ block.BackgroundPutStore = ((*store)(nil))
 	_ block.DeferFlushable     = ((*store)(nil))

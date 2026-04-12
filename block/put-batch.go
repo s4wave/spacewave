@@ -19,6 +19,13 @@ type BatchPutStore interface {
 	PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error
 }
 
+// BatchExistsStore is implemented by stores that can probe block existence in
+// a batch.
+type BatchExistsStore interface {
+	// GetBlockExistsBatch checks whether each block reference exists.
+	GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error)
+}
+
 // BackgroundPutStore is implemented by stores that support low-priority
 // background block writes. Background writes are deprioritized relative
 // to foreground writes, useful for GC operations and other non-latency-

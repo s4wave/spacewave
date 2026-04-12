@@ -12,8 +12,9 @@ import (
 )
 
 type countingBatchStore struct {
-	putCalls      int
-	putBatchCalls int
+	putCalls         int
+	putBatchCalls    int
+	existsBatchCalls int
 }
 
 func (s *countingBatchStore) GetHashType() bifrost_hash.HashType { return 0 }
@@ -45,9 +46,15 @@ func (s *countingBatchStore) PutBlockBatch(_ context.Context, _ []*block.PutBatc
 	return nil
 }
 
+func (s *countingBatchStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	s.existsBatchCalls++
+	return make([]bool, len(refs)), nil
+}
+
 var (
-	_ block.StoreOps      = ((*countingBatchStore)(nil))
-	_ block.BatchPutStore = ((*countingBatchStore)(nil))
+	_ block.StoreOps         = ((*countingBatchStore)(nil))
+	_ block.BatchExistsStore = ((*countingBatchStore)(nil))
+	_ block.BatchPutStore    = ((*countingBatchStore)(nil))
 )
 
 func TestVolumeForwardsBatchPutStore(t *testing.T) {
@@ -101,5 +108,16 @@ func TestVolumeForwardsBatchPutStore(t *testing.T) {
 	}
 	if inner.putCalls != 0 {
 		t.Fatalf("expected 0 fallback PutBlock calls, got %d", inner.putCalls)
+	}
+
+	existsBatcher, ok := any(vol).(block.BatchExistsStore)
+	if !ok {
+		t.Fatal("expected Volume to implement block.BatchExistsStore")
+	}
+	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref1, ref2}); err != nil {
+		t.Fatalf("GetBlockExistsBatch failed: %v", err)
+	}
+	if inner.existsBatchCalls != 1 {
+		t.Fatalf("expected 1 GetBlockExistsBatch call, got %d", inner.existsBatchCalls)
 	}
 }

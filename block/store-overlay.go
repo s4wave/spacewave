@@ -326,6 +326,59 @@ func (o *StoreOverlay) PutBlockBackground(ctx context.Context, data []byte, opts
 	}
 }
 
+// GetBlockExistsBatch checks block existence using the same read policy as GetBlockExists.
+func (o *StoreOverlay) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	cacheMode := func(primary, secondary StoreOps) ([]bool, error) {
+		out, err := getBlockExistsBatch(ctx, primary, refs)
+		if err != nil {
+			return nil, err
+		}
+
+		var missing []*BlockRef
+		var missingIdx []int
+		for i, found := range out {
+			if found {
+				continue
+			}
+			missing = append(missing, refs[i])
+			missingIdx = append(missingIdx, i)
+		}
+		if len(missing) == 0 {
+			return out, nil
+		}
+
+		secondaryOut, err := getBlockExistsBatch(ctx, secondary, missing)
+		if err != nil {
+			return nil, err
+		}
+		for i, found := range secondaryOut {
+			out[missingIdx[i]] = found
+		}
+		return out, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return getBlockExistsBatch(ctx, o.upper, refs)
+	case OverlayMode_LOWER_ONLY:
+		return getBlockExistsBatch(ctx, o.lower, refs)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return cacheMode(o.lower, o.upper)
+	}
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
@@ -420,9 +473,26 @@ func putBlockBackground(ctx context.Context, store StoreOps, data []byte, opts *
 	return store.PutBlock(ctx, data, opts)
 }
 
+func getBlockExistsBatch(ctx context.Context, store StoreOps, refs []*BlockRef) ([]bool, error) {
+	if batcher, ok := store.(BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := store.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // _ is a type assertion
 var (
 	_ StoreOps           = ((*StoreOverlay)(nil))
+	_ BatchExistsStore   = ((*StoreOverlay)(nil))
 	_ BatchPutStore      = ((*StoreOverlay)(nil))
 	_ BackgroundPutStore = ((*StoreOverlay)(nil))
 	_ DeferFlushable     = ((*StoreOverlay)(nil))

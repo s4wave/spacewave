@@ -9,12 +9,13 @@ import (
 )
 
 type kvtxBlockTestStore struct {
-	putCalls        int
-	rmCalls         int
-	batchCalls      int
-	backgroundCalls int
-	beginCalls      int
-	endCalls        int
+	putCalls         int
+	rmCalls          int
+	batchCalls       int
+	backgroundCalls  int
+	existsBatchCalls int
+	beginCalls       int
+	endCalls         int
 }
 
 func (s *kvtxBlockTestStore) GetHashType() hash.HashType {
@@ -53,6 +54,11 @@ func (s *kvtxBlockTestStore) PutBlockBackground(_ context.Context, _ []byte, opt
 	return opts.GetForceBlockRef(), false, nil
 }
 
+func (s *kvtxBlockTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	s.existsBatchCalls++
+	return make([]bool, len(refs)), nil
+}
+
 func (s *kvtxBlockTestStore) BeginDeferFlush() {
 	s.beginCalls++
 }
@@ -88,6 +94,17 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 	}
 	if inner.backgroundCalls != 1 || inner.putCalls != 0 {
 		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", inner.backgroundCalls, inner.putCalls)
+	}
+
+	existsBatcher, ok := any(k).(block.BatchExistsStore)
+	if !ok {
+		t.Fatal("expected KVTx to implement block.BatchExistsStore")
+	}
+	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.existsBatchCalls != 1 {
+		t.Fatalf("expected batch exists forwarding, got %d calls", inner.existsBatchCalls)
 	}
 
 	df, ok := any(k).(block.DeferFlushable)
