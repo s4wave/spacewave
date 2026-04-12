@@ -214,6 +214,17 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data")
 	defer task.End()
 
+	taskName := "hydra/opfs-blockshard/shard/write-file-data/select-sync"
+	if s.asyncIO {
+		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/forced-config"
+	} else if !opfs.SyncAvailable() {
+		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/sync-unavailable"
+	} else if !isSegmentFilename(name) {
+		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/non-segment"
+	}
+	_, selectTask := trace.NewTask(ctx, taskName)
+	selectTask.End()
+
 	if s.shouldUseAsyncWrite(name) {
 		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-async-file")
 		f, err := opfs.CreateAsyncFile(s.dir, name)
