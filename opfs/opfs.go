@@ -226,10 +226,10 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 	defer task.End()
 
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at/create-writable")
-	writable, err := AwaitPromise(f.handle.Call("createWritable"))
+	writable, err := openWritable(f.handle)
 	writeTask.End()
 	if err != nil {
-		return 0, errors.Wrap(err, "createWritable")
+		return 0, err
 	}
 
 	if off > 0 {
@@ -290,9 +290,9 @@ func (f *AsyncFile) Size() (int64, error) {
 
 // Truncate sets the file size via a writable stream.
 func (f *AsyncFile) Truncate(size int64) error {
-	writable, err := AwaitPromise(f.handle.Call("createWritable"))
+	writable, err := openWritable(f.handle)
 	if err != nil {
-		return errors.Wrap(err, "createWritable")
+		return err
 	}
 	if _, err := AwaitPromise(writable.Call("truncate", size)); err != nil {
 		AwaitPromise(writable.Call("close")) //nolint
@@ -333,11 +333,22 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 
 // ReadFile reads the contents of a file in the given directory.
 func ReadFile(dir js.Value, name string) ([]byte, error) {
-	f, err := OpenAsyncFile(dir, name)
+	f, err := AwaitPromise(dir.Call("getFileHandle", name))
 	if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(f)
+	file, err := AwaitPromise(f.Call("getFile"))
+	if err != nil {
+		return nil, errors.Wrap(err, "getFile")
+	}
+	ab, err := AwaitPromise(file.Call("arrayBuffer"))
+	if err != nil {
+		return nil, errors.Wrap(err, "arrayBuffer")
+	}
+	arr := js.Global().Get("Uint8Array").New(ab)
+	buf := make([]byte, arr.Get("length").Int())
+	js.CopyBytesToGo(buf, arr)
+	return buf, nil
 }
 
 // DeleteEntry removes a file or directory entry from the parent directory.
@@ -544,6 +555,24 @@ func (f *SyncFile) WriteAt(p []byte, off int64) (int, error) {
 	opts.Set("at", off)
 	n := f.ah.Call("write", arr, opts).Int()
 	return n, nil
+}
+
+func openWritable(fileHandle js.Value) (js.Value, error) {
+	var lastErr error
+	for range syncAccessHandleRetries {
+		writable, err := AwaitPromise(fileHandle.Call("createWritable"))
+		if err == nil {
+			return writable, nil
+		}
+		if !IsNoModificationAllowed(err) {
+			return js.Null(), errors.Wrap(err, "createWritable")
+		}
+		lastErr = err
+		if err := yieldMicrotask(); err != nil {
+			return js.Null(), err
+		}
+	}
+	return js.Null(), errors.Wrap(lastErr, "createWritable")
 }
 
 // Seek sets the offset for the next Read or Write.
