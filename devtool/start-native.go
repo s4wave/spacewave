@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -61,6 +62,43 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	}
 	defer pluginStorageCtrlRef.Release()
 
+	// execute the project controller
+	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
+	projWatcher, projCtrlRef, err := b.StartProjectController(
+		ctx,
+		b.GetBus(),
+		repoRoot,
+		a.ConfigPath,
+		a.Remote,
+		a.StartPlugins.Value(),
+	)
+	if err != nil {
+		return err
+	}
+	defer projCtrlRef.Release()
+
+	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	preflightRemote := a.Remote
+	if preflightRemote == "" {
+		preflightRemote = "devtool"
+	}
+	startPlugins := projCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
+	if len(startPlugins) != 0 {
+		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
+		if _, _, err := projCtrl.BuildManifests(
+			ctx,
+			preflightRemote,
+			startPlugins,
+			bldr_manifest.BuildType(a.BuildType),
+		); err != nil {
+			return err
+		}
+	}
+
 	// build the plugin scheduler
 	_, relSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
@@ -92,21 +130,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	if relPluginHost != nil {
 		defer relPluginHost()
 	}
-
-	// execute the project controller
-	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
-	_, projCtrlRef, err := b.StartProjectController(
-		ctx,
-		b.GetBus(),
-		repoRoot,
-		a.ConfigPath,
-		a.Remote,
-		a.StartPlugins.Value(),
-	)
-	if err != nil {
-		return err
-	}
-	defer projCtrlRef.Release()
 
 	<-b.GetContext().Done()
 	return nil

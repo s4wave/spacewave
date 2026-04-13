@@ -125,6 +125,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+func (c *Controller) SupportsStartupManifestCache() bool {
+	return true
+}
+
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
@@ -584,6 +589,7 @@ func (c *Controller) BuildPlugin(
 	}
 	var esbuildBundleVarMeta []*EsbuildBundleVarMeta
 	var esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta
+	var esbuildSrcFiles []string
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
 
@@ -608,7 +614,7 @@ func (c *Controller) BuildPlugin(
 		}
 
 		// Build and checkout the esbuild sub-manifest
-		webPkgRefs, esbuildOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
+		webPkgRefs, esbuildSrcFiles, esbuildOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			buildHost,
@@ -636,6 +642,7 @@ func (c *Controller) BuildPlugin(
 	var viteBundleVarMeta []*ViteBundleVarMeta
 	var viteOutputMeta []*bldr_vite.ViteOutputMeta
 	var viteWebPkgRefs web_pkg.WebPkgRefSlice
+	var viteSrcFiles []string
 	if len(vitePkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(vitePkgs), ViteTag)
 
@@ -672,7 +679,7 @@ func (c *Controller) BuildPlugin(
 		}
 
 		// Build and checkout the vite sub-manifest
-		viteWebPkgRefs, viteOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, viteSrcFiles, viteOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			buildHost,
@@ -699,12 +706,13 @@ func (c *Controller) BuildPlugin(
 	// sub-manifests, build them directly.
 	if len(webPkgRefs) == 0 && len(webPkgs) != 0 {
 		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
-		directRefs, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
+		directRefs, directSrcFiles, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
 			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease,
 		)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "build direct web packages")
 		}
+		viteSrcFiles = append(viteSrcFiles, directSrcFiles...)
 		webPkgRefs = append(webPkgRefs, directRefs...)
 	}
 
@@ -921,8 +929,9 @@ func (c *Controller) BuildPlugin(
 	}
 
 	inputManifest := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+	moduleSrcFiles := existingSourceFiles(sourcePath, "go.mod", "go.sum", "vendor/modules.txt")
 	inputFileKinds := map[InputFileKind][]string{
-		InputFileKind_InputFileKind_GO:    goSrcFiles,
+		InputFileKind_InputFileKind_GO:    append(goSrcFiles, moduleSrcFiles...),
 		InputFileKind_InputFileKind_ASSET: assetSrcFiles,
 	}
 	for kind, srcPaths := range inputFileKinds {
@@ -943,6 +952,20 @@ func (c *Controller) BuildPlugin(
 				Metadata: metaBin,
 			})
 		}
+	}
+	seenInputPaths := make(map[string]struct{}, len(inputManifest.Files))
+	for _, inputFile := range inputManifest.Files {
+		seenInputPaths[inputFile.GetPath()] = struct{}{}
+	}
+	for _, srcPath := range append(esbuildSrcFiles, viteSrcFiles...) {
+		if _, ok := seenInputPaths[srcPath]; ok {
+			continue
+		}
+		seenInputPaths[srcPath] = struct{}{}
+		inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
+			Path:        srcPath,
+			StartupOnly: true,
+		})
 	}
 	inputManifest.SortFiles()
 
@@ -1036,7 +1059,7 @@ func (c *Controller) FastRebuildPlugin(
 
 		// Build and checkout the esbuild sub-manifest
 		// Capture the esbuild output metadata for later use.
-		esbuildWebPkgRefs, updatedEsbuildOutputs, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
+		esbuildWebPkgRefs, _, updatedEsbuildOutputs, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			buildHost,
@@ -1079,7 +1102,7 @@ func (c *Controller) FastRebuildPlugin(
 
 		// Build and checkout the vite sub-manifest
 		// Capture the vite output metadata for later use.
-		viteWebPkgRefs, updatedViteOutputs, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, _, updatedViteOutputs, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			buildHost,
@@ -1348,6 +1371,23 @@ func buildViteGoVariableDefs(
 	}
 
 	return goVariableDefs, nil
+}
+
+// existingSourceFiles filters source-relative file paths to files that exist.
+func existingSourceFiles(sourcePath string, relPaths ...string) []string {
+	var existing []string
+	for _, relPath := range relPaths {
+		if relPath == "" {
+			continue
+		}
+		absPath := filepath.Join(sourcePath, relPath)
+		fileInfo, err := os.Stat(absPath)
+		if err != nil || fileInfo.IsDir() {
+			continue
+		}
+		existing = append(existing, relPath)
+	}
+	return existing
 }
 
 // writeDevInfoFile writes the plugin development info file if the path is specified.

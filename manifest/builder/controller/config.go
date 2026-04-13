@@ -18,12 +18,14 @@ func NewConfig(
 	builderControllerConfig *configset_proto.ControllerConfig,
 	buildBackoff *backoff.Backoff,
 	watch bool,
+	startupBuilderResult *builder.BuilderResult,
 ) *Config {
 	return &Config{
-		BuilderConfig:    builderConfig,
-		ControllerConfig: builderControllerConfig,
-		BuildBackoff:     buildBackoff,
-		Watch:            watch,
+		BuilderConfig:        builderConfig,
+		ControllerConfig:     builderControllerConfig,
+		BuildBackoff:         buildBackoff,
+		Watch:                watch,
+		StartupBuilderResult: startupBuilderResult,
 	}
 }
 
@@ -52,6 +54,11 @@ func (c *Config) Validate() error {
 	}
 	if err := c.GetBuildBackoff().Validate(true); err != nil {
 		return err
+	}
+	if startupBuilderResult := c.GetStartupBuilderResult(); startupBuilderResult != nil {
+		if err := startupBuilderResult.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

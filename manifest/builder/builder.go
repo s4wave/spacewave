@@ -1,6 +1,7 @@
 package bldr_manifest_builder
 
 import (
+	"bytes"
 	"context"
 	"path"
 	"slices"
@@ -34,6 +35,9 @@ type Controller interface {
 		args *BuildManifestArgs,
 		host BuildManifestHost,
 	) (*BuilderResult, error)
+
+	// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+	SupportsStartupManifestCache() bool
 
 	// GetSupportedPlatforms returns the base platform IDs this compiler supports.
 	// Used by the build system to select the appropriate platform for a target.
@@ -79,4 +83,64 @@ func (m *InputManifest) SortFiles() {
 			return strings.Compare(a.GetPath(), b.GetPath())
 		})
 	}
+}
+
+// NewEnvStartupInput constructs an environment-variable startup input.
+func NewEnvStartupInput(key, value string) *InputManifest_StartupInput {
+	return &InputManifest_StartupInput{
+		Kind:        InputManifest_StartupInputKind_ENV_VAR,
+		Key:         key,
+		StringValue: value,
+	}
+}
+
+// NewControllerConfigDigestStartupInput constructs a controller-config digest startup input.
+func NewControllerConfigDigestStartupInput(digest []byte) *InputManifest_StartupInput {
+	return &InputManifest_StartupInput{
+		Kind:       InputManifest_StartupInputKind_CONTROLLER_CONFIG_DIGEST,
+		Key:        "controller-config",
+		BytesValue: digest,
+	}
+}
+
+// AddStartupInput adds a startup input if a duplicate does not already exist.
+func (m *InputManifest) AddStartupInput(input *InputManifest_StartupInput) {
+	if m == nil || input == nil {
+		return
+	}
+	for _, existing := range m.StartupInputs {
+		if existing.GetKind() != input.GetKind() {
+			continue
+		}
+		if existing.GetKey() != input.GetKey() {
+			continue
+		}
+		if existing.GetStringValue() != input.GetStringValue() {
+			continue
+		}
+		if string(existing.GetBytesValue()) != string(input.GetBytesValue()) {
+			continue
+		}
+		return
+	}
+	m.StartupInputs = append(m.StartupInputs, input)
+}
+
+// SortStartupInputs sorts startup inputs deterministically.
+func (m *InputManifest) SortStartupInputs() {
+	if m == nil {
+		return
+	}
+	slices.SortFunc(m.StartupInputs, func(a, b *InputManifest_StartupInput) int {
+		if d := int(a.GetKind()) - int(b.GetKind()); d != 0 {
+			return d
+		}
+		if d := strings.Compare(a.GetKey(), b.GetKey()); d != 0 {
+			return d
+		}
+		if d := strings.Compare(a.GetStringValue(), b.GetStringValue()); d != 0 {
+			return d
+		}
+		return bytes.Compare(a.GetBytesValue(), b.GetBytesValue())
+	})
 }

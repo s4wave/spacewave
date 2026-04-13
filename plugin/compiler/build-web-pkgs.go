@@ -19,8 +19,8 @@ import (
 //
 // This is used when web packages are declared but no esbuild/vite sub-manifests
 // exist to build them (e.g. in the saucer flow).
-// Returns the web pkg refs and import map entries mapping logical specifiers to
-// hashed output paths.
+// Returns the web pkg refs, source files, and import map entries mapping
+// logical specifiers to hashed output paths.
 func BuildDirectWebPkgs(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -29,11 +29,11 @@ func BuildDirectWebPkgs(
 	workingPath string,
 	outAssetsPath string,
 	isRelease bool,
-) (web_pkg.WebPkgRefSlice, []web_pkg_vite.ImportMapEntry, error) {
+) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
 	// Install dist deps (cached: skips if package.json unchanged).
 	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
 	if err := npm.EnsureBunInstall(ctx, le, workingPath, filepath.Join(distSourcePath, "dist/deps/package.json"), buildPkgsDir); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Get web package refs with resolved source paths.
@@ -45,8 +45,9 @@ func BuildDirectWebPkgs(
 	viteWorkingPath := filepath.Join(workingPath, "vite-web-pkgs")
 
 	var importMapEntries []web_pkg_vite.ImportMapEntry
+	var srcFiles []string
 	err := web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
-		_, _, entries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+		_, builtSrcFiles, entries, buildErr := web_pkg_vite.BuildWebPkgsVite(
 			ctx,
 			le,
 			buildPkgsDir,
@@ -57,12 +58,13 @@ func BuildDirectWebPkgs(
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)
+		srcFiles = builtSrcFiles
 		importMapEntries = entries
 		return buildErr
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return refs, importMapEntries, nil
+	return refs, srcFiles, importMapEntries, nil
 }

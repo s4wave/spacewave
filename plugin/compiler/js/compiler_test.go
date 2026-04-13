@@ -129,6 +129,7 @@ func TestPluginCompilerJs(t *testing.T) {
 		jsCompilerConf,
 		nil,
 		true,
+		nil,
 	)
 
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_manifest_builder_controller.Controller](

@@ -118,6 +118,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+func (c *Controller) SupportsStartupManifestCache() bool {
+	return false
+}
+
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
@@ -298,7 +303,7 @@ func (c *Controller) BuildManifest(
 			return nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
 		}
 
-		esbuildWebPkgRefs, esbuildOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
+		esbuildWebPkgRefs, _, esbuildOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			host,
@@ -331,7 +336,7 @@ func (c *Controller) BuildManifest(
 			return nil, errors.Wrap(err, "failed to marshal vite bundler config")
 		}
 
-		viteWebPkgRefs, viteOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, _, viteOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			host,

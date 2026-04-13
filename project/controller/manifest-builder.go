@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // manifestBuilderTracker tracks a running manifest build controller.
@@ -150,6 +151,24 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	// ctrlConf is the current controller config
 	ctrlConf := t.c.GetConfig()
+	var startupBuilderResult *bldr_manifest_builder.BuilderResult
+	startupBuildState, err := ReadManifestStartupBuildState(ctrlConf.GetWorkingPath(), t.conf)
+	if err != nil {
+		t.c.le.WithError(err).
+			WithField("manifest-id", t.conf.GetManifestId()).
+			Warn("failed to load startup build state, falling back to rebuild")
+	}
+	if startupBuildState != nil {
+		startupBuilderResult = startupBuildState.GetBuilderResult().CloneVT()
+		t.c.le.WithFields(logrus.Fields{
+			"manifest-id":   t.conf.GetManifestId(),
+			"manifest-rev":  startupBuildState.GetBuilderResult().GetManifest().GetMeta().GetRev(),
+			"build-type":    t.conf.GetBuildType(),
+			"platform-id":   t.conf.GetPlatformId(),
+			"remote-id":     t.conf.GetRemoteId(),
+			"startup-state": true,
+		}).Debug("loaded startup build state")
+	}
 
 	// build paths
 	buildWorkingPath := filepath.Join(ctrlConf.GetWorkingPath(), "build", platformIDPath, manifestID)
@@ -228,6 +247,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		manifestConfig.GetBuilder(),
 		ctrlConf.GetBuildBackoff(),
 		ctrlConf.GetWatch(),
+		startupBuilderResult,
 	)
 
 	// Resolve webPkg dependencies: if this manifest excludes webPkgs
@@ -259,8 +279,22 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 				t.resultPromiseCtr.SetResult(nil, err)
 				return err
 			}
+			if result == nil {
+				if err := RemoveManifestStartupBuildState(ctrlConf.GetWorkingPath(), t.conf); err != nil {
+					t.resultPromiseCtr.SetResult(nil, err)
+					return err
+				}
+			}
+			if result != nil {
+				startupBuildState := NewManifestStartupBuildState(t.conf, result)
+				if err := startupBuildState.WriteFile(ctrlConf.GetWorkingPath()); err != nil {
+					t.resultPromiseCtr.SetResult(nil, err)
+					return err
+				}
+			}
 			t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
-		} else {
+		}
+		if resultPromise == nil {
 			// No result yet.
 			t.resultPromiseCtr.SetPromise(nil)
 		}

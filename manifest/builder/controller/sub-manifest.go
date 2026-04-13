@@ -145,6 +145,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		manifestConfig.GetBuilder(),
 		ctrlConf.GetBuildBackoff(),
 		ctrlConf.GetWatch(),
+		nil,
 	)
 
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](

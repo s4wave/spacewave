@@ -28,7 +28,7 @@ const (
 var EsbuildAssetSubdir = "esb"
 
 // BuildAndCheckoutEsbuildSubManifest builds the esbuild sub-manifest and checks out the results.
-// It returns the web package references and esbuild output metadata extracted from the sub-manifest.
+// It returns the web package references, source files, and esbuild output metadata extracted from the sub-manifest.
 // The caller is responsible for constructing and validating the esbuildBuilderProto.
 func BuildAndCheckoutEsbuildSubManifest(
 	ctx context.Context,
@@ -37,32 +37,36 @@ func BuildAndCheckoutEsbuildSubManifest(
 	buildWorld world.Engine,
 	outAssetsPath string,
 	esbuildBuilderProto *configset_proto.ControllerConfig,
-) (web_pkg.WebPkgRefSlice, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, error) {
+) (web_pkg.WebPkgRefSlice, []string, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, error) {
 	// build the manifest for this esbuild bundle
 	le.Debug("waiting for esbuild sub-manifest")
 	subManifestPromise, err := host.BuildSubManifest(ctx, esbuildSubManifestID, &bldr_project.ManifestConfig{
 		Builder: esbuildBuilderProto,
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to start esbuild sub-manifest build")
+		return nil, nil, nil, errors.Wrap(err, "failed to start esbuild sub-manifest build")
 	}
 
 	// wait for the result
 	subManifestResult, err := subManifestPromise.Await(ctx)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "esbuild sub-manifest build failed")
+		return nil, nil, nil, errors.Wrap(err, "esbuild sub-manifest build failed")
 	}
 
 	// parse out the input manifest meta
 	subManifestInput := subManifestResult.GetInputManifest()
 	subManifestInputMeta := &bldr_web_bundler_esbuild_compiler.InputManifestMeta{}
 	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		return nil, nil, errors.Wrap(err, "unable to parse esbuild sub-manifest input metadata")
+		return nil, nil, nil, errors.Wrap(err, "unable to parse esbuild sub-manifest input metadata")
 	}
 
 	// extract variables
 	webPkgRefs := subManifestInputMeta.GetWebPkgRefs()
 	esbuildOutputMeta := subManifestInputMeta.GetEsbuildOutputs()
+	var srcFiles []string
+	for _, inputFile := range subManifestInput.GetFiles() {
+		srcFiles = append(srcFiles, inputFile.GetPath())
+	}
 
 	// sync the latest sub-manifest contents into our assets directory
 	le.Debug("esbuild sub-manifest build complete, checking out assets")
@@ -79,18 +83,18 @@ func BuildAndCheckoutEsbuildSubManifest(
 		nil,
 	)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to extract esbuild sub-manifest")
+		return nil, nil, nil, errors.Wrap(err, "unable to extract esbuild sub-manifest")
 	}
 
 	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
 	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 	outAssetsEsbuildWebPkgsDir := filepath.Join(outAssetsEsbuildPath, bldr_plugin.PluginAssetsWebPkgsDir)
 	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsEsbuildWebPkgsDir, nil); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if err := fsutil.CleanDir(outAssetsEsbuildWebPkgsDir); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return webPkgRefs, esbuildOutputMeta, nil
+	return webPkgRefs, srcFiles, esbuildOutputMeta, nil
 }

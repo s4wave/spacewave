@@ -29,7 +29,7 @@ func (r *BuilderResult) Validate() error {
 	if err := r.GetManifestRef().Validate(); err != nil {
 		return errors.Wrap(err, "manifest_ref")
 	}
-	if !r.GetManifest().GetMeta().EqualVT(r.GetManifest().GetMeta()) {
+	if !r.GetManifest().GetMeta().EqualVT(r.GetManifestRef().GetMeta()) {
 		return errors.New("manifest meta must match manifest ref meta")
 	}
 	if err := r.GetInputManifest().Validate(); err != nil {
@@ -51,6 +51,26 @@ func (m *InputManifest) Validate() error {
 			return errors.Errorf("files[%d]: duplicate file path: %q", i, cleanedPath)
 		}
 		seenPaths[cleanedPath] = struct{}{}
+		if identity := file.GetIdentity(); identity != nil {
+			if identity.GetSizeBytes() == 0 && identity.GetModTimeUnixNano() == 0 && len(identity.GetSha256()) == 0 {
+				return errors.Errorf("files[%d]: identity cannot be empty", i)
+			}
+		}
+	}
+
+	seenStartupInputs := make(map[string]struct{})
+	for i, input := range m.GetStartupInputs() {
+		if input.GetKind() == InputManifest_StartupInputKind_UNKNOWN {
+			return errors.Errorf("startup_inputs[%d]: kind cannot be unknown", i)
+		}
+		if input.GetKey() == "" {
+			return errors.Errorf("startup_inputs[%d]: key cannot be empty", i)
+		}
+		inputKey := input.GetKind().String() + ":" + input.GetKey()
+		if _, ok := seenStartupInputs[inputKey]; ok {
+			return errors.Errorf("startup_inputs[%d]: duplicate startup input: %q", i, inputKey)
+		}
+		seenStartupInputs[inputKey] = struct{}{}
 	}
 	return nil
 }

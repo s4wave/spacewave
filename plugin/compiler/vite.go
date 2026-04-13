@@ -28,7 +28,7 @@ const (
 var ViteAssetSubdir = "v"
 
 // BuildAndCheckoutViteSubManifest builds the vite sub-manifest and checks out the results.
-// It returns the web package references and vite output metadata extracted from the sub-manifest.
+// It returns the web package references, source files, and vite output metadata extracted from the sub-manifest.
 // The caller is responsible for constructing and validating the viteBuilderProto.
 func BuildAndCheckoutViteSubManifest(
 	ctx context.Context,
@@ -37,32 +37,36 @@ func BuildAndCheckoutViteSubManifest(
 	buildWorld world.Engine,
 	outAssetsPath string,
 	viteBuilderProto *configset_proto.ControllerConfig,
-) (web_pkg.WebPkgRefSlice, []*bldr_web_bundler_vite.ViteOutputMeta, error) {
+) (web_pkg.WebPkgRefSlice, []string, []*bldr_web_bundler_vite.ViteOutputMeta, error) {
 	// build the manifest for this vite bundle
 	le.Debug("waiting for vite sub-manifest")
 	subManifestPromise, err := host.BuildSubManifest(ctx, viteSubManifestID, &bldr_project.ManifestConfig{
 		Builder: viteBuilderProto,
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to start vite sub-manifest build")
+		return nil, nil, nil, errors.Wrap(err, "failed to start vite sub-manifest build")
 	}
 
 	// wait for the result
 	subManifestResult, err := subManifestPromise.Await(ctx)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "vite sub-manifest build failed")
+		return nil, nil, nil, errors.Wrap(err, "vite sub-manifest build failed")
 	}
 
 	// parse out the input manifest meta
 	subManifestInput := subManifestResult.GetInputManifest()
 	subManifestInputMeta := &bldr_web_bundler_vite_compiler.InputManifestMeta{}
 	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		return nil, nil, errors.Wrap(err, "unable to parse vite sub-manifest input metadata")
+		return nil, nil, nil, errors.Wrap(err, "unable to parse vite sub-manifest input metadata")
 	}
 
 	// extract variables
 	viteWebPkgRefs := subManifestInputMeta.GetWebPkgRefs()
 	viteOutputMeta := subManifestInputMeta.GetViteOutputs()
+	var srcFiles []string
+	for _, inputFile := range subManifestInput.GetFiles() {
+		srcFiles = append(srcFiles, inputFile.GetPath())
+	}
 
 	// sync the latest sub-manifest contents into our assets directory
 	le.Debug("vite sub-manifest build complete, checking out assets")
@@ -79,18 +83,18 @@ func BuildAndCheckoutViteSubManifest(
 		nil,
 	)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to extract vite sub-manifest")
+		return nil, nil, nil, errors.Wrap(err, "unable to extract vite sub-manifest")
 	}
 
 	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
 	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 	outAssetsViteWebPkgsDir := filepath.Join(outAssetsVitePath, bldr_plugin.PluginAssetsWebPkgsDir)
 	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsViteWebPkgsDir, nil); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if err := fsutil.CleanDir(outAssetsViteWebPkgsDir); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return viteWebPkgRefs, viteOutputMeta, nil
+	return viteWebPkgRefs, srcFiles, viteOutputMeta, nil
 }

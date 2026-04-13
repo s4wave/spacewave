@@ -150,6 +150,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var prevResult *bldr_manifest_builder.BuilderResult
 	var prevErr error
 	var changedFiles []*bldr_manifest_builder.InputManifest_File
+	var startupValidated bool
 
 	// manifestDepSnapshot holds the last-seen refs for watched manifest deps.
 	// Passed as an immutable snapshot to the watcher goroutine.
@@ -166,47 +167,70 @@ func (c *Controller) Execute(ctx context.Context) error {
 		resultPromise := promise.NewPromise[*bldr_manifest_builder.BuilderResult]()
 		c.resultPromise.SetPromise(resultPromise)
 
-		args := &bldr_manifest_builder.BuildManifestArgs{
-			BuilderConfig: builderConfig,
+		var result *bldr_manifest_builder.BuilderResult
+		var err error
 
-			PrevBuilderResult: prevResult,
-			ChangedFiles:      changedFiles,
-		}
-
-		// buildCtx is for this build call
-		buildCtx, buildCtxCancel := context.WithCancel(ctx)
-
-		// restartFn forces restarting BuildManifest (once)
-		var restarted atomic.Bool
-		restartFn := func() {
-			if !restarted.Swap(true) {
-				buildCtxCancel()
+		if !startupValidated {
+			startupValidated = true
+			startupValidationResult, startupErr := c.validateStartupBuilderResult(ctx, le, builderCtrl)
+			if startupErr != nil {
+				c.resultPromise.SetResult(nil, startupErr)
+				return startupErr
+			}
+			if startupValidationResult.builderResult != nil {
+				result = startupValidationResult.builderResult
+				manifestDepSnapshot = startupValidationResult.manifestDepSnapshot
+				le.WithField("startup-cache", true).Info("reused cached startup manifest build")
+			}
+			if startupValidationResult.builderResult == nil {
+				le.WithField("reason", startupValidationResult.reason).Info("startup manifest cache miss")
 			}
 		}
 
-		// construct the builder host which will set the restartFn when necessary
-		builderHost := newBuildManifestHost(c, builderConfig, restartFn)
+		buildCtx, buildCtxCancel := context.WithCancel(ctx)
+		if result == nil {
+			args := &bldr_manifest_builder.BuildManifestArgs{
+				BuilderConfig: builderConfig,
 
-		// update restartFn on any existing manifest trackers
-		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
-			tkr := prevSubManifestTracker.Data
-			tkr.mtx.Lock()
-			tkr.restartFn = restartFn
-			tkr.resultPcObserved = false // flag that we shouldn't call restart() if the value changes (yet)
-			tkr.mtx.Unlock()
-		}
+				PrevBuilderResult: prevResult,
+				ChangedFiles:      changedFiles,
+			}
 
-		// Call the builder controller BuildManifest function.
-		changedFiles = nil
-		result, err := builderCtrl.BuildManifest(buildCtx, args, builderHost)
-		if ctx.Err() != nil {
-			buildCtxCancel()
-			return context.Canceled
-		}
-		if buildCtx.Err() != nil {
-			if restarted.Load() {
+			// restartFn forces restarting BuildManifest (once)
+			var restarted atomic.Bool
+			restartFn := func() {
+				if !restarted.Swap(true) {
+					buildCtxCancel()
+				}
+			}
+
+			// construct the builder host which will set the restartFn when necessary
+			builderHost := newBuildManifestHost(c, builderConfig, restartFn)
+
+			// update restartFn on any existing manifest trackers
+			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
+				tkr := prevSubManifestTracker.Data
+				tkr.mtx.Lock()
+				tkr.restartFn = restartFn
+				tkr.resultPcObserved = false // flag that we shouldn't call restart() if the value changes (yet)
+				tkr.mtx.Unlock()
+			}
+
+			// Call the builder controller BuildManifest function.
+			changedFiles = nil
+			result, err = builderCtrl.BuildManifest(buildCtx, args, builderHost)
+			if ctx.Err() != nil {
 				buildCtxCancel()
-				continue
+				return context.Canceled
+			}
+			if buildCtx.Err() != nil {
+				if restarted.Load() {
+					buildCtxCancel()
+					continue
+				}
+			}
+			if err == nil {
+				err = enrichBuilderResultForStartupReuse(builderConfig, c.c.GetControllerConfig(), result)
 			}
 		}
 
@@ -219,9 +243,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 			tkr.mtx.Unlock()
 			if !resultPcObserved {
 				c.subManifestBuilderTrackers.RemoveKey(prevSubManifestTracker.Key)
-			} else {
-				subManifestCount++
+				continue
 			}
+			subManifestCount++
 		}
 
 		// Set the result promise
@@ -250,7 +274,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		inputFiles := prevResult.GetInputManifest().GetFiles()
 		if err == nil {
 			le.Debugf("input manifest returned with %d files", len(inputFiles))
-		} else {
+		}
+		if err != nil {
 			le.WithError(err).Warn("build failed")
 		}
 		if !c.c.GetWatch() || (len(inputFiles) == 0 && subManifestCount == 0 && !hasManifestDeps) {
@@ -265,6 +290,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		watchedFiles := make(map[string]*bldr_manifest_builder.InputManifest_File)
 	FilesLoop:
 		for _, inputFile := range inputFiles {
+			if inputFile.GetStartupOnly() {
+				continue
+			}
 			filePath := inputFile.GetPath()
 			for _, prefix := range ignoreWatchPrefixes {
 				if strings.HasPrefix(filePath, prefix) {

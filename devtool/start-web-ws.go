@@ -70,6 +70,42 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// HACK: in future we can pass this via some other kind of signal.
 	os.Setenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "true")
 
+	// execute the project controller
+	projCtrl, projCtrlRef, err := d.StartProjectController(
+		ctx,
+		d.GetBus(),
+		repoRoot,
+		a.ConfigPath,
+		a.Remote,
+		a.StartPlugins.Value(),
+	)
+	if err != nil {
+		return err
+	}
+	defer projCtrlRef.Release()
+
+	currProjCtrl, err := projCtrl.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+	webStartupSrcPath, _ := currProjCtrl.GetConfig().GetProjectConfig().GetStart().ParseWebStartupPath()
+	preflightRemote := a.Remote
+	if preflightRemote == "" {
+		preflightRemote = "devtool"
+	}
+	startPlugins := currProjCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
+	if len(startPlugins) != 0 {
+		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
+		if _, _, err := currProjCtrl.BuildManifests(
+			ctx,
+			preflightRemote,
+			startPlugins,
+			bldr_manifest.BuildType(a.BuildType),
+		); err != nil {
+			return err
+		}
+	}
+
 	// build the plugin host scheduler
 	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
@@ -103,26 +139,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	if relPluginHost != nil {
 		defer relPluginHost()
 	}
-
-	// execute the project controller
-	projCtrl, projCtrlRef, err := d.StartProjectController(
-		ctx,
-		d.GetBus(),
-		repoRoot,
-		a.ConfigPath,
-		a.Remote,
-		a.StartPlugins.Value(),
-	)
-	if err != nil {
-		return err
-	}
-	defer projCtrlRef.Release()
-
-	currProjCtrl, err := projCtrl.GetProjectController().WaitValue(ctx, nil)
-	if err != nil {
-		return err
-	}
-	webStartupSrcPath, _ := currProjCtrl.GetConfig().GetProjectConfig().GetStart().ParseWebStartupPath()
 
 	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)
 }

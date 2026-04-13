@@ -58,6 +58,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+func (c *Controller) SupportsStartupManifestCache() bool {
+	return false
+}
+
 // BuildManifest compiles the CLI manifest once with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,

@@ -296,46 +296,25 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
-	// Clear old devtool manifests from previous sessions.
-	// Within a session, fallback to old manifests is fine, but on startup
-	// we should not execute stale plugin code from a previous bldr run.
-	cleanupTx, err := eng.NewTransaction(ctx, true)
+	// Inspect existing devtool manifests. Native startup now preflights cached
+	// manifests before the scheduler starts, so startup keeps validated cached
+	// manifests instead of deleting everything up front.
+	inspectTx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	manifestObjKeys, err := bldr_manifest_world.ListManifests(ctx, cleanupTx, pluginHostObjectKey)
+	manifestObjKeys, err := bldr_manifest_world.ListManifests(ctx, inspectTx, pluginHostObjectKey)
 	if err != nil {
-		cleanupTx.Discard()
+		inspectTx.Discard()
 		rel()
 		return nil, err
 	}
 	if len(manifestObjKeys) > 0 {
-		le.Infof("clearing %d old devtool manifests from previous session", len(manifestObjKeys))
-		for _, objKey := range manifestObjKeys {
-			if _, err := cleanupTx.DeleteObject(ctx, objKey); err != nil {
-				cleanupTx.Discard()
-				rel()
-				return nil, err
-			}
-		}
-		if err := cleanupTx.Commit(ctx); err != nil {
-			rel()
-			return nil, err
-		}
-	} else {
-		cleanupTx.Discard()
+		le.WithField("manifest-count", len(manifestObjKeys)).
+			Info("keeping cached devtool manifests for startup validation")
 	}
-
-	// Run GC collection after cleanup to reclaim blocks from deleted manifests.
-	if rg := vol.GetRefGraph(); rg != nil {
-		collector := block_gc.NewCollector(rg, vol, nil)
-		if stats, err := collector.Collect(ctx); err != nil {
-			le.WithError(err).Warn("gc collect after cleanup failed")
-		} else if stats.NodesSwept > 0 {
-			le.WithField("swept", stats.NodesSwept).Info("gc collected after cleanup")
-		}
-	}
+	inspectTx.Discard()
 
 	// distSrcDir is the path to the dist sources dir
 	distSrcDir := filepath.Join(stateRoot, "src")

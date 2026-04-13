@@ -76,6 +76,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+func (c *Controller) SupportsStartupManifestCache() bool {
+	return true
+}
+
 // BuildManifest attempts to compile the manifest once.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
@@ -130,7 +135,14 @@ func (c *Controller) BuildManifest(
 	}
 
 	// build the manifest
-	return pluginCompilerCtrl.BuildManifest(ctx, args, host)
+	result, err := pluginCompilerCtrl.BuildManifest(ctx, args, host)
+	if err != nil || result == nil {
+		return result, err
+	}
+	if err := addWebPluginStartupInputs(args.GetBuilderConfig(), result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // BundleElectronHook bundles electron.
@@ -375,7 +387,7 @@ func (c *Controller) BundleSaucerHook(
 	sourcePath := builderConf.GetSourcePath()
 	webPkgWorkDir := filepath.Join(buildDir, "web-pkgs")
 	webPkgOutDir := filepath.Join(buildDir, "web-pkgs-out")
-	_, importMapEntries, err := bldr_plugin_compiler.BuildDirectWebPkgs(
+	_, _, importMapEntries, err := bldr_plugin_compiler.BuildDirectWebPkgs(
 		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify,
 	)
 	if err != nil {
@@ -503,6 +515,87 @@ func (c *Controller) buildBrowserShimManifest(
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
 	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
+}
+
+// addWebPluginStartupInputs adds desktop startup validation inputs.
+func addWebPluginStartupInputs(
+	builderConf *bldr_manifest_builder.BuilderConfig,
+	builderResult *bldr_manifest_builder.BuilderResult,
+) error {
+	if builderResult.GetInputManifest() == nil {
+		builderResult.InputManifest = bldr_manifest_builder.NewInputManifest(nil, nil)
+	}
+	inputManifest := builderResult.GetInputManifest()
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewEnvStartupInput(
+			web_runtime.WebRendererEnvVar,
+			web_runtime.GetWebRendererFromEnv().Resolve().String(),
+		),
+	)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewEnvStartupInput("BLDR_FROM_SOURCE", os.Getenv("BLDR_FROM_SOURCE")),
+	)
+
+	appendWebPluginInputFiles(inputManifest, builderConf.GetSourcePath(), false, "package.json")
+	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/dist/deps")
+	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/electron")
+	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/entrypoint")
+	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/runtime/wasm")
+	inputManifest.SortStartupInputs()
+	inputManifest.SortFiles()
+	return nil
+}
+
+// appendWebPluginInputDir appends all files from a source-relative directory.
+func appendWebPluginInputDir(
+	inputManifest *bldr_manifest_builder.InputManifest,
+	sourcePath string,
+	startupOnly bool,
+	relDir string,
+) {
+	absDir := filepath.Join(sourcePath, relDir)
+	_ = filepath.Walk(absDir, func(currPath string, fileInfo os.FileInfo, err error) error {
+		if err != nil || fileInfo == nil || fileInfo.IsDir() {
+			return nil
+		}
+		relPath, relErr := filepath.Rel(sourcePath, currPath)
+		if relErr != nil {
+			return nil
+		}
+		appendWebPluginInputFiles(inputManifest, sourcePath, startupOnly, relPath)
+		return nil
+	})
+}
+
+// appendWebPluginInputFiles appends source-relative file inputs if they exist.
+func appendWebPluginInputFiles(
+	inputManifest *bldr_manifest_builder.InputManifest,
+	sourcePath string,
+	startupOnly bool,
+	relPaths ...string,
+) {
+	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
+	for _, inputFile := range inputManifest.GetFiles() {
+		seenPaths[inputFile.GetPath()] = struct{}{}
+	}
+	for _, relPath := range relPaths {
+		if relPath == "" {
+			continue
+		}
+		if _, ok := seenPaths[relPath]; ok {
+			continue
+		}
+		absPath := filepath.Join(sourcePath, relPath)
+		fileInfo, err := os.Stat(absPath)
+		if err != nil || fileInfo.IsDir() {
+			continue
+		}
+		seenPaths[relPath] = struct{}{}
+		inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
+			Path:        relPath,
+			StartupOnly: startupOnly,
+		})
+	}
 }
 
 // _ is a type assertion
