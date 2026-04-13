@@ -70,6 +70,7 @@ interface ViteManifestEntry {
 type ViteManifest = Record<string, ViteManifestEntry>
 
 type ViteOutputChunkWithMetadata = Rollup.OutputChunk & {
+  referencedFiles?: string[]
   viteMetadata?: {
     importedCss?: Set<string>
   }
@@ -135,7 +136,7 @@ function synthesizeManifest(
     }
     const css = [
       ...(chunk.viteMetadata?.importedCss ?? []),
-      ...chunk.referencedFiles.filter((file) => file.endsWith('.css')),
+      ...(chunk.referencedFiles ?? []).filter((file) => file.endsWith('.css')),
     ]
     manifest[entrypoint] = {
       file: chunk.fileName,

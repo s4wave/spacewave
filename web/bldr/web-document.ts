@@ -59,11 +59,14 @@ import {
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
 import { CrossTabManager } from './cross-tab-manager.js'
+import { WebRTCBridgeEndpoint } from './webrtc-bridge-endpoint.js'
 import { createBusSab } from './sab-bus.js'
+import { shouldUseWebDocumentLivenessLock } from './web-document-lock.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
   buildWebDocumentLockName,
   ClientToWebDocument,
+  ConnectWebRtcBridgeAck,
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
   WebDocumentToClient,
@@ -491,6 +494,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
   // Not used in saucer mode (uses HTTP-based communication instead).
   private webRuntimePort?: MessagePort
+  // webrtcBridgeEndpoints tracks active WebRTC bridge connections keyed by worker ID.
+  private webrtcBridgeEndpoints = new Map<string, WebRTCBridgeEndpoint>()
   // webRuntimeClient is the client for the WebRuntime.
   private readonly webRuntimeClient: WebRuntimeClient | SaucerRuntimeClient
   // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
@@ -773,7 +778,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // IMPORTANT: We must acquire the lock BEFORE connecting to the WebRuntime,
     // then send an armWebLock message to tell the WebRuntime to start watching.
     // This avoids a race where the WebRuntime acquires the lock first.
-    if (!this.isElectron && 'locks' in navigator) {
+    if (shouldUseWebDocumentLivenessLock()) {
       this.abortController = new AbortController()
       const lockName = buildWebDocumentLockName(this.webDocumentUuid)
       navigator.locks
@@ -789,7 +794,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           // Lock request was aborted (during close) - this is expected.
         })
     } else {
-      // No Web Locks support (e.g., Electron) - connect immediately.
+      // No Web Locks support - connect immediately.
       this.taskEnsureWebRuntimeConn()
     }
   }
@@ -933,6 +938,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     const old = this.webWorkers[request.id]
     if (old) {
+      this.closeWorkerBridgeEndpoint(request.id)
       delete this.webWorkers[request.id]
       await old.close()
     }
@@ -1011,6 +1017,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     const old = this.webWorkers[request.id]
     if (old) {
+      this.closeWorkerBridgeEndpoint(request.id)
       delete this.webWorkers[request.id]
       await old.close()
       this.notifyWebWorkerUpdated(request.id, true, old.isShared, old.ready)
@@ -1042,6 +1049,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     this.closed = err ?? true
+
+    // Close all WebRTC bridge endpoints.
+    for (const [, endpoint] of this.webrtcBridgeEndpoints) {
+      endpoint.close()
+    }
+    this.webrtcBridgeEndpoints.clear()
 
     // Notify the cross-tab broker that this tab is closing.
     navigator.serviceWorker?.controller?.postMessage({ crossTab: 'goodbye' })
@@ -1335,6 +1348,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     if (data.close) {
       // Web worker was closed / removed.
+      this.closeWorkerBridgeEndpoint(workerID)
       worker.port.close()
       delete this.webWorkers[workerID]
       this.notifyWebWorkerUpdated(workerID, true, worker.isShared, worker.ready)
@@ -1365,6 +1379,50 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         port,
       )
     }
+
+    if (data.connectWebRtcBridge) {
+      this.handleConnectWebRtcBridge(data.from)
+    }
+  }
+
+  // closeWorkerBridgeEndpoint closes and removes the WebRTC bridge endpoint
+  // associated with the given worker ID, if any.
+  private closeWorkerBridgeEndpoint(workerId: string) {
+    const endpoint = this.webrtcBridgeEndpoints.get(workerId)
+    if (endpoint) {
+      endpoint.close()
+      this.webrtcBridgeEndpoints.delete(workerId)
+    }
+  }
+
+  // handleConnectWebRtcBridge creates a bridge MessageChannel and sends one
+  // port back to the requesting worker. The other port drives a WebRTCBridgeEndpoint.
+  private handleConnectWebRtcBridge(from: string) {
+    // Look up the requesting worker by its id (the `from` field).
+    const worker = this.webWorkers[from]
+    if (!worker?.port) {
+      console.warn(
+        `WebDocument: WebRTC bridge request from unknown worker: ${from}`,
+      )
+      return
+    }
+
+    // Close any existing bridge endpoint for this worker (e.g. after restart).
+    const prev = this.webrtcBridgeEndpoints.get(from)
+    if (prev) {
+      prev.close()
+    }
+
+    const { port1: endpointPort, port2: clientPort } = new MessageChannel()
+    const endpoint = new WebRTCBridgeEndpoint(endpointPort)
+    this.webrtcBridgeEndpoints.set(from, endpoint)
+    console.log(`WebDocument: WebRTC bridge opened for ${from}`)
+
+    const ack: ConnectWebRtcBridgeAck = {
+      from: this.webDocumentUuid,
+      bridgePort: clientPort,
+    }
+    worker.port.postMessage(ack, [clientPort])
   }
 
   // handleClientConnectWebRuntime handles a request to connect with the WebRuntime.

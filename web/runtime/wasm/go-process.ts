@@ -1,5 +1,6 @@
 import { Retry, RetryOpts } from '../../bldr/retry.js'
 import { fetchWithDecompress } from './fetch-decompress.js'
+import { getBridgePort, installWebRTCShim } from './webrtc-bridge.js'
 
 // GoWasmProcessOpts are optional parameters for GoWasmProcess.
 export interface GoWasmProcessOpts {
@@ -20,17 +21,23 @@ export type WasmSource =
   | WebAssembly.Module
   | (() => Promise<WebAssembly.Module>)
 
-interface WorkerBrowserGlobals {
-  window?: typeof globalThis
-}
-
 // patchWorkerBrowserGlobals makes browser-only global lookups available inside
 // worker-hosted Go WASM modules. Some JS/WASM libraries still reach through
 // window even when the equivalent constructor already exists on globalThis.
 function patchWorkerBrowserGlobals() {
-  const globals = globalThis as typeof globalThis & WorkerBrowserGlobals
-  if (typeof globals.window === 'undefined') {
-    globals.window = globalThis
+  if (typeof globalThis.window === 'undefined') {
+    Object.defineProperty(globalThis, 'window', {
+      value: globalThis,
+      configurable: true,
+      writable: true,
+    })
+  }
+  // Install the WebRTC bridge shim if a bridge port is available.
+  // This makes RTCPeerConnection available to Go WASM (pion-webrtc)
+  // by proxying signaling to the main thread and transferring DCs back.
+  if (getBridgePort()) {
+    installWebRTCShim()
+    console.log('GoWasmProcess: WebRTC bridge shim installed')
   }
 }
 

@@ -4,6 +4,7 @@ import { Message } from '@aptre/protobuf-es-lite'
 import {
   buildWebDocumentLockName,
   ClientToWebDocument,
+  ConnectWebRtcBridgeAck,
   ConnectWebRuntimeAck,
   WebDocumentToClient,
   WebDocumentToWorker,
@@ -154,6 +155,46 @@ export class WebDocumentTracker {
     for (const docID in this.webDocuments) {
       this.webDocuments[docID]?.postMessage(msg)
     }
+  }
+
+  // requestWebRtcBridge requests a WebRTC bridge port from the first available
+  // WebDocument. Returns the bridge MessagePort, or null if no WebDocument
+  // responds within the timeout.
+  public async requestWebRtcBridge(): Promise<MessagePort | null> {
+    const webDocumentIds = Object.keys(this.webDocuments)
+    if (!webDocumentIds.length) return null
+
+    // Use the last connected WebDocument (most likely to be alive).
+    const docId = this.lastWebDocumentId ?? webDocumentIds[0]
+    const docPort = this.webDocuments[docId]
+    if (!docPort) return null
+
+    return new Promise<MessagePort | null>((resolve) => {
+      // Temporarily listen for the bridge ack on the initPort.
+      const prev = docPort.onmessage
+      const timeout = globalThis.setTimeout(() => {
+        docPort.onmessage = prev
+        resolve(null)
+      }, openViaWebDocumentTimeoutMs)
+
+      docPort.onmessage = (ev: MessageEvent) => {
+        const data = ev.data
+        if (data && data.bridgePort) {
+          clearTimeout(timeout)
+          docPort.onmessage = prev
+          resolve((data as ConnectWebRtcBridgeAck).bridgePort)
+          return
+        }
+        // Forward other messages to the original handler.
+        if (prev) prev.call(docPort, ev)
+      }
+
+      const msg: ClientToWebDocument = {
+        from: this.clientUuid,
+        connectWebRtcBridge: true,
+      }
+      docPort.postMessage(msg)
+    })
   }
 
   // openWebRuntimeClient attempts to open a client via one of the WebDocuments.

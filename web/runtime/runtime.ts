@@ -85,6 +85,10 @@ export interface ClientToWebDocument {
     init: Uint8Array // WebRuntimeClientInit
     port: MessagePort
   }
+  // connectWebRtcBridge requests a bridge MessagePort for WebRTC proxying.
+  // The WebDocument creates a MessageChannel, sends one port back via
+  // ConnectWebRtcBridgeAck, and creates a WebRTCBridgeEndpoint on the other.
+  connectWebRtcBridge?: true
   // close indicates the client is closed.
   close?: true
   // ready indicates the worker finished startup and registered its runtime client.
@@ -97,6 +101,14 @@ export interface ConnectWebRuntimeAck {
   from: string
   // webRuntimePort contains the port connected to the remote WebRuntime.
   webRuntimePort: MessagePort
+}
+
+// ConnectWebRtcBridgeAck is sent from WebDocument to worker with the bridge port.
+export interface ConnectWebRtcBridgeAck {
+  // from is the identifier of the WebDocument.
+  from: string
+  // bridgePort is the MessagePort to use for WebRTC bridge commands.
+  bridgePort: MessagePort
 }
 
 // WebDocumentToWorker is a message sent from the WebDocument to the ServiceWorker, Worker, or SharedWorker.

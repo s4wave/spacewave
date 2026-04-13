@@ -9,6 +9,7 @@ import {
 } from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
+import { installWebRTCShim, setBridgePort } from './wasm/webrtc-bridge.js'
 
 export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,
@@ -192,6 +193,26 @@ export class PluginWorker {
     const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
 
     await this.webDocumentTracker.waitConn()
+
+    // Request a WebRTC bridge port from the WebDocument before starting the
+    // plugin. The bridge port must be available before patchWorkerBrowserGlobals()
+    // runs in GoWasmProcess so the RTCPeerConnection shim can be installed.
+    const bridgePort =
+      await this.webDocumentTracker.requestWebRtcBridge()
+    if (bridgePort) {
+      setBridgePort(bridgePort)
+      installWebRTCShim()
+      const globals = globalThis as typeof globalThis & {
+        window?: typeof globalThis & { RTCPeerConnection?: unknown }
+        RTCPeerConnection?: unknown
+      }
+      console.log(
+        `PluginWorker: ${this.workerId}: WebRTC shim visible window=${typeof globals.window?.RTCPeerConnection} global=${typeof globals.RTCPeerConnection}`,
+      )
+      console.log(
+        `PluginWorker: ${this.workerId}: WebRTC bridge port acquired`,
+      )
+    }
 
     await this.startPlugin({
       startInfo,
