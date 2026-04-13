@@ -2,6 +2,7 @@ import { HandleStreamFunc } from 'starpc'
 import { Message } from '@aptre/protobuf-es-lite'
 
 import {
+  buildWebDocumentLockName,
   ClientToWebDocument,
   ConnectWebRuntimeAck,
   WebDocumentToClient,
@@ -268,7 +269,7 @@ export class WebDocumentTracker {
     }
 
     return navigator.locks
-      .request(`bldr-doc-${webDocumentId}`, { signal }, () => {
+      .request(buildWebDocumentLockName(webDocumentId), { signal }, () => {
         return new Error(
           `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} disconnected before ack`,
         )

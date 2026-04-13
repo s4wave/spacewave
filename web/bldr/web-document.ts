@@ -62,6 +62,7 @@ import { CrossTabManager } from './cross-tab-manager.js'
 import { createBusSab } from './sab-bus.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
+  buildWebDocumentLockName,
   ClientToWebDocument,
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
@@ -774,7 +775,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // This avoids a race where the WebRuntime acquires the lock first.
     if (!this.isElectron && 'locks' in navigator) {
       this.abortController = new AbortController()
-      const lockName = `bldr-doc-${this.webDocumentUuid}`
+      const lockName = buildWebDocumentLockName(this.webDocumentUuid)
       navigator.locks
         .request(lockName, { signal: this.abortController.signal }, () => {
           // Lock acquired - now safe to connect to WebRuntime.

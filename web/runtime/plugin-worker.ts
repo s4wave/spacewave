@@ -2,7 +2,11 @@ import { HandleStreamFunc } from 'starpc'
 
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
-import { ClientToWebDocument, WebDocumentToWorker } from './runtime.js'
+import {
+  buildWebWorkerLockName,
+  ClientToWebDocument,
+  WebDocumentToWorker,
+} from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 
@@ -55,6 +59,8 @@ export class PluginWorker {
   private pluginStarted?: true
   // startPluginPromise tracks the in-flight startup sequence.
   private startPluginPromise?: Promise<void>
+  // lockAbortController aborts the worker liveness lock on shutdown.
+  private lockAbortController?: AbortController
   // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
   public onSnapshotNow?: SnapshotNowCallback
 
@@ -72,6 +78,7 @@ export class PluginWorker {
       this.onWebDocumentsExhausted.bind(this),
       handleIncomingStream,
     )
+    this.armWorkerLock()
 
     if (checkSharedWorker(global)) {
       // If this is a SharedWorker, handle the "connect" event when a WebDocument connects.
@@ -105,6 +112,43 @@ export class PluginWorker {
     console.log(
       `PluginWorker: ${this.workerId}: no WebDocument available, exiting!`,
     )
+    this.shutdown()
+  }
+
+  // armWorkerLock acquires a worker-scoped liveness lock before runtime registration.
+  private armWorkerLock() {
+    if (
+      typeof navigator === 'undefined' ||
+      !('locks' in navigator) ||
+      this.lockAbortController
+    ) {
+      return
+    }
+
+    this.lockAbortController = new AbortController()
+    navigator.locks
+      .request(
+        buildWebWorkerLockName(this.workerId),
+        { signal: this.lockAbortController.signal },
+        () => {
+          return new Promise<void>(() => {})
+        },
+      )
+      .catch((err) => {
+        if (isAbortError(err)) {
+          return
+        }
+        console.warn(
+          `PluginWorker: ${this.workerId}: worker liveness lock failed`,
+          err,
+        )
+      })
+  }
+
+  // shutdown tears down the worker, releasing the liveness lock first.
+  private shutdown() {
+    this.lockAbortController?.abort()
+    this.lockAbortController = undefined
     this.webDocumentTracker.close()
     this.global.close()
   }
@@ -189,9 +233,17 @@ export class PluginWorker {
           `PluginWorker: ${this.workerId}: startup failed, exiting!`,
           err,
         )
-        this.webDocumentTracker.close()
-        this.global.close()
+        this.shutdown()
       })
     }
   }
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name?: string }).name === 'AbortError'
+  )
 }

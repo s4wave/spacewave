@@ -1,5 +1,7 @@
 import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
 
+import { WebRuntimeClientType } from './runtime.pb.js'
+
 // NOTE: openStream is a boolean and not a MessagePort as MessagePort can only
 // be passed in the event.ports field via the Electron ContextBridge, it is not
 // possible to send the MessagePort as part of event.data, the message will be
@@ -16,6 +18,33 @@ export interface ClientToWebRuntime {
   // armWebLock tells the WebRuntime to start watching the Web Lock for disconnect detection.
   // The WebDocument sends this after acquiring its lock to avoid a race condition.
   armWebLock?: true
+}
+
+// buildWebDocumentLockName builds the liveness lock name for a WebDocument.
+export function buildWebDocumentLockName(webDocumentId: string): string {
+  return `bldr-doc-${webDocumentId}`
+}
+
+// buildWebWorkerLockName builds the liveness lock name for a WebWorker.
+export function buildWebWorkerLockName(webWorkerId: string): string {
+  return `bldr-worker-${webWorkerId}`
+}
+
+// buildWebRuntimeClientLockName builds the liveness lock name for a runtime client.
+export function buildWebRuntimeClientLockName(
+  clientType: WebRuntimeClientType,
+  clientUuid: string,
+): string | undefined {
+  if (!clientUuid) {
+    return undefined
+  }
+  if (clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT) {
+    return buildWebDocumentLockName(clientUuid)
+  }
+  if (clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER) {
+    return buildWebWorkerLockName(clientUuid)
+  }
+  return undefined
 }
 
 // WebRuntimeToClient is a message sent to the runtime client.

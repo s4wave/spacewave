@@ -34,7 +34,13 @@ import {
   WebRuntimeDefinition,
   WebRuntimeHostClient,
 } from '../runtime/runtime_srpc.pb.js'
-import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
+import {
+  buildWebDocumentLockName,
+  buildWebRuntimeClientLockName,
+  buildWebWorkerLockName,
+  ClientToWebRuntime,
+  WebRuntimeToClient,
+} from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
 
@@ -105,7 +111,13 @@ class WebRuntimeClientInstance {
     }
 
     this.abortController = new AbortController()
-    const lockName = `bldr-doc-${clientUuid}`
+    const lockName = buildWebRuntimeClientLockName(
+      this.init.clientType ?? WebRuntimeClientType.WebRuntimeClientType_UNKNOWN,
+      clientUuid,
+    )
+    if (!lockName) {
+      return
+    }
     navigator.locks
       .request(lockName, { signal: this.abortController.signal }, () => {
         // Lock acquired means the WebDocument has disconnected.
@@ -323,7 +335,7 @@ class WebRuntimeImpl implements WebRuntimeService {
     return (webDocumentId: string) => {
       return this.getClientRpcHandler(
         webDocumentId,
-        `bldr-doc-${webDocumentId}`,
+        buildWebDocumentLockName(webDocumentId),
       )
     }
   }
@@ -331,7 +343,10 @@ class WebRuntimeImpl implements WebRuntimeService {
   // buildWebWorkerRpcGetter builds the RpcGetter for a WebWorker.
   private buildWebWorkerRpcGetter(): RpcStreamGetter {
     return (webWorkerId: string) => {
-      return this.getClientRpcHandler(webWorkerId)
+      return this.getClientRpcHandler(
+        webWorkerId,
+        buildWebWorkerLockName(webWorkerId),
+      )
     }
   }
 
