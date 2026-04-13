@@ -511,7 +511,15 @@ export class WebRuntime {
         waiter.reject(err)
         return Promise.resolve()
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (isAbortError(err)) {
+          return
+        }
+        console.error(
+          `WebRuntime: ${this.webRuntimeId}: client waiter lock failed for ${clientId}:`,
+          err,
+        )
+      })
   }
 
   // removeClientWaiter removes a pending client waiter.
@@ -690,4 +698,13 @@ export class WebRuntime {
       webDocuments: [],
     })
   }
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name?: string }).name === 'AbortError'
+  )
 }

@@ -273,7 +273,12 @@ export class WebDocumentTracker {
           `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} disconnected before ack`,
         )
       })
-      .catch(() => undefined)
+      .catch((err) => {
+        if (isAbortError(err)) {
+          return undefined
+        }
+        throw err
+      })
   }
 
   // rejectWaiters rejects all pending WebDocument waiters.
@@ -283,4 +288,13 @@ export class WebDocumentTracker {
       waiter.reject(err)
     }
   }
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name?: string }).name === 'AbortError'
+  )
 }
