@@ -3,6 +3,7 @@
 package bldr_manifest_builder_controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"io"
@@ -202,7 +203,7 @@ func validateStartupFiles(sourcePath string, inputManifest *bldr_manifest_builde
 			fileIdentity.GetModTimeUnixNano() == currentIdentity.GetModTimeUnixNano() {
 			continue
 		}
-		if string(fileIdentity.GetSha256()) == string(currentIdentity.GetSha256()) {
+		if bytes.Equal(fileIdentity.GetSha256(), currentIdentity.GetSha256()) {
 			continue
 		}
 		return errors.Errorf("startup file %q changed", inputFile.GetPath())
@@ -232,7 +233,7 @@ func validateStartupInputs(
 				}
 				controllerConfigDigest = digest
 			}
-			if string(controllerConfigDigest) != string(input.GetBytesValue()) {
+			if !bytes.Equal(controllerConfigDigest, input.GetBytesValue()) {
 				return errors.New("builder controller config changed")
 			}
 		default:

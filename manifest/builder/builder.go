@@ -118,7 +118,7 @@ func (m *InputManifest) AddStartupInput(input *InputManifest_StartupInput) {
 		if existing.GetStringValue() != input.GetStringValue() {
 			continue
 		}
-		if string(existing.GetBytesValue()) != string(input.GetBytesValue()) {
+		if !bytes.Equal(existing.GetBytesValue(), input.GetBytesValue()) {
 			continue
 		}
 		return

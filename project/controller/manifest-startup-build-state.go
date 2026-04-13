@@ -139,10 +139,7 @@ func RemoveAllManifestStartupBuildStates(workingPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.RemoveAll(rootPath); err != nil {
-		return err
-	}
-	return nil
+	return os.RemoveAll(rootPath)
 }
 
 // getManifestStartupBuildStatePath builds the startup build-state path for a

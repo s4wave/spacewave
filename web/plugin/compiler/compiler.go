@@ -536,11 +536,16 @@ func addWebPluginStartupInputs(
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_FROM_SOURCE", os.Getenv("BLDR_FROM_SOURCE")),
 	)
 
-	appendWebPluginInputFiles(inputManifest, builderConf.GetSourcePath(), false, "package.json")
-	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/dist/deps")
-	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/electron")
-	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/entrypoint")
-	appendWebPluginInputDir(inputManifest, builderConf.GetSourcePath(), false, ".bldr/src/web/runtime/wasm")
+	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
+	for _, f := range inputManifest.GetFiles() {
+		seenPaths[f.GetPath()] = struct{}{}
+	}
+	sourcePath := builderConf.GetSourcePath()
+	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "package.json")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/dist/deps")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/electron")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/entrypoint")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/runtime/wasm")
 	inputManifest.SortStartupInputs()
 	inputManifest.SortFiles()
 	return nil
@@ -549,6 +554,7 @@ func addWebPluginStartupInputs(
 // appendWebPluginInputDir appends all files from a source-relative directory.
 func appendWebPluginInputDir(
 	inputManifest *bldr_manifest_builder.InputManifest,
+	seenPaths map[string]struct{},
 	sourcePath string,
 	startupOnly bool,
 	relDir string,
@@ -562,40 +568,42 @@ func appendWebPluginInputDir(
 		if relErr != nil {
 			return nil
 		}
-		appendWebPluginInputFiles(inputManifest, sourcePath, startupOnly, relPath)
-		return nil
-	})
-}
-
-// appendWebPluginInputFiles appends source-relative file inputs if they exist.
-func appendWebPluginInputFiles(
-	inputManifest *bldr_manifest_builder.InputManifest,
-	sourcePath string,
-	startupOnly bool,
-	relPaths ...string,
-) {
-	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
-	for _, inputFile := range inputManifest.GetFiles() {
-		seenPaths[inputFile.GetPath()] = struct{}{}
-	}
-	for _, relPath := range relPaths {
-		if relPath == "" {
-			continue
-		}
 		if _, ok := seenPaths[relPath]; ok {
-			continue
-		}
-		absPath := filepath.Join(sourcePath, relPath)
-		fileInfo, err := os.Stat(absPath)
-		if err != nil || fileInfo.IsDir() {
-			continue
+			return nil
 		}
 		seenPaths[relPath] = struct{}{}
 		inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
 			Path:        relPath,
 			StartupOnly: startupOnly,
 		})
+		return nil
+	})
+}
+
+// appendWebPluginInputFile appends a source-relative file input if it exists.
+func appendWebPluginInputFile(
+	inputManifest *bldr_manifest_builder.InputManifest,
+	seenPaths map[string]struct{},
+	sourcePath string,
+	startupOnly bool,
+	relPath string,
+) {
+	if relPath == "" {
+		return
 	}
+	if _, ok := seenPaths[relPath]; ok {
+		return
+	}
+	absPath := filepath.Join(sourcePath, relPath)
+	fileInfo, err := os.Stat(absPath)
+	if err != nil || fileInfo.IsDir() {
+		return
+	}
+	seenPaths[relPath] = struct{}{}
+	inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
+		Path:        relPath,
+		StartupOnly: startupOnly,
+	})
 }
 
 // _ is a type assertion

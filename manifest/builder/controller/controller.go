@@ -321,6 +321,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			// wait for sub-manifests/manifest-deps to change or ctx to cancel
 			select {
 			case <-buildCtx.Done():
+				buildCtxCancel()
 				continue
 			case <-ctx.Done():
 				buildCtxCancel()
@@ -416,6 +417,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Infof("re-building after %d filesystem events with %d changed files", len(happened), len(changedFiles))
+		buildCtxCancel()
 	}
 }
 
