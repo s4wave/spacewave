@@ -260,6 +260,13 @@ class WebRuntimeClientInstance {
   }
 }
 
+// WebRuntimeClientWaiter waits for a client registration event.
+interface WebRuntimeClientWaiter {
+  resolve: (client: WebRuntimeClientInstance) => void
+  reject: (err: Error) => void
+  abortController?: AbortController
+}
+
 // WebRuntimeImpl implements the WebRuntime RPC API.
 class WebRuntimeImpl implements WebRuntimeService {
   constructor(private readonly host: WebRuntime) {}
@@ -314,7 +321,10 @@ class WebRuntimeImpl implements WebRuntimeService {
   // buildWebDocumentRpcGetter builds the RpcGetter for a WebDocument.
   private buildWebDocumentRpcGetter(): RpcStreamGetter {
     return (webDocumentId: string) => {
-      return this.getClientRpcHandler(webDocumentId)
+      return this.getClientRpcHandler(
+        webDocumentId,
+        `bldr-doc-${webDocumentId}`,
+      )
     }
   }
 
@@ -329,8 +339,9 @@ class WebRuntimeImpl implements WebRuntimeService {
   // Waits for the client to register if not yet connected.
   private async getClientRpcHandler(
     clientId: string,
+    webLockName?: string,
   ): Promise<RpcStreamHandler | null> {
-    const client = await this.host.waitForClient(clientId)
+    const client = await this.host.waitForClient(clientId, webLockName)
 
     const stream = await client.openStream()
     return (rpcDataStream: PacketStream) => {
@@ -371,7 +382,7 @@ export class WebRuntime {
   private clients: Record<string, WebRuntimeClientInstance> = {}
   // clientWaiters contains promises waiting for a client to register.
   // keyed by client ID
-  private clientWaiters: Record<string, Array<() => void>> = {}
+  private clientWaiters: Record<string, WebRuntimeClientWaiter[]> = {}
   // webDocuments contains the list of attached WebDocuments.
   // keyed by web document ID
   private webDocuments: Record<string, WebDocumentStatus> = {}
@@ -456,19 +467,90 @@ export class WebRuntime {
   // Returns immediately if the client is already registered.
   public waitForClient(
     clientId: string,
+    webLockName?: string,
   ): Promise<WebRuntimeClientInstance> {
     const existing = this.clients[clientId]
     if (existing) {
       return Promise.resolve(existing)
     }
-    return new Promise<WebRuntimeClientInstance>((resolve) => {
-      if (!this.clientWaiters[clientId]) {
-        this.clientWaiters[clientId] = []
-      }
-      this.clientWaiters[clientId].push(() => {
-        resolve(this.clients[clientId])
-      })
+
+    return new Promise<WebRuntimeClientInstance>((resolve, reject) => {
+      const waiter: WebRuntimeClientWaiter = { resolve, reject }
+      const waiters = this.clientWaiters[clientId] ?? []
+      waiters.push(waiter)
+      this.clientWaiters[clientId] = waiters
+      this.watchClientWaiterLock(clientId, webLockName, waiter)
     })
+  }
+
+  // watchClientWaiterLock rejects the waiter when the matching client lock is released.
+  private watchClientWaiterLock(
+    clientId: string,
+    webLockName: string | undefined,
+    waiter: WebRuntimeClientWaiter,
+  ) {
+    if (
+      !webLockName ||
+      typeof navigator === 'undefined' ||
+      !('locks' in navigator)
+    ) {
+      return
+    }
+
+    const abortController = new AbortController()
+    waiter.abortController = abortController
+    navigator.locks
+      .request(webLockName, { signal: abortController.signal }, () => {
+        if (!this.removeClientWaiter(clientId, waiter)) {
+          return Promise.resolve()
+        }
+
+        const err = new Error(
+          `WebRuntime: ${this.webRuntimeId}: client ${clientId} disconnected before registering`,
+        )
+        waiter.reject(err)
+        return Promise.resolve()
+      })
+      .catch(() => {})
+  }
+
+  // removeClientWaiter removes a pending client waiter.
+  private removeClientWaiter(
+    clientId: string,
+    waiter: WebRuntimeClientWaiter,
+  ): boolean {
+    const waiters = this.clientWaiters[clientId]
+    if (!waiters) {
+      return false
+    }
+
+    const idx = waiters.indexOf(waiter)
+    if (idx === -1) {
+      return false
+    }
+
+    waiters.splice(idx, 1)
+    waiter.abortController?.abort()
+    waiter.abortController = undefined
+    if (!waiters.length) {
+      delete this.clientWaiters[clientId]
+    }
+    return true
+  }
+
+  // rejectClientWaiters rejects all pending waiters for a client.
+  private rejectClientWaiters(clientId: string, err: Error) {
+    const waiters = this.clientWaiters[clientId]
+    if (!waiters) {
+      return
+    }
+
+    delete this.clientWaiters[clientId]
+    for (const waiter of waiters) {
+      waiter.abortController?.abort()
+      waiter.abortController = undefined
+      waiter.reject(err)
+    }
   }
 
   // handleClient handles an incoming client connection MessagePort.
@@ -501,8 +583,11 @@ export class WebRuntime {
     const waiters = this.clientWaiters[clientUuid]
     if (waiters) {
       delete this.clientWaiters[clientUuid]
-      for (const resolve of waiters) {
-        resolve()
+      const client = this.clients[clientUuid]
+      for (const waiter of waiters) {
+        waiter.abortController?.abort()
+        waiter.abortController = undefined
+        waiter.resolve(client)
       }
     }
 
@@ -587,6 +672,12 @@ export class WebRuntime {
     this.closed = true
 
     this.webDocuments = {}
+    for (const clientId of Object.keys(this.clientWaiters)) {
+      this.rejectClientWaiters(
+        clientId,
+        new Error(`WebRuntime: ${this.webRuntimeId}: closed`),
+      )
+    }
     for (const clientID in this.clients) {
       const client = this.clients[clientID]
       client.close()

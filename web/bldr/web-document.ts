@@ -98,6 +98,8 @@ class WebDocumentWebWorker {
   public readonly port: MessagePort
   // workerType is the type of worker
   public readonly workerType: WebWorkerType
+  // ready indicates the worker finished startup and runtime registration.
+  public ready = false
   private closed = false
 
   public get isShared() {
@@ -212,7 +214,9 @@ class WebDocumentWebWorker {
     }
     if (this.sharedWorker) {
       this.sharedWorker.onerror = (ev: Event) => {
-        console.error(`shared worker ${id}: error: ${(ev as ErrorEvent).message}`)
+        console.error(
+          `shared worker ${id}: error: ${(ev as ErrorEvent).message}`,
+        )
       }
     }
 
@@ -566,7 +570,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.workerCommsDetect.then((result) => {
       const desc = configDescription(result.config)
       console.log(
-        '%cbldr%c ' + this.webDocumentUuid + ' config ' + result.config + ' ' + desc,
+        '%cbldr%c ' +
+          this.webDocumentUuid +
+          ' config ' +
+          result.config +
+          ' ' +
+          desc,
         'color:#ff3838;font-weight:bold',
         'color:inherit',
       )
@@ -882,6 +891,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         id,
         deleted: false,
         shared: this.webWorkers[id].isShared,
+        ready: this.webWorkers[id].ready,
       }),
     )
 
@@ -962,7 +972,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           busSab = this.busSab
           busPluginId = this.nextBusPluginId++
         } catch (err) {
-          console.warn('WebDocument: SAB bus allocation failed, using MessagePort only', err)
+          console.warn(
+            'WebDocument: SAB bus allocation failed, using MessagePort only',
+            err,
+          )
         }
       }
     }
@@ -983,7 +996,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.webWorkers[request.id] = worker
 
     const createdShared = worker.isShared
-    this.notifyWebWorkerUpdated(request.id, false, createdShared)
+    this.notifyWebWorkerUpdated(request.id, false, createdShared, worker.ready)
     return { created: true, shared: createdShared }
   }
 
@@ -999,7 +1012,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (old) {
       delete this.webWorkers[request.id]
       await old.close()
-      this.notifyWebWorkerUpdated(request.id, true, old.isShared)
+      this.notifyWebWorkerUpdated(request.id, true, old.isShared, old.ready)
     }
     return { removed: !!old }
   }
@@ -1174,6 +1187,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     webWorkerId: string,
     deleted: boolean,
     shared: boolean,
+    ready: boolean,
   ) {
     if (this.closed) {
       return
@@ -1188,6 +1202,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           id: webWorkerId,
           deleted,
           shared,
+          ready,
         },
       ],
     }
@@ -1321,7 +1336,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // Web worker was closed / removed.
       worker.port.close()
       delete this.webWorkers[workerID]
-      this.notifyWebWorkerUpdated(workerID, true, worker.isShared)
+      this.notifyWebWorkerUpdated(workerID, true, worker.isShared, worker.ready)
+      return
+    }
+
+    if (data.ready && !worker.ready) {
+      worker.ready = true
+      this.notifyWebWorkerUpdated(workerID, false, worker.isShared, true)
       return
     }
 

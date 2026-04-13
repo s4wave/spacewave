@@ -58,6 +58,8 @@ export interface ClientToWebDocument {
   }
   // close indicates the client is closed.
   close?: true
+  // ready indicates the worker finished startup and registered its runtime client.
+  ready?: true
 }
 
 // ConnectWebRuntimeAck is the acknowledgment of connectWebRuntime.

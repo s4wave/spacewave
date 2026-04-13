@@ -20,6 +20,20 @@ export type WasmSource =
   | WebAssembly.Module
   | (() => Promise<WebAssembly.Module>)
 
+interface WorkerBrowserGlobals {
+  window?: typeof globalThis
+}
+
+// patchWorkerBrowserGlobals makes browser-only global lookups available inside
+// worker-hosted Go WASM modules. Some JS/WASM libraries still reach through
+// window even when the equivalent constructor already exists on globalThis.
+function patchWorkerBrowserGlobals() {
+  const globals = globalThis as typeof globalThis & WorkerBrowserGlobals
+  if (typeof globals.window === 'undefined') {
+    globals.window = globalThis
+  }
+}
+
 // loadWebAssemblyModule loads the WebAssembly.Module from the WasmSource.
 //
 // When using fetch() (if source is a string) if the filename ends in .gz the gzip decompressor is used.
@@ -125,6 +139,7 @@ export class GoWasmProcess {
     abortSignal: AbortSignal,
   ) {
     const wasmModule = await loadWebAssemblyModule(this.wasmSource)
+    patchWorkerBrowserGlobals()
 
     const go = new Go()
     if (this.opts?.argv) {

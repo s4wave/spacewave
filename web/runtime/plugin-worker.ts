@@ -2,7 +2,7 @@ import { HandleStreamFunc } from 'starpc'
 
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
-import { WebDocumentToWorker } from './runtime.js'
+import { ClientToWebDocument, WebDocumentToWorker } from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
 import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 
@@ -10,7 +10,7 @@ export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,
 ): scope is SharedWorkerGlobalScope {
   return (
-    typeof SharedWorkerGlobalScope !== 'undefined' && // eslint-disable-line
+    typeof SharedWorkerGlobalScope !== 'undefined' &&
     scope instanceof SharedWorkerGlobalScope
   )
 }
@@ -53,6 +53,8 @@ export class PluginWorker {
 
   // pluginStarted is the private field for started.
   private pluginStarted?: true
+  // startPluginPromise tracks the in-flight startup sequence.
+  private startPluginPromise?: Promise<void>
   // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
   public onSnapshotNow?: SnapshotNowCallback
 
@@ -60,7 +62,7 @@ export class PluginWorker {
     public readonly global:
       | SharedWorkerGlobalScope
       | DedicatedWorkerGlobalScope,
-    private readonly startPlugin: (opts: PluginStartOpts) => void,
+    private readonly startPlugin: (opts: PluginStartOpts) => Promise<void>,
     handleIncomingStream: HandleStreamFunc | null,
   ) {
     // webDocumentTracker tracks the set of connected remote WebDocument.
@@ -108,21 +110,61 @@ export class PluginWorker {
   }
 
   // handleStartPlugin handles the message to start the plugin.
-  private handleStartPlugin(
+  private async handleStartPlugin(
     startInfoBin: Uint8Array,
     busSab?: SharedArrayBuffer,
     busPluginId?: number,
     workerCommsDetect?: WorkerCommsDetectResult,
   ) {
-    if (this.pluginStarted) return
-    this.pluginStarted = true
+    if (this.startPluginPromise) {
+      await this.startPluginPromise
+      this.notifyReady()
+      return
+    }
 
+    this.startPluginPromise = this.startPluginImpl(
+      startInfoBin,
+      busSab,
+      busPluginId,
+      workerCommsDetect,
+    ).catch((err) => {
+      this.startPluginPromise = undefined
+      throw err
+    })
+    await this.startPluginPromise
+    this.notifyReady()
+  }
+
+  // startPluginImpl runs the actual startup sequence.
+  private async startPluginImpl(
+    startInfoBin: Uint8Array,
+    busSab?: SharedArrayBuffer,
+    busPluginId?: number,
+    workerCommsDetect?: WorkerCommsDetectResult,
+  ) {
     // startInfo is b64 encoded json
     const startInfoJsonB64 = new TextDecoder().decode(startInfoBin)
     const startInfoJson = atob(startInfoJsonB64)
     const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
 
-    this.startPlugin({ startInfo, busSab, busPluginId, workerCommsDetect })
+    await this.webDocumentTracker.waitConn()
+
+    await this.startPlugin({
+      startInfo,
+      busSab,
+      busPluginId,
+      workerCommsDetect,
+    })
+    this.pluginStarted = true
+  }
+
+  // notifyReady notifies all connected web documents that startup completed.
+  private notifyReady() {
+    const msg: ClientToWebDocument = {
+      from: this.workerId,
+      ready: true,
+    }
+    this.webDocumentTracker.postMessage(msg)
   }
 
   private handleWorkerMessage(msgEvent: MessageEvent<WebDocumentToWorker>) {
@@ -137,12 +179,14 @@ export class PluginWorker {
     }
 
     if (data.initData) {
-      this.handleStartPlugin(data.initData, data.busSab, data.busPluginId, data.workerCommsDetect)
-
-      // trigger connecting to web runtime
-      this.webDocumentTracker.waitConn().catch((err) => {
+      this.handleStartPlugin(
+        data.initData,
+        data.busSab,
+        data.busPluginId,
+        data.workerCommsDetect,
+      ).catch((err) => {
         console.warn(
-          `PluginWorker: ${this.workerId}: unable to contact WebRuntime, exiting!`,
+          `PluginWorker: ${this.workerId}: startup failed, exiting!`,
           err,
         )
         this.webDocumentTracker.close()

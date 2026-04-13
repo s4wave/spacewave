@@ -99,12 +99,28 @@ func (s *MessagePort) ReadMessage(ctx context.Context) ([]byte, error) {
 func (s *MessagePort) WriteMessage(p []byte) {
 	a := s.uint8Array.New(len(p))
 	js.CopyBytesToJS(a, p)
+	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
+		panic("message port postMessage unavailable")
+	}
+	defer func() {
+		if e := recover(); e != nil {
+			panic("message port postMessage invoke failed")
+		}
+	}()
 	s.chPost.Invoke(a)
 }
 
 // Close closes the channels.
 func (s *MessagePort) Close() error {
 	s.closed = true
+	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
+		panic("message port postMessage unavailable during close")
+	}
+	defer func() {
+		if e := recover(); e != nil {
+			panic("message port close invoke failed")
+		}
+	}()
 	s.chPost.Invoke(js.Null())
 	s.chObj.Call("close")
 	return nil

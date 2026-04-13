@@ -69,6 +69,12 @@ interface ViteManifestEntry {
 
 type ViteManifest = Record<string, ViteManifestEntry>
 
+type ViteOutputChunkWithMetadata = Rollup.OutputChunk & {
+  viteMetadata?: {
+    importedCss?: Set<string>
+  }
+}
+
 function collectReferencedFiles(
   entryKey: string,
   manifest: ViteManifest,
@@ -94,6 +100,51 @@ function collectReferencedFiles(
   )
 
   return { cssFiles, assetFiles }
+}
+
+async function readManifest(outDir: string): Promise<ViteManifest | null> {
+  const manifestPaths = [
+    path.join(outDir, '.vite/manifest.json'),
+    path.join(outDir, 'manifest.json'),
+  ]
+  for (const manifestPath of manifestPaths) {
+    if (!existsSync(manifestPath)) {
+      continue
+    }
+    return JSON.parse(await fs.readFile(manifestPath, 'utf-8'))
+  }
+  return null
+}
+
+function synthesizeManifest(
+  outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[],
+  rootDir: string,
+): ViteManifest {
+  const manifest: ViteManifest = {}
+  for (const output of outputChunks) {
+    if (output.type !== 'chunk' || !output.isEntry) {
+      continue
+    }
+    const chunk = output as ViteOutputChunkWithMetadata
+    const entrypoint =
+      chunk.facadeModuleId ?
+        normalizeModuleId(chunk.facadeModuleId, rootDir)
+      : chunk.name
+    if (!entrypoint) {
+      continue
+    }
+    const css = [
+      ...(chunk.viteMetadata?.importedCss ?? []),
+      ...chunk.referencedFiles.filter((file) => file.endsWith('.css')),
+    ]
+    manifest[entrypoint] = {
+      file: chunk.fileName,
+      css: Array.from(new Set(css)),
+      isEntry: true,
+      src: entrypoint,
+    }
+  }
+  return manifest
 }
 
 /**
@@ -171,10 +222,8 @@ export async function analyzeManifest(
   outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[],
   rootDir: string,
 ) {
-  const manifestPath = path.join(outDir, '.vite/manifest.json')
-  const manifest: ViteManifest = JSON.parse(
-    await fs.readFile(manifestPath, 'utf-8'),
-  )
+  const manifest =
+    (await readManifest(outDir)) ?? synthesizeManifest(outputChunks, rootDir)
 
   // 1. Map each JS chunk to its direct source modules.
   const jsChunkToModules = new Map<string, Set<string>>()

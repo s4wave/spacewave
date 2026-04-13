@@ -59,10 +59,10 @@ func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, forceDedicated
 	}
 
 	return &WebHost{
-		b:                   b,
-		le:                  le,
-		pluginPlatformID:    platform.GetPlatformID(),
-		webRuntimeID:        webRuntimeID,
+		b:                     b,
+		le:                    le,
+		pluginPlatformID:      platform.GetPlatformID(),
+		webRuntimeID:          webRuntimeID,
 		forceDedicatedWorkers: forceDedicatedWorkers,
 	}, nil
 }
@@ -199,9 +199,6 @@ func (h *WebHost) ExecutePlugin(
 
 	// Initialize the rpc client for calling the plugin.
 	pluginRpcClient := srpc.NewClient(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
-	if err := rpcInit(pluginRpcClient); err != nil {
-		return err
-	}
 
 	// There are two operating modes for the below code:
 	// 1. SharedWorker is supported:
@@ -215,7 +212,35 @@ func (h *WebHost) ExecutePlugin(
 	// If any web documents cannot create shared workers, assume all cannot.
 
 	var singletonWorkerDoc string
+	var rpcReadyPublished bool
 	var cmtx csync.Mutex
+
+	waitForWorkerReady := func(ctx context.Context, doc web_document.WebDocument) error {
+		docStatusCtr := doc.GetWebDocumentStatusCtr()
+		var docStatus *web_document.WebDocumentStatus
+		for {
+			nextDocStatus, err := docStatusCtr.WaitValueChange(ctx, docStatus, nil)
+			if err != nil {
+				return err
+			}
+			docStatus = nextDocStatus
+			if docStatus.GetClosed() {
+				return errors.New("web document closed before worker became ready")
+			}
+
+			for _, worker := range docStatus.GetWebWorkers() {
+				if worker.GetId() != pluginWebWorkerID {
+					continue
+				}
+				if worker.GetDeleted() {
+					return errors.New("web worker was removed before becoming ready")
+				}
+				if worker.GetReady() {
+					return nil
+				}
+			}
+		}
+	}
 
 	// Create the web worker on each document.
 	var webDocumentsKeyed *keyed.Keyed[string, struct{}]
@@ -230,7 +255,12 @@ func (h *WebHost) ExecutePlugin(
 		if err != nil {
 			return err
 		}
-		defer unlock()
+		locked := true
+		defer func() {
+			if locked {
+				unlock()
+			}
+		}()
 
 		webDocumentID := doc.GetWebDocumentUuid()
 		if singletonWorkerDoc == webDocumentID {
@@ -282,6 +312,27 @@ func (h *WebHost) ExecutePlugin(
 		// If we cannot create shared workers, create only one Worker to avoid duplicates.
 		if !createdShared {
 			singletonWorkerDoc = webDocumentID
+		}
+
+		unlock()
+		locked = false
+
+		readyCtx, readyCtxCancel := context.WithTimeout(ctx, time.Second*10)
+		defer readyCtxCancel()
+		if err := waitForWorkerReady(readyCtx, doc); err != nil {
+			return err
+		}
+
+		unlock, err = cmtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		locked = true
+		if !rpcReadyPublished {
+			if err := rpcInit(pluginRpcClient); err != nil {
+				return err
+			}
+			rpcReadyPublished = true
 		}
 
 		return nil

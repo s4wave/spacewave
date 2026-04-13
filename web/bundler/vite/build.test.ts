@@ -264,6 +264,51 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(entryA!.outputs.css).toContain('assets/A-hash123.css')
       expect(entryA!.outputs.css).toContain('assets/B-hash456.css')
     })
+
+    it('should synthesize entry analysis when the Vite manifest is missing', async () => {
+      await fs.rm(path.join(distDir, '.vite'), { recursive: true, force: true })
+
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
+        {
+          type: 'chunk',
+          fileName: 'assets/A-hash123.mjs',
+          name: 'A',
+          facadeModuleId: path.join(testDir, 'A.tsx'),
+          moduleIds: [
+            path.join(testDir, 'A.tsx'),
+            path.join(testDir, 'B.tsx'),
+            path.join(testDir, 'C.tsx'),
+          ],
+          code: '',
+          dynamicImports: [],
+          exports: [],
+          implicitlyLoadedBefore: [],
+          importedBindings: {},
+          imports: [],
+          isDynamicEntry: false,
+          isEntry: true,
+          isImplicitEntry: false,
+          map: null,
+          modules: {},
+          referencedFiles: ['assets/A-hash123.css'],
+          sourcemapFileName: null,
+          preliminaryFileName: 'assets/A-hash123.mjs',
+          viteMetadata: {
+            importedCss: new Set(['assets/A-hash123.css']),
+          },
+        } as unknown as Rollup.OutputChunk,
+      ]
+
+      const analysis = await analyzeManifest(distDir, outputChunks, testDir)
+
+      expect(analysis.entrypointOutputs).toHaveLength(1)
+      const entryA = analysis.entrypointOutputs[0]
+      expect(entryA.entrypoint).toBe('A.tsx')
+      expect(entryA.inputs).toContain('A.tsx')
+      expect(entryA.inputs).toContain('B.tsx')
+      expect(entryA.inputs).toContain('C.tsx')
+      expect(entryA.outputs.css).toContain('assets/A-hash123.css')
+    })
   })
 
   describe('buildAndAnalyze integration', () => {

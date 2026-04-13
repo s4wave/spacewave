@@ -8405,7 +8405,8 @@ var WebWorkerStatus = createMessageType({
   fields: [
     { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "deleted", kind: "scalar", T: ScalarType.BOOL },
-    { no: 3, name: "shared", kind: "scalar", T: ScalarType.BOOL }
+    { no: 3, name: "shared", kind: "scalar", T: ScalarType.BOOL },
+    { no: 4, name: "ready", kind: "scalar", T: ScalarType.BOOL }
   ],
   packedByDefault: true
 });

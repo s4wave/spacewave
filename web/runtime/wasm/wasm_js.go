@@ -30,7 +30,18 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		ctx context.Context,
 		msgHandler srpc.PacketDataHandler,
 		closeHandler srpc.CloseHandler,
-	) (srpc.PacketWriter, error) {
+	) (_ srpc.PacketWriter, err error) {
+		defer func() {
+			if e := recover(); e != nil {
+				switch recovered := e.(type) {
+				case error:
+					err = errors.Wrap(recovered, "invoke open stream to web runtime")
+				default:
+					err = errors.Errorf("invoke open stream to web runtime: %v", recovered)
+				}
+			}
+		}()
+
 		// (message: Uint8Array) => void
 		jsOnMessage := js.FuncOf(func(this js.Value, args []js.Value) any {
 			// copy packet from Uint8Array to []byte
@@ -112,11 +123,10 @@ func GlobalWasmPluginIo() (*WasmPluginIo, error) {
 // WasmPluginIo manages opening outgoing rpc streams and accepting incoming streams.
 // Communicates with plugin-wasm.ts.
 type WasmPluginIo struct {
-	// setAcceptStream is the function to set the function to call when accepting streams.
-	// see BLDR_PLUGIN_SET_ACCEPT_STREAM
-	setAcceptStream js.Value
-	// openStream is the open stream func
-	openStream srpc.OpenStreamFunc
+	// openStreamName is the global name for the outgoing stream bridge.
+	openStreamName string
+	// setAcceptStreamName is the global name for the incoming stream bridge.
+	setAcceptStreamName string
 }
 
 // NewWasmPluginIo constructs the wasm plugin i/o.
@@ -131,9 +141,18 @@ func NewWasmPluginIo(openStreamToWebRuntime, setAcceptStream js.Value) (*WasmPlu
 		return nil, errors.Errorf("js: %v is not a function", globalOpenStreamToWebRuntime)
 	}
 	return &WasmPluginIo{
-		setAcceptStream: setAcceptStream,
-		openStream:      NewPushableOpenStream(openStreamToWebRuntime),
+		openStreamName:      globalOpenStreamToWebRuntime,
+		setAcceptStreamName: globalSetAcceptStream,
 	}, nil
+}
+
+// getGlobalFunc resolves a global function by name.
+func getGlobalFunc(name string) (js.Value, error) {
+	fn := js.Global().Get(name)
+	if fn.IsUndefined() || fn.IsNull() || fn.Type() != js.TypeFunction {
+		return js.Undefined(), errors.Errorf("js: %v is not a function", name)
+	}
+	return fn, nil
 }
 
 // OpenStream opens an RPC stream via openStreamToWebRuntime.
@@ -142,12 +161,16 @@ func (p *WasmPluginIo) OpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.PacketWriter, error) {
-	return p.openStream(ctx, msgHandler, closeHandler)
+	openStreamFunc, err := getGlobalFunc(p.openStreamName)
+	if err != nil {
+		return nil, err
+	}
+	return NewPushableOpenStream(openStreamFunc)(ctx, msgHandler, closeHandler)
 }
 
 // BuildClient builds a new srpc.Client with the open stream func.
 func (p *WasmPluginIo) BuildClient() srpc.Client {
-	return srpc.NewClient(p.openStream)
+	return srpc.NewClient(p.OpenStream)
 }
 
 // SetAcceptStreams sets the function to call to accept incoming streams.
@@ -162,5 +185,9 @@ func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoke
 		go stream.ReadPump(ctx, serverRPC.HandlePacketData, serverRPC.HandleStreamClose)
 		return remotePort
 	})
-	p.setAcceptStream.Invoke(acceptStreamFn)
+	setAcceptStream, err := getGlobalFunc(p.setAcceptStreamName)
+	if err != nil {
+		panic(err)
+	}
+	setAcceptStream.Invoke(acceptStreamFn)
 }

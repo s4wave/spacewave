@@ -14,6 +14,14 @@ import {
 import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
 
+const openViaWebDocumentTimeoutMs = 1000
+const waitForNextWebDocumentTimeoutMs = 3000
+
+interface WebDocumentWaiter {
+  resume: () => void
+  reject: (err: Error) => void
+}
+
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
 // connect to the remote WebRuntime via these documents, retrying if the remote
 // document(s) have been closed or are unreachable after a timeout.
@@ -33,7 +41,7 @@ export class WebDocumentTracker {
   // webDocuments is the list of active WebDocument MessagePorts.
   private webDocuments: Record<string, MessagePort> = {}
   // webDocumentWaiters are callbacks waiting for the next WebDocument.
-  private webDocumentWaiters: ((docID: string) => void)[] = []
+  private webDocumentWaiters: WebDocumentWaiter[] = []
   // lastWebDocumentIdx was the last index used from WebDocuments.
   private lastWebDocumentIdx = 0
   // lastWebDocumentId was the last web document id used from WebDocuments.
@@ -44,7 +52,9 @@ export class WebDocumentTracker {
     clientType: WebRuntimeClientType,
     private readonly onWebDocumentsExhausted: () => Promise<void>,
     handleIncomingStream: HandleStreamFunc | null,
-    private readonly onAllWebDocumentsClosed?: (() => Promise<void> | void) | null,
+    private readonly onAllWebDocumentsClosed?:
+      | (() => Promise<void> | void)
+      | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -111,10 +121,10 @@ export class WebDocumentTracker {
       }
     }
 
-    for (const waiter of this.webDocumentWaiters) {
-      waiter(webDocumentId)
+    const waiters = this.webDocumentWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.resume()
     }
-    this.webDocumentWaiters.length = 0
 
     port.start()
   }
@@ -131,6 +141,18 @@ export class WebDocumentTracker {
       delete this.webDocuments[docID]
     }
     delete this.lastWebDocumentId
+    this.rejectWaiters(
+      new Error(
+        `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
+      ),
+    )
+  }
+
+  // postMessage posts a message to all connected web documents.
+  public postMessage(msg: ClientToWebDocument) {
+    for (const docID in this.webDocuments) {
+      this.webDocuments[docID]?.postMessage(msg)
+    }
   }
 
   // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
@@ -160,6 +182,11 @@ export class WebDocumentTracker {
         }
         ackPort.start()
       })
+      const lockAbortController = new AbortController()
+      const disconnectedPromise = this.waitForWebDocumentDisconnect(
+        webDocumentId,
+        lockAbortController.signal,
+      )
 
       try {
         console.log(
@@ -178,9 +205,16 @@ export class WebDocumentTracker {
         webDocumentPort.postMessage(connectMsg, [ackChannel.port2])
 
         // wait for the ack.
-        const result = await Promise.race([ackPromise, timeoutPromise(1000)])
+        const result = await Promise.race([
+          ackPromise,
+          disconnectedPromise,
+          timeoutPromise(openViaWebDocumentTimeoutMs),
+        ])
         if (!result) {
           throw new Error('timed out waiting for ack from WebDocument')
+        }
+        if (result instanceof Error) {
+          throw result
         }
         console.log(
           `WebDocumentTracker: ${this.clientUuid}: opened port with WebRuntime via WebDocument: ${webDocumentId}`,
@@ -196,14 +230,19 @@ export class WebDocumentTracker {
         )
         delete this.webDocuments[webDocumentId]
         continue
+      } finally {
+        lockAbortController.abort()
       }
     }
 
     // construct a promise to catch any new incoming WebDocument client
-    const waitPromise = new Promise<MessagePort>((resolve) => {
+    const waitPromise = new Promise<MessagePort>((resolve, reject) => {
       // try again once a new WebDocument is added.
-      this.webDocumentWaiters.push(() => {
-        resolve(this.openWebRuntimeClient(initMsg))
+      this.webDocumentWaiters.push({
+        resume: () => {
+          resolve(this.openWebRuntimeClient(initMsg))
+        },
+        reject,
       })
     })
 
@@ -211,6 +250,37 @@ export class WebDocumentTracker {
     await this.onWebDocumentsExhausted()
 
     console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
-    return waitPromise
+    return Promise.race([
+      waitPromise,
+      timeoutPromise(waitForNextWebDocumentTimeoutMs).then(() => {
+        throw new Error('timed out waiting for next WebDocument to proxy conn')
+      }),
+    ])
+  }
+
+  // waitForWebDocumentDisconnect resolves when the web document liveness lock becomes available.
+  private waitForWebDocumentDisconnect(
+    webDocumentId: string,
+    signal: AbortSignal,
+  ): Promise<Error | undefined> {
+    if (typeof navigator === 'undefined' || !('locks' in navigator)) {
+      return new Promise(() => {})
+    }
+
+    return navigator.locks
+      .request(`bldr-doc-${webDocumentId}`, { signal }, () => {
+        return new Error(
+          `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} disconnected before ack`,
+        )
+      })
+      .catch(() => undefined)
+  }
+
+  // rejectWaiters rejects all pending WebDocument waiters.
+  private rejectWaiters(err: Error) {
+    const waiters = this.webDocumentWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.reject(err)
+    }
   }
 }
