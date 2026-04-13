@@ -133,6 +133,14 @@ func acquireWebLock(name string, exclusive bool) (func(), error) {
 	var releaseOnce sync.Once
 	return func() {
 		releaseOnce.Do(func() {
+			if resolveFunc.IsUndefined() || resolveFunc.IsNull() || resolveFunc.Type() != js.TypeFunction {
+				panic("opfs store weblock release callback unavailable")
+			}
+			defer func() {
+				if e := recover(); e != nil {
+					panic("opfs store weblock release invoke failed")
+				}
+			}()
 			resolveFunc.Invoke()
 			executorCb.Release()
 			lockCb.Release()

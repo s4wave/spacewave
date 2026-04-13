@@ -37,6 +37,14 @@ func AcquireWebLock(name string, exclusive bool) (func(), error) {
 	var releaseOnce sync.Once
 	return func() {
 		releaseOnce.Do(func() {
+			if resolveFunc.IsUndefined() || resolveFunc.IsNull() || resolveFunc.Type() != js.TypeFunction {
+				panic("weblock release callback unavailable")
+			}
+			defer func() {
+				if e := recover(); e != nil {
+					panic("weblock release invoke failed")
+				}
+			}()
 			resolveFunc.Invoke()
 			executorCb.Release()
 			lockCb.Release()

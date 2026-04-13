@@ -93,6 +93,14 @@ func yieldMicrotask() error {
 	exec := js.FuncOf(func(this js.Value, args []js.Value) any {
 		resolve := args[0]
 		cb = js.FuncOf(func(this js.Value, args []js.Value) any {
+			if resolve.IsUndefined() || resolve.IsNull() || resolve.Type() != js.TypeFunction {
+				panic("queueMicrotask resolve callback unavailable")
+			}
+			defer func() {
+				if e := recover(); e != nil {
+					panic("queueMicrotask resolve invoke failed")
+				}
+			}()
 			resolve.Invoke(js.Undefined())
 			cb.Release()
 			return nil
