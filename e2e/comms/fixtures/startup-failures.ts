@@ -1,6 +1,8 @@
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { WebRuntime } from '../../../web/bldr/web-runtime.js'
 import { WebDocumentTracker } from '../../../web/bldr/web-document-tracker.js'
 import { timeoutPromise } from '../../../web/bldr/timeout.js'
+import { buildWebWorkerLockName } from '../../../web/runtime/runtime.js'
 import { WebRuntimeClientType } from '../../../web/runtime/runtime.pb.js'
 
 declare global {
@@ -10,6 +12,7 @@ declare global {
       detail: string
       slowRegistrationRejected: boolean
       closeDuringStartupRejected: boolean
+      workerPreRegistrationRejected: boolean
       importFailureClosed: boolean
       importFailureReady: boolean
     }
@@ -66,6 +69,31 @@ function waitForPortMessage<T>(
     }
     port.addEventListener('message', handler)
     port.start()
+  })
+}
+
+function waitWorkerMsg(
+  worker: Worker,
+  type: string,
+  timeoutMs: number,
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => {
+      cleanup()
+      reject(new Error(`timeout waiting for ${type}`))
+    }, timeoutMs)
+    const handler = (ev: MessageEvent<Record<string, unknown>>) => {
+      if (ev.data?.type !== type) {
+        return
+      }
+      cleanup()
+      resolve(ev.data)
+    }
+    const cleanup = () => {
+      globalThis.clearTimeout(timer)
+      worker.removeEventListener('message', handler)
+    }
+    worker.addEventListener('message', handler)
   })
 }
 
@@ -249,6 +277,69 @@ async function runImportFailureScenario(): Promise<{
   }
 }
 
+async function runWorkerPreRegistrationScenario(): Promise<StartupResult> {
+  const workerId = 'startup-failures-pre-register-worker'
+  const runtime = new WebRuntime(
+    'startup-failures-runtime',
+    async () => {
+      throw new Error('unexpected runtime host open stream')
+    },
+    null,
+    null,
+  )
+  const worker = new Worker(
+    new URL('./workers/plugin-startup-fixture.js?mode=idle', import.meta.url),
+    {
+      type: 'module',
+      name: workerId,
+    },
+  )
+
+  try {
+    const booted = await waitWorkerMsg(worker, 'booted', 2000)
+    if (booted.type !== 'booted') {
+      return {
+        ok: false,
+        detail: `worker booted with unexpected message ${JSON.stringify(booted)}`,
+      }
+    }
+
+    const start = performance.now()
+    const waitClient = runtime.waitForClient(
+      workerId,
+      buildWebWorkerLockName(workerId),
+    )
+    worker.terminate()
+
+    try {
+      await waitClient
+      return {
+        ok: false,
+        detail: 'worker pre-registration unexpectedly connected',
+      }
+    } catch (err) {
+      const elapsed = performance.now() - start
+      if (elapsed > 1500) {
+        return {
+          ok: false,
+          detail: `worker pre-registration rejection was not bounded (${Math.round(elapsed)}ms)`,
+        }
+      }
+      return {
+        ok: true,
+        detail: `worker pre-registration rejected in ${Math.round(elapsed)}ms: ${String(err)}`,
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      detail: `worker pre-registration setup failed: ${String(err)}`,
+    }
+  } finally {
+    worker.terminate()
+  }
+}
+
 async function run() {
   const log = document.getElementById('log')
   const details: string[] = []
@@ -259,15 +350,23 @@ async function run() {
     const close = await runCloseDuringStartupScenario()
     details.push(close.detail)
 
+    const workerPreRegistration = await runWorkerPreRegistrationScenario()
+    details.push(workerPreRegistration.detail)
+
     const importFailure = await runImportFailureScenario()
     details.push(importFailure.detail)
 
-    const pass = slow.ok && close.ok && importFailure.ok
+    const pass =
+      slow.ok &&
+      close.ok &&
+      workerPreRegistration.ok &&
+      importFailure.ok
     window.__results = {
       pass,
       detail: details.join('; '),
       slowRegistrationRejected: slow.ok,
       closeDuringStartupRejected: close.ok,
+      workerPreRegistrationRejected: workerPreRegistration.ok,
       importFailureClosed: importFailure.ok,
       importFailureReady: importFailure.ready,
     }
@@ -277,6 +376,7 @@ async function run() {
       detail: `startup failures fixture crashed: ${String(err)}`,
       slowRegistrationRejected: false,
       closeDuringStartupRejected: false,
+      workerPreRegistrationRejected: false,
       importFailureClosed: false,
       importFailureReady: false,
     }

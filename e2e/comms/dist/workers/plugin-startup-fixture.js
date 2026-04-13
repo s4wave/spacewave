@@ -1,4 +1,4 @@
-import { i as PluginStartInfo, r as WebRuntimeClientType, t as WebDocumentTracker } from "../chunks/web-document-tracker-KAfasl-R.js";
+import { a as WebRuntimeClientType, i as buildWebWorkerLockName, o as PluginStartInfo, t as WebDocumentTracker } from "../chunks/web-document-tracker-BxuL8ox8.js";
 //#region web/runtime/plugin-worker.ts
 function checkSharedWorker(scope) {
 	return typeof SharedWorkerGlobalScope !== "undefined" && scope instanceof SharedWorkerGlobalScope;
@@ -19,11 +19,13 @@ var PluginWorker = class {
 	}
 	pluginStarted;
 	startPluginPromise;
+	lockAbortController;
 	onSnapshotNow;
 	constructor(global, startPlugin, handleIncomingStream) {
 		this.global = global;
 		this.startPlugin = startPlugin;
 		this.webDocumentTracker = new WebDocumentTracker(this.workerId, WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER, this.onWebDocumentsExhausted.bind(this), handleIncomingStream);
+		this.armWorkerLock();
 		if (checkSharedWorker(global)) global.addEventListener("connect", (ev) => {
 			const ports = ev.ports;
 			if (!ports || !ports.length) return;
@@ -36,6 +38,21 @@ var PluginWorker = class {
 	}
 	async onWebDocumentsExhausted() {
 		console.log(`PluginWorker: ${this.workerId}: no WebDocument available, exiting!`);
+		this.shutdown();
+	}
+	armWorkerLock() {
+		if (typeof navigator === "undefined" || !("locks" in navigator) || this.lockAbortController) return;
+		this.lockAbortController = new AbortController();
+		navigator.locks.request(buildWebWorkerLockName(this.workerId), { signal: this.lockAbortController.signal }, () => {
+			return new Promise(() => {});
+		}).catch((err) => {
+			if (isAbortError(err)) return;
+			console.warn(`PluginWorker: ${this.workerId}: worker liveness lock failed`, err);
+		});
+	}
+	shutdown() {
+		this.lockAbortController?.abort();
+		this.lockAbortController = void 0;
 		this.webDocumentTracker.close();
 		this.global.close();
 	}
@@ -82,11 +99,13 @@ var PluginWorker = class {
 		}
 		if (data.initData) this.handleStartPlugin(data.initData, data.busSab, data.busPluginId, data.workerCommsDetect).catch((err) => {
 			console.warn(`PluginWorker: ${this.workerId}: startup failed, exiting!`, err);
-			this.webDocumentTracker.close();
-			this.global.close();
+			this.shutdown();
 		});
 	}
 };
+function isAbortError(err) {
+	return typeof err === "object" && err !== null && "name" in err && err.name === "AbortError";
+}
 //#endregion
 //#region e2e/comms/fixtures/workers/plugin-startup-fixture.ts
 function readMode() {
@@ -94,12 +113,14 @@ function readMode() {
 }
 new PluginWorker(self, async () => {
 	const mode = readMode();
+	if (mode === "idle") return;
 	if (mode === "import-fail") {
 		await import("/workers/does-not-exist.js");
 		return;
 	}
 	throw new Error(`unknown startup fixture mode: ${mode}`);
 }, null);
+self.postMessage({ type: "booted" });
 //#endregion
 
 //# sourceMappingURL=plugin-startup-fixture.js.map

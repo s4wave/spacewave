@@ -292,7 +292,8 @@ func TestDedicatedWorker(t *testing.T) {
 }
 
 // TestStartupFailures verifies bounded rejection for startup failure paths:
-// slow registration, close during startup, and plugin import failure.
+// slow registration, close during startup, worker pre-registration death, and
+// plugin import failure.
 func TestStartupFailures(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
@@ -305,6 +306,7 @@ func TestStartupFailures(t *testing.T) {
 
 			assertBoolResult(t, results, "slowRegistrationRejected", true)
 			assertBoolResult(t, results, "closeDuringStartupRejected", true)
+			assertBoolResult(t, results, "workerPreRegistrationRejected", true)
 			assertBoolResult(t, results, "importFailureClosed", true)
 			assertBoolResult(t, results, "importFailureReady", false)
 

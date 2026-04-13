@@ -1,4 +1,4 @@
-import { c as Client, d as createEnumType, f as ScalarType, i as ChannelStream, l as MethodKind, m as castToError, p as protoInt64, u as createMessageType } from "./dist-C0KRw9Ez.js";
+import { _ as protoInt64, a as openRpcStream, c as createHandler, d as buildDecodeMessageTransform, f as buildEncodeMessageTransform, g as ScalarType, h as createEnumType, i as handleRpcStream, l as Server, m as createMessageType, o as ChannelStream, p as MethodKind, s as createMux, u as Client, v as pipe, y as castToError } from "./dist-CmY9bC3s.js";
 //#region vendor/github.com/aperturerobotics/bifrost/hash/hash.pb.ts
 var HashType_Enum = createEnumType("hash.HashType", [
 	{
@@ -1057,13 +1057,6 @@ var WebRuntimeClientInit = createMessageType({
 	packedByDefault: true
 });
 //#endregion
-//#region web/bldr/timeout.ts
-function timeoutPromise(dur) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, dur);
-	});
-}
-//#endregion
 //#region vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.ts
 var RpcStreamInit = createMessageType({
 	typeName: "rpcstream.RpcStreamInit",
@@ -1112,7 +1105,16 @@ var RpcStreamPacket = createMessageType({
 	],
 	packedByDefault: true
 });
-({
+//#endregion
+//#region web/runtime/runtime_srpc.pb.ts
+/**
+* WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
+*
+* Usually accessed by the WebRuntime.
+*
+* @generated from service web.runtime.WebRuntimeHost
+*/
+var WebRuntimeHostDefinition = {
 	typeName: "web.runtime.WebRuntimeHost",
 	methods: {
 		WebDocumentRpc: {
@@ -1134,8 +1136,60 @@ var RpcStreamPacket = createMessageType({
 			kind: MethodKind.BiDiStreaming
 		}
 	}
-}).typeName;
-({
+};
+var WebRuntimeHostServiceName = WebRuntimeHostDefinition.typeName;
+var WebRuntimeHostClient = class {
+	rpc;
+	service;
+	constructor(rpc, opts) {
+		this.service = opts?.service || WebRuntimeHostServiceName;
+		this.rpc = rpc;
+		this.WebDocumentRpc = this.WebDocumentRpc.bind(this);
+		this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this);
+		this.WebWorkerRpc = this.WebWorkerRpc.bind(this);
+	}
+	/**
+	* WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+	* Exposes the WebDocumentHost service.
+	* Id is the webDocumentId.
+	*
+	* @generated from rpc web.runtime.WebRuntimeHost.WebDocumentRpc
+	*/
+	WebDocumentRpc(request, abortSignal) {
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, WebRuntimeHostDefinition.methods.WebDocumentRpc.name, buildEncodeMessageTransform(RpcStreamPacket)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket)(result);
+	}
+	/**
+	* ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+	* Exposes the ServiceWorkerHost service.
+	* Id is the service worker id.
+	*
+	* @generated from rpc web.runtime.WebRuntimeHost.ServiceWorkerRpc
+	*/
+	ServiceWorkerRpc(request, abortSignal) {
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, WebRuntimeHostDefinition.methods.ServiceWorkerRpc.name, buildEncodeMessageTransform(RpcStreamPacket)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket)(result);
+	}
+	/**
+	* WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+	* Exposes the WebWorkerHost service.
+	* Id is the webWorkerId.
+	*
+	* @generated from rpc web.runtime.WebRuntimeHost.WebWorkerRpc
+	*/
+	WebWorkerRpc(request, abortSignal) {
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, WebRuntimeHostDefinition.methods.WebWorkerRpc.name, buildEncodeMessageTransform(RpcStreamPacket)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket)(result);
+	}
+};
+/**
+* WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+*
+* Usually accessed by the WebRuntimeHost.
+*
+* @generated from service web.runtime.WebRuntime
+*/
+var WebRuntimeDefinition = {
 	typeName: "web.runtime.WebRuntime",
 	methods: {
 		WatchWebRuntimeStatus: {
@@ -1169,13 +1223,503 @@ var RpcStreamPacket = createMessageType({
 			kind: MethodKind.BiDiStreaming
 		}
 	}
-}).typeName;
+};
+WebRuntimeDefinition.typeName;
+//#endregion
+//#region web/runtime/runtime.ts
+function buildWebDocumentLockName(webDocumentId) {
+	return `bldr-doc-${webDocumentId}`;
+}
+function buildWebWorkerLockName(webWorkerId) {
+	return `bldr-worker-${webWorkerId}`;
+}
+function buildWebRuntimeClientLockName(clientType, clientUuid) {
+	if (!clientUuid) return;
+	if (clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT) return buildWebDocumentLockName(clientUuid);
+	if (clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER) return buildWebWorkerLockName(clientUuid);
+}
+//#endregion
+//#region web/bldr/it-state.ts
+var ItState = class {
+	nonce;
+	getSnapshot;
+	listeners = /* @__PURE__ */ new Set();
+	errorListeners = /* @__PURE__ */ new Set();
+	constructor(getSnapshot, opts) {
+		this.opts = opts;
+		this.getSnapshot = getSnapshot || (async () => void 0);
+	}
+	get snapshot() {
+		return this.getSnapshot();
+	}
+	getIterable() {
+		return { [Symbol.asyncIterator]: () => {
+			const queue = [];
+			let resolveNext = null;
+			let rejectNext = null;
+			let done = false;
+			let mostRecentValue = null;
+			const handleValue = (value) => {
+				if (this.opts?.mostRecentOnly) {
+					mostRecentValue = {
+						value,
+						nonce: this.nonce
+					};
+					if (resolveNext) {
+						const resolve = resolveNext;
+						resolveNext = null;
+						resolve({
+							value: mostRecentValue.value,
+							done: false
+						});
+						mostRecentValue = null;
+					}
+				} else if (resolveNext) {
+					const resolve = resolveNext;
+					resolveNext = null;
+					resolve({
+						value,
+						done: false
+					});
+				} else queue.push(value);
+			};
+			const handleError = (error) => {
+				if (rejectNext) {
+					const reject = rejectNext;
+					rejectNext = null;
+					reject(error);
+				}
+				done = true;
+			};
+			this.listeners.add(handleValue);
+			this.errorListeners.add(handleError);
+			const initialize = async () => {
+				try {
+					const snapshot = await this.getSnapshot();
+					if (snapshot !== void 0) handleValue(snapshot);
+				} catch (error) {
+					handleError(error instanceof Error ? error : new Error(String(error)));
+				}
+			};
+			initialize();
+			return {
+				next: async () => {
+					if (done) return {
+						value: void 0,
+						done: true
+					};
+					if (mostRecentValue) {
+						const { value } = mostRecentValue;
+						mostRecentValue = null;
+						return {
+							value,
+							done: false
+						};
+					}
+					if (queue.length > 0) return {
+						value: queue.shift(),
+						done: false
+					};
+					return new Promise((resolve, reject) => {
+						resolveNext = resolve;
+						rejectNext = reject;
+					});
+				},
+				return: async () => {
+					this.listeners.delete(handleValue);
+					this.errorListeners.delete(handleError);
+					done = true;
+					if (resolveNext) {
+						const resolve = resolveNext;
+						resolveNext = null;
+						resolve({
+							value: void 0,
+							done: true
+						});
+					}
+					rejectNext = null;
+					return {
+						value: void 0,
+						done: true
+					};
+				},
+				throw: async () => {
+					this.listeners.delete(handleValue);
+					this.errorListeners.delete(handleError);
+					done = true;
+					resolveNext = null;
+					rejectNext = null;
+					return {
+						value: void 0,
+						done: true
+					};
+				}
+			};
+		} };
+	}
+	pushChangeEvent(changeEvent) {
+		if (this.opts?.mostRecentOnly) {
+			this.nonce = (this.nonce ?? 0) + 1;
+			Array.from(this.listeners).forEach((listener) => listener(changeEvent));
+		} else this.listeners.forEach((listener) => listener(changeEvent));
+	}
+	async pushSnapshot() {
+		try {
+			const snapshot = await this.getSnapshot();
+			if (snapshot) this.pushChangeEvent(snapshot);
+		} catch (error) {
+			this.errorListeners.forEach((listener) => listener(error instanceof Error ? error : new Error(String(error))));
+		}
+	}
+};
+//#endregion
+//#region web/bldr/timeout.ts
+function timeoutPromise(dur) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, dur);
+	});
+}
 //#endregion
 //#region web/bldr/web-runtime.ts
 var WebRuntimeClientChannelStreamOpts = {
 	keepAliveMs: 12420,
 	idleTimeoutMs: 60500
 };
+var WebRuntimeClientInstance = class {
+	waitClosed;
+	_resolveWaitClosed;
+	closed;
+	abortController;
+	get isClosed() {
+		return this.closed ?? false;
+	}
+	constructor(host, port, init) {
+		this.host = host;
+		this.port = port;
+		this.init = init;
+		this.waitClosed = new Promise((resolve) => this._resolveWaitClosed = resolve);
+		port.onmessage = this.onClientMessage.bind(this);
+		port.start();
+		port.postMessage({ connected: true });
+	}
+	armWebLock() {
+		const clientUuid = this.init.clientUuid;
+		if (!clientUuid || this.init.disableWebLocks || this.init.clientType !== WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT || typeof navigator === "undefined" || !("locks" in navigator)) return;
+		if (this.abortController) return;
+		this.abortController = new AbortController();
+		const lockName = buildWebRuntimeClientLockName(this.init.clientType ?? WebRuntimeClientType.WebRuntimeClientType_UNKNOWN, clientUuid);
+		if (!lockName) return;
+		navigator.locks.request(lockName, { signal: this.abortController.signal }, () => {
+			if (!this.closed) {
+				console.log(`WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`);
+				this.close();
+			}
+			return Promise.resolve();
+		}).catch(() => {});
+	}
+	async openStream() {
+		if (this.closed) throw new Error("WebRuntimeClientInstance is closed");
+		const { port1: localPort, port2: remotePort } = new MessageChannel();
+		const stream = new ChannelStream(this.host.webRuntimeId, localPort, WebRuntimeClientChannelStreamOpts);
+		this.postMessage({ openStream: true }, [remotePort]);
+		await Promise.race([
+			stream.waitRemoteAck,
+			this.waitClosed,
+			timeoutPromise(1420)
+		]);
+		if (this.closed) {
+			stream.close();
+			throw new Error("WebRuntimeClientInstance is closed");
+		}
+		if (!stream.isAcked) {
+			stream.close();
+			throw new Error("timed out waiting for ack");
+		}
+		await stream.waitRemoteOpen;
+		return stream;
+	}
+	close() {
+		if (this.closed) return;
+		this.closed = true;
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = void 0;
+		}
+		this._resolveWaitClosed();
+		try {
+			this.port.close();
+		} finally {
+			const clientUuid = this.init.clientUuid ?? "";
+			console.log(`WebRuntime: client connection removed: ${clientUuid}`);
+			this.host.removeConnection(clientUuid);
+		}
+	}
+	postMessage(msg, xfer) {
+		try {
+			if (xfer && xfer.length) this.port.postMessage(msg, xfer);
+			else this.port.postMessage(msg);
+		} catch (err) {
+			console.error(`WebRuntime: client connection error: ${this.init.clientUuid} => ${castToError(err).toString()}`);
+			this.close();
+		}
+	}
+	async onClientMessage(ev) {
+		const msg = ev.data;
+		if (typeof msg !== "object") return;
+		const ports = ev.ports;
+		if (msg.openStream && ports.length) await this.openWebRuntimeClientInstanceStream(ports[0]);
+		if (msg.armWebLock) this.armWebLock();
+		if (msg.close) {
+			console.log(`WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`);
+			this.close();
+		}
+	}
+	async openWebRuntimeClientInstanceStream(port) {
+		const channelStream = new ChannelStream(this.host.webRuntimeId, port, {
+			...WebRuntimeClientChannelStreamOpts,
+			remoteOpen: true
+		});
+		try {
+			let streamPromise;
+			switch (this.init.clientType) {
+				case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
+					streamPromise = this.host.openWebDocumentHostStream(this.init.clientUuid ?? "");
+					break;
+				case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
+					streamPromise = this.host.openServiceWorkerHostStream(this.init.clientUuid ?? "");
+					break;
+				case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
+					streamPromise = this.host.openWebWorkerHostStream(this.init.clientUuid ?? "");
+					break;
+				default: throw new Error("unknown client type: " + this.init.clientType);
+			}
+			pipe(channelStream, await streamPromise, channelStream).catch((err) => channelStream.close(err)).then(() => channelStream.close());
+		} catch (errAny) {
+			const err = castToError(errAny, "open stream failed");
+			channelStream.close(err);
+		}
+	}
+};
+var WebRuntimeImpl = class {
+	constructor(host) {
+		this.host = host;
+	}
+	WatchWebRuntimeStatus() {
+		return this.host.statusStream.getIterable();
+	}
+	async CreateWebDocument(request) {
+		const createCb = this.host.createDocCb;
+		if (!createCb) return { created: false };
+		return createCb(request);
+	}
+	async RemoveWebDocument(request) {
+		const removeCb = this.host.removeDocCb;
+		if (!removeCb) return { removed: false };
+		return removeCb(request);
+	}
+	WebDocumentRpc(request) {
+		return handleRpcStream(request[Symbol.asyncIterator](), this.buildWebDocumentRpcGetter());
+	}
+	WebWorkerRpc(request) {
+		return handleRpcStream(request[Symbol.asyncIterator](), this.buildWebWorkerRpcGetter());
+	}
+	buildWebDocumentRpcGetter() {
+		return (webDocumentId) => {
+			return this.getClientRpcHandler(webDocumentId, buildWebDocumentLockName(webDocumentId));
+		};
+	}
+	buildWebWorkerRpcGetter() {
+		return (webWorkerId) => {
+			return this.getClientRpcHandler(webWorkerId, buildWebWorkerLockName(webWorkerId));
+		};
+	}
+	async getClientRpcHandler(clientId, webLockName) {
+		const stream = await (await this.host.waitForClient(clientId, webLockName)).openStream();
+		return (rpcDataStream) => {
+			return pipe(rpcDataStream, stream, rpcDataStream);
+		};
+	}
+};
+var WebRuntime = class {
+	webRuntimeId;
+	webRuntime;
+	webRuntimeServer;
+	runtimeClient;
+	runtimeHost;
+	statusStream;
+	clients = {};
+	clientWaiters = {};
+	webDocuments = {};
+	closed;
+	get isClosed() {
+		return this.closed ?? false;
+	}
+	constructor(webRuntimeId, openStreamFn, createDocCb, removeDocCb) {
+		this.createDocCb = createDocCb;
+		this.removeDocCb = removeDocCb;
+		this.webRuntimeId = webRuntimeId;
+		this.webRuntime = new WebRuntimeImpl(this);
+		const runtimeWorkerHostMux = createMux();
+		runtimeWorkerHostMux.register(createHandler(WebRuntimeDefinition, this.webRuntime));
+		this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethod);
+		this.statusStream = new ItState(this.buildWebRuntimeStatusSnapshot.bind(this));
+		this.runtimeClient = new Client(openStreamFn);
+		this.runtimeHost = new WebRuntimeHostClient(this.runtimeClient);
+	}
+	getWebRuntimeServer() {
+		return this.webRuntimeServer;
+	}
+	openWebDocumentHostStream(webDocumentUuid) {
+		return openRpcStream(webDocumentUuid, this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost));
+	}
+	openWebWorkerHostStream(webWorkerUuid) {
+		return openRpcStream(webWorkerUuid, this.runtimeHost.WebWorkerRpc.bind(this.runtimeHost));
+	}
+	openServiceWorkerHostStream(webDocumentUuid) {
+		return openRpcStream(webDocumentUuid, this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost));
+	}
+	lookupClient(webRuntimeId) {
+		return this.clients[webRuntimeId] ?? null;
+	}
+	waitForClient(clientId, webLockName) {
+		const existing = this.clients[clientId];
+		if (existing) return Promise.resolve(existing);
+		return new Promise((resolve, reject) => {
+			const waiter = {
+				resolve,
+				reject
+			};
+			const waiters = this.clientWaiters[clientId] ?? [];
+			waiters.push(waiter);
+			this.clientWaiters[clientId] = waiters;
+			this.watchClientWaiterLock(clientId, webLockName, waiter);
+		});
+	}
+	watchClientWaiterLock(clientId, webLockName, waiter) {
+		if (!webLockName || typeof navigator === "undefined" || !("locks" in navigator)) return;
+		const abortController = new AbortController();
+		waiter.abortController = abortController;
+		navigator.locks.request(webLockName, { signal: abortController.signal }, () => {
+			if (!this.removeClientWaiter(clientId, waiter)) return Promise.resolve();
+			const err = /* @__PURE__ */ new Error(`WebRuntime: ${this.webRuntimeId}: client ${clientId} disconnected before registering`);
+			waiter.reject(err);
+			return Promise.resolve();
+		}).catch((err) => {
+			if (isAbortError$1(err)) return;
+			console.error(`WebRuntime: ${this.webRuntimeId}: client waiter lock failed for ${clientId}:`, err);
+		});
+	}
+	removeClientWaiter(clientId, waiter) {
+		const waiters = this.clientWaiters[clientId];
+		if (!waiters) return false;
+		const idx = waiters.indexOf(waiter);
+		if (idx === -1) return false;
+		waiters.splice(idx, 1);
+		waiter.abortController?.abort();
+		waiter.abortController = void 0;
+		if (!waiters.length) delete this.clientWaiters[clientId];
+		return true;
+	}
+	rejectClientWaiters(clientId, err) {
+		const waiters = this.clientWaiters[clientId];
+		if (!waiters) return;
+		delete this.clientWaiters[clientId];
+		for (const waiter of waiters) {
+			waiter.abortController?.abort();
+			waiter.abortController = void 0;
+			waiter.reject(err);
+		}
+	}
+	handleClient(msg, port) {
+		if (this.closed) throw new Error("web runtime is closed");
+		const clientUuid = msg.clientUuid;
+		if (!clientUuid) throw new Error("connect init message: must contain client uuid");
+		const existing = this.lookupClient(clientUuid);
+		if (existing) existing.close();
+		const clientTypeStr = WebRuntimeClientType_Enum.findNumber(msg.clientType ?? 0)?.name ?? "unknown";
+		console.log(`WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`);
+		this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg);
+		const waiters = this.clientWaiters[clientUuid];
+		if (waiters) {
+			delete this.clientWaiters[clientUuid];
+			const client = this.clients[clientUuid];
+			for (const waiter of waiters) {
+				waiter.abortController?.abort();
+				waiter.abortController = void 0;
+				waiter.resolve(client);
+			}
+		}
+		if (msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT) {
+			const status = {
+				id: clientUuid,
+				deleted: false,
+				permanent: false
+			};
+			this.webDocuments[clientUuid] = status;
+			this.statusStream.pushChangeEvent({
+				snapshot: false,
+				closed: false,
+				webDocuments: [status]
+			});
+		}
+	}
+	removeConnection(clientUuid) {
+		const client = this.clients[clientUuid];
+		if (!client) return;
+		delete this.clients[clientUuid];
+		const clientType = client.init.clientType;
+		const clientTypeStr = WebRuntimeClientType_Enum.findNumber(clientType ?? 0)?.name ?? "unknown";
+		console.log(`WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`);
+		if (!this.closed && clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT && this.webDocuments[clientUuid]) {
+			delete this.webDocuments[clientUuid];
+			this.statusStream.pushChangeEvent({
+				snapshot: false,
+				closed: false,
+				webDocuments: [{
+					id: clientUuid,
+					deleted: true,
+					permanent: false
+				}]
+			});
+		}
+	}
+	async buildWebRuntimeStatusSnapshot() {
+		if (this.closed) return {
+			snapshot: true,
+			closed: true,
+			webDocuments: []
+		};
+		const webDocuments = [];
+		for (const webDocumentId of Object.keys(this.webDocuments)) {
+			const webDocument = this.webDocuments[webDocumentId];
+			if (webDocumentId && webDocument) webDocuments.push(webDocument);
+		}
+		webDocuments.sort((a, b) => (a.id ?? "") < (b.id ?? "") ? -1 : 1);
+		return {
+			snapshot: true,
+			closed: false,
+			webDocuments
+		};
+	}
+	close() {
+		if (this.closed) return;
+		this.closed = true;
+		this.webDocuments = {};
+		for (const clientId of Object.keys(this.clientWaiters)) this.rejectClientWaiters(clientId, /* @__PURE__ */ new Error(`WebRuntime: ${this.webRuntimeId}: closed`));
+		for (const clientID in this.clients) {
+			this.clients[clientID].close();
+			delete this.clients[clientID];
+		}
+		this.statusStream.pushChangeEvent({
+			snapshot: true,
+			closed: true,
+			webDocuments: []
+		});
+	}
+};
+function isAbortError$1(err) {
+	return typeof err === "object" && err !== null && "name" in err && err.name === "AbortError";
+}
 //#endregion
 //#region web/bldr/web-runtime-client.ts
 var WebRuntimeClient = class {
@@ -1412,16 +1956,22 @@ var WebDocumentTracker = class {
 	}
 	waitForWebDocumentDisconnect(webDocumentId, signal) {
 		if (typeof navigator === "undefined" || !("locks" in navigator)) return new Promise(() => {});
-		return navigator.locks.request(`bldr-doc-${webDocumentId}`, { signal }, () => {
+		return navigator.locks.request(buildWebDocumentLockName(webDocumentId), { signal }, () => {
 			return /* @__PURE__ */ new Error(`WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} disconnected before ack`);
-		}).catch(() => void 0);
+		}).catch((err) => {
+			if (isAbortError(err)) return;
+			throw err;
+		});
 	}
 	rejectWaiters(err) {
 		const waiters = this.webDocumentWaiters.splice(0);
 		for (const waiter of waiters) waiter.reject(err);
 	}
 };
+function isAbortError(err) {
+	return typeof err === "object" && err !== null && "name" in err && err.name === "AbortError";
+}
 //#endregion
-export { PluginStartInfo as i, timeoutPromise as n, WebRuntimeClientType as r, WebDocumentTracker as t };
+export { WebRuntimeClientType as a, buildWebWorkerLockName as i, WebRuntime as n, PluginStartInfo as o, timeoutPromise as r, WebDocumentTracker as t };
 
-//# sourceMappingURL=web-document-tracker-KAfasl-R.js.map
+//# sourceMappingURL=web-document-tracker-BxuL8ox8.js.map

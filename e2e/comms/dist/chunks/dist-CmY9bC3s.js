@@ -4225,6 +4225,27 @@ var ChannelStream = class {
 };
 //#endregion
 //#region node_modules/starpc/dist/rpcstream/rpcstream.js
+async function openRpcStream(componentId, caller, waitAck) {
+	const packetTx = pushable({ objectMode: true });
+	const packetRx = caller(packetTx);
+	packetTx.push({ body: {
+		case: "init",
+		value: { componentId }
+	} });
+	const packetIt = packetRx[Symbol.asyncIterator]();
+	if (waitAck) {
+		const ackPacketIt = await packetIt.next();
+		if (ackPacketIt.done) throw new Error(`rpcstream: closed before ack packet`);
+		const ackBody = ackPacketIt.value?.body;
+		if (!ackBody || ackBody.case !== "ack") {
+			const msgType = ackBody?.case || "none";
+			throw new Error(`rpcstream: expected ack packet but got ${msgType}`);
+		}
+		const errStr = ackBody.value?.error;
+		if (errStr) throw new Error(`rpcstream: remote: ${errStr}`);
+	}
+	return new RpcStream(packetTx, packetIt);
+}
 async function* handleRpcStream(packetRx, getter) {
 	const initRpcStreamIt = await packetRx.next();
 	if (initRpcStreamIt.done) throw new Error("closed before init received");
@@ -4562,6 +4583,6 @@ var EchoerServer = class {
 	}
 };
 //#endregion
-export { createMux as a, Client as c, createEnumType as d, ScalarType as f, ChannelStream as i, MethodKind as l, castToError as m, EchoerClient as n, createHandler as o, protoInt64 as p, EchoerDefinition as r, Server as s, EchoerServer as t, createMessageType as u };
+export { protoInt64 as _, openRpcStream as a, createHandler as c, buildDecodeMessageTransform as d, buildEncodeMessageTransform as f, ScalarType as g, createEnumType as h, handleRpcStream as i, Server as l, createMessageType as m, EchoerClient as n, ChannelStream as o, MethodKind as p, EchoerDefinition as r, createMux as s, EchoerServer as t, Client as u, pipe as v, castToError as y };
 
-//# sourceMappingURL=dist-C0KRw9Ez.js.map
+//# sourceMappingURL=dist-CmY9bC3s.js.map

@@ -1,4 +1,4 @@
-import { a as createMux, c as Client, i as ChannelStream, n as EchoerClient, o as createHandler, r as EchoerDefinition, s as Server, t as EchoerServer } from "./chunks/dist-C0KRw9Ez.js";
+import { c as createHandler, l as Server, n as EchoerClient, o as ChannelStream, r as EchoerDefinition, s as createMux, t as EchoerServer, u as Client } from "./chunks/dist-CmY9bC3s.js";
 //#region e2e/comms/fixtures/cross-tab-rpc.ts
 var streamOpts = {
 	keepAliveMs: 5e3,

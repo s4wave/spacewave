@@ -2540,6 +2540,14 @@
 		packedByDefault: true
 	});
 	//#endregion
+	//#region web/runtime/runtime.ts
+	function buildWebDocumentLockName(webDocumentId) {
+		return `bldr-doc-${webDocumentId}`;
+	}
+	function buildWebWorkerLockName(webWorkerId) {
+		return `bldr-worker-${webWorkerId}`;
+	}
+	//#endregion
 	//#region web/bldr/timeout.ts
 	function timeoutPromise(dur) {
 		return new Promise((resolve) => {
@@ -4999,15 +5007,21 @@
 		}
 		waitForWebDocumentDisconnect(webDocumentId, signal) {
 			if (typeof navigator === "undefined" || !("locks" in navigator)) return new Promise(() => {});
-			return navigator.locks.request(`bldr-doc-${webDocumentId}`, { signal }, () => {
+			return navigator.locks.request(buildWebDocumentLockName(webDocumentId), { signal }, () => {
 				return /* @__PURE__ */ new Error(`WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} disconnected before ack`);
-			}).catch(() => void 0);
+			}).catch((err) => {
+				if (isAbortError$1(err)) return;
+				throw err;
+			});
 		}
 		rejectWaiters(err) {
 			const waiters = this.webDocumentWaiters.splice(0);
 			for (const waiter of waiters) waiter.reject(err);
 		}
 	};
+	function isAbortError$1(err) {
+		return typeof err === "object" && err !== null && "name" in err && err.name === "AbortError";
+	}
 	//#endregion
 	//#region vendor/github.com/aperturerobotics/bifrost/hash/hash.pb.ts
 	const HashType_Enum = createEnumType("hash.HashType", [
@@ -5887,11 +5901,13 @@
 		}
 		pluginStarted;
 		startPluginPromise;
+		lockAbortController;
 		onSnapshotNow;
 		constructor(global, startPlugin, handleIncomingStream) {
 			this.global = global;
 			this.startPlugin = startPlugin;
 			this.webDocumentTracker = new WebDocumentTracker(this.workerId, WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER, this.onWebDocumentsExhausted.bind(this), handleIncomingStream);
+			this.armWorkerLock();
 			if (checkSharedWorker(global)) global.addEventListener("connect", (ev) => {
 				const ports = ev.ports;
 				if (!ports || !ports.length) return;
@@ -5904,6 +5920,21 @@
 		}
 		async onWebDocumentsExhausted() {
 			console.log(`PluginWorker: ${this.workerId}: no WebDocument available, exiting!`);
+			this.shutdown();
+		}
+		armWorkerLock() {
+			if (typeof navigator === "undefined" || !("locks" in navigator) || this.lockAbortController) return;
+			this.lockAbortController = new AbortController();
+			navigator.locks.request(buildWebWorkerLockName(this.workerId), { signal: this.lockAbortController.signal }, () => {
+				return new Promise(() => {});
+			}).catch((err) => {
+				if (isAbortError(err)) return;
+				console.warn(`PluginWorker: ${this.workerId}: worker liveness lock failed`, err);
+			});
+		}
+		shutdown() {
+			this.lockAbortController?.abort();
+			this.lockAbortController = void 0;
 			this.webDocumentTracker.close();
 			this.global.close();
 		}
@@ -5950,11 +5981,13 @@
 			}
 			if (data.initData) this.handleStartPlugin(data.initData, data.busSab, data.busPluginId, data.workerCommsDetect).catch((err) => {
 				console.warn(`PluginWorker: ${this.workerId}: startup failed, exiting!`, err);
-				this.webDocumentTracker.close();
-				this.global.close();
+				this.shutdown();
 			});
 		}
 	};
+	function isAbortError(err) {
+		return typeof err === "object" && err !== null && "name" in err && err.name === "AbortError";
+	}
 	//#endregion
 	//#region e2e/comms/fixtures/workers/plugin-startup-fixture.ts
 	function readMode() {
@@ -5962,13 +5995,15 @@
 	}
 	new PluginWorker(self, async () => {
 		const mode = readMode();
+		if (mode === "idle") return;
 		if (mode === "import-fail") {
 			await import("/workers/does-not-exist.js");
 			return;
 		}
 		throw new Error(`unknown startup fixture mode: ${mode}`);
 	}, null);
+	self.postMessage({ type: "booted" });
 	//#endregion
 })();
 
-//# sourceMappingURL=plugin-startup-fixture-B1st8vki.js.map
+//# sourceMappingURL=plugin-startup-fixture-WawstLCr.js.map

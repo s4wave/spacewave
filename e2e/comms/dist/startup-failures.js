@@ -1,4 +1,4 @@
-import { i as PluginStartInfo, n as timeoutPromise, r as WebRuntimeClientType, t as WebDocumentTracker } from "./chunks/web-document-tracker-KAfasl-R.js";
+import { a as WebRuntimeClientType, i as buildWebWorkerLockName, n as WebRuntime, o as PluginStartInfo, r as timeoutPromise, t as WebDocumentTracker } from "./chunks/web-document-tracker-BxuL8ox8.js";
 //#region e2e/comms/fixtures/startup-failures.ts
 function encodeStartInfo() {
 	const json = PluginStartInfo.toJsonString({});
@@ -34,6 +34,24 @@ function waitForPortMessage(port, predicate, timeoutMs) {
 		};
 		port.addEventListener("message", handler);
 		port.start();
+	});
+}
+function waitWorkerMsg(worker, type, timeoutMs) {
+	return new Promise((resolve, reject) => {
+		const timer = globalThis.setTimeout(() => {
+			cleanup();
+			reject(/* @__PURE__ */ new Error(`timeout waiting for ${type}`));
+		}, timeoutMs);
+		const handler = (ev) => {
+			if (ev.data?.type !== type) return;
+			cleanup();
+			resolve(ev.data);
+		};
+		const cleanup = () => {
+			globalThis.clearTimeout(timer);
+			worker.removeEventListener("message", handler);
+		};
+		worker.addEventListener("message", handler);
 	});
 }
 async function runSlowRegistrationScenario() {
@@ -120,7 +138,7 @@ async function runImportFailureScenario() {
 	const releaseLock = await holdWebDocumentLock(`bldr-doc-startup-failures-import-doc`);
 	const worker = new Worker(new URL(
 		/* @vite-ignore */
-		"/assets/plugin-startup-fixture-B1st8vki.js",
+		"/assets/plugin-startup-fixture-WawstLCr.js",
 		"" + import.meta.url
 	), {
 		type: "module",
@@ -173,6 +191,54 @@ async function runImportFailureScenario() {
 		port2.close();
 	}
 }
+async function runWorkerPreRegistrationScenario() {
+	const workerId = "startup-failures-pre-register-worker";
+	const runtime = new WebRuntime("startup-failures-runtime", async () => {
+		throw new Error("unexpected runtime host open stream");
+	}, null, null);
+	const worker = new Worker(new URL(
+		/* @vite-ignore */
+		"/assets/plugin-startup-fixture-WawstLCr.js",
+		"" + import.meta.url
+	), {
+		type: "module",
+		name: workerId
+	});
+	try {
+		const booted = await waitWorkerMsg(worker, "booted", 2e3);
+		if (booted.type !== "booted") return {
+			ok: false,
+			detail: `worker booted with unexpected message ${JSON.stringify(booted)}`
+		};
+		const start = performance.now();
+		const waitClient = runtime.waitForClient(workerId, buildWebWorkerLockName(workerId));
+		worker.terminate();
+		try {
+			await waitClient;
+			return {
+				ok: false,
+				detail: "worker pre-registration unexpectedly connected"
+			};
+		} catch (err) {
+			const elapsed = performance.now() - start;
+			if (elapsed > 1500) return {
+				ok: false,
+				detail: `worker pre-registration rejection was not bounded (${Math.round(elapsed)}ms)`
+			};
+			return {
+				ok: true,
+				detail: `worker pre-registration rejected in ${Math.round(elapsed)}ms: ${String(err)}`
+			};
+		}
+	} catch (err) {
+		return {
+			ok: false,
+			detail: `worker pre-registration setup failed: ${String(err)}`
+		};
+	} finally {
+		worker.terminate();
+	}
+}
 async function run() {
 	const log = document.getElementById("log");
 	const details = [];
@@ -181,14 +247,17 @@ async function run() {
 		details.push(slow.detail);
 		const close = await runCloseDuringStartupScenario();
 		details.push(close.detail);
+		const workerPreRegistration = await runWorkerPreRegistrationScenario();
+		details.push(workerPreRegistration.detail);
 		const importFailure = await runImportFailureScenario();
 		details.push(importFailure.detail);
-		const pass = slow.ok && close.ok && importFailure.ok;
+		const pass = slow.ok && close.ok && workerPreRegistration.ok && importFailure.ok;
 		window.__results = {
 			pass,
 			detail: details.join("; "),
 			slowRegistrationRejected: slow.ok,
 			closeDuringStartupRejected: close.ok,
+			workerPreRegistrationRejected: workerPreRegistration.ok,
 			importFailureClosed: importFailure.ok,
 			importFailureReady: importFailure.ready
 		};
@@ -198,6 +267,7 @@ async function run() {
 			detail: `startup failures fixture crashed: ${String(err)}`,
 			slowRegistrationRejected: false,
 			closeDuringStartupRejected: false,
+			workerPreRegistrationRejected: false,
 			importFailureClosed: false,
 			importFailureReady: false
 		};

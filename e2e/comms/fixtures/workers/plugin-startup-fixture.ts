@@ -10,6 +10,9 @@ new PluginWorker(
   self,
   async () => {
     const mode = readMode()
+    if (mode === 'idle') {
+      return
+    }
     if (mode === 'import-fail') {
       const missingModule = '/workers/does-not-exist.js'
       await import(/* @vite-ignore */ missingModule)
@@ -19,3 +22,5 @@ new PluginWorker(
   },
   null,
 )
+
+self.postMessage({ type: 'booted' })
