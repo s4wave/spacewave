@@ -315,8 +315,31 @@ function loadWebPlugin(
   }
 
   console.debug(`Loading web plugin with ID: ${webPluginID}`)
-  let pluginRunning = false
   let pluginAbort: AbortController | undefined = undefined
+  function startPluginSetup(signal: AbortSignal) {
+    if (pluginAbort) {
+      return
+    }
+    pluginAbort = createAbortController(signal)
+    retryWithAbort(
+      pluginAbort.signal,
+      async (signal) => {
+        const openStream = backendAPI.buildPluginOpenStream(webPluginID)
+        const srpcClient = new Client(openStream)
+        const client = new WebPluginClient(srpcClient)
+        await Promise.all([
+          loadFrontendEntrypoints(backendAPI, ourPluginID, client, signal),
+          loadWebPkgs(ourPluginID, client, signal),
+        ])
+      },
+      {
+        errorCb: (err) => {
+          logError('error loading frontend entrypoints', err)
+        },
+      },
+    )
+  }
+
   retryWithAbort(abortSignal, async (signal) => {
     const respStream = backendAPI.pluginHost.LoadPlugin(
       { pluginId: webPluginID },
@@ -324,38 +347,15 @@ function loadWebPlugin(
     )
     for await (const resp of respStream) {
       const currRunning = resp?.pluginStatus?.running || false
-      if (pluginRunning === currRunning) continue
-
-      // running status changed, restart routine
-      pluginRunning = currRunning
-      if (pluginAbort) {
-        pluginAbort.abort()
-        pluginAbort = undefined
-      }
-      if (!pluginRunning) {
+      console.debug(`web plugin status running=${currRunning}`)
+      if (!currRunning) {
+        if (pluginAbort) {
+          pluginAbort.abort()
+          pluginAbort = undefined
+        }
         continue
       }
-
-      // plugin just started running, start sub-routine
-      pluginAbort = createAbortController(signal)
-      // don't await
-      retryWithAbort(
-        pluginAbort.signal,
-        async (signal) => {
-          const openStream = backendAPI.buildPluginOpenStream(webPluginID)
-          const srpcClient = new Client(openStream)
-          const client = new WebPluginClient(srpcClient)
-          await Promise.all([
-            loadFrontendEntrypoints(backendAPI, ourPluginID, client, signal),
-            loadWebPkgs(ourPluginID, client, abortSignal),
-          ])
-        },
-        {
-          errorCb: (err) => {
-            logError('error loading frontend entrypoints', err)
-          },
-        },
-      )
+      startPluginSetup(signal)
     }
   })
 }

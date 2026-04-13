@@ -507,6 +507,7 @@ func (r *Remote) updateStatusSnapshot() {
 			status.WebWorkers = append(status.WebWorkers, &WebWorkerStatus{
 				Id:     remoteWebWorker.id,
 				Shared: remoteWebWorker.shared,
+				Ready:  remoteWebWorker.ready,
 			})
 		}
 	}
@@ -600,8 +601,12 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 			continue
 		}
 
-		_, _, inserted := r.upsertRemoteWebWorker(webWorkerID, status.GetShared())
-		if inserted {
+		_, _, inserted, changed := r.upsertRemoteWebWorker(
+			webWorkerID,
+			status.GetShared(),
+			status.GetReady(),
+		)
+		if inserted || changed {
 			dirty = true
 		}
 	}
@@ -687,21 +692,38 @@ func (r *Remote) lookupRemoteWebView(id string) (i int, rwv *remoteWebView) {
 }
 
 // upsertRemoteWebWorker adds a new remote web worker if not exists.
-// returns the index of the web worker and if it was inserted
-func (r *Remote) upsertRemoteWebWorker(webWorkerID string, shared bool) (*remoteWebWorker, int, bool) {
+// returns the web worker, its index, whether it was inserted, and whether
+// any tracked state changed.
+func (r *Remote) upsertRemoteWebWorker(
+	webWorkerID string,
+	shared bool,
+	ready bool,
+) (*remoteWebWorker, int, bool, bool) {
 	// insert if not exists
-	var dirty bool
+	var inserted, changed bool
 	insertIdx, rwv := r.lookupRemoteWebWorker(webWorkerID)
 	if rwv == nil {
 		rwv = r.buildRemoteWebWorker(
 			webWorkerID,
 			r.documentID,
 			shared,
+			ready,
 		)
 		r.insertRemoteWebWorker(insertIdx, rwv)
-		dirty = true
+		inserted = true
+		changed = true
 	}
-	return rwv, insertIdx, dirty
+	if !inserted {
+		if rwv.shared != shared {
+			rwv.shared = shared
+			changed = true
+		}
+		if rwv.ready != ready {
+			rwv.ready = ready
+			changed = true
+		}
+	}
+	return rwv, insertIdx, inserted, changed
 }
 
 // insertRemoteWebWorker adds a new remote web worker to the set.

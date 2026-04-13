@@ -12,15 +12,17 @@ type remoteWebWorker struct {
 	id       string
 	document string
 	shared   bool
+	ready    bool
 }
 
 // buildRemoteWebWorker constructs a new remote WebWorker handle.
-func (r *Remote) buildRemoteWebWorker(id, document string, shared bool) *remoteWebWorker {
+func (r *Remote) buildRemoteWebWorker(id, document string, shared, ready bool) *remoteWebWorker {
 	return &remoteWebWorker{
 		r:        r,
 		id:       id,
 		document: document,
 		shared:   shared,
+		ready:    ready,
 	}
 }
 

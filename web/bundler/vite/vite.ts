@@ -60,6 +60,33 @@ class ViteBundlerService implements ViteBundler {
   }
 }
 
+function resolveTrackedSourceFile(
+  pkgRoot: string,
+  moduleId: string,
+): string | null {
+  if (moduleId.startsWith('\x00')) {
+    return null
+  }
+  if (moduleId.startsWith('__vite-browser-external')) {
+    return null
+  }
+
+  const clean = moduleId.split('?')[0]
+  const filePath = path.isAbsolute(clean)
+    ? clean
+    : path.resolve(pkgRoot, clean)
+
+  try {
+    const stat = fs.statSync(filePath)
+    if (!stat.isFile()) {
+      return null
+    }
+    return filePath
+  } catch {
+    return null
+  }
+}
+
 /**
  * Core build function that processes Vite bundling requests
  * @param {BuildRequest} request - The build configuration request
@@ -513,12 +540,9 @@ async function buildWebPkg(
       if (chunk.type !== 'chunk') continue
       if (chunk.moduleIds) {
         for (const id of chunk.moduleIds) {
-          if (id.startsWith('\x00')) continue
-          const clean = id.split('?')[0]
-          if (path.isAbsolute(clean)) {
-            sourceFiles.add(clean)
-          } else {
-            sourceFiles.add(path.resolve(pkgRoot, clean))
+          const filePath = resolveTrackedSourceFile(pkgRoot, id)
+          if (filePath) {
+            sourceFiles.add(filePath)
           }
         }
       }

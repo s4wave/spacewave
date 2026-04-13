@@ -73,8 +73,15 @@ func (c *Controller) resolveHandleWebView(
 
 	handlers := c.handlers.GetMatchingHandlers(webViewID, webViewParentID)
 	if len(handlers) == 0 {
+		c.le.WithField("web-view", webViewID).
+			WithField("parent-id", webViewParentID).
+			Debug("no matching web view handlers")
 		return nil, nil
 	}
+	c.le.WithField("web-view", webViewID).
+		WithField("parent-id", webViewParentID).
+		WithField("handlers", len(handlers)).
+		Debug("matched web view handlers")
 
 	return directive.R(
 		web_view_handler.NewHandleWebViewResolverWithRetry(

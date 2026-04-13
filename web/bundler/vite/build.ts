@@ -160,6 +160,9 @@ function normalizeModuleId(id: string, rootDir: string): string | null {
     return null
   }
   const withoutQuery = id.split('?')[0]
+  if (withoutQuery.startsWith('__vite-browser-external')) {
+    return null
+  }
   if (!path.isAbsolute(withoutQuery)) {
     return path.normalize(withoutQuery)
   }

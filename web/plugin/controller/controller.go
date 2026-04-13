@@ -210,11 +210,20 @@ func (c *Controller) HandleWebViewViaHandlers(
 	if err := req.Validate(); err != nil {
 		return err
 	}
+	c.le.WithField("handlers", len(req.GetConfig().GetHandlers())).
+		Debug("handling web view handlers request")
 
 	// Add a new WebViewHandlers controller.
 	conf := &web_view_handler_controller.Config{Handlers: req.GetConfig()}
 	ctrl, err := web_view_handler_controller.NewControllerWithConfig(c.le, conf)
 	if err != nil {
+		return err
+	}
+
+	c.le.Debug("sending web view handlers ready")
+	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaHandlersResponse{
+		Body: &bldr_web_plugin.HandleWebViewViaHandlersResponse_Ready{Ready: true},
+	}); err != nil {
 		return err
 	}
 

@@ -297,8 +297,10 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		// we want to use the devtool volume (via websocket) to load assets
 		// no need to copy into the browser storage in devtool mode
 		DisableCopyManifest: true,
-		// we want to store manifests in the world state
-		DisableStoreManifest: false,
+		// fetched manifest refs point at the devtool bucket, so browser-side
+		// hosts should execute them directly instead of storing those refs into
+		// the local plugin-host world and later failing to dereference them.
+		DisableStoreManifest: true,
 	})
 	pluginSchecCtrlRel, err := b.AddController(ctx, pluginSchedCtrl, func(err error) {
 		le.WithError(err).Error("plugin scheduler controller failed")

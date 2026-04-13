@@ -265,6 +265,55 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(entryA!.outputs.css).toContain('assets/B-hash456.css')
     })
 
+    it('should ignore synthetic vite external module ids', async () => {
+      const manifest = {
+        'A.tsx': {
+          file: 'assets/A-hash123.mjs',
+          isEntry: true,
+          src: 'A.tsx',
+        },
+      }
+
+      await fs.writeFile(
+        path.join(distDir, '.vite/manifest.json'),
+        JSON.stringify(manifest, null, 2),
+      )
+
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
+        {
+          type: 'chunk',
+          fileName: 'assets/A-hash123.mjs',
+          name: 'A',
+          facadeModuleId: path.join(testDir, 'A.tsx'),
+          moduleIds: [
+            path.join(testDir, 'A.tsx'),
+            '__vite-browser-external',
+            '__vite-browser-external?commonjs-proxy',
+          ],
+          code: '',
+          dynamicImports: [],
+          exports: [],
+          implicitlyLoadedBefore: [],
+          importedBindings: {},
+          imports: [],
+          isDynamicEntry: false,
+          isEntry: true,
+          isImplicitEntry: false,
+          map: null,
+          modules: {},
+          referencedFiles: [],
+          sourcemapFileName: null,
+          preliminaryFileName: 'assets/A-hash123.mjs',
+        } as unknown as Rollup.OutputChunk,
+      ]
+
+      const analysis = await analyzeManifest(distDir, outputChunks, testDir)
+      const entryA = analysis.entrypointOutputs[0]
+
+      expect(entryA.inputs).toContain('A.tsx')
+      expect(entryA.inputs).not.toContain('__vite-browser-external')
+    })
+
     it('should synthesize entry analysis when the Vite manifest is missing', async () => {
       await fs.rm(path.join(distDir, '.vite'), { recursive: true, force: true })
 
