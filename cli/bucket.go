@@ -102,7 +102,5 @@ func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
 		return err
 	}
 
-	os.Stdout.WriteString(string(dat))
-	os.Stdout.WriteString("\n")
-	return nil
+	return writeIndentedJSON(os.Stdout, dat)
 }
