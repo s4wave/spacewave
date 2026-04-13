@@ -75,9 +75,26 @@ pub struct InputManifest {
     /// Optional.
     #[prost(message, repeated, tag="3")]
     pub manifest_deps: ::prost::alloc::vec::Vec<input_manifest::ManifestDep>,
+    /// StartupInputs are typed non-file inputs used for startup validation.
+    /// Optional.
+    #[prost(message, repeated, tag="4")]
+    pub startup_inputs: ::prost::alloc::vec::Vec<input_manifest::StartupInput>,
 }
 /// Nested message and enum types in `InputManifest`.
 pub mod input_manifest {
+    /// FileIdentity captures file identity at publish time for startup reuse.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct FileIdentity {
+        /// SizeBytes is the file size in bytes.
+        #[prost(uint64, tag="1")]
+        pub size_bytes: u64,
+        /// ModTimeUnixNano is the file modification time.
+        #[prost(int64, tag="2")]
+        pub mod_time_unix_nano: i64,
+        /// Sha256 is the file SHA-256 digest.
+        #[prost(bytes="vec", tag="3")]
+        pub sha256: ::prost::alloc::vec::Vec<u8>,
+    }
     /// File is a file in the source manifest.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct File {
@@ -88,6 +105,14 @@ pub mod input_manifest {
         /// Optional.
         #[prost(bytes="vec", tag="2")]
         pub metadata: ::prost::alloc::vec::Vec<u8>,
+        /// Identity is the publish-time file identity for startup validation.
+        /// Optional.
+        #[prost(message, optional, tag="3")]
+        pub identity: ::core::option::Option<FileIdentity>,
+        /// StartupOnly records files needed only for startup validation.
+        /// These files are ignored by the live watch loop.
+        #[prost(bool, tag="4")]
+        pub startup_only: bool,
     }
     /// ManifestDep declares a dependency on another manifest.
     /// The builder controller watches for changes to the manifest's ref
@@ -101,6 +126,56 @@ pub mod input_manifest {
         /// When the world ref differs from this, a rebuild is triggered.
         #[prost(message, optional, tag="2")]
         pub manifest_ref: ::core::option::Option<super::super::super::super::bucket::ObjectRef>,
+    }
+    /// StartupInput declares a typed non-file startup validation input.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct StartupInput {
+        /// Kind is the startup input kind.
+        #[prost(enumeration="StartupInputKind", tag="1")]
+        pub kind: i32,
+        /// Key identifies the input within its kind.
+        #[prost(string, tag="2")]
+        pub key: ::prost::alloc::string::String,
+        /// StringValue is the expected string value.
+        #[prost(string, tag="3")]
+        pub string_value: ::prost::alloc::string::String,
+        /// BytesValue is the expected bytes value.
+        #[prost(bytes="vec", tag="4")]
+        pub bytes_value: ::prost::alloc::vec::Vec<u8>,
+    }
+    /// StartupInputKind describes a reusable startup validation input type.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum StartupInputKind {
+        /// StartupInputKind_UNKNOWN is the default kind.
+        Unknown = 0,
+        /// StartupInputKind_ENV_VAR compares the current environment variable value.
+        EnvVar = 1,
+        /// StartupInputKind_CONTROLLER_CONFIG_DIGEST compares the current builder
+        /// controller config digest.
+        ControllerConfigDigest = 2,
+    }
+    impl StartupInputKind {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unknown => "StartupInputKind_UNKNOWN",
+                Self::EnvVar => "StartupInputKind_ENV_VAR",
+                Self::ControllerConfigDigest => "StartupInputKind_CONTROLLER_CONFIG_DIGEST",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "StartupInputKind_UNKNOWN" => Some(Self::Unknown),
+                "StartupInputKind_ENV_VAR" => Some(Self::EnvVar),
+                "StartupInputKind_CONTROLLER_CONFIG_DIGEST" => Some(Self::ControllerConfigDigest),
+                _ => None,
+            }
+        }
     }
 }
 /// BuildManifestArgs are arguments passed to the BuildManifest function.

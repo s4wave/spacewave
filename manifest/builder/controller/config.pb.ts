@@ -2,7 +2,7 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/builder/controller/config.proto (package bldr.manifest.builder.controller, syntax proto3)
 /* eslint-disable */
 
-import { BuilderConfig } from '../builder.pb.js'
+import { BuilderConfig, BuilderResult } from '../builder.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
@@ -52,6 +52,13 @@ export interface Config {
    * @generated from field: repeated string watch_manifest_ids = 5;
    */
   watchManifestIds?: string[]
+  /**
+   * StartupBuilderResult is the persisted startup build result to validate
+   * before the first build attempt.
+   *
+   * @generated from field: bldr.manifest.builder.BuilderResult startup_builder_result = 6;
+   */
+  startupBuilderResult?: BuilderResult
 }
 
 // Config contains the message type declaration for Config.
@@ -73,6 +80,12 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
+    },
+    {
+      no: 6,
+      name: 'startup_builder_result',
+      kind: 'message',
+      T: () => BuilderResult,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

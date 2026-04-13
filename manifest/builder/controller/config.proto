@@ -23,4 +23,7 @@ message Config {
   // the builder controller triggers a rebuild of this manifest.
   // Populated by the project controller from the webPkg dependency graph.
   repeated string watch_manifest_ids = 5;
+  // StartupBuilderResult is the persisted startup build result to validate
+  // before the first build attempt.
+  .bldr.manifest.builder.BuilderResult startup_builder_result = 6;
 }

@@ -72,6 +72,10 @@ class ManifestBuilderResult;
 struct ManifestBuilderResultDefaultTypeInternal;
 extern ManifestBuilderResultDefaultTypeInternal _ManifestBuilderResult_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ManifestBuilderResult_class_data_;
+class ManifestStartupBuildState;
+struct ManifestStartupBuildStateDefaultTypeInternal;
+extern ManifestStartupBuildStateDefaultTypeInternal _ManifestStartupBuildState_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ManifestStartupBuildState_class_data_;
 }  // namespace controller
 }  // namespace project
 }  // namespace bldr
@@ -357,6 +361,218 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestBuilderConfig_class_data_;
+// -------------------------------------------------------------------
+
+class ManifestStartupBuildState final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.project.controller.ManifestStartupBuildState) */ {
+ public:
+  inline ManifestStartupBuildState() : ManifestStartupBuildState(nullptr) {}
+  ~ManifestStartupBuildState() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ManifestStartupBuildState* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ManifestStartupBuildState));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ManifestStartupBuildState(::google::protobuf::internal::ConstantInitialized);
+
+  inline ManifestStartupBuildState(const ManifestStartupBuildState& from) : ManifestStartupBuildState(nullptr, from) {}
+  inline ManifestStartupBuildState(ManifestStartupBuildState&& from) noexcept
+      : ManifestStartupBuildState(nullptr, ::std::move(from)) {}
+  inline ManifestStartupBuildState& operator=(const ManifestStartupBuildState& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ManifestStartupBuildState& operator=(ManifestStartupBuildState&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ManifestStartupBuildState& default_instance() {
+    return *reinterpret_cast<const ManifestStartupBuildState*>(
+        &_ManifestStartupBuildState_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(ManifestStartupBuildState& a, ManifestStartupBuildState& b) { a.Swap(&b); }
+  inline void Swap(ManifestStartupBuildState* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ManifestStartupBuildState* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ManifestStartupBuildState* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ManifestStartupBuildState>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ManifestStartupBuildState& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ManifestStartupBuildState& from) { ManifestStartupBuildState::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ManifestStartupBuildState* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.project.controller.ManifestStartupBuildState"; }
+
+  explicit ManifestStartupBuildState(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ManifestStartupBuildState(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ManifestStartupBuildState& from);
+  ManifestStartupBuildState(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ManifestStartupBuildState&& from) noexcept
+      : ManifestStartupBuildState(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kManifestBuilderConfigFieldNumber = 1,
+    kBuilderResultFieldNumber = 2,
+  };
+  // .bldr.project.controller.ManifestBuilderConfig manifest_builder_config = 1;
+  bool has_manifest_builder_config() const;
+  void clear_manifest_builder_config() ;
+  const ::bldr::project::controller::ManifestBuilderConfig& manifest_builder_config() const;
+  [[nodiscard]] ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE release_manifest_builder_config();
+  ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NONNULL mutable_manifest_builder_config();
+  void set_allocated_manifest_builder_config(::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_manifest_builder_config(::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE value);
+  ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE unsafe_arena_release_manifest_builder_config();
+
+  private:
+  const ::bldr::project::controller::ManifestBuilderConfig& _internal_manifest_builder_config() const;
+  ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NONNULL _internal_mutable_manifest_builder_config();
+
+  public:
+  // .bldr.manifest.builder.BuilderResult builder_result = 2;
+  bool has_builder_result() const;
+  void clear_builder_result() ;
+  const ::bldr::manifest::builder::BuilderResult& builder_result() const;
+  [[nodiscard]] ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE release_builder_result();
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL mutable_builder_result();
+  void set_allocated_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value);
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE unsafe_arena_release_builder_result();
+
+  private:
+  const ::bldr::manifest::builder::BuilderResult& _internal_builder_result() const;
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL _internal_mutable_builder_result();
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.project.controller.ManifestStartupBuildState)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ManifestStartupBuildState& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE manifest_builder_config_;
+    ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE builder_result_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ManifestStartupBuildState_class_data_;
 // -------------------------------------------------------------------
 
 class ManifestBuilderResult final : public ::google::protobuf::Message
@@ -1828,6 +2044,202 @@ inline void ManifestBuilderResult::set_allocated_builder_result(::bldr::manifest
 
   _impl_.builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(value);
   // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestBuilderResult.builder_result)
+}
+
+// -------------------------------------------------------------------
+
+// ManifestStartupBuildState
+
+// .bldr.project.controller.ManifestBuilderConfig manifest_builder_config = 1;
+inline bool ManifestStartupBuildState::has_manifest_builder_config() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.manifest_builder_config_ != nullptr);
+  return value;
+}
+inline void ManifestStartupBuildState::clear_manifest_builder_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.manifest_builder_config_ != nullptr) _impl_.manifest_builder_config_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::bldr::project::controller::ManifestBuilderConfig& ManifestStartupBuildState::_internal_manifest_builder_config() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::project::controller::ManifestBuilderConfig* p = _impl_.manifest_builder_config_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::project::controller::ManifestBuilderConfig&>(::bldr::project::controller::_ManifestBuilderConfig_default_instance_);
+}
+inline const ::bldr::project::controller::ManifestBuilderConfig& ManifestStartupBuildState::manifest_builder_config() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.controller.ManifestStartupBuildState.manifest_builder_config)
+  return _internal_manifest_builder_config();
+}
+inline void ManifestStartupBuildState::unsafe_arena_set_allocated_manifest_builder_config(
+    ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.manifest_builder_config_);
+  }
+  _impl_.manifest_builder_config_ = reinterpret_cast<::bldr::project::controller::ManifestBuilderConfig*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.controller.ManifestStartupBuildState.manifest_builder_config)
+}
+inline ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE ManifestStartupBuildState::release_manifest_builder_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::bldr::project::controller::ManifestBuilderConfig* released = _impl_.manifest_builder_config_;
+  _impl_.manifest_builder_config_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE ManifestStartupBuildState::unsafe_arena_release_manifest_builder_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.controller.ManifestStartupBuildState.manifest_builder_config)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::bldr::project::controller::ManifestBuilderConfig* temp = _impl_.manifest_builder_config_;
+  _impl_.manifest_builder_config_ = nullptr;
+  return temp;
+}
+inline ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NONNULL ManifestStartupBuildState::_internal_mutable_manifest_builder_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.manifest_builder_config_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::project::controller::ManifestBuilderConfig>(GetArena());
+    _impl_.manifest_builder_config_ = reinterpret_cast<::bldr::project::controller::ManifestBuilderConfig*>(p);
+  }
+  return _impl_.manifest_builder_config_;
+}
+inline ::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NONNULL ManifestStartupBuildState::mutable_manifest_builder_config()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::bldr::project::controller::ManifestBuilderConfig* _msg = _internal_mutable_manifest_builder_config();
+  // @@protoc_insertion_point(field_mutable:bldr.project.controller.ManifestStartupBuildState.manifest_builder_config)
+  return _msg;
+}
+inline void ManifestStartupBuildState::set_allocated_manifest_builder_config(::bldr::project::controller::ManifestBuilderConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.manifest_builder_config_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.manifest_builder_config_ = reinterpret_cast<::bldr::project::controller::ManifestBuilderConfig*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestStartupBuildState.manifest_builder_config)
+}
+
+// .bldr.manifest.builder.BuilderResult builder_result = 2;
+inline bool ManifestStartupBuildState::has_builder_result() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.builder_result_ != nullptr);
+  return value;
+}
+inline const ::bldr::manifest::builder::BuilderResult& ManifestStartupBuildState::_internal_builder_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::manifest::builder::BuilderResult* p = _impl_.builder_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::manifest::builder::BuilderResult&>(::bldr::manifest::builder::_BuilderResult_default_instance_);
+}
+inline const ::bldr::manifest::builder::BuilderResult& ManifestStartupBuildState::builder_result() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.controller.ManifestStartupBuildState.builder_result)
+  return _internal_builder_result();
+}
+inline void ManifestStartupBuildState::unsafe_arena_set_allocated_builder_result(
+    ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.builder_result_);
+  }
+  _impl_.builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.controller.ManifestStartupBuildState.builder_result)
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE ManifestStartupBuildState::release_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::bldr::manifest::builder::BuilderResult* released = _impl_.builder_result_;
+  _impl_.builder_result_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE ManifestStartupBuildState::unsafe_arena_release_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.controller.ManifestStartupBuildState.builder_result)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::bldr::manifest::builder::BuilderResult* temp = _impl_.builder_result_;
+  _impl_.builder_result_ = nullptr;
+  return temp;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL ManifestStartupBuildState::_internal_mutable_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.builder_result_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::manifest::builder::BuilderResult>(GetArena());
+    _impl_.builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(p);
+  }
+  return _impl_.builder_result_;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL ManifestStartupBuildState::mutable_builder_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::bldr::manifest::builder::BuilderResult* _msg = _internal_mutable_builder_result();
+  // @@protoc_insertion_point(field_mutable:bldr.project.controller.ManifestStartupBuildState.builder_result)
+  return _msg;
+}
+inline void ManifestStartupBuildState::set_allocated_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.builder_result_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestStartupBuildState.builder_result)
 }
 
 #ifdef __GNUC__

@@ -2,12 +2,55 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/builder/builder.proto (package bldr.manifest.builder, syntax proto3)
 /* eslint-disable */
 
-import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
+import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.builder'
+
+/**
+ * StartupInputKind describes a reusable startup validation input type.
+ *
+ * @generated from enum bldr.manifest.builder.InputManifest.StartupInputKind
+ */
+export enum InputManifest_StartupInputKind {
+  /**
+   * StartupInputKind_UNKNOWN is the default kind.
+   *
+   * @generated from enum value: StartupInputKind_UNKNOWN = 0;
+   */
+  StartupInputKind_UNKNOWN = 0,
+
+  /**
+   * StartupInputKind_ENV_VAR compares the current environment variable value.
+   *
+   * @generated from enum value: StartupInputKind_ENV_VAR = 1;
+   */
+  StartupInputKind_ENV_VAR = 1,
+
+  /**
+   * StartupInputKind_CONTROLLER_CONFIG_DIGEST compares the current builder
+   * controller config digest.
+   *
+   * @generated from enum value: StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2;
+   */
+  StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2,
+}
+
+// InputManifest_StartupInputKind_Enum is the enum type for InputManifest_StartupInputKind.
+export const InputManifest_StartupInputKind_Enum = createEnumType(
+  'bldr.manifest.builder.InputManifest.StartupInputKind',
+  [
+    { no: 0, name: 'StartupInputKind_UNKNOWN' },
+    { no: 1, name: 'StartupInputKind_ENV_VAR' },
+    { no: 2, name: 'StartupInputKind_CONTROLLER_CONFIG_DIGEST' },
+  ],
+)
 
 /**
  * BuilderConfig is common configuration for a manifest builder routine.
@@ -114,6 +157,49 @@ export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
 })
 
 /**
+ * FileIdentity captures file identity at publish time for startup reuse.
+ *
+ * @generated from message bldr.manifest.builder.InputManifest.FileIdentity
+ */
+export interface InputManifest_FileIdentity {
+  /**
+   * SizeBytes is the file size in bytes.
+   *
+   * @generated from field: uint64 size_bytes = 1;
+   */
+  sizeBytes?: bigint
+  /**
+   * ModTimeUnixNano is the file modification time.
+   *
+   * @generated from field: int64 mod_time_unix_nano = 2;
+   */
+  modTimeUnixNano?: bigint
+  /**
+   * Sha256 is the file SHA-256 digest.
+   *
+   * @generated from field: bytes sha256 = 3;
+   */
+  sha256?: Uint8Array
+}
+
+// InputManifest_FileIdentity contains the message type declaration for InputManifest_FileIdentity.
+export const InputManifest_FileIdentity: MessageType<InputManifest_FileIdentity> =
+  createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.FileIdentity',
+    fields: [
+      { no: 1, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'mod_time_unix_nano',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      { no: 3, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * File is a file in the source manifest.
  *
  * @generated from message bldr.manifest.builder.InputManifest.File
@@ -132,6 +218,20 @@ export interface InputManifest_File {
    * @generated from field: bytes metadata = 2;
    */
   metadata?: Uint8Array
+  /**
+   * Identity is the publish-time file identity for startup validation.
+   * Optional.
+   *
+   * @generated from field: bldr.manifest.builder.InputManifest.FileIdentity identity = 3;
+   */
+  identity?: InputManifest_FileIdentity
+  /**
+   * StartupOnly records files needed only for startup validation.
+   * These files are ignored by the live watch loop.
+   *
+   * @generated from field: bool startup_only = 4;
+   */
+  startupOnly?: boolean
 }
 
 // InputManifest_File contains the message type declaration for InputManifest_File.
@@ -141,6 +241,13 @@ export const InputManifest_File: MessageType<InputManifest_File> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'identity',
+        kind: 'message',
+        T: () => InputManifest_FileIdentity,
+      },
+      { no: 4, name: 'startup_only', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -180,6 +287,56 @@ export const InputManifest_ManifestDep: MessageType<InputManifest_ManifestDep> =
   })
 
 /**
+ * StartupInput declares a typed non-file startup validation input.
+ *
+ * @generated from message bldr.manifest.builder.InputManifest.StartupInput
+ */
+export interface InputManifest_StartupInput {
+  /**
+   * Kind is the startup input kind.
+   *
+   * @generated from field: bldr.manifest.builder.InputManifest.StartupInputKind kind = 1;
+   */
+  kind?: InputManifest_StartupInputKind
+  /**
+   * Key identifies the input within its kind.
+   *
+   * @generated from field: string key = 2;
+   */
+  key?: string
+  /**
+   * StringValue is the expected string value.
+   *
+   * @generated from field: string string_value = 3;
+   */
+  stringValue?: string
+  /**
+   * BytesValue is the expected bytes value.
+   *
+   * @generated from field: bytes bytes_value = 4;
+   */
+  bytesValue?: Uint8Array
+}
+
+// InputManifest_StartupInput contains the message type declaration for InputManifest_StartupInput.
+export const InputManifest_StartupInput: MessageType<InputManifest_StartupInput> =
+  createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.StartupInput',
+    fields: [
+      {
+        no: 1,
+        name: 'kind',
+        kind: 'enum',
+        T: InputManifest_StartupInputKind_Enum,
+      },
+      { no: 2, name: 'key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'string_value', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'bytes_value', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * InputManifest is an object describing the consumed source files.
  *
  * @generated from message bldr.manifest.builder.InputManifest
@@ -208,6 +365,13 @@ export interface InputManifest {
    * @generated from field: repeated bldr.manifest.builder.InputManifest.ManifestDep manifest_deps = 3;
    */
   manifestDeps?: InputManifest_ManifestDep[]
+  /**
+   * StartupInputs are typed non-file inputs used for startup validation.
+   * Optional.
+   *
+   * @generated from field: repeated bldr.manifest.builder.InputManifest.StartupInput startup_inputs = 4;
+   */
+  startupInputs?: InputManifest_StartupInput[]
 }
 
 // InputManifest contains the message type declaration for InputManifest.
@@ -227,6 +391,13 @@ export const InputManifest: MessageType<InputManifest> = createMessageType({
       name: 'manifest_deps',
       kind: 'message',
       T: () => InputManifest_ManifestDep,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'startup_inputs',
+      kind: 'message',
+      T: () => InputManifest_StartupInput,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

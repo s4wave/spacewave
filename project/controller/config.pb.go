@@ -184,6 +184,36 @@ func (x *ManifestBuilderResult) GetBuilderResult() *builder.BuilderResult {
 	return nil
 }
 
+// ManifestStartupBuildState is the persisted startup build state for one
+// manifest build slot.
+type ManifestStartupBuildState struct {
+	unknownFields []byte
+	// ManifestBuilderConfig identifies the manifest build slot.
+	ManifestBuilderConfig *ManifestBuilderConfig `protobuf:"bytes,1,opt,name=manifest_builder_config,json=manifestBuilderConfig,proto3" json:"manifestBuilderConfig,omitempty"`
+	// BuilderResult contains the published output and diffable inputs.
+	BuilderResult *builder.BuilderResult `protobuf:"bytes,2,opt,name=builder_result,json=builderResult,proto3" json:"builderResult,omitempty"`
+}
+
+func (x *ManifestStartupBuildState) Reset() {
+	*x = ManifestStartupBuildState{}
+}
+
+func (*ManifestStartupBuildState) ProtoMessage() {}
+
+func (x *ManifestStartupBuildState) GetManifestBuilderConfig() *ManifestBuilderConfig {
+	if x != nil {
+		return x.ManifestBuilderConfig
+	}
+	return nil
+}
+
+func (x *ManifestStartupBuildState) GetBuilderResult() *builder.BuilderResult {
+	if x != nil {
+		return x.BuilderResult
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -237,8 +267,12 @@ func (m *ManifestBuilderResult) CloneVT() *ManifestBuilderResult {
 		return (*ManifestBuilderResult)(nil)
 	}
 	r := new(ManifestBuilderResult)
-	r.BuilderConfig = m.BuilderConfig.CloneVT()
-	r.BuilderResult = m.BuilderResult.CloneVT()
+	if rhs := m.BuilderConfig; rhs != nil {
+		r.BuilderConfig = rhs.CloneVT()
+	}
+	if rhs := m.BuilderResult; rhs != nil {
+		r.BuilderResult = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -246,6 +280,25 @@ func (m *ManifestBuilderResult) CloneVT() *ManifestBuilderResult {
 }
 
 func (m *ManifestBuilderResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ManifestStartupBuildState) CloneVT() *ManifestStartupBuildState {
+	if m == nil {
+		return (*ManifestStartupBuildState)(nil)
+	}
+	r := new(ManifestStartupBuildState)
+	r.ManifestBuilderConfig = m.ManifestBuilderConfig.CloneVT()
+	if rhs := m.BuilderResult; rhs != nil {
+		r.BuilderResult = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ManifestStartupBuildState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -342,6 +395,29 @@ func (this *ManifestBuilderResult) EqualVT(that *ManifestBuilderResult) bool {
 
 func (this *ManifestBuilderResult) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ManifestBuilderResult)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ManifestStartupBuildState) EqualVT(that *ManifestStartupBuildState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.ManifestBuilderConfig.EqualVT(that.ManifestBuilderConfig) {
+		return false
+	}
+	if !this.BuilderResult.EqualVT(that.BuilderResult) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ManifestStartupBuildState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ManifestStartupBuildState)
 	if !ok {
 		return false
 	}
@@ -582,6 +658,64 @@ func (x *ManifestBuilderResult) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ManifestStartupBuildState message to JSON.
+func (x *ManifestStartupBuildState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ManifestBuilderConfig != nil || s.HasField("manifestBuilderConfig") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestBuilderConfig")
+		x.ManifestBuilderConfig.MarshalProtoJSON(s.WithField("manifestBuilderConfig"))
+	}
+	if x.BuilderResult != nil || s.HasField("builderResult") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("builderResult")
+		x.BuilderResult.MarshalProtoJSON(s.WithField("builderResult"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ManifestStartupBuildState to JSON.
+func (x *ManifestStartupBuildState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ManifestStartupBuildState message from JSON.
+func (x *ManifestStartupBuildState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "manifest_builder_config", "manifestBuilderConfig":
+			if s.ReadNil() {
+				x.ManifestBuilderConfig = nil
+				return
+			}
+			x.ManifestBuilderConfig = &ManifestBuilderConfig{}
+			x.ManifestBuilderConfig.UnmarshalProtoJSON(s.WithField("manifest_builder_config", true))
+		case "builder_result", "builderResult":
+			if s.ReadNil() {
+				x.BuilderResult = nil
+				return
+			}
+			x.BuilderResult = &builder.BuilderResult{}
+			x.BuilderResult.UnmarshalProtoJSON(s.WithField("builder_result", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ManifestStartupBuildState from JSON.
+func (x *ManifestStartupBuildState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -799,6 +933,59 @@ func (m *ManifestBuilderResult) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *ManifestStartupBuildState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ManifestStartupBuildState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ManifestStartupBuildState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BuilderResult != nil {
+		size, err := m.BuilderResult.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ManifestBuilderConfig != nil {
+		size, err := m.ManifestBuilderConfig.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -875,6 +1062,24 @@ func (m *ManifestBuilderResult) SizeVT() (n int) {
 	_ = l
 	if m.BuilderConfig != nil {
 		l = m.BuilderConfig.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.BuilderResult != nil {
+		l = m.BuilderResult.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ManifestStartupBuildState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ManifestBuilderConfig != nil {
+		l = m.ManifestBuilderConfig.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if m.BuilderResult != nil {
@@ -1019,6 +1224,31 @@ func (x *ManifestBuilderResult) MarshalProtoText() string {
 }
 
 func (x *ManifestBuilderResult) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ManifestStartupBuildState) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ManifestStartupBuildState {")
+	if x.ManifestBuilderConfig != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_builder_config: ")
+		sb.WriteString(x.ManifestBuilderConfig.MarshalProtoText())
+	}
+	if x.BuilderResult != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("builder_result: ")
+		sb.WriteString(x.BuilderResult.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ManifestStartupBuildState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1409,6 +1639,105 @@ func (m *ManifestBuilderResult) UnmarshalVT(dAtA []byte) error {
 				m.BuilderConfig = &builder.BuilderConfig{}
 			}
 			if err := m.BuilderConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuilderResult", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuilderResult == nil {
+				m.BuilderResult = &builder.BuilderResult{}
+			}
+			if err := m.BuilderResult.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ManifestStartupBuildState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ManifestStartupBuildState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ManifestStartupBuildState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestBuilderConfig", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ManifestBuilderConfig == nil {
+				m.ManifestBuilderConfig = &ManifestBuilderConfig{}
+			}
+			if err := m.ManifestBuilderConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -188,3 +188,45 @@ export const ManifestBuilderResult: MessageType<ManifestBuilderResult> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * ManifestStartupBuildState is the persisted startup build state for one
+ * manifest build slot.
+ *
+ * @generated from message bldr.project.controller.ManifestStartupBuildState
+ */
+export interface ManifestStartupBuildState {
+  /**
+   * ManifestBuilderConfig identifies the manifest build slot.
+   *
+   * @generated from field: bldr.project.controller.ManifestBuilderConfig manifest_builder_config = 1;
+   */
+  manifestBuilderConfig?: ManifestBuilderConfig
+  /**
+   * BuilderResult contains the published output and diffable inputs.
+   *
+   * @generated from field: bldr.manifest.builder.BuilderResult builder_result = 2;
+   */
+  builderResult?: BuilderResult
+}
+
+// ManifestStartupBuildState contains the message type declaration for ManifestStartupBuildState.
+export const ManifestStartupBuildState: MessageType<ManifestStartupBuildState> =
+  createMessageType({
+    typeName: 'bldr.project.controller.ManifestStartupBuildState',
+    fields: [
+      {
+        no: 1,
+        name: 'manifest_builder_config',
+        kind: 'message',
+        T: () => ManifestBuilderConfig,
+      },
+      {
+        no: 2,
+        name: 'builder_result',
+        kind: 'message',
+        T: () => BuilderResult,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -30,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../manifest.pb.h"
 #include "github.com/aperturerobotics/hydra/bucket/bucket.pb.h"
@@ -59,6 +60,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace bldr {
 namespace manifest {
 namespace builder {
+enum InputManifest_StartupInputKind : int;
+extern const uint32_t InputManifest_StartupInputKind_internal_data_[];
 class BuildManifestArgs;
 struct BuildManifestArgsDefaultTypeInternal;
 extern BuildManifestArgsDefaultTypeInternal _BuildManifestArgs_default_instance_;
@@ -79,25 +82,533 @@ class InputManifest_File;
 struct InputManifest_FileDefaultTypeInternal;
 extern InputManifest_FileDefaultTypeInternal _InputManifest_File_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_File_class_data_;
+class InputManifest_FileIdentity;
+struct InputManifest_FileIdentityDefaultTypeInternal;
+extern InputManifest_FileIdentityDefaultTypeInternal _InputManifest_FileIdentity_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull InputManifest_FileIdentity_class_data_;
 class InputManifest_ManifestDep;
 struct InputManifest_ManifestDepDefaultTypeInternal;
 extern InputManifest_ManifestDepDefaultTypeInternal _InputManifest_ManifestDep_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_ManifestDep_class_data_;
+class InputManifest_StartupInput;
+struct InputManifest_StartupInputDefaultTypeInternal;
+extern InputManifest_StartupInputDefaultTypeInternal _InputManifest_StartupInput_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull InputManifest_StartupInput_class_data_;
 }  // namespace builder
 }  // namespace manifest
 }  // namespace bldr
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::bldr::manifest::builder::InputManifest_StartupInputKind_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::manifest::builder::InputManifest_StartupInputKind>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace bldr {
 namespace manifest {
 namespace builder {
+enum InputManifest_StartupInputKind : int {
+  InputManifest_StartupInputKind_StartupInputKind_UNKNOWN = 0,
+  InputManifest_StartupInputKind_StartupInputKind_ENV_VAR = 1,
+  InputManifest_StartupInputKind_StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2,
+  InputManifest_StartupInputKind_InputManifest_StartupInputKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  InputManifest_StartupInputKind_InputManifest_StartupInputKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t InputManifest_StartupInputKind_internal_data_[];
+inline constexpr InputManifest_StartupInputKind InputManifest_StartupInputKind_StartupInputKind_MIN =
+    static_cast<InputManifest_StartupInputKind>(0);
+inline constexpr InputManifest_StartupInputKind InputManifest_StartupInputKind_StartupInputKind_MAX =
+    static_cast<InputManifest_StartupInputKind>(2);
+inline bool InputManifest_StartupInputKind_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int InputManifest_StartupInputKind_StartupInputKind_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL InputManifest_StartupInputKind_descriptor();
+template <typename T>
+const ::std::string& InputManifest_StartupInputKind_Name(T value) {
+  static_assert(::std::is_same<T, InputManifest_StartupInputKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to StartupInputKind_Name().");
+  return InputManifest_StartupInputKind_Name(static_cast<InputManifest_StartupInputKind>(value));
+}
+template <>
+inline const ::std::string& InputManifest_StartupInputKind_Name(InputManifest_StartupInputKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<InputManifest_StartupInputKind_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool InputManifest_StartupInputKind_Parse(
+    ::absl::string_view name, InputManifest_StartupInputKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<InputManifest_StartupInputKind>(InputManifest_StartupInputKind_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class InputManifest_StartupInput final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.manifest.builder.InputManifest.StartupInput) */ {
+ public:
+  inline InputManifest_StartupInput() : InputManifest_StartupInput(nullptr) {}
+  ~InputManifest_StartupInput() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(InputManifest_StartupInput* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(InputManifest_StartupInput));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR InputManifest_StartupInput(::google::protobuf::internal::ConstantInitialized);
+
+  inline InputManifest_StartupInput(const InputManifest_StartupInput& from) : InputManifest_StartupInput(nullptr, from) {}
+  inline InputManifest_StartupInput(InputManifest_StartupInput&& from) noexcept
+      : InputManifest_StartupInput(nullptr, ::std::move(from)) {}
+  inline InputManifest_StartupInput& operator=(const InputManifest_StartupInput& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline InputManifest_StartupInput& operator=(InputManifest_StartupInput&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const InputManifest_StartupInput& default_instance() {
+    return *reinterpret_cast<const InputManifest_StartupInput*>(
+        &_InputManifest_StartupInput_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(InputManifest_StartupInput& a, InputManifest_StartupInput& b) { a.Swap(&b); }
+  inline void Swap(InputManifest_StartupInput* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(InputManifest_StartupInput* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  InputManifest_StartupInput* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<InputManifest_StartupInput>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const InputManifest_StartupInput& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const InputManifest_StartupInput& from) { InputManifest_StartupInput::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(InputManifest_StartupInput* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.manifest.builder.InputManifest.StartupInput"; }
+
+  explicit InputManifest_StartupInput(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  InputManifest_StartupInput(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InputManifest_StartupInput& from);
+  InputManifest_StartupInput(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, InputManifest_StartupInput&& from) noexcept
+      : InputManifest_StartupInput(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kKeyFieldNumber = 2,
+    kStringValueFieldNumber = 3,
+    kBytesValueFieldNumber = 4,
+    kKindFieldNumber = 1,
+  };
+  // string key = 2;
+  void clear_key() ;
+  const ::std::string& key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_key();
+  void set_allocated_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // string string_value = 3;
+  void clear_string_value() ;
+  const ::std::string& string_value() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_string_value(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_string_value();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_string_value();
+  void set_allocated_string_value(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_string_value() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_string_value(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_string_value();
+
+  public:
+  // bytes bytes_value = 4;
+  void clear_bytes_value() ;
+  const ::std::string& bytes_value() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_bytes_value(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_bytes_value();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_bytes_value();
+  void set_allocated_bytes_value(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_bytes_value() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_bytes_value(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_bytes_value();
+
+  public:
+  // .bldr.manifest.builder.InputManifest.StartupInputKind kind = 1;
+  void clear_kind() ;
+  ::bldr::manifest::builder::InputManifest_StartupInputKind kind() const;
+  void set_kind(::bldr::manifest::builder::InputManifest_StartupInputKind value);
+
+  private:
+  ::bldr::manifest::builder::InputManifest_StartupInputKind _internal_kind() const;
+  void _internal_set_kind(::bldr::manifest::builder::InputManifest_StartupInputKind value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.manifest.builder.InputManifest.StartupInput)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 72,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const InputManifest_StartupInput& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr key_;
+    ::google::protobuf::internal::ArenaStringPtr string_value_;
+    ::google::protobuf::internal::ArenaStringPtr bytes_value_;
+    int kind_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull InputManifest_StartupInput_class_data_;
+// -------------------------------------------------------------------
+
+class InputManifest_FileIdentity final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.manifest.builder.InputManifest.FileIdentity) */ {
+ public:
+  inline InputManifest_FileIdentity() : InputManifest_FileIdentity(nullptr) {}
+  ~InputManifest_FileIdentity() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(InputManifest_FileIdentity* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(InputManifest_FileIdentity));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR InputManifest_FileIdentity(::google::protobuf::internal::ConstantInitialized);
+
+  inline InputManifest_FileIdentity(const InputManifest_FileIdentity& from) : InputManifest_FileIdentity(nullptr, from) {}
+  inline InputManifest_FileIdentity(InputManifest_FileIdentity&& from) noexcept
+      : InputManifest_FileIdentity(nullptr, ::std::move(from)) {}
+  inline InputManifest_FileIdentity& operator=(const InputManifest_FileIdentity& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline InputManifest_FileIdentity& operator=(InputManifest_FileIdentity&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const InputManifest_FileIdentity& default_instance() {
+    return *reinterpret_cast<const InputManifest_FileIdentity*>(
+        &_InputManifest_FileIdentity_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(InputManifest_FileIdentity& a, InputManifest_FileIdentity& b) { a.Swap(&b); }
+  inline void Swap(InputManifest_FileIdentity* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(InputManifest_FileIdentity* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  InputManifest_FileIdentity* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<InputManifest_FileIdentity>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const InputManifest_FileIdentity& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const InputManifest_FileIdentity& from) { InputManifest_FileIdentity::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(InputManifest_FileIdentity* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.manifest.builder.InputManifest.FileIdentity"; }
+
+  explicit InputManifest_FileIdentity(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  InputManifest_FileIdentity(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InputManifest_FileIdentity& from);
+  InputManifest_FileIdentity(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, InputManifest_FileIdentity&& from) noexcept
+      : InputManifest_FileIdentity(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSha256FieldNumber = 3,
+    kSizeBytesFieldNumber = 1,
+    kModTimeUnixNanoFieldNumber = 2,
+  };
+  // bytes sha256 = 3;
+  void clear_sha256() ;
+  const ::std::string& sha256() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_sha256(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_sha256();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sha256();
+  void set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_sha256() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_sha256(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_sha256();
+
+  public:
+  // uint64 size_bytes = 1;
+  void clear_size_bytes() ;
+  ::uint64_t size_bytes() const;
+  void set_size_bytes(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_size_bytes() const;
+  void _internal_set_size_bytes(::uint64_t value);
+
+  public:
+  // int64 mod_time_unix_nano = 2;
+  void clear_mod_time_unix_nano() ;
+  ::int64_t mod_time_unix_nano() const;
+  void set_mod_time_unix_nano(::int64_t value);
+
+  private:
+  ::int64_t _internal_mod_time_unix_nano() const;
+  void _internal_set_mod_time_unix_nano(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.manifest.builder.InputManifest.FileIdentity)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const InputManifest_FileIdentity& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr sha256_;
+    ::uint64_t size_bytes_;
+    ::int64_t mod_time_unix_nano_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull InputManifest_FileIdentity_class_data_;
 // -------------------------------------------------------------------
 
 class InputManifest_File final : public ::google::protobuf::Message
@@ -155,7 +666,7 @@ class InputManifest_File final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_File*>(
         &_InputManifest_File_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(InputManifest_File& a, InputManifest_File& b) { a.Swap(&b); }
   inline void Swap(InputManifest_File* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -244,6 +755,8 @@ class InputManifest_File final : public ::google::protobuf::Message
   enum : int {
     kPathFieldNumber = 1,
     kMetadataFieldNumber = 2,
+    kIdentityFieldNumber = 3,
+    kStartupOnlyFieldNumber = 4,
   };
   // string path = 1;
   void clear_path() ;
@@ -275,12 +788,37 @@ class InputManifest_File final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_metadata();
 
   public:
+  // .bldr.manifest.builder.InputManifest.FileIdentity identity = 3;
+  bool has_identity() const;
+  void clear_identity() ;
+  const ::bldr::manifest::builder::InputManifest_FileIdentity& identity() const;
+  [[nodiscard]] ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE release_identity();
+  ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NONNULL mutable_identity();
+  void set_allocated_identity(::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_identity(::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE value);
+  ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE unsafe_arena_release_identity();
+
+  private:
+  const ::bldr::manifest::builder::InputManifest_FileIdentity& _internal_identity() const;
+  ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NONNULL _internal_mutable_identity();
+
+  public:
+  // bool startup_only = 4;
+  void clear_startup_only() ;
+  bool startup_only() const;
+  void set_startup_only(bool value);
+
+  private:
+  bool _internal_startup_only() const;
+  void _internal_set_startup_only(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.manifest.builder.InputManifest.File)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 53,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 53,
                                    2>
       _table_;
 
@@ -303,6 +841,8 @@ class InputManifest_File final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr path_;
     ::google::protobuf::internal::ArenaStringPtr metadata_;
+    ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE identity_;
+    bool startup_only_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -729,7 +1269,7 @@ class InputManifest_ManifestDep final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_ManifestDep*>(
         &_InputManifest_ManifestDep_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(InputManifest_ManifestDep& a, InputManifest_ManifestDep& b) { a.Swap(&b); }
   inline void Swap(InputManifest_ManifestDep* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -941,7 +1481,7 @@ class InputManifest final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest*>(
         &_InputManifest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(InputManifest& a, InputManifest& b) { a.Swap(&b); }
   inline void Swap(InputManifest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1025,13 +1565,37 @@ class InputManifest final : public ::google::protobuf::Message
 
   ::google::protobuf::Metadata GetMetadata() const;
   // nested types ----------------------------------------------------
+  using FileIdentity = InputManifest_FileIdentity;
   using File = InputManifest_File;
   using ManifestDep = InputManifest_ManifestDep;
+  using StartupInput = InputManifest_StartupInput;
+  using StartupInputKind = InputManifest_StartupInputKind;
+  static constexpr StartupInputKind StartupInputKind_UNKNOWN = InputManifest_StartupInputKind_StartupInputKind_UNKNOWN;
+  static constexpr StartupInputKind StartupInputKind_ENV_VAR = InputManifest_StartupInputKind_StartupInputKind_ENV_VAR;
+  static constexpr StartupInputKind StartupInputKind_CONTROLLER_CONFIG_DIGEST = InputManifest_StartupInputKind_StartupInputKind_CONTROLLER_CONFIG_DIGEST;
+  static inline bool StartupInputKind_IsValid(int value) {
+    return InputManifest_StartupInputKind_IsValid(value);
+  }
+  static constexpr StartupInputKind StartupInputKind_MIN = InputManifest_StartupInputKind_StartupInputKind_MIN;
+  static constexpr StartupInputKind StartupInputKind_MAX = InputManifest_StartupInputKind_StartupInputKind_MAX;
+  static constexpr int StartupInputKind_ARRAYSIZE = InputManifest_StartupInputKind_StartupInputKind_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StartupInputKind_descriptor() {
+    return InputManifest_StartupInputKind_descriptor();
+  }
+  template <typename T>
+  static inline const ::std::string& StartupInputKind_Name(T value) {
+    return InputManifest_StartupInputKind_Name(value);
+  }
+  static inline bool StartupInputKind_Parse(
+      ::absl::string_view name, StartupInputKind* PROTOBUF_NONNULL value) {
+    return InputManifest_StartupInputKind_Parse(name, value);
+  }
 
   // accessors -------------------------------------------------------
   enum : int {
     kFilesFieldNumber = 1,
     kManifestDepsFieldNumber = 3,
+    kStartupInputsFieldNumber = 4,
     kMetadataFieldNumber = 2,
   };
   // repeated .bldr.manifest.builder.InputManifest.File files = 1;
@@ -1068,6 +1632,23 @@ class InputManifest final : public ::google::protobuf::Message
   const ::bldr::manifest::builder::InputManifest_ManifestDep& manifest_deps(int index) const;
   ::bldr::manifest::builder::InputManifest_ManifestDep* PROTOBUF_NONNULL add_manifest_deps();
   const ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_ManifestDep>& manifest_deps() const;
+  // repeated .bldr.manifest.builder.InputManifest.StartupInput startup_inputs = 4;
+  int startup_inputs_size() const;
+  private:
+  int _internal_startup_inputs_size() const;
+
+  public:
+  void clear_startup_inputs() ;
+  ::bldr::manifest::builder::InputManifest_StartupInput* PROTOBUF_NONNULL mutable_startup_inputs(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>* PROTOBUF_NONNULL mutable_startup_inputs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>& _internal_startup_inputs() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>* PROTOBUF_NONNULL _internal_mutable_startup_inputs();
+  public:
+  const ::bldr::manifest::builder::InputManifest_StartupInput& startup_inputs(int index) const;
+  ::bldr::manifest::builder::InputManifest_StartupInput* PROTOBUF_NONNULL add_startup_inputs();
+  const ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>& startup_inputs() const;
   // bytes metadata = 2;
   void clear_metadata() ;
   const ::std::string& metadata() const;
@@ -1087,8 +1668,8 @@ class InputManifest final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   2, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   3, 0,
                                    2>
       _table_;
 
@@ -1111,6 +1692,7 @@ class InputManifest final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::bldr::manifest::builder::InputManifest_File > files_;
     ::google::protobuf::RepeatedPtrField< ::bldr::manifest::builder::InputManifest_ManifestDep > manifest_deps_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::manifest::builder::InputManifest_StartupInput > startup_inputs_;
     ::google::protobuf::internal::ArenaStringPtr metadata_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1405,7 +1987,7 @@ class BuildManifestArgs final : public ::google::protobuf::Message
     return *reinterpret_cast<const BuildManifestArgs*>(
         &_BuildManifestArgs_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(BuildManifestArgs& a, BuildManifestArgs& b) { a.Swap(&b); }
   inline void Swap(BuildManifestArgs* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2579,6 +3161,125 @@ inline void BuilderResult::set_allocated_input_manifest(::bldr::manifest::builde
 
 // -------------------------------------------------------------------
 
+// InputManifest_FileIdentity
+
+// uint64 size_bytes = 1;
+inline void InputManifest_FileIdentity::clear_size_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.size_bytes_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t InputManifest_FileIdentity::size_bytes() const {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.FileIdentity.size_bytes)
+  return _internal_size_bytes();
+}
+inline void InputManifest_FileIdentity::set_size_bytes(::uint64_t value) {
+  _internal_set_size_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.FileIdentity.size_bytes)
+}
+inline ::uint64_t InputManifest_FileIdentity::_internal_size_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.size_bytes_;
+}
+inline void InputManifest_FileIdentity::_internal_set_size_bytes(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.size_bytes_ = value;
+}
+
+// int64 mod_time_unix_nano = 2;
+inline void InputManifest_FileIdentity::clear_mod_time_unix_nano() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.mod_time_unix_nano_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::int64_t InputManifest_FileIdentity::mod_time_unix_nano() const {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.FileIdentity.mod_time_unix_nano)
+  return _internal_mod_time_unix_nano();
+}
+inline void InputManifest_FileIdentity::set_mod_time_unix_nano(::int64_t value) {
+  _internal_set_mod_time_unix_nano(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.FileIdentity.mod_time_unix_nano)
+}
+inline ::int64_t InputManifest_FileIdentity::_internal_mod_time_unix_nano() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.mod_time_unix_nano_;
+}
+inline void InputManifest_FileIdentity::_internal_set_mod_time_unix_nano(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.mod_time_unix_nano_ = value;
+}
+
+// bytes sha256 = 3;
+inline void InputManifest_FileIdentity::clear_sha256() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sha256_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& InputManifest_FileIdentity::sha256() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.FileIdentity.sha256)
+  return _internal_sha256();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void InputManifest_FileIdentity::set_sha256(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.sha256_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.FileIdentity.sha256)
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_FileIdentity::mutable_sha256()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_sha256();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.FileIdentity.sha256)
+  return _s;
+}
+inline const ::std::string& InputManifest_FileIdentity::_internal_sha256() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sha256_.Get();
+}
+inline void InputManifest_FileIdentity::_internal_set_sha256(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sha256_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_FileIdentity::_internal_mutable_sha256() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.sha256_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE InputManifest_FileIdentity::release_sha256() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.FileIdentity.sha256)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.sha256_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.sha256_.Set("", GetArena());
+  }
+  return released;
+}
+inline void InputManifest_FileIdentity::set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.sha256_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.sha256_.IsDefault()) {
+    _impl_.sha256_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.FileIdentity.sha256)
+}
+
+// -------------------------------------------------------------------
+
 // InputManifest_File
 
 // string path = 1;
@@ -2709,6 +3410,130 @@ inline void InputManifest_File::set_allocated_metadata(::std::string* PROTOBUF_N
     _impl_.metadata_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.File.metadata)
+}
+
+// .bldr.manifest.builder.InputManifest.FileIdentity identity = 3;
+inline bool InputManifest_File::has_identity() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.identity_ != nullptr);
+  return value;
+}
+inline void InputManifest_File::clear_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.identity_ != nullptr) _impl_.identity_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::bldr::manifest::builder::InputManifest_FileIdentity& InputManifest_File::_internal_identity() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::manifest::builder::InputManifest_FileIdentity* p = _impl_.identity_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::manifest::builder::InputManifest_FileIdentity&>(::bldr::manifest::builder::_InputManifest_FileIdentity_default_instance_);
+}
+inline const ::bldr::manifest::builder::InputManifest_FileIdentity& InputManifest_File::identity() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.File.identity)
+  return _internal_identity();
+}
+inline void InputManifest_File::unsafe_arena_set_allocated_identity(
+    ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.identity_);
+  }
+  _impl_.identity_ = reinterpret_cast<::bldr::manifest::builder::InputManifest_FileIdentity*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.manifest.builder.InputManifest.File.identity)
+}
+inline ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE InputManifest_File::release_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::bldr::manifest::builder::InputManifest_FileIdentity* released = _impl_.identity_;
+  _impl_.identity_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE InputManifest_File::unsafe_arena_release_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.File.identity)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::bldr::manifest::builder::InputManifest_FileIdentity* temp = _impl_.identity_;
+  _impl_.identity_ = nullptr;
+  return temp;
+}
+inline ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NONNULL InputManifest_File::_internal_mutable_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.identity_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::manifest::builder::InputManifest_FileIdentity>(GetArena());
+    _impl_.identity_ = reinterpret_cast<::bldr::manifest::builder::InputManifest_FileIdentity*>(p);
+  }
+  return _impl_.identity_;
+}
+inline ::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NONNULL InputManifest_File::mutable_identity()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::bldr::manifest::builder::InputManifest_FileIdentity* _msg = _internal_mutable_identity();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.File.identity)
+  return _msg;
+}
+inline void InputManifest_File::set_allocated_identity(::bldr::manifest::builder::InputManifest_FileIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.identity_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.identity_ = reinterpret_cast<::bldr::manifest::builder::InputManifest_FileIdentity*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.File.identity)
+}
+
+// bool startup_only = 4;
+inline void InputManifest_File::clear_startup_only() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.startup_only_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool InputManifest_File::startup_only() const {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.File.startup_only)
+  return _internal_startup_only();
+}
+inline void InputManifest_File::set_startup_only(bool value) {
+  _internal_set_startup_only(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.File.startup_only)
+}
+inline bool InputManifest_File::_internal_startup_only() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.startup_only_;
+}
+inline void InputManifest_File::_internal_set_startup_only(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.startup_only_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -2875,6 +3700,230 @@ inline void InputManifest_ManifestDep::set_allocated_manifest_ref(::bucket::Obje
 
 // -------------------------------------------------------------------
 
+// InputManifest_StartupInput
+
+// .bldr.manifest.builder.InputManifest.StartupInputKind kind = 1;
+inline void InputManifest_StartupInput::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::bldr::manifest::builder::InputManifest_StartupInputKind InputManifest_StartupInput::kind() const {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.StartupInput.kind)
+  return _internal_kind();
+}
+inline void InputManifest_StartupInput::set_kind(::bldr::manifest::builder::InputManifest_StartupInputKind value) {
+  _internal_set_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.StartupInput.kind)
+}
+inline ::bldr::manifest::builder::InputManifest_StartupInputKind InputManifest_StartupInput::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::manifest::builder::InputManifest_StartupInputKind>(_impl_.kind_);
+}
+inline void InputManifest_StartupInput::_internal_set_kind(::bldr::manifest::builder::InputManifest_StartupInputKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// string key = 2;
+inline void InputManifest_StartupInput::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& InputManifest_StartupInput::key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.StartupInput.key)
+  return _internal_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void InputManifest_StartupInput::set_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.StartupInput.key)
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.StartupInput.key)
+  return _s;
+}
+inline const ::std::string& InputManifest_StartupInput::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.key_.Get();
+}
+inline void InputManifest_StartupInput::_internal_set_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE InputManifest_StartupInput::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.StartupInput.key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void InputManifest_StartupInput::set_allocated_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.key_.IsDefault()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.StartupInput.key)
+}
+
+// string string_value = 3;
+inline void InputManifest_StartupInput::clear_string_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.string_value_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& InputManifest_StartupInput::string_value() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.StartupInput.string_value)
+  return _internal_string_value();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void InputManifest_StartupInput::set_string_value(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.string_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.StartupInput.string_value)
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::mutable_string_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_string_value();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.StartupInput.string_value)
+  return _s;
+}
+inline const ::std::string& InputManifest_StartupInput::_internal_string_value() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.string_value_.Get();
+}
+inline void InputManifest_StartupInput::_internal_set_string_value(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.string_value_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::_internal_mutable_string_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.string_value_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE InputManifest_StartupInput::release_string_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.StartupInput.string_value)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.string_value_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.string_value_.Set("", GetArena());
+  }
+  return released;
+}
+inline void InputManifest_StartupInput::set_allocated_string_value(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.string_value_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.string_value_.IsDefault()) {
+    _impl_.string_value_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.StartupInput.string_value)
+}
+
+// bytes bytes_value = 4;
+inline void InputManifest_StartupInput::clear_bytes_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.bytes_value_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& InputManifest_StartupInput::bytes_value() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.StartupInput.bytes_value)
+  return _internal_bytes_value();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void InputManifest_StartupInput::set_bytes_value(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.bytes_value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.StartupInput.bytes_value)
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::mutable_bytes_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_bytes_value();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.StartupInput.bytes_value)
+  return _s;
+}
+inline const ::std::string& InputManifest_StartupInput::_internal_bytes_value() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.bytes_value_.Get();
+}
+inline void InputManifest_StartupInput::_internal_set_bytes_value(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.bytes_value_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifest_StartupInput::_internal_mutable_bytes_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.bytes_value_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE InputManifest_StartupInput::release_bytes_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.StartupInput.bytes_value)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.bytes_value_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.bytes_value_.Set("", GetArena());
+  }
+  return released;
+}
+inline void InputManifest_StartupInput::set_allocated_bytes_value(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.bytes_value_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.bytes_value_.IsDefault()) {
+    _impl_.bytes_value_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.InputManifest.StartupInput.bytes_value)
+}
+
+// -------------------------------------------------------------------
+
 // InputManifest
 
 // repeated .bldr.manifest.builder.InputManifest.File files = 1;
@@ -2938,7 +3987,7 @@ inline void InputManifest::clear_metadata() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.metadata_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& InputManifest::metadata() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2948,13 +3997,13 @@ inline const ::std::string& InputManifest::metadata() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void InputManifest::set_metadata(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.metadata_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bldr.manifest.builder.InputManifest.metadata)
 }
 inline ::std::string* PROTOBUF_NONNULL InputManifest::mutable_metadata()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_metadata();
   // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.metadata)
   return _s;
@@ -2974,10 +4023,10 @@ inline ::std::string* PROTOBUF_NONNULL InputManifest::_internal_mutable_metadata
 inline ::std::string* PROTOBUF_NULLABLE InputManifest::release_metadata() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.manifest.builder.InputManifest.metadata)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.metadata_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.metadata_.Set("", GetArena());
@@ -2987,9 +4036,9 @@ inline ::std::string* PROTOBUF_NULLABLE InputManifest::release_metadata() {
 inline void InputManifest::set_allocated_metadata(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.metadata_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.metadata_.IsDefault()) {
@@ -3052,6 +4101,62 @@ inline ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputMani
 InputManifest::_internal_mutable_manifest_deps() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.manifest_deps_;
+}
+
+// repeated .bldr.manifest.builder.InputManifest.StartupInput startup_inputs = 4;
+inline int InputManifest::_internal_startup_inputs_size() const {
+  return _internal_startup_inputs().size();
+}
+inline int InputManifest::startup_inputs_size() const {
+  return _internal_startup_inputs_size();
+}
+inline void InputManifest::clear_startup_inputs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.startup_inputs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::bldr::manifest::builder::InputManifest_StartupInput* PROTOBUF_NONNULL InputManifest::mutable_startup_inputs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.InputManifest.startup_inputs)
+  return _internal_mutable_startup_inputs()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>* PROTOBUF_NONNULL InputManifest::mutable_startup_inputs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.manifest.builder.InputManifest.startup_inputs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_startup_inputs();
+}
+inline const ::bldr::manifest::builder::InputManifest_StartupInput& InputManifest::startup_inputs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.InputManifest.startup_inputs)
+  return _internal_startup_inputs().Get(index);
+}
+inline ::bldr::manifest::builder::InputManifest_StartupInput* PROTOBUF_NONNULL InputManifest::add_startup_inputs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::bldr::manifest::builder::InputManifest_StartupInput* _add =
+      _internal_mutable_startup_inputs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.manifest.builder.InputManifest.startup_inputs)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>& InputManifest::startup_inputs() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.manifest.builder.InputManifest.startup_inputs)
+  return _internal_startup_inputs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>&
+InputManifest::_internal_startup_inputs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.startup_inputs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::manifest::builder::InputManifest_StartupInput>* PROTOBUF_NONNULL
+InputManifest::_internal_mutable_startup_inputs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.startup_inputs_;
 }
 
 // -------------------------------------------------------------------
@@ -3321,6 +4426,19 @@ BuildManifestArgs::_internal_mutable_changed_files() {
 }  // namespace manifest
 }  // namespace bldr
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::bldr::manifest::builder::InputManifest_StartupInputKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::manifest::builder::InputManifest_StartupInputKind>() {
+  return ::bldr::manifest::builder::InputManifest_StartupInputKind_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

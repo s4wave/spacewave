@@ -230,6 +230,7 @@ class Config final : public ::google::protobuf::Message
     kBuilderConfigFieldNumber = 1,
     kControllerConfigFieldNumber = 2,
     kBuildBackoffFieldNumber = 3,
+    kStartupBuilderResultFieldNumber = 6,
     kWatchFieldNumber = 4,
   };
   // repeated string watch_manifest_ids = 5;
@@ -299,6 +300,21 @@ class Config final : public ::google::protobuf::Message
   ::backoff::Backoff* PROTOBUF_NONNULL _internal_mutable_build_backoff();
 
   public:
+  // .bldr.manifest.builder.BuilderResult startup_builder_result = 6;
+  bool has_startup_builder_result() const;
+  void clear_startup_builder_result() ;
+  const ::bldr::manifest::builder::BuilderResult& startup_builder_result() const;
+  [[nodiscard]] ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE release_startup_builder_result();
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL mutable_startup_builder_result();
+  void set_allocated_startup_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_startup_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value);
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE unsafe_arena_release_startup_builder_result();
+
+  private:
+  const ::bldr::manifest::builder::BuilderResult& _internal_startup_builder_result() const;
+  ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL _internal_mutable_startup_builder_result();
+
+  public:
   // bool watch = 4;
   void clear_watch() ;
   bool watch() const;
@@ -313,8 +329,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   3, 66,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   4, 66,
                                    2>
       _table_;
 
@@ -339,6 +355,7 @@ class Config final : public ::google::protobuf::Message
     ::bldr::manifest::builder::BuilderConfig* PROTOBUF_NULLABLE builder_config_;
     ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE controller_config_;
     ::backoff::Backoff* PROTOBUF_NULLABLE build_backoff_;
+    ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE startup_builder_result_;
     bool watch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -648,7 +665,7 @@ inline void Config::clear_watch() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.watch_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline bool Config::watch() const {
   // @@protoc_insertion_point(field_get:bldr.manifest.builder.controller.Config.watch)
@@ -656,7 +673,7 @@ inline bool Config::watch() const {
 }
 inline void Config::set_watch(bool value) {
   _internal_set_watch(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:bldr.manifest.builder.controller.Config.watch)
 }
 inline bool Config::_internal_watch() const {
@@ -738,6 +755,99 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 Config::_internal_mutable_watch_manifest_ids() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.watch_manifest_ids_;
+}
+
+// .bldr.manifest.builder.BuilderResult startup_builder_result = 6;
+inline bool Config::has_startup_builder_result() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.startup_builder_result_ != nullptr);
+  return value;
+}
+inline const ::bldr::manifest::builder::BuilderResult& Config::_internal_startup_builder_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::manifest::builder::BuilderResult* p = _impl_.startup_builder_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::manifest::builder::BuilderResult&>(::bldr::manifest::builder::_BuilderResult_default_instance_);
+}
+inline const ::bldr::manifest::builder::BuilderResult& Config::startup_builder_result() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.manifest.builder.controller.Config.startup_builder_result)
+  return _internal_startup_builder_result();
+}
+inline void Config::unsafe_arena_set_allocated_startup_builder_result(
+    ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.startup_builder_result_);
+  }
+  _impl_.startup_builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.manifest.builder.controller.Config.startup_builder_result)
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE Config::release_startup_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bldr::manifest::builder::BuilderResult* released = _impl_.startup_builder_result_;
+  _impl_.startup_builder_result_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE Config::unsafe_arena_release_startup_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.manifest.builder.controller.Config.startup_builder_result)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bldr::manifest::builder::BuilderResult* temp = _impl_.startup_builder_result_;
+  _impl_.startup_builder_result_ = nullptr;
+  return temp;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL Config::_internal_mutable_startup_builder_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.startup_builder_result_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::manifest::builder::BuilderResult>(GetArena());
+    _impl_.startup_builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(p);
+  }
+  return _impl_.startup_builder_result_;
+}
+inline ::bldr::manifest::builder::BuilderResult* PROTOBUF_NONNULL Config::mutable_startup_builder_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bldr::manifest::builder::BuilderResult* _msg = _internal_mutable_startup_builder_result();
+  // @@protoc_insertion_point(field_mutable:bldr.manifest.builder.controller.Config.startup_builder_result)
+  return _msg;
+}
+inline void Config::set_allocated_startup_builder_result(::bldr::manifest::builder::BuilderResult* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.startup_builder_result_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.startup_builder_result_ = reinterpret_cast<::bldr::manifest::builder::BuilderResult*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.controller.Config.startup_builder_result)
 }
 
 #ifdef __GNUC__

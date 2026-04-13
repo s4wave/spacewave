@@ -18,6 +18,47 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// StartupInputKind describes a reusable startup validation input type.
+type InputManifest_StartupInputKind int32
+
+const (
+	// StartupInputKind_UNKNOWN is the default kind.
+	InputManifest_StartupInputKind_UNKNOWN InputManifest_StartupInputKind = 0
+	// StartupInputKind_ENV_VAR compares the current environment variable value.
+	InputManifest_StartupInputKind_ENV_VAR InputManifest_StartupInputKind = 1
+	// StartupInputKind_CONTROLLER_CONFIG_DIGEST compares the current builder
+	// controller config digest.
+	InputManifest_StartupInputKind_CONTROLLER_CONFIG_DIGEST InputManifest_StartupInputKind = 2
+)
+
+// Enum value maps for InputManifest_StartupInputKind.
+var (
+	InputManifest_StartupInputKind_name = map[int32]string{
+		0: "StartupInputKind_UNKNOWN",
+		1: "StartupInputKind_ENV_VAR",
+		2: "StartupInputKind_CONTROLLER_CONFIG_DIGEST",
+	}
+	InputManifest_StartupInputKind_value = map[string]int32{
+		"StartupInputKind_UNKNOWN":                  0,
+		"StartupInputKind_ENV_VAR":                  1,
+		"StartupInputKind_CONTROLLER_CONFIG_DIGEST": 2,
+	}
+)
+
+func (x InputManifest_StartupInputKind) Enum() *InputManifest_StartupInputKind {
+	p := new(InputManifest_StartupInputKind)
+	*p = x
+	return p
+}
+
+func (x InputManifest_StartupInputKind) String() string {
+	name, valid := InputManifest_StartupInputKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // BuilderConfig is common configuration for a manifest builder routine.
 type BuilderConfig struct {
 	unknownFields []byte
@@ -182,6 +223,9 @@ type InputManifest struct {
 	// a rebuild when any dependency's ref changes in the world.
 	// Optional.
 	ManifestDeps []*InputManifest_ManifestDep `protobuf:"bytes,3,rep,name=manifest_deps,json=manifestDeps,proto3" json:"manifestDeps,omitempty"`
+	// StartupInputs are typed non-file inputs used for startup validation.
+	// Optional.
+	StartupInputs []*InputManifest_StartupInput `protobuf:"bytes,4,rep,name=startup_inputs,json=startupInputs,proto3" json:"startupInputs,omitempty"`
 }
 
 func (x *InputManifest) Reset() {
@@ -207,6 +251,13 @@ func (x *InputManifest) GetMetadata() []byte {
 func (x *InputManifest) GetManifestDeps() []*InputManifest_ManifestDep {
 	if x != nil {
 		return x.ManifestDeps
+	}
+	return nil
+}
+
+func (x *InputManifest) GetStartupInputs() []*InputManifest_StartupInput {
+	if x != nil {
+		return x.StartupInputs
 	}
 	return nil
 }
@@ -255,6 +306,44 @@ func (x *BuildManifestArgs) GetChangedFiles() []*InputManifest_File {
 	return nil
 }
 
+// FileIdentity captures file identity at publish time for startup reuse.
+type InputManifest_FileIdentity struct {
+	unknownFields []byte
+	// SizeBytes is the file size in bytes.
+	SizeBytes uint64 `protobuf:"varint,1,opt,name=size_bytes,json=sizeBytes,proto3" json:"sizeBytes,omitempty"`
+	// ModTimeUnixNano is the file modification time.
+	ModTimeUnixNano int64 `protobuf:"varint,2,opt,name=mod_time_unix_nano,json=modTimeUnixNano,proto3" json:"modTimeUnixNano,omitempty"`
+	// Sha256 is the file SHA-256 digest.
+	Sha256 []byte `protobuf:"bytes,3,opt,name=sha256,proto3" json:"sha256,omitempty"`
+}
+
+func (x *InputManifest_FileIdentity) Reset() {
+	*x = InputManifest_FileIdentity{}
+}
+
+func (*InputManifest_FileIdentity) ProtoMessage() {}
+
+func (x *InputManifest_FileIdentity) GetSizeBytes() uint64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *InputManifest_FileIdentity) GetModTimeUnixNano() int64 {
+	if x != nil {
+		return x.ModTimeUnixNano
+	}
+	return 0
+}
+
+func (x *InputManifest_FileIdentity) GetSha256() []byte {
+	if x != nil {
+		return x.Sha256
+	}
+	return nil
+}
+
 // File is a file in the source manifest.
 type InputManifest_File struct {
 	unknownFields []byte
@@ -263,6 +352,12 @@ type InputManifest_File struct {
 	// Metadata is additional builder-specific metadata about the file.
 	// Optional.
 	Metadata []byte `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// Identity is the publish-time file identity for startup validation.
+	// Optional.
+	Identity *InputManifest_FileIdentity `protobuf:"bytes,3,opt,name=identity,proto3" json:"identity,omitempty"`
+	// StartupOnly records files needed only for startup validation.
+	// These files are ignored by the live watch loop.
+	StartupOnly bool `protobuf:"varint,4,opt,name=startup_only,json=startupOnly,proto3" json:"startupOnly,omitempty"`
 }
 
 func (x *InputManifest_File) Reset() {
@@ -283,6 +378,20 @@ func (x *InputManifest_File) GetMetadata() []byte {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *InputManifest_File) GetIdentity() *InputManifest_FileIdentity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *InputManifest_File) GetStartupOnly() bool {
+	if x != nil {
+		return x.StartupOnly
+	}
+	return false
 }
 
 // ManifestDep declares a dependency on another manifest.
@@ -313,6 +422,53 @@ func (x *InputManifest_ManifestDep) GetManifestId() string {
 func (x *InputManifest_ManifestDep) GetManifestRef() *bucket.ObjectRef {
 	if x != nil {
 		return x.ManifestRef
+	}
+	return nil
+}
+
+// StartupInput declares a typed non-file startup validation input.
+type InputManifest_StartupInput struct {
+	unknownFields []byte
+	// Kind is the startup input kind.
+	Kind InputManifest_StartupInputKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Key identifies the input within its kind.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// StringValue is the expected string value.
+	StringValue string `protobuf:"bytes,3,opt,name=string_value,json=stringValue,proto3" json:"stringValue,omitempty"`
+	// BytesValue is the expected bytes value.
+	BytesValue []byte `protobuf:"bytes,4,opt,name=bytes_value,json=bytesValue,proto3" json:"bytesValue,omitempty"`
+}
+
+func (x *InputManifest_StartupInput) Reset() {
+	*x = InputManifest_StartupInput{}
+}
+
+func (*InputManifest_StartupInput) ProtoMessage() {}
+
+func (x *InputManifest_StartupInput) GetKind() InputManifest_StartupInputKind {
+	if x != nil {
+		return x.Kind
+	}
+	return InputManifest_StartupInputKind_UNKNOWN
+}
+
+func (x *InputManifest_StartupInput) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *InputManifest_StartupInput) GetStringValue() string {
+	if x != nil {
+		return x.StringValue
+	}
+	return ""
+}
+
+func (x *InputManifest_StartupInput) GetBytesValue() []byte {
+	if x != nil {
+		return x.BytesValue
 	}
 	return nil
 }
@@ -370,12 +526,34 @@ func (m *BuilderResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *InputManifest_FileIdentity) CloneVT() *InputManifest_FileIdentity {
+	if m == nil {
+		return (*InputManifest_FileIdentity)(nil)
+	}
+	r := new(InputManifest_FileIdentity)
+	r.SizeBytes = m.SizeBytes
+	r.ModTimeUnixNano = m.ModTimeUnixNano
+	if rhs := m.Sha256; rhs != nil {
+		r.Sha256 = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InputManifest_FileIdentity) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *InputManifest_File) CloneVT() *InputManifest_File {
 	if m == nil {
 		return (*InputManifest_File)(nil)
 	}
 	r := new(InputManifest_File)
 	r.Path = m.Path
+	r.Identity = m.Identity.CloneVT()
+	r.StartupOnly = m.StartupOnly
 	if rhs := m.Metadata; rhs != nil {
 		r.Metadata = slices.Clone(rhs)
 	}
@@ -408,6 +586,27 @@ func (m *InputManifest_ManifestDep) CloneMessageVT() protobuf_go_lite.CloneMessa
 	return m.CloneVT()
 }
 
+func (m *InputManifest_StartupInput) CloneVT() *InputManifest_StartupInput {
+	if m == nil {
+		return (*InputManifest_StartupInput)(nil)
+	}
+	r := new(InputManifest_StartupInput)
+	r.Kind = m.Kind
+	r.Key = m.Key
+	r.StringValue = m.StringValue
+	if rhs := m.BytesValue; rhs != nil {
+		r.BytesValue = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InputManifest_StartupInput) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *InputManifest) CloneVT() *InputManifest {
 	if m == nil {
 		return (*InputManifest)(nil)
@@ -426,6 +625,12 @@ func (m *InputManifest) CloneVT() *InputManifest {
 		r.ManifestDeps = make([]*InputManifest_ManifestDep, len(rhs))
 		for k, v := range rhs {
 			r.ManifestDeps[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.StartupInputs; rhs != nil {
+		r.StartupInputs = make([]*InputManifest_StartupInput, len(rhs))
+		for k, v := range rhs {
+			r.StartupInputs[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -546,6 +751,32 @@ func (this *BuilderResult) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *InputManifest_FileIdentity) EqualVT(that *InputManifest_FileIdentity) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SizeBytes != that.SizeBytes {
+		return false
+	}
+	if this.ModTimeUnixNano != that.ModTimeUnixNano {
+		return false
+	}
+	if string(this.Sha256) != string(that.Sha256) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InputManifest_FileIdentity) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InputManifest_FileIdentity)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *InputManifest_File) EqualVT(that *InputManifest_File) bool {
 	if this == that {
 		return true
@@ -556,6 +787,12 @@ func (this *InputManifest_File) EqualVT(that *InputManifest_File) bool {
 		return false
 	}
 	if string(this.Metadata) != string(that.Metadata) {
+		return false
+	}
+	if !this.Identity.EqualVT(that.Identity) {
+		return false
+	}
+	if this.StartupOnly != that.StartupOnly {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -586,6 +823,35 @@ func (this *InputManifest_ManifestDep) EqualVT(that *InputManifest_ManifestDep) 
 
 func (this *InputManifest_ManifestDep) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InputManifest_ManifestDep)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InputManifest_StartupInput) EqualVT(that *InputManifest_StartupInput) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	if this.StringValue != that.StringValue {
+		return false
+	}
+	if string(this.BytesValue) != string(that.BytesValue) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InputManifest_StartupInput) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InputManifest_StartupInput)
 	if !ok {
 		return false
 	}
@@ -629,6 +895,23 @@ func (this *InputManifest) EqualVT(that *InputManifest) bool {
 			}
 			if q == nil {
 				q = &InputManifest_ManifestDep{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.StartupInputs) != len(that.StartupInputs) {
+		return false
+	}
+	for i, vx := range this.StartupInputs {
+		vy := that.StartupInputs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &InputManifest_StartupInput{}
+			}
+			if q == nil {
+				q = &InputManifest_StartupInput{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -882,6 +1165,104 @@ func (x *BuilderResult) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the InputManifest_StartupInputKind to JSON.
+func (x InputManifest_StartupInputKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), InputManifest_StartupInputKind_name)
+}
+
+// MarshalText marshals the InputManifest_StartupInputKind to text.
+func (x InputManifest_StartupInputKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), InputManifest_StartupInputKind_name)), nil
+}
+
+// MarshalJSON marshals the InputManifest_StartupInputKind to JSON.
+func (x InputManifest_StartupInputKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InputManifest_StartupInputKind from JSON.
+func (x *InputManifest_StartupInputKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(InputManifest_StartupInputKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read StartupInputKind enum: %v", err)
+		return
+	}
+	*x = InputManifest_StartupInputKind(v)
+}
+
+// UnmarshalText unmarshals the InputManifest_StartupInputKind from text.
+func (x *InputManifest_StartupInputKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), InputManifest_StartupInputKind_value)
+	if err != nil {
+		return err
+	}
+	*x = InputManifest_StartupInputKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the InputManifest_StartupInputKind from JSON.
+func (x *InputManifest_StartupInputKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InputManifest_FileIdentity message to JSON.
+func (x *InputManifest_FileIdentity) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SizeBytes != 0 || s.HasField("sizeBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sizeBytes")
+		s.WriteUint64(x.SizeBytes)
+	}
+	if x.ModTimeUnixNano != 0 || s.HasField("modTimeUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("modTimeUnixNano")
+		s.WriteInt64(x.ModTimeUnixNano)
+	}
+	if len(x.Sha256) > 0 || s.HasField("sha256") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sha256")
+		s.WriteBytes(x.Sha256)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InputManifest_FileIdentity to JSON.
+func (x *InputManifest_FileIdentity) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InputManifest_FileIdentity message from JSON.
+func (x *InputManifest_FileIdentity) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "size_bytes", "sizeBytes":
+			s.AddField("size_bytes")
+			x.SizeBytes = s.ReadUint64()
+		case "mod_time_unix_nano", "modTimeUnixNano":
+			s.AddField("mod_time_unix_nano")
+			x.ModTimeUnixNano = s.ReadInt64()
+		case "sha256":
+			s.AddField("sha256")
+			x.Sha256 = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InputManifest_FileIdentity from JSON.
+func (x *InputManifest_FileIdentity) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the InputManifest_File message to JSON.
 func (x *InputManifest_File) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -899,6 +1280,16 @@ func (x *InputManifest_File) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("metadata")
 		s.WriteBytes(x.Metadata)
+	}
+	if x.Identity != nil || s.HasField("identity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("identity")
+		x.Identity.MarshalProtoJSON(s.WithField("identity"))
+	}
+	if x.StartupOnly || s.HasField("startupOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startupOnly")
+		s.WriteBool(x.StartupOnly)
 	}
 	s.WriteObjectEnd()
 }
@@ -923,6 +1314,16 @@ func (x *InputManifest_File) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "metadata":
 			s.AddField("metadata")
 			x.Metadata = s.ReadBytes()
+		case "identity":
+			if s.ReadNil() {
+				x.Identity = nil
+				return
+			}
+			x.Identity = &InputManifest_FileIdentity{}
+			x.Identity.UnmarshalProtoJSON(s.WithField("identity", true))
+		case "startup_only", "startupOnly":
+			s.AddField("startup_only")
+			x.StartupOnly = s.ReadBool()
 		}
 	})
 }
@@ -986,6 +1387,72 @@ func (x *InputManifest_ManifestDep) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the InputManifest_StartupInput message to JSON.
+func (x *InputManifest_StartupInput) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.StringValue != "" || s.HasField("stringValue") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stringValue")
+		s.WriteString(x.StringValue)
+	}
+	if len(x.BytesValue) > 0 || s.HasField("bytesValue") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bytesValue")
+		s.WriteBytes(x.BytesValue)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InputManifest_StartupInput to JSON.
+func (x *InputManifest_StartupInput) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InputManifest_StartupInput message from JSON.
+func (x *InputManifest_StartupInput) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "string_value", "stringValue":
+			s.AddField("string_value")
+			x.StringValue = s.ReadString()
+		case "bytes_value", "bytesValue":
+			s.AddField("bytes_value")
+			x.BytesValue = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InputManifest_StartupInput from JSON.
+func (x *InputManifest_StartupInput) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the InputManifest message to JSON.
 func (x *InputManifest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1018,6 +1485,17 @@ func (x *InputManifest) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.ManifestDeps {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("manifestDeps"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.StartupInputs) > 0 || s.HasField("startupInputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startupInputs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.StartupInputs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("startupInputs"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -1076,6 +1554,24 @@ func (x *InputManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.ManifestDeps = append(x.ManifestDeps, v)
+			})
+		case "startup_inputs", "startupInputs":
+			s.AddField("startup_inputs")
+			if s.ReadNil() {
+				x.StartupInputs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.StartupInputs = append(x.StartupInputs, nil)
+					return
+				}
+				v := &InputManifest_StartupInput{}
+				v.UnmarshalProtoJSON(s.WithField("startup_inputs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.StartupInputs = append(x.StartupInputs, v)
 			})
 		}
 	})
@@ -1346,6 +1842,56 @@ func (m *BuilderResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *InputManifest_FileIdentity) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InputManifest_FileIdentity) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InputManifest_FileIdentity) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Sha256) > 0 {
+		i -= len(m.Sha256)
+		copy(dAtA[i:], m.Sha256)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Sha256)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ModTimeUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ModTimeUnixNano))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.SizeBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SizeBytes))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *InputManifest_File) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1375,6 +1921,26 @@ func (m *InputManifest_File) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.StartupOnly {
+		i--
+		if m.StartupOnly {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Identity != nil {
+		size, err := m.Identity.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.Metadata) > 0 {
 		i -= len(m.Metadata)
@@ -1443,6 +2009,65 @@ func (m *InputManifest_ManifestDep) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *InputManifest_StartupInput) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InputManifest_StartupInput) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InputManifest_StartupInput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BytesValue) > 0 {
+		i -= len(m.BytesValue)
+		copy(dAtA[i:], m.BytesValue)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BytesValue)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.StringValue) > 0 {
+		i -= len(m.StringValue)
+		copy(dAtA[i:], m.StringValue)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StringValue)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *InputManifest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1472,6 +2097,18 @@ func (m *InputManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.StartupInputs) > 0 {
+		for iNdEx := len(m.StartupInputs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.StartupInputs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if len(m.ManifestDeps) > 0 {
 		for iNdEx := len(m.ManifestDeps) - 1; iNdEx >= 0; iNdEx-- {
@@ -1648,6 +2285,26 @@ func (m *BuilderResult) SizeVT() (n int) {
 	return n
 }
 
+func (m *InputManifest_FileIdentity) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SizeBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SizeBytes))
+	}
+	if m.ModTimeUnixNano != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ModTimeUnixNano))
+	}
+	l = len(m.Sha256)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *InputManifest_File) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1661,6 +2318,13 @@ func (m *InputManifest_File) SizeVT() (n int) {
 	l = len(m.Metadata)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Identity != nil {
+		l = m.Identity.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.StartupOnly {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1678,6 +2342,31 @@ func (m *InputManifest_ManifestDep) SizeVT() (n int) {
 	}
 	if m.ManifestRef != nil {
 		l = m.ManifestRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InputManifest_StartupInput) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.StringValue)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BytesValue)
+	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1702,6 +2391,12 @@ func (m *InputManifest) SizeVT() (n int) {
 	}
 	if len(m.ManifestDeps) > 0 {
 		for _, e := range m.ManifestDeps {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.StartupInputs) > 0 {
+		for _, e := range m.StartupInputs {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
@@ -1859,6 +2554,44 @@ func (x *BuilderResult) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x InputManifest_StartupInputKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *InputManifest_FileIdentity) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("FileIdentity {")
+	if x.SizeBytes != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("size_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SizeBytes), 10))
+	}
+	if x.ModTimeUnixNano != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mod_time_unix_nano: ")
+		sb.WriteString(strconv.FormatInt(int64(x.ModTimeUnixNano), 10))
+	}
+	if x.Sha256 != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sha256: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Sha256))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *InputManifest_FileIdentity) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *InputManifest_File) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("File {")
@@ -1877,6 +2610,20 @@ func (x *InputManifest_File) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.Metadata))
 		sb.WriteString("\"")
+	}
+	if x.Identity != nil {
+		if sb.Len() > 6 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("identity: ")
+		sb.WriteString(x.Identity.MarshalProtoText())
+	}
+	if x.StartupOnly != false {
+		if sb.Len() > 6 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("startup_only: ")
+		sb.WriteString(strconv.FormatBool(x.StartupOnly))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1911,6 +2658,49 @@ func (x *InputManifest_ManifestDep) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *InputManifest_StartupInput) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("StartupInput {")
+	if x.Kind != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(InputManifest_StartupInputKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.Key != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.StringValue != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("string_value: ")
+		sb.WriteString(strconv.Quote(x.StringValue))
+	}
+	if x.BytesValue != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("bytes_value: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.BytesValue))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *InputManifest_StartupInput) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *InputManifest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifest {")
@@ -1942,6 +2732,19 @@ func (x *InputManifest) MarshalProtoText() string {
 		}
 		sb.WriteString("manifest_deps: [")
 		for i, v := range x.ManifestDeps {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.StartupInputs) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("startup_inputs: [")
+		for i, v := range x.StartupInputs {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
@@ -2391,6 +3194,93 @@ func (m *BuilderResult) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *InputManifest_FileIdentity) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InputManifest_FileIdentity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InputManifest_FileIdentity: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeBytes", wireType)
+			}
+			m.SizeBytes = 0
+			m.SizeBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ModTimeUnixNano", wireType)
+			}
+			m.ModTimeUnixNano = 0
+			m.ModTimeUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sha256", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Sha256 = append(m.Sha256[:0], dAtA[iNdEx:postIndex]...)
+			if m.Sha256 == nil {
+				m.Sha256 = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *InputManifest_File) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2459,6 +3349,46 @@ func (m *InputManifest_File) UnmarshalVT(dAtA []byte) error {
 				m.Metadata = []byte{}
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Identity", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Identity == nil {
+				m.Identity = &InputManifest_FileIdentity{}
+			}
+			if err := m.Identity.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartupOnly", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.StartupOnly = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2550,6 +3480,130 @@ func (m *InputManifest_ManifestDep) UnmarshalVT(dAtA []byte) error {
 			}
 			if err := m.ManifestRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InputManifest_StartupInput) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InputManifest_StartupInput: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InputManifest_StartupInput: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = InputManifest_StartupInputKind(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StringValue", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StringValue = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BytesValue", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BytesValue = append(m.BytesValue[:0], dAtA[iNdEx:postIndex]...)
+			if m.BytesValue == nil {
+				m.BytesValue = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -2670,6 +3724,32 @@ func (m *InputManifest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ManifestDeps = append(m.ManifestDeps, &InputManifest_ManifestDep{})
 			if err := m.ManifestDeps[len(m.ManifestDeps)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartupInputs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StartupInputs = append(m.StartupInputs, &InputManifest_StartupInput{})
+			if err := m.StartupInputs[len(m.StartupInputs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

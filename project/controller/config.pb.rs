@@ -61,4 +61,15 @@ pub struct ManifestBuilderResult {
     #[prost(message, optional, tag="2")]
     pub builder_result: ::core::option::Option<super::super::manifest::builder::BuilderResult>,
 }
+/// ManifestStartupBuildState is the persisted startup build state for one
+/// manifest build slot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ManifestStartupBuildState {
+    /// ManifestBuilderConfig identifies the manifest build slot.
+    #[prost(message, optional, tag="1")]
+    pub manifest_builder_config: ::core::option::Option<ManifestBuilderConfig>,
+    /// BuilderResult contains the published output and diffable inputs.
+    #[prost(message, optional, tag="2")]
+    pub builder_result: ::core::option::Option<super::super::manifest::builder::BuilderResult>,
+}
 // @@protoc_insertion_point(module)

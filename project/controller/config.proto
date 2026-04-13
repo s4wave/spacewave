@@ -52,3 +52,12 @@ message ManifestBuilderResult {
   // BuilderResult is the result of running the builder.
   .bldr.manifest.builder.BuilderResult builder_result = 2;
 }
+
+// ManifestStartupBuildState is the persisted startup build state for one
+// manifest build slot.
+message ManifestStartupBuildState {
+  // ManifestBuilderConfig identifies the manifest build slot.
+  ManifestBuilderConfig manifest_builder_config = 1;
+  // BuilderResult contains the published output and diffable inputs.
+  .bldr.manifest.builder.BuilderResult builder_result = 2;
+}

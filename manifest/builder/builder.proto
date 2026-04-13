@@ -55,6 +55,27 @@ message BuilderResult {
 
 // InputManifest is an object describing the consumed source files.
 message InputManifest {
+  // StartupInputKind describes a reusable startup validation input type.
+  enum StartupInputKind {
+    // StartupInputKind_UNKNOWN is the default kind.
+    StartupInputKind_UNKNOWN = 0;
+    // StartupInputKind_ENV_VAR compares the current environment variable value.
+    StartupInputKind_ENV_VAR = 1;
+    // StartupInputKind_CONTROLLER_CONFIG_DIGEST compares the current builder
+    // controller config digest.
+    StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2;
+  }
+
+  // FileIdentity captures file identity at publish time for startup reuse.
+  message FileIdentity {
+    // SizeBytes is the file size in bytes.
+    uint64 size_bytes = 1;
+    // ModTimeUnixNano is the file modification time.
+    int64 mod_time_unix_nano = 2;
+    // Sha256 is the file SHA-256 digest.
+    bytes sha256 = 3;
+  }
+
   // File is a file in the source manifest.
   message File {
     // Path is the path of the file in the source directory.
@@ -62,6 +83,12 @@ message InputManifest {
     // Metadata is additional builder-specific metadata about the file.
     // Optional.
     bytes metadata = 2;
+    // Identity is the publish-time file identity for startup validation.
+    // Optional.
+    FileIdentity identity = 3;
+    // StartupOnly records files needed only for startup validation.
+    // These files are ignored by the live watch loop.
+    bool startup_only = 4;
   }
 
   // ManifestDep declares a dependency on another manifest.
@@ -75,6 +102,18 @@ message InputManifest {
     .bucket.ObjectRef manifest_ref = 2;
   }
 
+  // StartupInput declares a typed non-file startup validation input.
+  message StartupInput {
+    // Kind is the startup input kind.
+    StartupInputKind kind = 1;
+    // Key identifies the input within its kind.
+    string key = 2;
+    // StringValue is the expected string value.
+    string string_value = 3;
+    // BytesValue is the expected bytes value.
+    bytes bytes_value = 4;
+  }
+
   // Files is the list of consumed source files.
   // Optional.
   repeated File files = 1;
@@ -86,6 +125,9 @@ message InputManifest {
   // a rebuild when any dependency's ref changes in the world.
   // Optional.
   repeated ManifestDep manifest_deps = 3;
+  // StartupInputs are typed non-file inputs used for startup validation.
+  // Optional.
+  repeated StartupInput startup_inputs = 4;
 }
 
 // BuildManifestArgs are arguments passed to the BuildManifest function.

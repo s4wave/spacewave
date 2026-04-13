@@ -37,6 +37,9 @@ type Config struct {
 	// the builder controller triggers a rebuild of this manifest.
 	// Populated by the project controller from the webPkg dependency graph.
 	WatchManifestIds []string `protobuf:"bytes,5,rep,name=watch_manifest_ids,json=watchManifestIds,proto3" json:"watchManifestIds,omitempty"`
+	// StartupBuilderResult is the persisted startup build result to validate
+	// before the first build attempt.
+	StartupBuilderResult *builder.BuilderResult `protobuf:"bytes,6,opt,name=startup_builder_result,json=startupBuilderResult,proto3" json:"startupBuilderResult,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -80,6 +83,13 @@ func (x *Config) GetWatchManifestIds() []string {
 	return nil
 }
 
+func (x *Config) GetStartupBuilderResult() *builder.BuilderResult {
+	if x != nil {
+		return x.StartupBuilderResult
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -87,6 +97,7 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.BuilderConfig = m.BuilderConfig.CloneVT()
 	r.Watch = m.Watch
+	r.StartupBuilderResult = m.StartupBuilderResult.CloneVT()
 	if rhs := m.ControllerConfig; rhs != nil {
 		r.ControllerConfig = rhs.CloneVT()
 	}
@@ -133,6 +144,9 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	}
+	if !this.StartupBuilderResult.EqualVT(that.StartupBuilderResult) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -176,6 +190,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("watchManifestIds")
 		s.WriteStringArray(x.WatchManifestIds)
+	}
+	if x.StartupBuilderResult != nil || s.HasField("startupBuilderResult") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startupBuilderResult")
+		x.StartupBuilderResult.MarshalProtoJSON(s.WithField("startupBuilderResult"))
 	}
 	s.WriteObjectEnd()
 }
@@ -225,6 +244,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.WatchManifestIds = s.ReadStringArray()
+		case "startup_builder_result", "startupBuilderResult":
+			if s.ReadNil() {
+				x.StartupBuilderResult = nil
+				return
+			}
+			x.StartupBuilderResult = &builder.BuilderResult{}
+			x.StartupBuilderResult.UnmarshalProtoJSON(s.WithField("startup_builder_result", true))
 		}
 	})
 }
@@ -263,6 +289,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.StartupBuilderResult != nil {
+		size, err := m.StartupBuilderResult.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
 	}
 	if len(m.WatchManifestIds) > 0 {
 		for iNdEx := len(m.WatchManifestIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -343,6 +379,10 @@ func (m *Config) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.StartupBuilderResult != nil {
+		l = m.StartupBuilderResult.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -390,6 +430,13 @@ func (x *Config) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.StartupBuilderResult != nil {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("startup_builder_result: ")
+		sb.WriteString(x.StartupBuilderResult.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -536,6 +583,34 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.WatchManifestIds = append(m.WatchManifestIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartupBuilderResult", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.StartupBuilderResult == nil {
+				m.StartupBuilderResult = &builder.BuilderResult{}
+			}
+			if err := m.StartupBuilderResult.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -87,7 +87,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/manifest/builder": {
-      "hash": "a7c33b0a1b0b6d63025df772ef0acf3d38a34fac5d4f7b66f9ef6ae1910759f0",
+      "hash": "c47694c65e3333c01eaf9e961dbd0cbc11cd5331ec7951a6d77e920524aaae2c",
       "generatedFiles": [
         "manifest/builder/builder.pb.cc",
         "manifest/builder/builder.pb.go",
@@ -100,7 +100,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/manifest/builder/controller": {
-      "hash": "4f86ede653aee37234fa862ac28943a83a96ded05b797481e9b319935e95c3a8",
+      "hash": "d04de597e8cbfc637c83e928d4a9e5ff4a14cd8124e0e0489e6e893ed35cc967",
       "generatedFiles": [
         "manifest/builder/controller/config.pb.cc",
         "manifest/builder/controller/config.pb.go",
@@ -391,7 +391,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/project/controller": {
-      "hash": "cdb56f6f58400063a7f957c773bb8e5ebc33005d3e9dbf527d7d79bef017b681",
+      "hash": "f13ce4ea75787e8da230b3e897febd3cf13e5ae58d457485718ab529d14071fa",
       "generatedFiles": [
         "project/controller/config.pb.cc",
         "project/controller/config.pb.go",

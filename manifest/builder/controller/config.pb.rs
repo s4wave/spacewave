@@ -24,5 +24,9 @@ pub struct Config {
     /// Populated by the project controller from the webPkg dependency graph.
     #[prost(string, repeated, tag="5")]
     pub watch_manifest_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// StartupBuilderResult is the persisted startup build result to validate
+    /// before the first build attempt.
+    #[prost(message, optional, tag="6")]
+    pub startup_builder_result: ::core::option::Option<super::BuilderResult>,
 }
 // @@protoc_insertion_point(module)
