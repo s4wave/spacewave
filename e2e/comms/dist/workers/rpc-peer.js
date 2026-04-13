@@ -1,4 +1,4 @@
-import { a as createMux, c as Client, n as EchoerClient, o as createHandler, r as EchoerDefinition, s as Server, t as EchoerServer } from "../chunks/dist-BYT-zYEp.js";
+import { a as createMux, c as Client, n as EchoerClient, o as createHandler, r as EchoerDefinition, s as Server, t as EchoerServer } from "../chunks/dist-C0KRw9Ez.js";
 import { n as SabBusEndpoint, r as SabBusStream } from "../chunks/sab-bus-9wDhw0vI.js";
 //#region e2e/comms/fixtures/workers/rpc-peer.ts
 var busOpts = {

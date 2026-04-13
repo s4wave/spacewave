@@ -1,6 +1,6 @@
 import { i as createBusSab, n as SabBusEndpoint } from "./chunks/sab-bus-9wDhw0vI.js";
 import { n as detectWorkerCommsConfig } from "./chunks/worker-comms-detect-DGF_nj2J.js";
-import { t as createTransportFactory } from "./chunks/plugin-transport-mJ6uQBEw.js";
+import { t as createTransportFactory } from "./chunks/plugin-transport-Zq4ID6iL.js";
 //#region e2e/comms/fixtures/transport.ts
 async function run() {
 	const log = document.getElementById("log");

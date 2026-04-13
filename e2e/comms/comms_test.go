@@ -291,6 +291,28 @@ func TestDedicatedWorker(t *testing.T) {
 	}
 }
 
+// TestStartupFailures verifies bounded rejection for startup failure paths:
+// slow registration, close during startup, and plugin import failure.
+func TestStartupFailures(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			results := runFixture(t, browser, "startup-failures")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("startup failures fixture failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "slowRegistrationRejected", true)
+			assertBoolResult(t, results, "closeDuringStartupRejected", true)
+			assertBoolResult(t, results, "importFailureClosed", true)
+			assertBoolResult(t, results, "importFailureReady", false)
+
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
 // TestTransportFactory verifies that the transport factory selects the correct
 // transports based on detected worker comms config.
 func TestTransportFactory(t *testing.T) {

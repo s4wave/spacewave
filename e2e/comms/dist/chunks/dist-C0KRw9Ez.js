@@ -5,6 +5,18 @@ var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).export
 //#region node_modules/starpc/dist/srpc/errors.js
 var ERR_RPC_ABORT = "ERR_RPC_ABORT";
 var ERR_STREAM_IDLE = "ERR_STREAM_IDLE";
+function castToError(err, defaultMsg) {
+	defaultMsg = defaultMsg || "error";
+	if (!err) return new Error(defaultMsg);
+	if (typeof err === "string") return new Error(err);
+	const asError = err;
+	if (asError.message) return asError;
+	if (err.toString) {
+		const errString = err.toString();
+		if (errString) return new Error(errString);
+	}
+	return new Error(defaultMsg);
+}
 //#endregion
 //#region node_modules/it-queueless-pushable/node_modules/race-signal/dist/src/index.js
 /**
@@ -1066,6 +1078,33 @@ function normalizeFieldInfos(fieldInfos, packedByDefault) {
 }
 //#endregion
 //#region node_modules/@aptre/protobuf-es-lite/dist/enum.js
+/**
+* Create a new EnumType with the given values.
+*/
+function createEnumType(typeName, values) {
+	const names = Object.create(null);
+	const numbers = Object.create(null);
+	const normalValues = [];
+	for (const value of values) {
+		const n = "localName" in value ? value : {
+			...value,
+			localName: value.name
+		};
+		normalValues.push(n);
+		names[value.name] = n;
+		numbers[value.no] = n;
+	}
+	return {
+		typeName,
+		values: normalValues,
+		findName(name) {
+			return names[name];
+		},
+		findNumber(no) {
+			return numbers[no];
+		}
+	};
+}
 function enumZeroValue(info) {
 	if (info.values.length < 1) throw new Error("invalid enum: missing at least one value");
 	return info.values[0].no;
@@ -4523,6 +4562,6 @@ var EchoerServer = class {
 	}
 };
 //#endregion
-export { createMux as a, Client as c, ChannelStream as i, EchoerClient as n, createHandler as o, EchoerDefinition as r, Server as s, EchoerServer as t };
+export { createMux as a, Client as c, createEnumType as d, ScalarType as f, ChannelStream as i, MethodKind as l, castToError as m, EchoerClient as n, createHandler as o, protoInt64 as p, EchoerDefinition as r, Server as s, EchoerServer as t, createMessageType as u };
 
-//# sourceMappingURL=dist-BYT-zYEp.js.map
+//# sourceMappingURL=dist-C0KRw9Ez.js.map
