@@ -343,18 +343,12 @@ class BridgeDispatcher {
       const cmdId = this.nextCmdId++
       this.pending.set(cmdId, { resolve, reject })
       const msg: BridgeCommand = { type, cmdId, ...payload }
-      console.log(
-        `WebRTC bridge worker: send cmd=${type} cmdId=${cmdId} pcId=${payload.pcId ?? ''}`,
-      )
       this.port.postMessage(msg)
     })
   }
 
   // postRaw posts a pre-built command on the bridge port.
   postRaw(cmd: BridgeCommand) {
-    console.log(
-      `WebRTC bridge worker: send raw cmd=${cmd.type} cmdId=${cmd.cmdId} pcId=${cmd.pcId ?? ''}`,
-    )
     this.port.postMessage(cmd)
   }
 
@@ -385,9 +379,6 @@ class BridgeDispatcher {
       const entry = this.pending.get(data.cmdId)
       if (entry) {
         this.pending.delete(data.cmdId)
-        console.log(
-          `WebRTC bridge worker: recv response type=${data.type} cmdId=${data.cmdId} pcId=${data.pcId ?? ''} err=${data.error ?? ''}`,
-        )
         if (data.error) {
           entry.reject(new Error(data.error))
         } else {
@@ -400,9 +391,6 @@ class BridgeDispatcher {
     // Event (type starts with "event:") - route by pcId
     if (data.type?.startsWith('event:') && (data as BridgeEvent).pcId) {
       const event = data as BridgeEvent
-      console.log(
-        `WebRTC bridge worker: recv event type=${event.type} pcId=${event.pcId}`,
-      )
       const pc = this.pcs.get(event.pcId)
       if (pc) {
         pc.handleBridgeEvent(event)
@@ -576,7 +564,6 @@ export class ProxyRTCPeerConnection {
     label: string,
     options?: RTCDataChannelInit,
   ): DataChannelWrapper {
-    console.log(`WebRTC bridge worker: createDataChannel label=${label}`)
     const wrapper = new DataChannelWrapper(label, options)
     const cmdId = this.dispatcher.allocCmdId()
 

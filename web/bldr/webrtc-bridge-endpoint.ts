@@ -156,9 +156,6 @@ export class WebRTCBridgeEndpoint {
   private wireEvents(pc: RTCPeerConnection, pcId: string) {
     pc.onicecandidate = (e) => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event icecandidate pc=${pcId} hasCandidate=${e.candidate != null} candidate=${e.candidate?.candidate ?? ''}`,
-      )
       // Include full RTCIceCandidate properties (not just RTCIceCandidateInit)
       // so that pion/webrtc's valueToICECandidate takes the standard path
       // instead of the "Firefox/missing-fields" fallback that drops sdpMid.
@@ -190,9 +187,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.onconnectionstatechange = () => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event connectionstatechange pc=${pcId} state=${pc.connectionState}`,
-      )
       if (pc.connectionState === 'failed') {
         const p = this.logIceFailureStats(pc, pcId)
         this.pendingStats.set(pcId, p)
@@ -207,9 +201,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.onsignalingstatechange = () => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event signalingstatechange pc=${pcId} state=${pc.signalingState}`,
-      )
       this.port.postMessage({
         type: 'event:signalingstatechange',
         pcId,
@@ -219,9 +210,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.oniceconnectionstatechange = () => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event iceconnectionstatechange pc=${pcId} state=${pc.iceConnectionState}`,
-      )
       // Log candidate pair stats when entering checking to diagnose ICE
       if (pc.iceConnectionState === 'checking') {
         void this.logIceStats(pc, pcId, 'checking')
@@ -235,9 +223,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.onicegatheringstatechange = () => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event icegatheringstatechange pc=${pcId} state=${pc.iceGatheringState}`,
-      )
       this.port.postMessage({
         type: 'event:icegatheringstatechange',
         pcId,
@@ -254,7 +239,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.onnegotiationneeded = () => {
       if (this.closed) return
-      console.log(`WebRTCBridgeEndpoint: event negotiationneeded pc=${pcId}`)
       this.port.postMessage({
         type: 'event:negotiationneeded',
         pcId,
@@ -264,9 +248,6 @@ export class WebRTCBridgeEndpoint {
 
     pc.ondatachannel = (e) => {
       if (this.closed) return
-      console.log(
-        `WebRTCBridgeEndpoint: event datachannel pc=${pcId} label=${e.channel.label}`,
-      )
       const dc = e.channel
       const event: BridgeEvent = {
         type: 'event:datachannel',
@@ -283,15 +264,11 @@ export class WebRTCBridgeEndpoint {
     if (this.closed) return
 
     try {
-      console.log(
-        `WebRTCBridgeEndpoint: cmd type=${cmd.type} cmdId=${cmd.cmdId} pcId=${cmd.pcId ?? ''}`,
-      )
       if (cmd.type === 'createPC') {
         const pcId = 'pc-' + Math.random().toString(36).slice(2, 10)
         const pc = new RTCPeerConnection(cmd.config)
         this.pcs.set(pcId, pc)
         this.wireEvents(pc, pcId)
-        console.log(`WebRTCBridgeEndpoint: created PC ${pcId} for worker`)
         const response: BridgeResponse = {
           type: 'createPC',
           cmdId: cmd.cmdId,
@@ -358,9 +335,6 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'addIceCandidate': {
-          console.log(
-            `WebRTCBridgeEndpoint: addIceCandidate pc=${cmd.pcId} candidate=${JSON.stringify(cmd.candidate)}`,
-          )
           await pc!.addIceCandidate(cmd.candidate)
           response = {
             type: 'addIceCandidate',
@@ -371,9 +345,6 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'createDataChannel': {
-          console.log(
-            `WebRTCBridgeEndpoint: createDataChannel pc=${cmd.pcId} label=${cmd.label ?? ''}`,
-          )
           const dc = pc!.createDataChannel(cmd.label!, cmd.options)
           response = {
             type: 'createDataChannel',

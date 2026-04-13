@@ -202,15 +202,8 @@ export class PluginWorker {
     if (bridgePort) {
       setBridgePort(bridgePort)
       installWebRTCShim()
-      const globals = globalThis as typeof globalThis & {
-        window?: typeof globalThis & { RTCPeerConnection?: unknown }
-        RTCPeerConnection?: unknown
-      }
       console.log(
-        `PluginWorker: ${this.workerId}: WebRTC shim visible window=${typeof globals.window?.RTCPeerConnection} global=${typeof globals.RTCPeerConnection}`,
-      )
-      console.log(
-        `PluginWorker: ${this.workerId}: WebRTC bridge port acquired`,
+        `PluginWorker: ${this.workerId}: WebRTC bridge enabled`,
       )
     }
 
