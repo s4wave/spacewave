@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/pkg/errors"
 )
 
 // ApplyBucketConfigResult is the JSON marshaler for the response.
@@ -51,4 +53,62 @@ func NewApplyBucketConfigResult(
 		Timestamp:     obj.GetTimestamp().AsTime(),
 		Updated:       obj.GetUpdated(),
 	}, nil
+}
+
+// MarshalJSON marshals the result to JSON.
+func (c *ApplyBucketConfigResult) MarshalJSON() ([]byte, error) {
+	if c == nil {
+		return []byte("null"), nil
+	}
+
+	var a fastjson.Arena
+	obj := a.NewObject()
+	if c.BucketId != "" {
+		obj.Set("bucket_id", a.NewString(c.BucketId))
+	}
+	if c.VolumeId != "" {
+		obj.Set("volume_id", a.NewString(c.VolumeId))
+	}
+	if c.Error != "" {
+		obj.Set("error", a.NewString(c.Error))
+	}
+	if c.BucketConf != nil {
+		dat, err := c.BucketConf.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrap(err, "marshal bucket config")
+		}
+		bucketConf, err := marshalJSONBytesValue(&a, dat)
+		if err != nil {
+			return nil, errors.Wrap(err, "parse bucket config")
+		}
+		obj.Set("bucket_conf", bucketConf)
+	}
+	if c.OldBucketConf != nil {
+		dat, err := c.OldBucketConf.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrap(err, "marshal old bucket config")
+		}
+		oldBucketConf, err := marshalJSONBytesValue(&a, dat)
+		if err != nil {
+			return nil, errors.Wrap(err, "parse old bucket config")
+		}
+		obj.Set("old_bucket_conf", oldBucketConf)
+	}
+
+	timestamp, err := c.Timestamp.MarshalJSON()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal timestamp")
+	}
+	timestampValue, err := marshalJSONBytesValue(&a, timestamp)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse timestamp")
+	}
+	obj.Set("timestamp", timestampValue)
+
+	if c.Updated {
+		obj.Set("updated", a.NewTrue())
+	} else {
+		obj.Set("updated", a.NewFalse())
+	}
+	return obj.MarshalTo(nil), nil
 }

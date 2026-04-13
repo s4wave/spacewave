@@ -71,6 +71,8 @@ github.com/aperturerobotics/controllerbus v0.53.0 h1:hLElOrrAOF2bq8RqGl66ovnFCO3
 github.com/aperturerobotics/controllerbus v0.53.0/go.mod h1:65n90+94u3SUCTqLk+NugpHtwRZoGHxIQKTKsG5JkBU=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
+github.com/aperturerobotics/fastjson v0.1.1 h1:3ErKDjTNW8jFD6lLLnx1kyU+55TSq0ocFWaYTJBo4Ns=
+github.com/aperturerobotics/fastjson v0.1.1/go.mod h1:ArP9Q7MVDi8jMPR3ljopH5drxs/qen12Hv2L7qRcPb4=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab h1:QFauzuS4QNsVPYh/PRbfGzaIoW18eBlUsLdYf9jPjOg=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab/go.mod h1:+DWSr6dA/jMpVPJVw5uQ7MXAli8s0hch7cuMZV5fyWk=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=

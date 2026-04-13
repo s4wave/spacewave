@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"io"
 	"os"
 
@@ -30,8 +29,8 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 	}
 	sr.AddFactory(reconciler_example.NewFactory(b))
 
-	var jconf bucket_json.Config
-	if err := json.Unmarshal(dat, &jconf); err != nil {
+	jconf, err := bucket_json.ParseConfig(dat)
+	if err != nil {
 		return err
 	}
 
@@ -71,7 +70,7 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 			le.WithError(err).Warn("unable to print bucket config result")
 			continue
 		}
-		d, err := json.Marshal(acr)
+		d, err := acr.MarshalJSON()
 		if err != nil {
 			le.WithError(err).Warn("unable to json marshal bucket config result")
 			continue

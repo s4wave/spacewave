@@ -102,6 +102,8 @@ require (
 	modernc.org/sqlite v1.45.0 // latest
 )
 
+require github.com/aperturerobotics/fastjson v0.1.1
+
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
