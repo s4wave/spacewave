@@ -110,7 +110,7 @@ type ManifestBuilderConfig struct {
 	RemoteId string `protobuf:"bytes,4,opt,name=remote_id,json=remoteId,proto3" json:"remoteId,omitempty"`
 	// TargetPlatformIds contains all platform IDs from the build target.
 	// Used by the dist compiler to collect manifests from all compatible platforms.
-	// For example, a browser target may include ["desktop/js/wasm", "js"].
+	// For example, a browser target may include ["web/js/wasm", "js"].
 	TargetPlatformIds []string `protobuf:"bytes,5,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 }
 
@@ -191,10 +191,12 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.SourcePath = m.SourcePath
 	r.WorkingPath = m.WorkingPath
-	r.ProjectConfig = m.ProjectConfig.CloneVT()
 	r.Watch = m.Watch
 	r.Start = m.Start
 	r.FetchManifestRemote = m.FetchManifestRemote
+	if rhs := m.ProjectConfig; rhs != nil {
+		r.ProjectConfig = rhs.CloneVT()
+	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		r.BuildBackoff = rhs.CloneVT()
 	}

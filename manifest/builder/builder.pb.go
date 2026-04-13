@@ -322,7 +322,6 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 		return (*BuilderConfig)(nil)
 	}
 	r := new(BuilderConfig)
-	r.ManifestMeta = m.ManifestMeta.CloneVT()
 	r.SourcePath = m.SourcePath
 	r.DistSourcePath = m.DistSourcePath
 	r.WorkingPath = m.WorkingPath
@@ -330,6 +329,9 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 	r.ObjectKey = m.ObjectKey
 	r.PeerId = m.PeerId
 	r.ProjectId = m.ProjectId
+	if rhs := m.ManifestMeta; rhs != nil {
+		r.ManifestMeta = rhs.CloneVT()
+	}
 	if rhs := m.LinkObjectKeys; rhs != nil {
 		r.LinkObjectKeys = slices.Clone(rhs)
 	}
@@ -351,9 +353,13 @@ func (m *BuilderResult) CloneVT() *BuilderResult {
 		return (*BuilderResult)(nil)
 	}
 	r := new(BuilderResult)
-	r.Manifest = m.Manifest.CloneVT()
-	r.ManifestRef = m.ManifestRef.CloneVT()
 	r.InputManifest = m.InputManifest.CloneVT()
+	if rhs := m.Manifest; rhs != nil {
+		r.Manifest = rhs.CloneVT()
+	}
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

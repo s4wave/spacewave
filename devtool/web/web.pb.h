@@ -222,7 +222,7 @@ class DevtoolInitBrowser final : public ::google::protobuf::Message
     kAppIdFieldNumber = 1,
     kDevtoolPeerIdFieldNumber = 2,
     kDevtoolVolumeInfoFieldNumber = 3,
-    kUseDedicatedWorkersFieldNumber = 5,
+    kForceDedicatedWorkersFieldNumber = 5,
   };
   // repeated string start_plugins = 4;
   int start_plugins_size() const;
@@ -291,14 +291,14 @@ class DevtoolInitBrowser final : public ::google::protobuf::Message
   ::volume::VolumeInfo* PROTOBUF_NONNULL _internal_mutable_devtool_volume_info();
 
   public:
-  // bool use_dedicated_workers = 5;
-  void clear_use_dedicated_workers() ;
-  bool use_dedicated_workers() const;
-  void set_use_dedicated_workers(bool value);
+  // bool force_dedicated_workers = 5;
+  void clear_force_dedicated_workers() ;
+  bool force_dedicated_workers() const;
+  void set_force_dedicated_workers(bool value);
 
   private:
-  bool _internal_use_dedicated_workers() const;
-  void _internal_set_use_dedicated_workers(bool value);
+  bool _internal_force_dedicated_workers() const;
+  void _internal_set_force_dedicated_workers(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:devtool.web.DevtoolInitBrowser)
@@ -331,7 +331,7 @@ class DevtoolInitBrowser final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr app_id_;
     ::google::protobuf::internal::ArenaStringPtr devtool_peer_id_;
     ::volume::VolumeInfo* PROTOBUF_NULLABLE devtool_volume_info_;
-    bool use_dedicated_workers_;
+    bool force_dedicated_workers_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -651,29 +651,29 @@ DevtoolInitBrowser::_internal_mutable_start_plugins() {
   return &_impl_.start_plugins_;
 }
 
-// bool use_dedicated_workers = 5;
-inline void DevtoolInitBrowser::clear_use_dedicated_workers() {
+// bool force_dedicated_workers = 5;
+inline void DevtoolInitBrowser::clear_force_dedicated_workers() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = false;
+  _impl_.force_dedicated_workers_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline bool DevtoolInitBrowser::use_dedicated_workers() const {
-  // @@protoc_insertion_point(field_get:devtool.web.DevtoolInitBrowser.use_dedicated_workers)
-  return _internal_use_dedicated_workers();
+inline bool DevtoolInitBrowser::force_dedicated_workers() const {
+  // @@protoc_insertion_point(field_get:devtool.web.DevtoolInitBrowser.force_dedicated_workers)
+  return _internal_force_dedicated_workers();
 }
-inline void DevtoolInitBrowser::set_use_dedicated_workers(bool value) {
-  _internal_set_use_dedicated_workers(value);
+inline void DevtoolInitBrowser::set_force_dedicated_workers(bool value) {
+  _internal_set_force_dedicated_workers(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:devtool.web.DevtoolInitBrowser.use_dedicated_workers)
+  // @@protoc_insertion_point(field_set:devtool.web.DevtoolInitBrowser.force_dedicated_workers)
 }
-inline bool DevtoolInitBrowser::_internal_use_dedicated_workers() const {
+inline bool DevtoolInitBrowser::_internal_force_dedicated_workers() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.use_dedicated_workers_;
+  return _impl_.force_dedicated_workers_;
 }
-inline void DevtoolInitBrowser::_internal_set_use_dedicated_workers(bool value) {
+inline void DevtoolInitBrowser::_internal_set_force_dedicated_workers(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = value;
+  _impl_.force_dedicated_workers_ = value;
 }
 
 #ifdef __GNUC__

@@ -56,6 +56,9 @@ pub struct WebWorkerStatus {
     /// Shared indicates that the worker is a SharedWorker.
     #[prost(bool, tag="3")]
     pub shared: bool,
+    /// Ready indicates the worker finished startup and registered with WebRuntime.
+    #[prost(bool, tag="4")]
+    pub ready: bool,
 }
 /// CreateWebViewRequest is a request to create a new web view.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

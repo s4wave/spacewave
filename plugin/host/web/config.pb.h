@@ -225,7 +225,7 @@ class QuickJSConfig final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kWebRuntimeIdFieldNumber = 1,
-    kUseDedicatedWorkersFieldNumber = 2,
+    kForceDedicatedWorkersFieldNumber = 2,
   };
   // string web_runtime_id = 1;
   void clear_web_runtime_id() ;
@@ -242,14 +242,14 @@ class QuickJSConfig final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_web_runtime_id();
 
   public:
-  // bool use_dedicated_workers = 2;
-  void clear_use_dedicated_workers() ;
-  bool use_dedicated_workers() const;
-  void set_use_dedicated_workers(bool value);
+  // bool force_dedicated_workers = 2;
+  void clear_force_dedicated_workers() ;
+  bool force_dedicated_workers() const;
+  void set_force_dedicated_workers(bool value);
 
   private:
-  bool _internal_use_dedicated_workers() const;
-  void _internal_set_use_dedicated_workers(bool value);
+  bool _internal_force_dedicated_workers() const;
+  void _internal_set_force_dedicated_workers(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:plugin.host.web.QuickJSConfig)
@@ -279,7 +279,7 @@ class QuickJSConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr web_runtime_id_;
-    bool use_dedicated_workers_;
+    bool force_dedicated_workers_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -432,7 +432,7 @@ class Config final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kWebRuntimeIdFieldNumber = 1,
-    kUseDedicatedWorkersFieldNumber = 2,
+    kForceDedicatedWorkersFieldNumber = 2,
   };
   // string web_runtime_id = 1;
   void clear_web_runtime_id() ;
@@ -449,14 +449,14 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_web_runtime_id();
 
   public:
-  // bool use_dedicated_workers = 2;
-  void clear_use_dedicated_workers() ;
-  bool use_dedicated_workers() const;
-  void set_use_dedicated_workers(bool value);
+  // bool force_dedicated_workers = 2;
+  void clear_force_dedicated_workers() ;
+  bool force_dedicated_workers() const;
+  void set_force_dedicated_workers(bool value);
 
   private:
-  bool _internal_use_dedicated_workers() const;
-  void _internal_set_use_dedicated_workers(bool value);
+  bool _internal_force_dedicated_workers() const;
+  void _internal_set_force_dedicated_workers(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:plugin.host.web.Config)
@@ -486,7 +486,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr web_runtime_id_;
-    bool use_dedicated_workers_;
+    bool force_dedicated_workers_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -576,29 +576,29 @@ inline void Config::set_allocated_web_runtime_id(::std::string* PROTOBUF_NULLABL
   // @@protoc_insertion_point(field_set_allocated:plugin.host.web.Config.web_runtime_id)
 }
 
-// bool use_dedicated_workers = 2;
-inline void Config::clear_use_dedicated_workers() {
+// bool force_dedicated_workers = 2;
+inline void Config::clear_force_dedicated_workers() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = false;
+  _impl_.force_dedicated_workers_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline bool Config::use_dedicated_workers() const {
-  // @@protoc_insertion_point(field_get:plugin.host.web.Config.use_dedicated_workers)
-  return _internal_use_dedicated_workers();
+inline bool Config::force_dedicated_workers() const {
+  // @@protoc_insertion_point(field_get:plugin.host.web.Config.force_dedicated_workers)
+  return _internal_force_dedicated_workers();
 }
-inline void Config::set_use_dedicated_workers(bool value) {
-  _internal_set_use_dedicated_workers(value);
+inline void Config::set_force_dedicated_workers(bool value) {
+  _internal_set_force_dedicated_workers(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:plugin.host.web.Config.use_dedicated_workers)
+  // @@protoc_insertion_point(field_set:plugin.host.web.Config.force_dedicated_workers)
 }
-inline bool Config::_internal_use_dedicated_workers() const {
+inline bool Config::_internal_force_dedicated_workers() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.use_dedicated_workers_;
+  return _impl_.force_dedicated_workers_;
 }
-inline void Config::_internal_set_use_dedicated_workers(bool value) {
+inline void Config::_internal_set_force_dedicated_workers(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = value;
+  _impl_.force_dedicated_workers_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -670,29 +670,29 @@ inline void QuickJSConfig::set_allocated_web_runtime_id(::std::string* PROTOBUF_
   // @@protoc_insertion_point(field_set_allocated:plugin.host.web.QuickJSConfig.web_runtime_id)
 }
 
-// bool use_dedicated_workers = 2;
-inline void QuickJSConfig::clear_use_dedicated_workers() {
+// bool force_dedicated_workers = 2;
+inline void QuickJSConfig::clear_force_dedicated_workers() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = false;
+  _impl_.force_dedicated_workers_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline bool QuickJSConfig::use_dedicated_workers() const {
-  // @@protoc_insertion_point(field_get:plugin.host.web.QuickJSConfig.use_dedicated_workers)
-  return _internal_use_dedicated_workers();
+inline bool QuickJSConfig::force_dedicated_workers() const {
+  // @@protoc_insertion_point(field_get:plugin.host.web.QuickJSConfig.force_dedicated_workers)
+  return _internal_force_dedicated_workers();
 }
-inline void QuickJSConfig::set_use_dedicated_workers(bool value) {
-  _internal_set_use_dedicated_workers(value);
+inline void QuickJSConfig::set_force_dedicated_workers(bool value) {
+  _internal_set_force_dedicated_workers(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:plugin.host.web.QuickJSConfig.use_dedicated_workers)
+  // @@protoc_insertion_point(field_set:plugin.host.web.QuickJSConfig.force_dedicated_workers)
 }
-inline bool QuickJSConfig::_internal_use_dedicated_workers() const {
+inline bool QuickJSConfig::_internal_force_dedicated_workers() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.use_dedicated_workers_;
+  return _impl_.force_dedicated_workers_;
 }
-inline void QuickJSConfig::_internal_set_use_dedicated_workers(bool value) {
+inline void QuickJSConfig::_internal_set_force_dedicated_workers(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.use_dedicated_workers_ = value;
+  _impl_.force_dedicated_workers_ = value;
 }
 
 #ifdef __GNUC__

@@ -163,6 +163,12 @@ export interface WebWorkerStatus {
    * @generated from field: bool shared = 3;
    */
   shared?: boolean
+  /**
+   * Ready indicates the worker finished startup and registered with WebRuntime.
+   *
+   * @generated from field: bool ready = 4;
+   */
+  ready?: boolean
 }
 
 // WebWorkerStatus contains the message type declaration for WebWorkerStatus.
@@ -172,6 +178,7 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
     { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

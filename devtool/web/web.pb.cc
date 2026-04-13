@@ -40,7 +40,7 @@ inline constexpr DevtoolInitBrowser::Impl_::Impl_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         devtool_volume_info_{nullptr},
-        use_dedicated_workers_{false} {}
+        force_dedicated_workers_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR DevtoolInitBrowser::DevtoolInitBrowser(::_pbi::ConstantInitialized)
@@ -77,7 +77,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::devtool::web::DevtoolInitBrowser, _impl_.devtool_peer_id_),
         PROTOBUF_FIELD_OFFSET(::devtool::web::DevtoolInitBrowser, _impl_.devtool_volume_info_),
         PROTOBUF_FIELD_OFFSET(::devtool::web::DevtoolInitBrowser, _impl_.start_plugins_),
-        PROTOBUF_FIELD_OFFSET(::devtool::web::DevtoolInitBrowser, _impl_.use_dedicated_workers_),
+        PROTOBUF_FIELD_OFFSET(::devtool::web::DevtoolInitBrowser, _impl_.force_dedicated_workers_),
         1,
         2,
         3,
@@ -97,11 +97,11 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fde
     "\n6github.com/aperturerobotics/bldr/devto"
     "ol/web/web.proto\022\013devtool.web\0325github.co"
     "m/aperturerobotics/hydra/volume/volume.p"
-    "roto\"\244\001\n\022DevtoolInitBrowser\022\016\n\006app_id\030\001 "
+    "roto\"\246\001\n\022DevtoolInitBrowser\022\016\n\006app_id\030\001 "
     "\001(\t\022\027\n\017devtool_peer_id\030\002 \001(\t\022/\n\023devtool_"
     "volume_info\030\003 \001(\0132\022.volume.VolumeInfo\022\025\n"
-    "\rstart_plugins\030\004 \003(\t\022\035\n\025use_dedicated_wo"
-    "rkers\030\005 \001(\010b\006proto3"
+    "\rstart_plugins\030\004 \003(\t\022\037\n\027force_dedicated_"
+    "workers\030\005 \001(\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdevtool_2fweb_2fweb_2eproto_deps[1] = {
@@ -111,7 +111,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdevtool_2fweb_2fweb_2eproto = {
     false,
     false,
-    299,
+    301,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fdevtool_2fweb_2fweb_2eproto,
     "github.com/aperturerobotics/bldr/devtool/web/web.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdevtool_2fweb_2fweb_2eproto_once,
@@ -178,7 +178,7 @@ DevtoolInitBrowser::DevtoolInitBrowser(
   _impl_.devtool_volume_info_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.devtool_volume_info_)
                 : nullptr;
-  _impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
+  _impl_.force_dedicated_workers_ = from._impl_.force_dedicated_workers_;
 
   // @@protoc_insertion_point(copy_constructor:devtool.web.DevtoolInitBrowser)
 }
@@ -195,9 +195,9 @@ inline void DevtoolInitBrowser::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, devtool_volume_info_),
            0,
-           offsetof(Impl_, use_dedicated_workers_) -
+           offsetof(Impl_, force_dedicated_workers_) -
                offsetof(Impl_, devtool_volume_info_) +
-               sizeof(Impl_::use_dedicated_workers_));
+               sizeof(Impl_::force_dedicated_workers_));
 }
 DevtoolInitBrowser::~DevtoolInitBrowser() {
   // @@protoc_insertion_point(destructor:devtool.web.DevtoolInitBrowser)
@@ -307,10 +307,10 @@ DevtoolInitBrowser::_table_ = {
     {::_pbi::TcParser::FastUR1,
      {34, 0, 0,
       PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.start_plugins_)}},
-    // bool use_dedicated_workers = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolInitBrowser, _impl_.use_dedicated_workers_), 4>(),
+    // bool force_dedicated_workers = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolInitBrowser, _impl_.force_dedicated_workers_), 4>(),
      {40, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.use_dedicated_workers_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.force_dedicated_workers_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
@@ -324,8 +324,8 @@ DevtoolInitBrowser::_table_ = {
     {PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.devtool_volume_info_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated string start_plugins = 4;
     {PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.start_plugins_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
-    // bool use_dedicated_workers = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.use_dedicated_workers_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool force_dedicated_workers = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.force_dedicated_workers_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::volume::VolumeInfo>()},
@@ -361,7 +361,7 @@ PROTOBUF_NOINLINE void DevtoolInitBrowser::Clear() {
       _impl_.devtool_volume_info_->Clear();
     }
   }
-  _impl_.use_dedicated_workers_ = false;
+  _impl_.force_dedicated_workers_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -422,12 +422,12 @@ PROTOBUF_NOINLINE void DevtoolInitBrowser::Clear() {
     }
   }
 
-  // bool use_dedicated_workers = 5;
+  // bool force_dedicated_workers = 5;
   if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (this_._internal_use_dedicated_workers() != 0) {
+    if (this_._internal_force_dedicated_workers() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          5, this_._internal_use_dedicated_workers(), target);
+          5, this_._internal_force_dedicated_workers(), target);
     }
   }
 
@@ -485,9 +485,9 @@ PROTOBUF_NOINLINE void DevtoolInitBrowser::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.devtool_volume_info_);
     }
-    // bool use_dedicated_workers = 5;
+    // bool force_dedicated_workers = 5;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (this_._internal_use_dedicated_workers() != 0) {
+      if (this_._internal_force_dedicated_workers() != 0) {
         total_size += 2;
       }
     }
@@ -544,8 +544,8 @@ void DevtoolInitBrowser::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (from._internal_use_dedicated_workers() != 0) {
-        _this->_impl_.use_dedicated_workers_ = from._impl_.use_dedicated_workers_;
+      if (from._internal_force_dedicated_workers() != 0) {
+        _this->_impl_.force_dedicated_workers_ = from._impl_.force_dedicated_workers_;
       }
     }
   }
@@ -572,8 +572,8 @@ void DevtoolInitBrowser::InternalSwap(DevtoolInitBrowser* PROTOBUF_RESTRICT PROT
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.app_id_, &other->_impl_.app_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.devtool_peer_id_, &other->_impl_.devtool_peer_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.use_dedicated_workers_)
-      + sizeof(DevtoolInitBrowser::_impl_.use_dedicated_workers_)
+      PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.force_dedicated_workers_)
+      + sizeof(DevtoolInitBrowser::_impl_.force_dedicated_workers_)
       - PROTOBUF_FIELD_OFFSET(DevtoolInitBrowser, _impl_.devtool_volume_info_)>(
           reinterpret_cast<char*>(&_impl_.devtool_volume_info_),
           reinterpret_cast<char*>(&other->_impl_.devtool_volume_info_));

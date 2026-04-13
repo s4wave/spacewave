@@ -78,6 +78,8 @@ message WebWorkerStatus {
   bool deleted = 2;
   // Shared indicates that the worker is a SharedWorker.
   bool shared = 3;
+  // Ready indicates the worker finished startup and registered with WebRuntime.
+  bool ready = 4;
 }
 
 // CreateWebViewRequest is a request to create a new web view.

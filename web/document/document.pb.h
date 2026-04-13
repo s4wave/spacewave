@@ -342,6 +342,7 @@ class WebWorkerStatus final : public ::google::protobuf::Message
     kIdFieldNumber = 1,
     kDeletedFieldNumber = 2,
     kSharedFieldNumber = 3,
+    kReadyFieldNumber = 4,
   };
   // string id = 1;
   void clear_id() ;
@@ -378,11 +379,21 @@ class WebWorkerStatus final : public ::google::protobuf::Message
   void _internal_set_shared(bool value);
 
   public:
+  // bool ready = 4;
+  void clear_ready() ;
+  bool ready() const;
+  void set_ready(bool value);
+
+  private:
+  bool _internal_ready() const;
+  void _internal_set_ready(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:web.document.WebWorkerStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
                                    0, 39,
                                    2>
       _table_;
@@ -407,6 +418,7 @@ class WebWorkerStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr id_;
     bool deleted_;
     bool shared_;
+    bool ready_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2770,6 +2782,31 @@ inline bool WebWorkerStatus::_internal_shared() const {
 inline void WebWorkerStatus::_internal_set_shared(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.shared_ = value;
+}
+
+// bool ready = 4;
+inline void WebWorkerStatus::clear_ready() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool WebWorkerStatus::ready() const {
+  // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.ready)
+  return _internal_ready();
+}
+inline void WebWorkerStatus::set_ready(bool value) {
+  _internal_set_ready(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.ready)
+}
+inline bool WebWorkerStatus::_internal_ready() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ready_;
+}
+inline void WebWorkerStatus::_internal_set_ready(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ = value;
 }
 
 // -------------------------------------------------------------------

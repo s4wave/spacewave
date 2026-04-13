@@ -225,6 +225,8 @@ type WebWorkerStatus struct {
 	Deleted bool `protobuf:"varint,2,opt,name=deleted,proto3" json:"deleted,omitempty"`
 	// Shared indicates that the worker is a SharedWorker.
 	Shared bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
+	// Ready indicates the worker finished startup and registered with WebRuntime.
+	Ready bool `protobuf:"varint,4,opt,name=ready,proto3" json:"ready,omitempty"`
 }
 
 func (x *WebWorkerStatus) Reset() {
@@ -250,6 +252,13 @@ func (x *WebWorkerStatus) GetDeleted() bool {
 func (x *WebWorkerStatus) GetShared() bool {
 	if x != nil {
 		return x.Shared
+	}
+	return false
+}
+
+func (x *WebWorkerStatus) GetReady() bool {
+	if x != nil {
+		return x.Ready
 	}
 	return false
 }
@@ -501,6 +510,7 @@ func (m *WebWorkerStatus) CloneVT() *WebWorkerStatus {
 	r.Id = m.Id
 	r.Deleted = m.Deleted
 	r.Shared = m.Shared
+	r.Ready = m.Ready
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -733,6 +743,9 @@ func (this *WebWorkerStatus) EqualVT(that *WebWorkerStatus) bool {
 		return false
 	}
 	if this.Shared != that.Shared {
+		return false
+	}
+	if this.Ready != that.Ready {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1196,6 +1209,11 @@ func (x *WebWorkerStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("shared")
 		s.WriteBool(x.Shared)
 	}
+	if x.Ready || s.HasField("ready") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ready")
+		s.WriteBool(x.Ready)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1222,6 +1240,9 @@ func (x *WebWorkerStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "shared":
 			s.AddField("shared")
 			x.Shared = s.ReadBool()
+		case "ready":
+			s.AddField("ready")
+			x.Ready = s.ReadBool()
 		}
 	})
 }
@@ -1740,6 +1761,16 @@ func (m *WebWorkerStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Ready {
+		i--
+		if m.Ready {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Shared {
 		i--
 		if m.Shared {
@@ -2134,6 +2165,9 @@ func (m *WebWorkerStatus) SizeVT() (n int) {
 	if m.Shared {
 		n += 2
 	}
+	if m.Ready {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2375,6 +2409,13 @@ func (x *WebWorkerStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("shared: ")
 		sb.WriteString(strconv.FormatBool(x.Shared))
+	}
+	if x.Ready != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ready: ")
+		sb.WriteString(strconv.FormatBool(x.Ready))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2884,6 +2925,18 @@ func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Shared = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ready", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Ready = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -40,13 +40,13 @@ export interface DevtoolInitBrowser {
    */
   startPlugins?: string[]
   /**
-   * UseDedicatedWorkers overrides the default SharedWorker mode to use
+   * ForceDedicatedWorkers overrides the default SharedWorker mode to use
    * dedicated Workers for plugins. Useful for testing with Playwright
    * which can capture console output from dedicated workers but not shared.
    *
-   * @generated from field: bool use_dedicated_workers = 5;
+   * @generated from field: bool force_dedicated_workers = 5;
    */
-  useDedicatedWorkers?: boolean
+  forceDedicatedWorkers?: boolean
 }
 
 // DevtoolInitBrowser contains the message type declaration for DevtoolInitBrowser.
@@ -71,7 +71,7 @@ export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
       },
       {
         no: 5,
-        name: 'use_dedicated_workers',
+        name: 'force_dedicated_workers',
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
