@@ -13,6 +13,93 @@ import {
 import { FetchService } from './fetch_srpc.pb.js'
 import { Message } from '@aptre/protobuf-es-lite'
 
+export interface ProxyFetchOpts {
+  // abortSignal is an optional extra signal owned by the caller.
+  abortSignal?: AbortSignal
+  // headerTimeoutMs aborts the proxied fetch if the first response packet does
+  // not arrive in time. When unset, no timeout is applied.
+  headerTimeoutMs?: number
+}
+
+// createLinkedAbortController links a new controller to any provided parent
+// signals and returns a cleanup callback for the listeners.
+function createLinkedAbortController(...signals: Array<AbortSignal | undefined>) {
+  const abortController = new AbortController()
+  const cleanupFns: Array<() => void> = []
+  const abort = (reason?: unknown) => {
+    if (!abortController.signal.aborted) {
+      abortController.abort(reason)
+    }
+  }
+
+  for (const signal of signals) {
+    if (!signal) {
+      continue
+    }
+    if (signal.aborted) {
+      abort(signal.reason)
+      break
+    }
+    const onAbort = () => abort(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    cleanupFns.push(() => signal.removeEventListener('abort', onAbort))
+  }
+
+  return {
+    abortController,
+    cleanup: () => {
+      for (const cleanupFn of cleanupFns) {
+        cleanupFn()
+      }
+    },
+  }
+}
+
+// waitForFirstPacket waits for the first response packet, optionally with a
+// timeout tied into the provided abort controller.
+async function waitForFirstPacket(
+  it: AsyncIterator<Message<FetchResponse>>,
+  abortController: AbortController,
+  headerTimeoutMs?: number,
+) {
+  if (headerTimeoutMs == null) {
+    return it.next()
+  }
+
+  return new Promise<IteratorResult<Message<FetchResponse>>>((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => {
+      abortController.abort(
+        new Error(
+          `timed out waiting ${headerTimeoutMs}ms for proxied fetch response headers`,
+        ),
+      )
+    }, headerTimeoutMs)
+
+    const onAbort = () => {
+      clearTimeout(timer)
+      const reason = abortController.signal.reason
+      reject(
+        reason instanceof Error
+          ? reason
+          : new Error('proxied fetch aborted before response headers'),
+      )
+    }
+
+    abortController.signal.addEventListener('abort', onAbort, { once: true })
+    it.next()
+      .then((value) => {
+        clearTimeout(timer)
+        abortController.signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      })
+      .catch((err) => {
+        clearTimeout(timer)
+        abortController.signal.removeEventListener('abort', onAbort)
+        reject(err)
+      })
+  })
+}
+
 // buildFetchHeaders builds a Headers map from a Headers object.
 export function buildFetchHeaders(headers: Headers): Record<string, string> {
   const result: Record<string, string> = {}
@@ -134,8 +221,13 @@ export async function proxyFetch(
   svc: FetchService,
   request: Request,
   clientId: string,
+  opts?: ProxyFetchOpts,
 ): Promise<Response> {
   let resultIt: AsyncIterator<Message<FetchResponse>> | null = null
+  const { abortController, cleanup } = createLinkedAbortController(
+    request.signal,
+    opts?.abortSignal,
+  )
   try {
     // get the request body
     const requestBody = request.body
@@ -157,7 +249,7 @@ export async function proxyFetch(
     // TODO: Browsers do not cancel request.signal when the request is canceled.
     // This is a long-standing browser bug and is not yet fixed.
     // See: https://github.com/w3c/ServiceWorker/issues/1544
-    const resultIterable = svc.Fetch(fetchRequestStream, request.signal)
+    const resultIterable = svc.Fetch(fetchRequestStream, abortController.signal)
 
     // stream the body
     if (hasBody) {
@@ -173,7 +265,11 @@ export async function proxyFetch(
     resultIt = resultIterable[Symbol.asyncIterator]()
 
     // firstPkt contains the result headers.
-    const firstPkt = await resultIt.next()
+    const firstPkt = await waitForFirstPacket(
+      resultIt,
+      abortController,
+      opts?.headerTimeoutMs,
+    )
     const firstPktResp: FetchResponse = firstPkt?.value
     const firstPktBody = firstPktResp?.body
     if (!firstPktBody || !firstPkt || firstPkt.done) {
@@ -191,6 +287,9 @@ export async function proxyFetch(
     // return the streaming response
     return new Response(responseBody, responseInit)
   } catch (err) {
+    if (resultIt?.return) {
+      void resultIt.return(err)
+    }
     const error = castToError(err, 'failed to start fetch request')
     console.error('fetch: proxyFetch catch error', error)
 
@@ -210,5 +309,7 @@ export async function proxyFetch(
       status: responseStatus,
       // statusText: 'Error: ' + error.message,
     })
+  } finally {
+    cleanup()
   }
 }

@@ -4,6 +4,7 @@ import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
+import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
 
@@ -21,6 +22,8 @@ const baseURL = new URL(self.location.toString())
 
 // CACHES is the list of caches.
 const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
+const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
+const proxyFetchHeaderTimeoutMs = 30_000
 
 // onWebDocumentsExhausted notifies all web documents we need a new connection.
 const onWebDocumentsExhausted = async () => {
@@ -218,7 +221,17 @@ async function swFetch(
       request.url.toString(),
     )
   }
-  return proxyFetch(swHost, request, ev.clientId)
+  if (!ev.clientId) {
+    return proxyFetch(swHost, request, ev.clientId, {
+      headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+    })
+  }
+
+  const trackedFetch = serviceWorkerFetchTracker.trackFetch(ev.clientId)
+  return proxyFetch(swHost, request, ev.clientId, {
+    abortSignal: trackedFetch.abortController.signal,
+    headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+  }).finally(() => trackedFetch.release())
 
   /*
   Not working with custom app:// scheme in Electron.
@@ -253,6 +266,12 @@ function initServiceWorker() {
     if (isCrossTabMessage(ev.data)) {
       const senderId = (ev.source as Client)?.id
       if (senderId) {
+        if (ev.data.crossTab === 'goodbye') {
+          serviceWorkerFetchTracker.abortClient(
+            senderId,
+            new Error('service worker client closed'),
+          )
+        }
         ev.waitUntil(handleCrossTabMessage(self.clients, senderId, ev.data))
       }
       return
