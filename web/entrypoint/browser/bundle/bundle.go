@@ -17,8 +17,8 @@ import (
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	web_pkg_vite "github.com/aperturerobotics/bldr/web/pkg/vite"
-	"github.com/aperturerobotics/fastjson"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -70,6 +70,20 @@ func DefaultBanner() map[string]string {
 	}
 }
 
+func resolveBrowserBuildRoot(workingDir string) string {
+	dir := workingDir
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "tsconfig.json")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return workingDir
+		}
+		dir = parent
+	}
+}
+
 // BrowserBuildOpts are general options for building for the browser.
 func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 	sourceMap := esbuild.SourceMapNone
@@ -81,6 +95,8 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 	if minify {
 		drop = esbuild.DropDebugger
 	}
+
+	projectRoot := resolveBrowserBuildRoot(workingDir)
 
 	return esbuild.BuildOptions{
 		AbsWorkingDir: workingDir,
@@ -99,6 +115,9 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 		Banner: DefaultBanner(),
 		Define: map[string]string{
 			"BLDR_IS_BROWSER": "true",
+		},
+		Plugins: []esbuild.Plugin{
+			bldr_esbuild_build.GoVendorTsResolverPlugin(projectRoot),
 		},
 
 		Loader: map[string]esbuild.Loader{
@@ -416,7 +435,6 @@ func BuildBrowserBundle(
 		CSSPaths:              cssPaths,
 	}, nil
 }
-
 
 // BuildWebPkgsBundle builds the web pkg bundle files.
 //
