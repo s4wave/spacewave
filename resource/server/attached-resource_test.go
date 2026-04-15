@@ -199,6 +199,35 @@ func TestGetAttachedResource_NotFound(t *testing.T) {
 	}
 }
 
+func TestAddResourceValueAndGetResourceValue(t *testing.T) {
+	client, cancel := newTestClient(t)
+	defer cancel()
+
+	want := &mockSRPCClient{id: 99}
+	id, err := client.AddResourceValue(srpc.NewMux(), want, nil)
+	if err != nil {
+		t.Fatalf("unexpected error adding resource: %v", err)
+	}
+
+	got, err := client.GetResourceValue(id)
+	if err != nil {
+		t.Fatalf("unexpected error getting resource value: %v", err)
+	}
+	if got != want {
+		t.Fatal("returned resource value does not match")
+	}
+}
+
+func TestGetResourceValueNotFound(t *testing.T) {
+	client, cancel := newTestClient(t)
+	defer cancel()
+
+	_, err := client.GetResourceValue(404)
+	if err != resource.ErrResourceNotFound {
+		t.Fatalf("got error %v, want %v", err, resource.ErrResourceNotFound)
+	}
+}
+
 func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()

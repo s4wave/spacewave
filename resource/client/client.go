@@ -491,6 +491,7 @@ func (c *Client) getOrCreateSRPCClientLocked(resourceID uint32) (srpc.Client, er
 
 	// Create per-resource context derived from client context
 	// This allows canceling all streams for this resource when it's released
+	// #nosec G118 -- stored in resourceContexts and canceled on resource release or Client.Release().
 	resourceCtx, resourceCancel := context.WithCancel(c.ctx)
 	c.resourceContexts[resourceID] = resourceCancel
 

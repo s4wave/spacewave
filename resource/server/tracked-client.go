@@ -42,6 +42,11 @@ func (c *RemoteResourceClient) Context() context.Context {
 // times (out-of-band from this API). The client uses reference counting to track
 // when all references to a resource ID have been released.
 func (c *RemoteResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return c.AddResourceValue(mux, nil, releaseFn)
+}
+
+// AddResourceValue adds a new resource with an optional typed value.
+func (c *RemoteResourceClient) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
 	var resourceID uint32
 
 	err := func() error {
@@ -57,6 +62,7 @@ func (c *RemoteResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (
 
 			res := &trackedResource{
 				mux:           mux,
+				value:         value,
 				ownerClientID: c.clientID,
 				releaseFn:     releaseFn,
 			}
@@ -72,6 +78,21 @@ func (c *RemoteResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (
 	}()
 
 	return resourceID, err
+}
+
+// GetResourceValue returns the typed resource value for a tracked resource.
+func (c *RemoteResourceClient) GetResourceValue(resourceID uint32) (any, error) {
+	var value any
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		res := c.resources[resourceID]
+		if res != nil {
+			value = res.value
+		}
+	})
+	if value == nil {
+		return nil, resource.ErrResourceNotFound
+	}
+	return value, nil
 }
 
 // ReleaseResource releases a resource that was previously added.

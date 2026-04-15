@@ -344,44 +344,71 @@ export class Client {
     mux: LookupMethod,
     signal?: AbortSignal,
   ): Promise<{ resourceId: number; cleanup: () => void }> {
-    const sess = await this.ensureAttachSession()
+    let attempt = 0
 
-    // Allocate attach correlation ID.
-    const attachId = ++sess.attachIdCtr
-    const resultPromise = new Promise<number>((resolve, reject) => {
-      sess.pending.set(attachId, { resolve, reject })
-      signal?.addEventListener('abort', () => {
-        sess.pending.delete(attachId)
-        reject(new Error('aborted'))
-      }, { once: true })
-    })
+    for (;;) {
+      const sess = await this.ensureAttachSession()
 
-    // Send Add.
-    sess.outgoing.push({
-      body: {
-        case: 'add' as const,
-        value: { attachId, label },
-      },
-    })
+      try {
+        // Allocate attach correlation ID.
+        const attachId = ++sess.attachIdCtr
+        const resultPromise = new Promise<number>((resolve, reject) => {
+          sess.pending.set(attachId, { resolve, reject })
+          signal?.addEventListener('abort', () => {
+            sess.pending.delete(attachId)
+            reject(new Error('aborted'))
+          }, { once: true })
+        })
 
-    // Wait for AddAck.
-    const resourceId = await resultPromise
+        // Send Add.
+        sess.outgoing.push({
+          body: {
+            case: 'add' as const,
+            value: { attachId, label },
+          },
+        })
 
-    // Register the mux for routed dispatch.
-    sess.muxes.set(resourceId, mux)
+        // Wait for AddAck.
+        const resourceId = await resultPromise
 
-    const cleanup = () => {
-      sess.muxes.delete(resourceId)
-      // Send Detach (best-effort).
-      sess.outgoing.push({
-        body: {
-          case: 'detach' as const,
-          value: { resourceId },
-        },
-      })
+        // Register the mux for routed dispatch.
+        sess.muxes.set(resourceId, mux)
+
+        const cleanup = () => {
+          sess.muxes.delete(resourceId)
+          // Send Detach (best-effort).
+          sess.outgoing.push({
+            body: {
+              case: 'detach' as const,
+              value: { resourceId },
+            },
+          })
+        }
+
+        return { resourceId, cleanup }
+      } catch (err) {
+        if (
+          signal?.aborted ||
+          attempt >= 3 ||
+          !this.shouldRetryAttachResource(err, sess)
+        ) {
+          throw err
+        }
+        attempt++
+      }
     }
+  }
 
-    return { resourceId, cleanup }
+  // shouldRetryAttachResource reports whether attachResource should retry.
+  private shouldRetryAttachResource(
+    err: unknown,
+    sess: AttachSession,
+  ): boolean {
+    return (
+      err instanceof Error &&
+      err.message === 'attach session closed' &&
+      this.attachSession !== sess
+    )
   }
 
   // ensureAttachSession opens the ResourceAttach bidi stream if needed.

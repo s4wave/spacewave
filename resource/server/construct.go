@@ -36,7 +36,7 @@ func ConstructChildResource[T any](
 		return zero, 0, err
 	}
 
-	resourceID, err := client.AddResource(mux, func() {
+	resourceID, err := client.AddResourceValue(mux, result, func() {
 		if releaseFn != nil {
 			releaseFn()
 		}
