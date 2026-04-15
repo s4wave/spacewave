@@ -6,8 +6,11 @@ import {
   useRef,
   useState,
 } from 'react'
+import type { ResourceReleaseReason } from '../resource/client.js'
+import { Resource as SDKResource } from '../resource/resource.js'
 import { castToError } from 'starpc'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
+import { useResourcesClient } from './useResourcesClient.js'
 
 // Global counter for generating unique tracking IDs.
 // useId() is not suitable because it generates IDs based on component tree position,
@@ -46,6 +49,15 @@ export interface UseResourceOptions<TValue> {
   onSuccess?: (data: TValue) => void
   /** Callback invoked when the resource fails to load */
   onError?: (error: Error) => void
+  /** Retry when a loaded SDK resource is later released by the server. Defaults to true. */
+  retryOnReleasedResource?:
+    | boolean
+    | {
+        /** Release reasons that should trigger a retry. Defaults to ['server-released']. */
+        reasons?: ResourceReleaseReason[]
+        /** Extract resource IDs from non-Resource or composite return values. */
+        getResourceIds?: (value: TValue) => number[]
+      }
 }
 
 /**
@@ -192,6 +204,33 @@ async function callFactory<T>(
   )(parentValues, signal, cleanup)
 }
 
+function getReleasedResourceRetryReasons<T>(
+  options?: UseResourceOptions<T>,
+): ResourceReleaseReason[] {
+  const retryConfig = options?.retryOnReleasedResource
+  if (retryConfig === false) {
+    return []
+  }
+  if (retryConfig === undefined || retryConfig === true) {
+    return ['server-released']
+  }
+  return retryConfig.reasons ?? ['server-released']
+}
+
+function getReleasedResourceRetryIds<T>(
+  value: T,
+  options?: UseResourceOptions<T>,
+): number[] {
+  const retryConfig = options?.retryOnReleasedResource
+  if (retryConfig === false) {
+    return []
+  }
+  if (retryConfig && retryConfig !== true && retryConfig.getResourceIds) {
+    return retryConfig.getResourceIds(value)
+  }
+  return value instanceof SDKResource ? [value.id] : []
+}
+
 /**
  * useResource manages async resource loading with automatic cleanup and dependency management.
  *
@@ -317,6 +356,7 @@ export function useResource<T>(
   // DevTools tracking - get stable ID and context
   const trackingId = useTrackingId()
   const devtools = useResourceDevToolsContext()
+  const resourcesClient = useResourcesClient()
 
   const parsed = useMemo<ParsedArgs<T>>(
     () => parseArgs<T>(args),
@@ -401,6 +441,22 @@ export function useResource<T>(
     })
     setRetryCount((c) => c + 1)
   }, [parent.retries])
+
+  const releasedResourceRetryReasons = useMemo(
+    () => getReleasedResourceRetryReasons(parsed.options),
+    [parsed.options],
+  )
+  const releasedResourceRetryIds = useMemo(() => {
+    if (!enabled || state.value === null) {
+      return []
+    }
+    return getReleasedResourceRetryIds(state.value, parsed.options)
+  }, [enabled, state.value, parsed.options])
+  const pendingReleasedResourceRetryRef = useRef(false)
+
+  useEffect(() => {
+    pendingReleasedResourceRetryRef.current = false
+  }, [retryCount, state.value])
 
   // DevTools: Extract parent tracking IDs from parent Resource objects.
   // Use spread-deps pattern (like useParentState's retries) so the array
@@ -553,6 +609,38 @@ export function useResource<T>(
     parent.loading,
     parentValuesChangeCount,
     stableFactory,
+  ])
+
+  useEffect(() => {
+    if (
+      !resourcesClient ||
+      state.loading ||
+      releasedResourceRetryReasons.length === 0 ||
+      releasedResourceRetryIds.length === 0
+    ) {
+      return
+    }
+
+    return resourcesClient.onResourceReleased((event) => {
+      if (!releasedResourceRetryReasons.includes(event.reason)) {
+        return
+      }
+      if (!releasedResourceRetryIds.includes(event.resourceId)) {
+        return
+      }
+      if (pendingReleasedResourceRetryRef.current) {
+        return
+      }
+
+      pendingReleasedResourceRetryRef.current = true
+      retry()
+    })
+  }, [
+    releasedResourceRetryIds,
+    releasedResourceRetryReasons,
+    resourcesClient,
+    retry,
+    state.loading,
   ])
 
   // Determine if we should hide stale data:
