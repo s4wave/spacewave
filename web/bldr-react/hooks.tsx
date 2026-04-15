@@ -759,11 +759,13 @@ export function useSetValueRpc<T, R = unknown>(
  * @param value - The value to monitor for changes
  * @param targetValue - The value that triggers the callback
  * @param callback - Function to execute on change. Can return boolean to control update
+ * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useOnChangeToValue<T>(
   value: T,
   targetValue: T,
   callback: () => void | boolean,
+  deps?: DependencyList,
 ): void {
   const [, setCurrValue] = useState<T>(() => value)
 
@@ -780,7 +782,12 @@ export function useOnChangeToValue<T>(
       }
       return prev
     })
-  }, [value, targetValue, callback])
+  }, [
+    value,
+    targetValue,
+    callback,
+    ...(deps ?? []), // eslint-disable-line react-hooks/exhaustive-deps
+  ])
   /* eslint-enable react-hooks/set-state-in-effect */
 }
 
@@ -802,11 +809,13 @@ type Focusable = {
  * @param ref - React ref containing focusable element
  * @param value - The value to monitor for changes
  * @param targetValue - The value that triggers focus
+ * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useFocusOnValueChange<T extends Focusable, V>(
   ref: RefObject<T>,
   value: V,
   targetValue: V,
+  deps?: DependencyList,
 ): void {
   const callback = useCallback(() => {
     if (ref.current) {
@@ -815,7 +824,7 @@ export function useFocusOnValueChange<T extends Focusable, V>(
     }
     return false // Return false to prevent updating previousValue.current
   }, [ref])
-  useOnChangeToValue(value, targetValue, callback)
+  useOnChangeToValue(value, targetValue, callback, deps)
 }
 
 /**
