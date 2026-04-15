@@ -1,7 +1,5 @@
 package banner
 
-import ()
-
 const apertureBanner = `
        d8888                           888
       d88888                           888                             

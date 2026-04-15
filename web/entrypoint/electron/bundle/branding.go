@@ -121,6 +121,7 @@ func applyDarwinBranding(ctx context.Context, le *logrus.Entry, electronDistPath
 		}
 	}
 
+	// #nosec G703 -- plistPath points inside the app bundle being assembled locally.
 	if err := os.WriteFile(plistPath, []byte(plist), 0o644); err != nil {
 		return "", errors.Wrap(err, "write Info.plist")
 	}
@@ -163,6 +164,7 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 	sizes := []int{16, 32, 64, 128, 256, 512}
 	for _, sz := range sizes {
 		outFile := filepath.Join(iconsetDir, "icon_"+strconv.Itoa(sz)+"x"+strconv.Itoa(sz)+".png")
+		// #nosec G204 -- sips is invoked with local bundle asset paths selected by the builder.
 		cmd := osexec.CommandContext(ctx, "sips", "-z", strconv.Itoa(sz), strconv.Itoa(sz), srcPng, "--out", outFile)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrapf(err, "sips %dx%d: %s", sz, sz, string(out))
@@ -171,6 +173,7 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 		sz2 := sz * 2
 		if sz2 <= 1024 {
 			out2x := filepath.Join(iconsetDir, "icon_"+strconv.Itoa(sz)+"x"+strconv.Itoa(sz)+"@2x.png")
+			// #nosec G204 -- sips is invoked with local bundle asset paths selected by the builder.
 			cmd2 := osexec.CommandContext(ctx, "sips", "-z", strconv.Itoa(sz2), strconv.Itoa(sz2), srcPng, "--out", out2x)
 			if out, err := cmd2.CombinedOutput(); err != nil {
 				return errors.Wrapf(err, "sips %dx%d@2x: %s", sz, sz, string(out))
@@ -259,6 +262,7 @@ func applyLinuxBranding(electronDistPath, appName, iconPath string) (string, err
 		if err := os.MkdirAll(resourcesDir, 0o755); err == nil {
 			destIcon := filepath.Join(resourcesDir, "app.png")
 			if data, err := os.ReadFile(iconPath); err == nil {
+				// #nosec G703 -- destIcon points inside the local Electron dist resources directory.
 				_ = os.WriteFile(destIcon, data, 0o644)
 			}
 		}

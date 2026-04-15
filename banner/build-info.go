@@ -28,20 +28,6 @@ func getBuildInfo() buildInfo {
 	return info
 }
 
-func (b buildInfo) normalizedMainVersion() string {
-	if b.mainVersion == "" || b.mainVersion == "(devel)" {
-		return "dev"
-	}
-	return b.mainVersion
-}
-
 func (b buildInfo) runtimeLabel() string {
 	return b.goVersion + " on " + b.goos + "/" + b.goarch
-}
-
-func (b buildInfo) cornerLabel() string {
-	if b.goVersion == "" {
-		return b.normalizedMainVersion()
-	}
-	return b.normalizedMainVersion() + "@" + b.goVersion
 }

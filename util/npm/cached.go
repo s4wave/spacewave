@@ -33,6 +33,7 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	if err := fsutil.CleanCreateDir(targetDir); err != nil {
 		return err
 	}
+	// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
 	if err := os.WriteFile(filepath.Join(targetDir, "package.json"), data, 0o644); err != nil {
 		return err
 	}
@@ -60,6 +61,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 	if err := fsutil.CleanCreateDir(targetDir); err != nil {
 		return err
 	}
+	// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
 	if err := os.WriteFile(filepath.Join(targetDir, "package.json"), []byte("{}"), 0o644); err != nil {
 		return err
 	}
@@ -90,6 +92,7 @@ func installCurrent(targetDir, hash string) bool {
 
 // writeInstallHash writes the install hash sentinel file.
 func writeInstallHash(targetDir, hash string) error {
+	// #nosec G703 -- targetDir is a managed cache directory created by the caller.
 	return os.WriteFile(filepath.Join(targetDir, installHashFile), []byte(hash), 0o644)
 }
 

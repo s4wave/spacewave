@@ -168,13 +168,11 @@ func BuildDistBus(
 
 	for _, hook := range preBuildHooks {
 		hookRels, err := hook(distBus)
-		for _, hookRel := range hookRels {
-			rels = append(rels, hookRel)
-		}
 		if err != nil {
 			rel()
 			return nil, err
 		}
+		rels = append(rels, hookRels...)
 	}
 
 	// attach the default storage controller

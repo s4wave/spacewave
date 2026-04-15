@@ -63,6 +63,7 @@ func main() {
 
 	eslintDisable := "/* eslint-disable */\n"
 	newContent := eslintDisable + string(content)
+	// #nosec G703 -- outfile is produced by the generator for a local prototype build.
 	if err := os.WriteFile(outfile, []byte(newContent), 0o644); err != nil {
 		le.WithError(err).Fatal("failed to write eslint-disable comment")
 		return

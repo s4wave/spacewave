@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/esbuild/pkg/cjsexports"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 )
 
@@ -276,6 +276,7 @@ func verifyExports(names []string) *CjsExportsResult {
 
 // getJSONKeys reads a JSON file and returns the top-level object keys.
 func getJSONKeys(path string) ([]string, error) {
+	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

@@ -71,6 +71,7 @@ func UpdateSourceMapReference(filePath, newMapFilename string) error {
 	content = append(content, []byte("//# sourceMappingURL="+filepath.Base(newMapFilename))...)
 
 	// Write the updated content back to the file
+	// #nosec G703 -- filePath is the caller-selected source file being rewritten in place.
 	err = os.WriteFile(filePath, content, 0o644)
 	if err != nil {
 		return errors.Wrap(err, "failed to write updated file with source map reference")

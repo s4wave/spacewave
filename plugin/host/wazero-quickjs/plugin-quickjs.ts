@@ -23,30 +23,30 @@ function logError(message: string, err: unknown): void {
   }
 }
 
-// globalThis is the top level quickjs global scope.
-declare const globalThis: QuickjsGlobalScope
+const quickjsGlobalThis = globalThis as typeof globalThis & QuickjsGlobalScope
 
 // expect the script path via the environment variable.
-const scriptPath = globalThis.std.getenv('BLDR_SCRIPT_PATH')!
+const scriptPath = quickjsGlobalThis.std.getenv('BLDR_SCRIPT_PATH')!
 
 // bail out if scriptPath is not set
 if (!scriptPath) {
-  globalThis.console.log('BLDR_SCRIPT_PATH must be defined')
-  globalThis.std.exit(1)
+  quickjsGlobalThis.console.log('BLDR_SCRIPT_PATH must be defined')
+  quickjsGlobalThis.std.exit(1)
 }
 
 // polyfill Event, AbortController, etc.
-const polyGlobalThis = applyPolyfills(globalThis)
+const polyGlobalThis = applyPolyfills(quickjsGlobalThis)
 
 // asynchronously import the script module
 const scriptPromise = import(scriptPath)
 scriptPromise.catch((err) => {
   logError('error importing script: ' + scriptPath, err)
-  globalThis.std.exit(1)
+  quickjsGlobalThis.std.exit(1)
 })
 
 // expect the start info via the environment variable.
-const startInfoB64 = globalThis.std.getenv('BLDR_PLUGIN_START_INFO') ?? ''
+const startInfoB64 =
+  quickjsGlobalThis.std.getenv('BLDR_PLUGIN_START_INFO') ?? ''
 
 // handleIncomingStreamCtr is the container for the plugin handle stream func.
 const handleIncomingStreamCtr = new HandleStreamCtr()
@@ -78,7 +78,7 @@ const stdinStream = pushable<Uint8Array>({ objectMode: true })
 
 // handle data being ready to read from stdin
 function stdinReadHandler() {
-  const bytesRead = globalThis.os.read(
+  const bytesRead = quickjsGlobalThis.os.read(
     stdinFd,
     stdinReadBuffer.buffer,
     0,
@@ -92,14 +92,14 @@ function stdinReadHandler() {
   const readData = stdinReadBuffer.slice(0, bytesRead)
   stdinStream.push(readData)
 }
-globalThis.os.setReadHandler(stdinFd, stdinReadHandler)
+quickjsGlobalThis.os.setReadHandler(stdinFd, stdinReadHandler)
 
 // pipe stdin to the runtimeConn and then out to /dev/out.
 pipe(stdinStream, runtimeConn, async (source) =>
-  writeSourceToFd(globalThis.os, source, '/dev/out'),
+  writeSourceToFd(quickjsGlobalThis.os, source, '/dev/out'),
 ).catch((err) => {
   logError('caught error in pipe', err)
-  globalThis.std.exit(1)
+  quickjsGlobalThis.std.exit(1)
 })
 
 // start outgoing streams
@@ -137,7 +137,7 @@ async function startPlugin() {
   )
 
   // Garbage collect
-  globalThis.gc?.()
+  quickjsGlobalThis.gc?.()
 
   // Call the imported module's main function, passing the API implementation.
   await script.default(backendAPI, abortSignal)
@@ -146,5 +146,5 @@ async function startPlugin() {
 // immediately call startPlugin
 startPlugin().catch((err) => {
   logError('startPlugin exited w/error', err)
-  globalThis.std.exit(1)
+  quickjsGlobalThis.std.exit(1)
 })

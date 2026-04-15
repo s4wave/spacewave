@@ -7,8 +7,7 @@ import { createSymbolPolyfills } from './polyfill-symbol.js'
 // @ts-ignore - event-target.js is untyped, types come from lib.dom
 import { Event, EventTarget, CustomEvent } from './event-target.js'
 
-// globalThis with Event types
-declare const globalThis: {
+const quickjsGlobalThis = globalThis as typeof globalThis & {
   Event: typeof Event
   EventTarget: typeof EventTarget
   CustomEvent: typeof CustomEvent
@@ -18,6 +17,6 @@ declare const globalThis: {
 createSymbolPolyfills()
 
 // Set Event classes on globalThis
-globalThis.Event = Event
-globalThis.EventTarget = EventTarget
-globalThis.CustomEvent = CustomEvent
+quickjsGlobalThis.Event = Event
+quickjsGlobalThis.EventTarget = EventTarget
+quickjsGlobalThis.CustomEvent = CustomEvent

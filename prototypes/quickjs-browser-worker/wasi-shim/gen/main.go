@@ -47,6 +47,7 @@ func main() {
 
 	eslintDisable := "/* eslint-disable */\n"
 	newContent := eslintDisable + string(content)
+	// #nosec G703 -- writes a fixed generated filename in the current generator directory.
 	if err := os.WriteFile("wasi-shim.esm.js", []byte(newContent), 0o644); err != nil {
 		le.WithError(err).Fatal("failed to write eslint-disable comment")
 		return

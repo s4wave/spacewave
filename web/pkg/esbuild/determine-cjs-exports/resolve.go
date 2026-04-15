@@ -139,6 +139,7 @@ func resolvePackageDir(pkgDir string) (string, error) {
 
 // readPackageMain reads the "main" field from a package.json file.
 func readPackageMain(path string) (string, error) {
+	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -159,6 +160,7 @@ func hasExtension(p string) bool {
 
 // isFile checks if the path is a regular file.
 func isFile(p string) bool {
+	// #nosec G703 -- p is resolved from the package graph under analysis, not user input.
 	info, err := os.Stat(p)
 	if err != nil {
 		return false

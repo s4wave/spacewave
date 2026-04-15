@@ -66,6 +66,7 @@ func buildDebugEvalCommand() *cli.Command {
 // findDebugSocket walks up from cwd looking for .bldr/saucer-debug.sock.
 func findDebugSocket() (string, error) {
 	if p := os.Getenv("BLDR_DEBUG_SOCK"); p != "" {
+		// #nosec G703 -- BLDR_DEBUG_SOCK intentionally accepts a user-provided local socket path.
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}

@@ -1,6 +1,7 @@
 package bldr_manifest
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -223,7 +224,7 @@ func (d *fetchManifest) GetDebugVals() directive.DebugValues {
 	}
 
 	if d.GetRev() != 0 {
-		vals["rev"] = []string{string(rune(d.GetRev()))}
+		vals["rev"] = []string{strconv.FormatUint(d.GetRev(), 10)}
 	}
 
 	return vals

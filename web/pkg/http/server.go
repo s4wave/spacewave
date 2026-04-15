@@ -38,8 +38,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	ctx := req.Context()
 	webPkgID, webPkgPath, err := web_pkg.CheckStripWebPkgIdPrefix(pkgPath)
 	if err != nil {
-		rw.WriteHeader(400)
-		_, _ = rw.Write([]byte("web pkg " + pkgPath + ": " + err.Error()))
+		http.Error(rw, "web pkg "+pkgPath+": "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -47,8 +46,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	if err != nil {
 		if err != context.Canceled {
 			s.le.WithError(err).WithField("pkg-path", pkgPath).Warn("pkg lookup failed")
-			rw.WriteHeader(500)
-			_, _ = rw.Write([]byte("web pkg " + pkgPath + ": " + err.Error()))
+			http.Error(rw, "web pkg "+pkgPath+": "+err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -57,8 +55,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	}
 
 	if webPkg == nil {
-		rw.WriteHeader(404)
-		_, _ = rw.Write([]byte("web pkg not found: " + webPkgID))
+		http.Error(rw, "web pkg not found: "+webPkgID, http.StatusNotFound)
 		return
 	}
 
@@ -66,8 +63,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	if err != nil {
 		if err != context.Canceled {
 			s.le.WithError(err).WithField("pkg-path", pkgPath).Warn("pkg fs handle failed")
-			rw.WriteHeader(500)
-			_, _ = rw.Write([]byte("web pkg " + pkgPath + ": " + err.Error()))
+			http.Error(rw, "web pkg "+pkgPath+": "+err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -77,8 +73,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	if err != nil {
 		if err != context.Canceled {
 			s.le.WithError(err).WithField("pkg-path", pkgPath).Warn("pkg filesystem failed")
-			rw.WriteHeader(500)
-			_, _ = rw.Write([]byte("web pkg " + pkgPath + ": " + err.Error()))
+			http.Error(rw, "web pkg "+pkgPath+": "+err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}

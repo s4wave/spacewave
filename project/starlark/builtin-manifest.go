@@ -3,8 +3,8 @@
 package bldr_project_starlark
 
 import (
-	bldr_project "github.com/aperturerobotics/bldr/project"
 	manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
 	"go.starlark.net/starlark"

@@ -51,10 +51,10 @@ func NewWebQuickJSHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, forceDe
 	// "js" platform - runs in QuickJS WASI
 	platform := bldr_platform.NewJsPlatform()
 	return &WebQuickJSHost{
-		b:                   b,
-		le:                  le,
-		pluginPlatformID:    platform.GetPlatformID(),
-		webRuntimeID:        webRuntimeID,
+		b:                     b,
+		le:                    le,
+		pluginPlatformID:      platform.GetPlatformID(),
+		webRuntimeID:          webRuntimeID,
 		forceDedicatedWorkers: forceDedicatedWorkers,
 	}, nil
 }

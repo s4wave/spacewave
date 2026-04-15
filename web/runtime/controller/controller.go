@@ -213,8 +213,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
 			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginDistHttpPrefix):])
 			if err != nil {
-				rw.WriteHeader(404)
-				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
 				return
 			}
 
@@ -228,8 +227,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		if strings.HasPrefix(rpath, bPaPrefix) && len(rpath) > len(bPaPrefix) {
 			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginAssetsHttpPrefix):])
 			if err != nil {
-				rw.WriteHeader(404)
-				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
 				return
 			}
 
@@ -257,8 +255,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	if strings.HasPrefix(rpath, bldr_plugin.PluginHttpPrefix) {
 		pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginHttpPrefix):])
 		if err != nil {
-			rw.WriteHeader(404)
-			_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+			http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -267,8 +264,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		return
 	}
 
-	rw.WriteHeader(404)
-	_, _ = rw.Write([]byte("bldr: unhandled path: " + rpath))
+	http.Error(rw, "bldr: unhandled path: "+rpath, http.StatusNotFound)
 }
 
 // ServePluginHTTP serves a ServiceWorker HTTP request for a plugin.
@@ -281,13 +277,11 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		Debug("forwarding http call to plugin")
 	rpcClient, rpcClientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
 	if err != nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
+		http.Error(rw, "bldr: load plugin failed: "+pluginID+": "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if rpcClient == nil {
-		rw.WriteHeader(404)
-		_, _ = rw.Write([]byte("bldr: plugin not found: " + pluginID))
+		http.Error(rw, "bldr: plugin not found: "+pluginID, http.StatusNotFound)
 		return
 	}
 	defer rpcClientRef.Release()
@@ -295,8 +289,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	fetchClient := fetch.NewSRPCFetchServiceClient(rpcClient)
 	err = fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
 	if err != nil && err != context.Canceled {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("bldr: request failed: plugin " + pluginID + ": " + err.Error()))
+		http.Error(rw, "bldr: request failed: plugin "+pluginID+": "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -385,14 +378,12 @@ func (c *Controller) ServeQuickJSHTTP(filePath string, rw http.ResponseWriter, r
 		var err error
 		content, err = plugin_host_wazero_quickjs.PluginQuickjsBoot.ReadFile("plugin-quickjs.esm.js")
 		if err != nil {
-			rw.WriteHeader(500)
-			_, _ = rw.Write([]byte("bldr: failed to read boot harness: " + err.Error()))
+			http.Error(rw, "bldr: failed to read boot harness: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		contentType = "application/javascript"
 	default:
-		rw.WriteHeader(404)
-		_, _ = rw.Write([]byte("bldr: unknown QuickJS file: " + filePath))
+		http.Error(rw, "bldr: unknown QuickJS file: "+filePath, http.StatusNotFound)
 		return
 	}
 

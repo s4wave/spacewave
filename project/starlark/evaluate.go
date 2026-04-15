@@ -77,10 +77,10 @@ func Evaluate(path string) (*Result, error) {
 		"js_module":    starlark.NewBuiltin("js_module", jsModuleBuiltin),
 
 		// Typed per-builder constructors (return dicts with field validation)
-		"go_plugin_config":          starlark.NewBuiltin("go_plugin_config", goPluginConfigBuiltin),
-		"js_plugin_config":          starlark.NewBuiltin("js_plugin_config", jsPluginConfigBuiltin),
-		"cli_compiler_config":       starlark.NewBuiltin("cli_compiler_config", cliCompilerConfigBuiltin),
-		"dist_compiler_config":      starlark.NewBuiltin("dist_compiler_config", distCompilerConfigBuiltin),
+		"go_plugin_config":           starlark.NewBuiltin("go_plugin_config", goPluginConfigBuiltin),
+		"js_plugin_config":           starlark.NewBuiltin("js_plugin_config", jsPluginConfigBuiltin),
+		"cli_compiler_config":        starlark.NewBuiltin("cli_compiler_config", cliCompilerConfigBuiltin),
+		"dist_compiler_config":       starlark.NewBuiltin("dist_compiler_config", distCompilerConfigBuiltin),
 		"web_plugin_compiler_config": starlark.NewBuiltin("web_plugin_compiler_config", webPluginCompilerConfigBuiltin),
 	}
 

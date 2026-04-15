@@ -411,9 +411,11 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 	var currentIndex uint64 = 0
 
 	// Determine limit: if n <= 0, read all remaining entries; otherwise limit to n
-	limit := uint64(n)
+	var limit uint64
 	if n <= 0 {
 		limit = 0 // 0 means no limit in ReaddirAll
+	} else {
+		limit = uint64(n)
 	}
 
 	err = f.handle.ReaddirAll(f.ctx, f.dirOffset, func(ent unixfs.FSCursorDirent) error {

@@ -288,10 +288,10 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	// encode the init info for the browser devtool entrypoint
 	browserInit := &devtool_web.DevtoolInitBrowser{
-		AppId:               appID,
-		DevtoolPeerId:       wsPeerID,
-		DevtoolVolumeInfo:   d.GetVolumeInfo(),
-		StartPlugins:        startPlugins,
+		AppId:                 appID,
+		DevtoolPeerId:         wsPeerID,
+		DevtoolVolumeInfo:     d.GetVolumeInfo(),
+		StartPlugins:          startPlugins,
 		ForceDedicatedWorkers: forceDedicatedWorkers,
 	}
 	if err := browserInit.Validate(); err != nil {
@@ -339,7 +339,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// Shut down the server when the context is cancelled.
 	go func() {
 		<-ctx.Done()
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer shutdownCancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()

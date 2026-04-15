@@ -115,13 +115,11 @@ func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		nil,
 	)
 	if err != nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte(err.Error()))
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if handlerRef == nil {
-		rw.WriteHeader(404)
-		_, _ = rw.Write([]byte("bldr: handler not found for url"))
+		http.Error(rw, "bldr: handler not found for url", http.StatusNotFound)
 		return
 	}
 

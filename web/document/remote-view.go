@@ -21,6 +21,7 @@ type remoteWebView struct {
 //
 // if permanent, this web view is the primary and cannot be closed
 func (r *Remote) buildRemoteWebView(rctx context.Context, id, parent, document string, permanent bool) *remoteWebView {
+	// #nosec G118 -- cancel func is returned on remoteWebView and invoked on view teardown.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	client := srpc.NewClient(r.GetWebViewOpenStream(id))
 	view := web_view.NewSRPCWebViewClient(client)

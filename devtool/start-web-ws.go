@@ -213,8 +213,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 			wc, err := websocket.Accept(rw, req, &websocket.AcceptOptions{})
 			if err != nil {
 				le.WithError(err).Warn("unable to accept websocket conn")
-				rw.WriteHeader(500)
-				_, _ = rw.Write([]byte(err.Error()))
+				http.Error(rw, "unable to accept websocket connection", http.StatusInternalServerError)
 				return
 			}
 			ctrl := buildWsWebRuntime(le, d.GetBus(), runtimeID, wc)

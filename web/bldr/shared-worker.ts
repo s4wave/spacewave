@@ -62,8 +62,6 @@ if (isPlugin) {
   const handleIncomingStream: HandleStreamFunc =
     handleIncomingStreamCtr.handleStreamFunc
 
-  let pluginWorker: PluginWorker
-
   const startPluginCallback = async (opts: PluginStartOpts) => {
     const { startInfo, busSab, busPluginId } = opts
     const { scriptPath, workerType } = parseUrlParams()
@@ -120,7 +118,11 @@ if (isPlugin) {
     }
   }
 
-  pluginWorker = new PluginWorker(self, startPluginCallback, handleIncomingStream)
+  const pluginWorker = new PluginWorker(
+    self,
+    startPluginCallback,
+    handleIncomingStream,
+  )
 } else {
   // Custom worker mode: import script directly and let it self-manage.
   // Buffer messages that arrive during the async import. The script registers

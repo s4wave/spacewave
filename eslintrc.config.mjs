@@ -14,6 +14,7 @@ export default defineConfig([
     ignores: [
       '**/*.gs.ts',
       'dist',
+      '**/dist/**',
       'vendor',
       'node_modules',
       'bundle',

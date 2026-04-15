@@ -3,8 +3,8 @@
 package plugin_entrypoint
 
 import (
-	"github.com/aperturerobotics/bldr/storage"
 	plugin_host_storage "github.com/aperturerobotics/bldr/plugin/host/storage"
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 )

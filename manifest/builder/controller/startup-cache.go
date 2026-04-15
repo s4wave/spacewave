@@ -278,7 +278,11 @@ func captureFileIdentity(filePath string) (*bldr_manifest_builder.InputManifest_
 	if _, err := io.Copy(h, file); err != nil {
 		return nil, err
 	}
+	if fileInfo.Size() < 0 {
+		return nil, errors.Errorf("negative file size: %d", fileInfo.Size())
+	}
 	return &bldr_manifest_builder.InputManifest_FileIdentity{
+		// #nosec G115 -- fileInfo.Size() is validated as non-negative immediately above.
 		SizeBytes:       uint64(fileInfo.Size()),
 		ModTimeUnixNano: fileInfo.ModTime().UnixNano(),
 		Sha256:          h.Sum(nil),
