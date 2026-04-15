@@ -3,6 +3,7 @@
 package metashard
 
 import (
+	"io"
 	"syscall/js"
 
 	"github.com/aperturerobotics/hydra/opfs"
@@ -43,20 +44,31 @@ func (p *OpfsPager) PageSize() int { return p.pgSize }
 
 // ReadPage reads a page by ID.
 func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
+	clear(buf)
 	off := int64(id) * int64(p.pgSize)
+	if p.syncFile != nil {
+		n, err := p.syncFile.ReadAt(buf[:p.pgSize], off)
+		if err != nil && err != io.EOF {
+			return errors.Wrap(err, "read page")
+		}
+		if n != p.pgSize {
+			return errors.Errorf("short read page %d: got %d want %d", id, n, p.pgSize)
+		}
+		return nil
+	}
 	// Try async read first (no lock needed for sealed pages).
 	f, err := opfs.OpenAsyncFile(p.dir, p.filename)
 	if err != nil {
-		if opfs.IsNotFound(err) {
-			for i := range buf {
-				buf[i] = 0
-			}
-			return nil
-		}
 		return errors.Wrap(err, "open page file for read")
 	}
-	_, err = f.ReadAt(buf[:p.pgSize], off)
-	return err
+	n, err := f.ReadAt(buf[:p.pgSize], off)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "read page")
+	}
+	if n != p.pgSize {
+		return errors.Errorf("short read page %d: got %d want %d", id, n, p.pgSize)
+	}
+	return nil
 }
 
 // WritePage writes a page. Uses a sync handle when available, async otherwise.

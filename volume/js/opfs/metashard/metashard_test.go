@@ -4,6 +4,7 @@ package metashard
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/opfs"
@@ -115,6 +116,48 @@ func TestMetaShardReadSnapshotIsolation(t *testing.T) {
 	}
 }
 
+func TestMetaShardWriteTxMultipleMutations(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metashard-multi-mutation")
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("k1"), []byte("v1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("k2"), []byte("v2")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+
+	val, found, err := readTx.Get(ctx, []byte("k1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("k1 got found=%v val=%q want v1", found, val)
+	}
+
+	val, found, err = readTx.Get(ctx, []byte("k2"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v2" {
+		t.Fatalf("k2 got found=%v val=%q want v2", found, val)
+	}
+}
+
 func TestMetaShardRecoveryBeforeSuperblockFlip(t *testing.T) {
 	ms := newTestMetaShard(t, "test-metashard-before-flip")
 	putMetaValue(t, ms, "k", "v1")
@@ -195,5 +238,23 @@ func TestMetaShardCorruptNewestSuperblockFallsBack(t *testing.T) {
 	}
 	if !found || string(val) != "v1" {
 		t.Fatalf("fallback value got found=%v val=%q want v1", found, val)
+	}
+}
+
+func TestMetaShardMissingPagesFileReturnsReadError(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metashard-missing-pages")
+	putMetaValue(t, ms, "k", "v1")
+
+	if err := opfs.DeleteFile(ms.dir, "pages.dat"); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := reopenTestMetaShard(t, "test-metashard-missing-pages")
+	_, _, err := reopened.Get([]byte("k"))
+	if err == nil {
+		t.Fatal("expected read error")
+	}
+	if !strings.Contains(err.Error(), "open page file for read") {
+		t.Fatalf("expected missing pages.dat read error, got %v", err)
 	}
 }
