@@ -9,9 +9,9 @@
 //   Control region (Int32Array):
 //     [0]       writeIdx      Monotonic slot counter (CAS by writers)
 //     [1]       state         0=open, 1=closed
-//     [2]       readerCount   Number of registered readers
+//     [2]       readerCount   Number of active registered readers
 //     [3]       reserved
-//     [4..19]   readerIdxs    Per-reader read positions (max 16)
+//     [4..19]   readerIdxs    Per-reader read positions (max 16, -1 = free)
 //   Data region (after CTRL_BYTES):
 //     numSlots * slotSize bytes
 //     Each slot: [uint16 targetId][uint16 sourceId][uint32 payloadLen][payload]
@@ -28,6 +28,8 @@ const READER_IDX_START = 4
 const MAX_READERS = 16
 const CTRL_INT32S = READER_IDX_START + MAX_READERS
 const CTRL_BYTES = CTRL_INT32S * 4
+const READER_SLOT_FREE = -1
+const READER_SLOTS = Array.from({ length: MAX_READERS }, (_, i) => i)
 
 // Message header: [2B target][2B source][4B length] = 8 bytes.
 const MSG_HEADER = 8
@@ -58,7 +60,10 @@ export interface SabBusMessage {
 export function createBusSab(opts?: SabBusOpts): SharedArrayBuffer {
   const slotSize = opts?.slotSize ?? DEFAULT_SLOT_SIZE
   const numSlots = opts?.numSlots ?? DEFAULT_NUM_SLOTS
-  return new SharedArrayBuffer(CTRL_BYTES + numSlots * slotSize)
+  const sab = new SharedArrayBuffer(CTRL_BYTES + numSlots * slotSize)
+  const ctrl = new Int32Array(sab, 0, CTRL_INT32S)
+  ctrl.fill(READER_SLOT_FREE, READER_IDX_START, READER_IDX_START + MAX_READERS)
+  return sab
 }
 
 // SabBusEndpoint is one participant on the shared bus.
@@ -84,17 +89,26 @@ export class SabBusEndpoint {
 
   // register claims a reader slot on the bus. Must be called before read().
   register(): void {
-    const slot = Atomics.add(this.ctrl, CTRL_READER_COUNT, 1)
-    if (slot >= MAX_READERS) {
-      throw new Error(`SabBus: max readers (${MAX_READERS}) exceeded`)
+    if (this.readerSlot >= 0) {
+      throw new Error('SabBus: already registered')
     }
-    this.readerSlot = slot
-    // Start reading from the current write position.
-    Atomics.store(
-      this.ctrl,
-      READER_IDX_START + slot,
-      Atomics.load(this.ctrl, CTRL_WRITE_IDX),
-    )
+    const writeIdx = Atomics.load(this.ctrl, CTRL_WRITE_IDX)
+    for (const slot of READER_SLOTS) {
+      const readerIdx = READER_IDX_START + slot
+      const actual = Atomics.compareExchange(
+        this.ctrl,
+        readerIdx,
+        READER_SLOT_FREE,
+        writeIdx,
+      )
+      if (actual !== READER_SLOT_FREE) {
+        continue
+      }
+      Atomics.add(this.ctrl, CTRL_READER_COUNT, 1)
+      this.readerSlot = slot
+      return
+    }
+    throw new Error(`SabBus: max readers (${MAX_READERS}) exceeded`)
   }
 
   // write sends a message to the bus addressed to targetId.
@@ -113,10 +127,12 @@ export class SabBusEndpoint {
       const writeIdx = Atomics.load(this.ctrl, CTRL_WRITE_IDX)
 
       // Check that no reader is more than numSlots behind.
-      const readerCount = Atomics.load(this.ctrl, CTRL_READER_COUNT)
       let minRead = writeIdx
-      for (let i = 0; i < readerCount; i++) {
-        const r = Atomics.load(this.ctrl, READER_IDX_START + i)
+      for (const slot of READER_SLOTS) {
+        const r = Atomics.load(this.ctrl, READER_IDX_START + slot)
+        if (r === READER_SLOT_FREE) {
+          continue
+        }
         if (r < minRead) {
           minRead = r
         }
@@ -160,6 +176,9 @@ export class SabBusEndpoint {
   // Returns null when the bus is closed.
   async read(): Promise<SabBusMessage | null> {
     if (this.readerSlot < 0) {
+      if (this.closed || Atomics.load(this.ctrl, CTRL_STATE) !== STATE_OPEN) {
+        return null
+      }
       throw new Error('SabBus: not registered, call register() first')
     }
     const readerIdx = READER_IDX_START + this.readerSlot
@@ -212,14 +231,30 @@ export class SabBusEndpoint {
 
   // close stops this endpoint from reading or writing.
   close(): void {
+    if (this.closed) {
+      return
+    }
     this.closed = true
+    this.unregister()
   }
 
   // closeAll signals the bus as closed, waking all readers.
   closeAll(): void {
     Atomics.store(this.ctrl, CTRL_STATE, STATE_CLOSED)
     Atomics.notify(this.ctrl, CTRL_WRITE_IDX)
-    this.closed = true
+    this.close()
+  }
+
+  private unregister(): void {
+    if (this.readerSlot < 0) {
+      return
+    }
+    const readerIdx = READER_IDX_START + this.readerSlot
+    const prev = Atomics.exchange(this.ctrl, readerIdx, READER_SLOT_FREE)
+    if (prev !== READER_SLOT_FREE) {
+      Atomics.sub(this.ctrl, CTRL_READER_COUNT, 1)
+    }
+    this.readerSlot = -1
   }
 }
 

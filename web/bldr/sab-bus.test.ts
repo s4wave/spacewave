@@ -126,6 +126,34 @@ describe('SabBusEndpoint', () => {
     a.close()
     b.close()
   })
+
+  it('reuses reader slots after endpoints close', () => {
+    const sab = createBusSab(testOpts)
+
+    for (const i of Array.from({ length: 32 }, (_, idx) => idx)) {
+      const ep = new SabBusEndpoint(sab, i + 1, testOpts)
+      ep.register()
+      ep.close()
+    }
+  })
+
+  it('rejects more than 16 simultaneous readers', () => {
+    const sab = createBusSab(testOpts)
+    const eps = Array.from(
+      { length: 16 },
+      (_, i) => new SabBusEndpoint(sab, i + 1, testOpts),
+    )
+    for (const ep of eps) {
+      ep.register()
+    }
+
+    const extra = new SabBusEndpoint(sab, 17, testOpts)
+    expect(() => extra.register()).toThrow('SabBus: max readers (16) exceeded')
+
+    for (const ep of eps) {
+      ep.close()
+    }
+  })
 })
 
 describe('SabBusStream', () => {
