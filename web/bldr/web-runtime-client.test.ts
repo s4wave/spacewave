@@ -36,4 +36,32 @@ describe('WebRuntimeClient', () => {
 
     client.close()
   })
+
+  it('shares a single reconnect across concurrent waiters', async () => {
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+    )
+
+    const { port1 } = new MessageChannel()
+    let resolveConnect: ((port: MessagePort) => void) | undefined
+    const reconnect = vi.fn().mockImplementation(
+      () =>
+        new Promise<MessagePort>((resolve) => {
+          resolveConnect = resolve
+        }),
+    )
+    Reflect.set(client, 'openClientChannelWithRetryImpl', reconnect)
+
+    const a = client.waitConn()
+    const b = client.waitConn()
+    expect(reconnect).toHaveBeenCalledTimes(1)
+
+    resolveConnect?.(port1)
+    await expect(Promise.all([a, b])).resolves.toEqual([undefined, undefined])
+  })
 })

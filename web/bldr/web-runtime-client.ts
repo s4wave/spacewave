@@ -26,6 +26,8 @@ export class WebRuntimeClient {
   public readonly rpcClient: Client
   // clientChannel is the active message port to the remote.
   private clientChannel?: MessagePort
+  // reconnectingClientChannel is the in-flight reconnect shared by callers.
+  private reconnectingClientChannel?: Promise<MessagePort>
 
   constructor(
     public readonly webRuntimeId: string,
@@ -41,7 +43,7 @@ export class WebRuntimeClient {
 
   // waitConn opens and waits for the connection to be ready.
   public async waitConn() {
-    await this.openClientChannelWithRetry()
+    await this.getClientChannelWithRetry()
   }
 
   // openStream opens a RPC stream with the WebRuntimeHost.
@@ -52,7 +54,7 @@ export class WebRuntimeClient {
     // retry several times
     let err: Error | undefined
     for (let attempt = 0; attempt < 3; attempt++) {
-      const clientPort = await this.openClientChannelWithRetry()
+      const clientPort = await this.getClientChannelWithRetry()
       const streamChannel = new MessageChannel()
       const streamConn = new ChannelStream(
         this.clientId,
@@ -96,6 +98,7 @@ export class WebRuntimeClient {
   // close closes the client channel and signals the close to the remote.
   // note: the client can still be used again after calling close().
   public close() {
+    this.reconnectingClientChannel = undefined
     if (this.clientChannel) {
       const msg: ClientToWebRuntime = { close: true }
       this.clientChannel.postMessage(msg)
@@ -165,9 +168,28 @@ export class WebRuntimeClient {
     return port
   }
 
+  // getClientChannelWithRetry shares a single reconnect sequence across all
+  // callers so parallel RPCs converge on one recovered runtime channel.
+  private async getClientChannelWithRetry(): Promise<MessagePort> {
+    if (this.clientChannel) {
+      return this.clientChannel
+    }
+    if (this.reconnectingClientChannel) {
+      return this.reconnectingClientChannel
+    }
+
+    const reconnectPromise = this.openClientChannelWithRetryImpl().finally(() => {
+      if (this.reconnectingClientChannel === reconnectPromise) {
+        this.reconnectingClientChannel = undefined
+      }
+    })
+    this.reconnectingClientChannel = reconnectPromise
+    return reconnectPromise
+  }
+
   // openClientChannelWithRetry retries transient connection-ack timeouts so
   // callers do not fail immediately while the runtime is still reconnecting.
-  private async openClientChannelWithRetry(): Promise<MessagePort> {
+  private async openClientChannelWithRetryImpl(): Promise<MessagePort> {
     const errors: Error[] = []
     for (const attempt of [0, 1, 2]) {
       try {
