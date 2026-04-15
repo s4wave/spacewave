@@ -52,9 +52,9 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 
 // resolveModulePath resolves a module string to an absolute filesystem path.
 func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (string, error) {
-	if strings.HasPrefix(module, goVendorPrefix) {
+	if after, ok := strings.CutPrefix(module, goVendorPrefix); ok {
 		// @go/github.com/foo/bar/file.star -> vendor/github.com/foo/bar/file.star
-		relPath := strings.TrimPrefix(module, goVendorPrefix)
+		relPath := after
 		resolved := filepath.Join(e.vendorDir, filepath.FromSlash(relPath))
 		return resolved, nil
 	}

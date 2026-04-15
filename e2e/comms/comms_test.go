@@ -99,12 +99,12 @@ func browserType(name string) playwright.BrowserType {
 
 // runFixture opens a fixture page in the given browser, waits for "DONE" in
 // #log, and returns window.__results as a map.
-func runFixture(t *testing.T, browserName, fixture string) map[string]interface{} {
+func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 	t.Helper()
 
 	bt := browserType(browserName)
 	browser, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(true),
+		Headless: new(true),
 	})
 	if err != nil {
 		t.Fatalf("launch %s: %v", browserName, err)
@@ -158,7 +158,7 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]interface{
 		t.Fatalf("evaluate window.__results: %v", err)
 	}
 
-	resultsMap, ok := results.(map[string]interface{})
+	resultsMap, ok := results.(map[string]any)
 	if !ok {
 		t.Fatalf("window.__results is not an object: %T", results)
 	}
@@ -177,7 +177,7 @@ func TestDetect(t *testing.T) {
 				t.Fatalf("detection failed: %v", results["detail"])
 			}
 
-			caps, ok := results["caps"].(map[string]interface{})
+			caps, ok := results["caps"].(map[string]any)
 			if !ok {
 				t.Fatalf("caps not a map: %T", results["caps"])
 			}
@@ -401,7 +401,7 @@ func waitForMessageText(t *testing.T, page playwright.Page, label, msg string) {
 
 // toFloat64 converts a Playwright evaluate result to float64.
 // Playwright-Go may return int, float64, or json.Number depending on the value.
-func toFloat64(v interface{}) float64 {
+func toFloat64(v any) float64 {
 	switch n := v.(type) {
 	case float64:
 		return n
@@ -414,13 +414,13 @@ func toFloat64(v interface{}) float64 {
 }
 
 // extractResults reads window.__results from a page.
-func extractResults(t *testing.T, page playwright.Page) map[string]interface{} {
+func extractResults(t *testing.T, page playwright.Page) map[string]any {
 	t.Helper()
 	results, err := page.Evaluate("window.__results")
 	if err != nil {
 		t.Fatalf("evaluate window.__results: %v", err)
 	}
-	resultsMap, ok := results.(map[string]interface{})
+	resultsMap, ok := results.(map[string]any)
 	if !ok {
 		t.Fatalf("window.__results is not an object: %T", results)
 	}
@@ -428,7 +428,7 @@ func extractResults(t *testing.T, page playwright.Page) map[string]interface{} {
 }
 
 // assertBoolResult asserts a bool field in the results map.
-func assertBoolResult(t *testing.T, results map[string]interface{}, key string, expected bool) {
+func assertBoolResult(t *testing.T, results map[string]any, key string, expected bool) {
 	t.Helper()
 	val, ok := results[key].(bool)
 	if !ok {
@@ -441,7 +441,7 @@ func assertBoolResult(t *testing.T, results map[string]interface{}, key string, 
 }
 
 // assertBoolCap asserts a capability value in the caps map.
-func assertBoolCap(t *testing.T, caps map[string]interface{}, key string, expected bool) {
+func assertBoolCap(t *testing.T, caps map[string]any, key string, expected bool) {
 	t.Helper()
 	val, ok := caps[key].(bool)
 	if !ok {
@@ -462,7 +462,7 @@ func TestCrossTab(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-				Headless: playwright.Bool(true),
+				Headless: new(true),
 			})
 			if err != nil {
 				t.Fatalf("launch %s: %v", browser, err)
@@ -556,8 +556,8 @@ func TestCrossTab(t *testing.T) {
 			resultsA = extractResults(t, pageA)
 			resultsB = extractResults(t, pageB)
 
-			msgsA, _ := resultsA["messagesReceived"].([]interface{})
-			msgsB, _ := resultsB["messagesReceived"].([]interface{})
+			msgsA, _ := resultsA["messagesReceived"].([]any)
+			msgsB, _ := resultsB["messagesReceived"].([]any)
 
 			if len(msgsA) < 1 {
 				t.Errorf("page A: expected >= 1 message, got %d", len(msgsA))
@@ -583,7 +583,7 @@ func TestCrossTabCleanup(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-				Headless: playwright.Bool(true),
+				Headless: new(true),
 			})
 			if err != nil {
 				t.Fatalf("launch %s: %v", browser, err)
@@ -678,8 +678,8 @@ func TestCrossTabCleanup(t *testing.T) {
 			// A and B should receive D's message.
 			rA := extractResults(t, pageA)
 			rB := extractResults(t, pageB)
-			msgsA, _ := rA["messagesReceived"].([]interface{})
-			msgsB, _ := rB["messagesReceived"].([]interface{})
+			msgsA, _ := rA["messagesReceived"].([]any)
+			msgsB, _ := rB["messagesReceived"].([]any)
 
 			// A and B may have earlier messages from the all-to-all phase,
 			// so just check the latest includes D's message.
@@ -713,7 +713,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-				Headless: playwright.Bool(true),
+				Headless: new(true),
 			})
 			if err != nil {
 				t.Fatalf("launch %s: %v", browser, err)
@@ -762,7 +762,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			waitForMessageText(t, pageB, "page B", `{"text":"pre-restart"}`)
 
 			rB := extractResults(t, pageB)
-			msgsB, _ := rB["messagesReceived"].([]interface{})
+			msgsB, _ := rB["messagesReceived"].([]any)
 			if len(msgsB) < 1 {
 				t.Fatalf("page B: no messages before SW restart")
 			}
@@ -792,7 +792,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			waitForMessageText(t, pageB, "page B", `{"text":"post-restart"}`)
 
 			rB = extractResults(t, pageB)
-			msgsB, _ = rB["messagesReceived"].([]interface{})
+			msgsB, _ = rB["messagesReceived"].([]any)
 			found := false
 			for _, m := range msgsB {
 				if s, ok := m.(string); ok && s == `{"text":"post-restart"}` {
@@ -825,7 +825,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			waitForMessageText(t, pageA, "page A", `{"text":"from C"}`)
 
 			rA := extractResults(t, pageA)
-			msgsA, _ := rA["messagesReceived"].([]interface{})
+			msgsA, _ := rA["messagesReceived"].([]any)
 			foundC := false
 			for _, m := range msgsA {
 				if s, ok := m.(string); ok && s == `{"text":"from C"}` {
@@ -849,7 +849,7 @@ func TestCrossTabRpc(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-				Headless: playwright.Bool(true),
+				Headless: new(true),
 			})
 			if err != nil {
 				t.Fatalf("launch %s: %v", browser, err)
@@ -915,7 +915,7 @@ func TestCrossTabRpc(t *testing.T) {
 				// Fall back: read the peer ID from the results on page B.
 				t.Logf("could not read peers from A: %v", err)
 			}
-			peerIDList, _ := peerIDs.([]interface{})
+			peerIDList, _ := peerIDs.([]any)
 			if len(peerIDList) == 0 {
 				t.Fatalf("page A has no peer IDs")
 			}
@@ -1121,7 +1121,7 @@ func TestConfigAFallback(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
-				Headless: playwright.Bool(true),
+				Headless: new(true),
 			})
 			if err != nil {
 				t.Fatalf("launch %s: %v", browser, err)
@@ -1161,7 +1161,7 @@ func TestConfigAFallback(t *testing.T) {
 			}
 
 			config, _ := results["config"].(string)
-			caps, _ := results["caps"].(map[string]interface{})
+			caps, _ := results["caps"].(map[string]any)
 
 			// Without COI headers, crossOriginIsolated should be false.
 			coi, _ := caps["crossOriginIsolated"].(bool)
