@@ -5,7 +5,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
@@ -110,15 +109,8 @@ function ResourceDevToolsProviderInner({
   children: ReactNode
   enabled: boolean
 }) {
-  const [resources, setResources] = useState(
-    () => new Map<TrackingId, TrackedResource>(),
-  )
-  const [selectedId, setSelectedIdState] = useState<TrackingId | null>(null)
-
-  // Use a ref to store resources for getSnapshot.
-  // This ensures getSnapshot always returns the same reference until state changes.
-  const resourcesRef = useRef(resources)
-  resourcesRef.current = resources
+  const resourcesRef = useRef(new Map<TrackingId, TrackedResource>())
+  const selectedIdRef = useRef<TrackingId | null>(null)
 
   // Subscription system for components that need to re-render on resource changes.
   const subscribersRef = useRef(new Set<() => void>())
@@ -133,11 +125,6 @@ function ResourceDevToolsProviderInner({
   const notifySubscribers = useCallback(() => {
     subscribersRef.current.forEach((cb) => cb())
   }, [])
-
-  // Notify subscribers whenever resources change
-  useEffect(() => {
-    notifySubscribers()
-  }, [resources, notifySubscribers])
 
   // Subscription system for selectedId changes
   const selectedIdSubscribersRef = useRef(new Set<() => void>())
@@ -156,45 +143,47 @@ function ResourceDevToolsProviderInner({
     selectedIdSubscribersRef.current.forEach((cb) => cb())
   }, [])
 
-  // Store selectedId in a ref for stable access via getSelectedId
-  const selectedIdRef = useRef(selectedId)
-  selectedIdRef.current = selectedId
-
-  // Notify selectedId subscribers when it changes
-  useEffect(() => {
-    notifySelectedIdSubscribers()
-  }, [selectedId, notifySelectedIdSubscribers])
-
   // Wrapper to update both state and ref
   const setSelectedId = useCallback((id: TrackingId | null) => {
-    setSelectedIdState(id)
-  }, [])
+    if (selectedIdRef.current === id) return
+    selectedIdRef.current = id
+    notifySelectedIdSubscribers()
+  }, [notifySelectedIdSubscribers])
 
   const register = useCallback(
     (id: TrackingId, parentIds: TrackingId[], retry: () => void) => {
-      setResources((prev) => {
-        const existing = prev.get(id)
-        const next = new Map(prev)
-        // Preserve existing state/resourceId/resourceType/debug info if re-registering
-        // This can happen when parentTrackingIds changes but the resource
-        // has already loaded
-        next.set(id, {
-          id,
-          resourceId: existing?.resourceId ?? null,
-          resourceType: existing?.resourceType ?? null,
-          released: existing?.released ?? false,
-          parentIds,
-          state: existing?.state ?? 'loading',
-          error: existing?.error ?? null,
-          retry,
-          createdAt: existing?.createdAt ?? Date.now(),
-          debugLabel: existing?.debugLabel,
-          debugDetails: existing?.debugDetails,
-        })
-        return next
+      const prev = resourcesRef.current
+      const existing = prev.get(id)
+      if (
+        existing &&
+        existing.retry === retry &&
+        existing.parentIds.length === parentIds.length &&
+        existing.parentIds.every((pid, i) => pid === parentIds[i])
+      ) {
+        return
+      }
+
+      const next = new Map(prev)
+      // Preserve existing state/resourceId/resourceType/debug info if re-registering
+      // This can happen when parentTrackingIds changes but the resource
+      // has already loaded
+      next.set(id, {
+        id,
+        resourceId: existing?.resourceId ?? null,
+        resourceType: existing?.resourceType ?? null,
+        released: existing?.released ?? false,
+        parentIds,
+        state: existing?.state ?? 'loading',
+        error: existing?.error ?? null,
+        retry,
+        createdAt: existing?.createdAt ?? Date.now(),
+        debugLabel: existing?.debugLabel,
+        debugDetails: existing?.debugDetails,
       })
+      resourcesRef.current = next
+      notifySubscribers()
     },
-    [],
+    [notifySubscribers],
   )
 
   const update = useCallback(
@@ -206,24 +195,36 @@ function ResourceDevToolsProviderInner({
     ) => {
       // Extract initial debug info
       const debugInfo = extractDebugInfo(value)
+      const prev = resourcesRef.current
+      const existing = prev.get(id)
+      if (!existing) return
 
-      setResources((prev) => {
-        const existing = prev.get(id)
-        if (!existing) return prev
+      const nextResource = {
+        ...existing,
+        state,
+        error,
+        resourceType: extractResourceType(value),
+        resourceId: extractResourceId(value),
+        released: extractReleased(value),
+        debugLabel: debugInfo?.label,
+        debugDetails: debugInfo?.details,
+      }
+      if (
+        existing.state === nextResource.state &&
+        existing.error === nextResource.error &&
+        existing.resourceType === nextResource.resourceType &&
+        existing.resourceId === nextResource.resourceId &&
+        existing.released === nextResource.released &&
+        existing.debugLabel === nextResource.debugLabel &&
+        existing.debugDetails === nextResource.debugDetails
+      ) {
+        return
+      }
 
-        const next = new Map(prev)
-        next.set(id, {
-          ...existing,
-          state,
-          error,
-          resourceType: extractResourceType(value),
-          resourceId: extractResourceId(value),
-          released: extractReleased(value),
-          debugLabel: debugInfo?.label,
-          debugDetails: debugInfo?.details,
-        })
-        return next
-      })
+      const next = new Map(prev)
+      next.set(id, nextResource)
+      resourcesRef.current = next
+      notifySubscribers()
 
       // Subscribe to watchDebugInfo if available and not already subscribed
       if (
@@ -238,17 +239,23 @@ function ResourceDevToolsProviderInner({
           try {
             for await (const info of value.watchDebugInfo(abortController.signal)) {
               if (abortController.signal.aborted) break
-              setResources((prev) => {
-                const existing = prev.get(id)
-                if (!existing) return prev
-                const next = new Map(prev)
-                next.set(id, {
-                  ...existing,
-                  debugLabel: info.label,
-                  debugDetails: info.details,
-                })
-                return next
+              const prev = resourcesRef.current
+              const existing = prev.get(id)
+              if (!existing) return
+              if (
+                existing.debugLabel === info.label &&
+                existing.debugDetails === info.details
+              ) {
+                continue
+              }
+              const next = new Map(prev)
+              next.set(id, {
+                ...existing,
+                debugLabel: info.label,
+                debugDetails: info.details,
               })
+              resourcesRef.current = next
+              notifySubscribers()
             }
           } catch {
             // Ignore errors from aborted iteration
@@ -256,7 +263,7 @@ function ResourceDevToolsProviderInner({
         })()
       }
     },
-    [],
+    [notifySubscribers],
   )
 
   const unregister = useCallback((id: TrackingId) => {
@@ -267,13 +274,28 @@ function ResourceDevToolsProviderInner({
       watchAbortControllersRef.current.delete(id)
     }
 
-    setResources((prev) => {
-      if (!prev.has(id)) return prev
-      const next = new Map(prev)
-      next.delete(id)
-      return next
-    })
-    setSelectedIdState((prev) => (prev === id ? null : prev))
+    const prev = resourcesRef.current
+    if (!prev.has(id)) return
+
+    const next = new Map(prev)
+    next.delete(id)
+    resourcesRef.current = next
+    notifySubscribers()
+
+    if (selectedIdRef.current === id) {
+      selectedIdRef.current = null
+      notifySelectedIdSubscribers()
+    }
+  }, [notifySelectedIdSubscribers, notifySubscribers])
+
+  useEffect(() => {
+    const abortControllers = watchAbortControllersRef.current
+    return () => {
+      abortControllers.forEach((abortController) => {
+        abortController.abort()
+      })
+      abortControllers.clear()
+    }
   }, [])
 
   // getResources returns the current resources map.

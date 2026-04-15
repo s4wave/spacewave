@@ -3,7 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   ReactNode,
 } from 'react'
 import { Client as ResourceClient } from '../resource/client.js'
@@ -27,18 +27,18 @@ export function useResourcesContext(): ResourcesContextValue | undefined {
  * re-creation of resources after reconnection.
  */
 export function useConnectionGeneration(client: ResourceClient | null): number {
-  const [generation, setGeneration] = useState(
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (!client) {
+        return () => {}
+      }
+      return client.onConnectionLost(() => {
+        onStoreChange()
+      })
+    },
+    () => client?.connectionGeneration ?? 0,
     () => client?.connectionGeneration ?? 0,
   )
-  useEffect(() => {
-    if (!client) return
-    // Sync in case generation changed before subscription
-    setGeneration(client.connectionGeneration)
-    return client.onConnectionLost(() => {
-      setGeneration(client.connectionGeneration)
-    })
-  }, [client])
-  return generation
 }
 
 interface ResourcesProviderProps {

@@ -154,7 +154,6 @@ function parseArgs<T>(args: unknown[]): ParsedArgs<T> {
 }
 
 // useParentState extracts and memoizes parent resource state.
-/* eslint-disable react-compiler/react-compiler -- spread deps are intentional for per-value change tracking */
 function useParentState(parents: Resource<unknown>[]) {
   // Extract values from parent Resources - must depend on actual values, not just Resource identity
   // Otherwise we won't detect when a parent loads and its .value changes from null to something
@@ -178,7 +177,6 @@ function useParentState(parents: Resource<unknown>[]) {
 
   return { values, loading, error, retries, hasNullParentValue }
 }
-/* eslint-enable react-compiler/react-compiler */
 
 // callFactory invokes the factory function with appropriate arguments.
 async function callFactory<T>(
@@ -350,7 +348,6 @@ export function useResource<T>(
         options?: UseResourceOptions<T>,
       ]
 ): Resource<T> {
-  /* eslint-disable react-compiler/react-compiler */
   const [firstArg, secondArg, thirdArg, fourthArg] = args
 
   // DevTools tracking - get stable ID and context
@@ -681,7 +678,6 @@ export function useResource<T>(
       parentWaitingForData,
     ],
   )
-  /* eslint-enable react-compiler/react-compiler */
 }
 
 /**
