@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	testServer  *testServerState
-	pwInstance  *playwright.Playwright
+	testServer *testServerState
+	pwInstance *playwright.Playwright
 	distDir    string
 )
 
 type testServerState struct {
-	url string
+	url   string
 	close func()
 }
 
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 
 	// Build fixtures with Vite.
 	fmt.Println("=== Building test fixtures with Vite ===")
-	buildCmd := exec.Command("bun", "run", "vite", "build", "--config", filepath.Join(commsDir, "vite.config.ts"))
+	buildCmd := exec.Command("bun", "run", "vite", "build", "--config", "./e2e/comms/vite.config.ts")
 	buildCmd.Dir = repoRoot
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
@@ -368,6 +368,37 @@ func waitForDone(t *testing.T, page playwright.Page, label string) {
 	}
 }
 
+func waitForCondition(t *testing.T, page playwright.Page, label, expr string) {
+	t.Helper()
+	if _, err := page.WaitForFunction(expr, nil); err != nil {
+		results := extractResults(t, page)
+		t.Fatalf("%s: wait for condition failed: %v (results=%v)", label, err, results)
+	}
+}
+
+func waitForPeerCount(t *testing.T, page playwright.Page, label string, expected int) {
+	t.Helper()
+	waitForCondition(
+		t,
+		page,
+		label,
+		fmt.Sprintf("() => Number(window.__results?.peerCount ?? 0) >= %d", expected),
+	)
+}
+
+func waitForMessageText(t *testing.T, page playwright.Page, label, msg string) {
+	t.Helper()
+	waitForCondition(
+		t,
+		page,
+		label,
+		fmt.Sprintf(
+			`() => Array.isArray(window.__results?.messagesReceived) && window.__results.messagesReceived.includes(%q)`,
+			msg,
+		),
+	)
+}
+
 // toFloat64 converts a Playwright evaluate result to float64.
 // Playwright-Go may return int, float64, or json.Number depending on the value.
 func toFloat64(v interface{}) float64 {
@@ -494,17 +525,8 @@ func TestCrossTab(t *testing.T) {
 			})
 			_ = err // ignore title check, just need a small delay
 
-			// Poll for peerCount on both pages.
-			for i := 0; i < 50; i++ {
-				rA := extractResults(t, pageA)
-				rB := extractResults(t, pageB)
-				pcA := toFloat64(rA["peerCount"])
-				pcB := toFloat64(rB["peerCount"])
-				if pcA >= 1 && pcB >= 1 {
-					break
-				}
-				pageA.WaitForTimeout(100)
-			}
+			waitForPeerCount(t, pageA, "page A", 1)
+			waitForPeerCount(t, pageB, "page B", 1)
 
 			resultsA = extractResults(t, pageA)
 			resultsB = extractResults(t, pageB)
@@ -528,8 +550,8 @@ func TestCrossTab(t *testing.T) {
 				t.Fatalf("sendToPeers B: %v", err)
 			}
 
-			// Wait for messages to arrive.
-			pageA.WaitForTimeout(500)
+			waitForMessageText(t, pageA, "page A", `{"text":"hello from B"}`)
+			waitForMessageText(t, pageB, "page B", `{"text":"hello from A"}`)
 
 			resultsA = extractResults(t, pageA)
 			resultsB = extractResults(t, pageB)
@@ -609,27 +631,9 @@ func TestCrossTabCleanup(t *testing.T) {
 
 			// Wait for all-to-all channels (each page should have 2 peers).
 			pollPeerCount := func(pages []playwright.Page, labels []string, expected int) {
-				for i := 0; i < 50; i++ {
-					allReady := true
-					for j, p := range pages {
-						r := extractResults(t, p)
-						pc := toFloat64(r["peerCount"])
-						if pc < float64(expected) {
-							allReady = false
-							break
-						}
-						_ = labels[j]
-					}
-					if allReady {
-						return
-					}
-					pages[0].WaitForTimeout(100)
-				}
 				for j, p := range pages {
-					r := extractResults(t, p)
-					t.Logf("page %s: peerCount=%v", labels[j], r["peerCount"])
+					waitForPeerCount(t, p, "page "+labels[j], expected)
 				}
-				t.Fatalf("not all pages reached peerCount >= %d", expected)
 			}
 
 			pollPeerCount(
@@ -668,7 +672,8 @@ func TestCrossTabCleanup(t *testing.T) {
 			if _, err := pageD.Evaluate("window.sendToPeers('hello from D')"); err != nil {
 				t.Fatalf("sendToPeers D: %v", err)
 			}
-			pageA.WaitForTimeout(300)
+			waitForMessageText(t, pageA, "page A", `{"text":"hello from D"}`)
+			waitForMessageText(t, pageB, "page B", `{"text":"hello from D"}`)
 
 			// A and B should receive D's message.
 			rA := extractResults(t, pageA)
@@ -747,21 +752,14 @@ func TestCrossTabSWRestart(t *testing.T) {
 			}
 			waitForDone(t, pageB, "page B")
 
-			// Wait for channel establishment.
-			for i := 0; i < 50; i++ {
-				rA := extractResults(t, pageA)
-				rB := extractResults(t, pageB)
-				if toFloat64(rA["peerCount"]) >= 1 && toFloat64(rB["peerCount"]) >= 1 {
-					break
-				}
-				pageA.WaitForTimeout(100)
-			}
+			waitForPeerCount(t, pageA, "page A", 1)
+			waitForPeerCount(t, pageB, "page B", 1)
 
 			// Verify messages flow before SW restart.
 			if _, err := pageA.Evaluate("window.sendToPeers('pre-restart')"); err != nil {
 				t.Fatalf("sendToPeers A: %v", err)
 			}
-			pageB.WaitForTimeout(300)
+			waitForMessageText(t, pageB, "page B", `{"text":"pre-restart"}`)
 
 			rB := extractResults(t, pageB)
 			msgsB, _ := rB["messagesReceived"].([]interface{})
@@ -791,7 +789,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			if _, err := pageA.Evaluate("window.sendToPeers('post-restart')"); err != nil {
 				t.Fatalf("sendToPeers A post-restart: %v", err)
 			}
-			pageB.WaitForTimeout(300)
+			waitForMessageText(t, pageB, "page B", `{"text":"post-restart"}`)
 
 			rB = extractResults(t, pageB)
 			msgsB, _ = rB["messagesReceived"].([]interface{})
@@ -812,14 +810,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			}
 			waitForDone(t, pageC, "page C")
 
-			// Wait for C to get peers.
-			for i := 0; i < 50; i++ {
-				rC := extractResults(t, pageC)
-				if toFloat64(rC["peerCount"]) >= 1 {
-					break
-				}
-				pageC.WaitForTimeout(100)
-			}
+			waitForPeerCount(t, pageC, "page C", 1)
 
 			rC := extractResults(t, pageC)
 			pcC := toFloat64(rC["peerCount"])
@@ -831,7 +822,7 @@ func TestCrossTabSWRestart(t *testing.T) {
 			if _, err := pageC.Evaluate("window.sendToPeers('from C')"); err != nil {
 				t.Fatalf("sendToPeers C: %v", err)
 			}
-			pageA.WaitForTimeout(300)
+			waitForMessageText(t, pageA, "page A", `{"text":"from C"}`)
 
 			rA := extractResults(t, pageA)
 			msgsA, _ := rA["messagesReceived"].([]interface{})
@@ -906,15 +897,8 @@ func TestCrossTabRpc(t *testing.T) {
 			}
 			waitForDone(t, pageB, "page B")
 
-			// Wait for both pages to have peers.
-			for i := 0; i < 50; i++ {
-				rA := extractResults(t, pageA)
-				rB := extractResults(t, pageB)
-				if toFloat64(rA["peerCount"]) >= 1 && toFloat64(rB["peerCount"]) >= 1 {
-					break
-				}
-				pageA.WaitForTimeout(100)
-			}
+			waitForPeerCount(t, pageA, "page A", 1)
+			waitForPeerCount(t, pageB, "page B", 1)
 
 			rA := extractResults(t, pageA)
 			rB := extractResults(t, pageB)

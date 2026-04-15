@@ -40,15 +40,16 @@ func newTestServer(distDir string) (*httptest.Server, error) {
 		}
 
 		// /<name>.html -> generated HTML loading /<name>.js
-		if ext := filepath.Ext(path); ext == ".html" {
-			name := path[1 : len(path)-len(ext)]
+		if name, ok := fixtureNameFromPath(path); ok {
 			// Check if the corresponding JS exists.
 			jsPath := filepath.Join(distDir, name+".js")
+			// #nosec G703 -- fixture names are restricted to alnum/dash identifiers under distDir.
 			if _, err := os.Stat(jsPath); err != nil {
 				http.NotFound(w, r)
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			// #nosec G705 -- validated fixture identifiers are rendered into a controlled test template.
 			fmt.Fprintf(w, fixtureHTMLTemplate, name, name)
 			return
 		}
@@ -88,14 +89,15 @@ func newTestServerNoCOI(distDir string) (*httptest.Server, error) {
 			return
 		}
 
-		if ext := filepath.Ext(path); ext == ".html" {
-			name := path[1 : len(path)-len(ext)]
+		if name, ok := fixtureNameFromPath(path); ok {
 			jsPath := filepath.Join(distDir, name+".js")
+			// #nosec G703 -- fixture names are restricted to alnum/dash identifiers under distDir.
 			if _, err := os.Stat(jsPath); err != nil {
 				http.NotFound(w, r)
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			// #nosec G705 -- validated fixture identifiers are rendered into a controlled test template.
 			fmt.Fprintf(w, fixtureHTMLTemplate, name, name)
 			return
 		}
@@ -123,4 +125,27 @@ func setCOIHeaders(w http.ResponseWriter) {
 	w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 	w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 	w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
+}
+
+func fixtureNameFromPath(path string) (string, bool) {
+	if filepath.Ext(path) != ".html" || len(path) < len("/a.html") {
+		return "", false
+	}
+	name := path[1 : len(path)-len(".html")]
+	if name == "" {
+		return "", false
+	}
+	for _, r := range name {
+		if r >= 'a' && r <= 'z' {
+			continue
+		}
+		if r >= '0' && r <= '9' {
+			continue
+		}
+		if r == '-' {
+			continue
+		}
+		return "", false
+	}
+	return name, true
 }

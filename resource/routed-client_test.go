@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	strconv "strconv"
 	"sync"
 	"testing"
 
@@ -335,7 +336,7 @@ func TestRoutedInvoker_ConcurrentInvoke(t *testing.T) {
 	for i := range 10 {
 		id := uint32(i)
 		wg.Go(func() {
-			svc := string(rune('0'+id)) + "/svc"
+			svc := strconv.FormatUint(uint64(id), 10) + "/svc"
 			ri.InvokeMethod(svc, "m", nil)
 		})
 	}

@@ -101,8 +101,7 @@ async function runSlowRegistrationScenario(): Promise<StartupResult> {
   const webDocumentId = 'startup-failures-slow-doc'
   const lockName = `bldr-doc-${webDocumentId}`
   const releaseLock = await holdWebDocumentLock(lockName)
-  let tracker!: WebDocumentTracker
-  tracker = new WebDocumentTracker(
+  const tracker = new WebDocumentTracker(
     'startup-failures-slow-worker',
     WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
     async () => {
@@ -146,8 +145,7 @@ async function runCloseDuringStartupScenario(): Promise<StartupResult> {
   const webDocumentId = 'startup-failures-close-doc'
   const lockName = `bldr-doc-${webDocumentId}`
   const releaseLock = await holdWebDocumentLock(lockName)
-  let tracker!: WebDocumentTracker
-  tracker = new WebDocumentTracker(
+  const tracker = new WebDocumentTracker(
     'startup-failures-close-worker',
     WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
     async () => {
