@@ -1,4 +1,8 @@
-import { createAbortController, retryWithAbort } from '@aptre/bldr'
+import {
+  constantBackoff,
+  createAbortController,
+  retryWithAbort,
+} from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
 import type { ResourceAttachRequest } from './resource.pb.js'
 import {
@@ -249,6 +253,11 @@ interface AttachSession {
   >
 }
 
+interface PendingResourceRelease {
+  clientHandleId: number
+  resourceId: number
+}
+
 /**
  * Manages connections to remote resources via RPC.
  * Handles resource lifecycle, reference counting, and cleanup.
@@ -262,6 +271,9 @@ export class Client {
   private initState: ClientInitState | null = null
   private connectionController: AbortController | null = null
   private resources = new Map<number, Set<InternalResourceRef>>()
+  private pendingResourceReleases = new Map<string, PendingResourceRelease>()
+  private pendingResourceReleaseController: AbortController | null = null
+  private pendingResourceReleaseTask: Promise<void> | null = null
   private events = new EventEmitter<ResourceReleasedEvent>()
   private connectionLostEvents = new EventEmitter<void>()
   private initPromise: Promise<ClientInitState> | null = null
@@ -510,6 +522,7 @@ export class Client {
   dispose(reason: ResourceClientErrorCode = 'CLIENT_DISPOSED'): void {
     if (this.disposed) return
     this.disposed = true
+    this.clearPendingResourceReleases()
     this.clearAttachSession()
 
     // Cancel the connection
@@ -742,8 +755,9 @@ export class Client {
     if (refs.size === 0) {
       this.resources.delete(id)
 
-      // Notify server (ignore errors during cleanup)
-      this.notifyServerResourceRelease(id).catch(() => {})
+      // Notify server asynchronously. Queue retries while the runtime reconnects
+      // so last-ref cleanup does not explode into warning spam.
+      this.enqueueServerResourceRelease(id)
 
       // Emit release event
       this.events.emit({
@@ -756,36 +770,159 @@ export class Client {
   /**
    * Notify the server that a resource should be released.
    */
-  private async notifyServerResourceRelease(resourceId: number): Promise<void> {
+  private enqueueServerResourceRelease(resourceId: number): void {
     if (!this.initState || this.disposed) {
       return
+    }
+    const pending: PendingResourceRelease = {
+      clientHandleId: this.initState.clientHandleId,
+      resourceId,
+    }
+    const key = this.buildPendingResourceReleaseKey(
+      pending.clientHandleId,
+      pending.resourceId,
+    )
+    this.pendingResourceReleases.set(key, pending)
+    this.schedulePendingResourceReleaseFlush()
+  }
+
+  /**
+   * Flush queued server release notifications.
+   */
+  private schedulePendingResourceReleaseFlush(): void {
+    if (
+      this.pendingResourceReleaseTask ||
+      this.disposed ||
+      this.pendingResourceReleases.size === 0
+    ) {
+      return
+    }
+    const controller = createAbortController(this.signal)
+    this.pendingResourceReleaseController = controller
+    this.pendingResourceReleaseTask = this.flushPendingResourceReleases(
+      controller.signal,
+    )
+      .catch(() => {})
+      .finally(() => {
+        if (this.pendingResourceReleaseController === controller) {
+          this.pendingResourceReleaseController = null
+        }
+        this.pendingResourceReleaseTask = null
+        if (!this.disposed && this.pendingResourceReleases.size > 0) {
+          this.schedulePendingResourceReleaseFlush()
+        }
+      })
+  }
+
+  /**
+   * Flush pending releases until the queue is empty or the client is aborted.
+   */
+  private async flushPendingResourceReleases(signal: AbortSignal): Promise<void> {
+    while (
+      !signal.aborted &&
+      !this.disposed &&
+      this.pendingResourceReleases.size
+    ) {
+      const entry = this.pendingResourceReleases.entries().next().value
+      if (!entry) {
+        return
+      }
+      const [key, pending] = entry
+
+      await retryWithAbort(
+        signal,
+        async (retrySignal) => {
+          const result = await this.tryNotifyServerResourceRelease(
+            pending,
+            retrySignal,
+          )
+          if (result === 'retry') {
+            throw new Error('retry pending resource release')
+          }
+        },
+        {
+          backoffFn: constantBackoff(100),
+          errorCb: () => {},
+        },
+      )
+
+      this.pendingResourceReleases.delete(key)
+    }
+  }
+
+  /**
+   * Notify the server that a resource should be released.
+   */
+  private async tryNotifyServerResourceRelease(
+    pending: PendingResourceRelease,
+    signal: AbortSignal,
+  ): Promise<'done' | 'retry'> {
+    if (this.disposed) {
+      return 'done'
     }
 
     try {
       await this.service.ResourceRefRelease(
         {
-          clientHandleId: this.initState.clientHandleId,
-          resourceId,
+          clientHandleId: pending.clientHandleId,
+          resourceId: pending.resourceId,
         },
-        this.signal,
+        signal,
       )
+      return 'done'
     } catch (error) {
       // Silently ignore RPC abort errors - these are expected during cleanup
-      if (error instanceof Error && error.message.includes('ERR_RPC_ABORT')) {
-        return
-      }
       if (error instanceof Error) {
+        const msg = error.message
+        if (msg.includes('ERR_RPC_ABORT')) {
+          return 'done'
+        }
+        if (
+          msg.includes('resource not found') ||
+          msg.includes('invalid client id')
+        ) {
+          return 'done'
+        }
+        if (this.shouldRetryServerResourceRelease(error)) {
+          return 'retry'
+        }
         console.warn(
-          `Failed to notify server of resource ${resourceId} release:`,
+          `Failed to notify server of resource ${pending.resourceId} release:`,
           error,
         )
-      } else {
-        console.warn(
-          `Failed to notify server of resource ${resourceId} release:`,
-          String(error),
-        )
+        return 'done'
       }
+      console.warn(
+        `Failed to notify server of resource ${pending.resourceId} release:`,
+        String(error),
+      )
+      return 'done'
     }
+  }
+
+  /**
+   * Check whether a release error should be retried instead of logged.
+   */
+  private shouldRetryServerResourceRelease(error: Error): boolean {
+    const msg = error.message
+    return (
+      msg.includes('timeout waiting for runtime connected ack') ||
+      msg.includes('timeout opening stream with host') ||
+      msg.includes('unable to open stream with host') ||
+      msg.includes('timed out waiting for ack from WebDocument') ||
+      msg.includes('timed out waiting for next WebDocument to proxy conn') ||
+      msg.includes('WebRuntimeClientInstance is closed')
+    )
+  }
+
+  /**
+   * Build the stable key for a queued server release.
+   */
+  private buildPendingResourceReleaseKey(
+    clientHandleId: number,
+    resourceId: number,
+  ): string {
+    return `${clientHandleId}:${resourceId}`
   }
 
   /**
@@ -813,6 +950,7 @@ export class Client {
    * Used when connection is lost and resources are no longer valid.
    */
   private releaseAllResources(reason: ResourceReleaseReason): void {
+    this.clearPendingResourceReleases()
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())
@@ -851,5 +989,12 @@ export class Client {
     }
     current.pending.clear()
     current.muxes.clear()
+  }
+
+  // clearPendingResourceReleases aborts any queued release retry work.
+  private clearPendingResourceReleases(): void {
+    this.pendingResourceReleaseController?.abort()
+    this.pendingResourceReleaseController = null
+    this.pendingResourceReleases.clear()
   }
 }

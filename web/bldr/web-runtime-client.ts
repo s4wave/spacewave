@@ -41,7 +41,7 @@ export class WebRuntimeClient {
 
   // waitConn opens and waits for the connection to be ready.
   public async waitConn() {
-    await this.openClientChannel()
+    await this.openClientChannelWithRetry()
   }
 
   // openStream opens a RPC stream with the WebRuntimeHost.
@@ -52,7 +52,7 @@ export class WebRuntimeClient {
     // retry several times
     let err: Error | undefined
     for (let attempt = 0; attempt < 3; attempt++) {
-      const clientPort = await this.openClientChannel()
+      const clientPort = await this.openClientChannelWithRetry()
       const streamChannel = new MessageChannel()
       const streamConn = new ChannelStream(
         this.clientId,
@@ -163,6 +163,31 @@ export class WebRuntimeClient {
     }
 
     return port
+  }
+
+  // openClientChannelWithRetry retries transient connection-ack timeouts so
+  // callers do not fail immediately while the runtime is still reconnecting.
+  private async openClientChannelWithRetry(): Promise<MessagePort> {
+    const errors: Error[] = []
+    for (const attempt of [0, 1, 2]) {
+      try {
+        return await this.openClientChannel()
+      } catch (errAny) {
+        const err = castToError(
+          errAny,
+          `WebRuntimeClient: ${this.clientId}: failed to connect to runtime`,
+        )
+        errors.push(err)
+        if (attempt === 2) {
+          break
+        }
+        await timeoutPromise(100)
+      }
+    }
+    throw (
+      errors[errors.length - 1] ??
+      new Error(`WebRuntimeClient: ${this.clientId}: unable to connect to runtime`)
+    )
   }
 
   // handleMessage handles an incoming message from the WebRuntime.
