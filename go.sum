@@ -59,8 +59,8 @@ github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:t
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
 github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 h1:G9ziqzF7ox6CGa2sTjmf9V/0zHBlw7Y7ewoCdxo4Kwk=
 github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
-github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff h1:73bGCAMNhq9fIfRQhqz9+3SHbHHt12zcdorDVtRtX2I=
-github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff/go.mod h1:gRr3c2ktFZ1zAsI4d4NU1jisDKGqgs9HsPlVllglWoc=
+github.com/aperturerobotics/bifrost v0.47.5 h1:dk8xubbbZmjvHNa8y6y/uyKqd1deMvqryQWZzSbktnM=
+github.com/aperturerobotics/bifrost v0.47.5/go.mod h1:gRr3c2ktFZ1zAsI4d4NU1jisDKGqgs9HsPlVllglWoc=
 github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b h1:jJDgLsUYSGSY/UvZEF6orweezYhO7aBjXbF9NFwklx4=
 github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b/go.mod h1:xXbInCGpchuUbS9x3vg/AImXyIqEc/u4pV2/m5XzP9Q=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=

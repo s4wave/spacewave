@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260402175306-bb66efc41c1e // fix-os-js
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
+	github.com/aperturerobotics/bifrost v0.47.5 // master
 	github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
@@ -102,7 +102,10 @@ require (
 	modernc.org/sqlite v1.45.0 // latest
 )
 
-require github.com/aperturerobotics/fastjson v0.1.1
+require (
+	github.com/aperturerobotics/fastjson v0.1.1
+	github.com/goccy/go-json v0.10.3
+)
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -117,7 +120,6 @@ require (
 	github.com/go-git/gcfg/v2 v2.0.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
-	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
