@@ -60,8 +60,6 @@ func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller
 func (i *BoltDB) DeleteVolume(id string) error {
 	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
 	path := filepath.Join(i.rootDir, filename)
-	// remove the bbolt lock file if present
-	os.Remove(path + "-lock")
 	return os.Remove(path)
 }
 
