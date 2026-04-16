@@ -23,7 +23,9 @@ export interface ProxyFetchOpts {
 
 // createLinkedAbortController links a new controller to any provided parent
 // signals and returns a cleanup callback for the listeners.
-function createLinkedAbortController(...signals: Array<AbortSignal | undefined>) {
+function createLinkedAbortController(
+  ...signals: Array<AbortSignal | undefined>
+) {
   const abortController = new AbortController()
   const cleanupFns: Array<() => void> = []
   const abort = (reason?: unknown) => {
@@ -66,38 +68,40 @@ async function waitForFirstPacket(
     return it.next()
   }
 
-  return new Promise<IteratorResult<Message<FetchResponse>>>((resolve, reject) => {
-    const timer = globalThis.setTimeout(() => {
-      abortController.abort(
-        new Error(
-          `timed out waiting ${headerTimeoutMs}ms for proxied fetch response headers`,
-        ),
-      )
-    }, headerTimeoutMs)
+  return new Promise<IteratorResult<Message<FetchResponse>>>(
+    (resolve, reject) => {
+      const timer = globalThis.setTimeout(() => {
+        abortController.abort(
+          new Error(
+            `timed out waiting ${headerTimeoutMs}ms for proxied fetch response headers`,
+          ),
+        )
+      }, headerTimeoutMs)
 
-    const onAbort = () => {
-      clearTimeout(timer)
-      const reason = abortController.signal.reason
-      reject(
-        reason instanceof Error
-          ? reason
-          : new Error('proxied fetch aborted before response headers'),
-      )
-    }
+      const onAbort = () => {
+        clearTimeout(timer)
+        const reason = abortController.signal.reason
+        reject(
+          reason instanceof Error ? reason : (
+            new Error('proxied fetch aborted before response headers')
+          ),
+        )
+      }
 
-    abortController.signal.addEventListener('abort', onAbort, { once: true })
-    it.next()
-      .then((value) => {
-        clearTimeout(timer)
-        abortController.signal.removeEventListener('abort', onAbort)
-        resolve(value)
-      })
-      .catch((err) => {
-        clearTimeout(timer)
-        abortController.signal.removeEventListener('abort', onAbort)
-        reject(err)
-      })
-  })
+      abortController.signal.addEventListener('abort', onAbort, { once: true })
+      it.next()
+        .then((value) => {
+          clearTimeout(timer)
+          abortController.signal.removeEventListener('abort', onAbort)
+          resolve(value)
+        })
+        .catch((err) => {
+          clearTimeout(timer)
+          abortController.signal.removeEventListener('abort', onAbort)
+          reject(err)
+        })
+    },
+  )
 }
 
 // buildFetchHeaders builds a Headers map from a Headers object.
@@ -143,10 +147,40 @@ export function buildRequestData(
   }
 }
 
+// toByteString coerces a DOMString into a ByteString-compatible string.
+function toByteString(value: string): string {
+  for (let i = 0; i < value.length; i += 1) {
+    if (value.charCodeAt(i) > 0xff) {
+      const bytes = new TextEncoder().encode(value)
+      let result = ''
+      for (const byte of bytes) {
+        result += String.fromCharCode(byte)
+      }
+      return result
+    }
+  }
+  return value
+}
+
+// buildResponseHeaders builds response headers that satisfy the DOM ByteString
+// requirement enforced by the Response constructor.
+export function buildResponseHeaders(
+  headers: Record<string, string> | undefined,
+): Headers | undefined {
+  if (!headers) {
+    return undefined
+  }
+  const result = new Headers()
+  Object.entries(headers).forEach(([key, value]) => {
+    result.append(key, toByteString(value))
+  })
+  return result
+}
+
 // buildResponseInit builds the ResponseInit from the ResponseInfo.
 export function buildResponseInit(info: ResponseInfo): ResponseInit {
   return {
-    headers: (info.headers ?? undefined) as Record<string, string> | undefined,
+    headers: buildResponseHeaders(info.headers ?? undefined),
     status: info.status,
     statusText: info.statusText,
   }

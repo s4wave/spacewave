@@ -76,4 +76,45 @@ describe('proxyFetch', () => {
     expect(resp.status).toBe(500)
     await expect(resp.text()).resolves.toContain('aborted by owner')
   })
+
+  it('returns the proxied response when a header value contains unicode', async () => {
+    const svc: FetchService = {
+      Fetch() {
+        return (async function* () {
+          yield {
+            body: {
+              case: 'responseInfo',
+              value: {
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                  'content-disposition':
+                    'attachment; filename="Screenshot\u202f2026.png"',
+                },
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode('ok'),
+                done: true,
+              },
+            },
+          }
+        })()
+      },
+    }
+
+    const resp = await proxyFetch(
+      svc,
+      new Request('https://example.test/p/test'),
+      'client-1',
+    )
+
+    expect(resp.status).toBe(200)
+    expect(resp.headers.get('content-disposition')).toBeTruthy()
+    await expect(resp.text()).resolves.toBe('ok')
+  })
 })
