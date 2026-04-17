@@ -15,6 +15,7 @@ import (
 	bldr_plugin_compiler_js "github.com/aperturerobotics/bldr/plugin/compiler/js"
 	plugin_host_wazero_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	"github.com/aperturerobotics/bldr/testbed"
+	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -175,4 +176,29 @@ func TestPluginCompilerJs(t *testing.T) {
 	}
 
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
+}
+
+func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
+	backend, frontend := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
+		[]*bldr_plugin_compiler_js.JsModule{{
+			Kind: bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
+			Path: "./plugin/notes/backend.ts",
+		}},
+		[]*bldr_web_bundler_vite.ViteOutputMeta{{
+			EntrypointPath: "plugin/notes/backend.ts",
+			Path:           "b/be/plugin/notes/backend-abc123.mjs",
+		}},
+		nil,
+		nil,
+	)
+
+	if len(frontend) != 0 {
+		t.Fatalf("expected no frontend entrypoints, got %d", len(frontend))
+	}
+	if len(backend) != 1 {
+		t.Fatalf("expected one backend entrypoint, got %d", len(backend))
+	}
+	if got := backend[0].GetImportPath(); got != "v/b/be/plugin/notes/backend-abc123.mjs" {
+		t.Fatalf("unexpected backend import path: %q", got)
+	}
 }
