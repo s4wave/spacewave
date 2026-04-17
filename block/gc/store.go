@@ -413,7 +413,7 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 
 	removes := make([]RefEdge, 0, len(ununrefs))
 	for _, iri := range ununrefs {
-		removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
+		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}
 
 	if g.wal != nil {
