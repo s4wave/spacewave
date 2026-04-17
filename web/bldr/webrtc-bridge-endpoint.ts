@@ -266,7 +266,13 @@ export class WebRTCBridgeEndpoint {
     try {
       if (cmd.type === 'createPC') {
         const pcId = 'pc-' + Math.random().toString(36).slice(2, 10)
-        const pc = new RTCPeerConnection(cmd.config)
+        // Sanitize config: only allow safe fields, strip iceServers to
+        // prevent a compromised worker from injecting malicious TURN servers.
+        const safeConfig: RTCConfiguration = {
+          bundlePolicy: cmd.config?.bundlePolicy,
+          iceTransportPolicy: cmd.config?.iceTransportPolicy,
+        }
+        const pc = new RTCPeerConnection(safeConfig)
         this.pcs.set(pcId, pc)
         this.wireEvents(pc, pcId)
         const response: BridgeResponse = {

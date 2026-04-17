@@ -123,6 +123,7 @@ export class SabBusEndpoint {
 
     // Claim a slot via CAS loop.
     let claimedIdx: number
+    let backoff = 1
     while (!this.closed) {
       const writeIdx = Atomics.load(this.ctrl, CTRL_WRITE_IDX)
 
@@ -138,9 +139,11 @@ export class SabBusEndpoint {
         }
       }
       if (writeIdx - minRead >= this.numSlots) {
-        await new Promise<void>((r) => setTimeout(r, 1))
+        await new Promise<void>((r) => setTimeout(r, backoff))
+        backoff = Math.min(backoff * 2, 16)
         continue
       }
+      backoff = 1
 
       // Try to claim this slot.
       const actual = Atomics.compareExchange(
