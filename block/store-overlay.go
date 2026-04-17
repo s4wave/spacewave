@@ -128,6 +128,10 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 		// reads go to the lower store first, then the upper store.
 		// reads from upper are not written back to lower.
 		return cacheMode(o.lower, o.upper, nil)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are written back to upper.
+		return cacheMode(o.upper, o.lower, o.upper)
 	}
 }
 
@@ -170,6 +174,9 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 	case OverlayMode_LOWER_WRITE_CACHE:
 		// reads go to the lower store first, then the upper store.
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
 	}
 }
 
@@ -203,6 +210,8 @@ func (o *StoreOverlay) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat
 		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return cacheMode(o.upper, o.lower)
 	}
 }
 
@@ -252,6 +261,9 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		// writes go to the lower store only.
 		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// writes go to the upper store only (lower is read-only).
+		return o.upper.PutBlock(ctx, data, opts)
 	}
 }
 
@@ -284,6 +296,8 @@ func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 		return putBatchEntries(ctx, o.upper, entries)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
 	}
 }
 
@@ -323,6 +337,8 @@ func (o *StoreOverlay) PutBlockBackground(ctx context.Context, data []byte, opts
 		return putBlockBackground(ctx, o.upper, data, opts)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
 	}
 }
 
@@ -376,6 +392,8 @@ func (o *StoreOverlay) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef
 		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_WRITE_CACHE:
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return cacheMode(o.upper, o.lower)
 	}
 }
 
@@ -419,6 +437,9 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	case OverlayMode_LOWER_WRITE_CACHE:
 		// removes go to both stores.
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// removes go to the upper store only; lower lifecycle is external.
+		return o.upper.RmBlock(ctx, ref)
 	}
 }
 

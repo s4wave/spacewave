@@ -68,6 +68,14 @@ const (
 	// removes go to both stores.
 	// reads from upper are not written back to lower.
 	OverlayMode_LOWER_WRITE_CACHE OverlayMode = 7
+	// UPPER_READBACK_CACHE treats the lower store as read-only and immutable
+	// (e.g. remote packfiles) while caching reads back into the upper store.
+	// reads go to the upper store first, then the lower store.
+	// reads from lower are written back to upper.
+	// writes go to the upper store only.
+	// removes go to the upper store only (lower lifecycle is external, e.g.
+	// packfile garbage collection / repack).
+	OverlayMode_UPPER_READBACK_CACHE OverlayMode = 8
 )
 
 // Enum value maps for OverlayMode.
@@ -81,16 +89,18 @@ var (
 		5: "LOWER_READ_CACHE",
 		6: "UPPER_WRITE_CACHE",
 		7: "LOWER_WRITE_CACHE",
+		8: "UPPER_READBACK_CACHE",
 	}
 	OverlayMode_value = map[string]int32{
-		"UPPER_ONLY":        0,
-		"LOWER_ONLY":        1,
-		"UPPER_CACHE":       2,
-		"LOWER_CACHE":       3,
-		"UPPER_READ_CACHE":  4,
-		"LOWER_READ_CACHE":  5,
-		"UPPER_WRITE_CACHE": 6,
-		"LOWER_WRITE_CACHE": 7,
+		"UPPER_ONLY":           0,
+		"LOWER_ONLY":           1,
+		"UPPER_CACHE":          2,
+		"LOWER_CACHE":          3,
+		"UPPER_READ_CACHE":     4,
+		"LOWER_READ_CACHE":     5,
+		"UPPER_WRITE_CACHE":    6,
+		"LOWER_WRITE_CACHE":    7,
+		"UPPER_READBACK_CACHE": 8,
 	}
 )
 

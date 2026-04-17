@@ -76,6 +76,14 @@ pub enum OverlayMode {
     /// removes go to both stores.
     /// reads from upper are not written back to lower.
     LowerWriteCache = 7,
+    /// UPPER_READBACK_CACHE treats the lower store as read-only and immutable
+    /// (e.g. remote packfiles) while caching reads back into the upper store.
+    /// reads go to the upper store first, then the lower store.
+    /// reads from lower are written back to upper.
+    /// writes go to the upper store only.
+    /// removes go to the upper store only (lower lifecycle is external, e.g.
+    /// packfile garbage collection / repack).
+    UpperReadbackCache = 8,
 }
 impl OverlayMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -92,6 +100,7 @@ impl OverlayMode {
             Self::LowerReadCache => "LOWER_READ_CACHE",
             Self::UpperWriteCache => "UPPER_WRITE_CACHE",
             Self::LowerWriteCache => "LOWER_WRITE_CACHE",
+            Self::UpperReadbackCache => "UPPER_READBACK_CACHE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -105,6 +114,7 @@ impl OverlayMode {
             "LOWER_READ_CACHE" => Some(Self::LowerReadCache),
             "UPPER_WRITE_CACHE" => Some(Self::UpperWriteCache),
             "LOWER_WRITE_CACHE" => Some(Self::LowerWriteCache),
+            "UPPER_READBACK_CACHE" => Some(Self::UpperReadbackCache),
             _ => None,
         }
     }

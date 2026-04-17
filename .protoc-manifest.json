@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.49.2,protobuf-es-lite=^1.0.2",
   "packages": {
     "github.com/aperturerobotics/hydra/block": {
-      "hash": "c205759a1f70fb40e46c97cdb9edbe7b3e2d998b2de09b78c1c5f1976f337538",
+      "hash": "cfb8f881f75af2226abdfe49efa6e82f9a50f10a685b0ddd054093471a2e5818",
       "generatedFiles": [
         "block/block.pb.cc",
         "block/block.pb.go",

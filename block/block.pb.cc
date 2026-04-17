@@ -117,11 +117,12 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fb
     "ckRef\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"V\n\007PutOp"
     "ts\022!\n\thash_type\030\001 \001(\0162\016.hash.HashType\022(\n"
     "\017force_block_ref\030\002 \001(\0132\017.block.BlockRef*"
-    "\251\001\n\013OverlayMode\022\016\n\nUPPER_ONLY\020\000\022\016\n\nLOWER"
+    "\303\001\n\013OverlayMode\022\016\n\nUPPER_ONLY\020\000\022\016\n\nLOWER"
     "_ONLY\020\001\022\017\n\013UPPER_CACHE\020\002\022\017\n\013LOWER_CACHE\020"
     "\003\022\024\n\020UPPER_READ_CACHE\020\004\022\024\n\020LOWER_READ_CA"
     "CHE\020\005\022\025\n\021UPPER_WRITE_CACHE\020\006\022\025\n\021LOWER_WR"
-    "ITE_CACHE\020\007b\006proto3"
+    "ITE_CACHE\020\007\022\030\n\024UPPER_READBACK_CACHE\020\010b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto_deps[1] = {
@@ -131,7 +132,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto = {
     false,
     false,
-    419,
+    445,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
     "github.com/aperturerobotics/hydra/block/block.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto_once,
@@ -150,7 +151,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OverlayMode_descripto
   return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t OverlayMode_internal_data_[] = {
-    524288u, 0u, };
+    589824u, 0u, };
 // ===================================================================
 
 class BlockRef::_Internal {

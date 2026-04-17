@@ -86,6 +86,7 @@ enum OverlayMode : int {
   LOWER_READ_CACHE = 5,
   UPPER_WRITE_CACHE = 6,
   LOWER_WRITE_CACHE = 7,
+  UPPER_READBACK_CACHE = 8,
   OverlayMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   OverlayMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -96,11 +97,11 @@ extern const uint32_t OverlayMode_internal_data_[];
 inline constexpr OverlayMode OverlayMode_MIN =
     static_cast<OverlayMode>(0);
 inline constexpr OverlayMode OverlayMode_MAX =
-    static_cast<OverlayMode>(7);
+    static_cast<OverlayMode>(8);
 inline bool OverlayMode_IsValid(int value) {
-  return 0 <= value && value <= 7;
+  return 0 <= value && value <= 8;
 }
-inline constexpr int OverlayMode_ARRAYSIZE = 7 + 1;
+inline constexpr int OverlayMode_ARRAYSIZE = 8 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OverlayMode_descriptor();
 template <typename T>
 const ::std::string& OverlayMode_Name(T value) {
@@ -111,7 +112,7 @@ const ::std::string& OverlayMode_Name(T value) {
 }
 template <>
 inline const ::std::string& OverlayMode_Name(OverlayMode value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<OverlayMode_descriptor, 0, 7>(
+  return ::google::protobuf::internal::NameOfDenseEnum<OverlayMode_descriptor, 0, 8>(
       static_cast<int>(value));
 }
 inline bool OverlayMode_Parse(

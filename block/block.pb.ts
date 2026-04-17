@@ -105,6 +105,19 @@ export enum OverlayMode {
    * @generated from enum value: LOWER_WRITE_CACHE = 7;
    */
   LOWER_WRITE_CACHE = 7,
+
+  /**
+   * UPPER_READBACK_CACHE treats the lower store as read-only and immutable
+   * (e.g. remote packfiles) while caching reads back into the upper store.
+   * reads go to the upper store first, then the lower store.
+   * reads from lower are written back to upper.
+   * writes go to the upper store only.
+   * removes go to the upper store only (lower lifecycle is external, e.g.
+   * packfile garbage collection / repack).
+   *
+   * @generated from enum value: UPPER_READBACK_CACHE = 8;
+   */
+  UPPER_READBACK_CACHE = 8,
 }
 
 // OverlayMode_Enum is the enum type for OverlayMode.
@@ -117,6 +130,7 @@ export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
   { no: 5, name: 'LOWER_READ_CACHE' },
   { no: 6, name: 'UPPER_WRITE_CACHE' },
   { no: 7, name: 'LOWER_WRITE_CACHE' },
+  { no: 8, name: 'UPPER_READBACK_CACHE' },
 ])
 
 /**

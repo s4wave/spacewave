@@ -74,4 +74,12 @@ enum OverlayMode {
   // removes go to both stores.
   // reads from upper are not written back to lower.
   LOWER_WRITE_CACHE = 7;
+  // UPPER_READBACK_CACHE treats the lower store as read-only and immutable
+  // (e.g. remote packfiles) while caching reads back into the upper store.
+  // reads go to the upper store first, then the lower store.
+  // reads from lower are written back to upper.
+  // writes go to the upper store only.
+  // removes go to the upper store only (lower lifecycle is external, e.g.
+  // packfile garbage collection / repack).
+  UPPER_READBACK_CACHE = 8;
 }
