@@ -31,6 +31,16 @@ import {
 import { BackendAPI } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
+type ViteManifestEntry = {
+  file?: string
+  imports?: string[]
+  dynamicImports?: string[]
+  css?: string[]
+  assets?: string[]
+}
+
+const backendAssetsRoot = 'v/b/be/'
+
 // Cached compiled QuickJS WASM module (shared across plugin restarts)
 let cachedWasmModule: WebAssembly.Module | null = null
 // Cached boot harness code
@@ -73,6 +83,107 @@ async function fetchPluginScript(scriptPath: string): Promise<string> {
   return response.text()
 }
 
+// collectViteManifestAssetPaths returns the unique asset-relative paths referenced by a Vite manifest.
+export function collectViteManifestAssetPaths(
+  manifest: Record<string, ViteManifestEntry>,
+): string[] {
+  const paths = new Set<string>()
+  for (const entry of Object.values(manifest)) {
+    for (const path of [
+      entry.file,
+      ...(entry.imports ?? []),
+      ...(entry.dynamicImports ?? []),
+      ...(entry.css ?? []),
+      ...(entry.assets ?? []),
+    ]) {
+      if (!path) continue
+      paths.add(path)
+    }
+  }
+  return [...paths]
+}
+
+// resolveBackendAssetPath normalizes a backend asset path to the v/b/be asset tree.
+export function resolveBackendAssetPath(path: string): string {
+  const trimmed = path.replace(/^\/+/, '')
+  if (!trimmed) {
+    return ''
+  }
+  if (trimmed.startsWith('v/')) {
+    return trimmed
+  }
+  if (trimmed.startsWith('b/')) {
+    return 'v/' + trimmed
+  }
+  return backendAssetsRoot + trimmed
+}
+
+// addAssetToFileSystem mirrors an asset under both its asset-relative path and /assets/.
+export function addAssetToFileSystem(
+  files: Map<string, string | Uint8Array>,
+  assetPath: string,
+  content: string | Uint8Array,
+): void {
+  const resolvedPath = resolveBackendAssetPath(assetPath)
+  if (!resolvedPath) {
+    return
+  }
+  files.set(resolvedPath, content)
+  files.set('/assets/' + resolvedPath, content)
+}
+
+async function loadBackendAssets(
+  api: BackendAPI,
+  signal: AbortSignal,
+  files: Map<string, string | Uint8Array>,
+): Promise<void> {
+  const pluginId = api.startInfo.pluginId
+  if (!pluginId) {
+    return
+  }
+
+  const manifestPath = backendAssetsRoot + '.vite/manifest.json'
+  const manifestURL = api.utils.pluginAssetHttpPath(pluginId, manifestPath)
+  const manifestResponse = await fetch(manifestURL, { signal })
+  if (manifestResponse.status === 404) {
+    return
+  }
+  if (!manifestResponse.ok) {
+    throw new Error(
+      `Failed to fetch backend asset manifest ${manifestURL}: ${manifestResponse.status}`,
+    )
+  }
+
+  const manifestText = await manifestResponse.text()
+  addAssetToFileSystem(files, manifestPath, manifestText)
+
+  const manifest = JSON.parse(
+    manifestText,
+  ) as Record<string, ViteManifestEntry>
+  const assetPaths = collectViteManifestAssetPaths(manifest)
+
+  await Promise.all(
+    assetPaths.map(async (assetPath) => {
+      const resolvedPath = resolveBackendAssetPath(assetPath)
+      if (!resolvedPath) {
+        return
+      }
+      const assetURL = api.utils.pluginAssetHttpPath(pluginId, resolvedPath)
+      const assetResponse = await fetch(assetURL, { signal })
+      if (!assetResponse.ok) {
+        throw new Error(
+          `Failed to fetch backend asset ${assetURL}: ${assetResponse.status}`,
+        )
+      }
+      addAssetToFileSystem(
+        files,
+        resolvedPath,
+        new Uint8Array(await assetResponse.arrayBuffer()),
+      )
+    }),
+  )
+}
+
 // main runs a JavaScript plugin in the QuickJS WASI reactor.
 //
 // Unlike native JS plugins that run directly in the browser, QuickJS plugins
@@ -109,6 +220,10 @@ export default async function main(
 
   // Add plugin script at its expected path
   files.set(scriptPath, pluginScript)
+
+  // Mirror backend Vite assets into the in-memory filesystem so dynamic
+  // import() calls can resolve the plugin assets tree inside QuickJS.
+  await loadBackendAssets(api, signal, files)
 
   const fs = buildFileSystem(files)
 
