@@ -5,6 +5,7 @@ import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
 
 import { WebRuntime } from '../../bldr/web-runtime.js'
+import { ServiceWorkerFetchTracker } from '../../bldr/service-worker-fetch-tracker.js'
 import {
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
@@ -29,6 +30,7 @@ export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
 declare const BLDR_DEBUG: boolean | undefined
 export const isDebug = BLDR_DEBUG ?? false
+const proxyFetchHeaderTimeoutMs = 30_000
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
@@ -48,6 +50,8 @@ export class BldrElectronApp {
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
+  // fetchTracker aborts proxied fetches when their owning WebDocument closes.
+  private readonly fetchTracker = new ServiceWorkerFetchTracker()
 
   // distPath is the path to the electron app dist files.
   public get distPath() {
@@ -111,11 +115,27 @@ export class BldrElectronApp {
     req: GlobalRequest,
     clientId?: string,
   ): Promise<GlobalResponse> {
+    if (!clientId) {
+      return proxyFetch(
+        this.serviceWorkerHostServiceClient,
+        req,
+        'electron-main',
+        {
+          headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+        },
+      )
+    }
+
+    const trackedFetch = this.fetchTracker.trackFetch(clientId)
     return proxyFetch(
       this.serviceWorkerHostServiceClient,
       req,
-      clientId ?? 'electron-main',
-    )
+      clientId,
+      {
+        abortSignal: trackedFetch.abortController.signal,
+        headerTimeoutMs: proxyFetchHeaderTimeoutMs,
+      },
+    ).finally(() => trackedFetch.release())
   }
 
   // onAppReady handles when the app becomes ready.
@@ -314,6 +334,7 @@ export class BldrElectronApp {
 
         popoutWindow.on('closed', () => {
           if (this.browserWindows[popoutDocId] === popoutWindow) {
+            this.abortWebDocumentFetches(popoutDocId)
             delete this.browserWindows[popoutDocId]
             this.webRuntime.removeConnection(popoutDocId)
           }
@@ -327,6 +348,17 @@ export class BldrElectronApp {
     })
 
     return nwindow
+  }
+
+  // abortWebDocumentFetches aborts in-flight proxied fetches for a WebDocument.
+  private abortWebDocumentFetches(webDocumentId?: string) {
+    if (!webDocumentId) {
+      return
+    }
+    this.fetchTracker.abortClient(
+      webDocumentId,
+      new Error(`web document closed: ${webDocumentId}`),
+    )
   }
 
   // isInternalUrl checks if a URL is internal to the app.
@@ -351,6 +383,7 @@ export class BldrElectronApp {
     this.browserWindows[id] = nwindow
     nwindow.on('closed', () => {
       if (this.browserWindows[id] === nwindow) {
+        this.abortWebDocumentFetches(id)
         delete this.browserWindows[id]
         this.webRuntime.removeConnection(id)
       }
@@ -366,6 +399,7 @@ export class BldrElectronApp {
     if (!doc) {
       return { removed: false }
     }
+    this.abortWebDocumentFetches(req.id)
     // NOTE: the close() might not work if !closable or interrupted
     // this behaves the same as if the user clicked the X
     doc.close()

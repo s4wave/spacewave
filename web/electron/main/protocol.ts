@@ -9,9 +9,37 @@ export const APP_SCHEME = 'app'
 const app = electron.app
 const distPath = app.getAppPath()
 
+// extractWebDocumentClientId recovers the owning WebDocument ID from a request.
+export function extractWebDocumentClientId(
+  req: GlobalRequest,
+): string | undefined {
+  const requestUrls = [
+    req.referrer,
+    req.headers.get('referer'),
+    req.url,
+  ]
+  for (const requestUrl of requestUrls) {
+    if (!requestUrl) {
+      continue
+    }
+    try {
+      const parsed = new URL(requestUrl)
+      const webDocumentId = parsed.searchParams.get('webDocumentId')
+      if (webDocumentId) {
+        return webDocumentId
+      }
+    } catch {
+      continue
+    }
+  }
+}
+
 // appRequestHandler handles requests for distribution files.
 export async function appRequestHandler(
-  swFetch: (req: GlobalRequest) => Promise<GlobalResponse>,
+  swFetch: (
+    req: GlobalRequest,
+    clientId?: string,
+  ) => Promise<GlobalResponse>,
   req: GlobalRequest,
 ): Promise<GlobalResponse> {
   const reqUrl = new URL(req.url)
@@ -32,7 +60,7 @@ export async function appRequestHandler(
       console.log(
         `appRequestHandler: forwarding ServiceWorker request: ${reqPath}`,
       )
-      return swFetch(req)
+      return swFetch(req, extractWebDocumentClientId(req))
     }
   }
 
