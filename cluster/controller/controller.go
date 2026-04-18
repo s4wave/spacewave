@@ -150,7 +150,7 @@ func (c *Controller) ProcessState(
 
 	// determine the next operations to apply to the Cluster
 	// scan list of active Job linked to the Cluster
-	jobKeys, err := forge_cluster.ListClusterJobs(ctx, ws)
+	jobKeys, err := forge_cluster.ListClusterJobs(ctx, ws, objKey)
 	if err != nil {
 		return true, err
 	}

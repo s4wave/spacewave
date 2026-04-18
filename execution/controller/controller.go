@@ -241,6 +241,7 @@ func (c *Controller) ProcessState(
 	// check if equivalent to the current
 	execConfigState := exState.CloneVT()
 	execConfigState.Result = nil
+	execConfigState.LogEntries = nil
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}
 	} else {

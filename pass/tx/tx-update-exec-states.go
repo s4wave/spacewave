@@ -65,15 +65,13 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		return err
 	}
 
-	// mark as changed
-	if bcs != nil {
-		bcs.SetBlock(root, true)
-	}
-
 	// if there are no exec states, stop here.
 	execStates := root.GetExecStates()
 	nstates := len(execStates)
 	if nstates == 0 {
+		if bcs != nil {
+			bcs.SetBlock(root, true)
+		}
 		return nil
 	}
 
@@ -121,6 +119,10 @@ func (t *TxUpdateExecStates) ExecuteTx(
 				i--
 			}
 		}
+	}
+
+	if bcs != nil {
+		bcs.SetBlock(root, true)
 	}
 
 	return nil
