@@ -1,12 +1,14 @@
 package bldr_project_controller
 
 import (
+	"encoding/base32"
 	"os"
 	"path/filepath"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/pkg/errors"
+	"github.com/zeebo/blake3"
 )
 
 // manifestStartupBuildStateDirName is the startup build-state directory name.
@@ -164,8 +166,18 @@ func getManifestStartupBuildStatePath(
 		manifestBuilderConfig.GetManifestId(),
 		buildType,
 		filepath.FromSlash(manifestBuilderConfig.GetPlatformId()),
-		manifestBuilderConfig.MarshalB58()+".pb",
+		getManifestStartupBuildStateFileName(manifestBuilderConfig),
 	), nil
+}
+
+// getManifestStartupBuildStateFileName returns the cache filename for one
+// manifest build slot.
+func getManifestStartupBuildStateFileName(
+	manifestBuilderConfig *ManifestBuilderConfig,
+) string {
+	data, _ := manifestBuilderConfig.MarshalVT()
+	sum := blake3.Sum256(data)
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(sum[:16]) + ".pb"
 }
 
 // getManifestStartupBuildStateRoot builds the startup build-state root path.

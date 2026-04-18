@@ -3,10 +3,12 @@ package bldr_project_controller
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/bucket"
 )
 
@@ -37,7 +39,7 @@ func TestManifestStartupBuildStatePath(t *testing.T) {
 		"desktop",
 		"linux",
 		"amd64",
-		conf.MarshalB58()+".pb",
+		getManifestStartupBuildStateFileName(conf),
 	)
 	if path != expected {
 		t.Fatalf("expected %q, got %q", expected, path)
@@ -145,5 +147,32 @@ func TestRemoveManifestStartupBuildState(t *testing.T) {
 	}
 	if loaded != nil {
 		t.Fatal("expected removed state to be nil")
+	}
+}
+
+func TestManifestStartupBuildStateWriteFileLongOverride(t *testing.T) {
+	conf := NewManifestBuilderConfig("demo", "release", "desktop/darwin/arm64", "devtool")
+	conf.BuilderConfigOverride = &configset_proto.ControllerConfig{
+		Id:     "bldr/dist/compiler",
+		Config: []byte(strings.Repeat("x", 4096)),
+	}
+	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_RELEASE, "desktop/darwin/arm64", 7)
+	result := bldr_manifest_builder.NewBuilderResult(
+		bldr_manifest.NewManifest(meta, "dist/demo"),
+		&bucket.ObjectRef{BucketId: "manifest-bucket"},
+		bldr_manifest_builder.NewInputManifest([]string{"main.go"}, nil),
+	)
+	state := NewManifestStartupBuildState(conf, result)
+
+	tmpDir := t.TempDir()
+	if err := state.WriteFile(tmpDir); err != nil {
+		t.Fatalf("write file with long override: %v", err)
+	}
+	statePath, err := state.GetStatePath(tmpDir)
+	if err != nil {
+		t.Fatalf("get state path: %v", err)
+	}
+	if got := len(filepath.Base(statePath)); got >= 255 {
+		t.Fatalf("expected short cache filename, got length %d", got)
 	}
 }

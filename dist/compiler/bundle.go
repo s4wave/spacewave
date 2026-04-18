@@ -164,7 +164,11 @@ func BuildDistBundle(
 	// start with a working db on-disk in the working dir
 	workingDbVolID := "dist-working-vol"
 	workingDbVolConf, err := storage.BuildVolumeConfig("dist-working-vol", &volume_controller.Config{
-		VolumeIdAlias:           []string{workingDbVolID},
+		// NewDistBucketConfig uses the static entrypoint block store id as the
+		// fallback store. During build, before assets.kvfile exists, point that
+		// lookup at the temporary working volume so embedded-world bootstrap can
+		// read blocks from the same backing store it is populating.
+		VolumeIdAlias:           []string{workingDbVolID, bldr_dist.StaticBlockStoreID},
 		DisablePeer:             true,
 		DisableEventBlockRm:     true,
 		DisableReconcilerQueues: true,
