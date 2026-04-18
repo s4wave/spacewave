@@ -130,6 +130,23 @@ export interface BuildConfig {
    * @generated from field: repeated string targets = 3;
    */
   targets?: string[]
+  /**
+   * ManifestOverrides replaces the builder config of a named manifest when
+   * built under this build target. Maps manifest_id to a ControllerConfig
+   * whose config bytes replace the manifest's static builder config.
+   *
+   * The override's controller id is ignored; the manifest's declared builder
+   * id always wins. This is REPLACE semantics: the static manifest config is
+   * not merged with the override. Users compose shared fields in Starlark
+   * helper functions rather than via runtime merging.
+   *
+   * Typical use: per-build-target embed_manifests selection for dist bundles
+   * so a single dist manifest declaration can be reused across release
+   * targets that ship different platform-specific payloads.
+   *
+   * @generated from field: map<string, configset.proto.ControllerConfig> manifest_overrides = 4;
+   */
+  manifestOverrides?: { [key: string]: ControllerConfig }
 }
 
 // BuildConfig contains the message type declaration for BuildConfig.
@@ -156,6 +173,13 @@ export const BuildConfig: MessageType<BuildConfig> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
+    },
+    {
+      no: 4,
+      name: 'manifest_overrides',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => ControllerConfig },
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

@@ -25,15 +25,15 @@ func TestAlphaStarCompleteness(t *testing.T) {
 
 	// Verify all expected manifests exist with correct builders.
 	expectedManifests := map[string]string{
-		"web":             "bldr/web/plugin/compiler",
-		"spacewave-core":  "bldr/plugin/compiler/go",
-		"spacewave-debug": "bldr/plugin/compiler/go",
-		"spacewave-cli":   "bldr/cli/compiler",
-		"spacewave-web":   "bldr/plugin/compiler/js",
-		"spacewave-app":   "bldr/plugin/compiler/js",
-		"spacewave-notes": "bldr/plugin/compiler/js",
-		"spacewave-vm":    "bldr/plugin/compiler/js",
-		"spacewave-dist":  "bldr/dist/compiler",
+		"web":                "bldr/web/plugin/compiler",
+		"spacewave-launcher": "bldr/plugin/compiler/go",
+		"spacewave-loader":   "bldr/plugin/compiler/go",
+		"spacewave-core":     "bldr/plugin/compiler/go",
+		"spacewave-debug":    "bldr/plugin/compiler/go",
+		"spacewave-cli":      "bldr/cli/compiler",
+		"spacewave-web":      "bldr/plugin/compiler/js",
+		"spacewave-app":      "bldr/plugin/compiler/js",
+		"spacewave-dist":     "bldr/dist/compiler",
 	}
 	for id, wantBuilder := range expectedManifests {
 		mc := conf.GetManifests()[id]
@@ -48,11 +48,11 @@ func TestAlphaStarCompleteness(t *testing.T) {
 
 	// Verify all expected builds exist.
 	expectedBuilds := map[string]int{
-		"app":             7,
-		"web":             7,
-		"release":         5,
-		"release-web":     5,
-		"release-desktop": 5,
+		"app":             5,
+		"web":             5,
+		"release":         7,
+		"release-web":     7,
+		"release-desktop": 7,
 		"cli":             1,
 	}
 	for id, wantManifests := range expectedBuilds {

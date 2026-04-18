@@ -76,7 +76,7 @@ pub struct StartConfig {
     pub load_web_startup: ::prost::alloc::string::String,
 }
 /// BuildConfig configures a build target.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BuildConfig {
     /// Manifests is the list of manifest IDs to build.
     #[prost(string, repeated, tag="1")]
@@ -90,6 +90,20 @@ pub struct BuildConfig {
     /// Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
     #[prost(string, repeated, tag="3")]
     pub targets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// ManifestOverrides replaces the builder config of a named manifest when
+    /// built under this build target. Maps manifest_id to a ControllerConfig
+    /// whose config bytes replace the manifest's static builder config.
+    ///
+    /// The override's controller id is ignored; the manifest's declared builder
+    /// id always wins. This is REPLACE semantics: the static manifest config is
+    /// not merged with the override. Users compose shared fields in Starlark
+    /// helper functions rather than via runtime merging.
+    ///
+    /// Typical use: per-build-target embed_manifests selection for dist bundles
+    /// so a single dist manifest declaration can be reused across release
+    /// targets that ship different platform-specific payloads.
+    #[prost(map="string, message", tag="4")]
+    pub manifest_overrides: ::std::collections::HashMap<::prost::alloc::string::String, super::super::configset::proto::ControllerConfig>,
 }
 /// RemoteConfig configures a location where manifests and source can be stored.
 #[derive(Clone, PartialEq, ::prost::Message)]

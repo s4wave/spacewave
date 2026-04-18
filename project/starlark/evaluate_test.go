@@ -5,6 +5,7 @@ package bldr_project_starlark
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -92,6 +93,83 @@ manifest("core",
 		t.Fatal("expected non-empty builder config")
 	}
 	t.Logf("builder config JSON: %s", string(configData))
+}
+
+func TestEvaluateManifestOverrides(t *testing.T) {
+	dir := t.TempDir()
+	starFile := filepath.Join(dir, "bldr.star")
+	err := os.WriteFile(starFile, []byte(`
+project(id="test")
+manifest("spacewave-dist", builder="bldr/plugin/compiler/dist", rev=1)
+build("release-desktop-darwin-arm64",
+    manifests=["spacewave-dist"],
+    targets=["desktop/darwin/arm64"],
+    manifestOverrides={
+        "spacewave-dist": dist_compiler_config(embedManifests=[
+            {"manifestId": "spacewave-launcher", "platformId": "desktop/darwin/arm64"},
+            {"manifestId": "spacewave-loader", "platformId": "desktop/darwin/arm64"},
+        ]),
+    },
+)
+`), 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := Evaluate(starFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bc := result.Config.GetBuild()["release-desktop-darwin-arm64"]
+	if bc == nil {
+		t.Fatal("build target 'release-desktop-darwin-arm64' not found")
+	}
+	overrides := bc.GetManifestOverrides()
+	if len(overrides) != 1 {
+		t.Fatalf("expected 1 override, got %d", len(overrides))
+	}
+	override := overrides["spacewave-dist"]
+	if override == nil {
+		t.Fatal("override for 'spacewave-dist' not found")
+	}
+	if override.GetId() != "" {
+		t.Fatalf("expected empty override id, got %q", override.GetId())
+	}
+	cfg := string(override.GetConfig())
+	if !strings.Contains(cfg, `"embedManifests"`) {
+		t.Fatalf("expected override config to contain embedManifests, got %s", cfg)
+	}
+	if !strings.Contains(cfg, `"spacewave-launcher"`) {
+		t.Fatalf("expected override config to contain spacewave-launcher, got %s", cfg)
+	}
+	if !strings.Contains(cfg, `"desktop/darwin/arm64"`) {
+		t.Fatalf("expected override config to contain platform id, got %s", cfg)
+	}
+}
+
+func TestEvaluateManifestOverridesRejectsNonDict(t *testing.T) {
+	dir := t.TempDir()
+	starFile := filepath.Join(dir, "bldr.star")
+	err := os.WriteFile(starFile, []byte(`
+project(id="test")
+manifest("foo", builder="bldr/plugin/compiler/go", rev=1)
+build("bad",
+    manifests=["foo"],
+    manifestOverrides={"foo": "not-a-dict"},
+)
+`), 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Evaluate(starFile)
+	if err == nil {
+		t.Fatal("expected error for non-dict override value")
+	}
+	if !strings.Contains(err.Error(), `manifestOverrides["foo"]`) {
+		t.Fatalf("expected error to name manifest id, got %v", err)
+	}
 }
 
 func TestEvaluateLoad(t *testing.T) {

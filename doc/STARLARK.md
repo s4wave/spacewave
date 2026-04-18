@@ -91,6 +91,28 @@ build("app",
 | `manifests` | list[string] | Manifest IDs to include |
 | `targets` | list[string] | Target platforms (`"desktop"`, `"browser"`) |
 | `platformIds` / `platform_ids` | list[string] | Specific platform IDs |
+| `manifestOverrides` / `manifest_overrides` | dict[string, dict] | Per-build-target builder config overrides keyed by manifest id |
+
+`manifestOverrides` replaces the builder config of a named manifest when built
+under this build target. The value is the inner builder-config payload (the
+same shape accepted by `manifest(config=...)`), typically produced by a typed
+constructor such as `dist_compiler_config(...)`. REPLACE semantics: the static
+manifest builder config is not merged with the override. The override's id is
+ignored; the manifest's declared builder id always wins. Common use: per-host
+`embedManifests` selection for a shared `spacewave-dist` manifest.
+
+```python
+build("release-desktop-darwin-arm64",
+    manifests=["spacewave-dist"],
+    targets=["desktop/darwin/arm64"],
+    manifestOverrides={
+        "spacewave-dist": dist_compiler_config(embedManifests=[
+            {"manifestId": "spacewave-launcher", "platformId": "desktop/darwin/arm64"},
+            {"manifestId": "spacewave-loader", "platformId": "desktop/darwin/arm64"},
+        ]),
+    },
+)
+```
 
 ### remote()
 
@@ -277,15 +299,25 @@ For builder `bldr/dist/compiler`.
 
 ```python
 dist_compiler_config(
-    embedManifests=["core", "web", "app"],
+    embedManifests=[
+        {"manifestId": "core", "platformId": "desktop/darwin/arm64"},
+        {"manifestId": "web",  "platformId": "js"},
+        {"manifestId": "app",  "platformId": "js"},
+    ],
     loadPlugins=["core", "web", "app"],
     loadWebStartup="app/startup.tsx",
 )
 ```
 
+Each entry in `embedManifests` is a dict with `manifestId` and `platformId`.
+Both fields are required and fully explicit: there is no implicit resolution
+across the build target's expanded platform list. A single dist binary may
+host multiple plugin runtimes, so one config can list embeds pointing at
+different source platforms.
+
 | Field | Type |
 |---|---|
-| `embedManifests` | list[string] |
+| `embedManifests` | list[dict{manifestId, platformId}] |
 | `loadPlugins` | list[string] |
 | `loadWebStartup` | string |
 | `hostConfigSet` | dict[string, config_entry] |

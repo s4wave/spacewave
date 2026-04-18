@@ -34,6 +34,7 @@
 #include "github.com/aperturerobotics/util/backoff/backoff.pb.h"
 #include "../project.pb.h"
 #include "../../manifest/builder/builder.pb.h"
+#include "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -240,6 +241,7 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
     kBuildTypeFieldNumber = 2,
     kPlatformIdFieldNumber = 3,
     kRemoteIdFieldNumber = 4,
+    kBuilderConfigOverrideFieldNumber = 6,
   };
   // repeated string target_platform_ids = 5;
   int target_platform_ids_size() const;
@@ -323,12 +325,27 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_remote_id();
 
   public:
+  // .configset.proto.ControllerConfig builder_config_override = 6;
+  bool has_builder_config_override() const;
+  void clear_builder_config_override() ;
+  const ::configset::proto::ControllerConfig& builder_config_override() const;
+  [[nodiscard]] ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE release_builder_config_override();
+  ::configset::proto::ControllerConfig* PROTOBUF_NONNULL mutable_builder_config_override();
+  void set_allocated_builder_config_override(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_builder_config_override(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value);
+  ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE unsafe_arena_release_builder_config_override();
+
+  private:
+  const ::configset::proto::ControllerConfig& _internal_builder_config_override() const;
+  ::configset::proto::ControllerConfig* PROTOBUF_NONNULL _internal_mutable_builder_config_override();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.project.controller.ManifestBuilderConfig)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 114,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   1, 114,
                                    2>
       _table_;
 
@@ -354,6 +371,7 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr build_type_;
     ::google::protobuf::internal::ArenaStringPtr platform_id_;
     ::google::protobuf::internal::ArenaStringPtr remote_id_;
+    ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE builder_config_override_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1854,6 +1872,99 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 ManifestBuilderConfig::_internal_mutable_target_platform_ids() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.target_platform_ids_;
+}
+
+// .configset.proto.ControllerConfig builder_config_override = 6;
+inline bool ManifestBuilderConfig::has_builder_config_override() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.builder_config_override_ != nullptr);
+  return value;
+}
+inline const ::configset::proto::ControllerConfig& ManifestBuilderConfig::_internal_builder_config_override() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::configset::proto::ControllerConfig* p = _impl_.builder_config_override_;
+  return p != nullptr ? *p : reinterpret_cast<const ::configset::proto::ControllerConfig&>(::configset::proto::_ControllerConfig_default_instance_);
+}
+inline const ::configset::proto::ControllerConfig& ManifestBuilderConfig::builder_config_override() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
+  return _internal_builder_config_override();
+}
+inline void ManifestBuilderConfig::unsafe_arena_set_allocated_builder_config_override(
+    ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.builder_config_override_);
+  }
+  _impl_.builder_config_override_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
+}
+inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ManifestBuilderConfig::release_builder_config_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::configset::proto::ControllerConfig* released = _impl_.builder_config_override_;
+  _impl_.builder_config_override_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE ManifestBuilderConfig::unsafe_arena_release_builder_config_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::configset::proto::ControllerConfig* temp = _impl_.builder_config_override_;
+  _impl_.builder_config_override_ = nullptr;
+  return temp;
+}
+inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ManifestBuilderConfig::_internal_mutable_builder_config_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.builder_config_override_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::configset::proto::ControllerConfig>(GetArena());
+    _impl_.builder_config_override_ = reinterpret_cast<::configset::proto::ControllerConfig*>(p);
+  }
+  return _impl_.builder_config_override_;
+}
+inline ::configset::proto::ControllerConfig* PROTOBUF_NONNULL ManifestBuilderConfig::mutable_builder_config_override()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::configset::proto::ControllerConfig* _msg = _internal_mutable_builder_config_override();
+  // @@protoc_insertion_point(field_mutable:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
+  return _msg;
+}
+inline void ManifestBuilderConfig::set_allocated_builder_config_override(::configset::proto::ControllerConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.builder_config_override_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.builder_config_override_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
 }
 
 // -------------------------------------------------------------------

@@ -101,6 +101,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 			preflightRemote,
 			startPlugins,
 			bldr_manifest.BuildType(a.BuildType),
+			nil,
 		); err != nil {
 			return err
 		}

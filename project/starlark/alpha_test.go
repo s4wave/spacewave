@@ -39,9 +39,9 @@ func TestEvaluateAlpha(t *testing.T) {
 
 	// Verify manifests
 	expectedManifests := []string{
-		"web", "spacewave-core", "spacewave-debug", "spacewave-cli",
-		"spacewave-web", "spacewave-app", "spacewave-notes",
-		"spacewave-vm", "spacewave-dist",
+		"web", "spacewave-launcher", "spacewave-loader",
+		"spacewave-core", "spacewave-debug", "spacewave-cli",
+		"spacewave-web", "spacewave-app", "spacewave-dist",
 	}
 	for _, id := range expectedManifests {
 		if result.Config.GetManifests()[id] == nil {
@@ -65,7 +65,7 @@ func TestEvaluateAlpha(t *testing.T) {
 	if core.GetBuilder().GetId() != "bldr/plugin/compiler/go" {
 		t.Fatalf("unexpected builder: %q", core.GetBuilder().GetId())
 	}
-	if core.GetBuilder().GetRev() != 12 {
+	if core.GetBuilder().GetRev() != 13 {
 		t.Fatalf("unexpected builder rev: %d", core.GetBuilder().GetRev())
 	}
 	configData := core.GetBuilder().GetConfig()

@@ -45,11 +45,21 @@ pub struct ManifestBuilderConfig {
     /// RemoteId is the identifier of the remote to attach to.
     #[prost(string, tag="4")]
     pub remote_id: ::prost::alloc::string::String,
-    /// TargetPlatformIds contains all platform IDs from the build target.
-    /// Used by the dist compiler to collect manifests from all compatible platforms.
-    /// For example, a browser target may include \["web/js/wasm", "js"\].
+    /// TargetPlatformIds is the full list of platform IDs belonging to the
+    /// build target that spawned this slot. Informational only; the dist
+    /// compiler no longer uses this field to pick which manifests to embed.
+    /// Embed selection is driven by the per-slot BuilderConfigOverride sourced
+    /// from BuildConfig.manifest_overrides, which carries explicit
+    /// (manifest_id, platform_id) tuples.
     #[prost(string, repeated, tag="5")]
     pub target_platform_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// BuilderConfigOverride optionally replaces the builder config of the
+    /// manifest for this build slot. The override's controller id is ignored;
+    /// the manifest's declared builder id always wins. This is REPLACE
+    /// semantics: the static manifest builder config is not merged with the
+    /// override. Sourced from BuildConfig.manifest_overrides.
+    #[prost(message, optional, tag="6")]
+    pub builder_config_override: ::core::option::Option<super::super::super::configset::proto::ControllerConfig>,
 }
 /// ManifestBuilderResult is the result of a ManifestBuilder build.
 #[derive(Clone, PartialEq, ::prost::Message)]

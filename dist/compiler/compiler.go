@@ -7,6 +7,7 @@ import (
 	"errors"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -17,12 +18,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -162,7 +165,11 @@ func (c *Controller) BuildManifest(
 	}
 
 	// build list of embed manifests & load plugins
-	embedManifestIDs := slices.Clone(conf.GetEmbedManifests())
+	embedSpecs := slices.Clone(conf.GetEmbedManifests())
+	embedManifestIDs := make([]string, len(embedSpecs))
+	for i, em := range embedSpecs {
+		embedManifestIDs[i] = em.GetManifestId()
+	}
 	loadPlugins := slices.Clone(conf.GetLoadPlugins())
 
 	// determine project id
@@ -185,16 +192,21 @@ func (c *Controller) BuildManifest(
 		return nil, errors.New("link_object_keys is empty, cannot scan for manifests")
 	}
 
-	// Determine which platform IDs to search for manifests.
-	// If target platform IDs are provided, use them to find manifests from all compatible platforms.
-	// Otherwise, fall back to the single platform ID from the manifest meta.
-	searchPlatformIDs := builderConf.GetTargetPlatformIds()
-	if len(searchPlatformIDs) == 0 {
-		searchPlatformIDs = []string{platformID}
+	// Scope the manifest search to exactly the platform IDs referenced by
+	// embed_manifests entries. Each embed names a specific (manifest_id,
+	// platform_id) build; there is no implicit cross-platform resolution.
+	searchPlatformSet := make(map[string]struct{}, len(embedSpecs))
+	for _, em := range embedSpecs {
+		searchPlatformSet[em.GetPlatformId()] = struct{}{}
 	}
+	searchPlatformIDs := make([]string, 0, len(searchPlatformSet))
+	for p := range searchPlatformSet {
+		searchPlatformIDs = append(searchPlatformIDs, p)
+	}
+	slices.Sort(searchPlatformIDs)
 
-	// Wait for all manifests to exist.
-	embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedManifestIDs))
+	// Wait for all requested (manifest_id, platform_id) builds to exist.
+	embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedSpecs))
 	handler := world_control.NewWaitForStateHandler(func(
 		ctx context.Context,
 		ws world.WorldState,
@@ -202,7 +214,12 @@ func (c *Controller) BuildManifest(
 		rootCs *block.Cursor,
 		rev uint64,
 	) (bool, error) {
-		// Scan for manifests we want to embed.
+		// Scan for manifests we want to embed. If no embeds are configured,
+		// skip the scan entirely; there is nothing to wait for.
+		if len(embedSpecs) == 0 {
+			return false, nil
+		}
+
 		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, searchPlatformIDs, searchKeys...)
 		if err != nil {
 			return false, err
@@ -211,32 +228,101 @@ func (c *Controller) BuildManifest(
 			le.WithError(err).Warn("skipped invalid manifest")
 		}
 
-		var notFoundManifestIDs []string
-		for i, embedManifestID := range embedManifestIDs {
+		var notFoundDescs []string
+		for i, em := range embedSpecs {
 			// note: matchingManifests is sorted by rev, higher is first in the list.
-			matchingManifests := collectedManifests[embedManifestID]
-			if len(matchingManifests) == 0 {
-				notFoundManifestIDs = append(notFoundManifestIDs, embedManifestID)
-				// return errors.Wrap(bldr_manifest.ErrNotFoundManifest, embedManifestID)
+			matchingManifests := collectedManifests[em.GetManifestId()]
+			var found *bldr_manifest_world.CollectedManifest
+			for _, cm := range matchingManifests {
+				if cm.Manifest.GetMeta().GetPlatformId() == em.GetPlatformId() {
+					found = cm
+					break
+				}
+			}
+			if found == nil {
+				notFoundDescs = append(notFoundDescs, em.GetManifestId()+"@"+em.GetPlatformId())
 			} else {
-				embedManifests[i] = matchingManifests[0]
+				embedManifests[i] = found
 			}
 		}
 
 		// Wait for missing manifests to exist, if any.
-		if len(notFoundManifestIDs) != 0 {
-			le.Infof("waiting for %d not-found manifests: %v", len(notFoundManifestIDs), notFoundManifestIDs)
+		if len(notFoundDescs) != 0 {
+			le.Infof("waiting for %d not-found embed manifests: %v", len(notFoundDescs), notFoundDescs)
 			return true, nil
 		}
 
 		return false, nil
 	})
 
+	// Fan out one FetchManifest directive per embed tuple in parallel with the
+	// world-scan watch loop. The watch loop populates CollectedManifest entries
+	// as builds complete; the directives surface terminal builder errors so a
+	// failed embed aborts the dist compile instead of hanging forever. First
+	// error wins and cancels siblings.
+	embedCtx, embedCancel := context.WithCancelCause(ctx)
+	defer embedCancel(nil)
+
+	var directiveRefs []directive.Reference
+	var refsMu sync.Mutex
+	defer func() {
+		refsMu.Lock()
+		for _, ref := range directiveRefs {
+			if ref != nil {
+				ref.Release()
+			}
+		}
+		refsMu.Unlock()
+	}()
+
+	var embedWG sync.WaitGroup
+	for _, em := range embedSpecs {
+		em := em
+		embedWG.Add(1)
+		go func() {
+			defer embedWG.Done()
+			dir := bldr_manifest.NewFetchManifest(em.GetManifestId(), nil, []string{em.GetPlatformId()}, 0)
+			_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
+				embedCtx,
+				c.GetBus(),
+				dir,
+				func(isIdle bool, errs []error) (bool, error) {
+					if isIdle && len(errs) != 0 {
+						return false, errs[0]
+					}
+					return true, nil
+				},
+				nil,
+				nil,
+			)
+			if err != nil {
+				if embedCtx.Err() == nil {
+					embedCancel(pkgerrors.Wrapf(err, "embed %s@%s", em.GetManifestId(), em.GetPlatformId()))
+				}
+				return
+			}
+			if ref != nil {
+				refsMu.Lock()
+				directiveRefs = append(directiveRefs, ref)
+				refsMu.Unlock()
+			}
+		}()
+	}
+
 	// use short-lived read transactions
 	watchLoop := world_control.NewWatchLoop(le, "", handler)
 	ws := world.NewEngineWorldState(busEngine, false)
-	if err := watchLoop.Execute(ctx, ws); err != nil {
-		return nil, err
+	watchErr := watchLoop.Execute(embedCtx, ws)
+
+	// Unblock any in-flight FetchManifest directives before returning.
+	embedCancel(nil)
+	embedWG.Wait()
+
+	if watchErr != nil {
+		if cause := context.Cause(embedCtx); cause != nil && cause != context.Canceled && !errors.Is(cause, context.Canceled) {
+			return nil, cause
+		}
+		return nil, watchErr
 	}
 
 	// When we compile the bundle we will copy the embed manifests to the embed volume.

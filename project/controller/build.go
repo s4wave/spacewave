@@ -10,9 +10,16 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_project "github.com/aperturerobotics/bldr/project"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 )
 
 // BuildManifests compiles the given manifest IDs for the native platform.
+//
+// If manifestOverrides is non-nil, each matching manifest id has its builder
+// config replaced with the override (REPLACE semantics, same as the
+// BuildConfig-driven path in BuildTargets). The override's id is ignored; the
+// manifest's declared builder id wins. Callers that do not need overrides
+// should pass nil.
 //
 // Returns the manifest refs and object keys for the built manifests.
 func (c *Controller) BuildManifests(
@@ -20,6 +27,7 @@ func (c *Controller) BuildManifests(
 	remote string,
 	manifestIDs []string,
 	buildType bldr_manifest.BuildType,
+	manifestOverrides map[string]*configset_proto.ControllerConfig,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
 	np, err := bldr_platform.ParseNativePlatform("desktop")
 	if err != nil {
@@ -33,12 +41,16 @@ func (c *Controller) BuildManifests(
 		if id == "" {
 			continue
 		}
-		confs = append(confs, NewManifestBuilderConfig(
+		mbc := NewManifestBuilderConfig(
 			id,
 			string(buildType),
 			platformID,
 			remote,
-		))
+		)
+		if override := manifestOverrides[id]; override != nil {
+			mbc.BuilderConfigOverride = override.CloneVT()
+		}
+		confs = append(confs, mbc)
 	}
 
 	return c.BuildManifestBuilderConfigs(ctx, confs)
@@ -66,17 +78,22 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 			return err
 		}
 
+		manifestOverrides := buildTarget.GetManifestOverrides()
 		err = ForManifestSelector(
 			buildTarget.GetManifests(),
 			platformIDs,
 			func(manifestID, platformID string) (bool, error) {
-				manifestBuilderConfs = append(manifestBuilderConfs, NewManifestBuilderConfigWithTargetPlatforms(
+				mbc := NewManifestBuilderConfigWithTargetPlatforms(
 					manifestID,
 					string(buildType),
 					platformID,
 					remote,
 					platformIDs,
-				))
+				)
+				if override := manifestOverrides[manifestID]; override != nil {
+					mbc.BuilderConfigOverride = override.CloneVT()
+				}
+				manifestBuilderConfs = append(manifestBuilderConfs, mbc)
 				return true, nil
 			},
 		)

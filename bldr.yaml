@@ -129,9 +129,13 @@ manifests:
     builder:
       id: bldr/dist/compiler
       config:
+        # Each embed must name the exact manifest build to include.
+        # List one entry per target host platform you plan to build for.
+        # Example below covers desktop/darwin/arm64 + js only; extend for
+        # release-cross or other hosts by adding entries.
         embedManifests:
-          - web
-          - bldr-demo
+          - { manifestId: web,       platformId: js }
+          - { manifestId: bldr-demo, platformId: desktop/darwin/arm64 }
         loadPlugins:
           - bldr-demo
         loadWebStartup: example/startup.tsx

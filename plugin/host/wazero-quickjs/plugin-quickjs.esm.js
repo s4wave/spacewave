@@ -287,10 +287,11 @@
   };
 
   // quickjs/banner.ts
+  var quickjsGlobalThis = globalThis;
   createSymbolPolyfills();
-  globalThis.Event = Event;
-  globalThis.EventTarget = EventTarget;
-  globalThis.CustomEvent = CustomEvent;
+  quickjsGlobalThis.Event = Event;
+  quickjsGlobalThis.EventTarget = EventTarget;
+  quickjsGlobalThis.CustomEvent = CustomEvent;
 })();
 
 var __create = Object.create;
@@ -8689,6 +8690,8 @@ createMessageType({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   navigator?.userAgentData?.platform === "Windows" || false
 );
+var MAX_READERS = 16;
+Array.from({ length: MAX_READERS }, (_2, i2) => i2);
 
 // ../../../web/bldr/abort.ts
 function createAbortController2(parentSignal) {
@@ -8821,6 +8824,9 @@ var Client2 = class {
   initState = null;
   connectionController = null;
   resources = /* @__PURE__ */ new Map();
+  pendingResourceReleases = /* @__PURE__ */ new Map();
+  pendingResourceReleaseController = null;
+  pendingResourceReleaseTask = null;
   events = new EventEmitter();
   connectionLostEvents = new EventEmitter();
   initPromise = null;
@@ -8866,33 +8872,47 @@ var Client2 = class {
   // ResourceAttach bidi stream. Multiple resources share one session.
   // Returns the server-assigned resource ID and a cleanup function.
   async attachResource(label, mux, signal) {
-    const sess = await this.ensureAttachSession();
-    const attachId = ++sess.attachIdCtr;
-    const resultPromise = new Promise((resolve, reject) => {
-      sess.pending.set(attachId, { resolve, reject });
-      signal?.addEventListener("abort", () => {
-        sess.pending.delete(attachId);
-        reject(new Error("aborted"));
-      }, { once: true });
-    });
-    sess.outgoing.push({
-      body: {
-        case: "add",
-        value: { attachId, label }
-      }
-    });
-    const resourceId = await resultPromise;
-    sess.muxes.set(resourceId, mux);
-    const cleanup = () => {
-      sess.muxes.delete(resourceId);
-      sess.outgoing.push({
-        body: {
-          case: "detach",
-          value: { resourceId }
+    let attempt = 0;
+    for (; ; ) {
+      const sess = await this.ensureAttachSession();
+      try {
+        const attachId = ++sess.attachIdCtr;
+        const resultPromise = new Promise((resolve, reject) => {
+          sess.pending.set(attachId, { resolve, reject });
+          signal?.addEventListener("abort", () => {
+            sess.pending.delete(attachId);
+            reject(new Error("aborted"));
+          }, { once: true });
+        });
+        sess.outgoing.push({
+          body: {
+            case: "add",
+            value: { attachId, label }
+          }
+        });
+        const resourceId = await resultPromise;
+        sess.muxes.set(resourceId, mux);
+        const cleanup = () => {
+          sess.muxes.delete(resourceId);
+          sess.outgoing.push({
+            body: {
+              case: "detach",
+              value: { resourceId }
+            }
+          });
+        };
+        return { resourceId, cleanup };
+      } catch (err) {
+        if (signal?.aborted || attempt >= 3 || !this.shouldRetryAttachResource(err, sess)) {
+          throw err;
         }
-      });
-    };
-    return { resourceId, cleanup };
+        attempt++;
+      }
+    }
+  }
+  // shouldRetryAttachResource reports whether attachResource should retry.
+  shouldRetryAttachResource(err, sess) {
+    return err instanceof Error && err.message === "attach session closed" && this.attachSession !== sess;
   }
   // ensureAttachSession opens the ResourceAttach bidi stream if needed.
   async ensureAttachSession() {
@@ -9009,6 +9029,7 @@ var Client2 = class {
   dispose(reason = "CLIENT_DISPOSED") {
     if (this.disposed) return;
     this.disposed = true;
+    this.clearPendingResourceReleases();
     this.clearAttachSession();
     if (this.connectionController) {
       this.connectionController.abort();
@@ -9179,8 +9200,7 @@ var Client2 = class {
     refs.delete(ref);
     if (refs.size === 0) {
       this.resources.delete(id);
-      this.notifyServerResourceRelease(id).catch(() => {
-      });
+      this.enqueueServerResourceRelease(id);
       this.events.emit({
         resourceId: id,
         reason: "client-released"
@@ -9190,34 +9210,126 @@ var Client2 = class {
   /**
    * Notify the server that a resource should be released.
    */
-  async notifyServerResourceRelease(resourceId) {
+  enqueueServerResourceRelease(resourceId) {
     if (!this.initState || this.disposed) {
       return;
+    }
+    const pending = {
+      clientHandleId: this.initState.clientHandleId,
+      resourceId
+    };
+    const key = this.buildPendingResourceReleaseKey(
+      pending.clientHandleId,
+      pending.resourceId
+    );
+    this.pendingResourceReleases.set(key, pending);
+    this.schedulePendingResourceReleaseFlush();
+  }
+  /**
+   * Flush queued server release notifications.
+   */
+  schedulePendingResourceReleaseFlush() {
+    if (this.pendingResourceReleaseTask || this.disposed || this.pendingResourceReleases.size === 0) {
+      return;
+    }
+    const controller = createAbortController2(this.signal);
+    this.pendingResourceReleaseController = controller;
+    this.pendingResourceReleaseTask = this.flushPendingResourceReleases(
+      controller.signal
+    ).catch(() => {
+    }).finally(() => {
+      if (this.pendingResourceReleaseController === controller) {
+        this.pendingResourceReleaseController = null;
+      }
+      this.pendingResourceReleaseTask = null;
+      if (!this.disposed && this.pendingResourceReleases.size > 0) {
+        this.schedulePendingResourceReleaseFlush();
+      }
+    });
+  }
+  /**
+   * Flush pending releases until the queue is empty or the client is aborted.
+   */
+  async flushPendingResourceReleases(signal) {
+    while (!signal.aborted && !this.disposed && this.pendingResourceReleases.size) {
+      const entry = this.pendingResourceReleases.entries().next().value;
+      if (!entry) {
+        return;
+      }
+      const [key, pending] = entry;
+      await retryWithAbort(
+        signal,
+        async (retrySignal) => {
+          const result = await this.tryNotifyServerResourceRelease(
+            pending,
+            retrySignal
+          );
+          if (result === "retry") {
+            throw new Error("retry pending resource release");
+          }
+        },
+        {
+          backoffFn: constantBackoff(100),
+          errorCb: () => {
+          }
+        }
+      );
+      this.pendingResourceReleases.delete(key);
+    }
+  }
+  /**
+   * Notify the server that a resource should be released.
+   */
+  async tryNotifyServerResourceRelease(pending, signal) {
+    if (this.disposed) {
+      return "done";
     }
     try {
       await this.service.ResourceRefRelease(
         {
-          clientHandleId: this.initState.clientHandleId,
-          resourceId
+          clientHandleId: pending.clientHandleId,
+          resourceId: pending.resourceId
         },
-        this.signal
+        signal
       );
+      return "done";
     } catch (error) {
-      if (error instanceof Error && error.message.includes("ERR_RPC_ABORT")) {
-        return;
-      }
       if (error instanceof Error) {
+        const msg = error.message;
+        if (msg.includes("ERR_RPC_ABORT")) {
+          return "done";
+        }
+        if (msg.includes("resource not found") || msg.includes("invalid client id")) {
+          return "done";
+        }
+        if (this.shouldRetryServerResourceRelease(error)) {
+          return "retry";
+        }
         console.warn(
-          `Failed to notify server of resource ${resourceId} release:`,
+          `Failed to notify server of resource ${pending.resourceId} release:`,
           error
         );
-      } else {
-        console.warn(
-          `Failed to notify server of resource ${resourceId} release:`,
-          String(error)
-        );
+        return "done";
       }
+      console.warn(
+        `Failed to notify server of resource ${pending.resourceId} release:`,
+        String(error)
+      );
+      return "done";
     }
+  }
+  /**
+   * Check whether a release error should be retried instead of logged.
+   */
+  shouldRetryServerResourceRelease(error) {
+    const msg = error.message;
+    return msg.includes("timeout waiting for runtime connected ack") || msg.includes("timeout opening stream with host") || msg.includes("unable to open stream with host") || msg.includes("timed out waiting for ack from WebDocument") || msg.includes("timed out waiting for next WebDocument to proxy conn") || msg.includes("WebRuntimeClientInstance is closed");
+  }
+  /**
+   * Build the stable key for a queued server release.
+   */
+  buildPendingResourceReleaseKey(clientHandleId, resourceId) {
+    return `${clientHandleId}:${resourceId}`;
   }
   /**
    * Called when the server notifies us that a resource was released.
@@ -9237,6 +9349,7 @@ var Client2 = class {
    * Used when connection is lost and resources are no longer valid.
    */
   releaseAllResources(reason) {
+    this.clearPendingResourceReleases();
     this.clearAttachSession();
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased());
@@ -9266,6 +9379,12 @@ var Client2 = class {
     }
     current.pending.clear();
     current.muxes.clear();
+  }
+  // clearPendingResourceReleases aborts any queued release retry work.
+  clearPendingResourceReleases() {
+    this.pendingResourceReleaseController?.abort();
+    this.pendingResourceReleaseController = null;
+    this.pendingResourceReleases.clear();
   }
 };
 
@@ -10272,18 +10391,19 @@ function logError(message, err) {
     console.error(err.stack);
   }
 }
-var scriptPath = globalThis.std.getenv("BLDR_SCRIPT_PATH");
+var quickjsGlobalThis = globalThis;
+var scriptPath = quickjsGlobalThis.std.getenv("BLDR_SCRIPT_PATH");
 if (!scriptPath) {
-  globalThis.console.log("BLDR_SCRIPT_PATH must be defined");
-  globalThis.std.exit(1);
+  quickjsGlobalThis.console.log("BLDR_SCRIPT_PATH must be defined");
+  quickjsGlobalThis.std.exit(1);
 }
-var polyGlobalThis = applyPolyfills(globalThis);
+var polyGlobalThis = applyPolyfills(quickjsGlobalThis);
 var scriptPromise = import(scriptPath);
 scriptPromise.catch((err) => {
   logError("error importing script: " + scriptPath, err);
-  globalThis.std.exit(1);
+  quickjsGlobalThis.std.exit(1);
 });
-var startInfoB64 = globalThis.std.getenv("BLDR_PLUGIN_START_INFO") ?? "";
+var startInfoB64 = quickjsGlobalThis.std.getenv("BLDR_PLUGIN_START_INFO") ?? "";
 var handleIncomingStreamCtr = new HandleStreamCtr();
 var handleIncomingStream = handleIncomingStreamCtr.handleStreamFunc;
 var openStreamCtr = new OpenStreamCtr();
@@ -10302,7 +10422,7 @@ var runtimeConn = new StreamConn(
 );
 var stdinStream = pushable({ objectMode: true });
 function stdinReadHandler() {
-  const bytesRead = globalThis.os.read(
+  const bytesRead = quickjsGlobalThis.os.read(
     stdinFd,
     stdinReadBuffer.buffer,
     0,
@@ -10314,14 +10434,14 @@ function stdinReadHandler() {
   const readData = stdinReadBuffer.slice(0, bytesRead);
   stdinStream.push(readData);
 }
-globalThis.os.setReadHandler(stdinFd, stdinReadHandler);
+quickjsGlobalThis.os.setReadHandler(stdinFd, stdinReadHandler);
 pipe(
   stdinStream,
   runtimeConn,
-  async (source) => writeSourceToFd(globalThis.os, source, "/dev/out")
+  async (source) => writeSourceToFd(quickjsGlobalThis.os, source, "/dev/out")
 ).catch((err) => {
   logError("caught error in pipe", err);
-  globalThis.std.exit(1);
+  quickjsGlobalThis.std.exit(1);
 });
 openStreamCtr.set(runtimeConn.buildOpenStreamFunc());
 async function startPlugin() {
@@ -10346,10 +10466,10 @@ async function startPlugin() {
     handleIncomingStreamCtr,
     abortSignal
   );
-  globalThis.gc?.();
+  quickjsGlobalThis.gc?.();
   await script.default(backendAPI, abortSignal);
 }
 startPlugin().catch((err) => {
   logError("startPlugin exited w/error", err);
-  globalThis.std.exit(1);
+  quickjsGlobalThis.std.exit(1);
 });

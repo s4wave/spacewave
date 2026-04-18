@@ -13,6 +13,7 @@ import (
 
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	project "github.com/aperturerobotics/bldr/project"
+	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
@@ -108,10 +109,19 @@ type ManifestBuilderConfig struct {
 	PlatformId string `protobuf:"bytes,3,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
 	// RemoteId is the identifier of the remote to attach to.
 	RemoteId string `protobuf:"bytes,4,opt,name=remote_id,json=remoteId,proto3" json:"remoteId,omitempty"`
-	// TargetPlatformIds contains all platform IDs from the build target.
-	// Used by the dist compiler to collect manifests from all compatible platforms.
-	// For example, a browser target may include ["web/js/wasm", "js"].
+	// TargetPlatformIds is the full list of platform IDs belonging to the
+	// build target that spawned this slot. Informational only; the dist
+	// compiler no longer uses this field to pick which manifests to embed.
+	// Embed selection is driven by the per-slot BuilderConfigOverride sourced
+	// from BuildConfig.manifest_overrides, which carries explicit
+	// (manifest_id, platform_id) tuples.
 	TargetPlatformIds []string `protobuf:"bytes,5,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
+	// BuilderConfigOverride optionally replaces the builder config of the
+	// manifest for this build slot. The override's controller id is ignored;
+	// the manifest's declared builder id always wins. This is REPLACE
+	// semantics: the static manifest builder config is not merged with the
+	// override. Sourced from BuildConfig.manifest_overrides.
+	BuilderConfigOverride *proto.ControllerConfig `protobuf:"bytes,6,opt,name=builder_config_override,json=builderConfigOverride,proto3" json:"builderConfigOverride,omitempty"`
 }
 
 func (x *ManifestBuilderConfig) Reset() {
@@ -151,6 +161,13 @@ func (x *ManifestBuilderConfig) GetRemoteId() string {
 func (x *ManifestBuilderConfig) GetTargetPlatformIds() []string {
 	if x != nil {
 		return x.TargetPlatformIds
+	}
+	return nil
+}
+
+func (x *ManifestBuilderConfig) GetBuilderConfigOverride() *proto.ControllerConfig {
+	if x != nil {
+		return x.BuilderConfigOverride
 	}
 	return nil
 }
@@ -251,6 +268,9 @@ func (m *ManifestBuilderConfig) CloneVT() *ManifestBuilderConfig {
 	r.RemoteId = m.RemoteId
 	if rhs := m.TargetPlatformIds; rhs != nil {
 		r.TargetPlatformIds = slices.Clone(rhs)
+	}
+	if rhs := m.BuilderConfigOverride; rhs != nil {
+		r.BuilderConfigOverride = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -366,6 +386,9 @@ func (this *ManifestBuilderConfig) EqualVT(that *ManifestBuilderConfig) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if !this.BuilderConfigOverride.EqualVT(that.BuilderConfigOverride) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -555,6 +578,11 @@ func (x *ManifestBuilderConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("targetPlatformIds")
 		s.WriteStringArray(x.TargetPlatformIds)
 	}
+	if x.BuilderConfigOverride != nil || s.HasField("builderConfigOverride") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("builderConfigOverride")
+		x.BuilderConfigOverride.MarshalProtoJSON(s.WithField("builderConfigOverride"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -591,6 +619,13 @@ func (x *ManifestBuilderConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.TargetPlatformIds = s.ReadStringArray()
+		case "builder_config_override", "builderConfigOverride":
+			if s.ReadNil() {
+				x.BuilderConfigOverride = nil
+				return
+			}
+			x.BuilderConfigOverride = &proto.ControllerConfig{}
+			x.BuilderConfigOverride.UnmarshalProtoJSON(s.WithField("builder_config_override", true))
 		}
 	})
 }
@@ -840,6 +875,16 @@ func (m *ManifestBuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.BuilderConfigOverride != nil {
+		size, err := m.BuilderConfigOverride.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.TargetPlatformIds) > 0 {
 		for iNdEx := len(m.TargetPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.TargetPlatformIds[iNdEx])
@@ -1050,6 +1095,10 @@ func (m *ManifestBuilderConfig) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.BuilderConfigOverride != nil {
+		l = m.BuilderConfigOverride.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1193,6 +1242,13 @@ func (x *ManifestBuilderConfig) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.BuilderConfigOverride != nil {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("builder_config_override: ")
+		sb.WriteString(x.BuilderConfigOverride.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1570,6 +1626,34 @@ func (m *ManifestBuilderConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.TargetPlatformIds = append(m.TargetPlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuilderConfigOverride", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuilderConfigOverride == nil {
+				m.BuilderConfigOverride = &proto.ControllerConfig{}
+			}
+			if err := m.BuilderConfigOverride.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

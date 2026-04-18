@@ -6,6 +6,7 @@ import (
 	"context"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -14,6 +15,7 @@ import (
 	manifest_builder_controller "github.com/aperturerobotics/bldr/manifest/builder/controller"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_project "github.com/aperturerobotics/bldr/project"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/keyed"
@@ -180,6 +182,9 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	if manifestConfig == nil {
 		return bldr_project.ErrManifestConfNotFound
 	}
+	if err := applyBuilderConfigOverride(manifestConfig, manifestID, t.conf.GetBuilderConfigOverride()); err != nil {
+		return err
+	}
 	t.manifestConf.Store(manifestConfig)
 	meta.Description = manifestConfig.GetDescription()
 
@@ -308,4 +313,33 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// TODO: cleanup the working dir?
+}
+
+// applyBuilderConfigOverride applies a build-scoped builder config override to
+// a manifest config. REPLACE semantics: the override's config bytes overwrite
+// the manifest's static builder config. The override's controller id is
+// ignored because the manifest's declared builder id always wins. If the
+// override's Rev is non-zero, it replaces the builder rev. A nil override or
+// an override with empty config bytes is a no-op.
+func applyBuilderConfigOverride(
+	manifestConfig *bldr_project.ManifestConfig,
+	manifestID string,
+	override *configset_proto.ControllerConfig,
+) error {
+	if override == nil {
+		return nil
+	}
+	overrideBytes := override.GetConfig()
+	if len(overrideBytes) == 0 {
+		return nil
+	}
+	builder := manifestConfig.GetBuilder()
+	if builder == nil {
+		return errors.Errorf("manifest %s: builder_config_override set but manifest has no builder", manifestID)
+	}
+	builder.Config = slices.Clone(overrideBytes)
+	if overrideRev := override.GetRev(); overrideRev != 0 {
+		builder.Rev = overrideRev
+	}
+	return nil
 }

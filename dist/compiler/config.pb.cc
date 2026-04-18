@@ -29,6 +29,36 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace bldr {
 namespace dist {
 namespace compiler {
+
+inline constexpr EmbedManifest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        manifest_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        platform_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR EmbedManifest::EmbedManifest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(EmbedManifest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct EmbedManifestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR EmbedManifestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~EmbedManifestDefaultTypeInternal() {}
+  union {
+    EmbedManifest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EmbedManifestDefaultTypeInternal _EmbedManifest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR Config_HostConfigSetEntry_DoNotUse::Config_HostConfigSetEntry_DoNotUse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -119,6 +149,13 @@ const ::uint32_t
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::EmbedManifest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::EmbedManifest, _impl_.manifest_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::EmbedManifest, _impl_.platform_id_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config_HostConfigSetEntry_DoNotUse, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config_HostConfigSetEntry_DoNotUse, _impl_.key_),
@@ -153,11 +190,13 @@ const ::uint32_t
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::bldr::dist::compiler::Config_HostConfigSetEntry_DoNotUse)},
-        {7, sizeof(::bldr::dist::compiler::Config)},
-        {26, sizeof(::bldr::dist::compiler::PreBuildHookResult)},
+        {0, sizeof(::bldr::dist::compiler::EmbedManifest)},
+        {7, sizeof(::bldr::dist::compiler::Config_HostConfigSetEntry_DoNotUse)},
+        {14, sizeof(::bldr::dist::compiler::Config)},
+        {33, sizeof(::bldr::dist::compiler::PreBuildHookResult)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::bldr::dist::compiler::_EmbedManifest_default_instance_._instance,
     &::bldr::dist::compiler::_Config_HostConfigSetEntry_DoNotUse_default_instance_._instance,
     &::bldr::dist::compiler::_Config_default_instance_._instance,
     &::bldr::dist::compiler::_PreBuildHookResult_default_instance_._instance,
@@ -169,19 +208,21 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fdi
     "r\032Tgithub.com/aperturerobotics/controlle"
     "rbus/controller/configset/proto/configse"
     "t.proto\0326github.com/aperturerobotics/uti"
-    "l/enabled/enabled.proto\"\203\003\n\006Config\022\027\n\017em"
-    "bed_manifests\030\001 \003(\t\022\024\n\014load_plugins\030\002 \003("
-    "\t\022\030\n\020load_web_startup\030\010 \001(\t\022F\n\017host_conf"
-    "ig_set\030\003 \003(\0132-.bldr.dist.compiler.Config"
-    ".HostConfigSetEntry\022\022\n\nproject_id\030\004 \001(\t\022"
-    "$\n\nenable_cgo\030\005 \001(\0162\020.enabled.Enabled\022\'\n"
-    "\renable_tinygo\030\006 \001(\0162\020.enabled.Enabled\022,"
-    "\n\022enable_compression\030\007 \001(\0162\020.enabled.Ena"
-    "bled\032W\n\022HostConfigSetEntry\022\013\n\003key\030\001 \001(\t\022"
-    "0\n\005value\030\002 \001(\0132!.configset.proto.Control"
-    "lerConfig:\0028\001\"@\n\022PreBuildHookResult\022*\n\006c"
-    "onfig\030\001 \001(\0132\032.bldr.dist.compiler.Configb"
-    "\006proto3"
+    "l/enabled/enabled.proto\"9\n\rEmbedManifest"
+    "\022\023\n\013manifest_id\030\001 \001(\t\022\023\n\013platform_id\030\002 \001"
+    "(\t\"\246\003\n\006Config\022:\n\017embed_manifests\030\001 \003(\0132!"
+    ".bldr.dist.compiler.EmbedManifest\022\024\n\014loa"
+    "d_plugins\030\002 \003(\t\022\030\n\020load_web_startup\030\010 \001("
+    "\t\022F\n\017host_config_set\030\003 \003(\0132-.bldr.dist.c"
+    "ompiler.Config.HostConfigSetEntry\022\022\n\npro"
+    "ject_id\030\004 \001(\t\022$\n\nenable_cgo\030\005 \001(\0162\020.enab"
+    "led.Enabled\022\'\n\renable_tinygo\030\006 \001(\0162\020.ena"
+    "bled.Enabled\022,\n\022enable_compression\030\007 \001(\016"
+    "2\020.enabled.Enabled\032W\n\022HostConfigSetEntry"
+    "\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset"
+    ".proto.ControllerConfig:\0028\001\"@\n\022PreBuildH"
+    "ookResult\022*\n\006config\030\001 \001(\0132\032.bldr.dist.co"
+    "mpiler.Configb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_deps[2] = {
@@ -192,13 +233,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto = {
     false,
     false,
-    687,
+    781,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/dist/compiler/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_deps,
     2,
-    3,
+    4,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto::offsets,
@@ -208,6 +249,326 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace bldr {
 namespace dist {
 namespace compiler {
+// ===================================================================
+
+class EmbedManifest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<EmbedManifest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_._has_bits_);
+};
+
+EmbedManifest::EmbedManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, EmbedManifest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.dist.compiler.EmbedManifest)
+}
+PROTOBUF_NDEBUG_INLINE EmbedManifest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::dist::compiler::EmbedManifest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        manifest_id_(arena, from.manifest_id_),
+        platform_id_(arena, from.platform_id_) {}
+
+EmbedManifest::EmbedManifest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const EmbedManifest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, EmbedManifest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  EmbedManifest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.dist.compiler.EmbedManifest)
+}
+PROTOBUF_NDEBUG_INLINE EmbedManifest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        manifest_id_(arena),
+        platform_id_(arena) {}
+
+inline void EmbedManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+EmbedManifest::~EmbedManifest() {
+  // @@protoc_insertion_point(destructor:bldr.dist.compiler.EmbedManifest)
+  SharedDtor(*this);
+}
+inline void EmbedManifest::SharedDtor(MessageLite& self) {
+  EmbedManifest& this_ = static_cast<EmbedManifest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.manifest_id_.Destroy();
+  this_._impl_.platform_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL EmbedManifest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) EmbedManifest(arena);
+}
+constexpr auto EmbedManifest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(EmbedManifest),
+                                            alignof(EmbedManifest));
+}
+constexpr auto EmbedManifest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_EmbedManifest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &EmbedManifest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<EmbedManifest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &EmbedManifest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<EmbedManifest>(), &EmbedManifest::ByteSizeLong,
+              &EmbedManifest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_._cached_size_),
+          false,
+      },
+      &EmbedManifest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fcompiler_2fconfig_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull EmbedManifest_class_data_ =
+        EmbedManifest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+EmbedManifest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&EmbedManifest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(EmbedManifest_class_data_.tc_table);
+  return EmbedManifest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 63, 2>
+EmbedManifest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    EmbedManifest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::dist::compiler::EmbedManifest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string platform_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_.platform_id_)}},
+    // string manifest_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_.manifest_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string manifest_id = 1;
+    {PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_.manifest_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string platform_id = 2;
+    {PROTOBUF_FIELD_OFFSET(EmbedManifest, _impl_.platform_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\40\13\13\0\0\0\0\0"
+    "bldr.dist.compiler.EmbedManifest"
+    "manifest_id"
+    "platform_id"
+  }},
+};
+PROTOBUF_NOINLINE void EmbedManifest::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.dist.compiler.EmbedManifest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.manifest_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.platform_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL EmbedManifest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const EmbedManifest& this_ = static_cast<const EmbedManifest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL EmbedManifest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const EmbedManifest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.dist.compiler.EmbedManifest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string manifest_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_manifest_id().empty()) {
+      const ::std::string& _s = this_._internal_manifest_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.dist.compiler.EmbedManifest.manifest_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string platform_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_platform_id().empty()) {
+      const ::std::string& _s = this_._internal_platform_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.dist.compiler.EmbedManifest.platform_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.dist.compiler.EmbedManifest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t EmbedManifest::ByteSizeLong(const MessageLite& base) {
+  const EmbedManifest& this_ = static_cast<const EmbedManifest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t EmbedManifest::ByteSizeLong() const {
+  const EmbedManifest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.dist.compiler.EmbedManifest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string manifest_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_manifest_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_manifest_id());
+      }
+    }
+    // string platform_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_platform_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_platform_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void EmbedManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<EmbedManifest*>(&to_msg);
+  auto& from = static_cast<const EmbedManifest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.dist.compiler.EmbedManifest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_manifest_id().empty()) {
+        _this->_internal_set_manifest_id(from._internal_manifest_id());
+      } else {
+        if (_this->_impl_.manifest_id_.IsDefault()) {
+          _this->_internal_set_manifest_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_platform_id().empty()) {
+        _this->_internal_set_platform_id(from._internal_platform_id());
+      } else {
+        if (_this->_impl_.platform_id_.IsDefault()) {
+          _this->_internal_set_platform_id("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void EmbedManifest::CopyFrom(const EmbedManifest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.dist.compiler.EmbedManifest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void EmbedManifest::InternalSwap(EmbedManifest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.manifest_id_, &other->_impl_.manifest_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
+}
+
+::google::protobuf::Metadata EmbedManifest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
 // ===================================================================
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -465,7 +826,7 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 2, 110, 2>
+const ::_pbi::TcParseTable<3, 8, 3, 95, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
@@ -475,7 +836,7 @@ Config::_table_ = {
     4294967040,  // skipmap
     offsetof(decltype(_table_), field_entries),
     8,  // num_field_entries
-    2,  // num_aux_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -488,8 +849,8 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {66, 3, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.load_web_startup_)}},
-    // repeated string embed_manifests = 1;
-    {::_pbi::TcParser::FastUR1,
+    // repeated .bldr.dist.compiler.EmbedManifest embed_manifests = 1;
+    {::_pbi::TcParser::FastMtR1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.embed_manifests_)}},
     // repeated string load_plugins = 2;
@@ -516,12 +877,12 @@ Config::_table_ = {
   }}, {{
     65535, 65535
   }}, {{
-    // repeated string embed_manifests = 1;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.embed_manifests_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .bldr.dist.compiler.EmbedManifest embed_manifests = 1;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.embed_manifests_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated string load_plugins = 2;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.load_plugins_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // map<string, .configset.proto.ControllerConfig> host_config_set = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.host_config_set_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.host_config_set_), _Internal::kHasBitsOffset + 7, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // string project_id = 4;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.project_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .enabled.Enabled enable_cgo = 5;
@@ -534,14 +895,14 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.load_web_startup_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
+      {::_pbi::TcParser::GetTable<::bldr::dist::compiler::EmbedManifest>()},
       {::_pbi::TcParser::GetMapAuxInfo(
           1, 0, 9, 11, 0)},
       {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
   }},
   {{
-    "\31\17\14\17\12\0\0\0\20\0\0\0\0\0\0\0"
+    "\31\0\14\17\12\0\0\0\20\0\0\0\0\0\0\0"
     "bldr.dist.compiler.Config"
-    "embed_manifests"
     "load_plugins"
     "host_config_set"
     "project_id"
@@ -601,13 +962,16 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
-  // repeated string embed_manifests = 1;
+  // repeated .bldr.dist.compiler.EmbedManifest embed_manifests = 1;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    for (int i = 0, n = this_._internal_embed_manifests_size(); i < n; ++i) {
-      const auto& s = this_._internal_embed_manifests().Get(i);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.dist.compiler.Config.embed_manifests");
-      target = stream->WriteString(1, s, target);
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_embed_manifests_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_embed_manifests().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -723,13 +1087,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    // repeated string embed_manifests = 1;
+    // repeated .bldr.dist.compiler.EmbedManifest embed_manifests = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-      total_size +=
-          1 * ::google::protobuf::internal::FromIntSize(this_._internal_embed_manifests().size());
-      for (int i = 0, n = this_._internal_embed_manifests().size(); i < n; ++i) {
-        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-            this_._internal_embed_manifests().Get(i));
+      total_size += 1UL * this_._internal_embed_manifests_size();
+      for (const auto& msg : this_._internal_embed_manifests()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
     // repeated string load_plugins = 2;

@@ -45,7 +45,8 @@ inline constexpr ManifestBuilderConfig::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         remote_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        builder_config_override_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ManifestBuilderConfig::ManifestBuilderConfig(::_pbi::ConstantInitialized)
@@ -184,17 +185,19 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_._has_bits_),
-        8, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.manifest_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.build_type_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.platform_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.remote_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.target_platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderConfig, _impl_.builder_config_override_),
         1,
         2,
         3,
         4,
         0,
+        5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::controller::ManifestBuilderResult, _impl_._has_bits_),
         5, // hasbit index offset
@@ -215,8 +218,8 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::project::controller::Config)},
         {17, sizeof(::bldr::project::controller::ManifestBuilderConfig)},
-        {30, sizeof(::bldr::project::controller::ManifestBuilderResult)},
-        {37, sizeof(::bldr::project::controller::ManifestStartupBuildState)},
+        {32, sizeof(::bldr::project::controller::ManifestBuilderResult)},
+        {39, sizeof(::bldr::project::controller::ManifestStartupBuildState)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::project::controller::_Config_default_instance_._instance,
@@ -232,41 +235,46 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpr
     "/util/backoff/backoff.proto\0326github.com/"
     "aperturerobotics/bldr/project/project.pr"
     "oto\032\?github.com/aperturerobotics/bldr/ma"
-    "nifest/builder/builder.proto\"\316\001\n\006Config\022"
-    "\023\n\013source_path\030\001 \001(\t\022\024\n\014working_path\030\002 \001"
-    "(\t\0223\n\016project_config\030\003 \001(\0132\033.bldr.projec"
-    "t.ProjectConfig\022\'\n\rbuild_backoff\030\004 \001(\0132\020"
-    ".backoff.Backoff\022\r\n\005watch\030\005 \001(\010\022\r\n\005start"
-    "\030\006 \001(\010\022\035\n\025fetch_manifest_remote\030\007 \001(\t\"\205\001"
-    "\n\025ManifestBuilderConfig\022\023\n\013manifest_id\030\001"
-    " \001(\t\022\022\n\nbuild_type\030\002 \001(\t\022\023\n\013platform_id\030"
-    "\003 \001(\t\022\021\n\tremote_id\030\004 \001(\t\022\033\n\023target_platf"
-    "orm_ids\030\005 \003(\t\"\223\001\n\025ManifestBuilderResult\022"
-    "<\n\016builder_config\030\001 \001(\0132$.bldr.manifest."
-    "builder.BuilderConfig\022<\n\016builder_result\030"
-    "\002 \001(\0132$.bldr.manifest.builder.BuilderRes"
-    "ult\"\252\001\n\031ManifestStartupBuildState\022O\n\027man"
-    "ifest_builder_config\030\001 \001(\0132..bldr.projec"
-    "t.controller.ManifestBuilderConfig\022<\n\016bu"
-    "ilder_result\030\002 \001(\0132$.bldr.manifest.build"
-    "er.BuilderResultb\006proto3"
+    "nifest/builder/builder.proto\032Tgithub.com"
+    "/aperturerobotics/controllerbus/controll"
+    "er/configset/proto/configset.proto\"\316\001\n\006C"
+    "onfig\022\023\n\013source_path\030\001 \001(\t\022\024\n\014working_pa"
+    "th\030\002 \001(\t\0223\n\016project_config\030\003 \001(\0132\033.bldr."
+    "project.ProjectConfig\022\'\n\rbuild_backoff\030\004"
+    " \001(\0132\020.backoff.Backoff\022\r\n\005watch\030\005 \001(\010\022\r\n"
+    "\005start\030\006 \001(\010\022\035\n\025fetch_manifest_remote\030\007 "
+    "\001(\t\"\311\001\n\025ManifestBuilderConfig\022\023\n\013manifes"
+    "t_id\030\001 \001(\t\022\022\n\nbuild_type\030\002 \001(\t\022\023\n\013platfo"
+    "rm_id\030\003 \001(\t\022\021\n\tremote_id\030\004 \001(\t\022\033\n\023target"
+    "_platform_ids\030\005 \003(\t\022B\n\027builder_config_ov"
+    "erride\030\006 \001(\0132!.configset.proto.Controlle"
+    "rConfig\"\223\001\n\025ManifestBuilderResult\022<\n\016bui"
+    "lder_config\030\001 \001(\0132$.bldr.manifest.builde"
+    "r.BuilderConfig\022<\n\016builder_result\030\002 \001(\0132"
+    "$.bldr.manifest.builder.BuilderResult\"\252\001"
+    "\n\031ManifestStartupBuildState\022O\n\027manifest_"
+    "builder_config\030\001 \001(\0132..bldr.project.cont"
+    "roller.ManifestBuilderConfig\022<\n\016builder_"
+    "result\030\002 \001(\0132$.bldr.manifest.builder.Bui"
+    "lderResultb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto_deps[3] = {
+    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto_deps[4] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto,
+        &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fconfigset_2fproto_2fconfigset_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2fbackoff_2fbackoff_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto = {
     false,
     false,
-    944,
+    1098,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto,
     "github.com/aperturerobotics/bldr/project/controller/config.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fcontroller_2fconfig_2eproto_deps,
-    3,
+    4,
     4,
     schemas,
     file_default_instances,
@@ -807,6 +815,12 @@ class ManifestBuilderConfig::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_._has_bits_);
 };
 
+void ManifestBuilderConfig::clear_builder_config_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.builder_config_override_ != nullptr) _impl_.builder_config_override_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
 ManifestBuilderConfig::ManifestBuilderConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, ManifestBuilderConfig_class_data_.base()) {
@@ -841,6 +855,10 @@ ManifestBuilderConfig::ManifestBuilderConfig(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.builder_config_override_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_config_override_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:bldr.project.controller.ManifestBuilderConfig)
 }
@@ -856,6 +874,7 @@ PROTOBUF_NDEBUG_INLINE ManifestBuilderConfig::Impl_::Impl_(
 
 inline void ManifestBuilderConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.builder_config_override_ = {};
 }
 ManifestBuilderConfig::~ManifestBuilderConfig() {
   // @@protoc_insertion_point(destructor:bldr.project.controller.ManifestBuilderConfig)
@@ -872,6 +891,7 @@ inline void ManifestBuilderConfig::SharedDtor(MessageLite& self) {
   this_._impl_.build_type_.Destroy();
   this_._impl_.platform_id_.Destroy();
   this_._impl_.remote_id_.Destroy();
+  delete this_._impl_.builder_config_override_;
   this_._impl_.~Impl_();
 }
 
@@ -930,18 +950,18 @@ ManifestBuilderConfig::GetClassData() const {
   return ManifestBuilderConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 114, 2>
+const ::_pbi::TcParseTable<3, 6, 1, 114, 2>
 ManifestBuilderConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    6,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     ManifestBuilderConfig_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -970,7 +990,10 @@ ManifestBuilderConfig::_table_ = {
     {::_pbi::TcParser::FastUR1,
      {42, 0, 0,
       PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_.target_platform_ids_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .configset.proto.ControllerConfig builder_config_override = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 5, 0,
+      PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_.builder_config_override_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -985,8 +1008,12 @@ ManifestBuilderConfig::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_.remote_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string target_platform_ids = 5;
     {PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_.target_platform_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // .configset.proto.ControllerConfig builder_config_override = 6;
+    {PROTOBUF_FIELD_OFFSET(ManifestBuilderConfig, _impl_.builder_config_override_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
+  }},
   {{
     "\55\13\12\13\11\23\0\0"
     "bldr.project.controller.ManifestBuilderConfig"
@@ -1005,7 +1032,7 @@ PROTOBUF_NOINLINE void ManifestBuilderConfig::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.target_platform_ids_.Clear();
     }
@@ -1020,6 +1047,10 @@ PROTOBUF_NOINLINE void ManifestBuilderConfig::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       _impl_.remote_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.builder_config_override_ != nullptr);
+      _impl_.builder_config_override_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1095,6 +1126,13 @@ PROTOBUF_NOINLINE void ManifestBuilderConfig::Clear() {
     }
   }
 
+  // .configset.proto.ControllerConfig builder_config_override = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.builder_config_override_, this_._impl_.builder_config_override_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1120,7 +1158,7 @@ PROTOBUF_NOINLINE void ManifestBuilderConfig::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // repeated string target_platform_ids = 5;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -1158,6 +1196,11 @@ PROTOBUF_NOINLINE void ManifestBuilderConfig::Clear() {
                                         this_._internal_remote_id());
       }
     }
+    // .configset.proto.ControllerConfig builder_config_override = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.builder_config_override_);
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -1178,7 +1221,7 @@ void ManifestBuilderConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_target_platform_ids()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -1220,6 +1263,14 @@ void ManifestBuilderConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.builder_config_override_ != nullptr);
+      if (_this->_impl_.builder_config_override_ == nullptr) {
+        _this->_impl_.builder_config_override_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.builder_config_override_);
+      } else {
+        _this->_impl_.builder_config_override_->MergeFrom(*from._impl_.builder_config_override_);
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -1245,6 +1296,7 @@ void ManifestBuilderConfig::InternalSwap(ManifestBuilderConfig* PROTOBUF_RESTRIC
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.build_type_, &other->_impl_.build_type_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_id_, &other->_impl_.remote_id_, arena);
+  swap(_impl_.builder_config_override_, other->_impl_.builder_config_override_);
 }
 
 ::google::protobuf::Metadata ManifestBuilderConfig::GetMetadata() const {

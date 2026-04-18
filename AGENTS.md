@@ -3,6 +3,41 @@
 - DO NOT assume `bldr setup` needs to be run - it runs automatically when bldr starts for almost any operation
 - DO NOT manually copy files to `.bldr/src/` or sync source files there. `.bldr/src/` is managed by `bldr setup` and regenerated automatically. Edit source files in their original locations only.
 
+## Code Signing
+
+Bldr's Go compiler (`util/gocompiler`) signs every produced binary when
+platform-appropriate signing env vars are set. Hook runs after `go build`,
+before any wasm post-processing. No-op when the identity env is unset.
+
+### macOS
+
+| Env var | Meaning |
+|---|---|
+| `BLDR_MACOS_SIGN_IDENTITY` | codesign identity. Example: `Developer ID Application: Aperture Robotics LLC (6YCJAUQGQ6)`. Unset = skip signing. |
+| `BLDR_MACOS_SIGN_ENTITLEMENTS` | Path to entitlements plist. Optional. |
+| `BLDR_MACOS_SIGN_OPTIONS` | Comma-separated codesign `--options` values. Defaults to `runtime`. |
+
+When set and GOOS=darwin, bldr shells out to:
+```
+codesign --force --sign "$IDENTITY" --options "$OPTIONS" [--entitlements "$ENTS"] <binary>
+codesign --verify --strict <binary>
+```
+Either non-zero exit fails the build.
+
+### Windows
+
+| Env var | Meaning |
+|---|---|
+| `BLDR_WINDOWS_SIGN_PROFILE` | Azure Trusted Signing cert profile name. Unset = skip signing. |
+| `BLDR_WINDOWS_SIGN_ACCOUNT` | Azure Trusted Signing account name. Required when profile is set. |
+| `BLDR_WINDOWS_SIGN_PUBLISHER` | Publisher name. Defaults to `Aperture Robotics LLC`. |
+
+When set and GOOS=windows, bldr shells out to:
+```
+az sign --file <binary> --publisher-name "$PUBLISHER" --description "Spacewave" --trusted-signing-account "$ACCOUNT" --trusted-signing-cert-profile "$PROFILE"
+```
+Non-zero exit fails the build.
+
 ## File Logging
 
 Bldr supports file-based logging via the `--log-file` flag and `BLDR_LOG_FILE`

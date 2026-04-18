@@ -2,13 +2,53 @@
 // @generated from file github.com/aperturerobotics/bldr/dist/compiler/config.proto (package bldr.dist.compiler, syntax proto3)
 /* eslint-disable */
 
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.dist.compiler'
+
+/**
+ * EmbedManifest selects one manifest build to embed in the dist binary.
+ *
+ * Both fields are required: the manifest id and the exact platform id of the
+ * manifest build to embed. There is no implicit resolution across the dist
+ * build target's expanded platform list. This forces authors to decide
+ * up-front which platform variant of each manifest ships inside the binary.
+ *
+ * A dist binary may host multiple plugin runtimes (native + js + wasm), so
+ * a single dist build can list multiple EmbedManifest entries pointing at
+ * different source platforms.
+ *
+ * @generated from message bldr.dist.compiler.EmbedManifest
+ */
+export interface EmbedManifest {
+  /**
+   * ManifestId is the manifest id to embed.
+   *
+   * @generated from field: string manifest_id = 1;
+   */
+  manifestId?: string
+  /**
+   * PlatformId is the platform id of the manifest build to embed.
+   * Must be a fully qualified platform id (e.g. "desktop/darwin/arm64", "js").
+   *
+   * @generated from field: string platform_id = 2;
+   */
+  platformId?: string
+}
+
+// EmbedManifest contains the message type declaration for EmbedManifest.
+export const EmbedManifest: MessageType<EmbedManifest> = createMessageType({
+  typeName: 'bldr.dist.compiler.EmbedManifest',
+  fields: [
+    { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Config configures the dist compiler controller.
@@ -20,13 +60,13 @@ export const protobufPackage = 'bldr.dist.compiler'
  */
 export interface Config {
   /**
-   * EmbedManifests is the list of manifest IDs to embed in the dist binary.
-   * Creates a ManifestStore with the latest versions of each manifest.
+   * EmbedManifests is the list of (manifest_id, platform_id) pairs to embed
+   * in the dist binary. Creates a ManifestStore containing the named builds.
    * The manifest contents will be embedded in the dist binary.
    *
-   * @generated from field: repeated string embed_manifests = 1;
+   * @generated from field: repeated bldr.dist.compiler.EmbedManifest embed_manifests = 1;
    */
-  embedManifests?: string[]
+  embedManifests?: EmbedManifest[]
   /**
    * LoadPlugins is the list of plugins to load on startup.
    * Note that plugins can also load other plugins with the LoadPlugin directive.
@@ -98,8 +138,8 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 1,
       name: 'embed_manifests',
-      kind: 'scalar',
-      T: ScalarType.STRING,
+      kind: 'message',
+      T: () => EmbedManifest,
       repeated: true,
     },
     {

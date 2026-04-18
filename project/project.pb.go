@@ -204,6 +204,19 @@ type BuildConfig struct {
 	// Multiple targets can be specified to build for multiple environments.
 	// Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
 	Targets []string `protobuf:"bytes,3,rep,name=targets,proto3" json:"targets,omitempty"`
+	// ManifestOverrides replaces the builder config of a named manifest when
+	// built under this build target. Maps manifest_id to a ControllerConfig
+	// whose config bytes replace the manifest's static builder config.
+	//
+	// The override's controller id is ignored; the manifest's declared builder
+	// id always wins. This is REPLACE semantics: the static manifest config is
+	// not merged with the override. Users compose shared fields in Starlark
+	// helper functions rather than via runtime merging.
+	//
+	// Typical use: per-build-target embed_manifests selection for dist bundles
+	// so a single dist manifest declaration can be reused across release
+	// targets that ship different platform-specific payloads.
+	ManifestOverrides map[string]*proto.ControllerConfig `protobuf:"bytes,4,rep,name=manifest_overrides,json=manifestOverrides,proto3" json:"manifestOverrides,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *BuildConfig) Reset() {
@@ -229,6 +242,13 @@ func (x *BuildConfig) GetPlatformIds() []string {
 func (x *BuildConfig) GetTargets() []string {
 	if x != nil {
 		return x.Targets
+	}
+	return nil
+}
+
+func (x *BuildConfig) GetManifestOverrides() map[string]*proto.ControllerConfig {
+	if x != nil {
+		return x.ManifestOverrides
 	}
 	return nil
 }
@@ -542,6 +562,32 @@ func (x *ProjectConfig_PublishEntry) GetValue() *PublishConfig {
 	return nil
 }
 
+type BuildConfig_ManifestOverridesEntry struct {
+	unknownFields []byte
+	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *proto.ControllerConfig `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *BuildConfig_ManifestOverridesEntry) Reset() {
+	*x = BuildConfig_ManifestOverridesEntry{}
+}
+
+func (*BuildConfig_ManifestOverridesEntry) ProtoMessage() {}
+
+func (x *BuildConfig_ManifestOverridesEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *BuildConfig_ManifestOverridesEntry) GetValue() *proto.ControllerConfig {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 type RemoteConfig_HostConfigSetEntry struct {
 	unknownFields []byte
 	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -691,6 +737,12 @@ func (m *BuildConfig) CloneVT() *BuildConfig {
 	}
 	if rhs := m.Targets; rhs != nil {
 		r.Targets = slices.Clone(rhs)
+	}
+	if rhs := m.ManifestOverrides; rhs != nil {
+		r.ManifestOverrides = make(map[string]*proto.ControllerConfig, len(rhs))
+		for k, v := range rhs {
+			r.ManifestOverrides[k] = v.CloneVT()
+		}
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -990,6 +1042,26 @@ func (this *BuildConfig) EqualVT(that *BuildConfig) bool {
 		vy := that.Targets[i]
 		if vx != vy {
 			return false
+		}
+	}
+	if len(this.ManifestOverrides) != len(that.ManifestOverrides) {
+		return false
+	}
+	for i, vx := range this.ManifestOverrides {
+		vy, ok := that.ManifestOverrides[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &proto.ControllerConfig{}
+			}
+			if q == nil {
+				q = &proto.ControllerConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
 		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1668,6 +1740,60 @@ func (x *StartConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BuildConfig_ManifestOverridesEntry message to JSON.
+func (x *BuildConfig_ManifestOverridesEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildConfig_ManifestOverridesEntry to JSON.
+func (x *BuildConfig_ManifestOverridesEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildConfig_ManifestOverridesEntry message from JSON.
+func (x *BuildConfig_ManifestOverridesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &proto.ControllerConfig{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildConfig_ManifestOverridesEntry from JSON.
+func (x *BuildConfig_ManifestOverridesEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the BuildConfig message to JSON.
 func (x *BuildConfig) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1690,6 +1816,18 @@ func (x *BuildConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("targets")
 		s.WriteStringArray(x.Targets)
+	}
+	if x.ManifestOverrides != nil || s.HasField("manifestOverrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestOverrides")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.ManifestOverrides {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("manifestOverrides"))
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -1729,6 +1867,18 @@ func (x *BuildConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Targets = s.ReadStringArray()
+		case "manifest_overrides", "manifestOverrides":
+			s.AddField("manifest_overrides")
+			if s.ReadNil() {
+				x.ManifestOverrides = nil
+				return
+			}
+			x.ManifestOverrides = make(map[string]*proto.ControllerConfig)
+			s.ReadStringMap(func(key string) {
+				var v proto.ControllerConfig
+				v.UnmarshalProtoJSON(s)
+				x.ManifestOverrides[key] = &v
+			})
 		}
 	})
 }
@@ -2435,6 +2585,28 @@ func (m *BuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ManifestOverrides) > 0 {
+		for k := range m.ManifestOverrides {
+			v := m.ManifestOverrides[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.Targets) > 0 {
 		for iNdEx := len(m.Targets) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Targets[iNdEx])
@@ -2875,6 +3047,19 @@ func (m *BuildConfig) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.ManifestOverrides) > 0 {
+		for k, v := range m.ManifestOverrides {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3264,6 +3449,31 @@ func (x *StartConfig) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *BuildConfig_ManifestOverridesEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ManifestOverridesEntry {")
+	if x.Key != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(x.Value.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BuildConfig_ManifestOverridesEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *BuildConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildConfig {")
@@ -3305,6 +3515,20 @@ func (x *BuildConfig) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if len(x.ManifestOverrides) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_overrides: {")
+		for _, k := range slices.Sorted(maps.Keys(x.ManifestOverrides)) {
+			v := x.ManifestOverrides[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4326,6 +4550,99 @@ func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Targets = append(m.Targets, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestOverrides", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ManifestOverrides == nil {
+				m.ManifestOverrides = make(map[string]*proto.ControllerConfig)
+			}
+			var mapkey string
+			var mapvalue *proto.ControllerConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					mapmsglen = int(_v)
+					if err != nil {
+						return err
+					}
+					if mapmsglen < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &proto.ControllerConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.ManifestOverrides[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

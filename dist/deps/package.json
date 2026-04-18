@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^1.0.2",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.0"
   },

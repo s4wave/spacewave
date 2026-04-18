@@ -57,33 +57,6 @@ struct StartConfigDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartConfigDefaultTypeInternal _StartConfig_default_instance_;
-
-inline constexpr BuildConfig::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        manifests_{},
-        platform_ids_{},
-        targets_{} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR BuildConfig::BuildConfig(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(BuildConfig_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct BuildConfigDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR BuildConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~BuildConfigDefaultTypeInternal() {}
-  union {
-    BuildConfig _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuildConfigDefaultTypeInternal _BuildConfig_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR RemoteConfig_HostConfigSetEntry_DoNotUse::RemoteConfig_HostConfigSetEntry_DoNotUse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -102,24 +75,6 @@ struct RemoteConfig_HostConfigSetEntry_DoNotUseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoteConfig_HostConfigSetEntry_DoNotUseDefaultTypeInternal _RemoteConfig_HostConfigSetEntry_DoNotUse_default_instance_;
-template <typename>
-PROTOBUF_CONSTEXPR ProjectConfig_BuildEntry_DoNotUse::ProjectConfig_BuildEntry_DoNotUse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ProjectConfig_BuildEntry_DoNotUse::MapEntry(ProjectConfig_BuildEntry_DoNotUse_class_data_.base()){}
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ProjectConfig_BuildEntry_DoNotUse::MapEntry() {
-}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-struct ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal() {}
-  union {
-    ProjectConfig_BuildEntry_DoNotUse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal _ProjectConfig_BuildEntry_DoNotUse_default_instance_;
 
 inline constexpr ManifestConfig::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -149,6 +104,24 @@ struct ManifestConfigDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ManifestConfigDefaultTypeInternal _ManifestConfig_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR BuildConfig_ManifestOverridesEntry_DoNotUse::BuildConfig_ManifestOverridesEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : BuildConfig_ManifestOverridesEntry_DoNotUse::MapEntry(BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : BuildConfig_ManifestOverridesEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct BuildConfig_ManifestOverridesEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BuildConfig_ManifestOverridesEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BuildConfig_ManifestOverridesEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    BuildConfig_ManifestOverridesEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuildConfig_ManifestOverridesEntry_DoNotUseDefaultTypeInternal _BuildConfig_ManifestOverridesEntry_DoNotUse_default_instance_;
 
 inline constexpr RemoteConfig::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -203,6 +176,34 @@ struct ProjectConfig_ManifestsEntry_DoNotUseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectConfig_ManifestsEntry_DoNotUseDefaultTypeInternal _ProjectConfig_ManifestsEntry_DoNotUse_default_instance_;
 
+inline constexpr BuildConfig::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        manifests_{},
+        platform_ids_{},
+        targets_{},
+        manifest_overrides_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BuildConfig::BuildConfig(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BuildConfig_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BuildConfigDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BuildConfigDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BuildConfigDefaultTypeInternal() {}
+  union {
+    BuildConfig _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuildConfigDefaultTypeInternal _BuildConfig_default_instance_;
+
 inline constexpr PublishStorageConfig::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -247,6 +248,24 @@ struct ProjectConfig_RemotesEntry_DoNotUseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectConfig_RemotesEntry_DoNotUseDefaultTypeInternal _ProjectConfig_RemotesEntry_DoNotUse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR ProjectConfig_BuildEntry_DoNotUse::ProjectConfig_BuildEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ProjectConfig_BuildEntry_DoNotUse::MapEntry(ProjectConfig_BuildEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ProjectConfig_BuildEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    ProjectConfig_BuildEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectConfig_BuildEntry_DoNotUseDefaultTypeInternal _ProjectConfig_BuildEntry_DoNotUse_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR PublishConfig_ManifestStorageEntry_DoNotUse::PublishConfig_ManifestStorageEntry_DoNotUse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -423,14 +442,23 @@ const ::uint32_t
         2,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.value_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_._has_bits_),
-        6, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.manifests_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.platform_ids_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.targets_),
+        PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.manifest_overrides_),
         0,
         1,
         2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse, _impl_._has_bits_),
         5, // hasbit index offset
@@ -497,12 +525,13 @@ static const ::_pbi::MigrationSchema
         {28, sizeof(::bldr::project::ProjectConfig)},
         {45, sizeof(::bldr::project::ManifestConfig)},
         {54, sizeof(::bldr::project::StartConfig)},
-        {63, sizeof(::bldr::project::BuildConfig)},
-        {72, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
-        {79, sizeof(::bldr::project::RemoteConfig)},
-        {92, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
-        {99, sizeof(::bldr::project::PublishConfig)},
-        {118, sizeof(::bldr::project::PublishStorageConfig)},
+        {63, sizeof(::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse)},
+        {70, sizeof(::bldr::project::BuildConfig)},
+        {81, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
+        {88, sizeof(::bldr::project::RemoteConfig)},
+        {101, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
+        {108, sizeof(::bldr::project::PublishConfig)},
+        {127, sizeof(::bldr::project::PublishStorageConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::project::_ProjectConfig_ManifestsEntry_DoNotUse_default_instance_._instance,
@@ -512,6 +541,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::project::_ProjectConfig_default_instance_._instance,
     &::bldr::project::_ManifestConfig_default_instance_._instance,
     &::bldr::project::_StartConfig_default_instance_._instance,
+    &::bldr::project::_BuildConfig_ManifestOverridesEntry_DoNotUse_default_instance_._instance,
     &::bldr::project::_BuildConfig_default_instance_._instance,
     &::bldr::project::_RemoteConfig_HostConfigSetEntry_DoNotUse_default_instance_._instance,
     &::bldr::project::_RemoteConfig_default_instance_._instance,
@@ -549,29 +579,33 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpr
     "rollerConfig\022\013\n\003rev\030\002 \001(\004\022\023\n\013description"
     "\030\003 \001(\t\"O\n\013StartConfig\022\017\n\007plugins\030\001 \003(\t\022\025"
     "\n\rdisable_build\030\002 \001(\010\022\030\n\020load_web_startu"
-    "p\030\003 \001(\t\"G\n\013BuildConfig\022\021\n\tmanifests\030\001 \003("
-    "\t\022\024\n\014platform_ids\030\002 \003(\t\022\017\n\007targets\030\003 \003(\t"
-    "\"\201\002\n\014RemoteConfig\022F\n\017host_config_set\030\001 \003"
-    "(\0132-.bldr.project.RemoteConfig.HostConfi"
-    "gSetEntry\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007peer_id\030"
-    "\003 \001(\t\022\022\n\nobject_key\030\004 \001(\t\022\030\n\020link_object"
-    "_keys\030\005 \003(\t\032W\n\022HostConfigSetEntry\022\013\n\003key"
-    "\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset.proto."
-    "ControllerConfig:\0028\001\"\366\002\n\rPublishConfig\022\032"
-    "\n\022source_object_keys\030\001 \003(\t\022\021\n\tmanifests\030"
-    "\002 \003(\t\022\031\n\021all_manifest_revs\030\003 \001(\010\022\024\n\014plat"
-    "form_ids\030\004 \003(\t\022\017\n\007remotes\030\005 \003(\t\022\027\n\017dest_"
-    "object_key\030\006 \001(\t\0223\n\007storage\030\007 \001(\0132\".bldr"
-    ".project.PublishStorageConfig\022J\n\020manifes"
-    "t_storage\030\010 \003(\01320.bldr.project.PublishCo"
-    "nfig.ManifestStorageEntry\032Z\n\024ManifestSto"
-    "rageEntry\022\013\n\003key\030\001 \001(\t\0221\n\005value\030\002 \001(\0132\"."
-    "bldr.project.PublishStorageConfig:\0028\001\"\252\001"
-    "\n\024PublishStorageConfig\0222\n\027transform_conf"
-    "_from_ref\030\001 \001(\0132\021.bucket.ObjectRef\022/\n\016tr"
-    "ansform_conf\030\002 \001(\0132\027.block.transform.Con"
-    "fig\022-\n\ttimestamp\030\003 \001(\0132\032.google.protobuf"
-    ".Timestampb\006proto3"
+    "p\030\003 \001(\t\"\362\001\n\013BuildConfig\022\021\n\tmanifests\030\001 \003"
+    "(\t\022\024\n\014platform_ids\030\002 \003(\t\022\017\n\007targets\030\003 \003("
+    "\t\022L\n\022manifest_overrides\030\004 \003(\01320.bldr.pro"
+    "ject.BuildConfig.ManifestOverridesEntry\032"
+    "[\n\026ManifestOverridesEntry\022\013\n\003key\030\001 \001(\t\0220"
+    "\n\005value\030\002 \001(\0132!.configset.proto.Controll"
+    "erConfig:\0028\001\"\201\002\n\014RemoteConfig\022F\n\017host_co"
+    "nfig_set\030\001 \003(\0132-.bldr.project.RemoteConf"
+    "ig.HostConfigSetEntry\022\021\n\tengine_id\030\002 \001(\t"
+    "\022\017\n\007peer_id\030\003 \001(\t\022\022\n\nobject_key\030\004 \001(\t\022\030\n"
+    "\020link_object_keys\030\005 \003(\t\032W\n\022HostConfigSet"
+    "Entry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.conf"
+    "igset.proto.ControllerConfig:\0028\001\"\366\002\n\rPub"
+    "lishConfig\022\032\n\022source_object_keys\030\001 \003(\t\022\021"
+    "\n\tmanifests\030\002 \003(\t\022\031\n\021all_manifest_revs\030\003"
+    " \001(\010\022\024\n\014platform_ids\030\004 \003(\t\022\017\n\007remotes\030\005 "
+    "\003(\t\022\027\n\017dest_object_key\030\006 \001(\t\0223\n\007storage\030"
+    "\007 \001(\0132\".bldr.project.PublishStorageConfi"
+    "g\022J\n\020manifest_storage\030\010 \003(\01320.bldr.proje"
+    "ct.PublishConfig.ManifestStorageEntry\032Z\n"
+    "\024ManifestStorageEntry\022\013\n\003key\030\001 \001(\t\0221\n\005va"
+    "lue\030\002 \001(\0132\".bldr.project.PublishStorageC"
+    "onfig:\0028\001\"\252\001\n\024PublishStorageConfig\0222\n\027tr"
+    "ansform_conf_from_ref\030\001 \001(\0132\021.bucket.Obj"
+    "ectRef\022/\n\016transform_conf\030\002 \001(\0132\027.block.t"
+    "ransform.Config\022-\n\ttimestamp\030\003 \001(\0132\032.goo"
+    "gle.protobuf.Timestampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_deps[4] = {
@@ -584,13 +618,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto = {
     false,
     false,
-    2018,
+    2190,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto,
     "github.com/aperturerobotics/bldr/project/project.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_deps,
     4,
-    13,
+    14,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto::offsets,
@@ -2326,6 +2360,105 @@ void StartConfig::InternalSwap(StartConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
 }
 // ===================================================================
 
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+BuildConfig_ManifestOverridesEntry_DoNotUse::BuildConfig_ManifestOverridesEntry_DoNotUse()
+    : SuperType(BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.base()) {}
+BuildConfig_ManifestOverridesEntry_DoNotUse::BuildConfig_ManifestOverridesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.base()) {}
+#else   // PROTOBUF_CUSTOM_VTABLE
+BuildConfig_ManifestOverridesEntry_DoNotUse::BuildConfig_ManifestOverridesEntry_DoNotUse() : SuperType() {}
+BuildConfig_ManifestOverridesEntry_DoNotUse::BuildConfig_ManifestOverridesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+inline void* PROTOBUF_NONNULL BuildConfig_ManifestOverridesEntry_DoNotUse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BuildConfig_ManifestOverridesEntry_DoNotUse(arena);
+}
+constexpr auto BuildConfig_ManifestOverridesEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BuildConfig_ManifestOverridesEntry_DoNotUse),
+                                            alignof(BuildConfig_ManifestOverridesEntry_DoNotUse));
+}
+constexpr auto BuildConfig_ManifestOverridesEntry_DoNotUse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BuildConfig_ManifestOverridesEntry_DoNotUse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BuildConfig_ManifestOverridesEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BuildConfig_ManifestOverridesEntry_DoNotUse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BuildConfig_ManifestOverridesEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&BuildConfig_ManifestOverridesEntry_DoNotUse::ClearImpl),
+              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
+              ,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_._cached_size_),
+          false,
+      },
+      &BuildConfig_ManifestOverridesEntry_DoNotUse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_ =
+        BuildConfig_ManifestOverridesEntry_DoNotUse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BuildConfig_ManifestOverridesEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.tc_table);
+  return BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 59, 2>
+BuildConfig_ManifestOverridesEntry_DoNotUse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    BuildConfig_ManifestOverridesEntry_DoNotUse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .configset.proto.ControllerConfig value = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.value_)}},
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .configset.proto.ControllerConfig value = 2;
+    {PROTOBUF_FIELD_OFFSET(BuildConfig_ManifestOverridesEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
+  }},
+  {{
+    "\57\3\0\0\0\0\0\0"
+    "bldr.project.BuildConfig.ManifestOverridesEntry"
+    "key"
+  }},
+};
+// ===================================================================
+
 class BuildConfig::_Internal {
  public:
   using HasBits =
@@ -2334,6 +2467,12 @@ class BuildConfig::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_._has_bits_);
 };
 
+void BuildConfig::clear_manifest_overrides() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_overrides_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
 BuildConfig::BuildConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, BuildConfig_class_data_.base()) {
@@ -2351,7 +2490,8 @@ PROTOBUF_NDEBUG_INLINE BuildConfig::Impl_::Impl_(
         _cached_size_{0},
         manifests_{visibility, arena, from.manifests_},
         platform_ids_{visibility, arena, from.platform_ids_},
-        targets_{visibility, arena, from.targets_} {}
+        targets_{visibility, arena, from.targets_},
+        manifest_overrides_{visibility, arena, from.manifest_overrides_} {}
 
 BuildConfig::BuildConfig(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2375,7 +2515,8 @@ PROTOBUF_NDEBUG_INLINE BuildConfig::Impl_::Impl_(
       : _cached_size_{0},
         manifests_{visibility, arena},
         platform_ids_{visibility, arena},
-        targets_{visibility, arena} {}
+        targets_{visibility, arena},
+        manifest_overrides_{visibility, arena} {}
 
 inline void BuildConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -2413,9 +2554,13 @@ constexpr auto BuildConfig::InternalNewImpl_() {
           decltype(BuildConfig::_impl_.targets_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.manifest_overrides_) +
+          decltype(BuildConfig::_impl_.manifest_overrides_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
         sizeof(BuildConfig), alignof(BuildConfig), *arena_bits);
   } else {
     return ::google::protobuf::internal::MessageCreator(&BuildConfig::PlacementNew_,
@@ -2457,18 +2602,18 @@ BuildConfig::GetClassData() const {
   return BuildConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 61, 2>
+const ::_pbi::TcParseTable<2, 4, 2, 79, 2>
 BuildConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    4,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     BuildConfig_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -2498,14 +2643,21 @@ BuildConfig::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.platform_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // repeated string targets = 3;
     {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.targets_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
+    {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.manifest_overrides_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
   }},
-  // no aux_entries
   {{
-    "\30\11\14\7\0\0\0\0"
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
+      {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
+  }},
+  {{
+    "\30\11\14\7\22\0\0\0"
     "bldr.project.BuildConfig"
     "manifests"
     "platform_ids"
     "targets"
+    "manifest_overrides"
   }},
 };
 PROTOBUF_NOINLINE void BuildConfig::Clear() {
@@ -2516,7 +2668,7 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.manifests_.Clear();
     }
@@ -2525,6 +2677,9 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
       _impl_.targets_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.manifest_overrides_.Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -2580,6 +2735,35 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
     }
   }
 
+  // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_manifest_overrides().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_manifest_overrides();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              4, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.project.BuildConfig.manifest_overrides");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              4, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.project.BuildConfig.manifest_overrides");
+        }
+      }
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2605,7 +2789,7 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // repeated string manifests = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -2633,6 +2817,16 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
             this_._internal_targets().Get(i));
       }
     }
+    // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_manifest_overrides_size());
+      for (const auto& entry : this_._internal_manifest_overrides()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
+                                       _pbi::WireFormatLite::TYPE_STRING,
+                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -2653,7 +2847,7 @@ void BuildConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_manifests()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -2668,6 +2862,9 @@ void BuildConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
       _this->_internal_mutable_targets()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_targets());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_impl_.manifest_overrides_.MergeFrom(from._impl_.manifest_overrides_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -2690,6 +2887,7 @@ void BuildConfig::InternalSwap(BuildConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
   _impl_.manifests_.InternalSwap(&other->_impl_.manifests_);
   _impl_.platform_ids_.InternalSwap(&other->_impl_.platform_ids_);
   _impl_.targets_.InternalSwap(&other->_impl_.targets_);
+  _impl_.manifest_overrides_.InternalSwap(&other->_impl_.manifest_overrides_);
 }
 
 ::google::protobuf::Metadata BuildConfig::GetMetadata() const {

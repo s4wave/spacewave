@@ -18,16 +18,55 @@ import (
 	enabled "github.com/aperturerobotics/util/enabled"
 )
 
+// EmbedManifest selects one manifest build to embed in the dist binary.
+//
+// Both fields are required: the manifest id and the exact platform id of the
+// manifest build to embed. There is no implicit resolution across the dist
+// build target's expanded platform list. This forces authors to decide
+// up-front which platform variant of each manifest ships inside the binary.
+//
+// A dist binary may host multiple plugin runtimes (native + js + wasm), so
+// a single dist build can list multiple EmbedManifest entries pointing at
+// different source platforms.
+type EmbedManifest struct {
+	unknownFields []byte
+	// ManifestId is the manifest id to embed.
+	ManifestId string `protobuf:"bytes,1,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// PlatformId is the platform id of the manifest build to embed.
+	// Must be a fully qualified platform id (e.g. "desktop/darwin/arm64", "js").
+	PlatformId string `protobuf:"bytes,2,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
+}
+
+func (x *EmbedManifest) Reset() {
+	*x = EmbedManifest{}
+}
+
+func (*EmbedManifest) ProtoMessage() {}
+
+func (x *EmbedManifest) GetManifestId() string {
+	if x != nil {
+		return x.ManifestId
+	}
+	return ""
+}
+
+func (x *EmbedManifest) GetPlatformId() string {
+	if x != nil {
+		return x.PlatformId
+	}
+	return ""
+}
+
 // Config configures the dist compiler controller.
 //
 // Builds an unpacked distribution bundle of the application.
 // Contains compressed & embedded static manifests for first-run.
 type Config struct {
 	unknownFields []byte
-	// EmbedManifests is the list of manifest IDs to embed in the dist binary.
-	// Creates a ManifestStore with the latest versions of each manifest.
+	// EmbedManifests is the list of (manifest_id, platform_id) pairs to embed
+	// in the dist binary. Creates a ManifestStore containing the named builds.
 	// The manifest contents will be embedded in the dist binary.
-	EmbedManifests []string `protobuf:"bytes,1,rep,name=embed_manifests,json=embedManifests,proto3" json:"embedManifests,omitempty"`
+	EmbedManifests []*EmbedManifest `protobuf:"bytes,1,rep,name=embed_manifests,json=embedManifests,proto3" json:"embedManifests,omitempty"`
 	// LoadPlugins is the list of plugins to load on startup.
 	// Note that plugins can also load other plugins with the LoadPlugin directive.
 	// Use this to load your entrypoint plugin which then loads other plugins.
@@ -70,7 +109,7 @@ func (x *Config) Reset() {
 
 func (*Config) ProtoMessage() {}
 
-func (x *Config) GetEmbedManifests() []string {
+func (x *Config) GetEmbedManifests() []*EmbedManifest {
 	if x != nil {
 		return x.EmbedManifests
 	}
@@ -173,6 +212,23 @@ func (x *Config_HostConfigSetEntry) GetValue() *proto.ControllerConfig {
 	return nil
 }
 
+func (m *EmbedManifest) CloneVT() *EmbedManifest {
+	if m == nil {
+		return (*EmbedManifest)(nil)
+	}
+	r := new(EmbedManifest)
+	r.ManifestId = m.ManifestId
+	r.PlatformId = m.PlatformId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *EmbedManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -184,7 +240,10 @@ func (m *Config) CloneVT() *Config {
 	r.EnableTinygo = m.EnableTinygo
 	r.EnableCompression = m.EnableCompression
 	if rhs := m.EmbedManifests; rhs != nil {
-		r.EmbedManifests = slices.Clone(rhs)
+		r.EmbedManifests = make([]*EmbedManifest, len(rhs))
+		for k, v := range rhs {
+			r.EmbedManifests[k] = v.CloneVT()
+		}
 	}
 	if rhs := m.LoadPlugins; rhs != nil {
 		r.LoadPlugins = slices.Clone(rhs)
@@ -221,6 +280,29 @@ func (m *PreBuildHookResult) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (this *EmbedManifest) EqualVT(that *EmbedManifest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EmbedManifest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EmbedManifest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
@@ -232,8 +314,16 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	for i, vx := range this.EmbedManifests {
 		vy := that.EmbedManifests[i]
-		if vx != vy {
-			return false
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EmbedManifest{}
+			}
+			if q == nil {
+				q = &EmbedManifest{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
 		}
 	}
 	if len(this.LoadPlugins) != len(that.LoadPlugins) {
@@ -311,6 +401,56 @@ func (this *PreBuildHookResult) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the EmbedManifest message to JSON.
+func (x *EmbedManifest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ManifestId != "" || s.HasField("manifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestId")
+		s.WriteString(x.ManifestId)
+	}
+	if x.PlatformId != "" || s.HasField("platformId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformId")
+		s.WriteString(x.PlatformId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EmbedManifest to JSON.
+func (x *EmbedManifest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EmbedManifest message from JSON.
+func (x *EmbedManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "manifest_id", "manifestId":
+			s.AddField("manifest_id")
+			x.ManifestId = s.ReadString()
+		case "platform_id", "platformId":
+			s.AddField("platform_id")
+			x.PlatformId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EmbedManifest from JSON.
+func (x *EmbedManifest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Config_HostConfigSetEntry message to JSON.
 func (x *Config_HostConfigSetEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -376,7 +516,13 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if len(x.EmbedManifests) > 0 || s.HasField("embedManifests") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("embedManifests")
-		s.WriteStringArray(x.EmbedManifests)
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.EmbedManifests {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("embedManifests"))
+		}
+		s.WriteArrayEnd()
 	}
 	if len(x.LoadPlugins) > 0 || s.HasField("loadPlugins") {
 		s.WriteMoreIf(&wroteField)
@@ -443,7 +589,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.EmbedManifests = nil
 				return
 			}
-			x.EmbedManifests = s.ReadStringArray()
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.EmbedManifests = append(x.EmbedManifests, nil)
+					return
+				}
+				v := &EmbedManifest{}
+				v.UnmarshalProtoJSON(s.WithField("embed_manifests", false))
+				if s.Err() != nil {
+					return
+				}
+				x.EmbedManifests = append(x.EmbedManifests, v)
+			})
 		case "load_plugins", "loadPlugins":
 			s.AddField("load_plugins")
 			if s.ReadNil() {
@@ -531,6 +688,53 @@ func (x *PreBuildHookResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the PreBuildHookResult from JSON.
 func (x *PreBuildHookResult) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *EmbedManifest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EmbedManifest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EmbedManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
@@ -625,9 +829,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.EmbedManifests) > 0 {
 		for iNdEx := len(m.EmbedManifests) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.EmbedManifests[iNdEx])
-			copy(dAtA[i:], m.EmbedManifests[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EmbedManifests[iNdEx])))
+			size, err := m.EmbedManifests[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -678,6 +885,24 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *EmbedManifest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ManifestId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -685,8 +910,8 @@ func (m *Config) SizeVT() (n int) {
 	var l int
 	_ = l
 	if len(m.EmbedManifests) > 0 {
-		for _, s := range m.EmbedManifests {
-			l = len(s)
+		for _, e := range m.EmbedManifests {
+			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
@@ -744,6 +969,31 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 	return n
 }
 
+func (x *EmbedManifest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("EmbedManifest {")
+	if x.ManifestId != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_id: ")
+		sb.WriteString(strconv.Quote(x.ManifestId))
+	}
+	if x.PlatformId != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_id: ")
+		sb.WriteString(strconv.Quote(x.PlatformId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *EmbedManifest) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HostConfigSetEntry {")
@@ -781,7 +1031,7 @@ func (x *Config) MarshalProtoText() string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			sb.WriteString(strconv.Quote(v))
+			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
 	}
@@ -879,6 +1129,93 @@ func (x *PreBuildHookResult) String() string {
 	return x.MarshalProtoText()
 }
 
+func (m *EmbedManifest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EmbedManifest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EmbedManifest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -903,23 +1240,27 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EmbedManifests", wireType)
 			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
 			if err != nil {
 				return err
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EmbedManifests = append(m.EmbedManifests, string(dAtA[iNdEx:postIndex]))
+			m.EmbedManifests = append(m.EmbedManifests, &EmbedManifest{})
+			if err := m.EmbedManifests[len(m.EmbedManifests)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {

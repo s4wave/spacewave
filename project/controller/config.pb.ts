@@ -6,6 +6,7 @@ import { ProjectConfig } from '../project.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import {
   BuilderConfig,
   BuilderResult,
@@ -119,13 +120,26 @@ export interface ManifestBuilderConfig {
    */
   remoteId?: string
   /**
-   * TargetPlatformIds contains all platform IDs from the build target.
-   * Used by the dist compiler to collect manifests from all compatible platforms.
-   * For example, a browser target may include ["web/js/wasm", "js"].
+   * TargetPlatformIds is the full list of platform IDs belonging to the
+   * build target that spawned this slot. Informational only; the dist
+   * compiler no longer uses this field to pick which manifests to embed.
+   * Embed selection is driven by the per-slot BuilderConfigOverride sourced
+   * from BuildConfig.manifest_overrides, which carries explicit
+   * (manifest_id, platform_id) tuples.
    *
    * @generated from field: repeated string target_platform_ids = 5;
    */
   targetPlatformIds?: string[]
+  /**
+   * BuilderConfigOverride optionally replaces the builder config of the
+   * manifest for this build slot. The override's controller id is ignored;
+   * the manifest's declared builder id always wins. This is REPLACE
+   * semantics: the static manifest builder config is not merged with the
+   * override. Sourced from BuildConfig.manifest_overrides.
+   *
+   * @generated from field: configset.proto.ControllerConfig builder_config_override = 6;
+   */
+  builderConfigOverride?: ControllerConfig
 }
 
 // ManifestBuilderConfig contains the message type declaration for ManifestBuilderConfig.
@@ -143,6 +157,12 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
         kind: 'scalar',
         T: ScalarType.STRING,
         repeated: true,
+      },
+      {
+        no: 6,
+        name: 'builder_config_override',
+        kind: 'message',
+        T: () => ControllerConfig,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,

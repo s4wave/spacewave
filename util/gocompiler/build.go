@@ -117,6 +117,20 @@ func ExecBuildEntrypoint(
 		return err
 	}
 
+	// codesign the produced binary on darwin when BLDR_MACOS_SIGN_IDENTITY is set
+	if !useTinygo && !isWebBuildPlatform && slices.Contains(platformEnv, "GOOS=darwin") {
+		if err := CodesignMacOS(ctx, le, outBinPath); err != nil {
+			return err
+		}
+	}
+
+	// az sign the produced binary on windows when BLDR_WINDOWS_SIGN_PROFILE is set
+	if !useTinygo && !isWebBuildPlatform && slices.Contains(platformEnv, "GOOS=windows") {
+		if err := SignWindows(ctx, le, outBinPath); err != nil {
+			return err
+		}
+	}
+
 	// post-processing in release mode
 	if isWebBuildPlatform && isRelease {
 		if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {

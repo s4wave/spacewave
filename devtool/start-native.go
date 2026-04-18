@@ -94,6 +94,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 			preflightRemote,
 			startPlugins,
 			bldr_manifest.BuildType(a.BuildType),
+			nil,
 		); err != nil {
 			return err
 		}
