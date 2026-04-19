@@ -5,7 +5,7 @@ package plugin_host_process
 import (
 	"os/exec"
 
-	winjob "github.com/kolesnikovae/go-winjob"
+	winjob "github.com/aperturerobotics/go-winjob"
 )
 
 // preStartCmd does nothing on windows.
