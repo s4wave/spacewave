@@ -277,10 +277,7 @@ func (c *Controller) BuildManifest(
 
 	var embedWG sync.WaitGroup
 	for _, em := range embedSpecs {
-		em := em
-		embedWG.Add(1)
-		go func() {
-			defer embedWG.Done()
+		embedWG.Go(func() {
 			dir := bldr_manifest.NewFetchManifest(em.GetManifestId(), nil, []string{em.GetPlatformId()}, 0)
 			_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 				embedCtx,
@@ -306,7 +303,7 @@ func (c *Controller) BuildManifest(
 				directiveRefs = append(directiveRefs, ref)
 				refsMu.Unlock()
 			}
-		}()
+		})
 	}
 
 	// use short-lived read transactions
