@@ -134,6 +134,16 @@ func (t *WorldState) GetReadOnly() bool {
 	return !t.write
 }
 
+// SetBufferedStoreSettings overrides the BufferedStore settings used by the
+// underlying block Transaction during Commit. Pass nil to reset to defaults.
+// No-op if the world state has no write transaction.
+func (t *WorldState) SetBufferedStoreSettings(s *block.BufferedStoreSettings) {
+	if t == nil || t.btx == nil {
+		return
+	}
+	t.btx.SetBufferedStoreSettings(s)
+}
+
 // GetRootRef returns the current root reference.
 func (t *WorldState) GetRootRef() *block.BlockRef {
 	return t.bcs.GetRef()

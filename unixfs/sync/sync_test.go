@@ -250,6 +250,129 @@ func TestSyncLargeFileWithAppend(t *testing.T) {
 	}
 }
 
+// TestSyncSymlinksToBilly verifies that SyncToBilly emits symlinks on a
+// destination that implements billy.Symlink. Covers the two shapes the v86
+// rootfs tar cursor exercises: a relative sibling (=a -> ./b= written,
+// normalizes to =a -> b= via path.Clean because UnixFS stores the target as
+// =[]string=) and a relative directory target (=lib64 -> usr/lib64=).
+func TestSyncSymlinksToBilly(t *testing.T) {
+	ctx, rref, outFs := setupTestbed(t)
+
+	bfs := unixfs_billy.NewBillyFS(ctx, rref, "", time.Now())
+
+	if err := billy_util.WriteFile(bfs, "b", []byte("file-b-content"), 0o644); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := bfs.Symlink("./b", "a"); err != nil {
+		t.Fatalf("Symlink a -> ./b: %v", err)
+	}
+	if err := bfs.MkdirAll("usr/lib64", 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := bfs.Symlink("usr/lib64", "lib64"); err != nil {
+		t.Fatalf("Symlink lib64 -> usr/lib64: %v", err)
+	}
+
+	if err := SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	outSymlink, ok := outFs.(billy.Symlink)
+	if !ok {
+		t.Fatal("memfs destination does not implement billy.Symlink")
+	}
+
+	for name, want := range map[string]string{"a": "b", "lib64": "usr/lib64"} {
+		got, err := outSymlink.Readlink(name)
+		if err != nil {
+			t.Fatalf("Readlink %s: %v", name, err)
+		}
+		if got != want {
+			t.Errorf("Readlink %s = %q, want %q", name, got, want)
+		}
+	}
+
+	data, err := billy_util.ReadFile(outFs, "b")
+	if err != nil {
+		t.Fatalf("ReadFile b: %v", err)
+	}
+	if !bytes.Equal(data, []byte("file-b-content")) {
+		t.Errorf("b content mismatch: %q", data)
+	}
+}
+
+// TestSyncSymlinksToUnixfs verifies that SyncToUnixfs round-trips symlinks
+// across two independent UnixFS testbeds. This exercises the billy wrapper
+// that SyncToUnixfs interposes over the destination handle so symlink writes
+// land as UnixFS symlink nodes rather than being silently dropped.
+func TestSyncSymlinksToUnixfs(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.InfoLevel)
+	le := logrus.NewEntry(log)
+
+	srcBtb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	srcRef, _, err := unixfs_world_testbed.BuildTestbed(
+		srcBtb, "src-fs", true,
+		world_testbed.WithWorldVerbose(false),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dstBtb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	dstRef, _, err := unixfs_world_testbed.BuildTestbed(
+		dstBtb, "dst-fs", true,
+		world_testbed.WithWorldVerbose(false),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	srcBfs := unixfs_billy.NewBillyFS(ctx, srcRef, "", time.Now())
+	if err := billy_util.WriteFile(srcBfs, "b", []byte("file-b-content"), 0o644); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := srcBfs.Symlink("./b", "a"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := srcBfs.MkdirAll("usr/lib64", 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := srcBfs.Symlink("usr/lib64", "lib64"); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if err := SyncToUnixfs(ctx, dstRef, srcRef, DeleteMode_DeleteMode_DURING, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dstBfs := unixfs_billy.NewBillyFS(ctx, dstRef, "", time.Now())
+	for name, want := range map[string]string{"a": "b", "lib64": "usr/lib64"} {
+		got, err := dstBfs.Readlink(name)
+		if err != nil {
+			t.Fatalf("Readlink %s: %v", name, err)
+		}
+		if got != want {
+			t.Errorf("Readlink %s = %q, want %q", name, got, want)
+		}
+	}
+
+	data, err := billy_util.ReadFile(dstBfs, "b")
+	if err != nil {
+		t.Fatalf("ReadFile b: %v", err)
+	}
+	if !bytes.Equal(data, []byte("file-b-content")) {
+		t.Errorf("b content mismatch: %q", data)
+	}
+}
+
 // TestSyncWithFilter tests syncing with a filter callback
 func TestSyncWithFilter(t *testing.T) {
 	ctx, rref, outFs := setupTestbed(t)

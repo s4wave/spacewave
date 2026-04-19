@@ -47,6 +47,9 @@ type Transaction struct {
 	putOpts *PutOpts
 	// dirty indicates anything changed in the transaction
 	dirty bool
+	// bufferedStoreSettings overrides the default BufferedStore settings used
+	// inside WriteAtRoot. nil uses the defaults.
+	bufferedStoreSettings *BufferedStoreSettings
 }
 
 // NewTransaction builds a new transaction with a root cursor.
@@ -127,6 +130,25 @@ func (t *Transaction) SetStoreOps(store StoreOps) {
 		return
 	}
 	t.store = store
+}
+
+// SetBufferedStoreSettings overrides the BufferedStore settings used to wrap
+// the write store inside WriteAtRoot. Pass nil to reset to defaults. This must
+// be called before Write/WriteAtRoot begins committing for the override to
+// take effect on that commit.
+func (t *Transaction) SetBufferedStoreSettings(s *BufferedStoreSettings) {
+	if t == nil {
+		return
+	}
+	t.mtx.Lock()
+	if s == nil {
+		t.bufferedStoreSettings = nil
+		t.mtx.Unlock()
+		return
+	}
+	sCopy := *s
+	t.bufferedStoreSettings = &sCopy
+	t.mtx.Unlock()
 }
 
 // SetRoot sets the root of the transaction to a different position.
@@ -223,7 +245,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 	writeStore := t.store
 	if writeStore != nil {
-		writeStore = NewBufferedStore(ctx, writeStore)
+		writeStore = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 	}
 
 	// begin deferred GC flushing if the store supports it.
