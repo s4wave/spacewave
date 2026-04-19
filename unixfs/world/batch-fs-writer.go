@@ -1,6 +1,7 @@
 package unixfs_world
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
@@ -324,8 +325,18 @@ func (b *BatchFSWriter) mergePendingDir(
 			if err != nil {
 				return err
 			}
+			childPath := make([]string, 0, len(pd.parentPath)+1)
+			childPath = append(childPath, pd.parentPath...)
+			childPath = append(childPath, e.name)
+			if existing != nil && existing.GetNodeType() == unixfs_block.NodeType_NodeType_FILE {
+				return b.syncExistingFile(ctx, root, childPath, e.blobRef, e.ts)
+			}
 			if existing != nil {
-				if _, err := dir.Remove([]string{e.name}, e.ts); err != nil {
+				// Pass nil ts so Remove does not bump the parent
+				// directory's ModTime. The per-op path leaves the parent
+				// untouched on a file-content overwrite (billy OpenFile +
+				// Write path), and IC-1 requires byte-identical root refs.
+				if _, err := dir.Remove([]string{e.name}, nil); err != nil {
 					return err
 				}
 			}
@@ -333,9 +344,6 @@ func (b *BatchFSWriter) mergePendingDir(
 				return err
 			}
 			if !e.blobRef.GetEmpty() {
-				childPath := make([]string, 0, len(pd.parentPath)+1)
-				childPath = append(childPath, pd.parentPath...)
-				childPath = append(childPath, e.name)
 				if err := unixfs_block.WriteBlob(ctx, root, childPath, 0, e.blobRef, false, true, e.ts); err != nil {
 					return err
 				}
@@ -348,6 +356,105 @@ func (b *BatchFSWriter) mergePendingDir(
 			}
 		default:
 			return errors.Errorf("unsupported batch entry node type: %s", e.nodeType.String())
+		}
+	}
+	return nil
+}
+
+// syncExistingFile replays the existing-file overwrite semantics used by the
+// per-op path: truncate the file to the incoming size, then compare and write
+// only mismatching chunks. This preserves the inode and its history-sensitive
+// file layout instead of recreating a fresh one-shot file node.
+func (b *BatchFSWriter) syncExistingFile(
+	ctx context.Context,
+	root *unixfs_block.FSTree,
+	path []string,
+	blobRef *block.BlockRef,
+	ts *timestamppb.Timestamp,
+) error {
+	readExisting := func(offset int64, p []byte) (int, error) {
+		node, _, err := unixfs_block.LookupFSTreePath(root, path)
+		if err != nil {
+			return 0, err
+		}
+		fh, err := node.BuildFileHandle(ctx)
+		if err != nil {
+			return 0, err
+		}
+		defer fh.Close()
+		if _, err := fh.Seek(offset, io.SeekStart); err != nil {
+			return 0, err
+		}
+		n, err := io.ReadAtLeast(fh, p, len(p))
+		if err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
+		return n, err
+	}
+
+	node, _, err := unixfs_block.LookupFSTreePath(root, path)
+	if err != nil {
+		return err
+	}
+
+	var srcSize int64
+	var srcRdr io.ReadCloser
+	if !blobRef.GetEmpty() {
+		blobCs := node.GetCursor().DetachTransaction()
+		blobCs.SetRefAtCursor(blobRef, true)
+		srcBlob, err := blob.UnmarshalBlob(ctx, blobCs)
+		if err != nil {
+			return err
+		}
+		srcSize = int64(srcBlob.GetTotalSize())
+		srcRdr, err = blob.NewReader(ctx, blobCs)
+		if err != nil {
+			return err
+		}
+		defer srcRdr.Close()
+	}
+
+	if err := unixfs_block.TruncateFile(ctx, root, path, srcSize, ts); err != nil {
+		return err
+	}
+	if srcSize == 0 {
+		return nil
+	}
+
+	readBuffer := make([]byte, 32*1024)
+	compareBuffer := make([]byte, len(readBuffer))
+	var offset int64
+	for {
+		nreadSrc, err := srcRdr.Read(readBuffer)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if nreadSrc == 0 {
+			if offset != srcSize {
+				return errors.Errorf("wrote %d but expected %d", offset, srcSize)
+			}
+			break
+		}
+
+		readChunk := readBuffer[:nreadSrc]
+		compareChunk := compareBuffer[:nreadSrc]
+		nreadDst, readErr := readExisting(offset, compareChunk)
+		if readErr != nil {
+			return readErr
+		}
+		if nreadDst == 0 {
+			return errors.Errorf("read 0 bytes but expected %d", nreadSrc)
+		}
+		compareChunk = compareChunk[:nreadDst]
+		if !bytes.Equal(readChunk[:len(compareChunk)], compareChunk) {
+			if err := unixfs_block.WriteBlob(ctx, root, path, 0, blobRef, false, false, ts); err != nil {
+				return err
+			}
+			return nil
+		}
+		offset += int64(len(readChunk))
+		if err == io.EOF {
+			break
 		}
 	}
 	return nil

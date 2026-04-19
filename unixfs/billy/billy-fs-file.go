@@ -37,7 +37,11 @@ type BillyFSFile struct {
 // The handle will be released when the file is closed.
 // If ts is zero, uses time.Now.
 func NewBillyFSFile(ctx context.Context, name string, h *unixfs.FSHandle, flag int, ts time.Time) *BillyFSFile {
-	return &BillyFSFile{ctx: ctx, name: name, h: h, flag: flag}
+	f := &BillyFSFile{ctx: ctx, name: name, h: h, flag: flag}
+	if !ts.IsZero() {
+		f.SetOpTimestamp(ts)
+	}
+	return f
 }
 
 // CopyToBillyFSFile copies data from a FSHandle to a BillyFSFile.
