@@ -5,9 +5,9 @@ import (
 	"context"
 	"runtime/trace"
 	"slices"
-	"sync"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 )
 
@@ -36,7 +36,7 @@ type BufferedStore struct {
 	inner StoreOps
 	rc    *routine.RoutineContainer
 
-	mtx               sync.Mutex
+	bcast             broadcast.Broadcast
 	pending           map[string]*pendingBlock
 	pendingRefs       []pendingRefRecord
 	pendingBytes      int
@@ -47,7 +47,6 @@ type BufferedStore struct {
 	queue      []string
 	nextSeq    uint64
 	durableSeq uint64
-	waitCh     chan struct{}
 
 	drainErr error
 }
@@ -75,7 +74,6 @@ func NewBufferedStoreWithSettings(
 		maxPendingBytes:   settings.MaxPendingBytes,
 		maxPendingBlocks:  settings.MaxPendingEntries,
 		drainBatchEntries: settings.DrainBatchEntries,
-		waitCh:            make(chan struct{}),
 	}
 	_, _ = s.rc.SetRoutine(s.drainLoop)
 	_ = s.rc.SetContext(ctx, false)
@@ -115,14 +113,16 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 		return nil, false, err
 	}
 
-	s.mtx.Lock()
-	err = s.drainErr
-	pending := s.pending[key]
-	s.mtx.Unlock()
-	if err != nil {
-		return nil, false, err
+	var drainErr error
+	var existingPending *pendingBlock
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		drainErr = s.drainErr
+		existingPending = s.pending[key]
+	})
+	if drainErr != nil {
+		return nil, false, drainErr
 	}
-	if pending != nil && !pending.tombstone {
+	if existingPending != nil && !existingPending.tombstone {
 		return ref, true, nil
 	}
 
@@ -131,32 +131,63 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 		return nil, false, err
 	}
 
-	s.mtx.Lock()
-	if s.drainErr != nil {
-		err := s.drainErr
-		s.mtx.Unlock()
-		return nil, false, err
-	}
-	if pending := s.pending[key]; pending != nil && !pending.tombstone {
-		s.mtx.Unlock()
-		return ref, true, nil
-	}
-	if exists {
-		s.mtx.Unlock()
-		return ref, true, nil
-	}
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue")
-	if err := s.putPendingLocked(key, &pendingBlock{
+	defer subtask.End()
+	pendingClone := &pendingBlock{
 		ref:  ref.Clone(),
 		data: bytes.Clone(data),
-	}); err != nil {
-		subtask.End()
-		s.mtx.Unlock()
-		return nil, false, err
 	}
-	subtask.End()
-	s.mtx.Unlock()
-	return ref, false, nil
+	for {
+		var waitCh <-chan struct{}
+		var done bool
+		var alreadyExists bool
+		var putErr error
+		s.bcast.HoldLock(func(broadcastFn func(), getWaitCh func() <-chan struct{}) {
+			if s.drainErr != nil {
+				putErr = s.drainErr
+				done = true
+				return
+			}
+			if p := s.pending[key]; p != nil && !p.tombstone {
+				alreadyExists = true
+				done = true
+				return
+			}
+			if exists {
+				alreadyExists = true
+				done = true
+				return
+			}
+			err := s.putPendingLocked(broadcastFn, key, pendingClone)
+			if err == nil {
+				done = true
+				return
+			}
+			if err != ErrBufferedStoreFull {
+				putErr = err
+				done = true
+				return
+			}
+			waitCh = getWaitCh()
+		})
+		if done {
+			if putErr != nil {
+				return nil, false, putErr
+			}
+			if alreadyExists {
+				return ref, true, nil
+			}
+			return ref, false, nil
+		}
+		_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue/wait-capacity")
+		select {
+		case <-ctx.Done():
+			waitTask.End()
+			return nil, false, ctx.Err()
+		case <-waitCh:
+		}
+		waitTask.End()
+	}
 }
 
 // GetBlock gets a block by reference.
@@ -192,36 +223,61 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 	if err != nil {
 		return err
 	}
-
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	err = s.drainErr
-	pending := s.pending[key]
-	if err != nil {
-		return err
-	}
-	if pending != nil && pending.tombstone {
-		return nil
-	}
-	return s.putPendingLocked(key, &pendingBlock{
+	pendingClone := &pendingBlock{
 		ref:       ref.Clone(),
 		tombstone: true,
-	})
+	}
+	for {
+		var waitCh <-chan struct{}
+		var done bool
+		var rmErr error
+		s.bcast.HoldLock(func(broadcastFn func(), getWaitCh func() <-chan struct{}) {
+			if s.drainErr != nil {
+				rmErr = s.drainErr
+				done = true
+				return
+			}
+			if p := s.pending[key]; p != nil && p.tombstone {
+				done = true
+				return
+			}
+			err := s.putPendingLocked(broadcastFn, key, pendingClone)
+			if err == nil {
+				done = true
+				return
+			}
+			if err != ErrBufferedStoreFull {
+				rmErr = err
+				done = true
+				return
+			}
+			waitCh = getWaitCh()
+		})
+		if done {
+			return rmErr
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
 }
 
 // RecordBlockRefs buffers GC reference recording until Flush is called.
 func (s *BufferedStore) RecordBlockRefs(_ context.Context, source *BlockRef, targets []*BlockRef) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	err := s.drainErr
-	if err != nil {
-		return err
-	}
-	s.pendingRefs = append(s.pendingRefs, pendingRefRecord{
-		source:  source.Clone(),
-		targets: cloneBlockRefs(targets),
+	var err error
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.drainErr != nil {
+			err = s.drainErr
+			return
+		}
+		s.pendingRefs = append(s.pendingRefs, pendingRefRecord{
+			source:  source.Clone(),
+			targets: cloneBlockRefs(targets),
+		})
 	})
-	return nil
+	return err
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -284,28 +340,30 @@ func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
 	return nil
 }
 
-func (s *BufferedStore) wakeDrainersLocked() {
-	if len(s.queue) == 0 {
-		return
-	}
-	s.notifyLocked()
-}
-
 func (s *BufferedStore) drainLoop(ctx context.Context) error {
 	for {
-		s.mtx.Lock()
-		err := s.drainErr
-		if err != nil {
-			s.mtx.Unlock()
-			return err
+		var batch *drainBatch
+		var waitCh <-chan struct{}
+		var loopErr error
+		var batchCtx context.Context
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if s.drainErr != nil {
+				loopErr = s.drainErr
+				return
+			}
+			var subtask *trace.Task
+			batchCtx, subtask = trace.NewTask(ctx, "hydra/block/buffered-store/drain-loop/take-batch")
+			batch = s.takeDrainBatchLocked()
+			subtask.End()
+			if batch == nil {
+				waitCh = getWaitCh()
+			}
+		})
+		if loopErr != nil {
+			return loopErr
 		}
-		taskCtx, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/drain-loop/take-batch")
-		batch := s.takeDrainBatchLocked()
-		subtask.End()
 		if batch == nil {
-			waitCh := s.waitCh
 			_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/drain-loop/wait")
-			s.mtx.Unlock()
 			select {
 			case <-ctx.Done():
 				waitTask.End()
@@ -315,36 +373,39 @@ func (s *BufferedStore) drainLoop(ctx context.Context) error {
 			waitTask.End()
 			continue
 		}
-		s.mtx.Unlock()
 
-		writeCtx, writeTask := trace.NewTask(taskCtx, "hydra/block/buffered-store/drain-loop/write-batch")
-		err = s.writeBatch(writeCtx, batch.entries)
+		writeCtx, writeTask := trace.NewTask(batchCtx, "hydra/block/buffered-store/drain-loop/write-batch")
+		err := s.writeBatch(writeCtx, batch.entries)
 		writeTask.End()
 
-		s.mtx.Lock()
-		if err != nil {
-			s.queue = append(batch.keys, s.queue...)
-			s.drainErr = err
-			s.notifyLocked()
-			s.mtx.Unlock()
-			return err
-		}
-		for _, key := range batch.keys {
-			pending := s.pending[key]
-			if pending == nil {
-				continue
+		var returnErr error
+		s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+			if err != nil {
+				s.queue = append(batch.keys, s.queue...)
+				s.drainErr = err
+				broadcastFn()
+				returnErr = err
+				return
 			}
-			if pending.queued {
-				continue
+			for _, key := range batch.keys {
+				pending := s.pending[key]
+				if pending == nil {
+					continue
+				}
+				if pending.queued {
+					continue
+				}
+				s.pendingBytes -= len(pending.data)
+				delete(s.pending, key)
 			}
-			s.pendingBytes -= len(pending.data)
-			delete(s.pending, key)
+			if batch.lastSeq > s.durableSeq {
+				s.durableSeq = batch.lastSeq
+			}
+			broadcastFn()
+		})
+		if returnErr != nil {
+			return returnErr
 		}
-		if batch.lastSeq > s.durableSeq {
-			s.durableSeq = batch.lastSeq
-		}
-		s.notifyLocked()
-		s.mtx.Unlock()
 	}
 }
 
@@ -418,19 +479,24 @@ func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry
 
 func (s *BufferedStore) waitForDurable(ctx context.Context) error {
 	for {
-		s.mtx.Lock()
-		err := s.drainErr
-		targetSeq := s.nextSeq
-		if err != nil {
-			s.mtx.Unlock()
-			return err
+		var waitCh <-chan struct{}
+		var done bool
+		var waitErr error
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if s.drainErr != nil {
+				waitErr = s.drainErr
+				done = true
+				return
+			}
+			if s.durableSeq >= s.nextSeq {
+				done = true
+				return
+			}
+			waitCh = getWaitCh()
+		})
+		if done {
+			return waitErr
 		}
-		if s.durableSeq >= targetSeq {
-			s.mtx.Unlock()
-			return nil
-		}
-		waitCh := s.waitCh
-		s.mtx.Unlock()
 
 		_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/flush/wait-durable/wait-notify")
 		select {
@@ -444,13 +510,14 @@ func (s *BufferedStore) waitForDurable(ctx context.Context) error {
 }
 
 func (s *BufferedStore) takePendingRefs() []pendingRefRecord {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if len(s.pendingRefs) == 0 {
-		return nil
-	}
-	refs := s.pendingRefs
-	s.pendingRefs = nil
+	var refs []pendingRefRecord
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(s.pendingRefs) == 0 {
+			return
+		}
+		refs = s.pendingRefs
+		s.pendingRefs = nil
+	})
 	return refs
 }
 
@@ -458,9 +525,9 @@ func (s *BufferedStore) restorePendingRefs(refs []pendingRefRecord) {
 	if len(refs) == 0 {
 		return
 	}
-	s.mtx.Lock()
-	s.pendingRefs = append(refs, s.pendingRefs...)
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.pendingRefs = append(refs, s.pendingRefs...)
+	})
 }
 
 func (s *BufferedStore) flushRefRecords(ctx context.Context, recorder BlockRefRecorder, refs []pendingRefRecord) (int, error) {
@@ -470,11 +537,6 @@ func (s *BufferedStore) flushRefRecords(ctx context.Context, recorder BlockRefRe
 		}
 	}
 	return len(refs), nil
-}
-
-func (s *BufferedStore) notifyLocked() {
-	close(s.waitCh)
-	s.waitCh = make(chan struct{})
 }
 
 func marshalRefKey(ref *BlockRef) (string, error) {
@@ -490,13 +552,14 @@ func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.mtx.Lock()
-	pending := s.pending[key]
-	s.mtx.Unlock()
+	var pending *pendingBlock
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		pending = s.pending[key]
+	})
 	return pending, nil
 }
 
-func (s *BufferedStore) putPendingLocked(key string, pending *pendingBlock) error {
+func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending *pendingBlock) error {
 	prev := s.pending[key]
 	nextBytes := s.pendingBytes - lenPendingData(prev) + lenPendingData(pending)
 	if prev == nil && s.maxPendingBlocks > 0 && len(s.pending) >= s.maxPendingBlocks {
@@ -513,7 +576,7 @@ func (s *BufferedStore) putPendingLocked(key string, pending *pendingBlock) erro
 	s.pendingBytes = nextBytes
 	if pending.queued {
 		s.queue = append(s.queue, key)
-		s.wakeDrainersLocked()
+		broadcastFn()
 	}
 	return nil
 }

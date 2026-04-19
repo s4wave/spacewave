@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -437,7 +438,7 @@ func TestBufferedStoreFlushesBufferedRefRecords(t *testing.T) {
 	}
 }
 
-func TestBufferedStoreReturnsFullWhenPendingLimitExceeded(t *testing.T) {
+func TestBufferedStoreBlocksWhenPendingLimitExceeded(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
 	started := inner.setBatchBlocker()
@@ -454,9 +455,78 @@ func TestBufferedStoreReturnsFullWhenPendingLimitExceeded(t *testing.T) {
 	}
 	waitSignal(t, started, "background drain")
 
-	_, _, err = store.PutBlock(ctx, []byte("two"), nil)
-	if err != ErrBufferedStoreFull {
-		t.Fatalf("expected ErrBufferedStoreFull, got %v", err)
+	// Second PutBlock should block until the first drains instead of returning
+	// ErrBufferedStoreFull.
+	type putResult struct {
+		exists bool
+		err    error
+	}
+	done := make(chan putResult, 1)
+	go func() {
+		_, exists, err := store.PutBlock(ctx, []byte("two"), nil)
+		done <- putResult{exists: exists, err: err}
+	}()
+
+	select {
+	case res := <-done:
+		t.Fatalf("second put returned before drain: exists=%v err=%v", res.exists, res.err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	inner.releaseBatchBlocker()
+
+	select {
+	case res := <-done:
+		if res.err != nil {
+			t.Fatalf("second put failed: %v", res.err)
+		}
+		if res.exists {
+			t.Fatal("expected second buffered put to be new")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("second put did not unblock after drain release")
+	}
+
+	if err := store.Flush(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestBufferedStoreUnblocksOnContextCancel(t *testing.T) {
+	ctx := context.Background()
+	inner := newCountStore(hash.HashType_HashType_BLAKE3)
+	started := inner.setBatchBlocker()
+	store := NewBufferedStore(ctx, inner)
+	store.maxPendingBlocks = 1
+	store.maxPendingBytes = 4
+
+	if _, _, err := store.PutBlock(ctx, []byte("one"), nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	waitSignal(t, started, "background drain")
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := store.PutBlock(cancelCtx, []byte("two"), nil)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("blocked put returned prematurely: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("blocked put did not return after context cancel")
 	}
 
 	inner.releaseBatchBlocker()
