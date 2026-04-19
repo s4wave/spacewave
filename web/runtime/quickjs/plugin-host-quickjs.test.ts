@@ -11,23 +11,29 @@ describe('plugin-host-quickjs asset helpers', () => {
     const paths = collectViteManifestAssetPaths({
       'plugin/notes/backend.ts': {
         file: 'plugin/notes/backend-abc123.mjs',
-        imports: ['chunks/shared-1.mjs'],
-        dynamicImports: ['chunks/lazy-2.mjs'],
+        imports: ['_chunk-shared-1.mjs'],
+        dynamicImports: ['_chunk-lazy-2.mjs'],
         css: ['assets/backend.css'],
         assets: ['assets/icon.svg'],
       },
+      '_chunk-shared-1.mjs': {
+        file: 'chunks/shared-1.mjs',
+      },
+      '_chunk-lazy-2.mjs': {
+        file: 'chunks/lazy-2.mjs',
+      },
       'plugin/vm/backend.ts': {
         file: 'plugin/vm/backend-def456.mjs',
-        imports: ['chunks/shared-1.mjs'],
+        imports: ['_chunk-shared-1.mjs'],
       },
     })
 
     expect(paths).toEqual([
       'plugin/notes/backend-abc123.mjs',
-      'chunks/shared-1.mjs',
-      'chunks/lazy-2.mjs',
       'assets/backend.css',
       'assets/icon.svg',
+      'chunks/shared-1.mjs',
+      'chunks/lazy-2.mjs',
       'plugin/vm/backend-def456.mjs',
     ])
   })

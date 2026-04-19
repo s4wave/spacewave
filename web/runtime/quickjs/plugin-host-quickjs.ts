@@ -83,22 +83,48 @@ async function fetchPluginScript(scriptPath: string): Promise<string> {
   return response.text()
 }
 
-// collectViteManifestAssetPaths returns the unique asset-relative paths referenced by a Vite manifest.
+// collectViteManifestAssetPaths returns the unique asset-relative files referenced by a Vite manifest.
 export function collectViteManifestAssetPaths(
   manifest: Record<string, ViteManifestEntry>,
 ): string[] {
   const paths = new Set<string>()
-  for (const entry of Object.values(manifest)) {
-    for (const path of [
-      entry.file,
-      ...(entry.imports ?? []),
-      ...(entry.dynamicImports ?? []),
-      ...(entry.css ?? []),
-      ...(entry.assets ?? []),
-    ]) {
-      if (!path) continue
-      paths.add(path)
+
+  const addPath = (path?: string) => {
+    if (!path) {
+      return
     }
+    paths.add(path)
+  }
+
+  const visited = new Set<string>()
+  const visitRef = (ref: string) => {
+    const entry = manifest[ref]
+    if (!entry) {
+      addPath(ref)
+      return
+    }
+    if (visited.has(ref)) {
+      return
+    }
+    visited.add(ref)
+
+    addPath(entry.file)
+    for (const path of entry.css ?? []) {
+      addPath(path)
+    }
+    for (const path of entry.assets ?? []) {
+      addPath(path)
+    }
+    for (const dep of entry.imports ?? []) {
+      visitRef(dep)
+    }
+    for (const dep of entry.dynamicImports ?? []) {
+      visitRef(dep)
+    }
+  }
+
+  for (const ref of Object.keys(manifest)) {
+    visitRef(ref)
   }
   return [...paths]
 }

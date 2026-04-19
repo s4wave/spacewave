@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bldr/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
@@ -51,8 +52,15 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 
 // EnsureBunAdd runs bun add for pkg in targetDir, skipping the install if the
 // package string has not changed since the last successful install.
-func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pkg string) error {
-	hash := sha256Hex([]byte(pkg))
+//
+// extraEnv is appended to the bun subprocess environment as "KEY=value"
+// strings. Typical use is to pass npm install-time overrides such as
+// npm_config_platform / npm_config_arch so postinstall scripts (e.g.
+// electron's @electron/get) download artifacts for a non-host target
+// instead of the host platform. The env is folded into the install cache
+// hash so switching targets between runs triggers a fresh install.
+func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pkg string, extraEnv ...string) error {
+	hash := sha256Hex([]byte(pkg + "\x00" + strings.Join(extraEnv, "\x00")))
 	if installCurrent(targetDir, hash) {
 		le.Debug("bun add cached, skipping")
 		return nil
@@ -69,6 +77,9 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 	cmd, err := BunAdd(ctx, le, stateDir, "--cwd", targetDir, pkg)
 	if err != nil {
 		return err
+	}
+	if len(extraEnv) > 0 {
+		cmd.Env = append(cmd.Env, extraEnv...)
 	}
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		return err

@@ -285,6 +285,13 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPat
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // If npmPkg is empty, defaults to latest.
+//
+// When plat is a NativePlatform whose goos/goarch differ from the host,
+// npm_config_platform + npm_config_arch are set on the bun subprocess so
+// @electron/get (electron's postinstall) fetches the target redistributable
+// instead of the host's. Without this, cross-platform release builds land
+// with a host-arch electron in dist/, which then fails downstream branding
+// / packaging steps that expect target-arch layout.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
 	// use the latest version if not defined
 	if npmPkg == "" {
@@ -298,12 +305,30 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 		npmPkgName = npmPkgName[:npmPkgVerIdx]
 	}
 
-	// install electron (cached: skips if package string unchanged)
+	// Build the cross-download env. electron's postinstall reads
+	// npm_config_platform / npm_config_arch (via @electron/get) and
+	// overrides process.platform / process.arch for the redistributable
+	// download. npm_config_* is the canonical way to override; also set
+	// the non-prefixed vars because some older tooling reads those.
+	var extraEnv []string
+	if np, ok := plat.(*bldr_platform.NativePlatform); ok {
+		nodePlat := goosToNodePlatform(np.GetGOOS())
+		nodeArch := goarchToNodeArch(np.GetGOARCH())
+		if nodePlat != "" {
+			extraEnv = append(extraEnv, "npm_config_platform="+nodePlat)
+		}
+		if nodeArch != "" {
+			extraEnv = append(extraEnv, "npm_config_arch="+nodeArch)
+		}
+	}
+
+	// install electron (cached: skips if package string + env unchanged)
 	npmDir := filepath.Join(buildDir, "dl-electron")
 	le.
 		WithField("npm-pkg", npmPkg).
+		WithField("extra-env", extraEnv).
 		Debug("downloading electron with bun")
-	if err := npm.EnsureBunAdd(ctx, le, stateDir, npmDir, npmPkg); err != nil {
+	if err := npm.EnsureBunAdd(ctx, le, stateDir, npmDir, npmPkg, extraEnv...); err != nil {
 		return err
 	}
 
@@ -334,5 +359,36 @@ func GetElectronBinName(plat bldr_platform.Platform) string {
 		return "Electron.app/Contents/MacOS/Electron"
 	default:
 		return "electron"
+	}
+}
+
+// goosToNodePlatform maps a Go GOOS value to the corresponding Node.js
+// process.platform value used by @electron/get and other npm install-time
+// platform hooks. Returns "" for GOOS values with no Node equivalent.
+func goosToNodePlatform(goos string) string {
+	switch goos {
+	case "windows":
+		return "win32"
+	case "darwin", "linux", "freebsd", "openbsd", "aix", "sunos":
+		return goos
+	default:
+		return ""
+	}
+}
+
+// goarchToNodeArch maps a Go GOARCH value to the corresponding Node.js
+// process.arch value. Electron ships redistributables for a subset; values
+// not in that subset are returned as-is and will surface as a download
+// failure from @electron/get rather than a silent host-arch fallback.
+func goarchToNodeArch(goarch string) string {
+	switch goarch {
+	case "amd64":
+		return "x64"
+	case "386":
+		return "ia32"
+	case "arm64", "arm", "mips", "mipsel", "ppc64", "s390x":
+		return goarch
+	default:
+		return goarch
 	}
 }
