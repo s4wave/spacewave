@@ -192,16 +192,24 @@ func convertAndCopyDarwinIcon(ctx context.Context, le *logrus.Entry, srcPng, con
 	return nil
 }
 
-// applyWindowsBranding runs rcedit and renames the exe.
-// If iconPath points to a PNG, converts to .ico and sets via rcedit --set-icon.
+// applyWindowsBranding runs resedit and renames the exe.
+// If iconPath points to a PNG, converts to .ico and sets via resedit --icon.
+//
+// resedit-cli (jet2jet/resedit-js-cli) replaces the deprecated rcedit
+// wrapper. Unlike rcedit, resedit does not operate in-place: it reads
+// <in> and writes <out>. We emit directly to {appName}.exe and drop the
+// original electron.exe when resedit succeeds; on failure we fall back
+// to a plain rename so the build still produces an (unbranded) binary.
 func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPath, stateDir, appName, iconPath string) (string, error) {
 	exePath := filepath.Join(electronDistPath, "electron.exe")
+	newExePath := filepath.Join(electronDistPath, appName+".exe")
 
-	// Build rcedit args.
-	rceditArgs := []string{
+	// Build resedit args: input output --product-name X --file-description X [--icon ico].
+	reseditArgs := []string{
 		exePath,
-		"--set-product-name", appName,
-		"--set-file-description", appName,
+		newExePath,
+		"--product-name", appName,
+		"--file-description", appName,
 	}
 
 	// Convert PNG to .ico if provided.
@@ -210,22 +218,30 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 		if err := convertPngToIco(ctx, le, stateDir, iconPath, icoPath); err != nil {
 			le.WithError(err).Warn("icon conversion failed, skipping icon")
 		} else {
-			rceditArgs = append(rceditArgs, "--set-icon", icoPath)
+			reseditArgs = append(reseditArgs, "--icon", icoPath)
 		}
 	}
 
-	// Run rcedit via bunx to set exe metadata.
-	cmd, err := npm.BunX(ctx, le, stateDir, "rcedit", rceditArgs...)
-	if err != nil {
-		le.WithError(err).Warn("rcedit setup failed, skipping metadata edit")
+	// Run resedit-cli via bunx to produce the rebranded exe.
+	edited := false
+	if cmd, err := npm.BunX(ctx, le, stateDir, "resedit-cli", reseditArgs...); err != nil {
+		le.WithError(err).Warn("resedit setup failed, skipping metadata edit")
 	} else if err := exec.StartAndWait(ctx, le, cmd); err != nil {
-		le.WithError(err).Warn("rcedit failed, skipping metadata edit")
+		le.WithError(err).Warn("resedit failed, skipping metadata edit")
+	} else {
+		edited = true
 	}
 
-	// Rename electron.exe -> {appName}.exe
-	newExePath := filepath.Join(electronDistPath, appName+".exe")
-	if err := os.Rename(exePath, newExePath); err != nil {
-		return "", errors.Wrap(err, "rename electron.exe")
+	if edited {
+		// resedit wrote newExePath from exePath; drop the original.
+		if err := os.Remove(exePath); err != nil && !os.IsNotExist(err) {
+			return "", errors.Wrap(err, "remove original electron.exe")
+		}
+	} else {
+		// Fall back to a plain rename without metadata so the build still produces a binary.
+		if err := os.Rename(exePath, newExePath); err != nil {
+			return "", errors.Wrap(err, "rename electron.exe")
+		}
 	}
 
 	le.Debug("Windows branding applied")
