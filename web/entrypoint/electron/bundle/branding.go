@@ -23,7 +23,7 @@ const brandingMarkerFile = ".bldr-branding"
 // ApplyDevBranding applies NativeAppConfig branding to an extracted Electron.
 //
 // electronDistPath is the directory containing the extracted Electron.
-// stateDir is used for downloading tools (rcedit on Windows).
+// stateDir is used for downloading tools (resedit-cli on Windows).
 // appName is the display name from NativeAppConfig.AppName.
 // iconPath is the absolute path to the source icon PNG (empty to skip icon).
 //
