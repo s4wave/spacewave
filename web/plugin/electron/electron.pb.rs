@@ -24,6 +24,9 @@ pub struct ElectronInit {
     /// ThemeSource sets native theme ("dark", "light", "system").
     #[prost(string, tag="7")]
     pub theme_source: ::prost::alloc::string::String,
+    /// QuitPolicy configures whether user quit should restart or exit.
+    #[prost(enumeration="QuitPolicy", tag="8")]
+    pub quit_policy: i32,
 }
 /// Config is the configuration for the electron runtime.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -70,6 +73,9 @@ pub struct Config {
     /// ThemeSource sets native theme ("dark", "light", "system").
     #[prost(string, tag="12")]
     pub theme_source: ::prost::alloc::string::String,
+    /// QuitPolicy configures whether user quit should restart or exit.
+    #[prost(enumeration="QuitPolicy", tag="13")]
+    pub quit_policy: i32,
 }
 /// ExternalLinks configures how external links are handled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -96,6 +102,39 @@ impl ExternalLinks {
         match value {
             "EXTERNAL_LINKS_OS_BROWSER" => Some(Self::OsBrowser),
             "EXTERNAL_LINKS_DENY" => Some(Self::Deny),
+            _ => None,
+        }
+    }
+}
+/// QuitPolicy configures how the Electron runtime behaves on user quit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum QuitPolicy {
+    /// QUIT_POLICY_UNSPECIFIED lets the caller choose the runtime default.
+    Unspecified = 0,
+    /// QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+    Restart = 1,
+    /// QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+    Exit = 2,
+}
+impl QuitPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "QUIT_POLICY_UNSPECIFIED",
+            Self::Restart => "QUIT_POLICY_RESTART",
+            Self::Exit => "QUIT_POLICY_EXIT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "QUIT_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "QUIT_POLICY_RESTART" => Some(Self::Restart),
+            "QUIT_POLICY_EXIT" => Some(Self::Exit),
             _ => None,
         }
     }

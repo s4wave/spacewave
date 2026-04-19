@@ -3,9 +3,51 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.plugin.compiler'
+
+/**
+ * QuitPolicy configures how native desktop runtimes should behave on user quit.
+ *
+ * @generated from enum bldr.web.plugin.compiler.QuitPolicy
+ */
+export enum QuitPolicy {
+  /**
+   * QUIT_POLICY_UNSPECIFIED lets the compiler pick the default for the build.
+   *
+   * @generated from enum value: QUIT_POLICY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+   *
+   * @generated from enum value: QUIT_POLICY_RESTART = 1;
+   */
+  RESTART = 1,
+
+  /**
+   * QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+   *
+   * @generated from enum value: QUIT_POLICY_EXIT = 2;
+   */
+  EXIT = 2,
+}
+
+// QuitPolicy_Enum is the enum type for QuitPolicy.
+export const QuitPolicy_Enum = createEnumType(
+  'bldr.web.plugin.compiler.QuitPolicy',
+  [
+    { no: 0, name: 'QUIT_POLICY_UNSPECIFIED' },
+    { no: 1, name: 'QUIT_POLICY_RESTART' },
+    { no: 2, name: 'QUIT_POLICY_EXIT' },
+  ],
+)
 
 /**
  * NativeAppConfig configures branding for native app renderers.
@@ -56,6 +98,12 @@ export interface NativeAppConfig {
    * @generated from field: string icon_path = 7;
    */
   iconPath?: string
+  /**
+   * QuitPolicy configures whether user quit should restart or exit.
+   *
+   * @generated from field: bldr.web.plugin.compiler.QuitPolicy quit_policy = 8;
+   */
+  quitPolicy?: QuitPolicy
 }
 
 // NativeAppConfig contains the message type declaration for NativeAppConfig.
@@ -69,6 +117,7 @@ export const NativeAppConfig: MessageType<NativeAppConfig> = createMessageType({
     { no: 5, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -58,6 +58,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace electron {
 enum ExternalLinks : int;
 extern const uint32_t ExternalLinks_internal_data_[];
+enum QuitPolicy : int;
+extern const uint32_t QuitPolicy_internal_data_[];
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
@@ -72,6 +74,9 @@ namespace protobuf {
 template <>
 internal::EnumTraitsT<::electron::ExternalLinks_internal_data_>
     internal::EnumTraitsImpl::value<::electron::ExternalLinks>;
+template <>
+internal::EnumTraitsT<::electron::QuitPolicy_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::QuitPolicy>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -110,6 +115,43 @@ inline const ::std::string& ExternalLinks_Name(ExternalLinks value) {
 inline bool ExternalLinks_Parse(
     ::absl::string_view name, ExternalLinks* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<ExternalLinks>(ExternalLinks_descriptor(), name,
+                                           value);
+}
+enum QuitPolicy : int {
+  QUIT_POLICY_UNSPECIFIED = 0,
+  QUIT_POLICY_RESTART = 1,
+  QUIT_POLICY_EXIT = 2,
+  QuitPolicy_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  QuitPolicy_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t QuitPolicy_internal_data_[];
+inline constexpr QuitPolicy QuitPolicy_MIN =
+    static_cast<QuitPolicy>(0);
+inline constexpr QuitPolicy QuitPolicy_MAX =
+    static_cast<QuitPolicy>(2);
+inline bool QuitPolicy_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int QuitPolicy_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL QuitPolicy_descriptor();
+template <typename T>
+const ::std::string& QuitPolicy_Name(T value) {
+  static_assert(::std::is_same<T, QuitPolicy>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to QuitPolicy_Name().");
+  return QuitPolicy_Name(static_cast<QuitPolicy>(value));
+}
+template <>
+inline const ::std::string& QuitPolicy_Name(QuitPolicy value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<QuitPolicy_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool QuitPolicy_Parse(
+    ::absl::string_view name, QuitPolicy* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<QuitPolicy>(QuitPolicy_descriptor(), name,
                                            value);
 }
 
@@ -267,6 +309,7 @@ class ElectronInit final : public ::google::protobuf::Message
     kWindowWidthFieldNumber = 4,
     kWindowHeightFieldNumber = 5,
     kDevToolsFieldNumber = 6,
+    kQuitPolicyFieldNumber = 8,
   };
   // string app_name = 2;
   void clear_app_name() ;
@@ -353,12 +396,22 @@ class ElectronInit final : public ::google::protobuf::Message
   void _internal_set_dev_tools(bool value);
 
   public:
+  // .electron.QuitPolicy quit_policy = 8;
+  void clear_quit_policy() ;
+  ::electron::QuitPolicy quit_policy() const;
+  void set_quit_policy(::electron::QuitPolicy value);
+
+  private:
+  ::electron::QuitPolicy _internal_quit_policy() const;
+  void _internal_set_quit_policy(::electron::QuitPolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.ElectronInit)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   0, 62,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   0, 70,
                                    2>
       _table_;
 
@@ -386,6 +439,7 @@ class ElectronInit final : public ::google::protobuf::Message
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
+    int quit_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -549,6 +603,7 @@ class Config final : public ::google::protobuf::Message
     kWindowWidthFieldNumber = 9,
     kWindowHeightFieldNumber = 10,
     kDevToolsFieldNumber = 11,
+    kQuitPolicyFieldNumber = 13,
   };
   // repeated string electron_flags = 4;
   int electron_flags_size() const;
@@ -717,11 +772,21 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_dev_tools(bool value);
 
   public:
+  // .electron.QuitPolicy quit_policy = 13;
+  void clear_quit_policy() ;
+  ::electron::QuitPolicy quit_policy() const;
+  void set_quit_policy(::electron::QuitPolicy value);
+
+  private:
+  ::electron::QuitPolicy _internal_quit_policy() const;
+  void _internal_set_quit_policy(::electron::QuitPolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:electron.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 12,
+  static const ::google::protobuf::internal::TcParseTable<4, 13,
                                    0, 130,
                                    2>
       _table_;
@@ -755,6 +820,7 @@ class Config final : public ::google::protobuf::Message
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
+    int quit_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1072,6 +1138,31 @@ inline void ElectronInit::set_allocated_theme_source(::std::string* PROTOBUF_NUL
     _impl_.theme_source_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.theme_source)
+}
+
+// .electron.QuitPolicy quit_policy = 8;
+inline void ElectronInit::clear_quit_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::electron::QuitPolicy ElectronInit::quit_policy() const {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.quit_policy)
+  return _internal_quit_policy();
+}
+inline void ElectronInit::set_quit_policy(::electron::QuitPolicy value) {
+  _internal_set_quit_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:electron.ElectronInit.quit_policy)
+}
+inline ::electron::QuitPolicy ElectronInit::_internal_quit_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::QuitPolicy>(_impl_.quit_policy_);
+}
+inline void ElectronInit::_internal_set_quit_policy(::electron::QuitPolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -1705,6 +1796,31 @@ inline void Config::set_allocated_theme_source(::std::string* PROTOBUF_NULLABLE 
   // @@protoc_insertion_point(field_set_allocated:electron.Config.theme_source)
 }
 
+// .electron.QuitPolicy quit_policy = 13;
+inline void Config::clear_quit_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::electron::QuitPolicy Config::quit_policy() const {
+  // @@protoc_insertion_point(field_get:electron.Config.quit_policy)
+  return _internal_quit_policy();
+}
+inline void Config::set_quit_policy(::electron::QuitPolicy value) {
+  _internal_set_quit_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:electron.Config.quit_policy)
+}
+inline ::electron::QuitPolicy Config::_internal_quit_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::QuitPolicy>(_impl_.quit_policy_);
+}
+inline void Config::_internal_set_quit_policy(::electron::QuitPolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = value;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -1721,6 +1837,12 @@ struct is_proto_enum<::electron::ExternalLinks> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::ExternalLinks>() {
   return ::electron::ExternalLinks_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::QuitPolicy> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::QuitPolicy>() {
+  return ::electron::QuitPolicy_descriptor();
 }
 
 }  // namespace protobuf

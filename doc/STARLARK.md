@@ -343,6 +343,23 @@ web_plugin_compiler_config(
 | `delveAddr` | string |
 | `electronPkg` | string |
 
+`nativeApp` supports:
+
+- `appName`
+- `windowTitle`
+- `windowWidth`
+- `windowHeight`
+- `devTools`
+- `themeSource`
+- `iconPath`
+- `quitPolicy`
+
+`quitPolicy` uses the proto enum values:
+
+- `QUIT_POLICY_UNSPECIFIED`
+- `QUIT_POLICY_RESTART`
+- `QUIT_POLICY_EXIT`
+
 ## Load / Import System
 
 Use `load()` to import values from other `.star` files. Modules are cached by

@@ -25,6 +25,9 @@ type Electron struct {
 
 	ipc      *singleton_muxed_conn.SingletonMuxedConn
 	listener net.Listener
+
+	waitDone chan struct{}
+	waitErr  error
 }
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
@@ -81,7 +84,7 @@ func RunElectron(
 		return nil, err
 	}
 
-	return &Electron{
+	e := &Electron{
 		ctx: ctx,
 		cmd: cmd,
 
@@ -91,7 +94,13 @@ func RunElectron(
 
 		ipc:      smc,
 		listener: pipeListener,
-	}, nil
+		waitDone: make(chan struct{}),
+	}
+	go func() {
+		e.waitErr = cmd.Wait()
+		close(e.waitDone)
+	}()
+	return e, nil
 }
 
 // GetMuxedConn returns the muxed conn with the main process.
@@ -104,11 +113,23 @@ func (e *Electron) GetCmd() *oexec.Cmd {
 	return e.cmd
 }
 
+// Wait waits for the Electron process to exit.
+func (e *Electron) Wait(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-e.waitDone:
+		return e.waitErr
+	}
+}
+
 // Close shuts down the electron instance.
 func (e *Electron) Close() {
 	if e.cmd.Process != nil {
 		_ = e.cmd.Process.Kill()
-		_ = e.cmd.Wait()
+	}
+	if e.waitDone != nil {
+		<-e.waitDone
 	}
 	if e.ipc != nil {
 		_ = e.ipc.Close()

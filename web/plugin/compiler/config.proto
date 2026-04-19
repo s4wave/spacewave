@@ -22,6 +22,16 @@ message Config {
   NativeAppConfig native_app = 4;
 }
 
+// QuitPolicy configures how native desktop runtimes should behave on user quit.
+enum QuitPolicy {
+  // QUIT_POLICY_UNSPECIFIED lets the compiler pick the default for the build.
+  QUIT_POLICY_UNSPECIFIED = 0;
+  // QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+  QUIT_POLICY_RESTART = 1;
+  // QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+  QUIT_POLICY_EXIT = 2;
+}
+
 // NativeAppConfig configures branding for native app renderers.
 message NativeAppConfig {
   // AppName is the display name of the application.
@@ -39,4 +49,6 @@ message NativeAppConfig {
   // IconPath is the path to the application icon PNG (relative to project root).
   // Used for dev-mode branding of the extracted Electron binary.
   string icon_path = 7;
+  // QuitPolicy configures whether user quit should restart or exit.
+  QuitPolicy quit_policy = 8;
 }

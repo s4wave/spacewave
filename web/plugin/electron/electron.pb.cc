@@ -43,7 +43,8 @@ inline constexpr ElectronInit::Impl_::Impl_(
         external_links_{static_cast< ::electron::ExternalLinks >(0)},
         window_width_{0u},
         window_height_{0u},
-        dev_tools_{false} {}
+        dev_tools_{false},
+        quit_policy_{static_cast< ::electron::QuitPolicy >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ElectronInit::ElectronInit(::_pbi::ConstantInitialized)
@@ -93,7 +94,8 @@ inline constexpr Config::Impl_::Impl_(
         external_links_{static_cast< ::electron::ExternalLinks >(0)},
         window_width_{0u},
         window_height_{0u},
-        dev_tools_{false} {}
+        dev_tools_{false},
+        quit_policy_{static_cast< ::electron::QuitPolicy >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -116,7 +118,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ConfigDefaultTypeInternal _Config_default_instance_;
 }  // namespace electron
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto = nullptr;
 const ::uint32_t
@@ -124,7 +126,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_._has_bits_),
-        10, // hasbit index offset
+        11, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.external_links_),
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.app_name_),
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.window_title_),
@@ -132,6 +134,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.window_height_),
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.dev_tools_),
         PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.theme_source_),
+        PROTOBUF_FIELD_OFFSET(::electron::ElectronInit, _impl_.quit_policy_),
         3,
         0,
         1,
@@ -139,9 +142,10 @@ const ::uint32_t
         5,
         6,
         2,
+        7,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_._has_bits_),
-        15, // hasbit index offset
+        16, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.electron_path_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.workdir_path_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.renderer_path_),
@@ -154,6 +158,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.window_height_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.dev_tools_),
         PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.theme_source_),
+        PROTOBUF_FIELD_OFFSET(::electron::Config, _impl_.quit_policy_),
         1,
         4,
         2,
@@ -166,12 +171,13 @@ const ::uint32_t
         10,
         11,
         7,
+        12,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::electron::ElectronInit)},
-        {17, sizeof(::electron::Config)},
+        {19, sizeof(::electron::Config)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::electron::_ElectronInit_default_instance_._instance,
@@ -181,27 +187,31 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     protodesc_cold) = {
     "\nCgithub.com/aperturerobotics/bldr/web/p"
     "lugin/electron/electron.proto\022\010electron\""
-    "\275\001\n\014ElectronInit\022/\n\016external_links\030\001 \001(\016"
+    "\350\001\n\014ElectronInit\022/\n\016external_links\030\001 \001(\016"
     "2\027.electron.ExternalLinks\022\020\n\010app_name\030\002 "
     "\001(\t\022\024\n\014window_title\030\003 \001(\t\022\024\n\014window_widt"
     "h\030\004 \001(\r\022\025\n\rwindow_height\030\005 \001(\r\022\021\n\tdev_to"
-    "ols\030\006 \001(\010\022\024\n\014theme_source\030\007 \001(\t\"\253\002\n\006Conf"
-    "ig\022\025\n\relectron_path\030\001 \001(\t\022\024\n\014workdir_pat"
-    "h\030\005 \001(\t\022\025\n\rrenderer_path\030\002 \001(\t\022\026\n\016web_ru"
-    "ntime_id\030\003 \001(\t\022\026\n\016electron_flags\030\004 \003(\t\022/"
-    "\n\016external_links\030\006 \001(\0162\027.electron.Extern"
-    "alLinks\022\020\n\010app_name\030\007 \001(\t\022\024\n\014window_titl"
-    "e\030\010 \001(\t\022\024\n\014window_width\030\t \001(\r\022\025\n\rwindow_"
-    "height\030\n \001(\r\022\021\n\tdev_tools\030\013 \001(\010\022\024\n\014theme"
-    "_source\030\014 \001(\t*G\n\rExternalLinks\022\035\n\031EXTERN"
-    "AL_LINKS_OS_BROWSER\020\000\022\027\n\023EXTERNAL_LINKS_"
-    "DENY\020\001b\006proto3"
+    "ols\030\006 \001(\010\022\024\n\014theme_source\030\007 \001(\t\022)\n\013quit_"
+    "policy\030\010 \001(\0162\024.electron.QuitPolicy\"\326\002\n\006C"
+    "onfig\022\025\n\relectron_path\030\001 \001(\t\022\024\n\014workdir_"
+    "path\030\005 \001(\t\022\025\n\rrenderer_path\030\002 \001(\t\022\026\n\016web"
+    "_runtime_id\030\003 \001(\t\022\026\n\016electron_flags\030\004 \003("
+    "\t\022/\n\016external_links\030\006 \001(\0162\027.electron.Ext"
+    "ernalLinks\022\020\n\010app_name\030\007 \001(\t\022\024\n\014window_t"
+    "itle\030\010 \001(\t\022\024\n\014window_width\030\t \001(\r\022\025\n\rwind"
+    "ow_height\030\n \001(\r\022\021\n\tdev_tools\030\013 \001(\010\022\024\n\014th"
+    "eme_source\030\014 \001(\t\022)\n\013quit_policy\030\r \001(\0162\024."
+    "electron.QuitPolicy*G\n\rExternalLinks\022\035\n\031"
+    "EXTERNAL_LINKS_OS_BROWSER\020\000\022\027\n\023EXTERNAL_"
+    "LINKS_DENY\020\001*X\n\nQuitPolicy\022\033\n\027QUIT_POLIC"
+    "Y_UNSPECIFIED\020\000\022\027\n\023QUIT_POLICY_RESTART\020\001"
+    "\022\024\n\020QUIT_POLICY_EXIT\020\002b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto = {
     false,
     false,
-    654,
+    830,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto,
     "github.com/aperturerobotics/bldr/web/plugin/electron/electron.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto_once,
@@ -221,6 +231,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ExternalLinks_descrip
 }
 PROTOBUF_CONSTINIT const uint32_t ExternalLinks_internal_data_[] = {
     131072u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL QuitPolicy_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t QuitPolicy_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class ElectronInit::_Internal {
@@ -267,9 +283,9 @@ ElectronInit::ElectronInit(
                offsetof(Impl_, external_links_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, external_links_),
-           offsetof(Impl_, dev_tools_) -
+           offsetof(Impl_, quit_policy_) -
                offsetof(Impl_, external_links_) +
-               sizeof(Impl_::dev_tools_));
+               sizeof(Impl_::quit_policy_));
 
   // @@protoc_insertion_point(copy_constructor:electron.ElectronInit)
 }
@@ -286,9 +302,9 @@ inline void ElectronInit::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, external_links_),
            0,
-           offsetof(Impl_, dev_tools_) -
+           offsetof(Impl_, quit_policy_) -
                offsetof(Impl_, external_links_) +
-               sizeof(Impl_::dev_tools_));
+               sizeof(Impl_::quit_policy_));
 }
 ElectronInit::~ElectronInit() {
   // @@protoc_insertion_point(destructor:electron.ElectronInit)
@@ -350,16 +366,16 @@ ElectronInit::GetClassData() const {
   return ElectronInit_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 0, 62, 2>
+const ::_pbi::TcParseTable<3, 8, 0, 70, 2>
 ElectronInit::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294967040,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
+    8,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ElectronInit_class_data_.base(),
@@ -369,7 +385,10 @@ ElectronInit::_table_ = {
     ::_pbi::TcParser::GetTable<::electron::ElectronInit>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.QuitPolicy quit_policy = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.quit_policy_), 7>(),
+     {64, 7, 0,
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.quit_policy_)}},
     // .electron.ExternalLinks external_links = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ElectronInit, _impl_.external_links_), 3>(),
      {8, 3, 0,
@@ -415,10 +434,12 @@ ElectronInit::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.dev_tools_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string theme_source = 7;
     {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.theme_source_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.QuitPolicy quit_policy = 8;
+    {PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.quit_policy_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
-    "\25\0\10\14\0\0\0\14"
+    "\25\0\10\14\0\0\0\14\0\0\0\0\0\0\0\0"
     "electron.ElectronInit"
     "app_name"
     "window_title"
@@ -444,10 +465,10 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
       _impl_.theme_source_.ClearNonDefaultToEmpty();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000078U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000f8U)) {
     ::memset(&_impl_.external_links_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.dev_tools_) -
-        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.dev_tools_));
+        reinterpret_cast<char*>(&_impl_.quit_policy_) -
+        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.quit_policy_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -538,6 +559,15 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
     }
   }
 
+  // .electron.QuitPolicy quit_policy = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_quit_policy() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          8, this_._internal_quit_policy(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -563,7 +593,7 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // string app_name = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_app_name().empty()) {
@@ -612,6 +642,13 @@ PROTOBUF_NOINLINE void ElectronInit::Clear() {
         total_size += 2;
       }
     }
+    // .electron.QuitPolicy quit_policy = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_quit_policy() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_quit_policy());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -631,7 +668,7 @@ void ElectronInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_app_name().empty()) {
         _this->_internal_set_app_name(from._internal_app_name());
@@ -679,6 +716,11 @@ void ElectronInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.dev_tools_ = from._impl_.dev_tools_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_quit_policy() != 0) {
+        _this->_impl_.quit_policy_ = from._impl_.quit_policy_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -703,8 +745,8 @@ void ElectronInit::InternalSwap(ElectronInit* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.window_title_, &other->_impl_.window_title_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.theme_source_, &other->_impl_.theme_source_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.dev_tools_)
-      + sizeof(ElectronInit::_impl_.dev_tools_)
+      PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.quit_policy_)
+      + sizeof(ElectronInit::_impl_.quit_policy_)
       - PROTOBUF_FIELD_OFFSET(ElectronInit, _impl_.external_links_)>(
           reinterpret_cast<char*>(&_impl_.external_links_),
           reinterpret_cast<char*>(&other->_impl_.external_links_));
@@ -764,9 +806,9 @@ Config::Config(
                offsetof(Impl_, external_links_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, external_links_),
-           offsetof(Impl_, dev_tools_) -
+           offsetof(Impl_, quit_policy_) -
                offsetof(Impl_, external_links_) +
-               sizeof(Impl_::dev_tools_));
+               sizeof(Impl_::quit_policy_));
 
   // @@protoc_insertion_point(copy_constructor:electron.Config)
 }
@@ -788,9 +830,9 @@ inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, external_links_),
            0,
-           offsetof(Impl_, dev_tools_) -
+           offsetof(Impl_, quit_policy_) -
                offsetof(Impl_, external_links_) +
-               sizeof(Impl_::dev_tools_));
+               sizeof(Impl_::quit_policy_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:electron.Config)
@@ -868,16 +910,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 12, 0, 130, 2>
+const ::_pbi::TcParseTable<4, 13, 0, 130, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    12, 120,  // max_field_number, fast_idx_mask
+    13, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294963200,  // skipmap
+    4294959104,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    12,  // num_field_entries
+    13,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -936,7 +978,10 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {98, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.theme_source_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.QuitPolicy quit_policy = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.quit_policy_), 12>(),
+     {104, 12, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.quit_policy_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
@@ -966,6 +1011,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.dev_tools_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string theme_source = 12;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.theme_source_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.QuitPolicy quit_policy = 13;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.quit_policy_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -1015,10 +1062,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.theme_source_.ClearNonDefaultToEmpty();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     ::memset(&_impl_.external_links_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.dev_tools_) -
-        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.dev_tools_));
+        reinterpret_cast<char*>(&_impl_.quit_policy_) -
+        reinterpret_cast<char*>(&_impl_.external_links_)) + sizeof(_impl_.quit_policy_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -1159,6 +1206,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // .electron.QuitPolicy quit_policy = 13;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_quit_policy() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          13, this_._internal_quit_policy(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1244,7 +1300,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     // .electron.ExternalLinks external_links = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_external_links() != 0) {
@@ -1270,6 +1326,13 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_dev_tools() != 0) {
         total_size += 2;
+      }
+    }
+    // .electron.QuitPolicy quit_policy = 13;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_quit_policy() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_quit_policy());
       }
     }
   }
@@ -1362,7 +1425,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_external_links() != 0) {
         _this->_impl_.external_links_ = from._impl_.external_links_;
@@ -1381,6 +1444,11 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_dev_tools() != 0) {
         _this->_impl_.dev_tools_ = from._impl_.dev_tools_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_quit_policy() != 0) {
+        _this->_impl_.quit_policy_ = from._impl_.quit_policy_;
       }
     }
   }
@@ -1412,8 +1480,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.window_title_, &other->_impl_.window_title_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.theme_source_, &other->_impl_.theme_source_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.dev_tools_)
-      + sizeof(Config::_impl_.dev_tools_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.quit_policy_)
+      + sizeof(Config::_impl_.quit_policy_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.external_links_)>(
           reinterpret_cast<char*>(&_impl_.external_links_),
           reinterpret_cast<char*>(&other->_impl_.external_links_));

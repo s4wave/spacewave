@@ -2,6 +2,8 @@ package electron
 
 import (
 	"context"
+	"io"
+	"time"
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
@@ -20,6 +22,8 @@ const ControllerID = "bldr/web/plugin/electron"
 
 // Version is the API version.
 var Version = semver.MustParse("0.0.1")
+
+const quitWaitTimeout = 2 * time.Second
 
 // RuntimeID is the runtime identifier
 const RuntimeID = "electron"
@@ -146,6 +150,10 @@ func (r *Controller) Execute(ctx context.Context) error {
 	)
 
 	err = r.bus.ExecuteController(ctx, rc)
+	if r.shouldExitWithoutRestart(err, e) {
+		r.le.Info("electron exited cleanly; stopping without restart")
+		return nil
+	}
 	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
 		r.le.WithError(err).Error("electron remote runtime exited with error")
 	} else {
@@ -153,6 +161,31 @@ func (r *Controller) Execute(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func (r *Controller) shouldExitWithoutRestart(err error, e *Electron) bool {
+	if err != io.EOF {
+		return false
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
+	defer waitCancel()
+	waitErr := e.Wait(waitCtx)
+	return shouldExitWithoutRestart(err, waitErr, r.electronInit.GetQuitPolicy())
+}
+
+func shouldExitWithoutRestart(
+	runtimeErr error,
+	processErr error,
+	quitPolicy QuitPolicy,
+) bool {
+	if runtimeErr != io.EOF {
+		return false
+	}
+	if quitPolicy != QuitPolicy_QUIT_POLICY_EXIT {
+		return false
+	}
+	return processErr == nil
 }
 
 // WaitElectron waits for the Electron object to be ready and returns it.

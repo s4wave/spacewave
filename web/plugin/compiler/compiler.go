@@ -40,6 +40,28 @@ const ControllerID = "bldr/web/plugin/compiler"
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")
 
+func getElectronQuitPolicy(
+	buildType bldr_manifest.BuildType,
+	nativeApp *NativeAppConfig,
+) electron.QuitPolicy {
+	quitPolicy := electron.QuitPolicy_QUIT_POLICY_RESTART
+	if buildType.IsRelease() {
+		quitPolicy = electron.QuitPolicy_QUIT_POLICY_EXIT
+	}
+	if nativeApp == nil {
+		return quitPolicy
+	}
+
+	switch nativeApp.GetQuitPolicy() {
+	case QuitPolicy_QUIT_POLICY_RESTART:
+		return electron.QuitPolicy_QUIT_POLICY_RESTART
+	case QuitPolicy_QUIT_POLICY_EXIT:
+		return electron.QuitPolicy_QUIT_POLICY_EXIT
+	default:
+		return quitPolicy
+	}
+}
+
 // controllerDescrip is the controller description.
 var controllerDescrip = "web runtime plugin compiler controller"
 
@@ -272,6 +294,7 @@ func (c *Controller) BundleElectronHook(
 		ElectronPath:  filepath.Join("electron", electronBinName),
 		RendererPath:  "app.asar/index.mjs",
 		ElectronFlags: extraElectronFlags,
+		QuitPolicy:    getElectronQuitPolicy(buildType, c.GetConfig().GetNativeApp()),
 	}
 
 	// Copy native app branding from compiler config to electron config.

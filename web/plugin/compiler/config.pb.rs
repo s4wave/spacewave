@@ -47,5 +47,41 @@ pub struct NativeAppConfig {
     /// Used for dev-mode branding of the extracted Electron binary.
     #[prost(string, tag="7")]
     pub icon_path: ::prost::alloc::string::String,
+    /// QuitPolicy configures whether user quit should restart or exit.
+    #[prost(enumeration="QuitPolicy", tag="8")]
+    pub quit_policy: i32,
+}
+/// QuitPolicy configures how native desktop runtimes should behave on user quit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum QuitPolicy {
+    /// QUIT_POLICY_UNSPECIFIED lets the compiler pick the default for the build.
+    Unspecified = 0,
+    /// QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+    Restart = 1,
+    /// QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+    Exit = 2,
+}
+impl QuitPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "QUIT_POLICY_UNSPECIFIED",
+            Self::Restart => "QUIT_POLICY_RESTART",
+            Self::Exit => "QUIT_POLICY_EXIT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "QUIT_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "QUIT_POLICY_RESTART" => Some(Self::Restart),
+            "QUIT_POLICY_EXIT" => Some(Self::Exit),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

@@ -30,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -58,6 +59,8 @@ namespace bldr {
 namespace web {
 namespace plugin {
 namespace compiler {
+enum QuitPolicy : int;
+extern const uint32_t QuitPolicy_internal_data_[];
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
@@ -72,6 +75,9 @@ extern const ::google::protobuf::internal::ClassDataFull NativeAppConfig_class_d
 }  // namespace bldr
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::bldr::web::plugin::compiler::QuitPolicy_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::web::plugin::compiler::QuitPolicy>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -79,6 +85,43 @@ namespace bldr {
 namespace web {
 namespace plugin {
 namespace compiler {
+enum QuitPolicy : int {
+  QUIT_POLICY_UNSPECIFIED = 0,
+  QUIT_POLICY_RESTART = 1,
+  QUIT_POLICY_EXIT = 2,
+  QuitPolicy_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  QuitPolicy_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t QuitPolicy_internal_data_[];
+inline constexpr QuitPolicy QuitPolicy_MIN =
+    static_cast<QuitPolicy>(0);
+inline constexpr QuitPolicy QuitPolicy_MAX =
+    static_cast<QuitPolicy>(2);
+inline bool QuitPolicy_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int QuitPolicy_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL QuitPolicy_descriptor();
+template <typename T>
+const ::std::string& QuitPolicy_Name(T value) {
+  static_assert(::std::is_same<T, QuitPolicy>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to QuitPolicy_Name().");
+  return QuitPolicy_Name(static_cast<QuitPolicy>(value));
+}
+template <>
+inline const ::std::string& QuitPolicy_Name(QuitPolicy value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<QuitPolicy_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool QuitPolicy_Parse(
+    ::absl::string_view name, QuitPolicy* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<QuitPolicy>(QuitPolicy_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -234,6 +277,7 @@ class NativeAppConfig final : public ::google::protobuf::Message
     kWindowWidthFieldNumber = 3,
     kWindowHeightFieldNumber = 4,
     kDevToolsFieldNumber = 5,
+    kQuitPolicyFieldNumber = 8,
   };
   // string app_name = 1;
   void clear_app_name() ;
@@ -325,12 +369,22 @@ class NativeAppConfig final : public ::google::protobuf::Message
   void _internal_set_dev_tools(bool value);
 
   public:
+  // .bldr.web.plugin.compiler.QuitPolicy quit_policy = 8;
+  void clear_quit_policy() ;
+  ::bldr::web::plugin::compiler::QuitPolicy quit_policy() const;
+  void set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value);
+
+  private:
+  ::bldr::web::plugin::compiler::QuitPolicy _internal_quit_policy() const;
+  void _internal_set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.plugin.compiler.NativeAppConfig)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   0, 90,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   0, 98,
                                    2>
       _table_;
 
@@ -358,6 +412,7 @@ class NativeAppConfig final : public ::google::protobuf::Message
     ::uint32_t window_width_;
     ::uint32_t window_height_;
     bool dev_tools_;
+    int quit_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1261,6 +1316,31 @@ inline void NativeAppConfig::set_allocated_icon_path(::std::string* PROTOBUF_NUL
   // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.compiler.NativeAppConfig.icon_path)
 }
 
+// .bldr.web.plugin.compiler.QuitPolicy quit_policy = 8;
+inline void NativeAppConfig::clear_quit_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::quit_policy() const {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.compiler.NativeAppConfig.quit_policy)
+  return _internal_quit_policy();
+}
+inline void NativeAppConfig::set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value) {
+  _internal_set_quit_policy(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.compiler.NativeAppConfig.quit_policy)
+}
+inline ::bldr::web::plugin::compiler::QuitPolicy NativeAppConfig::_internal_quit_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::web::plugin::compiler::QuitPolicy>(_impl_.quit_policy_);
+}
+inline void NativeAppConfig::_internal_set_quit_policy(::bldr::web::plugin::compiler::QuitPolicy value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quit_policy_ = value;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -1271,6 +1351,19 @@ inline void NativeAppConfig::set_allocated_icon_path(::std::string* PROTOBUF_NUL
 }  // namespace web
 }  // namespace bldr
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::bldr::web::plugin::compiler::QuitPolicy> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::web::plugin::compiler::QuitPolicy>() {
+  return ::bldr::web::plugin::compiler::QuitPolicy_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

@@ -39,6 +39,41 @@ export const ExternalLinks_Enum = createEnumType('electron.ExternalLinks', [
 ])
 
 /**
+ * QuitPolicy configures how the Electron runtime behaves on user quit.
+ *
+ * @generated from enum electron.QuitPolicy
+ */
+export enum QuitPolicy {
+  /**
+   * QUIT_POLICY_UNSPECIFIED lets the caller choose the runtime default.
+   *
+   * @generated from enum value: QUIT_POLICY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+   *
+   * @generated from enum value: QUIT_POLICY_RESTART = 1;
+   */
+  RESTART = 1,
+
+  /**
+   * QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+   *
+   * @generated from enum value: QUIT_POLICY_EXIT = 2;
+   */
+  EXIT = 2,
+}
+
+// QuitPolicy_Enum is the enum type for QuitPolicy.
+export const QuitPolicy_Enum = createEnumType('electron.QuitPolicy', [
+  { no: 0, name: 'QUIT_POLICY_UNSPECIFIED' },
+  { no: 1, name: 'QUIT_POLICY_RESTART' },
+  { no: 2, name: 'QUIT_POLICY_EXIT' },
+])
+
+/**
  * ElectronInit is passed from Go to the Electron main process on startup.
  *
  * @generated from message electron.ElectronInit
@@ -86,6 +121,12 @@ export interface ElectronInit {
    * @generated from field: string theme_source = 7;
    */
   themeSource?: string
+  /**
+   * QuitPolicy configures whether user quit should restart or exit.
+   *
+   * @generated from field: electron.QuitPolicy quit_policy = 8;
+   */
+  quitPolicy?: QuitPolicy
 }
 
 // ElectronInit contains the message type declaration for ElectronInit.
@@ -99,6 +140,7 @@ export const ElectronInit: MessageType<ElectronInit> = createMessageType({
     { no: 5, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 6, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -187,6 +229,12 @@ export interface Config {
    * @generated from field: string theme_source = 12;
    */
   themeSource?: string
+  /**
+   * QuitPolicy configures whether user quit should restart or exit.
+   *
+   * @generated from field: electron.QuitPolicy quit_policy = 13;
+   */
+  quitPolicy?: QuitPolicy
 }
 
 // Config contains the message type declaration for Config.
@@ -211,6 +259,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 11, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
     { no: 12, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+    { no: 13, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

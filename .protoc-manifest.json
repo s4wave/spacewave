@@ -831,7 +831,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/plugin/compiler": {
-      "hash": "29654bd35297ee6d5a4b21954bb2b5267d31491501270f62e16efea944ff0487",
+      "hash": "5e5dbd2ddde89364d1eb1c2c3518e621a1ed7b40c2fdce56dff13b375e73d6db",
       "generatedFiles": [
         "web/plugin/compiler/config.pb.cc",
         "web/plugin/compiler/config.pb.go",
@@ -857,7 +857,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/plugin/electron": {
-      "hash": "916bb0b3c399e4e9812874ff15c247f3fe12a48c9d72e8ee563c2c8513cee93d",
+      "hash": "a0ed4d3812a5e4566f14edf519a49dec1e94d80bc3ed5ba0a40861b5b982cc3e",
       "generatedFiles": [
         "web/plugin/electron/electron.pb.cc",
         "web/plugin/electron/electron.pb.go",

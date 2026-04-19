@@ -9,6 +9,16 @@ enum ExternalLinks {
   EXTERNAL_LINKS_DENY = 1;
 }
 
+// QuitPolicy configures how the Electron runtime behaves on user quit.
+enum QuitPolicy {
+  // QUIT_POLICY_UNSPECIFIED lets the caller choose the runtime default.
+  QUIT_POLICY_UNSPECIFIED = 0;
+  // QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+  QUIT_POLICY_RESTART = 1;
+  // QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+  QUIT_POLICY_EXIT = 2;
+}
+
 // ElectronInit is passed from Go to the Electron main process on startup.
 message ElectronInit {
   // ExternalLinks configures how external links are handled.
@@ -25,6 +35,8 @@ message ElectronInit {
   bool dev_tools = 6;
   // ThemeSource sets native theme ("dark", "light", "system").
   string theme_source = 7;
+  // QuitPolicy configures whether user quit should restart or exit.
+  QuitPolicy quit_policy = 8;
 }
 
 // Config is the configuration for the electron runtime.
@@ -65,4 +77,6 @@ message Config {
   bool dev_tools = 11;
   // ThemeSource sets native theme ("dark", "light", "system").
   string theme_source = 12;
+  // QuitPolicy configures whether user quit should restart or exit.
+  QuitPolicy quit_policy = 13;
 }

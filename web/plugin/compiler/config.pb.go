@@ -15,6 +15,46 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// QuitPolicy configures how native desktop runtimes should behave on user quit.
+type QuitPolicy int32
+
+const (
+	// QUIT_POLICY_UNSPECIFIED lets the compiler pick the default for the build.
+	QuitPolicy_QUIT_POLICY_UNSPECIFIED QuitPolicy = 0
+	// QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+	QuitPolicy_QUIT_POLICY_RESTART QuitPolicy = 1
+	// QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+	QuitPolicy_QUIT_POLICY_EXIT QuitPolicy = 2
+)
+
+// Enum value maps for QuitPolicy.
+var (
+	QuitPolicy_name = map[int32]string{
+		0: "QUIT_POLICY_UNSPECIFIED",
+		1: "QUIT_POLICY_RESTART",
+		2: "QUIT_POLICY_EXIT",
+	}
+	QuitPolicy_value = map[string]int32{
+		"QUIT_POLICY_UNSPECIFIED": 0,
+		"QUIT_POLICY_RESTART":     1,
+		"QUIT_POLICY_EXIT":        2,
+	}
+)
+
+func (x QuitPolicy) Enum() *QuitPolicy {
+	p := new(QuitPolicy)
+	*p = x
+	return p
+}
+
+func (x QuitPolicy) String() string {
+	name, valid := QuitPolicy_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Config configures the web plugin builder.
 type Config struct {
 	unknownFields []byte
@@ -86,6 +126,8 @@ type NativeAppConfig struct {
 	// IconPath is the path to the application icon PNG (relative to project root).
 	// Used for dev-mode branding of the extracted Electron binary.
 	IconPath string `protobuf:"bytes,7,opt,name=icon_path,json=iconPath,proto3" json:"iconPath,omitempty"`
+	// QuitPolicy configures whether user quit should restart or exit.
+	QuitPolicy QuitPolicy `protobuf:"varint,8,opt,name=quit_policy,json=quitPolicy,proto3" json:"quitPolicy,omitempty"`
 }
 
 func (x *NativeAppConfig) Reset() {
@@ -143,6 +185,13 @@ func (x *NativeAppConfig) GetIconPath() string {
 	return ""
 }
 
+func (x *NativeAppConfig) GetQuitPolicy() QuitPolicy {
+	if x != nil {
+		return x.QuitPolicy
+	}
+	return QuitPolicy_QUIT_POLICY_UNSPECIFIED
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -174,6 +223,7 @@ func (m *NativeAppConfig) CloneVT() *NativeAppConfig {
 	r.DevTools = m.DevTools
 	r.ThemeSource = m.ThemeSource
 	r.IconPath = m.IconPath
+	r.QuitPolicy = m.QuitPolicy
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -240,6 +290,9 @@ func (this *NativeAppConfig) EqualVT(that *NativeAppConfig) bool {
 	if this.IconPath != that.IconPath {
 		return false
 	}
+	if this.QuitPolicy != that.QuitPolicy {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -249,6 +302,46 @@ func (this *NativeAppConfig) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the QuitPolicy to JSON.
+func (x QuitPolicy) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), QuitPolicy_name)
+}
+
+// MarshalText marshals the QuitPolicy to text.
+func (x QuitPolicy) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), QuitPolicy_name)), nil
+}
+
+// MarshalJSON marshals the QuitPolicy to JSON.
+func (x QuitPolicy) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QuitPolicy from JSON.
+func (x *QuitPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(QuitPolicy_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read QuitPolicy enum: %v", err)
+		return
+	}
+	*x = QuitPolicy(v)
+}
+
+// UnmarshalText unmarshals the QuitPolicy from text.
+func (x *QuitPolicy) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), QuitPolicy_value)
+	if err != nil {
+		return err
+	}
+	*x = QuitPolicy(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the QuitPolicy from JSON.
+func (x *QuitPolicy) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -364,6 +457,11 @@ func (x *NativeAppConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("iconPath")
 		s.WriteString(x.IconPath)
 	}
+	if x.QuitPolicy != 0 || s.HasField("quitPolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quitPolicy")
+		x.QuitPolicy.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -402,6 +500,9 @@ func (x *NativeAppConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "icon_path", "iconPath":
 			s.AddField("icon_path")
 			x.IconPath = s.ReadString()
+		case "quit_policy", "quitPolicy":
+			s.AddField("quit_policy")
+			x.QuitPolicy.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -504,6 +605,11 @@ func (m *NativeAppConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.QuitPolicy != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuitPolicy))
+		i--
+		dAtA[i] = 0x40
 	}
 	if len(m.IconPath) > 0 {
 		i -= len(m.IconPath)
@@ -613,8 +719,15 @@ func (m *NativeAppConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.QuitPolicy != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.QuitPolicy))
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x QuitPolicy) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -707,6 +820,15 @@ func (x *NativeAppConfig) MarshalProtoText() string {
 		}
 		sb.WriteString("icon_path: ")
 		sb.WriteString(strconv.Quote(x.IconPath))
+	}
+	if x.QuitPolicy != 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quit_policy: ")
+		sb.WriteString("\"")
+		sb.WriteString(QuitPolicy(x.QuitPolicy).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -991,6 +1113,17 @@ func (m *NativeAppConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.IconPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuitPolicy", wireType)
+			}
+			m.QuitPolicy = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.QuitPolicy = QuitPolicy(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

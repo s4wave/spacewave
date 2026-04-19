@@ -51,6 +51,46 @@ func (x ExternalLinks) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// QuitPolicy configures how the Electron runtime behaves on user quit.
+type QuitPolicy int32
+
+const (
+	// QUIT_POLICY_UNSPECIFIED lets the caller choose the runtime default.
+	QuitPolicy_QUIT_POLICY_UNSPECIFIED QuitPolicy = 0
+	// QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+	QuitPolicy_QUIT_POLICY_RESTART QuitPolicy = 1
+	// QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+	QuitPolicy_QUIT_POLICY_EXIT QuitPolicy = 2
+)
+
+// Enum value maps for QuitPolicy.
+var (
+	QuitPolicy_name = map[int32]string{
+		0: "QUIT_POLICY_UNSPECIFIED",
+		1: "QUIT_POLICY_RESTART",
+		2: "QUIT_POLICY_EXIT",
+	}
+	QuitPolicy_value = map[string]int32{
+		"QUIT_POLICY_UNSPECIFIED": 0,
+		"QUIT_POLICY_RESTART":     1,
+		"QUIT_POLICY_EXIT":        2,
+	}
+)
+
+func (x QuitPolicy) Enum() *QuitPolicy {
+	p := new(QuitPolicy)
+	*p = x
+	return p
+}
+
+func (x QuitPolicy) String() string {
+	name, valid := QuitPolicy_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // ElectronInit is passed from Go to the Electron main process on startup.
 type ElectronInit struct {
 	unknownFields []byte
@@ -68,6 +108,8 @@ type ElectronInit struct {
 	DevTools bool `protobuf:"varint,6,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
 	// ThemeSource sets native theme ("dark", "light", "system").
 	ThemeSource string `protobuf:"bytes,7,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
+	// QuitPolicy configures whether user quit should restart or exit.
+	QuitPolicy QuitPolicy `protobuf:"varint,8,opt,name=quit_policy,json=quitPolicy,proto3" json:"quitPolicy,omitempty"`
 }
 
 func (x *ElectronInit) Reset() {
@@ -125,6 +167,13 @@ func (x *ElectronInit) GetThemeSource() string {
 	return ""
 }
 
+func (x *ElectronInit) GetQuitPolicy() QuitPolicy {
+	if x != nil {
+		return x.QuitPolicy
+	}
+	return QuitPolicy_QUIT_POLICY_UNSPECIFIED
+}
+
 // Config is the configuration for the electron runtime.
 type Config struct {
 	unknownFields []byte
@@ -158,6 +207,8 @@ type Config struct {
 	DevTools bool `protobuf:"varint,11,opt,name=dev_tools,json=devTools,proto3" json:"devTools,omitempty"`
 	// ThemeSource sets native theme ("dark", "light", "system").
 	ThemeSource string `protobuf:"bytes,12,opt,name=theme_source,json=themeSource,proto3" json:"themeSource,omitempty"`
+	// QuitPolicy configures whether user quit should restart or exit.
+	QuitPolicy QuitPolicy `protobuf:"varint,13,opt,name=quit_policy,json=quitPolicy,proto3" json:"quitPolicy,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -250,6 +301,13 @@ func (x *Config) GetThemeSource() string {
 	return ""
 }
 
+func (x *Config) GetQuitPolicy() QuitPolicy {
+	if x != nil {
+		return x.QuitPolicy
+	}
+	return QuitPolicy_QUIT_POLICY_UNSPECIFIED
+}
+
 func (m *ElectronInit) CloneVT() *ElectronInit {
 	if m == nil {
 		return (*ElectronInit)(nil)
@@ -262,6 +320,7 @@ func (m *ElectronInit) CloneVT() *ElectronInit {
 	r.WindowHeight = m.WindowHeight
 	r.DevTools = m.DevTools
 	r.ThemeSource = m.ThemeSource
+	r.QuitPolicy = m.QuitPolicy
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -288,6 +347,7 @@ func (m *Config) CloneVT() *Config {
 	r.WindowHeight = m.WindowHeight
 	r.DevTools = m.DevTools
 	r.ThemeSource = m.ThemeSource
+	r.QuitPolicy = m.QuitPolicy
 	if rhs := m.ElectronFlags; rhs != nil {
 		r.ElectronFlags = slices.Clone(rhs)
 	}
@@ -326,6 +386,9 @@ func (this *ElectronInit) EqualVT(that *ElectronInit) bool {
 		return false
 	}
 	if this.ThemeSource != that.ThemeSource {
+		return false
+	}
+	if this.QuitPolicy != that.QuitPolicy {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -387,6 +450,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.ThemeSource != that.ThemeSource {
 		return false
 	}
+	if this.QuitPolicy != that.QuitPolicy {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -438,6 +504,46 @@ func (x *ExternalLinks) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the QuitPolicy to JSON.
+func (x QuitPolicy) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), QuitPolicy_name)
+}
+
+// MarshalText marshals the QuitPolicy to text.
+func (x QuitPolicy) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), QuitPolicy_name)), nil
+}
+
+// MarshalJSON marshals the QuitPolicy to JSON.
+func (x QuitPolicy) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QuitPolicy from JSON.
+func (x *QuitPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(QuitPolicy_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read QuitPolicy enum: %v", err)
+		return
+	}
+	*x = QuitPolicy(v)
+}
+
+// UnmarshalText unmarshals the QuitPolicy from text.
+func (x *QuitPolicy) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), QuitPolicy_value)
+	if err != nil {
+		return err
+	}
+	*x = QuitPolicy(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the QuitPolicy from JSON.
+func (x *QuitPolicy) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ElectronInit message to JSON.
 func (x *ElectronInit) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -481,6 +587,11 @@ func (x *ElectronInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("themeSource")
 		s.WriteString(x.ThemeSource)
 	}
+	if x.QuitPolicy != 0 || s.HasField("quitPolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quitPolicy")
+		x.QuitPolicy.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -519,6 +630,9 @@ func (x *ElectronInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "theme_source", "themeSource":
 			s.AddField("theme_source")
 			x.ThemeSource = s.ReadString()
+		case "quit_policy", "quitPolicy":
+			s.AddField("quit_policy")
+			x.QuitPolicy.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -596,6 +710,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("themeSource")
 		s.WriteString(x.ThemeSource)
 	}
+	if x.QuitPolicy != 0 || s.HasField("quitPolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quitPolicy")
+		x.QuitPolicy.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -653,6 +772,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "theme_source", "themeSource":
 			s.AddField("theme_source")
 			x.ThemeSource = s.ReadString()
+		case "quit_policy", "quitPolicy":
+			s.AddField("quit_policy")
+			x.QuitPolicy.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -691,6 +813,11 @@ func (m *ElectronInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.QuitPolicy != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuitPolicy))
+		i--
+		dAtA[i] = 0x40
 	}
 	if len(m.ThemeSource) > 0 {
 		i -= len(m.ThemeSource)
@@ -770,6 +897,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.QuitPolicy != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuitPolicy))
+		i--
+		dAtA[i] = 0x68
 	}
 	if len(m.ThemeSource) > 0 {
 		i -= len(m.ThemeSource)
@@ -887,6 +1019,9 @@ func (m *ElectronInit) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.QuitPolicy != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.QuitPolicy))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -943,11 +1078,18 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.QuitPolicy != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.QuitPolicy))
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
 func (x ExternalLinks) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x QuitPolicy) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1004,6 +1146,15 @@ func (x *ElectronInit) MarshalProtoText() string {
 		}
 		sb.WriteString("theme_source: ")
 		sb.WriteString(strconv.Quote(x.ThemeSource))
+	}
+	if x.QuitPolicy != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quit_policy: ")
+		sb.WriteString("\"")
+		sb.WriteString(QuitPolicy(x.QuitPolicy).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1107,6 +1258,15 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("theme_source: ")
 		sb.WriteString(strconv.Quote(x.ThemeSource))
+	}
+	if x.QuitPolicy != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quit_policy: ")
+		sb.WriteString("\"")
+		sb.WriteString(QuitPolicy(x.QuitPolicy).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1243,6 +1403,17 @@ func (m *ElectronInit) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ThemeSource = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuitPolicy", wireType)
+			}
+			m.QuitPolicy = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.QuitPolicy = QuitPolicy(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1503,6 +1674,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ThemeSource = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuitPolicy", wireType)
+			}
+			m.QuitPolicy = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.QuitPolicy = QuitPolicy(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
