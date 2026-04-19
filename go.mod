@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.26.0
 
-replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260402175306-bb66efc41c1e // fix-os-js
+replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260408202010-24d71a16cdcb // fix-os-js
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.5 // master
@@ -18,7 +18,6 @@ replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 // aperture
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe // aperture
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
-	github.com/ncruces/go-sqlite3 => github.com/paralin/ncruces-go-sqlite3 v0.0.0-20260401074639-d457cedd05d9 // fix-wasm
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 

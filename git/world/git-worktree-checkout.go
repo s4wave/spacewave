@@ -2,10 +2,12 @@ package git_world
 
 import (
 	"context"
+	"os"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	git_block "github.com/aperturerobotics/hydra/git/block"
+	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-git/v6"
@@ -71,31 +73,80 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 		return false, err
 	}
 
-	return false, AccessWorldObjectRepoWithWorktree(
+	workdirRef, err := WorktreeLookupWorkdirRef(ctx, worldHandle, objKey)
+	if err != nil {
+		return false, err
+	}
+	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(
 		ctx,
 		le,
 		worldHandle,
-		repoObjKey, objKey,
-		ts, true,
 		sender,
-		func(repo *git.Repository, workDir billy.Filesystem) error {
-			wt, err := repo.Worktree()
+		workdirRef,
+		true,
+		false,
+		ts,
+	)
+	if err != nil {
+		return false, err
+	}
+	defer wdFsHandle.Release()
+
+	var checkoutDir string
+	defer func() {
+		if checkoutDir != "" {
+			_ = os.RemoveAll(checkoutDir)
+		}
+	}()
+
+	_, _, err = AccessWorldObjectWorktree(
+		ctx,
+		worldHandle,
+		objKey,
+		true,
+		nil,
+		func(bcs *block.Cursor, worktree *Worktree) error {
+			bcs.SetBlock(worktree, true)
+			hrs, err := worktree.FollowHeadRefStore(bcs)
 			if err != nil {
 				return err
 			}
-
-			if checkoutOpts.Branch == "" && checkoutOpts.Hash.IsZero() {
-				// checkout the HEAD
-				href, err := repo.Head()
-				if err != nil {
-					return err
-				}
-				checkoutOpts.Branch = href.Name()
-			}
-
-			return wt.Checkout(checkoutOpts)
+			checkoutDir, err = materializeRepoToTempWorkdir(
+				ctx,
+				worldHandle,
+				repoObjKey,
+				true,
+				worktree,
+				hrs,
+				wdFsHandle,
+				func(repo *git.Repository, _ billy.Filesystem) error {
+					if err := checkoutRepoWorktree(repo, checkoutOpts); err != nil {
+						return err
+					}
+					idx, err := repo.Storer.Index()
+					if err != nil {
+						return err
+					}
+					return worktree.SetIndex(idx)
+				},
+			)
+			return err
 		},
 	)
+	if err != nil {
+		return false, err
+	}
+	if err := syncFSToUnixfsRefBatch(
+		ctx,
+		worldHandle,
+		workdirRef,
+		sender,
+		ts,
+		os.DirFS(checkoutDir),
+	); err != nil {
+		return false, err
+	}
+	return false, nil
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.

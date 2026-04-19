@@ -129,9 +129,25 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 		handles: make(map[uint64]*handleEntry),
 	}
 
+	// Register the session and snapshot the current mount table so we can
+	// seed the session with MOUNT_NOTIFY frames for pre-registered mounts.
 	s.mtx.Lock()
 	s.sessions[sess] = struct{}{}
+	seed := make([]*V86FsMessage, 0, len(s.mounts))
+	for _, entry := range s.mounts {
+		seed = append(seed, &V86FsMessage{
+			Body: &V86FsMessage_MountNotify{
+				MountNotify: &V86FsMountNotify{
+					Name:      entry.Name,
+					MountPath: entry.Path,
+				},
+			},
+		})
+	}
 	s.mtx.Unlock()
+	for _, msg := range seed {
+		sess.queueNotification(msg)
+	}
 
 	defer func() {
 		s.mtx.Lock()

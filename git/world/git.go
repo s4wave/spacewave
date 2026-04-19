@@ -2,6 +2,7 @@ package git_world
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -257,6 +258,9 @@ func AccessWorldObjectRepoWithWorktree(
 
 	// access worktree object
 	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(bcs *block.Cursor, wt *Worktree) error {
+		if updateWorld {
+			bcs.SetBlock(wt, true)
+		}
 		// access repo
 		hrs, err := wt.FollowHeadRefStore(bcs)
 		if err != nil {
@@ -306,21 +310,17 @@ func CreateWorldObjectWorktree(
 		}
 	}
 
-	// open the workdir fs
-	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, createWorkdir, true, ts)
-	if err != nil {
-		return err
-	}
-	defer wdFsHandle.Release()
-
-	// construct billy fs
-	wdBfs := unixfs_billy.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
-
 	// create worktree
 	wtree := &Worktree{}
 
 	// checkout
 	disableCheckout := checkoutOpts == nil
+	var checkoutDir string
+	defer func() {
+		if checkoutDir != "" {
+			_ = os.RemoveAll(checkoutDir)
+		}
+	}()
 
 	// create worktree object
 	_, _, err = world.AccessWorldObject(ctx, ws, worktreeObjKey, true, func(bcs *block.Cursor) error {
@@ -332,33 +332,27 @@ func CreateWorldObjectWorktree(
 			if err != nil {
 				return err
 			}
-			_, _, err = AccessWorldObjectRepo(
+			checkoutDir, err = materializeRepoToTempWorkdir(
 				ctx,
 				ws,
-				repoObjKey, false,
+				repoObjKey,
+				true,
 				wtree,
-				wdBfs,
 				hrs,
-				func(repo *git.Repository) error {
-					wt, err := repo.Worktree()
-					if err != nil {
-						return err
-					}
-
-					if checkoutOpts.Branch == "" && checkoutOpts.Hash.IsZero() {
-						// checkout the HEAD
-						href, err := repo.Head()
-						if err != nil {
-							return errors.Wrap(err, "head")
-						}
-						checkoutOpts.Branch = href.Name()
-					}
-
+				nil,
+				func(repo *git.Repository, _ billy.Filesystem) error {
 					if le != nil {
 						le.Infof("checkout: branch=%s hash=%s", checkoutOpts.Branch, checkoutOpts.Hash)
 					}
-					if err := wt.Checkout(checkoutOpts); err != nil {
+					if err := checkoutRepoWorktree(repo, checkoutOpts); err != nil {
 						return errors.Wrapf(err, "checkout branch %s", checkoutOpts.Branch)
+					}
+					idx, err := repo.Storer.Index()
+					if err != nil {
+						return err
+					}
+					if err := wtree.SetIndex(idx); err != nil {
+						return err
 					}
 					return nil
 				},
@@ -371,6 +365,18 @@ func CreateWorldObjectWorktree(
 	})
 	if err != nil {
 		return err
+	}
+	if checkoutDir != "" {
+		if err := syncFSToUnixfsRefBatch(
+			ctx,
+			ws,
+			workdirRef,
+			sender,
+			ts,
+			os.DirFS(checkoutDir),
+		); err != nil {
+			return err
+		}
 	}
 
 	// worktree type -> types/git/worktree
