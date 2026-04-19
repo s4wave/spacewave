@@ -312,8 +312,8 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 	// the non-prefixed vars because some older tooling reads those.
 	var extraEnv []string
 	if np, ok := plat.(*bldr_platform.NativePlatform); ok {
-		nodePlat := goosToNodePlatform(np.GetGOOS())
-		nodeArch := goarchToNodeArch(np.GetGOARCH())
+		nodePlat := npm.GOOSToNodePlatform(np.GetGOOS())
+		nodeArch := npm.GOARCHToNodeArch(np.GetGOARCH())
 		if nodePlat != "" {
 			extraEnv = append(extraEnv, "npm_config_platform="+nodePlat)
 		}
@@ -362,33 +362,3 @@ func GetElectronBinName(plat bldr_platform.Platform) string {
 	}
 }
 
-// goosToNodePlatform maps a Go GOOS value to the corresponding Node.js
-// process.platform value used by @electron/get and other npm install-time
-// platform hooks. Returns "" for GOOS values with no Node equivalent.
-func goosToNodePlatform(goos string) string {
-	switch goos {
-	case "windows":
-		return "win32"
-	case "darwin", "linux", "freebsd", "openbsd", "aix", "sunos":
-		return goos
-	default:
-		return ""
-	}
-}
-
-// goarchToNodeArch maps a Go GOARCH value to the corresponding Node.js
-// process.arch value. Electron ships redistributables for a subset; values
-// not in that subset are returned as-is and will surface as a download
-// failure from @electron/get rather than a silent host-arch fallback.
-func goarchToNodeArch(goarch string) string {
-	switch goarch {
-	case "amd64":
-		return "x64"
-	case "386":
-		return "ia32"
-	case "arm64", "arm", "mips", "mipsel", "ppc64", "s390x":
-		return goarch
-	default:
-		return goarch
-	}
-}
