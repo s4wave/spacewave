@@ -215,7 +215,7 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 	}
 
 	// Run rcedit via bunx to set exe metadata.
-	cmd, err := npm.BunX(ctx, le, stateDir, "@electron/rcedit", rceditArgs...)
+	cmd, err := npm.BunX(ctx, le, stateDir, "rcedit", rceditArgs...)
 	if err != nil {
 		le.WithError(err).Warn("rcedit setup failed, skipping metadata edit")
 	} else if err := exec.StartAndWait(ctx, le, cmd); err != nil {
@@ -239,6 +239,9 @@ func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, de
 	if err != nil {
 		return errors.Wrap(err, "setup png-to-ico")
 	}
+	// NewCmd presets Stdout to os.Stdout; clear it so Output() can bind its
+	// own buffer (Cmd.Output refuses to run when Stdout is already set).
+	cmd.Stdout = nil
 	outData, err := cmd.Output()
 	if err != nil {
 		return errors.Wrap(err, "run png-to-ico")
