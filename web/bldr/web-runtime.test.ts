@@ -37,6 +37,36 @@ describe('WebRuntime', () => {
     expect(runtime.lookupClient('electron-init')).toBeNull()
   })
 
+  it('closes descendant streams when invalidating a client generation', () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const { port1 } = new MessageChannel()
+
+    runtime.handleClient(
+      {
+        clientUuid: 'electron-init-gen-1',
+        logicalClientId: 'electron-init',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      port1,
+    )
+
+    const client = runtime.lookupClient('electron-init') as {
+      childStreams: Set<{ close: (err?: Error) => void }>
+    } | null
+    expect(client).not.toBeNull()
+
+    const close = vi.fn()
+    client!.childStreams.add({ close })
+
+    runtime.invalidateClient(
+      'electron-init',
+      new Error('navigation started: app://index.html'),
+    )
+
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(close.mock.calls[0]?.[0]).toBeInstanceOf(Error)
+  })
+
   it('routes generated runtime clients through a stable logical id', async () => {
     const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const { port1 } = new MessageChannel()

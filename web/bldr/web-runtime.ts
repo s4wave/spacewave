@@ -62,6 +62,11 @@ class WebRuntimeClientInstance {
   private closed?: true
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
+  // childStreams are the RPC streams opened through this client connection.
+  // They must be closed when the parent client is invalidated or replaced,
+  // otherwise Go-side document/view controllers stay stuck on orphaned streams
+  // until their idle timeout fires.
+  private readonly childStreams = new Set<{ close: (err?: Error) => void }>()
 
   // isClosed checks if the instance is closed.
   public get isClosed(): boolean {
@@ -191,6 +196,18 @@ class WebRuntimeClientInstance {
       this.abortController = undefined
     }
 
+    const streamErr = new Error(
+      `WebRuntimeClientInstance closed: ${this.init.clientUuid ?? this.clientId}`,
+    )
+    for (const stream of this.childStreams) {
+      try {
+        stream.close(streamErr)
+      } catch {
+        // ignored
+      }
+    }
+    this.childStreams.clear()
+
     this._resolveWaitClosed!()
     try {
       this.port.close()
@@ -244,6 +261,7 @@ class WebRuntimeClientInstance {
       ...WebRuntimeClientChannelStreamOpts,
       remoteOpen: true,
     })
+    this.childStreams.add(channelStream)
     try {
       let streamPromise: Promise<PacketStream>
       switch (this.init.clientType) {
@@ -270,7 +288,9 @@ class WebRuntimeClientInstance {
       pipe(channelStream, stream, channelStream)
         .catch((err) => channelStream.close(err))
         .then(() => channelStream.close())
+        .finally(() => this.childStreams.delete(channelStream))
     } catch (errAny) {
+      this.childStreams.delete(channelStream)
       const err = castToError(errAny, 'open stream failed')
       channelStream.close(err)
     }
