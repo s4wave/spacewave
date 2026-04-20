@@ -8,7 +8,7 @@ require (
 	github.com/aperturerobotics/common v0.32.3 // latest
 	github.com/aperturerobotics/controllerbus v0.53.1 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
-	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // master
+	github.com/aperturerobotics/go-multiaddr v0.17.0 // master
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect
@@ -41,18 +41,15 @@ require (
 )
 
 require (
+	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/ipfs/go-cid v0.0.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
-	github.com/multiformats/go-base32 v0.1.0 // indirect
-	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
