@@ -303,24 +303,13 @@ func setNoCacheHeaders(hdr http.Header) {
 
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
 func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
-	// access the fs with unixfs_access, return not found if the fs is not available
-	ctx, ctxCancel := context.WithCancel(req.Context())
-	defer ctxCancel()
-
 	c.le.
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin dist filesystem")
 	// see: plugin/host/controller/plugin-tracker.go distFsID
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
-	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
-	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
-	if err != nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("bldr: request failed: " + err.Error()))
-		return
-	}
-	defer relHandler()
+	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
 	// set headers preventing caching
 	// TODO: tell ServiceWorker to flush cache when plugin is updated!
@@ -331,24 +320,13 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 
 // ServePluginAssetsFsHTTP serves a HTTP request for a plugin assets filesystem.
 func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
-	// access the fs with unixfs_access, return not found if the fs is not available
-	ctx, ctxCancel := context.WithCancel(req.Context())
-	defer ctxCancel()
-
 	c.le.
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin assets filesystem")
 	// see: plugin/host/controller/plugin-tracker.go assetsFsID
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
-	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
-	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
-	if err != nil {
-		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("bldr: request failed: " + err.Error()))
-		return
-	}
-	defer relHandler()
+	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
 	// Content-hashed filenames change on every rebuild so the old path
 	// becomes a 404 if cached.  Disable caching to match /b/pd/ behavior.

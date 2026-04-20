@@ -20,6 +20,11 @@ type storeFetchedManifestsKey struct {
 	refIndex int
 }
 
+type directFetchCandidate struct {
+	ref  *bldr_manifest.ManifestRef
+	host bldr_plugin_host.PluginHost
+}
+
 // execute executes the tracker.
 func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *pluginHostSet) error {
 	// wait for hosts set
@@ -183,8 +188,9 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 	platformIDsMap := hosts.toPlatformIDsMap()
 
 	selectBest := func() {
-		var bestRef *bldr_manifest.ManifestRef
-		var bestHost bldr_plugin_host.PluginHost
+		var best *directFetchCandidate
+		var current *directFetchCandidate
+		currentState := t.executePluginRoutine.GetState()
 		for _, refs := range allRefs {
 			for _, ref := range refs {
 				meta := ref.GetMeta()
@@ -192,25 +198,41 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 				if !ok || host == nil {
 					continue
 				}
-				if bestRef == nil || meta.GetRev() > bestRef.GetMeta().GetRev() {
-					bestRef = ref
-					bestHost = host
+				candidate := &directFetchCandidate{
+					ref:  ref,
+					host: host,
+				}
+				if current == nil && directFetchCandidateMatchesState(candidate, currentState) {
+					current = candidate
+				}
+				if best == nil || directFetchCandidateBetter(candidate, best) {
+					best = candidate
 				}
 			}
 		}
 
-		if bestRef != nil {
+		if current != nil && (best == nil || current.ref.GetMeta().GetRev() >= best.ref.GetMeta().GetRev()) {
+			best = current
+		}
+
+		if best != nil {
 			snapshot := &bldr_manifest.ManifestSnapshot{
-				ManifestRef: bestRef.GetManifestRef(),
+				ManifestRef: best.ref.GetManifestRef(),
 			}
 			if !t.c.conf.GetDisableCopyManifest() {
 				t.downloadManifestRoutine.SetState(snapshot)
 			}
 			t.executePluginRoutine.SetState(&executePluginArgs{
 				manifestSnapshot: snapshot,
-				pluginHost:       bestHost,
+				pluginHost:       best.host,
 			})
 			t.loggedNotFound.Store(false)
+			return
+		}
+
+		if len(allRefs) == 0 &&
+			(t.executePluginRoutine.GetState() != nil || t.downloadManifestRoutine.GetState() != nil) {
+			t.le.Debug("preserving current plugin target while fetched manifest refs are temporarily empty")
 			return
 		}
 
@@ -244,4 +266,35 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 		},
 		nil, nil,
 	)
+}
+
+func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
+	if current == nil {
+		return true
+	}
+
+	candidateRev := candidate.ref.GetMeta().GetRev()
+	currentRev := current.ref.GetMeta().GetRev()
+	if candidateRev != currentRev {
+		return candidateRev > currentRev
+	}
+
+	candidateRef := candidate.ref.String()
+	currentRef := current.ref.String()
+	if candidateRef != currentRef {
+		return candidateRef > currentRef
+	}
+
+	return candidate.host.GetPlatformId() > current.host.GetPlatformId()
+}
+
+func directFetchCandidateMatchesState(candidate *directFetchCandidate, currentState *executePluginArgs) bool {
+	if currentState == nil || currentState.pluginHost != candidate.host {
+		return false
+	}
+	if currentState.manifestSnapshot == nil || currentState.manifestSnapshot.GetManifestRef() == nil {
+		return false
+	}
+
+	return currentState.manifestSnapshot.GetManifestRef().EqualVT(candidate.ref.GetManifestRef())
 }
