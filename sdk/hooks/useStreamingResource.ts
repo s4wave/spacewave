@@ -57,7 +57,7 @@ export function useStreamingResource<P, T>(
 
   return useMemo(
     () => ({
-      value: parent.loading ? null : value,
+      value,
       loading: parent.loading || loading,
       error: parent.error ?? error,
       retry: parent.error ? parent.retry : retry,

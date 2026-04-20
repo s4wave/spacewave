@@ -171,11 +171,7 @@ function useParentState(parents: Resource<unknown>[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     parentRetries,
   )
-  // Check if any parent has null value (but isn't loading or errored)
-  // This indicates parent is in a transitional state and we should wait
-  const hasNullParentValue = values.some((v) => v === null)
-
-  return { values, loading, error, retries, hasNullParentValue }
+  return { values, loading, error, retries }
 }
 
 // callFactory invokes the factory function with appropriate arguments.
@@ -523,7 +519,31 @@ export function useResource<T>(
   }, [devtools, trackingId, state.loading, state.error, state.value])
 
   useEffect(() => {
-    if (!enabled || parent.loading || parent.values.some((v) => v === null)) {
+    if (!enabled) {
+      setState((prev) =>
+        prev.value === null && !prev.loading && prev.error === null ?
+          prev
+        : {
+            value: null,
+            loading: false,
+            error: null,
+          },
+      )
+      return
+    }
+    if (parent.values.some((v) => v === null)) {
+      setState((prev) =>
+        prev.value === null && prev.loading === parent.loading ?
+          prev
+        : {
+            value: null,
+            loading: parent.loading,
+            error: null,
+          },
+      )
+      return
+    }
+    if (parent.loading) {
       return
     }
 
@@ -640,27 +660,11 @@ export function useResource<T>(
     state.loading,
   ])
 
-  // Determine if we should hide stale data:
-  // - When we have a pending factory change (our own deps changed)
-  // - When parent values changed but effect hasn't processed them yet
-  // - When parent has null value but isn't loading/errored (parent in transition)
-  const parentWaitingForData =
-    parent.hasNullParentValue && !parent.loading && !parent.error
-
-  const shouldHideStaleData =
-    hasPendingFactoryChange || hasPendingParentChange || parentWaitingForData
-
   return useMemo(
     () => ({
-      value: enabled && !shouldHideStaleData ? state.value : null,
-      loading:
-        enabled && (parent.loading || effectiveLoading || parentWaitingForData),
-      // Parent error should always propagate immediately, regardless of pending state.
-      // Own errors should only show when not hiding stale data.
-      error:
-        enabled ?
-          parent.error || (!shouldHideStaleData ? state.error : null)
-        : null,
+      value: enabled ? state.value : null,
+      loading: enabled && (parent.loading || effectiveLoading),
+      error: enabled ? parent.error || state.error : null,
       retry,
       __devtools: devtools ? { id: trackingId } : undefined,
     }),
@@ -674,8 +678,6 @@ export function useResource<T>(
       retry,
       devtools,
       trackingId,
-      shouldHideStaleData,
-      parentWaitingForData,
     ],
   )
 }
