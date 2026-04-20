@@ -8,12 +8,9 @@ import { ChannelStream, type PacketStream, type ChannelStreamOpts } from 'starpc
 import type { CrossTabBrokerMessage } from './cross-tab-broker.js'
 
 // CrossTabChannelStreamOpts configures ChannelStreams for cross-tab channels.
-// Higher timeouts than intra-tab since cross-tab involves more latency and
-// background tabs may be throttled by the browser.
-const CrossTabChannelStreamOpts: ChannelStreamOpts = {
-  keepAliveMs: 15000,
-  idleTimeoutMs: 90000,
-}
+// Cross-tab peers already have explicit broker lifecycle messages; leave idle
+// watchdogs disabled so background throttling does not tear down quiet streams.
+const CrossTabChannelStreamOpts: ChannelStreamOpts = {}
 
 // CrossTabManager receives brokered MessagePorts from the ServiceWorker
 // and maintains direct channels to peer tabs.

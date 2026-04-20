@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
-import { WebRuntime } from './web-runtime.js'
+import { WebRuntime, WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 describe('WebRuntime', () => {
+  it('allows web runtime streams to stay idle', () => {
+    expect(WebRuntimeClientChannelStreamOpts.keepAliveMs).toBeUndefined()
+    expect(WebRuntimeClientChannelStreamOpts.idleTimeoutMs).toBeUndefined()
+  })
+
   it('rejects pending waiters when a client is invalidated', async () => {
     const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const waitForClient = runtime.waitForClient('electron-init')

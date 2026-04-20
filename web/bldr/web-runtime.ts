@@ -45,11 +45,10 @@ import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
 
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
-export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
-  // web browser might suspend background tabs!
-  keepAliveMs: 12420,
-  idleTimeoutMs: 60500,
-} as const
+// Runtime/client invalidation already has explicit teardown paths. Leave
+// watchdog timeouts disabled so quiet streams can stay idle without surfacing
+// spurious ERR_STREAM_IDLE errors when browser timers are throttled.
+export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {}
 
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
@@ -65,7 +64,7 @@ class WebRuntimeClientInstance {
   // childStreams are the RPC streams opened through this client connection.
   // They must be closed when the parent client is invalidated or replaced,
   // otherwise Go-side document/view controllers stay stuck on orphaned streams
-  // until their idle timeout fires.
+  // after the parent client generation is gone.
   private readonly childStreams = new Set<{ close: (err?: Error) => void }>()
 
   // isClosed checks if the instance is closed.
