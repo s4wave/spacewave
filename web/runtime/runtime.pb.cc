@@ -65,6 +65,9 @@ inline constexpr WebRuntimeClientInit::Impl_::Impl_(
         client_uuid_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        logical_client_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         client_type_{static_cast< ::web::runtime::WebRuntimeClientType >(0)},
         disable_web_locks_{false} {}
 
@@ -320,15 +323,17 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_.web_runtime_id_),
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_.client_uuid_),
+        PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_.logical_client_id_),
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_.client_type_),
         PROTOBUF_FIELD_OFFSET(::web::runtime::WebRuntimeClientInit, _impl_.disable_web_locks_),
         0,
         1,
         2,
         3,
+        4,
 };
 
 static const ::_pbi::MigrationSchema
@@ -370,35 +375,36 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "eWebDocumentResponse\022\017\n\007created\030\001 \001(\010\"&\n"
     "\030RemoveWebDocumentRequest\022\n\n\002id\030\001 \001(\t\",\n"
     "\031RemoveWebDocumentResponse\022\017\n\007removed\030\001 "
-    "\001(\010\"\226\001\n\024WebRuntimeClientInit\022\026\n\016web_runt"
-    "ime_id\030\001 \001(\t\022\023\n\013client_uuid\030\002 \001(\t\0226\n\013cli"
-    "ent_type\030\003 \001(\0162!.web.runtime.WebRuntimeC"
-    "lientType\022\031\n\021disable_web_locks\030\004 \001(\010*\255\001\n"
-    "\024WebRuntimeClientType\022 \n\034WebRuntimeClien"
-    "tType_UNKNOWN\020\000\022%\n!WebRuntimeClientType_"
-    "WEB_DOCUMENT\020\001\022\'\n#WebRuntimeClientType_S"
-    "ERVICE_WORKER\020\002\022#\n\037WebRuntimeClientType_"
-    "WEB_WORKER\020\003*[\n\013WebRenderer\022\030\n\024WEB_RENDE"
-    "RER_DEFAULT\020\000\022\031\n\025WEB_RENDERER_ELECTRON\020\001"
-    "\022\027\n\023WEB_RENDERER_SAUCER\020\0022\372\001\n\016WebRuntime"
-    "Host\022L\n\016WebDocumentRpc\022\032.rpcstream.RpcSt"
-    "reamPacket\032\032.rpcstream.RpcStreamPacket(\001"
-    "0\001\022N\n\020ServiceWorkerRpc\022\032.rpcstream.RpcSt"
-    "reamPacket\032\032.rpcstream.RpcStreamPacket(\001"
-    "0\001\022J\n\014WebWorkerRpc\022\032.rpcstream.RpcStream"
-    "Packet\032\032.rpcstream.RpcStreamPacket(\0010\0012\323"
-    "\003\n\nWebRuntime\022c\n\025WatchWebRuntimeStatus\022)"
-    ".web.runtime.WatchWebRuntimeStatusReques"
-    "t\032\035.web.runtime.WebRuntimeStatus0\001\022b\n\021Cr"
-    "eateWebDocument\022%.web.runtime.CreateWebD"
-    "ocumentRequest\032&.web.runtime.CreateWebDo"
-    "cumentResponse\022b\n\021RemoveWebDocument\022%.we"
-    "b.runtime.RemoveWebDocumentRequest\032&.web"
-    ".runtime.RemoveWebDocumentResponse\022L\n\016We"
-    "bDocumentRpc\022\032.rpcstream.RpcStreamPacket"
-    "\032\032.rpcstream.RpcStreamPacket(\0010\001\022J\n\014WebW"
-    "orkerRpc\022\032.rpcstream.RpcStreamPacket\032\032.r"
-    "pcstream.RpcStreamPacket(\0010\001b\006proto3"
+    "\001(\010\"\261\001\n\024WebRuntimeClientInit\022\026\n\016web_runt"
+    "ime_id\030\001 \001(\t\022\023\n\013client_uuid\030\002 \001(\t\022\031\n\021log"
+    "ical_client_id\030\005 \001(\t\0226\n\013client_type\030\003 \001("
+    "\0162!.web.runtime.WebRuntimeClientType\022\031\n\021"
+    "disable_web_locks\030\004 \001(\010*\255\001\n\024WebRuntimeCl"
+    "ientType\022 \n\034WebRuntimeClientType_UNKNOWN"
+    "\020\000\022%\n!WebRuntimeClientType_WEB_DOCUMENT\020"
+    "\001\022\'\n#WebRuntimeClientType_SERVICE_WORKER"
+    "\020\002\022#\n\037WebRuntimeClientType_WEB_WORKER\020\003*"
+    "[\n\013WebRenderer\022\030\n\024WEB_RENDERER_DEFAULT\020\000"
+    "\022\031\n\025WEB_RENDERER_ELECTRON\020\001\022\027\n\023WEB_RENDE"
+    "RER_SAUCER\020\0022\372\001\n\016WebRuntimeHost\022L\n\016WebDo"
+    "cumentRpc\022\032.rpcstream.RpcStreamPacket\032\032."
+    "rpcstream.RpcStreamPacket(\0010\001\022N\n\020Service"
+    "WorkerRpc\022\032.rpcstream.RpcStreamPacket\032\032."
+    "rpcstream.RpcStreamPacket(\0010\001\022J\n\014WebWork"
+    "erRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcs"
+    "tream.RpcStreamPacket(\0010\0012\323\003\n\nWebRuntime"
+    "\022c\n\025WatchWebRuntimeStatus\022).web.runtime."
+    "WatchWebRuntimeStatusRequest\032\035.web.runti"
+    "me.WebRuntimeStatus0\001\022b\n\021CreateWebDocume"
+    "nt\022%.web.runtime.CreateWebDocumentReques"
+    "t\032&.web.runtime.CreateWebDocumentRespons"
+    "e\022b\n\021RemoveWebDocument\022%.web.runtime.Rem"
+    "oveWebDocumentRequest\032&.web.runtime.Remo"
+    "veWebDocumentResponse\022L\n\016WebDocumentRpc\022"
+    "\032.rpcstream.RpcStreamPacket\032\032.rpcstream."
+    "RpcStreamPacket(\0010\001\022J\n\014WebWorkerRpc\022\032.rp"
+    "cstream.RpcStreamPacket\032\032.rpcstream.RpcS"
+    "treamPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto_deps[1] = {
@@ -408,7 +414,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto = {
     false,
     false,
-    1716,
+    1743,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto,
     "github.com/aperturerobotics/bldr/web/runtime/runtime.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fruntime_2fruntime_2eproto_once,
@@ -2603,7 +2609,8 @@ PROTOBUF_NDEBUG_INLINE WebRuntimeClientInit::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         web_runtime_id_(arena, from.web_runtime_id_),
-        client_uuid_(arena, from.client_uuid_) {}
+        client_uuid_(arena, from.client_uuid_),
+        logical_client_id_(arena, from.logical_client_id_) {}
 
 WebRuntimeClientInit::WebRuntimeClientInit(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2633,7 +2640,8 @@ PROTOBUF_NDEBUG_INLINE WebRuntimeClientInit::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         web_runtime_id_(arena),
-        client_uuid_(arena) {}
+        client_uuid_(arena),
+        logical_client_id_(arena) {}
 
 inline void WebRuntimeClientInit::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -2657,6 +2665,7 @@ inline void WebRuntimeClientInit::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.web_runtime_id_.Destroy();
   this_._impl_.client_uuid_.Destroy();
+  this_._impl_.logical_client_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -2703,16 +2712,16 @@ WebRuntimeClientInit::GetClassData() const {
   return WebRuntimeClientInit_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 66, 2>
+const ::_pbi::TcParseTable<3, 5, 0, 83, 2>
 WebRuntimeClientInit::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     WebRuntimeClientInit_class_data_.base(),
@@ -2722,10 +2731,7 @@ WebRuntimeClientInit::_table_ = {
     ::_pbi::TcParser::GetTable<::web::runtime::WebRuntimeClientInit>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool disable_web_locks = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebRuntimeClientInit, _impl_.disable_web_locks_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.disable_web_locks_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string web_runtime_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -2735,9 +2741,19 @@ WebRuntimeClientInit::_table_ = {
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.client_uuid_)}},
     // .web.runtime.WebRuntimeClientType client_type = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WebRuntimeClientInit, _impl_.client_type_), 2>(),
-     {24, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WebRuntimeClientInit, _impl_.client_type_), 3>(),
+     {24, 3, 0,
       PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.client_type_)}},
+    // bool disable_web_locks = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebRuntimeClientInit, _impl_.disable_web_locks_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.disable_web_locks_)}},
+    // string logical_client_id = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.logical_client_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2746,16 +2762,19 @@ WebRuntimeClientInit::_table_ = {
     // string client_uuid = 2;
     {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.client_uuid_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .web.runtime.WebRuntimeClientType client_type = 3;
-    {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.client_type_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.client_type_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bool disable_web_locks = 4;
-    {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.disable_web_locks_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.disable_web_locks_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string logical_client_id = 5;
+    {PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.logical_client_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\40\16\13\0\0\0\0\0"
+    "\40\16\13\0\0\21\0\0"
     "web.runtime.WebRuntimeClientInit"
     "web_runtime_id"
     "client_uuid"
+    "logical_client_id"
   }},
 };
 PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
@@ -2766,15 +2785,18 @@ PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.web_runtime_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.client_uuid_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.logical_client_id_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
     ::memset(&_impl_.client_type_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.disable_web_locks_) -
         reinterpret_cast<char*>(&_impl_.client_type_)) + sizeof(_impl_.disable_web_locks_));
@@ -2823,7 +2845,7 @@ PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
   }
 
   // .web.runtime.WebRuntimeClientType client_type = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_client_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -2832,11 +2854,21 @@ PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
   }
 
   // bool disable_web_locks = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_disable_web_locks() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           4, this_._internal_disable_web_locks(), target);
+    }
+  }
+
+  // string logical_client_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_logical_client_id().empty()) {
+      const ::std::string& _s = this_._internal_logical_client_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "web.runtime.WebRuntimeClientInit.logical_client_id");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
 
@@ -2865,7 +2897,7 @@ PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // string web_runtime_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_web_runtime_id().empty()) {
@@ -2880,15 +2912,22 @@ PROTOBUF_NOINLINE void WebRuntimeClientInit::Clear() {
                                         this_._internal_client_uuid());
       }
     }
-    // .web.runtime.WebRuntimeClientType client_type = 3;
+    // string logical_client_id = 5;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_logical_client_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_logical_client_id());
+      }
+    }
+    // .web.runtime.WebRuntimeClientType client_type = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_client_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_client_type());
       }
     }
     // bool disable_web_locks = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_disable_web_locks() != 0) {
         total_size += 2;
       }
@@ -2912,7 +2951,7 @@ void WebRuntimeClientInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_web_runtime_id().empty()) {
         _this->_internal_set_web_runtime_id(from._internal_web_runtime_id());
@@ -2932,11 +2971,20 @@ void WebRuntimeClientInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_logical_client_id().empty()) {
+        _this->_internal_set_logical_client_id(from._internal_logical_client_id());
+      } else {
+        if (_this->_impl_.logical_client_id_.IsDefault()) {
+          _this->_internal_set_logical_client_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_client_type() != 0) {
         _this->_impl_.client_type_ = from._impl_.client_type_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_disable_web_locks() != 0) {
         _this->_impl_.disable_web_locks_ = from._impl_.disable_web_locks_;
       }
@@ -2963,6 +3011,7 @@ void WebRuntimeClientInit::InternalSwap(WebRuntimeClientInit* PROTOBUF_RESTRICT 
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_runtime_id_, &other->_impl_.web_runtime_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.client_uuid_, &other->_impl_.client_uuid_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.logical_client_id_, &other->_impl_.logical_client_id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(WebRuntimeClientInit, _impl_.disable_web_locks_)
       + sizeof(WebRuntimeClientInit::_impl_.disable_web_locks_)

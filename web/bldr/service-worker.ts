@@ -4,6 +4,7 @@ import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
+import { randomId } from './random-id.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
@@ -15,7 +16,8 @@ declare let BLDR_DEBUG: boolean
 declare let self: ServiceWorkerGlobalScope
 
 // note: logs don't appear in console in firefox
-const serviceWorkerId = `service-worker-${self.location.host.replace(/:/g, '-')}`
+const serviceWorkerLogicalId = `service-worker-${self.location.host.replace(/:/g, '-')}`
+const serviceWorkerId = `${serviceWorkerLogicalId}-${randomId()}`
 
 // baseURL is the base URL to use for paths.
 const baseURL = new URL(self.location.toString())
@@ -32,13 +34,13 @@ const onWebDocumentsExhausted = async () => {
   if (BLDR_DEBUG) {
     console.log(
       'ServiceWorker: %s: notifying %d clients we want a connection',
-      serviceWorkerId,
+      serviceWorkerLogicalId,
       currClients.length,
     )
   }
   for (const client of currClients) {
     client.postMessage(<ServiceWorkerToWebDocument>{
-      from: serviceWorkerId,
+      from: serviceWorkerLogicalId,
       init: true,
     })
   }
@@ -51,6 +53,8 @@ const webDocumentTracker = new WebDocumentTracker(
   onWebDocumentsExhausted,
   // We don't support calling the ServiceWorker from WebDocument.
   null,
+  null,
+  serviceWorkerLogicalId,
 )
 
 // webRuntimeClient manages the connection to the WebRuntime.

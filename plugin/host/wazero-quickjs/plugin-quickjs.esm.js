@@ -8035,6 +8035,12 @@ createMessageType({
     { no: 1, name: "web_runtime_id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "client_uuid", kind: "scalar", T: ScalarType.STRING },
     {
+      no: 5,
+      name: "logical_client_id",
+      kind: "scalar",
+      T: ScalarType.STRING
+    },
+    {
       no: 3,
       name: "client_type",
       kind: "enum",

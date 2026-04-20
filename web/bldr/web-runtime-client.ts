@@ -37,6 +37,7 @@ export class WebRuntimeClient {
     private handleIncomingStream: HandleStreamFunc | null,
     private handleDisconnected: HandleDisconnectedFn | null,
     private disableWebLocks?: boolean,
+    private logicalClientId?: string,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
   }
@@ -120,6 +121,7 @@ export class WebRuntimeClient {
     const port = await this.openClientCh({
       webRuntimeId: this.webRuntimeId,
       clientUuid: this.clientId,
+      logicalClientId: this.logicalClientId,
       clientType: this.clientType,
       disableWebLocks: this.disableWebLocks,
     })

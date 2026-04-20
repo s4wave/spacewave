@@ -273,6 +273,9 @@ export class BldrElectronApp {
     }
 
     nwindow.loadURL(url)
+    if (webDocumentId) {
+      this.attachWebDocumentWindowLifecycle(webDocumentId, nwindow)
+    }
 
     // Handle navigation to external URLs (clicked links)
     nwindow.webContents.on('will-navigate', (event, targetUrl) => {
@@ -331,14 +334,6 @@ export class BldrElectronApp {
         const popoutDocId = `popout-${Date.now()}`
         const popoutWindow = this.createWindow(popoutDocId, hash)
         this.browserWindows[popoutDocId] = popoutWindow
-
-        popoutWindow.on('closed', () => {
-          if (this.browserWindows[popoutDocId] === popoutWindow) {
-            this.abortWebDocumentFetches(popoutDocId)
-            delete this.browserWindows[popoutDocId]
-            this.webRuntime.removeConnection(popoutDocId)
-          }
-        })
       } catch {
         // Invalid URL, deny
       }
@@ -350,14 +345,47 @@ export class BldrElectronApp {
     return nwindow
   }
 
+  // attachWebDocumentWindowLifecycle invalidates runtime clients for window teardown and reload.
+  private attachWebDocumentWindowLifecycle(
+    webDocumentId: string,
+    nwindow: electron.BrowserWindow,
+  ) {
+    const state = { invalidated: false }
+    const invalidate = (reason: string) => {
+      if (state.invalidated) {
+        return
+      }
+      state.invalidated = true
+      const err = new Error(reason)
+      this.abortWebDocumentFetches(webDocumentId, reason)
+      this.webRuntime.invalidateClient(webDocumentId, err)
+    }
+
+    nwindow.webContents.on('did-start-navigation', (details) => {
+      if (!details.isMainFrame || details.isSameDocument) {
+        return
+      }
+      invalidate(`navigation started: ${details.url}`)
+    })
+    nwindow.webContents.on('render-process-gone', (_event, details) => {
+      invalidate(`renderer gone: ${details.reason}`)
+    })
+    nwindow.on('closed', () => {
+      invalidate(`window closed: ${webDocumentId}`)
+      if (this.browserWindows[webDocumentId] === nwindow) {
+        delete this.browserWindows[webDocumentId]
+      }
+    })
+  }
+
   // abortWebDocumentFetches aborts in-flight proxied fetches for a WebDocument.
-  private abortWebDocumentFetches(webDocumentId?: string) {
+  private abortWebDocumentFetches(webDocumentId?: string, reason?: string) {
     if (!webDocumentId) {
       return
     }
     this.fetchTracker.abortClient(
       webDocumentId,
-      new Error(`web document closed: ${webDocumentId}`),
+      new Error(reason ?? `web document closed: ${webDocumentId}`),
     )
   }
 
@@ -381,13 +409,6 @@ export class BldrElectronApp {
     }
     const nwindow = this.createWindow(id)
     this.browserWindows[id] = nwindow
-    nwindow.on('closed', () => {
-      if (this.browserWindows[id] === nwindow) {
-        this.abortWebDocumentFetches(id)
-        delete this.browserWindows[id]
-        this.webRuntime.removeConnection(id)
-      }
-    })
     return { created: true }
   }
 

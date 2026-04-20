@@ -339,6 +339,13 @@ export interface WebRuntimeClientInit {
    */
   clientUuid?: string
   /**
+   * LogicalClientId is the stable routing identifier for the client.
+   * If unset, the runtime falls back to client_uuid.
+   *
+   * @generated from field: string logical_client_id = 5;
+   */
+  logicalClientId?: string
+  /**
    * ClientType is the type of the client.
    *
    * @generated from field: web.runtime.WebRuntimeClientType client_type = 3;
@@ -360,6 +367,12 @@ export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
     fields: [
       { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'client_uuid', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'logical_client_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
       {
         no: 3,
         name: 'client_type',

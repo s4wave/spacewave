@@ -305,6 +305,9 @@ type WebRuntimeClientInit struct {
 	//
 	// must be set
 	ClientUuid string `protobuf:"bytes,2,opt,name=client_uuid,json=clientUuid,proto3" json:"clientUuid,omitempty"`
+	// LogicalClientId is the stable routing identifier for the client.
+	// If unset, the runtime falls back to client_uuid.
+	LogicalClientId string `protobuf:"bytes,5,opt,name=logical_client_id,json=logicalClientId,proto3" json:"logicalClientId,omitempty"`
 	// ClientType is the type of the client.
 	ClientType WebRuntimeClientType `protobuf:"varint,3,opt,name=client_type,json=clientType,proto3" json:"clientType,omitempty"`
 	// DisableWebLocks disables Web Locks API for disconnect detection.
@@ -328,6 +331,13 @@ func (x *WebRuntimeClientInit) GetWebRuntimeId() string {
 func (x *WebRuntimeClientInit) GetClientUuid() string {
 	if x != nil {
 		return x.ClientUuid
+	}
+	return ""
+}
+
+func (x *WebRuntimeClientInit) GetLogicalClientId() string {
+	if x != nil {
+		return x.LogicalClientId
 	}
 	return ""
 }
@@ -489,6 +499,7 @@ func (m *WebRuntimeClientInit) CloneVT() *WebRuntimeClientInit {
 	r := new(WebRuntimeClientInit)
 	r.WebRuntimeId = m.WebRuntimeId
 	r.ClientUuid = m.ClientUuid
+	r.LogicalClientId = m.LogicalClientId
 	r.ClientType = m.ClientType
 	r.DisableWebLocks = m.DisableWebLocks
 	if len(m.unknownFields) > 0 {
@@ -700,6 +711,9 @@ func (this *WebRuntimeClientInit) EqualVT(that *WebRuntimeClientInit) bool {
 		return false
 	}
 	if this.DisableWebLocks != that.DisableWebLocks {
+		return false
+	}
+	if this.LogicalClientId != that.LogicalClientId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1198,6 +1212,11 @@ func (x *WebRuntimeClientInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableWebLocks")
 		s.WriteBool(x.DisableWebLocks)
 	}
+	if x.LogicalClientId != "" || s.HasField("logicalClientId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("logicalClientId")
+		s.WriteString(x.LogicalClientId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1227,6 +1246,9 @@ func (x *WebRuntimeClientInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_web_locks", "disableWebLocks":
 			s.AddField("disable_web_locks")
 			x.DisableWebLocks = s.ReadBool()
+		case "logical_client_id", "logicalClientId":
+			s.AddField("logical_client_id")
+			x.LogicalClientId = s.ReadString()
 		}
 	})
 }
@@ -1630,6 +1652,13 @@ func (m *WebRuntimeClientInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.LogicalClientId) > 0 {
+		i -= len(m.LogicalClientId)
+		copy(dAtA[i:], m.LogicalClientId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LogicalClientId)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.DisableWebLocks {
 		i--
 		if m.DisableWebLocks {
@@ -1801,6 +1830,10 @@ func (m *WebRuntimeClientInit) SizeVT() (n int) {
 	}
 	if m.DisableWebLocks {
 		n += 2
+	}
+	l = len(m.LogicalClientId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2017,6 +2050,13 @@ func (x *WebRuntimeClientInit) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_web_locks: ")
 		sb.WriteString(strconv.FormatBool(x.DisableWebLocks))
+	}
+	if x.LogicalClientId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("logical_client_id: ")
+		sb.WriteString(strconv.Quote(x.LogicalClientId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2643,6 +2683,28 @@ func (m *WebRuntimeClientInit) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableWebLocks = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LogicalClientId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LogicalClientId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

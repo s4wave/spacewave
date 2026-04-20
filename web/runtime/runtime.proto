@@ -141,6 +141,9 @@ message WebRuntimeClientInit {
   //
   // must be set
   string client_uuid = 2;
+  // LogicalClientId is the stable routing identifier for the client.
+  // If unset, the runtime falls back to client_uuid.
+  string logical_client_id = 5;
   // ClientType is the type of the client.
   WebRuntimeClientType client_type = 3;
   // DisableWebLocks disables Web Locks API for disconnect detection.

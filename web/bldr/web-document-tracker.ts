@@ -57,6 +57,7 @@ export class WebDocumentTracker {
     private readonly onAllWebDocumentsClosed?:
       | (() => Promise<void> | void)
       | null,
+    logicalClientId?: string,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -67,6 +68,8 @@ export class WebDocumentTracker {
       this.openWebRuntimeClient.bind(this),
       handleIncomingStream,
       null,
+      undefined,
+      logicalClientId,
     )
   }
 

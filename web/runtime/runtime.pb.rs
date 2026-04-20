@@ -85,6 +85,10 @@ pub struct WebRuntimeClientInit {
     /// must be set
     #[prost(string, tag="2")]
     pub client_uuid: ::prost::alloc::string::String,
+    /// LogicalClientId is the stable routing identifier for the client.
+    /// If unset, the runtime falls back to client_uuid.
+    #[prost(string, tag="5")]
+    pub logical_client_id: ::prost::alloc::string::String,
     /// ClientType is the type of the client.
     #[prost(enumeration="WebRuntimeClientType", tag="3")]
     pub client_type: i32,

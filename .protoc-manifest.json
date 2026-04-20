@@ -940,7 +940,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/web/runtime": {
-      "hash": "b3d2858355c8444f7a4814ad3928c162c38975f51a4e4fe1a4fad7aca4151d77",
+      "hash": "63ea35e6aefa0ce77a4fe38d9aa82a5d496698919114c99454e4185e0e7b6afc",
       "generatedFiles": [
         "web/runtime/runtime.pb.cc",
         "web/runtime/runtime.pb.go",

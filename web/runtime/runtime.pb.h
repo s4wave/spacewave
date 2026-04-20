@@ -534,6 +534,7 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
   enum : int {
     kWebRuntimeIdFieldNumber = 1,
     kClientUuidFieldNumber = 2,
+    kLogicalClientIdFieldNumber = 5,
     kClientTypeFieldNumber = 3,
     kDisableWebLocksFieldNumber = 4,
   };
@@ -567,6 +568,21 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_client_uuid();
 
   public:
+  // string logical_client_id = 5;
+  void clear_logical_client_id() ;
+  const ::std::string& logical_client_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_logical_client_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_logical_client_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_logical_client_id();
+  void set_allocated_logical_client_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_logical_client_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_logical_client_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_logical_client_id();
+
+  public:
   // .web.runtime.WebRuntimeClientType client_type = 3;
   void clear_client_type() ;
   ::web::runtime::WebRuntimeClientType client_type() const;
@@ -591,8 +607,8 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 66,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 83,
                                    2>
       _table_;
 
@@ -615,6 +631,7 @@ class WebRuntimeClientInit final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr web_runtime_id_;
     ::google::protobuf::internal::ArenaStringPtr client_uuid_;
+    ::google::protobuf::internal::ArenaStringPtr logical_client_id_;
     int client_type_;
     bool disable_web_locks_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -2613,12 +2630,77 @@ inline void WebRuntimeClientInit::set_allocated_client_uuid(::std::string* PROTO
   // @@protoc_insertion_point(field_set_allocated:web.runtime.WebRuntimeClientInit.client_uuid)
 }
 
+// string logical_client_id = 5;
+inline void WebRuntimeClientInit::clear_logical_client_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.logical_client_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& WebRuntimeClientInit::logical_client_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:web.runtime.WebRuntimeClientInit.logical_client_id)
+  return _internal_logical_client_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WebRuntimeClientInit::set_logical_client_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.logical_client_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:web.runtime.WebRuntimeClientInit.logical_client_id)
+}
+inline ::std::string* PROTOBUF_NONNULL WebRuntimeClientInit::mutable_logical_client_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_logical_client_id();
+  // @@protoc_insertion_point(field_mutable:web.runtime.WebRuntimeClientInit.logical_client_id)
+  return _s;
+}
+inline const ::std::string& WebRuntimeClientInit::_internal_logical_client_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.logical_client_id_.Get();
+}
+inline void WebRuntimeClientInit::_internal_set_logical_client_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.logical_client_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WebRuntimeClientInit::_internal_mutable_logical_client_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.logical_client_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WebRuntimeClientInit::release_logical_client_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:web.runtime.WebRuntimeClientInit.logical_client_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.logical_client_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.logical_client_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WebRuntimeClientInit::set_allocated_logical_client_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.logical_client_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.logical_client_id_.IsDefault()) {
+    _impl_.logical_client_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:web.runtime.WebRuntimeClientInit.logical_client_id)
+}
+
 // .web.runtime.WebRuntimeClientType client_type = 3;
 inline void WebRuntimeClientInit::clear_client_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.client_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline ::web::runtime::WebRuntimeClientType WebRuntimeClientInit::client_type() const {
   // @@protoc_insertion_point(field_get:web.runtime.WebRuntimeClientInit.client_type)
@@ -2626,7 +2708,7 @@ inline ::web::runtime::WebRuntimeClientType WebRuntimeClientInit::client_type() 
 }
 inline void WebRuntimeClientInit::set_client_type(::web::runtime::WebRuntimeClientType value) {
   _internal_set_client_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:web.runtime.WebRuntimeClientInit.client_type)
 }
 inline ::web::runtime::WebRuntimeClientType WebRuntimeClientInit::_internal_client_type() const {
@@ -2643,7 +2725,7 @@ inline void WebRuntimeClientInit::clear_disable_web_locks() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_web_locks_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool WebRuntimeClientInit::disable_web_locks() const {
   // @@protoc_insertion_point(field_get:web.runtime.WebRuntimeClientInit.disable_web_locks)
@@ -2651,7 +2733,7 @@ inline bool WebRuntimeClientInit::disable_web_locks() const {
 }
 inline void WebRuntimeClientInit::set_disable_web_locks(bool value) {
   _internal_set_disable_web_locks(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:web.runtime.WebRuntimeClientInit.disable_web_locks)
 }
 inline bool WebRuntimeClientInit::_internal_disable_web_locks() const {

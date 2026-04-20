@@ -457,6 +457,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webDocumentUuid is the unique id of this instance & attached worker.
   // this ID identifies this TypeScript WebDocument class object.
   public readonly webDocumentUuid: string
+  // webRuntimeClientId is the runtime-client identity for this page incarnation.
+  public readonly webRuntimeClientId: string
 
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
@@ -551,6 +553,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (isSaucer) {
       this.isSaucer = true
     }
+    this.webRuntimeClientId =
+      this.isElectron ? `${this.webDocumentUuid}-${randomId()}` : this.webDocumentUuid
     this.webViews = {}
     this.webWorkers = {}
     if (opts?.disableStoragePersist) {
@@ -618,12 +622,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     } else {
       this.webRuntimeClient = new WebRuntimeClient(
         this.webRuntimeId,
-        this.webDocumentUuid,
+        this.webRuntimeClientId,
         WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
         this.openWebRuntimeClient.bind(this),
         this.handleWebRuntimeOpenStream.bind(this),
         this.handleWebRuntimeClientDisconnected.bind(this),
         this.isElectron,
+        this.webDocumentUuid,
       )
     }
 

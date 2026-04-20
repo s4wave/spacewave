@@ -68,6 +68,11 @@ class WebRuntimeClientInstance {
     return this.closed ?? false
   }
 
+  // clientId returns the stable logical id used for routing and ownership.
+  public get clientId(): string {
+    return this.host.getClientId(this.init)
+  }
+
   constructor(
     private readonly host: WebRuntime,
     public readonly port: MessagePort,
@@ -192,7 +197,7 @@ class WebRuntimeClientInstance {
     } finally {
       const clientUuid = this.init.clientUuid ?? ''
       console.log(`WebRuntime: client connection removed: ${clientUuid}`)
-      this.host.removeConnection(clientUuid)
+      this.host.removeConnection(this.clientId)
     }
   }
 
@@ -244,17 +249,17 @@ class WebRuntimeClientInstance {
       switch (this.init.clientType) {
         case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
           streamPromise = this.host.openWebDocumentHostStream(
-            this.init.clientUuid ?? '',
+            this.clientId,
           )
           break
         case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
           streamPromise = this.host.openServiceWorkerHostStream(
-            this.init.clientUuid ?? '',
+            this.clientId,
           )
           break
         case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
           streamPromise = this.host.openWebWorkerHostStream(
-            this.init.clientUuid ?? '',
+            this.clientId,
           )
           break
         default:
@@ -478,6 +483,11 @@ export class WebRuntime {
     return this.clients[webRuntimeId] ?? null
   }
 
+  // getClientId returns the stable logical id for a runtime client init.
+  public getClientId(init: WebRuntimeClientInit): string {
+    return init.logicalClientId || init.clientUuid || ''
+  }
+
   // waitForClient waits for a client with the given ID to register.
   // Returns immediately if the client is already registered.
   public waitForClient(
@@ -587,8 +597,12 @@ export class WebRuntime {
     if (!clientUuid) {
       throw new Error('connect init message: must contain client uuid')
     }
+    const clientId = this.getClientId(msg)
+    if (!clientId) {
+      throw new Error('connect init message: must contain client routing id')
+    }
 
-    const existing = this.lookupClient(clientUuid)
+    const existing = this.lookupClient(clientId)
     if (existing) {
       // userp connection
       existing.close()
@@ -598,15 +612,15 @@ export class WebRuntime {
       WebRuntimeClientType_Enum.findNumber(msg.clientType ?? 0)?.name ??
       'unknown'
     console.log(
-      `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
+      `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} => ${clientId} type ${clientTypeStr}`,
     )
-    this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
+    this.clients[clientId] = new WebRuntimeClientInstance(this, port, msg)
 
     // Notify any waiters for this client.
-    const waiters = this.clientWaiters[clientUuid]
+    const waiters = this.clientWaiters[clientId]
     if (waiters) {
-      delete this.clientWaiters[clientUuid]
-      const client = this.clients[clientUuid]
+      delete this.clientWaiters[clientId]
+      const client = this.clients[clientId]
       for (const waiter of waiters) {
         waiter.abortController?.abort()
         waiter.abortController = undefined
@@ -618,11 +632,11 @@ export class WebRuntime {
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
       const status: WebDocumentStatus = {
-        id: clientUuid,
+        id: clientId,
         deleted: false,
         permanent: false,
       }
-      this.webDocuments[clientUuid] = status
+      this.webDocuments[clientId] = status
       this.statusStream.pushChangeEvent({
         snapshot: false,
         closed: false,
@@ -631,38 +645,47 @@ export class WebRuntime {
     }
   }
 
-  // removeConnection removes a connection by clientUuid.
-  public removeConnection(clientUuid: string) {
-    const client = this.clients[clientUuid]
+  // removeConnection removes a connection by client id.
+  public removeConnection(clientId: string) {
+    const client = this.clients[clientId]
     if (!client) {
       return
     }
-    delete this.clients[clientUuid]
+    delete this.clients[clientId]
 
     const clientType = client.init.clientType
     const clientTypeStr =
       WebRuntimeClientType_Enum.findNumber(clientType ?? 0)?.name ?? 'unknown'
     console.log(
-      `WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`,
+      `WebRuntime: ${this.webRuntimeId}: removed client: ${clientId} type ${clientTypeStr}`,
     )
     if (
       !this.closed &&
       clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
-      this.webDocuments[clientUuid]
+      this.webDocuments[clientId]
     ) {
-      delete this.webDocuments[clientUuid]
+      delete this.webDocuments[clientId]
       this.statusStream.pushChangeEvent({
         snapshot: false,
         closed: false,
         webDocuments: [
           {
-            id: clientUuid,
+            id: clientId,
             deleted: true,
             permanent: false,
           },
         ],
       })
     }
+  }
+
+  // invalidateClient closes the active client and rejects current waiters.
+  public invalidateClient(clientId: string, err: Error) {
+    const client = this.clients[clientId]
+    if (client) {
+      client.close()
+    }
+    this.rejectClientWaiters(clientId, err)
   }
 
   // buildWebRuntimeStatusSnapshot builds a snapshot of the status.
