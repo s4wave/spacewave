@@ -82,19 +82,18 @@ You can try SpaceWave instantly in your web browser, just [click here].
 To start the SpaceWave app:
 
 ```bash
-# Install bun, if you don't have it yet.
+# Install Go (Example for MacOS, Linux varies)
+brew install node go
+
+# Install bun
 npm i -g bun
 
 # Install dependencies
 bun install
 
 # Start the app
-bun start:native
+bun start:desktop
 ```
-
-Read the [bldr] docs for more details.
-
-[bldr]: ./bldr
 
 To run the test suite:
 
