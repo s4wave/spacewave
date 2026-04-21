@@ -1,0 +1,31 @@
+syntax = "proto3";
+package signaling.rpc.client;
+
+import "github.com/s4wave/spacewave/net/stream/srpc/client/client.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures a client for the Signaling SRPC service.
+message Config {
+  // SignalingId is the signaling channel ID.
+  // Filters which SignalPeer directives will be handled.
+  string signaling_id = 1;
+  // PeerId is the local peer id to use for the client.
+  // Can be empty to use any local peer.
+  string peer_id = 2;
+  // Client contains srpc.client configuration for the signaling RPC client.
+  // The local peer ID is overridden with the peer ID of the looked-up peer.
+  .stream.srpc.client.Config client = 3;
+  // ProtocolId overrides the default protocol id for the signaling client.
+  // Default: bifrost/signaling
+  string protocol_id = 4;
+  // ServiceId overrides the default service id for the signaling client.
+  // Default: signaling.rpc.Signaling
+  string service_id = 5;
+  // Backoff is the backoff config for connecting to the service.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff backoff = 6;
+  // DisableListen disables listening for incoming sessions.
+  // If set, we will only call out, not accept incoming sessions.
+  // If false, client will emit HandleSignalPeer directives for incoming sessions.
+  bool disable_listen = 7;
+}

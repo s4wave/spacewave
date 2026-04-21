@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
+
+permissions:
+  contents: read
+
+jobs:
+  member-ci:
+    name: CI (${{ matrix.member.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        member:
+          - name: root
+            dir: .
+            has_js: true
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        if: ${{ matrix.member.has_js }}
+        working-directory: ${{ matrix.member.dir }}
+        run: bun install --frozen-lockfile
+
+      - name: Cache aptre tools
+        uses: actions/cache@v5
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Build Javascript
+        if: ${{ matrix.member.has_js }}
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run build
+
+      - name: Test Go
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run go:aptre -- test
+
+      - name: Test Js
+        if: ${{ matrix.member.has_js }}
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run test:js
+
+      - name: Lint Js
+        if: ${{ matrix.member.has_js }}
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run lint:js
+
+      - name: Lint Go
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run lint:go
+
+      - name: Depcheck Js
+        if: ${{ matrix.member.has_js }}
+        working-directory: ${{ matrix.member.dir }}
+        run: bun run deps

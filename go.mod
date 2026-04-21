@@ -1,11 +1,11 @@
-module github.com/aperturerobotics/bifrost
+module github.com/s4wave/spacewave
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.32.3 // latest
+	github.com/aperturerobotics/common v0.32.4 // latest
 	github.com/aperturerobotics/controllerbus v0.53.1 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/go-multiaddr v0.17.0 // master

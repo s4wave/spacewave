@@ -1,0 +1,28 @@
+syntax = "proto3";
+package peer;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Signature contains a signature by a peer.
+message Signature {
+  // PubKey is the public key of the peer.
+  // May be empty if the public key is to be inferred from context.
+  bytes pub_key = 1;
+  // HashType is the hash type used to hash the data.
+  // The signature is then of the hash bytes (usually 32).
+  .hash.HashType hash_type = 2;
+  // SigData contains the signature data.
+  // The format is defined by the key type.
+  bytes sig_data = 3;
+}
+
+// SignedMsg is a message from a peer with a signature.
+message SignedMsg {
+  // FromPeerId is the peer identifier of the sender.
+	string from_peer_id = 1;
+  // Signature is the sender signature.
+  // Should not contain PubKey, which is inferred from peer id.
+  peer.Signature signature = 2;
+  // Data is the signed data.
+  bytes data = 3;
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package floodsub.controller;
+
+import "github.com/s4wave/spacewave/net/pubsub/floodsub/floodsub.proto";
+
+// Config is the floodsub controller config.
+message Config {
+  // FloodsubConfig are pubsub provider specific configuration variables.
+  .floodsub.Config floodsub_config = 1;
+}

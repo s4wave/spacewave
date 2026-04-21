@@ -1,0 +1,29 @@
+syntax = "proto3";
+package floodsub;
+
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Config configures the floodsub router.
+message Config {
+  // PublishHashType is the hash type to use when signing published messages.
+  // Defaults to sha256
+  .hash.HashType publish_hash_type = 1;
+}
+
+// Packet is the floodsub packet.
+message Packet {
+  // Subscriptions contains any new subscription changes.
+	repeated SubscriptionOpts subscriptions = 1;
+  // Publish contains messages we are publishing.
+	repeated .peer.SignedMsg publish = 2;
+}
+
+// SubscriptionOpts are subscription options.
+message SubscriptionOpts {
+  // Subscribe indicates if we are subscribing to this channel ID.
+  bool subscribe = 1;
+  // ChannelId is the channel to subscribe to.
+  string channel_id = 2;
+}
+

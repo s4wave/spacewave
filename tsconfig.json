@@ -1,27 +1,23 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "Node16",
-    "moduleResolution": "Node16",
-    "jsx": "react",
-    "baseUrl": "./",
-    "paths": {
-      "@go/*": ["vendor/*"]
-    },
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "importsNotUsedAsValues": "remove",
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "lib": ["webworker", "dom"]
+    "lib": ["ES2024", "webworker", "dom"],
+    "paths": {
+      "@go/*": ["./vendor/*"],
+      "@s4wave/net/*": ["./net/*"],
+      "@s4wave/net": ["./net"]
+    }
   },
-  "exclude": ["node_modules", "vendor", "dist"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": true
-  }
+  "include": ["net/**/*.ts"],
+  "exclude": ["node_modules", "vendor", "dist"]
 }

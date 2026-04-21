@@ -1,8 +1,8 @@
-/node_modules
+node_modules
 /coverage
 /build
-/.log
-/.tmp
+.log
+.tmp
 
 # misc
 .DS_Store
@@ -28,6 +28,6 @@ __debug*
 .aider*
 
 dist/
-/.tools/
+.tools/
 .env
 .opencode/tool-output

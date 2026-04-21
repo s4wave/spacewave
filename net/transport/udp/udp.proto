@@ -1,0 +1,21 @@
+syntax = "proto3";
+package udp;
+
+import "github.com/s4wave/spacewave/net/transport/common/pconn/pconn.proto";
+import "github.com/s4wave/spacewave/net/transport/common/dialer/dialer.proto";
+
+// Config is the configuration for the udp transport.
+message Config {
+  // TransportPeerID sets the peer ID to attach the transport to.
+  // If unset, attaches to any running peer with a private key.
+  string transport_peer_id = 1;
+  // ListenAddr contains the address to listen on.
+  // Has no effect in the browser.
+  string listen_addr = 2;
+  // PacketOpts are options to set on the packet connection.
+  .pconn.Opts packet_opts = 4;
+  // Dialers maps peer IDs to dialers.
+  map<string, dialer.DialerOpts> dialers = 5;
+  // Verbose enables verbose logging.
+  bool verbose = 6;
+}

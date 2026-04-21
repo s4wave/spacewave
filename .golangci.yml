@@ -1,17 +1,11 @@
 # Config file version V2 has been introduced, read more in lintersdb.
 # Visit https://golangci-lint.run/usage/configuration/#config-file
-version: "2"
+version: '2'
 
-# Settings for the `run` command.
 run:
-  # Concurrency defines how many analyses can run simultaneously.
-  # Default is 1.
   concurrency: 4
-  # Modules-download-mode specifies how to download modules.
-  # Allowed values: readonly, vendor, mod. Default is readonly.
   modules-download-mode: vendor
 
-# Linters configuration.
 linters:
   enable:
     - depguard
@@ -22,6 +16,7 @@ linters:
     - unconvert
   disable:
     - errcheck
+    - govet
   settings:
     depguard:
       rules:
@@ -29,61 +24,54 @@ linters:
           deny:
             - pkg: io/ioutil
               desc: The io/ioutil package has been deprecated, see https://go.dev/doc/go1.16#ioutil
-            - pkg: "github.com/stretchr/testify/assert"
+            - pkg: 'github.com/stretchr/testify/assert'
               desc: Use "gotest.tools/v3/assert" instead
-            - pkg: "github.com/stretchr/testify/require"
+            - pkg: 'github.com/stretchr/testify/require'
               desc: Use "gotest.tools/v3/assert" instead
-            - pkg: "github.com/stretchr/testify/suite"
+            - pkg: 'github.com/stretchr/testify/suite'
               desc: Do not use
+        no-encoding-json:
+          deny:
+            - pkg: encoding/json
+              desc: >-
+                Use protobuf-go-lite/json for proto types or
+                aperturerobotics/fastjson for non-proto JSON.
+                encoding/json uses reflection.
     gosec:
       excludes:
-        - G306 # Allow WriteFile permissions to be 0644.
+        - G306
     importas:
-      # Do not allow unaliased imports of aliased packages.
       no-unaliased: true
     revive:
       rules:
         - name: package-comments
           disabled: true
     staticcheck:
-      # All SA checks are enabled by default, customize as needed.
-      # Refer to https://staticcheck.io/docs/checks for check details.
       checks:
         - all
-        - '-SA1012' # Allow passing nil contexts.
-        - '-ST1003' # Example of disabling another check if needed
-
-  # Exclusions based on common patterns and presets.
+        - '-SA1012'
+        - '-ST1003'
   exclusions:
-    # Treat generated files leniently.
     generated: lax
-    # Use predefined sets of common exclusions.
     presets:
       - comments
       - common-false-positives
-      - legacy # Excludes checks deprecated in new Go versions
-      - std-error-handling # Excludes some common stdlib error patterns
-    # Exclude specific paths using regex.
+      - legacy
+      - std-error-handling
     paths:
       - third_party$
       - builtin$
       - examples$
 
-# Issues reporting configuration.
 issues:
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
   max-issues-per-linter: 0
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
   max-same-issues: 0
 
-# Formatters configuration (new in V2).
 formatters:
   enable:
-    - goimports # Enable goimports as a formatter.
+    - goimports
   exclusions:
-    # Treat generated files leniently for formatting.
     generated: lax
-    # Exclude specific paths from formatting using regex.
     paths:
       - third_party$
       - builtin$

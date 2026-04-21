@@ -1,0 +1,12 @@
+syntax = "proto3";
+package pconn;
+
+import "github.com/s4wave/spacewave/net/transport/common/quic/quic.proto";
+
+// Opts are extra options for the packet conn.
+message Opts {
+  // Quic are the quic protocol options.
+  .transport.quic.Opts quic = 1;
+  // Verbose turns on verbose debug logging.
+  bool verbose = 2;
+}

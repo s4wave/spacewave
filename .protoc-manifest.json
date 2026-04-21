@@ -3,7 +3,7 @@
   "protocFlagsHash": "1087eb90d298d197cd35254de3ad07fb3882194aad888297cac01daedeed0caa",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.12.2,starpc=v0.47.1,protobuf-es-lite=^1.0.0",
   "packages": {
-    "github.com/aperturerobotics/bifrost/crypto": {
+    "github.com/s4wave/spacewave/net/crypto": {
       "hash": "ef24fd15b2d2b5c6d8fd4b2931f8b111d8ae17d8c00841bee19471bfffb18916",
       "generatedFiles": [
         "crypto/crypto.pb.cc",
@@ -16,7 +16,7 @@
         "crypto/crypto.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/daemon/api": {
+    "github.com/s4wave/spacewave/net/daemon/api": {
       "hash": "a1ca4284fbd1464ab2af944dc6ec730b4db7741a96b948a8482b71f35b191896",
       "generatedFiles": [
         "daemon/api/api.pb.cc",
@@ -29,7 +29,7 @@
         "daemon/api/api.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/daemon/api/controller": {
+    "github.com/s4wave/spacewave/net/daemon/api/controller": {
       "hash": "8cac69dba577f8cbcf40610e74e6f0930be6b2a560b6ba034e3513a405afcb74",
       "generatedFiles": [
         "daemon/api/controller/controller.pb.cc",
@@ -42,7 +42,7 @@
         "daemon/api/controller/controller.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/entitygraph": {
+    "github.com/s4wave/spacewave/net/entitygraph": {
       "hash": "8b42d15e8a60d3f4a725ab5c231755391038da599b82713f6d0f12554421af54",
       "generatedFiles": [
         "entitygraph/config.pb.cc",
@@ -55,7 +55,7 @@
         "entitygraph/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/envelope": {
+    "github.com/s4wave/spacewave/net/envelope": {
       "hash": "936bdfed72f3b40e68d81a7ec1ef4f2f06075ae4b543ab670b8268100e811056",
       "generatedFiles": [
         "envelope/envelope.pb.cc",
@@ -68,7 +68,7 @@
         "envelope/envelope.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/hash": {
+    "github.com/s4wave/spacewave/net/hash": {
       "hash": "ca05b9b6ff16023787e07ee38bbb0ce1d3fb274997451758dc004ca1843e0b32",
       "generatedFiles": [
         "hash/hash.pb.cc",
@@ -81,7 +81,7 @@
         "hash/hash.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/http/listener": {
+    "github.com/s4wave/spacewave/net/http/listener": {
       "hash": "1a21b97b6c6d063e441ecde8e607fa41b6c955c556736b6061c45eeebe44ac34",
       "generatedFiles": [
         "http/listener/config.pb.cc",
@@ -94,7 +94,7 @@
         "http/listener/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/link/establish": {
+    "github.com/s4wave/spacewave/net/link/establish": {
       "hash": "1539cac0751cff421dfbda27e48e253003c6998488684e23a83834fb4d4631fd",
       "generatedFiles": [
         "link/establish/config.pb.cc",
@@ -107,7 +107,7 @@
         "link/establish/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/link/hold-open": {
+    "github.com/s4wave/spacewave/net/link/hold-open": {
       "hash": "8711c637c0657674eed783cbe00c272010b0dd392e0368ab33414624b287b336",
       "generatedFiles": [
         "link/hold-open/config.pb.cc",
@@ -120,7 +120,7 @@
         "link/hold-open/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/link/solicit": {
+    "github.com/s4wave/spacewave/net/link/solicit": {
       "hash": "6a8435ae20a6acd0e6d23d529fe8835cc27b32721b5362a3f018b1c5e5653b55",
       "generatedFiles": [
         "link/solicit/solicit.pb.cc",
@@ -133,7 +133,7 @@
         "link/solicit/solicit.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/link/solicit/controller": {
+    "github.com/s4wave/spacewave/net/link/solicit/controller": {
       "hash": "0a1da2840a22ce255449e8523eb7c60ffb9d617c5d76bced70a0983cd74b866d",
       "generatedFiles": [
         "link/solicit/controller/config.pb.cc",
@@ -146,7 +146,7 @@
         "link/solicit/controller/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/peer": {
+    "github.com/s4wave/spacewave/net/peer": {
       "hash": "251817b8f3152e4104159de64f004ed7e97e7b4fa1bc412db98a885c85e48749",
       "generatedFiles": [
         "peer/peer.pb.cc",
@@ -159,7 +159,7 @@
         "peer/peer.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/peer/api": {
+    "github.com/s4wave/spacewave/net/peer/api": {
       "hash": "61c09874a62748f4aaaf65ed6dfc3241e121313dc7a8b589d589491afa0cd907",
       "generatedFiles": [
         "peer/api/api.pb.cc",
@@ -177,7 +177,7 @@
         "peer/api/api.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/peer/controller": {
+    "github.com/s4wave/spacewave/net/peer/controller": {
       "hash": "424f28acf36d44e88f5d14d2e5255ce96f33e19eea833ec32b34380385c6059a",
       "generatedFiles": [
         "peer/controller/config.pb.cc",
@@ -190,7 +190,7 @@
         "peer/controller/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/pubsub/api": {
+    "github.com/s4wave/spacewave/net/pubsub/api": {
       "hash": "e943e700a4844b81d7a508d3fc426d3cda701e7533c52c61129c63ae3790868d",
       "generatedFiles": [
         "pubsub/api/api.pb.cc",
@@ -208,7 +208,7 @@
         "pubsub/api/api.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/pubsub/floodsub": {
+    "github.com/s4wave/spacewave/net/pubsub/floodsub": {
       "hash": "9b118399c23e83f3ab75e98113c82aae4af4f3efd2cfc13b79b9b5d8340df9ce",
       "generatedFiles": [
         "pubsub/floodsub/floodsub.pb.cc",
@@ -221,7 +221,7 @@
         "pubsub/floodsub/floodsub.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/pubsub/floodsub/controller": {
+    "github.com/s4wave/spacewave/net/pubsub/floodsub/controller": {
       "hash": "e3cecbb843818210296ce8f55211813d0bd20399ae6e9fc2c0677c3bc45ebe91",
       "generatedFiles": [
         "pubsub/floodsub/controller/config.pb.cc",
@@ -234,7 +234,7 @@
         "pubsub/floodsub/controller/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/pubsub/relay": {
+    "github.com/s4wave/spacewave/net/pubsub/relay": {
       "hash": "c132062c343ae074ab4b3c16401475d05820c2dbd0a13f816c53a31c0a594d98",
       "generatedFiles": [
         "pubsub/relay/config.pb.cc",
@@ -247,7 +247,7 @@
         "pubsub/relay/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/pubsub/util/pubmessage": {
+    "github.com/s4wave/spacewave/net/pubsub/util/pubmessage": {
       "hash": "b9d276ac923bc6cf6b371dd82308aa0084d8e135ca286cc3471482850f767de4",
       "generatedFiles": [
         "pubsub/util/pubmessage/pubmessage.pb.cc",
@@ -260,7 +260,7 @@
         "pubsub/util/pubmessage/pubmessage.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/rpc/access": {
+    "github.com/s4wave/spacewave/net/rpc/access": {
       "hash": "82572aaccf8a7395f93ede2b4543187ad3721b59870c30f40a9e504b0f0dda66",
       "generatedFiles": [
         "rpc/access/access.pb.cc",
@@ -278,7 +278,7 @@
         "rpc/access/access.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/signaling/echo": {
+    "github.com/s4wave/spacewave/net/signaling/echo": {
       "hash": "64d703001002f10bdc324c325cb506904e43078d3de898e134c8b5b8d9f8a96f",
       "generatedFiles": [
         "signaling/echo/echo.pb.cc",
@@ -291,7 +291,7 @@
         "signaling/echo/echo.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/signaling/rpc": {
+    "github.com/s4wave/spacewave/net/signaling/rpc": {
       "hash": "6521046491f16f8dfe9b32b71005aa393021f3d28c949fa0be6e6f4b15e48257",
       "generatedFiles": [
         "signaling/rpc/signaling.pb.cc",
@@ -309,7 +309,7 @@
         "signaling/rpc/signaling.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/signaling/rpc/client": {
+    "github.com/s4wave/spacewave/net/signaling/rpc/client": {
       "hash": "c5feefe248509f429ff563a7c9ed49cbbcc068159fb4b0269ff9656daa467b65",
       "generatedFiles": [
         "signaling/rpc/client/config.pb.cc",
@@ -322,7 +322,7 @@
         "signaling/rpc/client/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/signaling/rpc/server": {
+    "github.com/s4wave/spacewave/net/signaling/rpc/server": {
       "hash": "92acdda90cf64a81768c4be9a567a1ce004c5c4ca0b7999d5a1d62f822b7d7a9",
       "generatedFiles": [
         "signaling/rpc/server/server.pb.cc",
@@ -335,7 +335,7 @@
         "signaling/rpc/server/server.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/api": {
+    "github.com/s4wave/spacewave/net/stream/api": {
       "hash": "fce07b4f86585dfdcbcd0ff51a87d65aab3776630dcdf99d6aebb0d90783b79e",
       "generatedFiles": [
         "stream/api/api.pb.cc",
@@ -353,7 +353,7 @@
         "stream/api/api.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/api/accept": {
+    "github.com/s4wave/spacewave/net/stream/api/accept": {
       "hash": "8f84c0d7f0a84a799a4d0103be4ac873c218b415a3cb5d5ab47a28027fa781c2",
       "generatedFiles": [
         "stream/api/accept/accept.pb.cc",
@@ -366,7 +366,7 @@
         "stream/api/accept/accept.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/api/dial": {
+    "github.com/s4wave/spacewave/net/stream/api/dial": {
       "hash": "e827a6c7b3c35de9427fcc148f215ba484f41f6dfe93b8d4b24c63c508086096",
       "generatedFiles": [
         "stream/api/dial/dial.pb.cc",
@@ -379,7 +379,7 @@
         "stream/api/dial/dial.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/api/rpc": {
+    "github.com/s4wave/spacewave/net/stream/api/rpc": {
       "hash": "3a87d355a3b8b77a0effcda93f8ba77eeb8d1808e7eb3671657ab0226a500a09",
       "generatedFiles": [
         "stream/api/rpc/rpc.pb.cc",
@@ -392,7 +392,7 @@
         "stream/api/rpc/rpc.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/echo": {
+    "github.com/s4wave/spacewave/net/stream/echo": {
       "hash": "9c4d1455611af6eea7f4ee3ec7bda4729d3a71edd82335c69fc383fb98f90a7e",
       "generatedFiles": [
         "stream/echo/echo.pb.cc",
@@ -405,7 +405,7 @@
         "stream/echo/echo.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/forwarding": {
+    "github.com/s4wave/spacewave/net/stream/forwarding": {
       "hash": "a3e53434961f68ccfcc72ef4d719d4a8655f4b30b9ade33e915763e43e0501ea",
       "generatedFiles": [
         "stream/forwarding/forwarding.pb.cc",
@@ -418,7 +418,7 @@
         "stream/forwarding/forwarding.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/listening": {
+    "github.com/s4wave/spacewave/net/stream/listening": {
       "hash": "11f5c54f154ca262273330320243bb55181a02391b808311097267e6d0a6cad7",
       "generatedFiles": [
         "stream/listening/listening.pb.cc",
@@ -431,7 +431,7 @@
         "stream/listening/listening.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/relay": {
+    "github.com/s4wave/spacewave/net/stream/relay": {
       "hash": "cfa1ec084f5d0d9a1a74cc03f23ffb1b7c6d056784a07c2506a21908dad19ff5",
       "generatedFiles": [
         "stream/relay/relay.pb.cc",
@@ -444,7 +444,7 @@
         "stream/relay/relay.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/srpc/client": {
+    "github.com/s4wave/spacewave/net/stream/srpc/client": {
       "hash": "928df51997ae5bd685651591b15f05ba771c62380c4a25a325e941f84ce180a6",
       "generatedFiles": [
         "stream/srpc/client/client.pb.cc",
@@ -457,7 +457,7 @@
         "stream/srpc/client/client.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/srpc/client/controller": {
+    "github.com/s4wave/spacewave/net/stream/srpc/client/controller": {
       "hash": "496c20e6623fef2c57ae4c596f325ce3801d3229c9f81e8f6291cb444c84532f",
       "generatedFiles": [
         "stream/srpc/client/controller/config.pb.cc",
@@ -470,7 +470,7 @@
         "stream/srpc/client/controller/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/srpc/server": {
+    "github.com/s4wave/spacewave/net/stream/srpc/server": {
       "hash": "bfb146bfa9d85098c08de0977fca67620f718d36978b8ac677ceef46b76e9b5b",
       "generatedFiles": [
         "stream/srpc/server/server.pb.cc",
@@ -483,7 +483,7 @@
         "stream/srpc/server/server.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/stream/srpc/server/lookup": {
+    "github.com/s4wave/spacewave/net/stream/srpc/server/lookup": {
       "hash": "29620363d63e2a8292690a6ec93a04a2a0a1a978f4cd404d469c306bc643306c",
       "generatedFiles": [
         "stream/srpc/server/lookup/lookup.pb.cc",
@@ -496,7 +496,7 @@
         "stream/srpc/server/lookup/lookup.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/tptaddr/controller": {
+    "github.com/s4wave/spacewave/net/tptaddr/controller": {
       "hash": "6b938688415e228da3a63465d4b503d904c6faf30d7da548952cc9ffbc8562f0",
       "generatedFiles": [
         "tptaddr/controller/config.pb.cc",
@@ -509,7 +509,7 @@
         "tptaddr/controller/config.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/tptaddr/static": {
+    "github.com/s4wave/spacewave/net/tptaddr/static": {
       "hash": "17888b0ca2bc17d4fcbcab373c0d5a161739364dbc25a67fc237e731db6f36ef",
       "generatedFiles": [
         "tptaddr/static/static.pb.cc",
@@ -521,7 +521,7 @@
         "tptaddr/static/static.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/common/conn": {
+    "github.com/s4wave/spacewave/net/transport/common/conn": {
       "hash": "ac2cf8688a2f3ae577609b71f25d59fa6afe7e2a9a26964cf078dab7d6f49033",
       "generatedFiles": [
         "transport/common/conn/conn.pb.cc",
@@ -534,7 +534,7 @@
         "transport/common/conn/conn.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/common/dialer": {
+    "github.com/s4wave/spacewave/net/transport/common/dialer": {
       "hash": "075b2555db08ccf5f7ed16f369c0ce382295061022af9503e77b35f6d01caabf",
       "generatedFiles": [
         "transport/common/dialer/dialer.pb.cc",
@@ -547,7 +547,7 @@
         "transport/common/dialer/dialer.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/common/pconn": {
+    "github.com/s4wave/spacewave/net/transport/common/pconn": {
       "hash": "e653b3336497b0a5447c48748a40ae9445af30e57201ef7e58a7d79f572787cd",
       "generatedFiles": [
         "transport/common/pconn/pconn.pb.cc",
@@ -560,7 +560,7 @@
         "transport/common/pconn/pconn.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/common/quic": {
+    "github.com/s4wave/spacewave/net/transport/common/quic": {
       "hash": "ec9f6fe303b0dbfc02738aa3aaa1e5013807e7d5b1ce33621498d0fbb5b20a4b",
       "generatedFiles": [
         "transport/common/quic/quic.pb.cc",
@@ -573,7 +573,7 @@
         "transport/common/quic/quic.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/controller": {
+    "github.com/s4wave/spacewave/net/transport/controller": {
       "hash": "fcdb4fdf27bdf46038089a3e47dc68fc0da795bf5da396ae6b59e2b3f794ea59",
       "generatedFiles": [
         "transport/controller/controller.pb.cc",
@@ -586,7 +586,7 @@
         "transport/controller/controller.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/inproc": {
+    "github.com/s4wave/spacewave/net/transport/inproc": {
       "hash": "aac921b94edb0f42c2c108a3ae8e581d07e52e39011462d07f376bc3a3e3bbe7",
       "generatedFiles": [
         "transport/inproc/inproc.pb.cc",
@@ -599,7 +599,7 @@
         "transport/inproc/inproc.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/udp": {
+    "github.com/s4wave/spacewave/net/transport/udp": {
       "hash": "8ce7befd54fc45e5c67da99676a4820491ea2be09358775aac8f408cd773502c",
       "generatedFiles": [
         "transport/udp/udp.pb.cc",
@@ -612,7 +612,7 @@
         "transport/udp/udp.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/webrtc": {
+    "github.com/s4wave/spacewave/net/transport/webrtc": {
       "hash": "1206497c4daefdf943ca74173169f8f1a91ae15adbed8a71358c5ee1ef7686ee",
       "generatedFiles": [
         "transport/webrtc/webrtc.pb.cc",
@@ -625,7 +625,7 @@
         "transport/webrtc/webrtc.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/websocket": {
+    "github.com/s4wave/spacewave/net/transport/websocket": {
       "hash": "75ebb784cf20a35dc0db272d6dc00a2c408d8984562a8dd9cfc5639a79a36b1d",
       "generatedFiles": [
         "transport/websocket/websocket.pb.cc",
@@ -638,7 +638,7 @@
         "transport/websocket/websocket.proto"
       ]
     },
-    "github.com/aperturerobotics/bifrost/transport/websocket/http": {
+    "github.com/s4wave/spacewave/net/transport/websocket/http": {
       "hash": "f144379588c0fbbfcd9193e2e516bb8d4962c1171d3f51bfbc5aa261cfd3ab85",
       "generatedFiles": [
         "transport/websocket/http/http.pb.cc",

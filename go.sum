@@ -4,8 +4,8 @@ github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 h1:3U7
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
-github.com/aperturerobotics/common v0.32.3 h1:MfbebfvIZ+kdmKfIWob1GuIg0bWB+HWDxHjdp9IZGM0=
-github.com/aperturerobotics/common v0.32.3/go.mod h1:4UEUFoWR6wQD76dpfJtI/D+q/dbCkOh5yWx1bZHvMZk=
+github.com/aperturerobotics/common v0.32.4 h1:Ta7eY0lhwAJHYeCU0Cs61KDX4X17WwJuSgLHSzHTmb8=
+github.com/aperturerobotics/common v0.32.4/go.mod h1:4UEUFoWR6wQD76dpfJtI/D+q/dbCkOh5yWx1bZHvMZk=
 github.com/aperturerobotics/controllerbus v0.53.1 h1:uxcr1kWvZrDcMOBHq3WuxzzlU59REX2/C3mGRLekmAE=
 github.com/aperturerobotics/controllerbus v0.53.1/go.mod h1:65n90+94u3SUCTqLk+NugpHtwRZoGHxIQKTKsG5JkBU=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=

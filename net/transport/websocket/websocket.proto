@@ -1,0 +1,33 @@
+syntax = "proto3";
+package websocket;
+
+import "github.com/s4wave/spacewave/net/transport/common/quic/quic.proto";
+import "github.com/s4wave/spacewave/net/transport/common/dialer/dialer.proto";
+
+// Config is the configuration for the Websocket transport.
+//
+// Quic is used for mTLS mutual authentication over the Websocket, as well as
+// congestion control, stream multiplexing, and other performance features.
+message Config {
+  // TransportPeerID sets the peer ID to attach the transport to.
+  // If unset, attaches to any running peer with a private key.
+  string transport_peer_id = 1;
+  // ListenAddr contains the address to listen on.
+  // Has no effect in the browser.
+  string listen_addr = 2;
+  // Quic contains the quic protocol options.
+  //
+  // The WebSocket transport always disables FEC and several other UDP-centric
+  // features which are unnecessary due to the "reliable" nature of WebSockets.
+  .transport.quic.Opts quic = 3;
+  // Dialers maps peer IDs to dialers.
+  map<string, .dialer.DialerOpts> dialers = 4;
+  // HttpPath is the http path to expose the websocket.
+  // If unset, disables serving the websocket.
+  string http_path = 5;
+  // HttpPeerPath is the http path to expose the peer id.
+  // If unset, disables serving the websocket peer id.
+  string http_peer_path = 6;
+  // Verbose enables verbose logging.
+  bool verbose = 7;
+}

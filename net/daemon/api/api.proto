@@ -1,0 +1,17 @@
+syntax = "proto3";
+package bifrost.api;
+
+import "github.com/aperturerobotics/controllerbus/bus/api/api.proto";
+
+// Config configures the API.
+message Config {
+  // BusConfig configures the bus api.
+  .bus.api.Config bus_config = 1;
+}
+
+/* API implements:
+  bus_api "github.com/aperturerobotics/controllerbus/bus/api"
+	peer_api "github.com/s4wave/spacewave/net/peer/api"
+	pubsub_api "github.com/s4wave/spacewave/net/pubsub/api"
+	stream_api "github.com/s4wave/spacewave/net/stream/api"
+*/
