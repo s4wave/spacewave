@@ -1,0 +1,11 @@
+syntax = "proto3";
+package bldr.plugin.load;
+
+// Config configures loading a plugin with the LoadPlugin directive.
+message Config {
+  // PluginId is the plugin to load.
+  string plugin_id = 1;
+  // PluginIds is a list of plugins to load.
+  // Appended to plugin_id.
+  repeated string plugin_ids = 2;
+}

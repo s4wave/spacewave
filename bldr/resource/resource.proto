@@ -1,0 +1,147 @@
+syntax = "proto3";
+package resource;
+
+option go_package = "github.com/s4wave/spacewave/bldr/resource";
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// ResourceService provides a set of stateful resources via an RPC service.
+service ResourceService {
+  // ResourceClient starts an instance of a client for the ResourceService,
+  // yielding a new client ID. The client can use that ID for future RPCs
+  // accessing the Resource tree. When the streaming RPC ends, references to
+  // resources opened by the client will be released.
+  rpc ResourceClient(ResourceClientRequest) returns (stream ResourceClientResponse) {};
+
+  // ResourceRpc is a rpc request for an open resource handle.
+  // Exposes service(s) depending on the resource type.
+  // Component ID: resource_id from ResourceClient call.
+  rpc ResourceRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // ResourceRefRelease releases a resource given a handle ID.
+  // This is called when no references remain to a resource.
+  rpc ResourceRefRelease(ResourceRefReleaseRequest) returns (ResourceRefReleaseResponse);
+
+  // ResourceAttach allows a client to provide resources that server-side
+  // RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
+  // then resources registered via Add/AddAck. After Init/Ack, mux_data
+  // carries yamux frames for all attached resources.
+  rpc ResourceAttach(stream ResourceAttachRequest)
+    returns (stream ResourceAttachResponse);
+}
+
+// ResourceClientRequest is the request body for ResourceClient.
+message ResourceClientRequest {}
+
+// ResourceClientResponse contains a server-client message for a ResourceClient request.
+message ResourceClientResponse {
+  // Body is the body of the event.
+  oneof body {
+    // ResourceClientInit contains the initialization message for ResourceClient.
+    // This is the first message sent on the stream and is only sent once.
+    ResourceClientInit init = 1;
+    // ResourceRefReleased is returned if a resource was released by the server.
+    ResourceReleasedResponse resource_released = 2;
+    // ClientError contains the fatal error returned by the call, if any.
+    // If sent, this will be the last message in the rpc stream.
+    string client_error = 3;
+  }
+}
+
+// ResourceReleasedResponse is a message indicating a resource was released.
+message ResourceReleasedResponse {
+  // ResourceId is the ID of the resource that was released.
+  uint32 resource_id = 1;
+}
+
+// ResourceClientInit is the initialization response to ResourceClient.
+message ResourceClientInit {
+  // ClientHandleId is the handle identifier for the client.
+  // The client should use this ID going forward for requests.
+  uint32 client_handle_id = 1;
+  // RootResourceId is the ID of the root resource for this client.
+  uint32 root_resource_id = 2;
+}
+
+// ResourceRefReleaseRequest is the request for ResourceRefRelease.
+message ResourceRefReleaseRequest {
+  // ClientHandleId is the handle identifier for the client.
+  uint32 client_handle_id = 1;
+  // ResourceId is the ID of the resource reference to release.
+  uint32 resource_id = 2;
+}
+
+// ResourceRefReleaseResponse is the response for ResourceRefRelease.
+message ResourceRefReleaseResponse {}
+
+// ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
+message ResourceAttachRequest {
+  // Body is the body of the request.
+  oneof body {
+    // Init is the session initialization message.
+    ResourceAttachInit init = 1;
+    // Add registers a new resource on the session.
+    ResourceAttachAdd add = 2;
+    // Detach withdraws a previously added resource.
+    ResourceAttachDetach detach = 3;
+    // MuxData carries yamux multiplexer frames after handshake.
+    bytes mux_data = 4;
+  }
+}
+
+// ResourceAttachResponse is a server-to-client message on the ResourceAttach stream.
+message ResourceAttachResponse {
+  // Body is the body of the response.
+  oneof body {
+    // Ack is the session acknowledgment.
+    ResourceAttachAck ack = 1;
+    // AddAck confirms a resource was added.
+    ResourceAttachAddAck add_ack = 2;
+    // DetachAck confirms a resource was detached.
+    ResourceAttachDetachAck detach_ack = 3;
+    // MuxData carries yamux multiplexer frames after handshake.
+    bytes mux_data = 4;
+  }
+}
+
+// ResourceAttachInit is sent by the client to initiate a session.
+message ResourceAttachInit {
+  // ClientHandleId identifies the owning client session.
+  uint32 client_handle_id = 1;
+}
+
+// ResourceAttachAck is sent by the server to confirm the session.
+message ResourceAttachAck {
+  // Error is set if the session was rejected.
+  string error = 1;
+}
+
+// ResourceAttachAdd is sent by the client to register a resource.
+message ResourceAttachAdd {
+  // AttachId is a client-chosen correlation ID.
+  uint32 attach_id = 1;
+  // Label is an informational description of the attached resource.
+  string label = 2;
+}
+
+// ResourceAttachAddAck is sent by the server to confirm a resource was added.
+message ResourceAttachAddAck {
+  // AttachId echoes the client-chosen correlation ID.
+  uint32 attach_id = 1;
+  // Error is set if the add was rejected.
+  string error = 2;
+  // ResourceId is the server-assigned ID for the attached resource.
+  uint32 resource_id = 3;
+}
+
+// ResourceAttachDetach is sent by the client to withdraw a resource.
+message ResourceAttachDetach {
+  // ResourceId is the server-assigned ID to detach.
+  uint32 resource_id = 1;
+}
+
+// ResourceAttachDetachAck is sent by the server to confirm a resource was detached.
+message ResourceAttachDetachAck {
+  // ResourceId confirms which resource was detached.
+  uint32 resource_id = 1;
+}

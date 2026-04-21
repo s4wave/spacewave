@@ -1,0 +1,21 @@
+syntax = "proto3";
+package web.pkg.fs.controller;
+
+// Config configures the web pkg fs controller.
+// Looks up a UnixFS using AccessUnixFS.
+// Accesses a sub-directory of that UnixFS as a static web pkg FS.
+message Config {
+  // UnixfsId is the identifier for the UnixFS on the bus.
+  // The fs should be provided with the AccessUnixFS controller.
+  string unixfs_id = 1;
+  // UnixfsPrefix is a path prefix to apply to paths in the FS.
+  // This applies a chroot to the UnixFS.
+  string unixfs_prefix = 2;
+  // NotFoundIfIdle returns 404 not found if the FS lookup becomes idle.
+  // Lookup becomes idle if no FS is available for the URL.
+  // If unset, waits until the FS is available.
+  bool not_found_if_idle = 3;
+  // WebPkgIdList is a list of web pkg IDs to resolve.
+  // Ignored if empty.
+  repeated string web_pkg_id_list = 4;
+}

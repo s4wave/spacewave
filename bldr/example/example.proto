@@ -1,0 +1,14 @@
+syntax = "proto3";
+package bldr.example;
+
+// Config configures the Demo controller.
+message Config {
+  // RunDemo runs the full demo routine.
+  bool run_demo = 1;
+}
+
+// ExampleProps contains properties for the example component.
+message ExampleProps {
+  // Msg is the message to display.
+  string msg = 1;
+}

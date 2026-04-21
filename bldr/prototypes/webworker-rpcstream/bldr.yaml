@@ -1,0 +1,49 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: webworker-rpcstream
+
+start:
+  plugins:
+    - app1
+    # - app2
+    - web
+
+build:
+  web:
+    manifests: ["web", "app1", "app2"]
+    platformIds: ["web"]
+
+manifests:
+  web:
+    builder:
+      id: bldr/web/plugin/compiler
+      config: {}
+        # delveAddr: wait
+
+  app1:
+    builder:
+      id: bldr/plugin/compiler
+      config:
+        # delveAddr: wait
+        webPluginId: web
+        goPkgs:
+          - ./prototypes/webworker-rpcstream/app1
+        # configure the configset to apply on startup
+        configSet:
+          app1:
+            id: app1
+            config: {}
+
+  app2:
+    builder:
+      id: bldr/plugin/compiler
+      config:
+        # delveAddr: wait
+        webPluginId: web
+        goPkgs:
+          - ./prototypes/webworker-rpcstream/app2
+        # configure the configset to apply on startup
+        configSet:
+          app2:
+            id: app2
+            config: {}

@@ -1,5 +1,9 @@
 node_modules/
 vendor/
+prototypes/
+/.tools
+yarn.lock
 *.pb.go
 *.pb.ts
 go.sum
+*_*.pb.ts

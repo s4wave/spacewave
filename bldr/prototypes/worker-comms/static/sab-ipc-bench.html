@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head><title>SAB IPC Benchmark</title></head>
+<body>
+<h1>SharedArrayBuffer vs MessagePort IPC Benchmark</h1>
+<pre id="log"></pre>
+<script type="module">
+// Benchmark: compare MessagePort structured clone vs SAB ring buffer throughput.
+// Results are written to #log and also to window.__results for Playwright.
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+// --- MessagePort benchmark ---
+async function benchMessagePort(msgSize, count) {
+  const data = new Uint8Array(msgSize)
+  crypto.getRandomValues(data)
+
+  const worker = new Worker('/workers/msgport-echo.js')
+  // Wait for worker ready.
+  await new Promise(r => { worker.onmessage = () => r(undefined) })
+
+  const start = performance.now()
+  let received = 0
+  await new Promise(resolve => {
+    worker.onmessage = () => {
+      received++
+      if (received >= count) resolve(undefined)
+    }
+    for (let i = 0; i < count; i++) {
+      worker.postMessage(data)
+    }
+  })
+  const elapsed = performance.now() - start
+  worker.terminate()
+  return { elapsed, throughput: (count * msgSize) / (elapsed / 1000) }
+}
+
+// --- SAB ring buffer benchmark ---
+async function benchSABRingBuffer(msgSize, count) {
+  // Ring buffer layout in SAB:
+  // [0]: write index (int32)
+  // [1]: read index (int32)
+  // [2]: notify flag (int32)
+  // Byte offset 12+: ring buffer data (slots * msgSize)
+  const slots = 64
+  const headerBytes = 12
+  const bufSize = headerBytes + slots * msgSize
+  const sab = new SharedArrayBuffer(bufSize)
+  const ctrl = new Int32Array(sab, 0, 3)
+  const ring = new Uint8Array(sab, headerBytes)
+
+  const data = new Uint8Array(msgSize)
+  crypto.getRandomValues(data)
+
+  const worker = new Worker('/workers/sab-ring-reader.js')
+  worker.postMessage({ sab, msgSize, slots, count })
+  // Wait for ready.
+  await new Promise(r => { worker.onmessage = () => r(undefined) })
+
+  const start = performance.now()
+  for (let i = 0; i < count; i++) {
+    // Spin-wait if ring is full.
+    while ((Atomics.load(ctrl, 0) - Atomics.load(ctrl, 1)) >= slots) {
+      // Busy wait.
+    }
+    const wIdx = Atomics.load(ctrl, 0) % slots
+    ring.set(data, wIdx * msgSize)
+    Atomics.add(ctrl, 0, 1)
+    Atomics.notify(ctrl, 2)
+  }
+
+  // Wait for reader to finish.
+  await new Promise(r => { worker.onmessage = (e) => { if (e.data === 'done') r(undefined) } })
+  const elapsed = performance.now() - start
+  worker.terminate()
+  return { elapsed, throughput: (count * msgSize) / (elapsed / 1000) }
+}
+
+// --- SAB Atomics.notify/wait round-trip latency ---
+// Uses two workers because Atomics.wait is blocked on the main thread.
+async function benchSABRoundTrip(count) {
+  const sab = new SharedArrayBuffer(8)
+
+  const pongWorker = new Worker('/workers/sab-ping-pong.js')
+  pongWorker.postMessage({ sab, count })
+  await new Promise(r => { pongWorker.onmessage = () => r(undefined) })
+
+  const pingWorker = new Worker('/workers/sab-ping-main.js')
+  pingWorker.postMessage({ sab, count })
+  await new Promise(r => { pingWorker.onmessage = () => r(undefined) })
+
+  // pingWorker drives the benchmark and reports results.
+  const result = await new Promise(r => {
+    pingWorker.onmessage = (e) => r(e.data)
+  })
+  pingWorker.terminate()
+  pongWorker.terminate()
+  return result
+}
+
+// --- MessagePort round-trip latency ---
+async function benchMPRoundTrip(count) {
+  const worker = new Worker('/workers/msgport-echo.js')
+  await new Promise(r => { worker.onmessage = () => r(undefined) })
+
+  const start = performance.now()
+  let received = 0
+  await new Promise(resolve => {
+    worker.onmessage = () => {
+      received++
+      if (received >= count) {
+        resolve(undefined)
+        return
+      }
+      worker.postMessage(received)
+    }
+    worker.postMessage(0)
+  })
+  const elapsed = performance.now() - start
+  worker.terminate()
+  return { elapsed, latencyUs: (elapsed / count) * 1000 }
+}
+
+function fmtBytes(b) {
+  if (b >= 1e9) return (b / 1e9).toFixed(1) + ' GB/s'
+  if (b >= 1e6) return (b / 1e6).toFixed(1) + ' MB/s'
+  if (b >= 1e3) return (b / 1e3).toFixed(1) + ' KB/s'
+  return b.toFixed(0) + ' B/s'
+}
+
+async function run() {
+  if (!crossOriginIsolated) {
+    emit('ERROR: page is not cross-origin isolated, SAB unavailable')
+    window.__results.error = 'not cross-origin isolated'
+    return
+  }
+  emit('Cross-origin isolated: YES\n')
+
+  // Round-trip latency.
+  emit('=== Round-trip latency (10000 iterations) ===')
+  const mpRT = await benchMPRoundTrip(10000)
+  emit(`MessagePort:  ${mpRT.latencyUs.toFixed(1)} us/rt  (${mpRT.elapsed.toFixed(0)} ms total)`)
+  const sabRT = await benchSABRoundTrip(10000)
+  emit(`SAB Atomics:  ${sabRT.latencyUs.toFixed(1)} us/rt  (${sabRT.elapsed.toFixed(0)} ms total)`)
+  emit(`Speedup: ${(mpRT.latencyUs / sabRT.latencyUs).toFixed(1)}x\n`)
+
+  // Throughput 1KB messages.
+  const count1k = 50000
+  emit(`=== Throughput: 1KB messages x${count1k} ===`)
+  const mp1k = await benchMessagePort(1024, count1k)
+  emit(`MessagePort:  ${fmtBytes(mp1k.throughput)}  (${mp1k.elapsed.toFixed(0)} ms)`)
+  const sab1k = await benchSABRingBuffer(1024, count1k)
+  emit(`SAB ring buf: ${fmtBytes(sab1k.throughput)}  (${sab1k.elapsed.toFixed(0)} ms)`)
+  emit(`Speedup: ${(sab1k.throughput / mp1k.throughput).toFixed(1)}x\n`)
+
+  // Throughput 64KB messages.
+  const count64k = 5000
+  emit(`=== Throughput: 64KB messages x${count64k} ===`)
+  const mp64k = await benchMessagePort(65536, count64k)
+  emit(`MessagePort:  ${fmtBytes(mp64k.throughput)}  (${mp64k.elapsed.toFixed(0)} ms)`)
+  const sab64k = await benchSABRingBuffer(65536, count64k)
+  emit(`SAB ring buf: ${fmtBytes(sab64k.throughput)}  (${sab64k.elapsed.toFixed(0)} ms)`)
+  emit(`Speedup: ${(sab64k.throughput / mp64k.throughput).toFixed(1)}x\n`)
+
+  window.__results = {
+    roundTrip: { messagePort: mpRT, sab: sabRT },
+    throughput1k: { messagePort: mp1k, sab: sab1k },
+    throughput64k: { messagePort: mp64k, sab: sab64k },
+  }
+  emit('DONE')
+}
+run()
+</script>
+</body>
+</html>

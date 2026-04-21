@@ -1,0 +1,167 @@
+syntax = "proto3";
+package bldr.project;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "google/protobuf/timestamp.proto";
+
+// NOTE: Remember to update MergeProjectConfigs after updating ProjectConfig.
+
+// ProjectConfig is a bldr project configuration.
+message ProjectConfig {
+  // Id is the project identifier.
+  // Must be a valid-dns-label.
+  // Used to construct the application storage and dist bundle filenames.
+  // The project id can usually be overridden in the manifest compilers as well.
+  string id = 1;
+  // Start contains configuration for bldr start... commands.
+  StartConfig start = 2;
+  // Manifests contains the mapping between manifest ID and manifest config.
+  // The controller will be built when a manifest is requested via LoadManifest.
+  // The ControllerConfig must be a manifest build controller Config.
+  map<string, ManifestConfig> manifests = 3;
+  // Build contains the list of build target configs.
+  map<string, BuildConfig> build = 4;
+  // Remotes contains definitions of destinations to build/publish to.
+  // A default remote named "devtool" is automatically added.
+  map<string, RemoteConfig> remotes = 5;
+  // Publish contains configuration for build + publish manifests to destinations.
+  // Contains configuration for bldr publish... commands.
+  map<string, PublishConfig> publish = 6;
+  // Extends references other bldr projects to inherit configuration from.
+  // Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+  // The extended project's bldr.yaml is resolved via the vendor/ directory.
+  // Extended configs are merged in order, then local config is merged on top.
+  repeated string extends = 7;
+}
+
+// ManifestConfig is a configuration for building a manifest.
+message ManifestConfig {
+  // Builder is the configuration for the manifest builder.
+  .configset.proto.ControllerConfig builder = 1;
+  // Rev is the minimum manifest rev to build.
+  //
+  // The controller will always scan for the latest manifest and add 1 to the
+  // most recent rev when building to determine the resulting manifest rev.
+  //
+  // However, if there is no existing manifest in the store, or if you want to
+  // override the minimum rev number, this field can be used.
+  //
+  // Useful for forcing a manifest to be rebuilt/reloaded even if nothing changed.
+  uint64 rev = 2;
+  // Description is a short human-readable description of the manifest.
+  string description = 3;
+}
+
+// StartConfig configures starting the program.
+message StartConfig {
+  // Plugins is the list of plugin IDs to load on startup.
+  repeated string plugins = 1;
+  // DisableBuild disables running the manifest builders to resolve FetchManifest.
+  bool disable_build = 2;
+  // LoadWebStartup is a path to a .js, .ts, or .tsx file with a React component to load on startup.
+  // Must be a relative path located within the project sources.
+  // The file will be bundled with esbuild into the entrypoint bundle.
+  // The component should contain a <WebView /> from @aptre/bldr-react.
+  // The contents will be used for the children of BldrRoot.
+  string load_web_startup = 3;
+}
+
+// BuildConfig configures a build target.
+message BuildConfig {
+  // Manifests is the list of manifest IDs to build.
+  repeated string manifests = 1;
+  // PlatformIds is the list of platforms to target.
+  // If targets is set, platform_ids are merged with the targets' platform lists.
+  repeated string platform_ids = 2;
+  // Targets is the list of deployment targets (e.g., "browser", "desktop").
+  // Multiple targets can be specified to build for multiple environments.
+  // Built-in targets: "browser", "desktop", "desktop/{os}/{arch}".
+  repeated string targets = 3;
+  // ManifestOverrides replaces the builder config of a named manifest when
+  // built under this build target. Maps manifest_id to a ControllerConfig
+  // whose config bytes replace the manifest's static builder config.
+  //
+  // The override's controller id is ignored; the manifest's declared builder
+  // id always wins. This is REPLACE semantics: the static manifest config is
+  // not merged with the override. Users compose shared fields in Starlark
+  // helper functions rather than via runtime merging.
+  //
+  // Typical use: per-build-target embed_manifests selection for dist bundles
+  // so a single dist manifest declaration can be reused across release
+  // targets that ship different platform-specific payloads.
+  map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
+}
+
+// RemoteConfig configures a location where manifests and source can be stored.
+message RemoteConfig {
+  // HostConfigSet is a ConfigSet to apply to the devtool to access the world.
+  // This ConfigSet is applied to the devtool bus.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 1;
+  // EngineId is the world engine id to deploy to.
+  string engine_id = 2;
+  // PeerId is the peer id to use for world transactions.
+  // The peer controller must be running with the same id.
+  string peer_id = 3;
+  // ObjectKey is the object key to deploy to.
+  // Creates the manifests with this key as a prefix.
+  string object_key = 4;
+  // LinkObjectKeys is a link of object keys to link to ObjectKey with <manifest>.
+  repeated string link_object_keys = 5;
+}
+
+// PublishConfig configures a publish target.
+message PublishConfig {
+  // SourceObjectKeys is the list of object keys to collect manifests from.
+  // Gathers any manifest linked to with the <manifest> tag recursively.
+  // If empty uses objectKey from source remote config.
+  repeated string source_object_keys = 1;
+  // Manifests is the list of manifests to publish.
+  // If empty publishes all manifests matched by object keys.
+  repeated string manifests = 2;
+  // AllManifestRevs copies all manifest revisions instead of just the latest.
+  bool all_manifest_revs = 3;
+  // PlatformIds is the list of platforms to target.
+  // If empty publishes all platform ids matched by object keys.
+  repeated string platform_ids = 4;
+  // Remotes is the list of remotes to publish to.
+  repeated string remotes = 5;
+  // DestObjectKey is the destination object key to deploy to.
+  // Creates the manifests with this key as a prefix.
+  // If unset, uses the object key from the destination remote config(s).
+  string dest_object_key = 6;
+  // Storage overrides the storage for all manifests.
+  // Overrides the settings from the destination world.
+  // If empty, uses the destination world storage transform.
+  PublishStorageConfig storage = 7;
+  // ManifestStorage maps manifest ID to publish storage configuration.
+  // Overrides the settings in the storage property, per-manifest.
+  // If empty, uses the destination world storage transform.
+  map<string, PublishStorageConfig> manifest_storage = 8;
+}
+
+// PublishStorageConfig configures adjusting the storage transform config for an asset.
+message PublishStorageConfig {
+  // TransformConfFromRef is an ObjectRef to inherit the transform config from.
+  //
+  // If set, we will copy the transform config from this ref.
+  // If transform_config is set, it will override this value.
+  // NOTE: only the transform field will be used, not the transformRef field.
+  //
+  // If both transform_from_ref and transform are unset, uses the transform
+  // config config from the parent world.
+  //
+  // Optional.
+  .bucket.ObjectRef transform_conf_from_ref = 1;
+  // TransformConf is the transform configuration to use.
+  //
+  // If set, overrides the transform configuration in transform_from_ref.
+  //
+  // If both transform_from_ref and transform are unset, uses the transform
+  // config from the parent world.
+  .block.transform.Config transform_conf = 2;
+  // Timestamp sets the timestamp to use for unixfs timestamps.
+  // If empty, uses the current timestamp
+  google.protobuf.Timestamp timestamp = 3;
+}

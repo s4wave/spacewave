@@ -19,12 +19,21 @@ jobs:
         member:
           - name: net
             build_script: build:net
+            check_script: ''
             lint_go_script: lint:go:net
             lint_js_script: lint:js:net
             test_go_script: test:go:net
             test_js_script: test:js:net
+          - name: bldr
+            build_script: ''
+            check_script: bldr:typecheck
+            lint_go_script: ''
+            lint_js_script: ''
+            test_go_script: ''
+            test_js_script: ''
           - name: db
             build_script: ''
+            check_script: ''
             lint_go_script: lint:go:db
             lint_js_script: lint:js:db
             test_go_script: test:go:db
@@ -54,14 +63,22 @@ jobs:
         if: ${{ matrix.member.build_script != '' }}
         run: bun run ${{ matrix.member.build_script }}
 
+      - name: Run member checks
+        if: ${{ matrix.member.check_script != '' }}
+        run: bun run ${{ matrix.member.check_script }}
+
       - name: Test Go
+        if: ${{ matrix.member.test_go_script != '' }}
         run: bun run ${{ matrix.member.test_go_script }}
 
       - name: Test Js
+        if: ${{ matrix.member.test_js_script != '' }}
         run: bun run ${{ matrix.member.test_js_script }}
 
       - name: Lint Js
+        if: ${{ matrix.member.lint_js_script != '' }}
         run: bun run ${{ matrix.member.lint_js_script }}
 
       - name: Lint Go
+        if: ${{ matrix.member.lint_go_script != '' }}
         run: bun run ${{ matrix.member.lint_go_script }}

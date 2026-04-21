@@ -1,0 +1,4 @@
+vendor
+js-wazero-quickjs
+qjs-wasi.wasm
+*.wasm

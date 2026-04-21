@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head><title>SAB Cross-Tab via window.postMessage</title></head>
+<body>
+<h1>SAB Cross-Tab Transfer via window.postMessage</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: can SharedArrayBuffer be transferred between tabs using
+// window.postMessage (parent/child relationship via window.open)?
+//
+// BroadcastChannel silently drops SAB (Prototype 1). This tests the
+// alternative: window.open() + window.postMessage.
+//
+// Roles:
+// - "sender": opens a child window, sends SAB via postMessage
+// - "receiver": receives SAB from opener, writes back, confirms sharing
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+const params = new URLSearchParams(location.search)
+const role = params.get('role') || 'sender'
+
+if (!crossOriginIsolated) {
+  emit('ERROR: not cross-origin isolated')
+  window.__results = { error: 'not cross-origin isolated' }
+} else if (role === 'sender') {
+  emit('Role: SENDER (parent window)')
+  emit('Allocating SharedArrayBuffer...')
+
+  const sab = new SharedArrayBuffer(256)
+  const view = new Int32Array(sab)
+  const magic = 0xDEADBEEF
+  Atomics.store(view, 0, magic)
+  emit(`Wrote magic: 0x${magic.toString(16)}`)
+
+  // Open child window.
+  const child = window.open(
+    location.pathname + '?role=receiver',
+    '_blank',
+    'width=600,height=400'
+  )
+
+  if (!child) {
+    emit('FAIL: window.open blocked by popup blocker')
+    window.__results = { error: 'popup blocked' }
+    emit('DONE')
+  } else {
+    emit('Child window opened, waiting for ready signal...')
+
+    window.addEventListener('message', (e) => {
+      emit(`Received message: ${e.data?.type}`)
+      if (e.data?.type === 'receiver-ready') {
+        emit('Receiver ready, sending SAB via postMessage...')
+        try {
+          child.postMessage({ type: 'sab', sab }, '*')
+          emit('postMessage sent (no throw)')
+        } catch (err) {
+          emit(`postMessage failed: ${err.message}`)
+          window.__results = { windowPostSAB: false, error: err.message }
+          emit('DONE')
+        }
+      }
+      if (e.data?.type === 'receiver-wrote') {
+        const response = new Uint32Array(sab, 4, 1)[0]
+        emit(`Read response from SAB: 0x${response.toString(16)}`)
+        const ok = response === 0xCAFEBABE
+        emit(ok ? 'SUCCESS: cross-tab SAB sharing works!' : 'FAIL: unexpected')
+        window.__results = {
+          windowPostSAB: true,
+          sabShared: ok,
+          magicSent: magic,
+          responseReceived: response,
+        }
+        emit('DONE')
+        // Close child after a short delay.
+        setTimeout(() => child.close(), 500)
+      }
+      if (e.data?.type === 'receiver-sab-type') {
+        emit(`Receiver SAB type: ${e.data.sabType}`)
+        if (e.data.sabType !== 'SharedArrayBuffer') {
+          window.__results = {
+            windowPostSAB: false,
+            sabDowngraded: true,
+            receivedType: e.data.sabType,
+          }
+          emit('DONE')
+          setTimeout(() => child.close(), 500)
+        }
+      }
+    })
+
+    // Timeout.
+    setTimeout(() => {
+      if (!window.__results?.windowPostSAB && !window.__results?.sabDowngraded) {
+        emit('Timeout: no response from receiver')
+        window.__results = { windowPostSAB: false, timeout: true }
+        emit('DONE')
+        try { child.close() } catch {}
+      }
+    }, 5000)
+  }
+} else {
+  // Receiver (child window).
+  emit('Role: RECEIVER (child window)')
+
+  if (!window.opener) {
+    emit('ERROR: no window.opener (not opened via window.open)')
+    window.__results = { error: 'no opener' }
+    emit('DONE')
+  } else {
+    emit('Signaling parent...')
+    window.opener.postMessage({ type: 'receiver-ready' }, '*')
+
+    window.addEventListener('message', (e) => {
+      emit(`Received message: ${e.data?.type}`)
+      if (e.data?.type === 'sab') {
+        const sab = e.data.sab
+        const sabType = sab?.constructor?.name ?? typeof sab
+        emit(`SAB type: ${sabType}`)
+        window.opener.postMessage({ type: 'receiver-sab-type', sabType }, '*')
+
+        if (!(sab instanceof SharedArrayBuffer)) {
+          emit(`NOT SharedArrayBuffer (got ${sabType})`)
+          window.__results = { sabReceived: false, receivedType: sabType }
+          emit('DONE')
+          return
+        }
+
+        const view = new Int32Array(sab)
+        const magic = Atomics.load(view, 0)
+        emit(`Read magic: 0x${magic.toString(16)}`)
+
+        const response = 0xCAFEBABE
+        new Uint32Array(sab, 4, 1)[0] = response
+        emit(`Wrote response: 0x${response.toString(16)}`)
+
+        window.opener.postMessage({ type: 'receiver-wrote' }, '*')
+        window.__results = {
+          sabReceived: true,
+          magicRead: magic,
+          magicCorrect: magic === 0xDEADBEEF,
+        }
+        emit('DONE')
+      }
+    })
+  }
+}
+</script>
+</body>
+</html>

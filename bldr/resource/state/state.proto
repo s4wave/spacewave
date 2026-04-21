@@ -1,0 +1,51 @@
+syntax = "proto3";
+package resource.state;
+
+option go_package = "github.com/s4wave/spacewave/bldr/resource/state";
+
+// StateAtomResourceService provides access to persisted state atoms.
+service StateAtomResourceService {
+  // GetState returns the current state value.
+  rpc GetState(GetStateRequest) returns (GetStateResponse);
+
+  // SetState updates the state value.
+  rpc SetState(SetStateRequest) returns (SetStateResponse);
+
+  // WatchState watches for state changes.
+  // Streams the current state immediately, then any updates.
+  rpc WatchState(WatchStateRequest) returns (stream WatchStateResponse);
+}
+
+// GetStateRequest is the request for GetState.
+message GetStateRequest {}
+
+// GetStateResponse is the response for GetState.
+message GetStateResponse {
+  // StateJson is the current state as a JSON string.
+  string state_json = 1;
+  // Seqno is the sequence number of this state version.
+  uint64 seqno = 2;
+}
+
+// SetStateRequest is the request for SetState.
+message SetStateRequest {
+  // StateJson is the new state value as a JSON string.
+  string state_json = 1;
+}
+
+// SetStateResponse is the response for SetState.
+message SetStateResponse {
+  // Seqno is the sequence number after the update.
+  uint64 seqno = 1;
+}
+
+// WatchStateRequest is the request for WatchState.
+message WatchStateRequest {}
+
+// WatchStateResponse is the response for WatchState.
+message WatchStateResponse {
+  // StateJson is the current state as a JSON string.
+  string state_json = 1;
+  // Seqno is the sequence number of this state version.
+  uint64 seqno = 2;
+}

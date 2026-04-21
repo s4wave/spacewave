@@ -1,0 +1,10 @@
+syntax = "proto3";
+package plugin.host.configset;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config configures a controller to apply a configset to the plugin host.
+message Config {
+  // ConfigSet is the config set to apply to the plugin host.
+  map<string, .configset.proto.ControllerConfig> config_set = 1;
+}

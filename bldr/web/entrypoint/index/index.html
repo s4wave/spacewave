@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      #bldr-root {
+        display: flex;
+        position: fixed;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app. </noscript>
+    <script type="importmap">
+      {{ .ImportMap.String }}
+    </script>
+    <script type="module" src="{{ .EntrypointPath }}"></script>
+    <div id="bldr-root" role="main" />
+  </body>
+</html>

@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package web.view;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// WebViewHost is the service exposed by the Go runtime.
+//
+// Accessed by the WebView renderer.
+service WebViewHost {}
+
+// WebView exposes a remote WebView via rpc.
+service WebView {
+  // SetRenderMode sets the rendering mode of the view.
+  rpc SetRenderMode(SetRenderModeRequest) returns (SetRenderModeResponse) {}
+
+  // SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
+  rpc SetHtmlLinks(SetHtmlLinksRequest) returns (SetHtmlLinksResponse) {}
+
+  // ResetWebView clears the render mode, links, and contents of a WebView.
+  rpc ResetWebView(ResetWebViewRequest) returns (ResetWebViewResponse) {}
+
+  // RemoveWebView requests to remove a WebView from the root level.
+  rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
+}
+
+// RenderMode is the list of available WebView rendering modes.
+enum RenderMode {
+  // RenderMode_NONE selects no renderer (no contents).
+  // When setting this mode, everything is "reset" in the view.
+  RenderMode_NONE = 0;
+  // RenderMode_REACT_COMPONENT renders a React component from a JS module.
+  // Renders the default export of the JS module.
+  RenderMode_REACT_COMPONENT = 1;
+  // RenderMode_FUNCTION renders an init function with the following type:
+  // (parent: HTMLDivElement) => (() => void)
+  // Callback returns a function to call to shutdown the script.
+  // Renders the default export of the JS module.
+  RenderMode_FUNCTION = 2;
+  // RenderMode_REACT_CHILDREN renders React children passed to the WebView component.
+  // This is the default mode when children are passed to the React WebView.
+  //
+  // Allows tests and local components to render within a WebView context
+  // without Go explicitly setting the render mode.
+  RenderMode_REACT_CHILDREN = 3;
+}
+
+// SetRenderModeRequest is the request to change the render mode.
+message SetRenderModeRequest {
+  // RenderMode is the new render mode.
+  RenderMode render_mode = 1;
+
+  // ScriptPath is a path to a script to load to render.
+  // RenderMode_REACT_COMPONENT: expects default export to be a Component.
+  // RenderMode_FUNCTION: expects default export to be a ReactNode.
+  string script_path = 2;
+
+  // Props is a protobuf message passed as properties to the renderer/component.
+  bytes props = 3;
+
+  // Refresh clears the existing contents of the view fully before loading the new script.
+  bool refresh = 4;
+}
+
+// SetRenderModeResponse is the response to the SetRenderMode request.
+message SetRenderModeResponse {}
+
+// SetHtmlLinksRequest is the request to set a list of HtmlLink
+message SetHtmlLinksRequest {
+  // Clear clears the list of links before setting html_links.
+  bool clear = 1;
+  // Remove is the set of HTML link keys to remove.
+  repeated string remove = 2;
+  // SetLinks is the set of HTML links to add.
+  map<string, HtmlLink> set_links = 3;
+}
+
+// HtmlLink is a html link element for loading css & other resources.
+message HtmlLink {
+  // Href is the URL to load.
+  string href = 1;
+  // Rel is the type of link this is.
+  // Usually "stylesheet"
+  string rel = 2;
+}
+
+// SetHtmlLinksResponse is the response to the SetHtmlLinks request.
+message SetHtmlLinksResponse {}
+
+// ResetWebViewRequest is a request to reset the web view.
+message ResetWebViewRequest {}
+
+// ResetWebViewResponse is a response to reset the web view.
+message ResetWebViewResponse {}
+
+// RemoveWebViewRequest is a request to remove the web view.
+message RemoveWebViewRequest {}
+
+// RemoveWebViewResponse is the response to the RemoveWebView request.
+message RemoveWebViewResponse {
+  // Removed indicates the web view was removed.
+  bool removed = 1;
+}
+
+// AccessWebViews implements accessing WebViews via RPC.
+service AccessWebViews {
+  // WebViewRpc accesses the WebView service for a view by ID.
+  // Id: web view id
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}

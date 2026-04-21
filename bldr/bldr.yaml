@@ -1,0 +1,143 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: bldr-demo
+
+start:
+  plugins:
+    - bldr-demo
+
+build:
+  desktop:
+    manifests: ['web', 'bldr-demo']
+    targets: ['desktop']
+
+  web:
+    manifests: ['web', 'bldr-demo']
+    targets: ['browser']
+
+  release:
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
+    targets: ['desktop']
+
+  release-web:
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
+    targets: ['browser']
+
+  release-cross:
+    manifests: ['web', 'bldr-demo', 'bldr-demo-release']
+    platformIds:
+      - js
+      - desktop/linux/amd64
+      - desktop/windows/amd64
+      - desktop/darwin/amd64
+
+remotes:
+  demo-dist:
+    engineId: demo-dist
+    objectKey: dist/demo
+    hostConfigSet:
+      demo-dist-bucket:
+        id: hydra/bucket/setup
+        config:
+          applyBucketConfigs:
+            - volumeIdList: ['devtool']
+              config: { 'id': 'demo-dist' }
+      demo-dist-world:
+        id: hydra/world/block/engine
+        config:
+          engineId: demo-dist
+          bucketId: demo-dist
+          volumeId: devtool
+          objectStoreId: demo-dist
+          disableChangelog: true
+          # verbose: true
+
+publish:
+  demo-dist:
+    remotes: ['demo-dist']
+    manifests: ['web', 'bldr-demo', 'bldr-demo-dist']
+    storage:
+      # bifrost util timestamp
+      timestamp: '2023-10-18T18:38:40Z'
+      # if empty: uses transform config from remote world
+      transformConf:
+        steps:
+          - id: hydra/transform/s2
+          - id: hydra/transform/blockenc
+            config:
+              blockEnc: BlockEnc_XCHACHA20_POLY1305
+              # generate with: bifrost util generate-crypto-key
+              # after changing: npm run clean
+              key: DEn7LStBTb2ZOP1mlLixkmPLg6x773/TQ1mnyyXJu1A=
+
+manifests:
+  web:
+    builder:
+      id: bldr/web/plugin/compiler
+      config: {}
+        # delveAddr: wait
+
+  bldr-demo:
+    builder:
+      id: bldr/plugin/compiler/go
+      rev: 5
+      config:
+        # delveAddr: wait
+        webPluginId: web
+        goPkgs:
+          - ./example
+
+        # webPkgs externalizes packages
+        webPkgs:
+          - id: lucide-react
+
+        # configure the configset to apply on startup
+        configSet:
+          demo-1:
+            id: bldr/example/demo
+            config:
+              # runs an extended demo of reading/writing to a key/value store
+              # requires the storage be empty on startup
+              runDemo: false
+
+        # example of a per-build-type config
+        buildTypes:
+          release:
+            hostConfigSet:
+              # configure the devtool to fetch demo-* plugins from bldr-demo
+              fetch-plugin-via-bldr-demo:
+                id: bldr/manifest/fetch/plugin
+                config:
+                  pluginId: bldr-demo
+                  fetchManifestIdRe: demo-.*
+
+  bldr-demo-cli:
+    builder:
+      id: bldr/cli/compiler
+      config:
+        goPkgs:
+          - ./example
+        cliPkgs:
+          - ./example/cli
+        configSet:
+          demo-1:
+            id: bldr/example/demo
+            config:
+              runDemo: false
+
+  bldr-demo-release:
+    builder:
+      id: bldr/dist/compiler
+      config:
+        # Each embed must name the exact manifest build to include.
+        # List one entry per target host platform you plan to build for.
+        # Example below covers desktop/darwin/arm64 + js only; extend for
+        # release-cross or other hosts by adding entries.
+        embedManifests:
+          - { manifestId: web,       platformId: js }
+          - { manifestId: bldr-demo, platformId: desktop/darwin/arm64 }
+        loadPlugins:
+          - bldr-demo
+        loadWebStartup: example/startup.tsx
+        # enableCompression: ENABLE
+        # enableTinygo: ENABLE

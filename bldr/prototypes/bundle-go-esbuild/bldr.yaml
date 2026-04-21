@@ -1,0 +1,29 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: bundle-go-esbuild
+
+start:
+  plugins:
+    - app
+    - web
+
+manifests:
+  web:
+    builder:
+      id: bldr/web/plugin/compiler
+      #config:
+      #  delveAddr: wait
+
+  app:
+    builder:
+      id: bldr/plugin/compiler/go
+      rev: 1
+      config:
+        # delveAddr: wait
+        webPluginId: web
+        goPkgs:
+          - ./example
+        # configure the configset to apply on startup
+        configSet:
+          app:
+            id: bldr/example/demo

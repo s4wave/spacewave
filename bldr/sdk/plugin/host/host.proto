@@ -1,0 +1,68 @@
+syntax = "proto3";
+package bldr.plugin.host;
+
+option go_package = "github.com/s4wave/spacewave/bldr/sdk/plugin/host";
+
+// PluginHostResourceService provides resource access for plugins.
+service PluginHostResourceService {
+  // AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
+  rpc AccessAssetsFS(AccessAssetsFSRequest) returns (AccessAssetsFSResponse);
+  // AccessDistFS returns a resource ID for the plugin's dist filesystem.
+  rpc AccessDistFS(AccessDistFSRequest) returns (AccessDistFSResponse);
+  // AccessVolume returns a resource ID for the plugin's host volume.
+  rpc AccessVolume(AccessVolumeRequest) returns (AccessVolumeResponse);
+  // AccessStateAtom returns a resource ID for a state atom store.
+  rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
+  // GetPluginInfo returns information about the running plugin.
+  rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse);
+}
+
+// AccessAssetsFSRequest is the request for AccessAssetsFS.
+message AccessAssetsFSRequest {}
+
+// AccessAssetsFSResponse is the response for AccessAssetsFS.
+message AccessAssetsFSResponse {
+  // ResourceId is the resource ID for the assets filesystem.
+  uint32 resource_id = 1;
+}
+
+// AccessDistFSRequest is the request for AccessDistFS.
+message AccessDistFSRequest {}
+
+// AccessDistFSResponse is the response for AccessDistFS.
+message AccessDistFSResponse {
+  // ResourceId is the resource ID for the dist filesystem.
+  uint32 resource_id = 1;
+}
+
+// AccessVolumeRequest is the request for AccessVolume.
+message AccessVolumeRequest {}
+
+// AccessVolumeResponse is the response for AccessVolume.
+message AccessVolumeResponse {
+  // ResourceId is the resource ID for the host volume.
+  uint32 resource_id = 1;
+}
+
+// AccessStateAtomRequest is the request for AccessStateAtom.
+message AccessStateAtomRequest {
+  // StoreId is the identifier for the state atom store.
+  string store_id = 1;
+}
+
+// AccessStateAtomResponse is the response for AccessStateAtom.
+message AccessStateAtomResponse {
+  // ResourceId is the resource ID for the state atom store.
+  uint32 resource_id = 1;
+}
+
+// GetPluginInfoRequest is the request for GetPluginInfo.
+message GetPluginInfoRequest {}
+
+// GetPluginInfoResponse is the response for GetPluginInfo.
+message GetPluginInfoResponse {
+  // PluginId is the identifier of the running plugin.
+  string plugin_id = 1;
+  // Entrypoint is the entrypoint of the running plugin.
+  string entrypoint = 2;
+}

@@ -1,0 +1,29 @@
+syntax = "proto3";
+package bldr.manifest.builder.controller;
+
+import "github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto";
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config is the manifest builder controller configuration.
+message Config {
+  // BuilderConfig contains common config for the manifest builder.
+  // Overridden by the project controller.
+  .bldr.manifest.builder.BuilderConfig builder_config = 1;
+  // ControllerConfig is the config to use for the manifest builder controller.
+  // The ControllerConfig must be a manifest build controller Config.
+  .configset.proto.ControllerConfig controller_config = 2;
+  // BuildBackoff is the backoff config for building manifests.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff build_backoff = 3;
+  // Watch enables watching for changes.
+  bool watch = 4;
+  // WatchManifestIds is the list of manifest IDs to watch for changes.
+  // When any of these manifests are rebuilt (ref changes in the world),
+  // the builder controller triggers a rebuild of this manifest.
+  // Populated by the project controller from the webPkg dependency graph.
+  repeated string watch_manifest_ids = 5;
+  // StartupBuilderResult is the persisted startup build result to validate
+  // before the first build attempt.
+  .bldr.manifest.builder.BuilderResult startup_builder_result = 6;
+}

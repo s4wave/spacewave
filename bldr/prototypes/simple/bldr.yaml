@@ -1,0 +1,21 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: simple
+
+start:
+  plugins:
+    - app
+
+manifests:
+  app:
+    builder:
+      id: bldr/plugin/compiler/go
+      config:
+        # delveAddr: wait
+        goPkgs:
+          - ./prototypes/simple/app
+        # configure the configset to apply on startup
+        configSet:
+          app:
+            id: app
+            config: {}

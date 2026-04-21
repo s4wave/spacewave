@@ -13,11 +13,43 @@
     "strict": true,
     "lib": ["ES2024", "webworker", "dom"],
     "paths": {
+      "@go/github.com/s4wave/spacewave/*": ["./*"],
       "@go/*": ["./vendor/*"],
       "@s4wave/net/*": ["./net/*"],
-      "@s4wave/net": ["./net"]
+      "@s4wave/net": ["./net"],
+      "@aptre/bldr": ["./bldr/web/bldr/index.js"],
+      "@aptre/bldr-react": ["./bldr/web/bldr-react/index.js"],
+      "@aptre/bldr-sdk": ["./bldr/sdk/plugin.ts"],
+      "@aptre/bldr-sdk/*": ["./bldr/sdk/*"],
+      "web/*": ["./bldr/web/*"]
     }
   },
-  "include": ["net/**/*.ts"],
-  "exclude": ["node_modules", "vendor", "dist"]
+  "include": [
+    "bldr/global.d.ts",
+    "bldr/types/**/*",
+    "bldr/web/**/*",
+    "bldr/sdk/**/*",
+    "bldr/plugin/**/*",
+    "bldr/example/**/*",
+    "bldr/entrypoint/**/*",
+    "bldr/util/**/*",
+    "net/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "vendor",
+    "dist",
+    ".bldr",
+    ".bldr-dist",
+    "bldr/dist",
+    "bldr/devtool",
+    "bldr/e2e",
+    "bldr/manifest",
+    "bldr/prototypes",
+    "bldr/resource",
+    "bldr/storage",
+    "bldr/web/saucer/build",
+    "bldr/**/*.test.ts",
+    "bldr/**/*.spec.ts"
+  ]
 }

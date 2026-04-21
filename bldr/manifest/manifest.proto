@@ -1,0 +1,107 @@
+syntax = "proto3";
+package bldr.manifest;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "google/protobuf/timestamp.proto";
+
+// ManifestMeta is basic metadata about a manifest.
+message ManifestMeta {
+  // ManifestId is the identifier of the manifest.
+  string manifest_id = 1;
+  // BuildType is the type of build this is.
+  // Usually "development" or "production".
+  string build_type = 2;
+  // PlatformId is the target platform ID.
+  string platform_id = 3;
+  // Rev is the rev number of the manifest.
+  // Higher revision numbers take priority over lower.
+  // The number is incremented with each manifest build.
+  uint64 rev = 4;
+  // Description is a short human-readable description of the manifest.
+  string description = 5;
+}
+
+// Manifest contains metadata and contents.
+// The Manifest represents a specific version for one target architecture.
+message Manifest {
+  // Meta is the manifest metadata.
+  ManifestMeta meta = 1;
+  // Entrypoint is the path in the dist fs to the entrypoint binary.
+  string entrypoint = 2;
+  // DistFsRef references a UnixFS FS_NODE containing distribution files.
+  // Dist files are checked out to the disk when starting the plugin.
+  .block.BlockRef dist_fs_ref = 3;
+  // AssetsFsRef references a UnixFS FS_NODE containing assets.
+  // Asset files are accessible by the plugin at runtime in-memory.
+  .block.BlockRef assets_fs_ref = 4;
+}
+
+// ManifestRef is a reference to a Manifest with some hints.
+message ManifestRef {
+  // Meta is the manifest metadata.
+  // Must match the ManifestRef.Meta field.
+  ManifestMeta meta = 1;
+  // ManifestRef is the reference to the manifest.
+  .bucket.ObjectRef manifest_ref = 2;
+}
+
+// ManifestBundle contains the metadata for a bundle of Manifest.
+message ManifestBundle {
+  // ManifestRefs contains the set of manifest references.
+  repeated ManifestRef manifest_refs = 1;
+  // Timestamp is the timestamp the bundle was created.
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+// ManifestSnapshot is a manifest reference with the manifest value fetched.
+message ManifestSnapshot {
+  // ManifestRef is the reference to the manifest.
+  // Must match the manifest field.
+  .bucket.ObjectRef manifest_ref = 1;
+  // Manifest is the fetched manifest object.
+  Manifest manifest = 2;
+}
+
+// ManifestFetch is a service that fetches manifests by metadata.
+service ManifestFetch {
+  // FetchManifest requests the manifest for the given metadata.
+  // The metadata may not be an exact match.
+  // Returns the stream of values from the FetchManifest directive.
+  rpc FetchManifest(FetchManifestRequest) returns (stream FetchManifestResponse) {};
+}
+
+// FetchManifestRequest is a request to fetch a manifest binary.
+message FetchManifestRequest {
+  // ManifestId is the identifier of the manifest.
+  string manifest_id = 1;
+  // BuildTypes is a slice of build types to match, if empty match all.
+  repeated string build_types = 2;
+  // PlatformIds is a slice of platform IDs to match, if empty match any.
+  repeated string platform_ids = 3;
+  // Rev is the minimum revision number of the manifest(s) to accept.
+  // If set to 0, match any.
+  uint64 rev = 4;
+}
+
+// FetchManifestValue is the result of the FetchManifest directive.
+message FetchManifestValue {
+  // ManifestRefs is the list of references to the fetched manifests.
+  // We fetch multiple in one pass to avoid race conditions.
+  repeated ManifestRef manifest_refs = 1;
+}
+
+// FetchManifestResponse is a response to a FetchManifest request.
+message FetchManifestResponse {
+  // ValueId is set to a non-zero integer w/ the value ID.
+  uint32 value_id = 1;
+  // Value is the value if we are adding a value.
+  FetchManifestValue value = 2;
+  // Removed indicates removal of the value with value_id.
+  bool removed = 3;
+  // Idle indicates the directive is now idle (no resolvers are running).
+	//
+	// 1 = not idle
+	// 2 = idle
+  uint32 idle = 4;
+}

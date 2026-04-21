@@ -9,10 +9,10 @@ overrides:
       - '.prettierrc'
       - '.eslintrc'
       - 'tsconfig.json'
+      - 'tsconfig.typecheck.json'
       - 'package.json'
       - 'package-lock.json'
       - 'bun.lock'
-      - 'components.json'
     options:
       tabWidth: 2
       printWidth: 100

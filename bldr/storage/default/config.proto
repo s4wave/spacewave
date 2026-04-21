@@ -1,0 +1,11 @@
+syntax = "proto3";
+package storage.default;
+
+// Config configures the default bldr storage.
+message Config {
+  // StorageId is the storage identifier to use for LookupStorage.
+  string storage_id = 1;
+  // RootDir is the root directory to store volumes.
+  // ignored on web platform.
+  string root_dir = 2;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+package web.pkg.rpc.server;
+
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures the web pkg rpc server.
+// Provides the AccessWebPkg RPC service.
+// Resolves LookupRpcService.
+// Provides one or more services according to the pkg ids:
+//  - web.pkg.rpc.AccessWebPkg/@aperturerobotics/util/ -> LookupWebPkg<@aperturerobotics/util>
+//  - web.pkg.rpc.AccessWebPkg/react -> LookupWebPkg<react>
+message Config {
+  // ServiceIdPrefix is the service id prefix to listen on.
+  // If empty, defaults to web.pkg.rpc.AccessWebPkg.
+  string service_id_prefix = 1;
+  // WebPkgIdRe is a regex string to match web pkgs IDs.
+  // Set to '.*' or empty to match all web pkgs ids.
+  string web_pkg_id_re = 2;
+  // WebPkgIdPrefixes is a list of web pkg id prefixes to match.
+  // If the value is in this list, overrides web_pkg_id_re.
+  // Set to '.*' or empty to match all web pkgs ids.
+  repeated string web_pkg_id_prefixes = 3;
+  // WebPkgIdList is a list of web pkg IDs to resolve.
+  // If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
+  // Ignored if empty.
+  repeated string web_pkg_id_list = 4;
+  // ReleaseDelay is a delay duration to wait before releasing a unreferenced web pkg.
+  // If empty string, defaults to 1s (1 second).
+  string release_delay = 5;
+  // Backoff is the backoff config for resolving web pkgs.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff backoff = 6;
+}

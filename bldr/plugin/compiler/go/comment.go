@@ -1,0 +1,262 @@
+//go:build !js
+
+package bldr_plugin_compiler_go
+
+import (
+	"go/ast"
+	"go/token"
+	"go/types"
+	"strings"
+
+	shellquote "github.com/kballard/go-shellquote"
+	"github.com/pkg/errors"
+	"golang.org/x/tools/go/packages"
+)
+
+// TrimCommentArgs trims a comment tag prefix from a string.
+//
+// Returns if the string had the comment tag prefix.
+func TrimCommentArgs(tag, value string) (string, bool) {
+	value = strings.TrimSpace(value)
+	value = strings.TrimPrefix(value, "//")
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(strings.ToLower(value), tag+" ") {
+		value = strings.TrimSpace(value[len(tag)+1:])
+		return value, true
+	}
+	return value, false
+}
+
+// FindTagComments searches for comments associated with variable declarations (`var`)
+// that have the given tag prefix. It operates purely on the Abstract Syntax Tree (AST)
+// and does not use resolved type information.
+//
+// Returns a map of packages -> variable names -> parsed result (type T).
+// The checkParseComments callback receives the comment lines and the AST node (*ast.ValueSpec)
+// for the variable declaration. It should return the parsed result, a boolean indicating
+// if the tag was found, and any error. Returning false for the boolean skips the comment.
+func FindTagComments[T any](
+	tag string,
+	fset *token.FileSet,
+	codeFiles map[string][]*ast.File,
+	checkParseComments func(values []string, spec *ast.ValueSpec) (T, bool, error),
+) (map[string](map[string]T), error) {
+	packagesMap := make(map[string](map[string]T))
+	getPackageMap := func(pkg string) map[string]T {
+		m := packagesMap[pkg]
+		if m == nil {
+			m = make(map[string]T)
+		}
+		packagesMap[pkg] = m
+		return m
+	}
+
+	for pkgImportPath, pkgCodeFile := range codeFiles {
+		for _, codeFile := range pkgCodeFile {
+			cmap := ast.NewCommentMap(fset, codeFile, codeFile.Comments)
+			for nod, comments := range cmap {
+				for _, comment := range comments {
+					posErr := func(err error) error {
+						pos := fset.Position(nod.Pos()).String()
+						return errors.Wrap(err, pos)
+					}
+					var commentPts []string
+					for _, commentElem := range comment.List {
+						commentTxt := strings.TrimPrefix(commentElem.Text, "//")
+						if len(commentTxt) != 0 {
+							commentPts = append(commentPts, commentTxt)
+						}
+					}
+					if len(commentPts) != 0 {
+						decl, declOk := nod.(*ast.GenDecl)
+						if !declOk || len(decl.Specs) == 0 {
+							continue
+						}
+						pkgMap := getPackageMap(pkgImportPath)
+						for _, spec := range decl.Specs {
+							valueSpec, ok := spec.(*ast.ValueSpec)
+							if !ok || len(valueSpec.Names) == 0 {
+								continue
+							}
+							args, hasTag, err := checkParseComments(commentPts, valueSpec)
+							if err != nil {
+								return nil, posErr(err)
+							}
+							if !hasTag {
+								continue
+							}
+							for _, name := range valueSpec.Names {
+								if name != nil && len(name.Name) != 0 {
+									pkgMap[name.Name] = args
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Remove packages that ended up with no tagged variables
+	for pkgImportPath, vars := range packagesMap {
+		if len(vars) == 0 {
+			delete(packagesMap, pkgImportPath)
+		}
+	}
+
+	return packagesMap, nil
+}
+
+// FindTagCommentsWithTypes searches for comments associated with variable declarations (`var`)
+// that have the given tag prefix. It uses resolved type information from the provided Analysis object
+// in addition to the Abstract Syntax Tree (AST).
+//
+// Returns a map of packages -> variable names -> parsed result (type T).
+// The processComments callback receives the comment lines, the variable name, the package containing
+// the variable (*packages.Package), and the resolved type object (types.Object). It should return
+// the parsed result, a boolean indicating if the tag was found, and any error. Returning false
+// for the boolean skips the comment. This allows the callback to make decisions based on the
+// variable's actual type.
+func FindTagCommentsWithTypes[T any](
+	tag string,
+	analysis *Analysis,
+	codeFiles map[string][]*ast.File,
+	processComments func(
+		values []string,
+		varName string,
+		pkg *packages.Package,
+		obj types.Object,
+	) (T, bool, error),
+) (map[string](map[string]T), error) {
+	packagesMap := make(map[string](map[string]T))
+	getPackageMap := func(pkg string) map[string]T {
+		m := packagesMap[pkg]
+		if m == nil {
+			m = make(map[string]T)
+		}
+		packagesMap[pkg] = m
+		return m
+	}
+
+	// Helper function to extract comment text from a comment group
+	extractCommentText := func(comment *ast.CommentGroup) []string {
+		if comment == nil {
+			return nil
+		}
+
+		var commentPts []string
+		for _, commentElem := range comment.List {
+			commentTxt := strings.TrimPrefix(commentElem.Text, "//")
+			if len(commentTxt) != 0 {
+				commentPts = append(commentPts, commentTxt)
+			}
+		}
+		return commentPts
+	}
+
+	// Helper function to create position error
+	makePositionError := func(nod ast.Node) func(error) error {
+		return func(err error) error {
+			pos := analysis.fset.Position(nod.Pos()).String()
+			return errors.Wrap(err, pos)
+		}
+	}
+
+	// Process a variable declaration
+	processVarDecl := func(pkgImportPath string, pkg *packages.Package, nod ast.Node, comments *ast.CommentGroup) error {
+		posErr := makePositionError(nod)
+		commentPts := extractCommentText(comments)
+		if len(commentPts) == 0 {
+			return nil
+		}
+
+		decl, declOk := nod.(*ast.GenDecl)
+		if !declOk || len(decl.Specs) == 0 {
+			return nil
+		}
+
+		pkgMap := getPackageMap(pkgImportPath)
+		for _, spec := range decl.Specs {
+			valueSpec, ok := spec.(*ast.ValueSpec)
+			if !ok || len(valueSpec.Names) == 0 {
+				continue
+			}
+
+			for _, name := range valueSpec.Names {
+				if name == nil || len(name.Name) == 0 {
+					continue
+				}
+
+				// Look up the variable in the package's type system
+				obj := pkg.Types.Scope().Lookup(name.Name)
+				if obj == nil {
+					// Skip variables not found in scope (like _ or variables dropped during compilation)
+					continue
+				}
+
+				result, hasTag, err := processComments(commentPts, name.Name, pkg, obj)
+				if err != nil {
+					return posErr(err)
+				}
+				if !hasTag {
+					continue
+				}
+
+				pkgMap[name.Name] = result
+			}
+		}
+		return nil
+	}
+
+	// Process all packages and files
+	for pkgImportPath, pkgCodeFile := range codeFiles {
+		// Get the package from the analysis
+		pkg, ok := analysis.packages[pkgImportPath]
+		if !ok {
+			continue
+		}
+
+		for _, codeFile := range pkgCodeFile {
+			cmap := ast.NewCommentMap(analysis.fset, codeFile, codeFile.Comments)
+			for nod, comments := range cmap {
+				for _, comment := range comments {
+					if err := processVarDecl(pkgImportPath, pkg, nod, comment); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+
+	// Remove packages that ended up with no tagged variables
+	for pkgImportPath, vars := range packagesMap {
+		if len(vars) == 0 {
+			delete(packagesMap, pkgImportPath)
+		}
+	}
+
+	return packagesMap, nil
+}
+
+// CombineShellComments searches for & strips the given tag from the list of comments.
+// Parses each comment as shell args (splits with shell quote rules).
+// Returns the merged list of shell args.
+// Returns if the tag was found in any of the comments.
+// Ignores any comments without the prefix.
+// This allows for multi-line shell-style arguments in comments to be combined.
+func CombineShellComments(tag string, comments []string) ([]string, bool, error) {
+	var tagFound bool
+	var args []string
+	for _, cmt := range comments {
+		cmt, found := TrimCommentArgs(tag, cmt)
+		if found {
+			tagFound = true
+			sargs, err := shellquote.Split(cmt)
+			args = append(args, sargs...)
+			if err != nil {
+				return args, true, err
+			}
+		}
+	}
+	return args, tagFound, nil
+}

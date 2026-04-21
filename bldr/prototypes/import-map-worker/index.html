@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="importmap">
+      {
+        "imports": {
+          "worker-script": "./worker-script.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Import Map and Web Workers Example</h1>
+
+    <script>
+      // Create a new Worker instance using the mapped URL
+      const worker = new Worker('worker-script')
+
+      // Listen for messages from the worker
+      worker.onmessage = function (event) {
+        console.log('Received message from worker:', event.data)
+      }
+
+      // Send a message to the worker
+      worker.postMessage('Hello from the main script!')
+    </script>
+  </body>
+</html>

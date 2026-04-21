@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head><title>Beforeunload Snapshot Race</title></head>
+<body>
+<h1>Beforeunload Snapshot Race Test</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: measure how fast we can snapshot WASM memory during beforeunload.
+// Simulates the real scenario: worker has WASM memory, main thread requests
+// snapshot on beforeunload, measures time to write to OPFS/IDB.
+//
+// For Playwright testing, we simulate the beforeunload flow without actually
+// closing the tab: trigger the snapshot, measure timing, verify data.
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+async function run() {
+  emit('=== Beforeunload Snapshot Race Test ===\n')
+
+  // Create a worker with simulated WASM memory.
+  const worker = new Worker('/workers/snapshot-worker.js')
+  await new Promise(r => { worker.onmessage = () => r(undefined) })
+
+  // Ask worker to allocate and fill memory.
+  const memMB = 16
+  worker.postMessage({ type: 'alloc', sizeMB: memMB })
+  const allocResult = await new Promise(r => {
+    worker.onmessage = (e) => r(e.data)
+  })
+  emit(`Worker allocated ${memMB} MB, checksum: ${allocResult.checksum}`)
+
+  // Simulate beforeunload: request urgent snapshot.
+  emit('\nSimulating beforeunload snapshot request...')
+  const snapshotStart = performance.now()
+  worker.postMessage({ type: 'snapshot-now' })
+  const snapResult = await new Promise(r => {
+    worker.onmessage = (e) => r(e.data)
+  })
+  const totalMs = performance.now() - snapshotStart
+
+  if (snapResult.type === 'snapshot-error') {
+    emit(`OPFS snapshot failed: ${snapResult.error}`)
+    emit('Falling back to IDB benchmark only')
+
+    worker.postMessage({ type: 'snapshot-idb' })
+    const idbResult = await new Promise(r => {
+      worker.onmessage = (e) => r(e.data)
+    })
+    emit(`IDB write: ${idbResult.idbWriteMs.toFixed(2)} ms`)
+    worker.terminate()
+
+    window.__results = {
+      memMB,
+      opfsAvailable: false,
+      idbWriteMs: idbResult.idbWriteMs,
+      workerChecksum: allocResult.checksum,
+    }
+    emit('\nDONE')
+    return
+  }
+
+  emit(`Worker snapshot time: ${snapResult.snapshotMs.toFixed(2)} ms`)
+  emit(`Total round-trip: ${totalMs.toFixed(2)} ms`)
+  emit(`Snapshot size: ${(snapResult.sizeBytes / 1024 / 1024).toFixed(1)} MB`)
+
+  // Verify: read back from OPFS.
+  let verifyOk = false
+  try {
+    const root = await navigator.storage.getDirectory()
+    const fh = await root.getFileHandle('urgent-snapshot.bin')
+    const file = await fh.getFile()
+    const buf = new Uint8Array(await file.arrayBuffer())
+    let checksum = 0
+    for (let i = 0; i < buf.byteLength; i++) checksum = (checksum + buf[i]) | 0
+    verifyOk = checksum === allocResult.checksum
+    emit(`OPFS verify: checksum ${checksum} (${verifyOk ? 'MATCH' : 'MISMATCH'})`)
+    await root.removeEntry('urgent-snapshot.bin')
+  } catch (e) {
+    emit(`OPFS verify failed: ${e.message}`)
+  }
+
+  // Would alert() block long enough?
+  const alertThreshold = 100 // ms
+  const wouldNeedAlert = totalMs > alertThreshold
+  emit(`\nWould need alert() blocking: ${wouldNeedAlert ? 'YES' : 'NO'} (threshold: ${alertThreshold} ms)`)
+
+  // Benchmark: how fast is IDB for comparison?
+  emit('\nIDB alternative benchmark...')
+  worker.postMessage({ type: 'snapshot-idb' })
+  const idbResult = await new Promise(r => {
+    worker.onmessage = (e) => r(e.data)
+  })
+  emit(`IDB write: ${idbResult.idbWriteMs.toFixed(2)} ms`)
+
+  worker.terminate()
+
+  window.__results = {
+    memMB,
+    snapshotMs: snapResult.snapshotMs,
+    totalRoundTripMs: totalMs,
+    opfsVerified: verifyOk,
+    wouldNeedAlert,
+    idbWriteMs: idbResult.idbWriteMs,
+    workerChecksum: allocResult.checksum,
+  }
+  emit('\nDONE')
+}
+run()
+</script>
+</body>
+</html>

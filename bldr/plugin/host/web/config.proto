@@ -1,0 +1,22 @@
+syntax = "proto3";
+package plugin.host.web;
+
+// Config is the WebWorker PluginHost controller configuration.
+message Config {
+  // WebRuntimeId is the identifier of the web runtime.
+  string web_runtime_id = 1;
+  // ForceDedicatedWorkers overrides the default SharedWorker mode to use
+  // dedicated Workers instead. Useful for testing with Playwright which
+  // can capture console output from dedicated workers but not shared.
+  bool force_dedicated_workers = 2;
+}
+
+// QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
+message QuickJSConfig {
+  // WebRuntimeId is the identifier of the web runtime.
+  string web_runtime_id = 1;
+  // ForceDedicatedWorkers overrides the default SharedWorker mode to use
+  // dedicated Workers instead. Useful for testing with Playwright which
+  // can capture console output from dedicated workers but not shared.
+  bool force_dedicated_workers = 2;
+}

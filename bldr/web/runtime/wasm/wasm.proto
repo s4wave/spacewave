@@ -1,0 +1,13 @@
+syntax = "proto3";
+package web.runtime.wasm;
+
+// WebWorkerWasmPluginInit is a message passed to initialize a web worker with a wasm plugin.
+message WebWorkerWasmPluginInit {
+  // Entrypoint is the path to the wasm entrypoint.
+  // /b/pd/{plugin-id}/{plugin-id}.wasm
+  string entrypoint = 1;
+  // Argv is the set of command line arguments to pass to the plugin.
+  repeated string argv = 2;
+  // Env is the set of environment variables to pass to the plugin.
+  map<string, string> env = 3;
+}

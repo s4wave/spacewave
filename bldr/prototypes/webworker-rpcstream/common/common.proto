@@ -1,0 +1,21 @@
+syntax = "proto3";
+package prototype.webworker_rpcstream.common;
+
+// PrototypeService is a service for the prototype (regression test).
+// app1 contacts app2 and starts a streaming rpc.
+// if app1 cancels the rpc, app2 context should also cancel.
+service PrototypeService {
+  // Prototype is the prototype request.
+  rpc Prototype(PrototypeRequest) returns (stream PrototypeResponse);
+}
+
+// PrototypeRequest is the request message for the Prototype RPC.
+message PrototypeRequest {
+  string body = 1;
+}
+
+// PrototypeResponse is the response message for the Prototype RPC.
+message PrototypeResponse {
+  string body = 1;
+  int32 sequence_number = 2;
+}

@@ -501,7 +501,7 @@ export class FsInode {
 
     let nref: FSHandle | null = null
     let childReady = false
-    let childInode: FsInode | null = null
+    let childInode: FsInode | null
 
     const { child, index: insertIdx } = this.findChildInodeInternal(name, false)
     childInode = child
@@ -1068,7 +1068,7 @@ export class FSHandle {
       if (pname === '.') {
         continue
       }
-      let dh: FSHandle | null = null
+      let dh: FSHandle | null
       try {
         dh = await dirHandle.lookup(signal, pname)
       } catch (e) {
@@ -1210,12 +1210,15 @@ export class FSHandle {
     signal: AbortSignal,
     name: string,
   ): Promise<{ path: string[]; isAbsolute: boolean }> {
-    let handle: FSHandle = this
-    let shouldRelease = false
-    if (name) {
-      handle = await this.lookup(signal, name)
-      shouldRelease = true
+    if (!name) {
+      let result!: { path: string[]; isAbsolute: boolean }
+      await this._inode.accessInode(signal, async (_cursor, ops) => {
+        result = await ops.readlink(name, signal)
+      })
+      return result
     }
+
+    const handle = await this.lookup(signal, name)
     try {
       let result!: { path: string[]; isAbsolute: boolean }
       await handle._inode.accessInode(signal, async (_cursor, ops) => {
@@ -1223,9 +1226,7 @@ export class FSHandle {
       })
       return result
     } finally {
-      if (shouldRelease) {
-        handle.release()
-      }
+      handle.release()
     }
   }
 

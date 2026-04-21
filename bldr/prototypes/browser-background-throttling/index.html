@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Background Tab Throttling Demo</title>
+  </head>
+  <body>
+    <h1>Background Tab Throttling Demo</h1>
+    <p>
+      Open the developer console to see the throttling events and timestamps.
+    </p>
+
+    <script>
+      let hiddenTimestamp = null
+      let lastTickTimestamp = null
+      let throttled = false
+      let suspended = false
+
+      function tick() {
+        const currentTimestamp = Date.now()
+
+        if (lastTickTimestamp !== null) {
+          const elapsedTime = currentTimestamp - lastTickTimestamp
+
+          if (!throttled && elapsedTime >= 200) {
+            throttled = true
+            console.log(`Tab throttled at ${currentTimestamp}`)
+          }
+
+          if (!suspended && elapsedTime >= 2000) {
+            suspended = true
+            console.log(`Tab suspended at ${currentTimestamp}`)
+          }
+        }
+
+        lastTickTimestamp = currentTimestamp
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          hiddenTimestamp = Date.now()
+          console.log(`Page hidden at ${hiddenTimestamp}`)
+        } else {
+          throttled = false
+          suspended = false
+          console.log(`Page visible at ${Date.now()}`)
+        }
+      })
+
+      setInterval(tick, 100)
+    </script>
+  </body>
+</html>

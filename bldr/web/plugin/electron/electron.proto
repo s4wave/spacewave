@@ -1,0 +1,82 @@
+syntax = "proto3";
+package electron;
+
+// ExternalLinks configures how external links are handled.
+enum ExternalLinks {
+  // EXTERNAL_LINKS_OS_BROWSER opens external links in the OS default browser.
+  EXTERNAL_LINKS_OS_BROWSER = 0;
+  // EXTERNAL_LINKS_DENY denies all external link navigation.
+  EXTERNAL_LINKS_DENY = 1;
+}
+
+// QuitPolicy configures how the Electron runtime behaves on user quit.
+enum QuitPolicy {
+  // QUIT_POLICY_UNSPECIFIED lets the caller choose the runtime default.
+  QUIT_POLICY_UNSPECIFIED = 0;
+  // QUIT_POLICY_RESTART keeps the host restart-friendly after user quit.
+  QUIT_POLICY_RESTART = 1;
+  // QUIT_POLICY_EXIT exits cleanly without restart after user quit.
+  QUIT_POLICY_EXIT = 2;
+}
+
+// ElectronInit is passed from Go to the Electron main process on startup.
+message ElectronInit {
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 1;
+  // AppName is the application display name.
+  string app_name = 2;
+  // WindowTitle overrides the window title (defaults to app_name).
+  string window_title = 3;
+  // WindowWidth is the default window width in pixels (default: 900).
+  uint32 window_width = 4;
+  // WindowHeight is the default window height in pixels (default: 680).
+  uint32 window_height = 5;
+  // DevTools enables DevTools on window creation (default: false).
+  bool dev_tools = 6;
+  // ThemeSource sets native theme ("dark", "light", "system").
+  string theme_source = 7;
+  // QuitPolicy configures whether user quit should restart or exit.
+  QuitPolicy quit_policy = 8;
+}
+
+// Config is the configuration for the electron runtime.
+message Config {
+  // ElectronPath is the path to the electron binary.
+  string electron_path = 1;
+
+  // WorkdirPath is the path to the working directory to use.
+  // If unset, defaults to the current working directory of the process.
+  string workdir_path = 5;
+
+  // RendererPath is the path to the renderer bundle.
+  // Must be one of the accepted Electron path types.
+  // Ex: http://, file://, path to directory, path to index.js
+  // Relative paths must be relative to workdir_path.
+  string renderer_path = 2;
+
+  // WebRuntimeId is the value to use for the runtime uuid.
+  // Used for the Unix pipe paths and for the BroadcastChannel ids.
+  // Should be unique against other running Electron instances.
+  string web_runtime_id = 3;
+
+  // ElectronFlags are additional flags to pass to electron.
+  repeated string electron_flags = 4;
+
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 6;
+
+  // AppName is the application display name.
+  string app_name = 7;
+  // WindowTitle overrides the window title (defaults to app_name).
+  string window_title = 8;
+  // WindowWidth is the default window width in pixels.
+  uint32 window_width = 9;
+  // WindowHeight is the default window height in pixels.
+  uint32 window_height = 10;
+  // DevTools enables DevTools on window creation.
+  bool dev_tools = 11;
+  // ThemeSource sets native theme ("dark", "light", "system").
+  string theme_source = 12;
+  // QuitPolicy configures whether user quit should restart or exit.
+  QuitPolicy quit_policy = 13;
+}

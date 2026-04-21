@@ -1,0 +1,26 @@
+syntax = "proto3";
+package bldr.manifest.world;
+
+import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// StoreManifestOp stores a Manifest to an object key.
+message StoreManifestOp {
+  // ObjectKey is the object key to set.
+  string object_key = 1;
+  // LinkObjectKeys is the list of keys to link from with the <manifest> predicate.
+  repeated string link_object_keys = 2;
+  // ManifestRef is the manifest reference.
+  .bldr.manifest.ManifestRef manifest_ref = 3;
+}
+
+// ExtractManifestBundleOp stores a ManifestBundle to an object key.
+// Extracts the manifests to Manifest objects with <manifest> links.
+message ExtractManifestBundleOp {
+  // ObjectKey is the object key to set.
+  string object_key = 1;
+  // LinkObjectKeys is the list of keys to link from with the <manifest> predicate.
+  repeated string link_object_keys = 2;
+  // ManifestBundle is the root reference to the ManifestBundle.
+  .bucket.ObjectRef manifest_bundle = 3;
+}

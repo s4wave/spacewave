@@ -1,0 +1,152 @@
+syntax = "proto3";
+package web.runtime;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
+//
+// Usually accessed by the WebRuntime.
+service WebRuntimeHost {
+  // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+  // Exposes the WebDocumentHost service.
+  // Id is the webDocumentId.
+  rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+  // Exposes the ServiceWorkerHost service.
+  // Id is the service worker id.
+  rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+  // Exposes the WebWorkerHost service.
+  // Id is the webWorkerId.
+  rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+//
+// Usually accessed by the WebRuntimeHost.
+service WebRuntime {
+  // WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
+  rpc WatchWebRuntimeStatus(WatchWebRuntimeStatusRequest) returns (stream WebRuntimeStatus);
+
+  // CreateWebDocument requests to create a new WebDocument.
+  // Returns created: false if unable to create WebDocuments.
+  // This usually creates a new Tab or Window.
+  rpc CreateWebDocument(CreateWebDocumentRequest) returns (CreateWebDocumentResponse);
+  // RemoveWebDocument requests to delete a WebDocument.
+  // Returns created: false if unable to create WebDocuments.
+  // This usually creates a new Tab or Window.
+  rpc RemoveWebDocument(RemoveWebDocumentRequest) returns (RemoveWebDocumentResponse);
+  // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+  // Exposes the WebDocument service.
+  // Id is the webDocumentId.
+  rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+  // Contacts the WebWorker via. the associated WebRuntimeClient.
+  // The WebWorker must have registered with the runtime for this to work.
+  // Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+  // Id is the webWorkerId.
+  rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// WebRuntimeHostInit initializes the WebRuntimeHost.
+//
+// only used in cases where the host runtime is initialized by the web runtime.
+message WebRuntimeHostInit {
+  // WebRuntimeId is the identifier for the WebRuntime instance.
+  //
+  // must be set
+  string web_runtime_id = 1;
+}
+
+// WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
+message WatchWebRuntimeStatusRequest {}
+
+// WebRuntimeStatus contains a snapshot of status for a Runtime instance.
+message WebRuntimeStatus {
+  // Snapshot indicates this is a full snapshot of the lists.
+  bool snapshot = 1;
+  // WebDocuments contains the list of web documents.
+  repeated WebDocumentStatus web_documents = 2;
+  // Closed indicates the web runtime is closed.
+  bool closed = 3;
+}
+
+// WebDocumentStatus contains status for a WebDocument.
+message WebDocumentStatus {
+  // Id is the unique identifier for the WebDocument.
+  string id = 1;
+  // Deleted indicates the document was just removed.
+  // If set, all below fields are ignored.
+  bool deleted = 2;
+  // Permanent indicates that this document cannot be closed.
+  bool permanent = 3;
+}
+
+// CreateWebDocumentRequest is a request to create a new web view.
+message CreateWebDocumentRequest {
+  // id is the identifier for the new WebDocument.
+  string id = 1;
+}
+
+// CreateWebDocumentResponse is the response to the CreateWebDocument request.
+message CreateWebDocumentResponse {
+  // Created indicates the WebDocument was created.
+  // If this is not set, assumes we cannot create WebDocuments.
+  bool created = 1;
+}
+
+// RemoveWebDocumentRequest is a request to remove a WebDocument.
+message RemoveWebDocumentRequest {
+  // Id is the identifier for the WebDocument.
+  string id = 1;
+}
+
+// RemoveWebDocumentResponse is the response to the RemoveWebDocument request.
+message RemoveWebDocumentResponse {
+  // Removed indicates the WebDocument was removed.
+  // If this is not set, the document did not exist.
+  bool removed = 1;
+}
+
+// WebRuntimeClientType is the set of client types for a WebRuntime.
+enum WebRuntimeClientType {
+  // WebRuntimeClientType_UNKNOWN is the unknown type.
+  WebRuntimeClientType_UNKNOWN = 0;
+  // WebRuntimeClientType_WEB_DOCUMENT is the WebDocument type.
+  WebRuntimeClientType_WEB_DOCUMENT = 1;
+  // WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type.
+  WebRuntimeClientType_SERVICE_WORKER = 2;
+  // WebRuntimeClientType_WEB_WORKER is the WebWorker type.
+  WebRuntimeClientType_WEB_WORKER = 3;
+}
+
+// WebRenderer is the type of web renderer to use for native applications.
+enum WebRenderer {
+  // WEB_RENDERER_DEFAULT uses the default renderer (currently electron).
+  WEB_RENDERER_DEFAULT = 0;
+  // WEB_RENDERER_ELECTRON uses Electron as the native runtime.
+  WEB_RENDERER_ELECTRON = 1;
+  // WEB_RENDERER_SAUCER uses Saucer (C++ webview) as the native runtime.
+  WEB_RENDERER_SAUCER = 2;
+}
+
+// WebRuntimeClientInit is a message sent by a client of a WebRuntime.
+message WebRuntimeClientInit {
+  // RuntimeId is the shared identifier for the Go Runtime instance.
+  //
+  // must be set
+  string web_runtime_id = 1;
+  // ClientUuid is the identifier of the client.
+  //
+  // must be set
+  string client_uuid = 2;
+  // LogicalClientId is the stable routing identifier for the client.
+  // If unset, the runtime falls back to client_uuid.
+  string logical_client_id = 5;
+  // ClientType is the type of the client.
+  WebRuntimeClientType client_type = 3;
+  // DisableWebLocks disables Web Locks API for disconnect detection.
+  // Set when WebRuntime and WebDocument don't share the same lock namespace.
+  bool disable_web_locks = 4;
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package plugin.host.process;
+
+// Config is the Process PluginHost controller configuration.
+message Config {
+  // StateDir is the directory to use for state.
+  string state_dir = 1;
+  // DistDir is the directory to use for plugin distribution files
+  string dist_dir = 2;
+}

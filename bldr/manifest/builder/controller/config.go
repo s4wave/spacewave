@@ -1,0 +1,67 @@
+//go:build !js
+
+package bldr_manifest_builder_controller
+
+import (
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	"github.com/aperturerobotics/controllerbus/config"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	backoff "github.com/aperturerobotics/util/backoff"
+)
+
+// ConfigID is the identifier for the config type.
+const ConfigID = ControllerID
+
+// NewConfig constructs the configuration.
+func NewConfig(
+	builderConfig *builder.BuilderConfig,
+	builderControllerConfig *configset_proto.ControllerConfig,
+	buildBackoff *backoff.Backoff,
+	watch bool,
+	startupBuilderResult *builder.BuilderResult,
+) *Config {
+	return &Config{
+		BuilderConfig:        builderConfig,
+		ControllerConfig:     builderControllerConfig,
+		BuildBackoff:         buildBackoff,
+		Watch:                watch,
+		StartupBuilderResult: startupBuilderResult,
+	}
+}
+
+// GetConfigID returns the config identifier.
+func (c *Config) GetConfigID() string {
+	return ConfigID
+}
+
+// EqualsConfig checks equality between two configs.
+func (c *Config) EqualsConfig(c2 config.Config) bool {
+	oc, ok := c2.(*Config)
+	if !ok {
+		return false
+	}
+
+	return c.EqualVT(oc)
+}
+
+// Validate validates the configuration.
+func (c *Config) Validate() error {
+	if err := c.GetControllerConfig().Validate(); err != nil {
+		return err
+	}
+	if err := c.GetBuilderConfig().Validate(); err != nil {
+		return err
+	}
+	if err := c.GetBuildBackoff().Validate(true); err != nil {
+		return err
+	}
+	if startupBuilderResult := c.GetStartupBuilderResult(); startupBuilderResult != nil {
+		if err := startupBuilderResult.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// _ is a type assertion
+var _ config.Config = ((*Config)(nil))

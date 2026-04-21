@@ -1,0 +1,5 @@
+syntax = "proto3";
+package app2;
+
+// Config configures the app2 controller.
+message Config {}

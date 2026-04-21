@@ -1,0 +1,21 @@
+syntax = "proto3";
+package devtool.web;
+
+import "github.com/s4wave/spacewave/db/volume/volume.proto";
+
+// DevtoolInitBrowser is the message initializing the browser from the devtool.
+message DevtoolInitBrowser {
+  // AppId is the application id for browser storage.
+  string app_id = 1;
+  // DevtoolPeerId is the peer id to use for the devtool link.
+  string devtool_peer_id = 2;
+  // DevtoolVolumeInfo is the information for the devtool Volume.
+  // The volume is exposed with a ProxyVolume.
+  .volume.VolumeInfo devtool_volume_info = 3;
+  // StartPlugins is a list of plugins to LoadPlugin at startup.
+  repeated string start_plugins = 4;
+  // ForceDedicatedWorkers overrides the default SharedWorker mode to use
+  // dedicated Workers for plugins. Useful for testing with Playwright
+  // which can capture console output from dedicated workers but not shared.
+  bool force_dedicated_workers = 5;
+}

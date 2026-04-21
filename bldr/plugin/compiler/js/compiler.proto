@@ -1,0 +1,226 @@
+syntax = "proto3";
+package bldr.plugin.compiler.js;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/bundler.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/esbuild.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler/compiler.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler/compiler.proto";
+import "github.com/s4wave/spacewave/bldr/web/pkg/pkg.proto";
+import "github.com/s4wave/spacewave/bldr/web/view/view.proto";
+import "github.com/aperturerobotics/util/filter/filter.proto";
+
+// Config configures the Js/TypeScript plugin compiler controller.
+//
+// This configuration uses the terminology "backend" to refer to the plugin code
+// and "frontend" to bundles included in the assets filesystem served by the
+// plugin code, for example, to WebView with SetRenderMode.
+//
+// There are two ways to specify code to include in the plugin:
+//
+// - Define in the "modules" list, which is a shortcut for configuring entrypoints and bundles.
+// - Define bundles in esbuild_bundles or vite_bundles and entrypoints that consume those bundles.
+//
+// The most common way to use this plugin is:
+//
+// - Define your plugin backend .ts (runs in a WebWorker) in modules with type BACKEND
+// - Define your app frontend .tsx (runs in a WebView) in modules with type FRONTEND
+//
+// This will configure:
+//
+// - Vite compiler with two bundle entrypoints: frontend and backend.
+// - Entrypoint which on the plugin backend:
+//   - imports and calls the backend package esmodule(s)
+//   - serves the frontend package to any WebView without a parent (a root WebView)
+//   - applies any configured hostConfigSet
+//   - serves the plugin assets fs at /p/{plugin-id}/a/{asset-path}
+//
+// Alternatively you can manually configure the bundles and entrypoints for more control.
+message Config {
+  // TODO configuration for the plugin entrypoint bundle
+  // - can reference bundles under esbuild_bundles and vite_bundles
+  // - loads scripts with import() from the assets fs
+
+  // Modules is a high-level way of defining elements of a Js plugin.
+  //
+  // See the top-level comments on Config for details.
+  repeated JsModule modules = 1;
+
+  // EsbuildBundles is the list of esbuild bundles to compile.
+  // These bundles will be included in the assets fs under esb/
+  repeated .bldr.web.bundler.esbuild.compiler.EsbuildBundleMeta esbuild_bundles = 2;
+
+  // EsbuildFlags is a string list containing additional flags to pass to esbuild.
+  // Flags passed by esbuild_bundles can override these values.
+  // E.x.: --target es2020
+  repeated string esbuild_flags = 3;
+
+  // ViteBundles is the list of vite bundles to compile.
+  // These bundles will be included in the assets fs under vite/
+  repeated .bldr.web.bundler.vite.compiler.ViteBundleMeta vite_bundles = 4;
+
+  // ViteConfigPaths is a list of paths to Vite configuration files to apply to all bundles.
+  // Ignored unless any vite_bundles are defined.
+  repeated string vite_config_paths = 5;
+
+  // ViteDisableProjectConfig indicates whether to disable automatic project config detection for Vite.
+  // Disables finding the root vite.conf.ts for the project.
+  // Ignored unless any bldr:vite directives are found in the code.
+  bool vite_disable_project_config = 6;
+
+  // BackendEntrypoints are scripts loaded from the assets fs when the plugin is started into the backend.
+  // The backend is usually a WebWorker.
+  repeated BackendEntrypoint backend_entrypoints = 7;
+
+  // FrontendEntrypoints are scripts loaded from the assets fs into the frontend.
+  // The frontend is usually a WebView.
+  repeated FrontendEntrypoint frontend_entrypoints = 8;
+
+  // WebPkgs is the list of web packages to externalize and include in the bundle.
+  //
+  // Externalized web packages (npm modules) are imported separately from the web bundle.
+  // They will be deduplicated such that a single version is imported at a time by the app.
+  // This is useful for packages that require a single instance per WebDocument.
+  //
+  // On default only the imports referenced by the plugin will be compiled in.
+  // Everything else will be tree-shaken away to lower bundle size.
+  // Additional imports to reference can be specified in the config.
+  //
+  // These packages will be available with the LookupWebPkg directive.
+  // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+  //
+  // Note: only files & entrypoints imported by at least one js file will be included.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 9;
+
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  // Merged with the plugin compiler HostConfigSet field.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 10;
+
+  // DisableRpcFetch disables the default Fetch RPC service handler.
+  // The handler handles the Fetch service by consuming a set of HTTP handlers.
+  // This service is used for the ServiceWorker HTTP calls.
+  // TODO: unimplemented
+  bool disable_rpc_fetch = 11;
+
+  // WebPluginId sets the plugin id for the web plugin.
+  //
+  // If set, the plugin will load the web plugin with the given ID and load frontend entrypoints.
+  string web_plugin_id = 13;
+
+  // BuildTypes contains a mapping of BuildType to Config override.
+  map<string, Config> build_types = 14;
+
+  // PlatformTypes contains a mapping of platform ID to Config override.
+  // Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+  // Both base platform IDs and full platform IDs are checked: a build for
+  // "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+  map<string, Config> platform_types = 15;
+}
+
+// PreBuildHookResult is the output of a pre-build hook.
+message PreBuildHookResult {
+  // Config is the configuration for the plugin build step.
+  // Merged with the existing configuration.
+  Config config = 1;
+}
+
+// InputManifestMeta is metadata attached to the input manifest.
+message InputManifestMeta {
+  // WebPkgRefs contains the list of web pkg references.
+  repeated .web.pkg.WebPkgRef web_pkg_refs = 1;
+  // WebPkgs is the list of web pkgs that we separate from the bundle.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 2;
+
+  // EsbuildBundles is the list of esbuild bundles that were configured.
+  repeated .bldr.web.bundler.esbuild.compiler.EsbuildBundleMeta esbuild_bundles = 3;
+  // EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
+  repeated string esbuild_flags = 4;
+  // EsbuildOutputs contains a list of files written by esbuild.
+  repeated .bldr.web.bundler.esbuild.EsbuildOutputMeta esbuild_outputs = 5;
+
+  // ViteBundles is the list of vite bundles that were configured.
+  repeated .bldr.web.bundler.vite.compiler.ViteBundleMeta vite_bundles = 6;
+  // ViteConfigPaths are paths to Vite configuration files to merge together.
+  repeated string vite_config_paths = 7;
+  // ViteOutputs contains a list of files written by vite.
+  repeated .bldr.web.bundler.vite.ViteOutputMeta vite_outputs = 8;
+  // ViteDisableProjectConfig indicates whether to disable automatic project config detection.
+  // Disables finding the root vite.conf.ts for the project.
+  bool vite_disable_project_config = 9;
+
+  // CompiledEntrypointPath is the path within the assets filesystem to the compiled plugin entrypoint script.
+  // Usually: plugin.mjs
+  string compiled_entrypoint_path = 10;
+}
+
+// JsModuleKind specifies the kind of the JS module.
+enum JsModuleKind {
+  // JS_MODULE_KIND_INVALID is the invalid value.
+  JS_MODULE_KIND_INVALID = 0;
+  // JS_MODULE_KIND_BACKEND indicates the module runs on the plugin backend.
+  // The module should export a function matching the Plugin interface.
+  JS_MODULE_KIND_BACKEND = 1;
+  // JS_MODULE_KIND_FRONTEND indicates the module runs on the plugin frontend.
+  // This usually means running within a WebView.
+  JS_MODULE_KIND_FRONTEND = 2;
+}
+
+// JsModule defines a high-level module to include in the plugin.
+//
+// This is a shortcut for configuring bundles and entrypoints.
+// See the top-level comments on Config for details.
+message JsModule {
+  // Kind is the kind of the module.
+  JsModuleKind kind = 1;
+  // Path is the path to the module source file relative to the project root.
+  // Example: "src/plugin.ts"
+  string path = 2;
+  // ViteConfigPaths are the paths to Vite configuration files to use for this module's bundle.
+  // These are merged with the top-level vite_config_paths.
+  repeated string vite_config_paths = 3;
+  // DisableProjectConfig disables searching for the vite.config.ts in the project root for this module's bundle.
+  // Overrides the top-level vite_disable_project_config if set to true.
+  bool disable_project_config = 4;
+  // DisableEntrypoint disables adding an entrypoint for this module.
+  // If true, no BackendEntrypoint or FrontendEntrypoint will be automatically created.
+  bool disable_entrypoint = 5;
+  // WebViewId filters by web view id for FRONTEND modules.
+  // Propagated to the auto-generated FrontendEntrypoint.
+  .filter.StringFilter web_view_id = 6;
+  // WebViewParentId filters by web view parent id for FRONTEND modules.
+  // Propagated to the auto-generated FrontendEntrypoint.
+  .filter.StringFilter web_view_parent_id = 7;
+}
+
+// BackendEntrypoint configures a backend entrypoint.
+message BackendEntrypoint {
+  // ImportPath is the path to the module within the assets fs to import().
+  // Example: "esb/backend/index.js"
+  // The path must export a export which matches ImportName (defaults to the default export).
+  // For example: export default async function runBackend(api: bldr.PluginAPI): Promise<void> => {}
+  string import_path = 1;
+  // ImportName is the name of the import to consume from the es module.
+  // Defaults to "default" which is the default export.
+  string import_name = 2;
+}
+
+// FrontendEntrypoint configures a frontend entrypoint.
+message FrontendEntrypoint {
+  // SetRenderMode contains the set render mode request for the web view.
+  // The script path will have /b/pa/{plugin-id}/ prepended to it automatically.
+  // Ignored if empty.
+  .web.view.SetRenderModeRequest set_render_mode = 1;
+  // SetHtmlLinks contains the set html links request for the web view.
+  // The html links paths will have /b/pa/{plugin-id}/ prepended to them automatically.
+  // Ignored if empty.
+  .web.view.SetHtmlLinksRequest set_html_links = 2;
+
+  // WebViewId filters by web view id.
+  .filter.StringFilter web_view_id = 3;
+  // WebViewParentId filters by web view parent id.
+  .filter.StringFilter web_view_parent_id = 4;
+}

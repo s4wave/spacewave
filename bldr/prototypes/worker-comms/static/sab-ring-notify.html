@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head><title>SAB Ring Buffer - Notify Mode</title></head>
+<body>
+<h1>SAB Ring Buffer: Notify-Only vs Timeout Mode</h1>
+<pre id="log"></pre>
+<script type="module">
+// Compare two ring buffer strategies:
+// A) Atomics.wait with 1ms timeout (current, broken on WebKit)
+// B) Atomics.wait on write-index value change + Atomics.notify (no timeout)
+//
+// Hypothesis: WebKit's Atomics.wait timeout has high overhead. Pure
+// notify-based wakeup should be fast everywhere.
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+function fmtBytes(b) {
+  if (b >= 1e9) return (b / 1e9).toFixed(1) + ' GB/s'
+  if (b >= 1e6) return (b / 1e6).toFixed(1) + ' MB/s'
+  if (b >= 1e3) return (b / 1e3).toFixed(1) + ' KB/s'
+  return b.toFixed(0) + ' B/s'
+}
+
+async function benchRingBuffer(workerUrl, msgSize, count, label) {
+  const slots = 64
+  const headerBytes = 12
+  const bufSize = headerBytes + slots * msgSize
+  const sab = new SharedArrayBuffer(bufSize)
+  const ctrl = new Int32Array(sab, 0, 3)
+  const ring = new Uint8Array(sab, headerBytes)
+
+  const data = new Uint8Array(msgSize)
+  crypto.getRandomValues(data.subarray(0, Math.min(64, msgSize)))
+
+  const worker = new Worker(workerUrl)
+  worker.postMessage({ sab, msgSize, slots, count })
+  await new Promise(r => { worker.onmessage = () => r(undefined) })
+
+  const start = performance.now()
+  for (let i = 0; i < count; i++) {
+    while ((Atomics.load(ctrl, 0) - Atomics.load(ctrl, 1)) >= slots) {
+      // Spin-wait if ring is full.
+    }
+    const wIdx = Atomics.load(ctrl, 0) % slots
+    ring.set(data, wIdx * msgSize)
+    Atomics.add(ctrl, 0, 1)
+    // Notify the reader on ctrl[0] (write index) for notify-mode,
+    // and on ctrl[2] for timeout-mode.
+    Atomics.notify(ctrl, 0)
+    Atomics.notify(ctrl, 2)
+  }
+
+  await new Promise(r => {
+    worker.onmessage = (e) => { if (e.data === 'done') r(undefined) }
+  })
+  const elapsed = performance.now() - start
+  worker.terminate()
+  return { elapsed, throughput: (count * msgSize) / (elapsed / 1000) }
+}
+
+async function run() {
+  if (!crossOriginIsolated) {
+    emit('ERROR: not cross-origin isolated')
+    window.__results = { error: 'not cross-origin isolated' }
+    return
+  }
+  emit('Cross-origin isolated: YES\n')
+
+  const sizes = [
+    { msgSize: 1024, count: 50000, label: '1KB' },
+    { msgSize: 65536, count: 5000, label: '64KB' },
+  ]
+
+  const results = {}
+
+  for (const { msgSize, count, label } of sizes) {
+    emit(`=== ${label} messages x${count} ===`)
+
+    const timeout = await benchRingBuffer(
+      '/workers/sab-ring-reader.js', msgSize, count, 'timeout')
+    emit(`  Timeout mode:  ${fmtBytes(timeout.throughput)}  (${timeout.elapsed.toFixed(0)} ms)`)
+
+    const notify = await benchRingBuffer(
+      '/workers/sab-ring-reader-notify.js', msgSize, count, 'notify')
+    emit(`  Notify mode:   ${fmtBytes(notify.throughput)}  (${notify.elapsed.toFixed(0)} ms)`)
+
+    const speedup = notify.throughput / timeout.throughput
+    emit(`  Notify/Timeout: ${speedup.toFixed(1)}x\n`)
+
+    results[label] = {
+      timeout: { elapsed: timeout.elapsed, throughput: timeout.throughput },
+      notify: { elapsed: notify.elapsed, throughput: notify.throughput },
+      speedup,
+    }
+  }
+
+  window.__results = results
+  emit('DONE')
+}
+run()
+</script>
+</body>
+</html>

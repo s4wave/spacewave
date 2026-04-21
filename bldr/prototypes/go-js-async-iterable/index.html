@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PacketStream Example</title>
+    <script src="wasm_exec.js"></script>
+    <script>
+      const go = new Go()
+      WebAssembly.instantiateStreaming(
+        fetch('main.wasm'),
+        go.importObject,
+      ).then((result) => {
+        go.run(result.instance)
+      })
+
+      async function* generatePackets() {
+        for (let i = 0; i < 5; i++) {
+          const packet = new Uint8Array([i, i + 1, i + 2])
+          yield packet
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        }
+      }
+
+      function startIterating() {
+        // packetStream is AsyncGenerator<Uint8Array>
+        const packetStream = new TransformStream({
+          start(controller) {
+            ;(async () => {
+              for await (const packet of generatePackets()) {
+                controller.enqueue(packet)
+              }
+              controller.terminate()
+            })()
+          },
+        })
+        window.iteratePacketStream(packetStream.readable)
+      }
+    </script>
+  </head>
+  <body>
+    <button onclick="startIterating()">Start Iterating</button>
+  </body>
+</html>

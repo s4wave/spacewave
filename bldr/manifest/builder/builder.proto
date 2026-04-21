@@ -1,0 +1,148 @@
+syntax = "proto3";
+package bldr.manifest.builder;
+
+import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// BuilderConfig is common configuration for a manifest builder routine.
+message BuilderConfig {
+  // ManifestMeta is the metadata of the manifest to build.
+  .bldr.manifest.ManifestMeta manifest_meta = 1;
+
+  // SourcePath is the path to the project source root.
+  string source_path = 2;
+  // DistSourcePath is the path to the bldr dist source root.
+  string dist_source_path = 3;
+  // WorkingPath is the path to use for codegen and working state.
+  string working_path = 4;
+
+  // EngineId is the world engine to store the manifest.
+  string engine_id = 5;
+  // ObjectKey is the key to store the manifest.
+  string object_key = 6;
+  // LinkObjectKeys is the list of object keys to link to the manifest.
+  // NOTE: also used to search for other manifests in the dist compiler.
+  repeated string link_object_keys = 7;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 8;
+
+  // ProjectId is the project identifier.
+  // Must be a valid-dns-label.
+  // Used to construct the application storage and dist bundle filenames.
+  string project_id = 9;
+
+  // TargetPlatformIds contains all platform IDs from the build target.
+  // Used by the dist compiler to collect manifests from all compatible platforms.
+  // For example, a browser target may include ["web/js/wasm", "js"].
+  // If empty, falls back to using only the platform_id from ManifestMeta.
+  repeated string target_platform_ids = 10;
+}
+
+// BuilderResult is the result of a builder run.
+message BuilderResult {
+	// Manifest is the manifest object.
+  //
+  // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
+	.bldr.manifest.Manifest manifest = 1;
+	// ManifestRef is the manifest object ref.
+  //
+  // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
+	.bldr.manifest.ManifestRef manifest_ref = 2;
+  // InputManifest details which files were used to produce Manifest.
+  // Used for change detection.
+  InputManifest input_manifest = 3;
+}
+
+// InputManifest is an object describing the consumed source files.
+message InputManifest {
+  // StartupInputKind describes a reusable startup validation input type.
+  enum StartupInputKind {
+    // StartupInputKind_UNKNOWN is the default kind.
+    StartupInputKind_UNKNOWN = 0;
+    // StartupInputKind_ENV_VAR compares the current environment variable value.
+    StartupInputKind_ENV_VAR = 1;
+    // StartupInputKind_CONTROLLER_CONFIG_DIGEST compares the current builder
+    // controller config digest.
+    StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2;
+  }
+
+  // FileIdentity captures file identity at publish time for startup reuse.
+  message FileIdentity {
+    // SizeBytes is the file size in bytes.
+    uint64 size_bytes = 1;
+    // ModTimeUnixNano is the file modification time.
+    int64 mod_time_unix_nano = 2;
+    // Sha256 is the file SHA-256 digest.
+    bytes sha256 = 3;
+  }
+
+  // File is a file in the source manifest.
+  message File {
+    // Path is the path of the file in the source directory.
+    string path = 1;
+    // Metadata is additional builder-specific metadata about the file.
+    // Optional.
+    bytes metadata = 2;
+    // Identity is the publish-time file identity for startup validation.
+    // Optional.
+    FileIdentity identity = 3;
+    // StartupOnly records files needed only for startup validation.
+    // These files are ignored by the live watch loop.
+    bool startup_only = 4;
+  }
+
+  // ManifestDep declares a dependency on another manifest.
+  // The builder controller watches for changes to the manifest's ref
+  // in the world and triggers a rebuild when it changes.
+  message ManifestDep {
+    // ManifestId is the manifest ID to depend on.
+    string manifest_id = 1;
+    // ManifestRef is the ref of the manifest at the time of the build.
+    // When the world ref differs from this, a rebuild is triggered.
+    .bucket.ObjectRef manifest_ref = 2;
+  }
+
+  // StartupInput declares a typed non-file startup validation input.
+  message StartupInput {
+    // Kind is the startup input kind.
+    StartupInputKind kind = 1;
+    // Key identifies the input within its kind.
+    string key = 2;
+    // StringValue is the expected string value.
+    string string_value = 3;
+    // BytesValue is the expected bytes value.
+    bytes bytes_value = 4;
+  }
+
+  // Files is the list of consumed source files.
+  // Optional.
+  repeated File files = 1;
+  // Metadata is additional builder-specific metadata about the output.
+  // Optional.
+  bytes metadata = 2;
+  // ManifestDeps are manifests this build depends on.
+  // The builder controller watches these for changes and triggers
+  // a rebuild when any dependency's ref changes in the world.
+  // Optional.
+  repeated ManifestDep manifest_deps = 3;
+  // StartupInputs are typed non-file inputs used for startup validation.
+  // Optional.
+  repeated StartupInput startup_inputs = 4;
+}
+
+// BuildManifestArgs are arguments passed to the BuildManifest function.
+message BuildManifestArgs {
+	// BuilderConfig is the builder configuration.
+	// Must be set.
+	BuilderConfig builder_config = 1;
+
+	// PrevBuilderResult is the previous builder result, if applicable.
+	// Set only if we are re-building the manifest after a file changed.
+	// May be nil.
+	BuilderResult prev_builder_result = 2;
+	// ChangedFiles is the list of files from PrevBuilderResult InputManifest
+	// filtered to contain only files that changed since the previous build. //
+	// Set only if PrevBuilderResult is set.
+	// May be nil.
+	repeated InputManifest.File changed_files = 3;
+}

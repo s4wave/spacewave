@@ -1,0 +1,21 @@
+syntax = "proto3";
+package manifest.fetch.world;
+
+// Config configures a controller to fetch manifests via a world engine.
+// Searches for <manifest> linked manifests to the object key.
+// Resolves the FetchManifest directive.
+message Config {
+  // EngineId is the world engine id to attach to.
+  string engine_id = 1;
+  // ObjectKeys is the list of object keys to search from for manifests.
+  // Searches for <manifest> linked manifests.
+  repeated string object_keys = 2;
+  // FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
+  // If empty, will lookup for any FetchManifest directive.
+  string fetch_manifest_id_re = 3;
+  // DisableWatch disables watching the world for changes for FetchManifest.
+  bool disable_watch = 4;
+  // OverrideManifestRev overrides the manifest revision in the returned metadata.
+  // Ignored if unset or zero.
+  uint64 override_manifest_rev = 5;
+}

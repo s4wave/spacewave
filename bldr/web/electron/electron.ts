@@ -1,0 +1,109 @@
+import {
+  ClientToWebRuntime,
+  WebDocumentToWebRuntime,
+  WebRuntimeToClient,
+} from '../runtime/runtime.js'
+import {
+  MessagePortBridge,
+  messagePortToMessagePortBridge,
+} from '../bldr/message-port-bridge.js'
+
+// BldrElectron is the ContextBridge between the WebRuntime and WebDocument.
+//
+// Transferring MessagePort over the ContextBridge is not supported:
+// https://github.com/electron/electron/issues/27024
+//
+// Transferring MessagePort from preload -> main is supported.
+// Transferring functions over ContextBridge is supported.
+// The workaround below emulates MessagePort with a read/write callback.
+//
+// https://www.electronjs.org/docs/latest/api/context-bridge#api-objects
+export interface BldrElectron {
+  // openClientPort opens a client port to the WebRuntime.
+  openClientPort(
+    // init is a WebRuntimeClientInit encoded.
+    init: Uint8Array,
+    // port is the client port bridge.
+    port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>,
+  ): Promise<void>
+}
+
+// BLDR_ELECTRON is declared if this is Electron.
+declare const BLDR_ELECTRON: BldrElectron | undefined
+
+// isElectron indicates this is electron.
+export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
+
+// isSaucer indicates this is a Saucer desktop app (future).
+export const isSaucer = false
+
+// isDesktop indicates this is a desktop app (Electron, Saucer, etc.).
+export const isDesktop = isElectron || isSaucer
+
+// NOTE: uesrAgentData: https://wicg.github.io/ua-client-hints/#dom-navigatoruadata-platform
+// "Android", "Chrome OS", "Fuchsia", "iOS", "Linux", "macOS", "Windows", or "Unknown".
+
+// isMac indicates this is a MacOS platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isMac =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (navigator as any)?.userAgentData?.platform === 'macOS' || false
+
+// isLinux indicates this is a Linux platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isLinux =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (navigator as any)?.userAgentData?.platform === 'Linux' || false
+
+// isWindows indicates this is a Windows platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isWindows =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (navigator as any)?.userAgentData?.platform === 'Windows' || false
+
+// openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
+export async function openElectronPort(
+  init: Uint8Array,
+  port: MessagePort,
+): Promise<void> {
+  if (!BLDR_ELECTRON) {
+    throw new Error('not running in electron')
+  }
+
+  return BLDR_ELECTRON.openClientPort(
+    init,
+    messagePortToMessagePortBridge(port),
+  )
+}
+
+// handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.
+export function handleElectronWorkerPort(port: MessagePort) {
+  port.onmessage = (ev) => {
+    if (ev.data === 'close') {
+      port.close()
+      return
+    }
+
+    const msg: WebDocumentToWebRuntime = ev.data
+    if (typeof msg !== 'object' || !msg.from) {
+      console.log(
+        'electron: dropped invalid document to web runtime message',
+        msg,
+      )
+      return
+    }
+
+    const clientPort = msg.connectWebRuntime?.port ?? ev.ports?.[0]
+    if (msg.connectWebRuntime && clientPort) {
+      openElectronPort(
+        msg.connectWebRuntime.init,
+        clientPort,
+      )
+    }
+  }
+
+  port.start()
+}

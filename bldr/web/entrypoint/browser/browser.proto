@@ -1,0 +1,17 @@
+syntax = "proto3";
+package web.entrypoint.browser;
+
+// Config is the configuration for the browser controller.
+// Expects to be running in a WebWorker.
+message Config {
+  // WebRuntimeId is the unique ID of the runtime.
+  //
+  // must be set
+  // used to determine the broadcast channel ids
+  // determined by the webpage that started the worker
+  string web_runtime_id = 1;
+  // MessagePort is the global value to lookup for the MessagePort.
+  // This MessagePort is used to pass other MessagePorts to open clients for the WebRuntimeHost.
+  // usually BLDR_WEB_RUNTIME_CLIENT_OPEN.
+  string message_port = 2;
+}

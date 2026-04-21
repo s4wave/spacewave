@@ -1,0 +1,22 @@
+syntax = "proto3";
+package web.pkg;
+
+// WebPkgInfo is information about a WebPkg.
+message WebPkgInfo {
+  // Id is the web package identifier.
+  // Usually matches the npm package name.
+  string id = 1;
+}
+
+// WebPkgRef contains information about references to a web pkg.
+message WebPkgRef {
+  // WebPkgId is the web pkg identifier.
+  string web_pkg_id = 1;
+  // WebPkgRoot is the path to the web pkg root dir relative to project root.
+  string web_pkg_root = 2;
+  // Imports is the list of paths that were imported from the web pkg.
+  repeated string imports = 3;
+  // CrossRefs is the list of other web pkgs that this pkg imports.
+  // NOTE: this is not filled unless ResolveWebPkgRefsEsbuild is called.
+  repeated string cross_refs = 4;
+}

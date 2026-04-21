@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Worker Comms Prototypes</title></head>
+<body>
+<h1>Worker Communication Prototypes</h1>
+<p>Cross-Origin Isolated: <span id="coi"></span></p>
+<ul>
+  <li><a href="/sab-ipc-bench.html">SAB IPC Benchmark (Prototype 2)</a></li>
+  <li><a href="/sab-cross-tab.html">SAB Cross-Tab Transfer (Prototype 1)</a></li>
+  <li><a href="/weblock-failover.html">WebLock Failover (Prototype 3)</a></li>
+  <li><a href="/wasm-snapshot.html">WASM Memory Snapshot/Restore (Prototype 6)</a></li>
+  <li><a href="/beforeunload-snapshot.html">Beforeunload Snapshot Race (Prototype 7)</a></li>
+</ul>
+<script>
+document.getElementById('coi').textContent = crossOriginIsolated ? 'YES' : 'NO'
+</script>
+</body>
+</html>

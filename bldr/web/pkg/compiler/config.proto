@@ -1,0 +1,51 @@
+syntax = "proto3";
+package bldr.web.pkg.compiler;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/bundler.proto";
+
+// Config configures the web package builder.
+//
+// This is intended to build a plugin which contains a set of WebPkgs.
+message Config {
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 1;
+
+  // WebPluginId sets the plugin id for the web plugin.
+  // If set, the compiler automatically adds this controller to the config set:
+  // - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+  string web_plugin_id = 11;
+
+  // ConfigSet is a ConfigSet to apply on plugin startup.
+  // This ConfigSet is applied to the plugin bus.
+  // This will be included in the plugin binary.
+  map<string, .configset.proto.ControllerConfig> config_set = 2;
+
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
+
+  // WebPkgs is the list of web packages to externalize and include in the bundle.
+  //
+  // Externalized web packages (npm modules) are imported separately from the web bundle.
+  // They will be deduplicated such that a single version is imported at a time by the app.
+  // This is useful for packages that require a single instance per WebDocument.
+  //
+  // On default only the imports referenced by the plugin will be compiled in.
+  // Everything else will be tree-shaken away to lower bundle size.
+  // Additional imports to reference can be specified in the config.
+  //
+  // These packages will be available with the LookupWebPkg directive.
+  // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+  //
+  // Note: only files & entrypoints imported by at least one js file will be included.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
+
+  // DelveAddr is the address to listen for Delve remote connections.
+  // If the build mode is dev and this is set, uses delve to run the plugin.
+  // Ignored if build mode is not dev.
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
+  string delve_addr = 8;
+}

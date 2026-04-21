@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head><title>WASM Memory Snapshot/Restore</title></head>
+<body>
+<h1>WASM Memory Snapshot and Restore</h1>
+<pre id="log"></pre>
+<script type="module">
+// Test: snapshot WASM linear memory, kill the instance, restore into a new
+// instance, verify state is preserved.
+//
+// Uses a minimal hand-crafted WASM module with:
+// - 1 page (64KB) of memory, growable to 256 pages (16MB)
+// - An exported function that writes a pattern to memory
+// - An exported function that reads and verifies the pattern
+
+const log = document.getElementById('log')
+function emit(msg) {
+  log.textContent += msg + '\n'
+  console.log(msg)
+}
+
+window.__results = {}
+
+// Build a minimal WASM module in binary.
+// This module has:
+// - Memory: 1 page initial, 256 max, exported as "memory"
+// - write_pattern(offset, len, val): fills memory[offset..offset+len] with val
+// - read_sum(offset, len): returns sum of bytes in range
+function buildWasm() {
+  // Hand-crafted WASM binary for a simple memory read/write module.
+  // Using WebAssembly.Module to compile from WAT-equivalent bytes.
+  //
+  // We'll use the JS API to create a simpler test instead.
+  return null
+}
+
+// Simpler approach: use WebAssembly with a memory object we control.
+async function run() {
+  emit('=== WASM Memory Snapshot/Restore Test ===\n')
+
+  // Create a WASM memory (simulates plugin WASM memory).
+  const memory = new WebAssembly.Memory({ initial: 16, maximum: 256 }) // 1MB initial
+  const memSize = memory.buffer.byteLength
+  emit(`Created WASM memory: ${(memSize / 1024).toFixed(0)} KB`)
+
+  // Write a known pattern into memory.
+  const view = new Uint8Array(memory.buffer)
+  // crypto.getRandomValues has a 65536 byte limit, fill in chunks.
+  for (let off = 0; off < memSize; off += 65536) {
+    crypto.getRandomValues(view.subarray(off, Math.min(off + 65536, memSize)))
+  }
+  emit(`Wrote random pattern (${(memSize / 1024).toFixed(0)} KB)`)
+
+  // Compute checksum of original.
+  let checksum = 0
+  for (let i = 0; i < memSize; i++) checksum = (checksum + view[i]) | 0
+  emit(`Original checksum: ${checksum}`)
+
+  // --- Snapshot to ArrayBuffer ---
+  const snapStart = performance.now()
+  const snapshot = new Uint8Array(memory.buffer.byteLength)
+  snapshot.set(new Uint8Array(memory.buffer))
+  const snapMs = performance.now() - snapStart
+  emit(`Snapshot: ${(snapshot.byteLength / 1024).toFixed(0)} KB in ${snapMs.toFixed(2)} ms`)
+
+  // --- Store snapshot to OPFS ---
+  let opfsWriteMs = -1
+  let opfsReadMs = -1
+  let opfsAvailable = false
+  try {
+    const root = await navigator.storage.getDirectory()
+    const fileHandle = await root.getFileHandle('wasm-snapshot.bin', { create: true })
+
+    const writeStart = performance.now()
+    const writable = await fileHandle.createWritable()
+    await writable.write(snapshot)
+    await writable.close()
+    opfsWriteMs = performance.now() - writeStart
+    opfsAvailable = true
+    emit(`OPFS write: ${opfsWriteMs.toFixed(2)} ms`)
+
+    // Read back.
+    const readStart = performance.now()
+    const file = await fileHandle.getFile()
+    const readBuf = await file.arrayBuffer()
+    opfsReadMs = performance.now() - readStart
+    emit(`OPFS read: ${opfsReadMs.toFixed(2)} ms (${(readBuf.byteLength / 1024).toFixed(0)} KB)`)
+
+    // Cleanup.
+    await root.removeEntry('wasm-snapshot.bin')
+  } catch (e) {
+    emit(`OPFS not available: ${e.message}`)
+  }
+
+  // --- Store snapshot to IndexedDB ---
+  const idbWriteMs = await new Promise(resolve => {
+    const req = indexedDB.open('wasm-snapshot-test', 1)
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore('snapshots')
+    }
+    req.onsuccess = () => {
+      const db = req.result
+      const tx = db.transaction('snapshots', 'readwrite')
+      const store = tx.objectStore('snapshots')
+      const start = performance.now()
+      const putReq = store.put(snapshot.buffer, 'snap1')
+      putReq.onsuccess = () => {
+        const ms = performance.now() - start
+        db.close()
+        indexedDB.deleteDatabase('wasm-snapshot-test')
+        resolve(ms)
+      }
+    }
+  })
+  emit(`IndexedDB write: ${idbWriteMs.toFixed(2)} ms`)
+
+  // --- Restore into new memory ---
+  const memory2 = new WebAssembly.Memory({ initial: 16, maximum: 256 })
+  const restoreStart = performance.now()
+  const view2 = new Uint8Array(memory2.buffer)
+  view2.set(snapshot)
+  const restoreMs = performance.now() - restoreStart
+  emit(`Restore: ${restoreMs.toFixed(2)} ms`)
+
+  // Verify checksum.
+  let checksum2 = 0
+  for (let i = 0; i < view2.byteLength; i++) checksum2 = (checksum2 + view2[i]) | 0
+  const match = checksum === checksum2
+  emit(`Restored checksum: ${checksum2} (${match ? 'MATCH' : 'MISMATCH'})`)
+
+  // --- Benchmark larger memory sizes ---
+  emit('\n=== Memory size scaling ===')
+  const sizes = [1, 4, 16] // MB
+  const scaling = []
+  for (const mb of sizes) {
+    const pages = (mb * 1024 * 1024) / 65536
+    const mem = new WebAssembly.Memory({ initial: pages, maximum: 256 })
+    const v = new Uint8Array(mem.buffer)
+    for (let off = 0; off < v.byteLength; off += 65536) {
+      crypto.getRandomValues(v.subarray(off, Math.min(off + 65536, v.byteLength)))
+    }
+
+    const s1 = performance.now()
+    const snap = new Uint8Array(mem.buffer.byteLength)
+    snap.set(new Uint8Array(mem.buffer))
+    const snapT = performance.now() - s1
+
+    const mem2 = new WebAssembly.Memory({ initial: pages, maximum: 256 })
+    const s2 = performance.now()
+    new Uint8Array(mem2.buffer).set(snap)
+    const restoreT = performance.now() - s2
+
+    emit(`${mb} MB: snapshot ${snapT.toFixed(1)} ms, restore ${restoreT.toFixed(1)} ms`)
+    scaling.push({ mb, snapshotMs: snapT, restoreMs: restoreT })
+  }
+
+  window.__results = {
+    memoryKB: memSize / 1024,
+    snapshotMs: snapMs,
+    restoreMs,
+    checksumMatch: match,
+    opfsAvailable,
+    opfsWriteMs,
+    opfsReadMs,
+    idbWriteMs,
+    scaling,
+  }
+  emit('\nDONE')
+}
+run()
+</script>
+</body>
+</html>

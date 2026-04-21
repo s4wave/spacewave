@@ -1,0 +1,1 @@
+"use strict";(()=>{function*n(){let e=1;for(;;)yield e++}var o=n();console.log(o.next());console.log(o.next());console.log(o.next().value);console.log("Generating the next 5 IDs:");for(let e=0;e<5;e++)console.log(o.next().value);})();

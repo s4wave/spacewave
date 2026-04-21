@@ -1,0 +1,244 @@
+syntax = "proto3";
+package bldr.plugin.compiler.go;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/bundler.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/esbuild.proto";
+import "github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto";
+import "github.com/s4wave/spacewave/bldr/web/pkg/pkg.proto";
+import "github.com/s4wave/spacewave/bldr/plugin/vardef/vardef.proto";
+import "github.com/aperturerobotics/util/enabled/enabled.proto";
+
+// Config configures the Go plugin compiler controller.
+message Config {
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 1;
+
+  // ConfigSet is a ConfigSet to apply on plugin startup.
+  // This ConfigSet is applied to the plugin bus.
+  // This will be included in the plugin binary.
+  // Merged with the plugin compiler ConfigSet field.
+  map<string, .configset.proto.ControllerConfig> config_set = 2;
+
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  // Merged with the plugin compiler HostConfigSet field.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
+
+  // GoPkgs is a list of Go packages to scan for controller factories.
+  // Looks for package-level functions:
+  //  - NewFactory(b bus.Bus) controller.Factory
+  //  - BuildFactories(b bus.Bus) []controller.Factory
+  // Appended to the list set in the plugin compiler settings.
+  repeated string go_pkgs = 4;
+
+  // WebPkgs is the list of web packages to externalize and include in the bundle.
+  //
+  // Externalized web packages (npm modules) are imported separately from the web bundle.
+  // They will be deduplicated such that a single version is imported at a time by the app.
+  // This is useful for packages that require a single instance per WebDocument.
+  //
+  // On default only the imports referenced by the plugin will be compiled in.
+  // Everything else will be tree-shaken away to lower bundle size.
+  // Additional imports to reference can be specified in the config.
+  //
+  // These packages will be available with the LookupWebPkg directive.
+  // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+  //
+  // Note: only files & entrypoints imported by at least one js file will be included.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
+
+  // ViteConfigPaths is a list of paths to Vite configuration files to apply to all bundles.
+  // Ignored unless any bldr:vite directives are found in the code.
+  repeated string vite_config_paths = 15;
+
+  // ViteDisableProjectConfig indicates whether to disable automatic project config detection for Vite.
+  // Disables finding the root vite.conf.ts for the project.
+  // Ignored unless any bldr:vite directives are found in the code.
+  bool vite_disable_project_config = 16;
+
+  // DisableRpcFetch disables the default Fetch RPC service handler.
+  // The handler handles the Fetch service by creating a directive.
+  // You can also override config ID "rpc-fetch" in the config-set.
+  // This service is used for the ServiceWorker HTTP calls.
+  bool disable_rpc_fetch = 6;
+
+  // DelveAddr is the address to listen for Delve remote connections.
+  // If the build mode is dev and this is set, uses delve to run the plugin.
+  // Ignored if build mode is not dev.
+  // Allowed characters: [Z-a0-9.:]
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
+  // Example: ":5000"
+  string delve_addr = 8;
+
+  // EnableCgo enables cgo in the Go compiler.
+  //
+  // Cgo is disabled by default as it may cause non-reproducible builds.
+  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  //
+  // Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
+  .enabled.Enabled enable_cgo = 9;
+
+  // EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+  // The default is to use tinygo for the web platform in release mode.
+  // Only applicable for the web platform (WebAssembly) (currently).
+  .enabled.Enabled enable_tinygo = 10;
+
+  // EnableCompression can optionally force-enable or force-disable binary compression.
+  // The default is ENABLE for release-mode only.
+  // Only applicable for the web platform (WebAssembly) (currently).
+  .enabled.Enabled enable_compression = 11;
+
+  // EsbuildFlags is a string containing additional flags to pass to esbuild.
+  // Flags passed by bldr:esbuild directives can override these values.
+  // E.x.: --target es2020
+  repeated string esbuild_flags = 12;
+
+  // WebPluginId sets the plugin id for the web plugin.
+  // If set, the compiler automatically adds these controllers to the config set:
+  // - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
+  // - handle-web-view-rpc: handle incoming RPCs for web-view
+  // - handle-web-view-server: handle incoming RPCs for HandleWebView
+  // - handle-web-view: handle web views via HandleWebView
+  // - load-web: loads the web plugin on startup
+  // - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+  string web_plugin_id = 13;
+
+  // BuildTypes contains a mapping of BuildType to Config override.
+  map<string, Config> build_types = 14;
+
+  // PlatformTypes contains a mapping of platform ID to Config override.
+  // Keys are platform IDs (e.g., "desktop", "js", "none", "desktop/linux/amd64").
+  // Both base platform IDs and full platform IDs are checked: a build for
+  // "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
+  map<string, Config> platform_types = 17;
+}
+
+// PreBuildHookResult is the output of a pre-build hook.
+message PreBuildHookResult {
+  // Config is the configuration for the plugin build step.
+  // Merged with the existing configuration.
+  Config config = 1;
+}
+
+// InputFileKind is the kind of file this is.
+enum InputFileKind {
+  // InputFileKind_UNKNOWN is the default kind.
+  InputFileKind_UNKNOWN = 0;
+  // InputFileKind_ASSET is a static asset.
+  InputFileKind_ASSET = 1;
+  // InputFileKind_GO is a file built by the Go compiler.
+  InputFileKind_GO = 2;
+
+  // NOTE: these will be picked up + watched by the esbuild compiler controller instead.
+  // TODO: remove
+  // InputFileKind_WEB_PKG is a third party bundled npm package.
+  // InputFileKind_WEB_PKG = 3;
+  // InputFileKind_ESBUILD is an input consumed by esbuild.
+  // InputFileKind_ESBUILD = 4;
+}
+
+// InputFileMeta is metadata attached to an input manifest file.
+message InputFileMeta {
+  // Kind is the input file kind.
+  InputFileKind kind = 1;
+}
+
+// InputManifestMeta is metadata attached to the input manifest.
+message InputManifestMeta {
+  // DevInfo contains the set of plugin variable definitions.
+  .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
+
+  // WebPkgRefs contains the list of web pkg references.
+  repeated .web.pkg.WebPkgRef web_pkg_refs = 2;
+  // WebPkgs is the list of web pkgs that we separate from the bundle.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 3;
+
+  // EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
+  repeated string esbuild_flags = 4;
+  // EsbuildBundles contains the set of esbuild bundles.
+  repeated EsbuildBundleVarMeta esbuild_bundles = 5;
+  // EsbuildOutputs contains a list of files written by esbuild.
+  repeated .bldr.web.bundler.esbuild.EsbuildOutputMeta esbuild_outputs = 6;
+
+  // ViteConfigPaths are paths to Vite configuration files to merge together.
+  repeated string vite_config_paths = 7;
+  // ViteBundles is the list of vite bundles with entrypoint configs.
+  repeated ViteBundleVarMeta vite_bundles = 8;
+  // ViteOutputs contains a list of files written by vite.
+  repeated .bldr.web.bundler.vite.ViteOutputMeta vite_outputs = 9;
+  // ViteDisableProjectConfig indicates whether to disable automatic project config detection.
+  // Disables finding the root vite.conf.ts for the project.
+  bool vite_disable_project_config = 10;
+}
+
+// EsbuildBundleVarMeta is information about an esbuild bundle.
+message EsbuildBundleVarMeta {
+  // Id is the identifier of the bundle.
+  string id = 1;
+  // EntrypointVars is the list of entrypoint variables.
+  repeated EsbuildEntrypointVar entrypoint_vars = 2;
+}
+
+// EsbuildEntrypointVar is a variable in the Go code referring to a esbuild entrypoint.
+message EsbuildEntrypointVar {
+  // PkgImportPath is the go package import path.
+  string pkg_import_path = 1;
+  // PkgVar is the variable within the go package.
+  string pkg_var = 2;
+  // PkgCodePath is the relative path to the code dir from the project root.
+  string pkg_code_path = 3;
+  // PkgVarType is the type of esbuild variable this is.
+  EsbuildVarType pkg_var_type = 4;
+  // EsbuildFlags are the command-line arguments to pass to esbuild.
+  repeated string esbuild_flags = 5;
+}
+
+// EsbuildVarType is the list of types of esbuild output variable.
+enum EsbuildVarType {
+  // EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+  // output type is a string
+  EsbuildVarType_ENTRYPOINT_PATH = 0;
+  // EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+  // output type is bldr_web_bundler.WebBundlerOutput
+  EsbuildVarType_WEB_BUNDLER_OUTPUT = 1;
+}
+
+// ViteBundleVarMeta is information about a vite bundle.
+message ViteBundleVarMeta {
+  // Id is the identifier of the bundle.
+  string id = 1;
+  // EntrypointVars is the list of entrypoint variables.
+  repeated ViteEntrypointVar entrypoint_vars = 2;
+}
+
+// ViteEntrypointVar is a variable in the Go code referring to a vite entrypoint.
+message ViteEntrypointVar {
+  // PkgImportPath is the go package import path.
+  string pkg_import_path = 1;
+  // PkgVar is the variable within the go package.
+  string pkg_var = 2;
+  // PkgCodePath is the relative path to the code dir from the project root.
+  string pkg_code_path = 3;
+  // PkgVarType is the type of vite variable this is.
+  ViteVarType pkg_var_type = 4;
+  // ViteConfigPaths are the vite config paths options for this variable.
+  repeated string vite_config_paths = 5;
+  // EntrypointPath is the entrypoint path for vite.
+  string entrypoint_path = 6;
+  // DisableProjectConfig indicates whether to disable automatic project config detection.
+  // Disables finding the root vite.conf.ts for the project.
+  bool disable_project_config = 7;
+}
+
+// ViteVarType is the list of types of vite output variables.
+enum ViteVarType {
+  // ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+  // output type is a string
+  ViteVarType_ENTRYPOINT_PATH = 0;
+  // ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+  // output type is bldr_web_bundler.WebBundlerOutput
+  ViteVarType_WEB_BUNDLER_OUTPUT = 1;
+}
