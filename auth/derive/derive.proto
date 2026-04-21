@@ -1,0 +1,8 @@
+syntax = "proto3";
+package auth.derive;
+
+// Config configures the derive keypair controller.
+message Config {
+  // DisablePromptPassword disables using a prompt password directive.
+  bool disable_prompt_password = 1;
+}

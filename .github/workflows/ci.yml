@@ -17,6 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         member:
+          - name: auth
+            build_script: ''
+            check_script: ''
+            lint_go_script: lint:go:auth
+            lint_js_script: lint:js:auth
+            test_go_script: test:go:auth
+            test_js_script: test:js:auth
           - name: net
             build_script: build:net
             check_script: ''
