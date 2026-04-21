@@ -555,6 +555,16 @@ export function useResource<T>(
     // This clears the "pending parent change" state.
     loadedParentValuesCountRef.current = parentValuesChangeCount
 
+    setState((prev) =>
+      prev.loading && prev.error === null ?
+        prev
+      : {
+          value: prev.value,
+          loading: true,
+          error: null,
+        },
+    )
+
     const cleanupResources: { [Symbol.dispose](): void }[] = []
     const abortController = new AbortController()
     let cleanedUp = false

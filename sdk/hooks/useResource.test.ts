@@ -75,6 +75,7 @@ function TestValue(props: {
   return React.createElement('div', {
     'data-loading': String(resource.loading),
     'data-value': resource.value ?? '',
+    'data-error': resource.error?.message ?? '',
   })
 }
 
@@ -85,20 +86,82 @@ async function* streamValue(value: string): AsyncIterable<string> {
 function TestStreamValue(props: {
   factory: (version: number) => Promise<{ version: number }>
   version: number
+  streamFactory?: (version: number) => AsyncIterable<string>
 }) {
   const parent = useResource(async () => props.factory(props.version), [
     props.version,
   ])
   const resource = useStreamingResource(
     parent,
-    (value) => streamValue(`stream-${value.version}`),
+    (value) =>
+      props.streamFactory?.(value.version) ?? streamValue(`stream-${value.version}`),
     [],
   )
 
   return React.createElement('div', {
     'data-loading': String(resource.loading),
     'data-value': resource.value ?? '',
+    'data-error': resource.error?.message ?? '',
   })
+}
+
+function createManualAsyncIterable<T>() {
+  const queue: Array<IteratorResult<T>> = []
+  const waiters: Array<{
+    resolve: (value: IteratorResult<T>) => void
+    reject: (err: unknown) => void
+  }> = []
+  let failure: unknown = null
+  let done = false
+
+  return {
+    iterable: {
+      [Symbol.asyncIterator]() {
+        return {
+          next(): Promise<IteratorResult<T>> {
+            if (failure) {
+              return Promise.reject(failure)
+            }
+            if (queue.length > 0) {
+              return Promise.resolve(queue.shift()!)
+            }
+            if (done) {
+              return Promise.resolve({
+                done: true,
+                value: undefined,
+              } as IteratorResult<T>)
+            }
+            return new Promise<IteratorResult<T>>((resolve, reject) => {
+              waiters.push({ resolve, reject })
+            })
+          },
+        }
+      },
+    } satisfies AsyncIterable<T>,
+    push(value: T) {
+      const waiter = waiters.shift()
+      if (waiter) {
+        waiter.resolve({ done: false, value })
+        return
+      }
+      queue.push({ done: false, value })
+    },
+    fail(err: unknown) {
+      failure = err
+      const currentWaiters = waiters.splice(0, waiters.length)
+      currentWaiters.forEach((waiter) => waiter.reject(err))
+    },
+    finish() {
+      done = true
+      const currentWaiters = waiters.splice(0, waiters.length)
+      currentWaiters.forEach((waiter) =>
+        waiter.resolve({
+          done: true,
+          value: undefined,
+        } as IteratorResult<T>),
+      )
+    },
+  }
 }
 
 function deferred<T>() {
@@ -306,5 +369,108 @@ describe('useResource', () => {
     expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
       'false',
     )
+  })
+
+  it('ignores stale stream errors while a parent replacement is in flight', async () => {
+    const pending = new Map<number, ReturnType<typeof deferred<{ version: number }>>>()
+    const streams = new Map<number, ReturnType<typeof createManualAsyncIterable<string>>>()
+    const factory = vi.fn((version: number) => {
+      const next = deferred<{ version: number }>()
+      pending.set(version, next)
+      return next.promise
+    })
+    const streamFactory = vi.fn((version: number) => {
+      const next = createManualAsyncIterable<string>()
+      streams.set(version, next)
+      return next.iterable
+    })
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestStreamValue, {
+          factory,
+          version: 1,
+          streamFactory,
+        }),
+      )
+      await flush()
+    })
+
+    await act(async () => {
+      pending.get(1)?.resolve({ version: 1 })
+      await flush()
+      await flush()
+    })
+
+    await act(async () => {
+      streams.get(1)?.push('stream-1')
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe(
+      'stream-1',
+    )
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestStreamValue, {
+          factory,
+          version: 2,
+          streamFactory,
+        }),
+      )
+      await flush()
+    })
+
+    await act(async () => {
+      streams.get(1)?.fail(new Error('released handle'))
+      pending.get(2)?.resolve({ version: 2 })
+      await flush()
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'true',
+    )
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe(
+      'stream-1',
+    )
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
+
+    await act(async () => {
+      streams.get(2)?.push('stream-2')
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'false',
+    )
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe(
+      'stream-2',
+    )
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
+  })
+
+  it('settles as not loading when the parent resolves to null', async () => {
+    const factory = vi.fn(async () => null)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(React.createElement(TestStreamValue, { factory, version: 1 }))
+      await flush()
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'false',
+    )
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe('')
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
   })
 })
