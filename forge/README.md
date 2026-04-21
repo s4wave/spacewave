@@ -30,7 +30,3 @@ can have multiple replicas to cross-check the output of multiple Workers.
 ## Library
 
 The [lib](./lib) subdir contains various targets available in the core library.
-
-## License
-
-See [LICENSE](./LICENSE) for details.

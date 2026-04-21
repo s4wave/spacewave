@@ -93,7 +93,7 @@ func execute(rctx context.Context) error {
 		go prof.ListenProf(le, profListen)
 	}
 
-	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume("", nil)
+	volConfig := daemonFlags.BuildSingleVolume("", nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
 		le,
@@ -110,7 +110,7 @@ func execute(rctx context.Context) error {
 
 	vol := tb.Volume
 	engineID := wtb.EngineID
-	var sender peer.ID = vol.GetPeerID()
+	sender := vol.GetPeerID()
 
 	// provide op handlers to bus
 	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)

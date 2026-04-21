@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bazil.org/fuse"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
@@ -36,6 +37,9 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 
 	if nt.GetIsFile() {
 		size := fileInfo.Size()
+		if size < 0 {
+			return errors.New("negative file size")
+		}
 		out.Size = uint64(size)
 
 		// The blocks size must be calculated correctly:
@@ -66,8 +70,16 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 	Gid       uint32      // group gid
 	Rdev      uint32      // device numbers
 	*/
-	out.Uid = uint32(os.Getuid())
-	out.Gid = uint32(os.Getgid())
+	uid := os.Getuid()
+	if uid < 0 {
+		return errors.New("negative uid")
+	}
+	out.Uid = uint32(uid)
+	gid := os.Getgid()
+	if gid < 0 {
+		return errors.New("negative gid")
+	}
+	out.Gid = uint32(gid)
 
 	return nil
 }

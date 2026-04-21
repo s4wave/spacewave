@@ -55,6 +55,18 @@ type pendingWrite struct {
 	ts time.Time
 }
 
+func pendingWriteEnd(w *pendingWrite) uint64 {
+	if w == nil || w.offset < 0 {
+		return 0
+	}
+	off := uint64(w.offset)
+	bufLen := uint64(len(w.buf))
+	if off > ^uint64(0)-bufLen {
+		return ^uint64(0)
+	}
+	return off + bufLen
+}
+
 // NewHandle constructs a new inode handle.
 func NewHandle(inode *Inode, openFlags fuse.OpenFlags) *Handle {
 	h := &Handle{
@@ -77,14 +89,8 @@ func (h *Handle) adjustInodeAttr(ctx context.Context, attr *fuse.Attr) error {
 	}
 	defer rel()
 
-	var writeBufEnd uint64
-	if wb := h.writeBuf; wb != nil {
-		writeBufEnd = uint64(wb.offset) + uint64(len(wb.buf))
-	}
-	var xmitBufEnd uint64
-	if xb := h.xmitBuf; xb != nil {
-		xmitBufEnd = uint64(xb.offset) + uint64(len(xb.buf))
-	}
+	writeBufEnd := pendingWriteEnd(h.writeBuf)
+	xmitBufEnd := pendingWriteEnd(h.xmitBuf)
 
 	fileSize := max(writeBufEnd, xmitBufEnd, attr.Size)
 	if attr.Size != fileSize {
@@ -139,8 +145,8 @@ func (h *Handle) Read(
 	pos := offset
 	xbBuf, xbLen, xbOffset := h.xmitBuf, len(h.xmitBuf.buf), h.xmitBuf.offset
 	writeBuf, wbLen, wbOffset := h.writeBuf, len(h.writeBuf.buf), h.writeBuf.offset
-	xbEnd, wbEnd := int64(xbOffset)+int64(xbLen), int64(wbOffset)+int64(wbLen)
-	if xbLen != 0 && pos >= int64(xbOffset) && pos < xbEnd {
+	xbEnd, wbEnd := xbOffset+int64(xbLen), wbOffset+int64(wbLen)
+	if xbLen != 0 && pos >= xbOffset && pos < xbEnd {
 		// read from xmit buf
 		readFrom := xbBuf.buf[pos-xbOffset:]
 		readLen := xbEnd - pos
@@ -152,7 +158,7 @@ func (h *Handle) Read(
 		nread += readLen
 		pos += readLen
 	}
-	if wbLen != 0 && pos >= int64(wbOffset) && pos < wbEnd {
+	if wbLen != 0 && pos >= wbOffset && pos < wbEnd {
 		// read from the write buf
 		readFrom := writeBuf.buf[pos-wbOffset:]
 		readLen := wbEnd - pos
@@ -167,7 +173,7 @@ func (h *Handle) Read(
 	}
 
 	// Read the remaining data directly from the inode.
-	for nread < int64(size) {
+	for nread < size {
 		nr, err := h.inode.h.ReadAt(ctx, pos, buf[nread:])
 		nread += nr
 		pos += nr
@@ -304,7 +310,12 @@ func (h *Handle) Write(
 		}
 
 		// copy data to writeBuf until it is at most optimalWriteSize
-		extendWb := int(optimalWriteSize) - len(h.writeBuf.buf)
+			maxInt := int(^uint(0) >> 1)
+			writeBufCap := maxInt
+			if optimalWriteSize <= uint64(maxInt) {
+				writeBufCap = int(optimalWriteSize)
+			}
+			extendWb := writeBufCap - len(h.writeBuf.buf)
 		if extendWb > 0 {
 			if extendWb > len(data) {
 				extendWb = len(data)
