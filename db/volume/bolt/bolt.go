@@ -8,6 +8,7 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sbolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
@@ -90,7 +91,10 @@ func NewBolt(
 		func(ctx context.Context) (*volume.StorageStats, error) {
 			var totalBytes uint64
 			if fi, err := os.Stat(boltDB.Path()); err == nil {
-				totalBytes = uint64(fi.Size())
+				if fi.Size() < 0 {
+					return nil, errors.New("bolt file size is negative")
+				}
+				totalBytes = uint64(fi.Size()) //nolint:gosec
 			}
 			tx, err := store.NewTransaction(ctx, false)
 			if err != nil {

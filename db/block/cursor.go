@@ -608,7 +608,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		return nil, false, err
 	}
 	if c.t.xfrm != nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/fetch/decode")
+		_, subtask = trace.NewTask(ctx, "hydra/block/cursor/fetch/decode")
 		data, err = c.t.xfrm.DecodeBlock(data)
 		subtask.End()
 		if err != nil {
@@ -669,7 +669,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	}
 
 	if datFound {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/unmarshal/decode-block")
+		_, subtask = trace.NewTask(ctx, "hydra/block/cursor/unmarshal/decode-block")
 		err := b.UnmarshalBlock(dat)
 		subtask.End()
 		if err != nil {

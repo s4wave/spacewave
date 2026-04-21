@@ -196,18 +196,18 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction")
 	defer task.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/read-lock")
+	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/read-lock")
 	e.rmtx.RLock()
 	subtask.End()
 	defer e.rmtx.RUnlock()
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
 	ws, err := e.buildWorldState(taskCtx, !write)
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
 	tx := NewTx(ws)
 	subtask.End()
 	return tx, nil
@@ -324,19 +324,19 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
 	defer task.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
+	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
 	store := e.root.GetBucket()
 	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
 	xfrm := e.root.GetTransformer()
 	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
 	btx, bcs := e.root.BuildTransaction(nil)
 	subtask.End()
 	if readOnly {
 		btx = nil
 	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
 	ws, err := NewWorldState(
 		taskCtx,
 		e.le,

@@ -41,7 +41,7 @@ func skipIfNoV86(t *testing.T) (v86Dir, v86fsDir string) {
 		filepath.Join(v86fsDir, "bzImage"),
 		filepath.Join(v86fsDir, "rootfs.tar"),
 	} {
-		if _, err := os.Stat(p); err != nil {
+		if _, err := os.Stat(p); err != nil { //nolint:gosec
 			t.Skipf("required artifact missing: %s", p)
 		}
 	}

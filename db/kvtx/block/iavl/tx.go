@@ -160,7 +160,7 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 	if err != nil || bcs == nil || nod == nil {
 		return nil, err
 	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-cursor-at-key/follow-value")
+	_, subtask = trace.NewTask(ctx, "hydra/kvtx-block-iavl/get-cursor-at-key/follow-value")
 	defer subtask.End()
 	if nod.ValueIsBlob() {
 		return bcs.FollowSubBlock(8), nil

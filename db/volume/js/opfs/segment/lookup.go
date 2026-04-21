@@ -120,20 +120,20 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 		return nil, false, false, nil
 	}
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/search-index")
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/search-index")
 	start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
 	subtask.End()
 	windowSize := int(limit - start)
 	window := make([]byte, windowSize)
 	trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/read-window")
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/read-window")
 	if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
 		subtask.End()
 		return nil, false, false, errors.Wrap(err, "read data window")
 	}
 	subtask.End()
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window")
 	off := 0
 	for off < len(window) {
 		if off+2 > len(window) {

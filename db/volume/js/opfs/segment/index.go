@@ -26,7 +26,7 @@ func encodeIndex(entries []IndexEntry) []byte {
 	off := 0
 	for i := range entries {
 		e := &entries[i]
-		binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Key)))
+		binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(e.Key)))
 		off += 2
 		copy(buf[off:], e.Key)
 		off += len(e.Key)

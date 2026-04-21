@@ -78,7 +78,7 @@ func DecodeBloom(buf []byte) (*BloomFilter, error) {
 	numHashes := buf[0]
 	bitCount := binary.BigEndian.Uint32(buf[1:5])
 	byteCount := (bitCount + 7) / 8
-	if uint32(len(buf)-5) < byteCount {
+	if uint64(len(buf)-5) < uint64(byteCount) { //nolint:gosec
 		return nil, errors.Errorf("bloom bits truncated: have %d, want %d", len(buf)-5, byteCount)
 	}
 	bits := make([]byte, byteCount)
@@ -100,5 +100,7 @@ func bloomHash(key []byte) (uint32, uint32) {
 		h ^= uint64(b)
 		h *= 0x100000001b3
 	}
-	return uint32(h), uint32(h >> 32)
+	var sum [8]byte
+	binary.BigEndian.PutUint64(sum[:], h)
+	return binary.BigEndian.Uint32(sum[0:4]), binary.BigEndian.Uint32(sum[4:8])
 }

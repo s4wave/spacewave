@@ -264,12 +264,12 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	}
 	for _, entry := range entries {
 		if entry.Tombstone {
-			if err := v.Store.RmBlock(ctx, entry.Ref); err != nil {
+			if err := v.RmBlock(ctx, entry.Ref); err != nil {
 				return err
 			}
 			continue
 		}
-		if _, _, err := v.Store.PutBlock(ctx, entry.Data, &block.PutOpts{
+		if _, _, err := v.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: entry.Ref.Clone(),
 		}); err != nil {
 			return err
@@ -286,7 +286,7 @@ func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef
 
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
-		found, err := v.Store.GetBlockExists(ctx, ref)
+		found, err := v.GetBlockExists(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +300,7 @@ func (v *Volume) PutBlockBackground(ctx context.Context, data []byte, opts *bloc
 	if bg, ok := v.Store.(block.BackgroundPutStore); ok {
 		return bg.PutBlockBackground(ctx, data, opts)
 	}
-	return v.Store.PutBlock(ctx, data, opts)
+	return v.PutBlock(ctx, data, opts)
 }
 
 // BeginDeferFlush forwards deferred-flush scope entry to the embedded store when supported.

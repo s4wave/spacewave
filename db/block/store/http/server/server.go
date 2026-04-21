@@ -73,7 +73,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			rw.WriteHeader(400)
 			_, _ = rw.Write([]byte("invalid block ref: "))
-			_, _ = rw.Write([]byte(err.Error()))
+			_, _ = rw.Write([]byte(err.Error())) //nolint:gosec
 			_, _ = rw.Write([]byte("\n"))
 			return nil
 		}

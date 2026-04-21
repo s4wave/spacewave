@@ -4,7 +4,6 @@ package coord
 
 import (
 	"context"
-	"os"
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
@@ -24,7 +23,7 @@ type Election struct {
 func NewElection(db *bdb.DB, socketPath string) *Election {
 	return &Election{
 		db:         db,
-		pid:        uint32(os.Getpid()),
+		pid:        currentPID(),
 		socketPath: socketPath,
 	}
 }

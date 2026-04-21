@@ -68,7 +68,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 
 	// validate the new root
 	if commitErr == nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/validate-root")
+		_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/validate-root")
 		nroot = e.writeTx.state.GetRootRef()
 		// expect a non-nil ref
 		commitErr = nroot.Validate(false)
@@ -77,7 +77,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 
 	var nextRootRef *bucket.ObjectRef
 	// apply committed changes or rollback
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
 	e.engine.rmtx.Lock()
 	var relWriteTx func()
 	if commitErr == nil {

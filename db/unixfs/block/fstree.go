@@ -347,7 +347,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 	for i, didx := range skipIndexes {
 		// note: didx is idx + 1
 		if didx != 0 {
-			dirName := dirs[i]
+			dirName := dirs[i] //nolint:gosec
 			outputCursors[dirName], _, err = dslice.FollowDirent(f.ctx, didx-1)
 			if err != nil {
 				return nil, err

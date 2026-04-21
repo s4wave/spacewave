@@ -110,7 +110,8 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	if lease == nil {
 		t.Fatal("expected lease, got nil")
 	}
-	if lease.GetLeaderPid() != uint32(os.Getpid()) {
+	pid := currentPID()
+	if lease.GetLeaderPid() != pid {
 		t.Fatalf("expected leader PID %d, got %d", os.Getpid(), lease.GetLeaderPid())
 	}
 
@@ -121,7 +122,7 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	}
 
 	// Test SRPC: connect to ourselves via the mesh and call ParticipantInfo.
-	client, err := coordinator.GetMesh().Connect(ctx, uint32(os.Getpid()), socketPath)
+	client, err := coordinator.GetMesh().Connect(ctx, pid, socketPath)
 	if err != nil {
 		t.Fatal("Connect to self:", err)
 	}
@@ -130,7 +131,7 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal("GetParticipantInfo:", err)
 	}
-	if info.GetPid() != uint32(os.Getpid()) {
+	if info.GetPid() != pid {
 		t.Fatalf("expected PID %d, got %d", os.Getpid(), info.GetPid())
 	}
 	if info.GetRole() != ParticipantRole_ParticipantRole_LEADER {
@@ -170,7 +171,7 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	var postRec *ParticipantRecord
 	err = db.View(func(tx *bdb.Tx) error {
 		var readErr error
-		postRec, readErr = GetParticipant(tx, uint32(os.Getpid()))
+		postRec, readErr = GetParticipant(tx, pid)
 		return readErr
 	})
 	if err != nil {

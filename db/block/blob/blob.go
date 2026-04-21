@@ -447,7 +447,6 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 		if chk.GetStart() < uint64(nsize) { //nolint:gosec
 			break
 		}
-		v = nil
 		ciChunks = ciChunks[:i]
 		ciChunksBcs.ClearRef(uint32(i)) //nolint:gosec
 	}

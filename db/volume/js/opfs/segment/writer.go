@@ -86,25 +86,25 @@ func (w *Writer) Build(dst io.Writer) (int64, error) {
 	// Compute layout offsets.
 	// After the fixed header, we store min key and max key with u16 length prefixes.
 	keyBlockSize := 2 + len(minKey) + 2 + len(maxKey)
-	dataOffset := uint32(HeaderSize + keyBlockSize)
-	dataSize := uint32(len(dataBlock))
+	dataOffset := mustUint32Len(HeaderSize + keyBlockSize)
+	dataSize := mustUint32Len(len(dataBlock))
 	indexOffset := dataOffset + dataSize
-	indexSize := uint32(len(indexBlock))
+	indexSize := mustUint32Len(len(indexBlock))
 	bloomOffset := indexOffset + indexSize
-	bloomSize := uint32(len(bloomBlock))
+	bloomSize := mustUint32Len(len(bloomBlock))
 
 	hdr := Header{
 		Magic:       Magic,
 		Version:     CurrentVersion,
-		EntryCount:  uint32(len(w.entries)),
+		EntryCount:  mustUint32Len(len(w.entries)),
 		DataOffset:  dataOffset,
 		DataSize:    dataSize,
 		IndexOffset: indexOffset,
 		IndexSize:   indexSize,
 		BloomOffset: bloomOffset,
 		BloomSize:   bloomSize,
-		MinKeySize:  uint16(len(minKey)),
-		MaxKeySize:  uint16(len(maxKey)),
+		MinKeySize:  mustUint16Len(len(minKey)),
+		MaxKeySize:  mustUint16Len(len(maxKey)),
 	}
 
 	// Write everything into a CRC32 writer so we can compute the footer checksum.
@@ -124,7 +124,7 @@ func (w *Writer) Build(dst io.Writer) (int64, error) {
 
 	// Write min key.
 	var lenBuf [4]byte
-	binary.BigEndian.PutUint16(lenBuf[:2], uint16(len(minKey)))
+	binary.BigEndian.PutUint16(lenBuf[:2], mustUint16Len(len(minKey)))
 	n, err = mw.Write(lenBuf[:2])
 	if err != nil {
 		return total, errors.Wrap(err, "write min key len")
@@ -137,7 +137,7 @@ func (w *Writer) Build(dst io.Writer) (int64, error) {
 	total += int64(n)
 
 	// Write max key.
-	binary.BigEndian.PutUint16(lenBuf[:2], uint16(len(maxKey)))
+	binary.BigEndian.PutUint16(lenBuf[:2], mustUint16Len(len(maxKey)))
 	n, err = mw.Write(lenBuf[:2])
 	if err != nil {
 		return total, errors.Wrap(err, "write max key len")
@@ -209,14 +209,14 @@ func (w *Writer) encodeDataBlockWithIndex() ([]byte, []IndexEntry) {
 		}
 
 		e := &w.entries[i]
-		binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Key)))
+		binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(e.Key)))
 		off += 2
 		copy(buf[off:], e.Key)
 		off += len(e.Key)
 		if e.Tombstone {
 			binary.BigEndian.PutUint32(buf[off:off+4], TombstoneLen)
 		} else {
-			binary.BigEndian.PutUint32(buf[off:off+4], uint32(len(e.Value)))
+			binary.BigEndian.PutUint32(buf[off:off+4], mustUint32Len(len(e.Value)))
 		}
 		off += 4
 		if !e.Tombstone {

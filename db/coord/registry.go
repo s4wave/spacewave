@@ -23,7 +23,7 @@ type Registry struct {
 func NewRegistry(db *bdb.DB) *Registry {
 	return &Registry{
 		db:  db,
-		pid: uint32(os.Getpid()),
+		pid: currentPID(),
 	}
 }
 

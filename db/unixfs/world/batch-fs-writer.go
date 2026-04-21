@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -406,7 +407,10 @@ func (b *BatchFSWriter) syncExistingFile(
 		if err != nil {
 			return err
 		}
-		srcSize = int64(srcBlob.GetTotalSize())
+		if srcBlob.GetTotalSize() > math.MaxInt64 {
+			return errors.New("source blob size exceeds int64")
+		}
+		srcSize = int64(srcBlob.GetTotalSize()) //nolint:gosec
 		srcRdr, err = blob.NewReader(ctx, blobCs)
 		if err != nil {
 			return err

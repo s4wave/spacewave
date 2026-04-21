@@ -97,9 +97,9 @@ func (m *Manifest) Encode() []byte {
 	off += 8
 
 	// Segment counts.
-	binary.BigEndian.PutUint32(buf[off:off+4], uint32(len(m.Segments)))
+	binary.BigEndian.PutUint32(buf[off:off+4], mustUint32Len(len(m.Segments)))
 	off += 4
-	binary.BigEndian.PutUint32(buf[off:off+4], uint32(len(m.PendingDelete)))
+	binary.BigEndian.PutUint32(buf[off:off+4], mustUint32Len(len(m.PendingDelete)))
 	off += 4
 
 	for i := range m.Segments {
@@ -247,7 +247,7 @@ func encodedRetiredSegmentMetaSize(s *RetiredSegmentMeta) int {
 }
 
 func encodeSegmentMeta(buf []byte, off int, s *SegmentMeta) int {
-	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(s.Filename)))
+	binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(s.Filename)))
 	off += 2
 	copy(buf[off:], s.Filename)
 	off += len(s.Filename)
@@ -257,11 +257,11 @@ func encodeSegmentMeta(buf []byte, off int, s *SegmentMeta) int {
 	off += 4
 	buf[off] = s.Level
 	off++
-	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(s.MinKey)))
+	binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(s.MinKey)))
 	off += 2
 	copy(buf[off:], s.MinKey)
 	off += len(s.MinKey)
-	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(s.MaxKey)))
+	binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(s.MaxKey)))
 	off += 2
 	copy(buf[off:], s.MaxKey)
 	off += len(s.MaxKey)

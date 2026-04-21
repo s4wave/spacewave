@@ -180,7 +180,6 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	for i, v := range slices.Backward(cursorStack) {
 		prevCursor := v
 		if prevCursor.CheckReleased() {
-			v = nil
 			cursorStack = cursorStack[:i]
 		}
 	}

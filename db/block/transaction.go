@@ -273,7 +273,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// mark blocks reachable from the write root.
 	// when writing the full tree, unreachable blocks are dropped (cut).
 	reachable := make(map[int64]reachableNode, 1)
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
+	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	{
 		nodStack := []graph.Node{writeRoot}
 		for len(nodStack) != 0 {
@@ -303,7 +303,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	subtask.End()
 
 	// topological sort to determine dependencies (references, etc).
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/topo-sort")
+	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/topo-sort")
 	nods, err := topo.Sort(t.blockGraph)
 	subtask.End()
 	if err != nil {
@@ -334,7 +334,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// collect unreachable nodes for later cleanup (only for full-tree writes)
 	var unreachableNodes []*handle
 	if clearTree && subRoot == nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/collect-unreachable")
+		_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/collect-unreachable")
 		for _, v := range slices.Backward(nods) {
 			nod := v
 			nodID := nod.ID()
@@ -356,7 +356,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// concurrently marshal + transform + hash blocks.
 	// after hashing: write the updated BlockRef to parent blocks.
 	// push the marshalled blocks to the block write queue.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/schedule-workers")
+	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/schedule-workers")
 	for _, v := range slices.Backward(nods) {
 		nod := v
 		nodID := nod.ID()
@@ -540,7 +540,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	subtask.End()
 
 	// wait for all tasks to complete
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-encode")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-encode")
 	err = encodeQueue.WaitIdle(taskCtx, errCh)
 	subtask.End()
 	if err != nil {
@@ -572,7 +572,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 	// clean up unreachable nodes after all workers complete (full-tree writes only)
 	if clearTree && subRoot == nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/cleanup-unreachable")
+		_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/cleanup-unreachable")
 		for _, bn := range unreachableNodes {
 			bn.blk = nil
 			bn.ref = nil

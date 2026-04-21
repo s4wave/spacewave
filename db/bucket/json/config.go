@@ -2,6 +2,7 @@ package bucket_json
 
 import (
 	"context"
+	"math"
 	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -157,10 +158,14 @@ func parseConfigValue(v *fastjson.Value) (*Config, error) {
 	if v == nil || v.Type() != fastjson.TypeObject {
 		return nil, errors.New("bucket config must be object")
 	}
+	rev := v.GetUint("version")
+	if rev > math.MaxUint32 {
+		return nil, errors.New("bucket config version exceeds uint32")
+	}
 
 	c := &Config{
 		Id:  string(v.GetStringBytes("id")),
-		Rev: uint32(v.GetUint("version")),
+		Rev: uint32(rev),
 	}
 	if reconcilers := v.GetArray("reconcilers"); len(reconcilers) != 0 {
 		c.Reconcilers = make([]ReconcilerConfig, len(reconcilers))

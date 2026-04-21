@@ -156,9 +156,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded")
 	excludedIRIs := make([]string, 0, len(excluded)+1)
 	excludedIRIs = append(excludedIRIs, NodeUnreferenced)
-	for _, src := range excluded {
-		excludedIRIs = append(excludedIRIs, src)
-	}
+	excludedIRIs = append(excludedIRIs, excluded...)
 	excludedSet, err := rg.resolveIRIRefKeys(taskCtx, excludedIRIs)
 	if err != nil {
 		subtask.End()
@@ -226,7 +224,7 @@ func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[a
 		return nil, err
 	}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded/cache-refs")
+	_, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded/cache-refs")
 	rg.mu.Lock()
 	for i, ref := range resolved {
 		if ref == nil {

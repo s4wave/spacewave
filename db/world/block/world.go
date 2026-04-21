@@ -88,7 +88,7 @@ func NewWorldState(
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/init-struct")
+	_, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/init-struct")
 	tx := &WorldState{
 		btx:     btx,
 		bcs:     bcs,
@@ -104,7 +104,7 @@ func NewWorldState(
 		lookupOp: lookupOp,
 	}
 	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
 	err := tx.SetBlockTransaction(taskCtx, btx, bcs)
 	subtask.End()
 	if err != nil {
@@ -406,7 +406,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		}
 	}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
 	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
 		_ = t.graphHd.Close()
@@ -443,7 +443,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		}
 	}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
+	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
 	t.updateSeqno(root)
 	subtask.End()
 	return nil

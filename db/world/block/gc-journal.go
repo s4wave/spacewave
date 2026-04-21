@@ -103,8 +103,8 @@ func encodeRefBatch(adds, removes []block_gc.RefEdge) []byte {
 	}
 
 	buf := make([]byte, size)
-	binary.BigEndian.PutUint32(buf[0:4], uint32(len(adds)))
-	binary.BigEndian.PutUint32(buf[4:8], uint32(len(removes)))
+	binary.BigEndian.PutUint32(buf[0:4], mustGCJournalUint32Len(len(adds)))
+	binary.BigEndian.PutUint32(buf[4:8], mustGCJournalUint32Len(len(removes)))
 	off := 8
 	for i := range adds {
 		off = encodeEdge(buf, off, &adds[i])
@@ -116,15 +116,29 @@ func encodeRefBatch(adds, removes []block_gc.RefEdge) []byte {
 }
 
 func encodeEdge(buf []byte, off int, e *block_gc.RefEdge) int {
-	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Subject)))
+	binary.BigEndian.PutUint16(buf[off:off+2], mustGCJournalUint16Len(len(e.Subject)))
 	off += 2
 	copy(buf[off:], e.Subject)
 	off += len(e.Subject)
-	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Object)))
+	binary.BigEndian.PutUint16(buf[off:off+2], mustGCJournalUint16Len(len(e.Object)))
 	off += 2
 	copy(buf[off:], e.Object)
 	off += len(e.Object)
 	return off
+}
+
+func mustGCJournalUint16Len(v int) uint16 {
+	if v < 0 || v > 0xffff {
+		panic("world-block: gc journal length overflows uint16")
+	}
+	return uint16(v)
+}
+
+func mustGCJournalUint32Len(v int) uint32 {
+	if v < 0 || uint64(v) > 0xffffffff {
+		panic("world-block: gc journal length overflows uint32")
+	}
+	return uint32(v)
 }
 
 // decodeRefBatch deserializes a binary batch into adds and removes.

@@ -37,12 +37,12 @@ func (b *bucketRW) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 	if !ok {
 		for _, entry := range entries {
 			if entry.Tombstone {
-				if err := b.StoreOps.RmBlock(ctx, entry.Ref); err != nil {
+				if err := b.RmBlock(ctx, entry.Ref); err != nil {
 					return err
 				}
 				continue
 			}
-			if _, _, err := b.StoreOps.PutBlock(ctx, entry.Data, &block.PutOpts{
+			if _, _, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
 				ForceBlockRef: entry.Ref.Clone(),
 			}); err != nil {
 				return err
@@ -61,7 +61,7 @@ func (b *bucketRW) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockR
 
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
-		found, err := b.StoreOps.GetBlockExists(ctx, ref)
+		found, err := b.GetBlockExists(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func (b *bucketRW) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockR
 func (b *bucketRW) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	bg, ok := b.StoreOps.(block.BackgroundPutStore)
 	if !ok {
-		return b.StoreOps.PutBlock(ctx, data, opts)
+		return b.PutBlock(ctx, data, opts)
 	}
 	return bg.PutBlockBackground(ctx, data, opts)
 }

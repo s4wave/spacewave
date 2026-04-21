@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sbadger "github.com/s4wave/spacewave/db/store/kvtx/badger"
@@ -62,6 +63,9 @@ func NewBadger(
 		false,
 		func(ctx context.Context) (*volume.StorageStats, error) {
 			lsm, vlog := db.Size()
+			if lsm < 0 || vlog < 0 {
+				return nil, errors.New("badger reported negative size")
+			}
 			tx, err := store.NewTransaction(ctx, false)
 			if err != nil {
 				return nil, err
@@ -72,7 +76,7 @@ func NewBadger(
 				return nil, err
 			}
 			return &volume.StorageStats{
-				TotalBytes: uint64(lsm + vlog),
+				TotalBytes: uint64(lsm) + uint64(vlog),
 				BlockCount: count,
 			}, nil
 		},

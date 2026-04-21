@@ -18,7 +18,7 @@ func EncodeBranchPage(buf []byte, entries []BranchEntry) int {
 		if off+needed > len(buf) {
 			break
 		}
-		binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Key)))
+		binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(e.Key)))
 		off += 2
 		binary.BigEndian.PutUint32(buf[off:off+4], uint32(e.ChildID))
 		off += 4

@@ -61,7 +61,7 @@ func NewFSCursor(
 	writer unixfs.FSWriter,
 	watchChanges bool,
 ) *FSCursor {
-	ctx, ctxCancel := context.WithCancel(context.Background())
+	ctx, ctxCancel := context.WithCancel(context.Background()) //nolint:gosec
 	return &FSCursor{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,

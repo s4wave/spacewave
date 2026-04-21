@@ -3,6 +3,7 @@ package unixfs_v86fs
 import (
 	"context"
 	"io/fs"
+	"math"
 	"sync"
 	"time"
 
@@ -470,7 +471,7 @@ func (ss *session) handleGetattr(ctx context.Context, tag uint32, req *V86FsGeta
 				Mode:      mode,
 				Size:      size,
 				MtimeSec:  mtime.Unix(),
-				MtimeNsec: uint32(mtime.Nanosecond()),
+				MtimeNsec: uint32(mtime.Nanosecond()), //nolint:gosec
 			},
 		},
 	}, nil
@@ -551,7 +552,11 @@ func (ss *session) handleRead(ctx context.Context, tag uint32, req *V86FsReadReq
 		return nil, unixfs_errors.ErrNotExist
 	}
 	buf := make([]byte, req.GetSize())
-	n, err := entry.handle.ReadAt(ctx, int64(req.GetOffset()), buf)
+	offset := req.GetOffset()
+	if offset > math.MaxInt64 {
+		return nil, errors.New("read offset exceeds int64")
+	}
+	n, err := entry.handle.ReadAt(ctx, int64(offset), buf)
 	if err != nil && n == 0 {
 		return nil, err
 	}
@@ -603,16 +608,23 @@ func (ss *session) handleWrite(ctx context.Context, tag uint32, req *V86FsWriteR
 		return nil, unixfs_errors.ErrNotExist
 	}
 	data := req.GetData()
-	err := h.WriteAt(ctx, int64(req.GetOffset()), data, time.Now())
+	offset := req.GetOffset()
+	if offset > math.MaxInt64 {
+		return nil, errors.New("write offset exceeds int64")
+	}
+	err := h.WriteAt(ctx, int64(offset), data, time.Now())
 	if err != nil {
 		return nil, err
+	}
+	if len(data) > math.MaxUint32 {
+		return nil, errors.New("write size exceeds uint32")
 	}
 	return &V86FsMessage{
 		Tag: tag,
 		Body: &V86FsMessage_WriteReply{
 			WriteReply: &V86FsWriteReply{
 				Status:       0,
-				BytesWritten: uint32(len(data)),
+				BytesWritten: uint32(len(data)), //nolint:gosec
 			},
 		},
 	}, nil

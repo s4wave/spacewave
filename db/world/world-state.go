@@ -394,7 +394,7 @@ func AccessObjectState(
 		return nil, false, err
 	}
 	var dirty bool
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/compare-root-ref")
+	_, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/compare-root-ref")
 	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
 		dirty = true
 	}

@@ -56,7 +56,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	opts.HashType = opts.SelectHashType(k.hashType)
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/build-block-ref")
+	_, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/build-block-ref")
 	ref, err = block.BuildBlockRef(data, opts)
 	subtask.End()
 	if err != nil {
@@ -74,7 +74,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
 	tx, err := k.store.NewTransaction(taskCtx, true)
 	subtask.End()
 	if err != nil {
@@ -137,7 +137,7 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/get")
 	data, found, err := tx.Get(taskCtx, key)
 	subtask.End()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/discard")
+	_, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/discard")
 	tx.Discard()
 	subtask.End()
 	if err != nil || !found {
@@ -151,7 +151,7 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		return data, found, nil
 	}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/hash-verify")
+	_, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/hash-verify")
 	err = ref.VerifyData(data, true)
 	subtask.End()
 	// Return the data and the error with the hash mismatch.

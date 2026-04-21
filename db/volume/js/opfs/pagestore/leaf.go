@@ -22,12 +22,12 @@ func EncodeLeafPage(buf []byte, entries []LeafEntry) int {
 		if off+needed > len(buf) {
 			break
 		}
-		binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Key)))
+		binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(e.Key)))
 		off += 2
 		if e.OverflowPage != 0 {
 			binary.BigEndian.PutUint16(buf[off:off+2], OverflowSentinel)
 		} else {
-			binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Value)))
+			binary.BigEndian.PutUint16(buf[off:off+2], mustUint16Len(len(e.Value)))
 		}
 		off += 2
 		copy(buf[off:], e.Key)

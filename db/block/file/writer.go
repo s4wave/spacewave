@@ -314,7 +314,6 @@ func (w *Writer) Truncate(size uint64) error {
 			if irangeStart >= size {
 				removeFrom = i
 				rangesBcs.ClearRef(uint32(i)) //nolint:gosec
-				v = nil
 				continue
 			}
 
