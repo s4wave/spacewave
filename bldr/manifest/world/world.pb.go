@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // StoreManifestOp stores a Manifest to an object key.
@@ -120,11 +120,9 @@ func (m *ExtractManifestBundleOp) CloneVT() *ExtractManifestBundleOp {
 	}
 	r := new(ExtractManifestBundleOp)
 	r.ObjectKey = m.ObjectKey
+	r.ManifestBundle = m.ManifestBundle.CloneVT()
 	if rhs := m.LinkObjectKeys; rhs != nil {
 		r.LinkObjectKeys = slices.Clone(rhs)
-	}
-	if rhs := m.ManifestBundle; rhs != nil {
-		r.ManifestBundle = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

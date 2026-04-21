@@ -5,7 +5,7 @@
 import { ManifestRef } from '../manifest.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
-import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.world'
 

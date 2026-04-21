@@ -35,14 +35,14 @@ namespace browser {
 }  // namespace web
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = nullptr;
-const ::uint32_t TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto::offsets[1] = {};
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = nullptr;
+const ::uint32_t TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto::offsets[1] = {};
 static constexpr ::_pbi::MigrationSchema* PROTOBUF_NULLABLE schemas = nullptr;
 static constexpr ::_pb::Message* PROTOBUF_NONNULL const* PROTOBUF_NULLABLE
     file_default_instances = nullptr;
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nAgithub.com/s4wave/spacewave/bldr/web/p"
     "lugin/browser/browser.proto\022\027bldr.web.pl"
@@ -53,25 +53,25 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "mPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_deps[1] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_deps[1] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto = {
     false,
     false,
     259,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
     "github.com/s4wave/spacewave/bldr/web/plugin/browser/browser.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto_deps,
     1,
     0,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto,
 };
 namespace bldr {
 namespace web {
@@ -89,6 +89,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fbrowser_2fbrowser_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

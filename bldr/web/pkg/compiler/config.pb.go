@@ -12,10 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 )
 
 // Config configures the web package builder.

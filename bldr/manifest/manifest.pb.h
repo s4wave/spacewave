@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/manifest/manifest.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -31,15 +31,15 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/s4wave/spacewave/db/block/block.pb.h"
-#include "github.com/s4wave/spacewave/db/bucket/bucket.pb.h"
+#include "../../db/block/block.pb.h"
+#include "../../db/bucket/bucket.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto
 
 namespace google {
 namespace protobuf {
@@ -51,11 +51,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace manifest {
@@ -358,7 +358,7 @@ class ManifestMeta final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestMeta_class_data_;
@@ -613,7 +613,7 @@ class FetchManifestRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchManifestRequest_class_data_;
@@ -859,7 +859,7 @@ class Manifest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Manifest_class_data_;
@@ -1071,7 +1071,7 @@ class ManifestSnapshot final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestSnapshot_class_data_;
@@ -1283,7 +1283,7 @@ class ManifestRef final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestRef_class_data_;
@@ -1497,7 +1497,7 @@ class ManifestBundle final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestBundle_class_data_;
@@ -1694,7 +1694,7 @@ class FetchManifestValue final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchManifestValue_class_data_;
@@ -1925,7 +1925,7 @@ class FetchManifestResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchManifestResponse_class_data_;
@@ -3619,4 +3619,4 @@ inline void FetchManifestResponse::_internal_set_idle(::uint32_t value) {
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_2epb_2eh

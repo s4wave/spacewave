@@ -9,7 +9,7 @@ import {
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
-import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.builder'
 

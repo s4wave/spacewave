@@ -66,11 +66,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace dist
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::dist::DistMeta, _impl_._has_bits_),
@@ -94,36 +94,36 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::dist::_DistMeta_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n0github.com/s4wave/spacewave/bldr/dist/"
-    "dist.proto\022\tbldr.dist\0325github.com/apertu"
-    "rerobotics/hydra/bucket/bucket.proto\"\220\001\n"
-    "\010DistMeta\022\022\n\nproject_id\030\001 \001(\t\022\023\n\013platfor"
-    "m_id\030\002 \001(\t\022\027\n\017startup_plugins\030\003 \003(\t\022)\n\016d"
-    "ist_world_ref\030\004 \001(\0132\021.bucket.ObjectRef\022\027"
-    "\n\017dist_object_key\030\005 \001(\tb\006proto3"
+    "dist.proto\022\tbldr.dist\0322github.com/s4wave"
+    "/spacewave/db/bucket/bucket.proto\"\220\001\n\010Di"
+    "stMeta\022\022\n\nproject_id\030\001 \001(\t\022\023\n\013platform_i"
+    "d\030\002 \001(\t\022\027\n\017startup_plugins\030\003 \003(\t\022)\n\016dist"
+    "_world_ref\030\004 \001(\0132\021.bucket.ObjectRef\022\027\n\017d"
+    "ist_object_key\030\005 \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto = {
     false,
     false,
-    271,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto,
+    268,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto,
     "github.com/s4wave/spacewave/bldr/dist/dist.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto_deps,
     1,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto,
 };
 namespace bldr {
 namespace dist {
@@ -253,7 +253,7 @@ constexpr auto DistMeta::InternalGenerateClassData_() {
           false,
       },
       &DistMeta::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto,
       nullptr,  // tracker
   };
 }
@@ -595,6 +595,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fdist_2fdist_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fdist_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

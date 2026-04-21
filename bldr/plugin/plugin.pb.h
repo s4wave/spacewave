@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/plugin/plugin.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -34,14 +34,14 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "../manifest/manifest.pb.h"
 #include "github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.h"
-#include "github.com/s4wave/spacewave/db/volume/volume.pb.h"
+#include "../../db/volume/volume.pb.h"
 #include "github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto
 
 namespace google {
 namespace protobuf {
@@ -53,11 +53,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace plugin {
@@ -309,7 +309,7 @@ class PluginStatus final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PluginStatus_class_data_;
@@ -538,7 +538,7 @@ class PluginStartInfo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PluginStartInfo_class_data_;
@@ -784,7 +784,7 @@ class PluginMeta final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PluginMeta_class_data_;
@@ -996,7 +996,7 @@ class LoadPluginRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull LoadPluginRequest_class_data_;
@@ -1130,7 +1130,7 @@ class GetPluginInfoRequest final : public ::google::protobuf::internal::ZeroFiel
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetPluginInfoRequest_class_data_;
@@ -1325,7 +1325,7 @@ class PluginContextInfo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PluginContextInfo_class_data_;
@@ -1520,7 +1520,7 @@ class LoadPluginResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull LoadPluginResponse_class_data_;
@@ -1749,7 +1749,7 @@ class GetPluginInfoResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetPluginInfoResponse_class_data_;
@@ -2935,4 +2935,4 @@ inline void PluginContextInfo::set_allocated_plugin_meta(::bldr::plugin::PluginM
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_2epb_2eh

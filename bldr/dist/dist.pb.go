@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // DistMeta is metadata embedded in a distribution entrypoint.
@@ -82,12 +82,10 @@ func (m *DistMeta) CloneVT() *DistMeta {
 	r := new(DistMeta)
 	r.ProjectId = m.ProjectId
 	r.PlatformId = m.PlatformId
+	r.DistWorldRef = m.DistWorldRef.CloneVT()
 	r.DistObjectKey = m.DistObjectKey
 	if rhs := m.StartupPlugins; rhs != nil {
 		r.StartupPlugins = slices.Clone(rhs)
-	}
-	if rhs := m.DistWorldRef; rhs != nil {
-		r.DistWorldRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

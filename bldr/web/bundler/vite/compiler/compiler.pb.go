@@ -12,11 +12,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // InputFileKind is the kind of file this is.

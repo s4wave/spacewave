@@ -288,11 +288,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace manifest
 }  // namespace bldr
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_._has_bits_),
@@ -407,79 +407,79 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::manifest::builder::_InputManifest_default_instance_._instance,
     &::bldr::manifest::builder::_BuildManifestArgs_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n\?github.com/s4wave/spacewave/bldr/manif"
     "est/builder/builder.proto\022\025bldr.manifest"
-    ".builder\0328github.com/aperturerobotics/bl"
-    "dr/manifest/manifest.proto\0325github.com/a"
-    "perturerobotics/hydra/bucket/bucket.prot"
-    "o\"\213\002\n\rBuilderConfig\0222\n\rmanifest_meta\030\001 \001"
-    "(\0132\033.bldr.manifest.ManifestMeta\022\023\n\013sourc"
-    "e_path\030\002 \001(\t\022\030\n\020dist_source_path\030\003 \001(\t\022\024"
-    "\n\014working_path\030\004 \001(\t\022\021\n\tengine_id\030\005 \001(\t\022"
-    "\022\n\nobject_key\030\006 \001(\t\022\030\n\020link_object_keys\030"
-    "\007 \003(\t\022\017\n\007peer_id\030\010 \001(\t\022\022\n\nproject_id\030\t \001"
-    "(\t\022\033\n\023target_platform_ids\030\n \003(\t\"\252\001\n\rBuil"
-    "derResult\022)\n\010manifest\030\001 \001(\0132\027.bldr.manif"
-    "est.Manifest\0220\n\014manifest_ref\030\002 \001(\0132\032.bld"
-    "r.manifest.ManifestRef\022<\n\016input_manifest"
-    "\030\003 \001(\0132$.bldr.manifest.builder.InputMani"
-    "fest\"\235\006\n\rInputManifest\0228\n\005files\030\001 \003(\0132)."
-    "bldr.manifest.builder.InputManifest.File"
-    "\022\020\n\010metadata\030\002 \001(\014\022G\n\rmanifest_deps\030\003 \003("
-    "\01320.bldr.manifest.builder.InputManifest."
-    "ManifestDep\022I\n\016startup_inputs\030\004 \003(\01321.bl"
-    "dr.manifest.builder.InputManifest.Startu"
-    "pInput\032N\n\014FileIdentity\022\022\n\nsize_bytes\030\001 \001"
-    "(\004\022\032\n\022mod_time_unix_nano\030\002 \001(\003\022\016\n\006sha256"
-    "\030\003 \001(\014\032\201\001\n\004File\022\014\n\004path\030\001 \001(\t\022\020\n\010metadat"
-    "a\030\002 \001(\014\022C\n\010identity\030\003 \001(\01321.bldr.manifes"
-    "t.builder.InputManifest.FileIdentity\022\024\n\014"
-    "startup_only\030\004 \001(\010\032K\n\013ManifestDep\022\023\n\013man"
-    "ifest_id\030\001 \001(\t\022\'\n\014manifest_ref\030\002 \001(\0132\021.b"
-    "ucket.ObjectRef\032\213\001\n\014StartupInput\022C\n\004kind"
-    "\030\001 \001(\01625.bldr.manifest.builder.InputMani"
-    "fest.StartupInputKind\022\013\n\003key\030\002 \001(\t\022\024\n\014st"
-    "ring_value\030\003 \001(\t\022\023\n\013bytes_value\030\004 \001(\014\"}\n"
-    "\020StartupInputKind\022\034\n\030StartupInputKind_UN"
-    "KNOWN\020\000\022\034\n\030StartupInputKind_ENV_VAR\020\001\022-\n"
-    ")StartupInputKind_CONTROLLER_CONFIG_DIGE"
-    "ST\020\002\"\326\001\n\021BuildManifestArgs\022<\n\016builder_co"
-    "nfig\030\001 \001(\0132$.bldr.manifest.builder.Build"
-    "erConfig\022A\n\023prev_builder_result\030\002 \001(\0132$."
-    "bldr.manifest.builder.BuilderResult\022@\n\rc"
-    "hanged_files\030\003 \003(\0132).bldr.manifest.build"
-    "er.InputManifest.Fileb\006proto3"
+    ".builder\0328github.com/s4wave/spacewave/bl"
+    "dr/manifest/manifest.proto\0322github.com/s"
+    "4wave/spacewave/db/bucket/bucket.proto\"\213"
+    "\002\n\rBuilderConfig\0222\n\rmanifest_meta\030\001 \001(\0132"
+    "\033.bldr.manifest.ManifestMeta\022\023\n\013source_p"
+    "ath\030\002 \001(\t\022\030\n\020dist_source_path\030\003 \001(\t\022\024\n\014w"
+    "orking_path\030\004 \001(\t\022\021\n\tengine_id\030\005 \001(\t\022\022\n\n"
+    "object_key\030\006 \001(\t\022\030\n\020link_object_keys\030\007 \003"
+    "(\t\022\017\n\007peer_id\030\010 \001(\t\022\022\n\nproject_id\030\t \001(\t\022"
+    "\033\n\023target_platform_ids\030\n \003(\t\"\252\001\n\rBuilder"
+    "Result\022)\n\010manifest\030\001 \001(\0132\027.bldr.manifest"
+    ".Manifest\0220\n\014manifest_ref\030\002 \001(\0132\032.bldr.m"
+    "anifest.ManifestRef\022<\n\016input_manifest\030\003 "
+    "\001(\0132$.bldr.manifest.builder.InputManifes"
+    "t\"\235\006\n\rInputManifest\0228\n\005files\030\001 \003(\0132).bld"
+    "r.manifest.builder.InputManifest.File\022\020\n"
+    "\010metadata\030\002 \001(\014\022G\n\rmanifest_deps\030\003 \003(\01320"
+    ".bldr.manifest.builder.InputManifest.Man"
+    "ifestDep\022I\n\016startup_inputs\030\004 \003(\01321.bldr."
+    "manifest.builder.InputManifest.StartupIn"
+    "put\032N\n\014FileIdentity\022\022\n\nsize_bytes\030\001 \001(\004\022"
+    "\032\n\022mod_time_unix_nano\030\002 \001(\003\022\016\n\006sha256\030\003 "
+    "\001(\014\032\201\001\n\004File\022\014\n\004path\030\001 \001(\t\022\020\n\010metadata\030\002"
+    " \001(\014\022C\n\010identity\030\003 \001(\01321.bldr.manifest.b"
+    "uilder.InputManifest.FileIdentity\022\024\n\014sta"
+    "rtup_only\030\004 \001(\010\032K\n\013ManifestDep\022\023\n\013manife"
+    "st_id\030\001 \001(\t\022\'\n\014manifest_ref\030\002 \001(\0132\021.buck"
+    "et.ObjectRef\032\213\001\n\014StartupInput\022C\n\004kind\030\001 "
+    "\001(\01625.bldr.manifest.builder.InputManifes"
+    "t.StartupInputKind\022\013\n\003key\030\002 \001(\t\022\024\n\014strin"
+    "g_value\030\003 \001(\t\022\023\n\013bytes_value\030\004 \001(\014\"}\n\020St"
+    "artupInputKind\022\034\n\030StartupInputKind_UNKNO"
+    "WN\020\000\022\034\n\030StartupInputKind_ENV_VAR\020\001\022-\n)St"
+    "artupInputKind_CONTROLLER_CONFIG_DIGEST\020"
+    "\002\"\326\001\n\021BuildManifestArgs\022<\n\016builder_confi"
+    "g\030\001 \001(\0132$.bldr.manifest.builder.BuilderC"
+    "onfig\022A\n\023prev_builder_result\030\002 \001(\0132$.bld"
+    "r.manifest.builder.BuilderResult\022@\n\rchan"
+    "ged_files\030\003 \003(\0132).bldr.manifest.builder."
+    "InputManifest.Fileb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = {
     false,
     false,
-    1669,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+    1666,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps,
     2,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
 };
 namespace bldr {
 namespace manifest {
 namespace builder {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL InputManifest_StartupInputKind_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t InputManifest_StartupInputKind_internal_data_[] = {
     196608u, 0u, };
@@ -627,7 +627,7 @@ constexpr auto BuilderConfig::InternalGenerateClassData_() {
           false,
       },
       &BuilderConfig::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1273,7 +1273,7 @@ constexpr auto BuilderResult::InternalGenerateClassData_() {
           false,
       },
       &BuilderResult::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1627,7 +1627,7 @@ constexpr auto InputManifest_FileIdentity::InternalGenerateClassData_() {
           false,
       },
       &InputManifest_FileIdentity::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1981,7 +1981,7 @@ constexpr auto InputManifest_File::InternalGenerateClassData_() {
           false,
       },
       &InputManifest_File::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2373,7 +2373,7 @@ constexpr auto InputManifest_ManifestDep::InternalGenerateClassData_() {
           false,
       },
       &InputManifest_ManifestDep::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2695,7 +2695,7 @@ constexpr auto InputManifest_StartupInput::InternalGenerateClassData_() {
           false,
       },
       &InputManifest_StartupInput::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3101,7 +3101,7 @@ constexpr auto InputManifest::InternalGenerateClassData_() {
           false,
       },
       &InputManifest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3512,7 +3512,7 @@ constexpr auto BuildManifestArgs::InternalGenerateClassData_() {
           false,
       },
       &BuildManifestArgs::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3775,6 +3775,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

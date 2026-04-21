@@ -4,8 +4,8 @@
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
-import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
-import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
+import { BlockRef } from '../../db/block/block.pb.js'
+import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'bldr.manifest'

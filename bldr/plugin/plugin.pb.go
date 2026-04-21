@@ -11,12 +11,12 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	_ "github.com/aperturerobotics/controllerbus/controller/exec"
-	volume "github.com/s4wave/spacewave/db/volume"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	_ "github.com/aperturerobotics/starpc/rpcstream"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	volume "github.com/s4wave/spacewave/db/volume"
 )
 
 // PluginStatus holds basic status for a plugin.
@@ -300,9 +300,7 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
 	r.ManifestRef = m.ManifestRef.CloneVT()
-	if rhs := m.HostVolumeInfo; rhs != nil {
-		r.HostVolumeInfo = rhs.CloneVT()
-	}
+	r.HostVolumeInfo = m.HostVolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

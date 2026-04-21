@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	volume "github.com/s4wave/spacewave/db/volume"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	volume "github.com/s4wave/spacewave/db/volume"
 )
 
 // DevtoolInitBrowser is the message initializing the browser from the devtool.
@@ -82,10 +82,8 @@ func (m *DevtoolInitBrowser) CloneVT() *DevtoolInitBrowser {
 	r := new(DevtoolInitBrowser)
 	r.AppId = m.AppId
 	r.DevtoolPeerId = m.DevtoolPeerId
+	r.DevtoolVolumeInfo = m.DevtoolVolumeInfo.CloneVT()
 	r.ForceDedicatedWorkers = m.ForceDedicatedWorkers
-	if rhs := m.DevtoolVolumeInfo; rhs != nil {
-		r.DevtoolVolumeInfo = rhs.CloneVT()
-	}
 	if rhs := m.StartPlugins; rhs != nil {
 		r.StartPlugins = slices.Clone(rhs)
 	}

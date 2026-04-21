@@ -255,11 +255,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace plugin
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::PluginStatus, _impl_._has_bits_),
@@ -338,68 +338,68 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::_PluginStartInfo_default_instance_._instance,
     &::bldr::plugin::_PluginContextInfo_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n4github.com/s4wave/spacewave/bldr/plugi"
     "n/plugin.proto\022\013bldr.plugin\0328github.com/"
-    "aperturerobotics/bldr/manifest/manifest."
+    "s4wave/spacewave/bldr/manifest/manifest."
     "proto\032Dgithub.com/aperturerobotics/contr"
-    "ollerbus/controller/exec/exec.proto\0325git"
-    "hub.com/aperturerobotics/hydra/volume/vo"
-    "lume.proto\032<github.com/aperturerobotics/"
-    "starpc/rpcstream/rpcstream.proto\"2\n\014Plug"
-    "inStatus\022\021\n\tplugin_id\030\001 \001(\t\022\017\n\007running\030\002"
-    " \001(\010\"\026\n\024GetPluginInfoRequest\"\212\001\n\025GetPlug"
-    "inInfoResponse\022\021\n\tplugin_id\030\001 \001(\t\0220\n\014man"
-    "ifest_ref\030\002 \001(\0132\032.bldr.manifest.Manifest"
-    "Ref\022,\n\020host_volume_info\030\003 \001(\0132\022.volume.V"
-    "olumeInfo\"<\n\021LoadPluginRequest\022\021\n\tplugin"
-    "_id\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\"F\n\022LoadP"
-    "luginResponse\0220\n\rplugin_status\030\001 \001(\0132\031.b"
-    "ldr.plugin.PluginStatus\"\\\n\nPluginMeta\022\022\n"
-    "\nproject_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\023\n\013"
-    "platform_id\030\003 \001(\t\022\022\n\nbuild_type\030\004 \001(\t\"O\n"
-    "\017PluginStartInfo\022\023\n\013instance_id\030\001 \001(\t\022\021\n"
-    "\tplugin_id\030\002 \001(\t\022\024\n\014instance_key\030\003 \001(\t\"A"
-    "\n\021PluginContextInfo\022,\n\013plugin_meta\030\001 \001(\013"
-    "2\027.bldr.plugin.PluginMeta2\264\003\n\nPluginHost"
-    "\022X\n\rGetPluginInfo\022!.bldr.plugin.GetPlugi"
-    "nInfoRequest\032\".bldr.plugin.GetPluginInfo"
-    "Response\"\000\022e\n\016ExecController\022&.controlle"
-    "r.exec.ExecControllerRequest\032\'.controlle"
-    "r.exec.ExecControllerResponse\"\0000\001\022Q\n\nLoa"
-    "dPlugin\022\036.bldr.plugin.LoadPluginRequest\032"
-    "\037.bldr.plugin.LoadPluginResponse\"\0000\001\022G\n\t"
-    "PluginRpc\022\032.rpcstream.RpcStreamPacket\032\032."
-    "rpcstream.RpcStreamPacket(\0010\001\022I\n\013PluginF"
-    "sRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcst"
-    "ream.RpcStreamPacket(\0010\0012Q\n\006Plugin\022G\n\tPl"
-    "uginRpc\022\032.rpcstream.RpcStreamPacket\032\032.rp"
-    "cstream.RpcStreamPacket(\0010\001b\006proto3"
+    "ollerbus/controller/exec/exec.proto\0322git"
+    "hub.com/s4wave/spacewave/db/volume/volum"
+    "e.proto\032<github.com/aperturerobotics/sta"
+    "rpc/rpcstream/rpcstream.proto\"2\n\014PluginS"
+    "tatus\022\021\n\tplugin_id\030\001 \001(\t\022\017\n\007running\030\002 \001("
+    "\010\"\026\n\024GetPluginInfoRequest\"\212\001\n\025GetPluginI"
+    "nfoResponse\022\021\n\tplugin_id\030\001 \001(\t\0220\n\014manife"
+    "st_ref\030\002 \001(\0132\032.bldr.manifest.ManifestRef"
+    "\022,\n\020host_volume_info\030\003 \001(\0132\022.volume.Volu"
+    "meInfo\"<\n\021LoadPluginRequest\022\021\n\tplugin_id"
+    "\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\"F\n\022LoadPlug"
+    "inResponse\0220\n\rplugin_status\030\001 \001(\0132\031.bldr"
+    ".plugin.PluginStatus\"\\\n\nPluginMeta\022\022\n\npr"
+    "oject_id\030\001 \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\023\n\013pla"
+    "tform_id\030\003 \001(\t\022\022\n\nbuild_type\030\004 \001(\t\"O\n\017Pl"
+    "uginStartInfo\022\023\n\013instance_id\030\001 \001(\t\022\021\n\tpl"
+    "ugin_id\030\002 \001(\t\022\024\n\014instance_key\030\003 \001(\t\"A\n\021P"
+    "luginContextInfo\022,\n\013plugin_meta\030\001 \001(\0132\027."
+    "bldr.plugin.PluginMeta2\264\003\n\nPluginHost\022X\n"
+    "\rGetPluginInfo\022!.bldr.plugin.GetPluginIn"
+    "foRequest\032\".bldr.plugin.GetPluginInfoRes"
+    "ponse\"\000\022e\n\016ExecController\022&.controller.e"
+    "xec.ExecControllerRequest\032\'.controller.e"
+    "xec.ExecControllerResponse\"\0000\001\022Q\n\nLoadPl"
+    "ugin\022\036.bldr.plugin.LoadPluginRequest\032\037.b"
+    "ldr.plugin.LoadPluginResponse\"\0000\001\022G\n\tPlu"
+    "ginRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpc"
+    "stream.RpcStreamPacket(\0010\001\022I\n\013PluginFsRp"
+    "c\022\032.rpcstream.RpcStreamPacket\032\032.rpcstrea"
+    "m.RpcStreamPacket(\0010\0012Q\n\006Plugin\022G\n\tPlugi"
+    "nRpc\022\032.rpcstream.RpcStreamPacket\032\032.rpcst"
+    "ream.RpcStreamPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_deps[4] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fexec_2fexec_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fvolume_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fvolume_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    1435,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+    1432,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/plugin.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto_deps,
     4,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
 };
 namespace bldr {
 namespace plugin {
@@ -499,7 +499,7 @@ constexpr auto PluginStatus::InternalGenerateClassData_() {
           false,
       },
       &PluginStatus::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -768,7 +768,7 @@ constexpr auto GetPluginInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetPluginInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -941,7 +941,7 @@ constexpr auto GetPluginInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetPluginInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1295,7 +1295,7 @@ constexpr auto LoadPluginRequest::InternalGenerateClassData_() {
           false,
       },
       &LoadPluginRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1615,7 +1615,7 @@ constexpr auto LoadPluginResponse::InternalGenerateClassData_() {
           false,
       },
       &LoadPluginResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1892,7 +1892,7 @@ constexpr auto PluginMeta::InternalGenerateClassData_() {
           false,
       },
       &PluginMeta::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2289,7 +2289,7 @@ constexpr auto PluginStartInfo::InternalGenerateClassData_() {
           false,
       },
       &PluginStartInfo::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2647,7 +2647,7 @@ constexpr auto PluginContextInfo::InternalGenerateClassData_() {
           false,
       },
       &PluginContextInfo::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2831,6 +2831,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fplugin_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fplugin_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

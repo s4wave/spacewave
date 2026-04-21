@@ -12,15 +12,15 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	enabled "github.com/aperturerobotics/util/enabled"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	esbuild "github.com/s4wave/spacewave/bldr/web/bundler/esbuild"
 	vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	enabled "github.com/aperturerobotics/util/enabled"
 )
 
 // InputFileKind is the kind of file this is.

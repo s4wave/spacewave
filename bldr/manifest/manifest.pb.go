@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block "github.com/s4wave/spacewave/db/block"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	block "github.com/s4wave/spacewave/db/block"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // ManifestMeta is basic metadata about a manifest.
@@ -362,12 +362,8 @@ func (m *Manifest) CloneVT() *Manifest {
 	r := new(Manifest)
 	r.Meta = m.Meta.CloneVT()
 	r.Entrypoint = m.Entrypoint
-	if rhs := m.DistFsRef; rhs != nil {
-		r.DistFsRef = rhs.CloneVT()
-	}
-	if rhs := m.AssetsFsRef; rhs != nil {
-		r.AssetsFsRef = rhs.CloneVT()
-	}
+	r.DistFsRef = m.DistFsRef.CloneVT()
+	r.AssetsFsRef = m.AssetsFsRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -384,9 +380,7 @@ func (m *ManifestRef) CloneVT() *ManifestRef {
 	}
 	r := new(ManifestRef)
 	r.Meta = m.Meta.CloneVT()
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
+	r.ManifestRef = m.ManifestRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -426,10 +420,8 @@ func (m *ManifestSnapshot) CloneVT() *ManifestSnapshot {
 		return (*ManifestSnapshot)(nil)
 	}
 	r := new(ManifestSnapshot)
+	r.ManifestRef = m.ManifestRef.CloneVT()
 	r.Manifest = m.Manifest.CloneVT()
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

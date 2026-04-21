@@ -10,10 +10,10 @@ import (
 	slices "slices"
 	strings "strings"
 
-	view "github.com/s4wave/spacewave/bldr/web/view"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	filter "github.com/aperturerobotics/util/filter"
+	view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
 // WebViewHandlersConfig is a configuration for web view handlers.

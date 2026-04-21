@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	controller "github.com/s4wave/spacewave/db/volume/controller"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	controller "github.com/s4wave/spacewave/db/volume/controller"
 )
 
 // Config configures a volume attached to a Storage.
@@ -63,9 +63,7 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.StorageId = m.StorageId
 	r.StorageVolumeId = m.StorageVolumeId
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

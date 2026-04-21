@@ -105,11 +105,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace web
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::esbuild::EsbuildBundleEntrypoint, _impl_._has_bits_),
@@ -144,7 +144,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::bundler::esbuild::_EsbuildBundleEntrypoint_default_instance_._instance,
     &::bldr::web::bundler::esbuild::_EsbuildOutputMeta_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nBgithub.com/s4wave/spacewave/bldr/web/b"
     "undler/esbuild/esbuild.proto\022\030bldr.web.b"
@@ -155,22 +155,22 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "css_bundle_path\030\003 \001(\t\022\027\n\017entrypoint_path"
     "\030\004 \001(\t\022\025\n\rentrypoint_id\030\005 \001(\tb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto = {
     false,
     false,
     317,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
     "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/esbuild.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto_once,
     nullptr,
     0,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
 };
 namespace bldr {
 namespace web {
@@ -276,7 +276,7 @@ constexpr auto EsbuildBundleEntrypoint::InternalGenerateClassData_() {
           false,
       },
       &EsbuildBundleEntrypoint::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
       nullptr,  // tracker
   };
 }
@@ -642,7 +642,7 @@ constexpr auto EsbuildOutputMeta::InternalGenerateClassData_() {
           false,
       },
       &EsbuildOutputMeta::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
       nullptr,  // tracker
   };
 }
@@ -983,6 +983,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

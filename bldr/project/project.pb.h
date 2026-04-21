@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/project/project.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -36,15 +36,15 @@
 #include "google/protobuf/map_field.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.h"
-#include "github.com/s4wave/spacewave/db/block/transform/transform.pb.h"
-#include "github.com/s4wave/spacewave/db/bucket/bucket.pb.h"
+#include "../../db/block/transform/transform.pb.h"
+#include "../../db/bucket/bucket.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto
 
 namespace google {
 namespace protobuf {
@@ -56,11 +56,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace project {
@@ -360,7 +360,7 @@ class StartConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull StartConfig_class_data_;
@@ -388,7 +388,7 @@ class RemoteConfig_HostConfigSetEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -623,7 +623,7 @@ class ManifestConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManifestConfig_class_data_;
@@ -651,7 +651,7 @@ class BuildConfig_ManifestOverridesEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -935,7 +935,7 @@ class RemoteConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoteConfig_class_data_;
@@ -963,7 +963,7 @@ class ProjectConfig_ManifestsEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -1244,7 +1244,7 @@ class BuildConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildConfig_class_data_;
@@ -1473,7 +1473,7 @@ class PublishStorageConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PublishStorageConfig_class_data_;
@@ -1501,7 +1501,7 @@ class ProjectConfig_RemotesEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -1540,7 +1540,7 @@ class ProjectConfig_BuildEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -1579,7 +1579,7 @@ class PublishConfig_ManifestStorageEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -1930,7 +1930,7 @@ class PublishConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PublishConfig_class_data_;
@@ -1958,7 +1958,7 @@ class ProjectConfig_PublishEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -2285,7 +2285,7 @@ class ProjectConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ProjectConfig_class_data_;
@@ -4389,4 +4389,4 @@ inline void PublishStorageConfig::set_allocated_timestamp(::google::protobuf::Ti
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fproject_2fproject_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_2epb_2eh

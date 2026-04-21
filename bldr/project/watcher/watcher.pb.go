@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	controller "github.com/s4wave/spacewave/bldr/project/controller"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	controller "github.com/s4wave/spacewave/bldr/project/controller"
 )
 
 // Config configures the project file watcher.

@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 )
 
 // WebPkgRef is a reference to a web package.

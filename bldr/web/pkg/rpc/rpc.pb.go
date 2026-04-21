@@ -10,10 +10,10 @@ import (
 	slices "slices"
 	strings "strings"
 
-	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	_ "github.com/aperturerobotics/starpc/rpcstream"
+	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
 // GetInfoRequest is a request to get the web pkg info.

@@ -12,6 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	filter "github.com/aperturerobotics/util/filter"
 	bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	esbuild "github.com/s4wave/spacewave/bldr/web/bundler/esbuild"
 	compiler "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler"
@@ -19,10 +23,6 @@ import (
 	compiler1 "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	view "github.com/s4wave/spacewave/bldr/web/view"
-	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	filter "github.com/aperturerobotics/util/filter"
 )
 
 // JsModuleKind specifies the kind of the JS module.

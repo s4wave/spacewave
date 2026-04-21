@@ -281,11 +281,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace plugin
 }  // namespace bldr
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::js::Config_HostConfigSetEntry_DoNotUse, _impl_._has_bits_),
@@ -427,24 +427,24 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::compiler::js::_BackendEntrypoint_default_instance_._instance,
     &::bldr::plugin::compiler::js::_FrontendEntrypoint_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nBgithub.com/s4wave/spacewave/bldr/plugi"
     "n/compiler/js/compiler.proto\022\027bldr.plugi"
     "n.compiler.js\032Tgithub.com/apertureroboti"
     "cs/controllerbus/controller/configset/pr"
-    "oto/configset.proto\032:github.com/aperture"
-    "robotics/bldr/web/bundler/bundler.proto\032"
+    "oto/configset.proto\032:github.com/s4wave/s"
+    "pacewave/bldr/web/bundler/bundler.proto\032"
     "Bgithub.com/s4wave/spacewave/bldr/web/bu"
     "ndler/esbuild/esbuild.proto\032Lgithub.com/"
-    "aperturerobotics/bldr/web/bundler/esbuil"
-    "d/compiler/compiler.proto\032<github.com/ap"
-    "erturerobotics/bldr/web/bundler/vite/vit"
-    "e.proto\032Igithub.com/aperturerobotics/bld"
+    "s4wave/spacewave/bldr/web/bundler/esbuil"
+    "d/compiler/compiler.proto\032<github.com/s4"
+    "wave/spacewave/bldr/web/bundler/vite/vit"
+    "e.proto\032Igithub.com/s4wave/spacewave/bld"
     "r/web/bundler/vite/compiler/compiler.pro"
     "to\0322github.com/s4wave/spacewave/bldr/web"
-    "/pkg/pkg.proto\0324github.com/aperturerobot"
-    "ics/bldr/web/view/view.proto\0324github.com"
+    "/pkg/pkg.proto\0324github.com/s4wave/spacew"
+    "ave/bldr/web/view/view.proto\0324github.com"
     "/aperturerobotics/util/filter/filter.pro"
     "to\"\206\010\n\006Config\0222\n\007modules\030\001 \003(\0132!.bldr.pl"
     "ugin.compiler.js.JsModule\022M\n\017esbuild_bun"
@@ -506,41 +506,41 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fpl
     "oto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps[9] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fbundler_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fcompiler_2fcompiler_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2fpkg_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fview_2fview_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps[9] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fconfigset_2fproto_2fconfigset_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2ffilter_2ffilter_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fbundler_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fcompiler_2fcompiler_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fesbuild_2fesbuild_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fcompiler_2fcompiler_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2fpkg_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fview_2fview_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto = {
     false,
     false,
     2964,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/compiler/js/compiler.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto_deps,
     9,
     9,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
 };
 namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace js {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL JsModuleKind_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t JsModuleKind_internal_data_[] = {
     196608u, 0u, };
@@ -583,7 +583,7 @@ constexpr auto Config_HostConfigSetEntry_DoNotUse::InternalGenerateClassData_() 
           false,
       },
       &Config_HostConfigSetEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -682,7 +682,7 @@ constexpr auto Config_BuildTypesEntry_DoNotUse::InternalGenerateClassData_() {
           false,
       },
       &Config_BuildTypesEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -781,7 +781,7 @@ constexpr auto Config_PlatformTypesEntry_DoNotUse::InternalGenerateClassData_() 
           false,
       },
       &Config_PlatformTypesEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1046,7 +1046,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1845,7 +1845,7 @@ constexpr auto PreBuildHookResult::InternalGenerateClassData_() {
           false,
       },
       &PreBuildHookResult::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2207,7 +2207,7 @@ constexpr auto InputManifestMeta::InternalGenerateClassData_() {
           false,
       },
       &InputManifestMeta::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2861,7 +2861,7 @@ constexpr auto JsModule::InternalGenerateClassData_() {
           false,
       },
       &JsModule::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3334,7 +3334,7 @@ constexpr auto BackendEntrypoint::InternalGenerateClassData_() {
           false,
       },
       &BackendEntrypoint::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3695,7 +3695,7 @@ constexpr auto FrontendEntrypoint::InternalGenerateClassData_() {
           false,
       },
       &FrontendEntrypoint::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3984,6 +3984,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fjs_2fcompiler_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

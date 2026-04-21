@@ -76,11 +76,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace pkg
 }  // namespace web
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x000, // bitmap
         0x081, // bitmap
@@ -99,11 +99,11 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::web::pkg::rpc::_GetInfoRequest_default_instance_._instance,
     &::web::pkg::rpc::_GetInfoResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n6github.com/s4wave/spacewave/bldr/web/p"
     "kg/rpc/rpc.proto\022\013web.pkg.rpc\0322github.co"
-    "m/aperturerobotics/bldr/web/pkg/pkg.prot"
+    "m/s4wave/spacewave/bldr/web/pkg/pkg.prot"
     "o\032<github.com/aperturerobotics/starpc/rp"
     "cstream/rpcstream.proto\"\020\n\016GetInfoReques"
     "t\"4\n\017GetInfoResponse\022!\n\004info\030\001 \001(\0132\023.web"
@@ -114,26 +114,26 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "eam.RpcStreamPacket(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2fpkg_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2fpkg_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto = {
     false,
     false,
     431,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
     "github.com/s4wave/spacewave/bldr/web/pkg/rpc/rpc.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto_deps,
     2,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
 };
 namespace web {
 namespace pkg {
@@ -195,7 +195,7 @@ constexpr auto GetInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -350,7 +350,7 @@ constexpr auto GetInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -535,6 +535,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fpkg_2frpc_2frpc_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

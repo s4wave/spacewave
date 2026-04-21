@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -37,7 +37,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto
 
 namespace google {
 namespace protobuf {
@@ -49,11 +49,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace web {
@@ -344,7 +344,7 @@ class WebPkgRef final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WebPkgRef_class_data_;
@@ -556,7 +556,7 @@ class ViteOutputMeta final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ViteOutputMeta_class_data_;
@@ -768,7 +768,7 @@ class ViteBuildRequestEntrypoint final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ViteBuildRequestEntrypoint_class_data_;
@@ -980,7 +980,7 @@ class ImportMapEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ImportMapEntry_class_data_;
@@ -1240,7 +1240,7 @@ class EntrypointOutput final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EntrypointOutput_class_data_;
@@ -1587,7 +1587,7 @@ class BuildWebPkgRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgRequest_class_data_;
@@ -1837,7 +1837,7 @@ class BuildWebPkgResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildWebPkgResponse_class_data_;
@@ -2130,7 +2130,7 @@ class BuildResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildResponse_class_data_;
@@ -2496,7 +2496,7 @@ class BuildRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildRequest_class_data_;
@@ -5200,4 +5200,4 @@ inline void ImportMapEntry::set_allocated_output_path(::std::string* PROTOBUF_NU
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_2epb_2eh

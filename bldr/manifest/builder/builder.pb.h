@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -33,13 +33,13 @@
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../manifest.pb.h"
-#include "github.com/s4wave/spacewave/db/bucket/bucket.pb.h"
+#include "../../../db/bucket/bucket.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto
 
 namespace google {
 namespace protobuf {
@@ -51,11 +51,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace manifest {
@@ -386,7 +386,7 @@ class InputManifest_StartupInput final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_StartupInput_class_data_;
@@ -605,7 +605,7 @@ class InputManifest_FileIdentity final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_FileIdentity_class_data_;
@@ -846,7 +846,7 @@ class InputManifest_File final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_File_class_data_;
@@ -1208,7 +1208,7 @@ class BuilderConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuilderConfig_class_data_;
@@ -1420,7 +1420,7 @@ class InputManifest_ManifestDep final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_ManifestDep_class_data_;
@@ -1697,7 +1697,7 @@ class InputManifest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InputManifest_class_data_;
@@ -1926,7 +1926,7 @@ class BuilderResult final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuilderResult_class_data_;
@@ -2157,7 +2157,7 @@ class BuildManifestArgs final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuildManifestArgs_class_data_;
@@ -4444,4 +4444,4 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::manifest
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_2epb_2eh

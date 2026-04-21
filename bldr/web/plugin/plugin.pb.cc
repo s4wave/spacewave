@@ -315,11 +315,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace web
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::HandleWebViewViaPluginRequest, _impl_._has_bits_),
@@ -411,14 +411,14 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::plugin::_HandleWebPkgsViaPluginAssetsRequest_default_instance_._instance,
     &::bldr::web::plugin::_HandleWebPkgsViaPluginAssetsResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n8github.com/s4wave/spacewave/bldr/web/p"
     "lugin/plugin.proto\022\017bldr.web.plugin\0326git"
     "hub.com/aperturerobotics/util/backoff/ba"
     "ckoff.proto\0324github.com/aperturerobotics"
-    "/util/filter/filter.proto\032\?github.com/ap"
-    "erturerobotics/bldr/web/view/handler/han"
+    "/util/filter/filter.proto\032\?github.com/s4"
+    "wave/spacewave/bldr/web/view/handler/han"
     "dler.proto\"Q\n\035HandleWebViewViaPluginRequ"
     "est\022\030\n\020handle_plugin_id\030\001 \001(\t\022\026\n\016web_vie"
     "w_id_re\030\002 \001(\t\"9\n\036HandleWebViewViaPluginR"
@@ -460,27 +460,27 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fwe
     "onse\"\0000\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fview_2fhandler_2fhandler_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[3] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2fbackoff_2fbackoff_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2ffilter_2ffilter_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fview_2fhandler_2fhandler_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = {
     false,
     false,
     1776,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps,
     3,
     10,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
 };
 namespace bldr {
 namespace web {
@@ -582,7 +582,7 @@ constexpr auto HandleWebViewViaPluginRequest::InternalGenerateClassData_() {
           false,
       },
       &HandleWebViewViaPluginRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -903,7 +903,7 @@ constexpr auto HandleWebViewViaPluginResponse::InternalGenerateClassData_() {
           false,
       },
       &HandleWebViewViaPluginResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1194,7 +1194,7 @@ constexpr auto HandleWebPkgViaPluginRequest::InternalGenerateClassData_() {
           false,
       },
       &HandleWebPkgViaPluginRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1586,7 +1586,7 @@ constexpr auto HandleWebPkgViaPluginResponse::InternalGenerateClassData_() {
           false,
       },
       &HandleWebPkgViaPluginResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1872,7 +1872,7 @@ constexpr auto HandleRpcViaPluginRequest::InternalGenerateClassData_() {
           false,
       },
       &HandleRpcViaPluginRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2264,7 +2264,7 @@ constexpr auto HandleRpcViaPluginResponse::InternalGenerateClassData_() {
           false,
       },
       &HandleRpcViaPluginResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2541,7 +2541,7 @@ constexpr auto HandleWebViewViaHandlersRequest::InternalGenerateClassData_() {
           false,
       },
       &HandleWebViewViaHandlersRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2813,7 +2813,7 @@ constexpr auto HandleWebViewViaHandlersResponse::InternalGenerateClassData_() {
           false,
       },
       &HandleWebViewViaHandlersResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3098,7 +3098,7 @@ constexpr auto HandleWebPkgsViaPluginAssetsRequest::InternalGenerateClassData_()
           false,
       },
       &HandleWebPkgsViaPluginAssetsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3456,7 +3456,7 @@ constexpr auto HandleWebPkgsViaPluginAssetsResponse::InternalGenerateClassData_(
           false,
       },
       &HandleWebPkgsViaPluginAssetsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3641,6 +3641,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

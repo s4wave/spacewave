@@ -262,11 +262,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace plugin
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x000, // bitmap
         0x081, // bitmap
@@ -331,7 +331,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::host::_GetPluginInfoRequest_default_instance_._instance,
     &::bldr::plugin::host::_GetPluginInfoResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n;github.com/s4wave/spacewave/bldr/sdk/p"
     "lugin/host/host.proto\022\020bldr.plugin.host\""
@@ -358,25 +358,25 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fsd
     "AtomResponse\022`\n\rGetPluginInfo\022&.bldr.plu"
     "gin.host.GetPluginInfoRequest\032\'.bldr.plu"
     "gin.host.GetPluginInfoResponseB2Z0github"
-    ".com/aperturerobotics/bldr/sdk/plugin/ho"
+    ".com/s4wave/spacewave/bldr/sdk/plugin/ho"
     "stb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
     false,
     false,
     1050,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,
     nullptr,
     0,
     10,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
 };
 namespace bldr {
 namespace plugin {
@@ -438,7 +438,7 @@ constexpr auto AccessAssetsFSRequest::InternalGenerateClassData_() {
           false,
       },
       &AccessAssetsFSRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -570,7 +570,7 @@ constexpr auto AccessAssetsFSResponse::InternalGenerateClassData_() {
           false,
       },
       &AccessAssetsFSResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -795,7 +795,7 @@ constexpr auto AccessDistFSRequest::InternalGenerateClassData_() {
           false,
       },
       &AccessDistFSRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -927,7 +927,7 @@ constexpr auto AccessDistFSResponse::InternalGenerateClassData_() {
           false,
       },
       &AccessDistFSResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1152,7 +1152,7 @@ constexpr auto AccessVolumeRequest::InternalGenerateClassData_() {
           false,
       },
       &AccessVolumeRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1284,7 +1284,7 @@ constexpr auto AccessVolumeResponse::InternalGenerateClassData_() {
           false,
       },
       &AccessVolumeResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1546,7 +1546,7 @@ constexpr auto AccessStateAtomRequest::InternalGenerateClassData_() {
           false,
       },
       &AccessStateAtomRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1807,7 +1807,7 @@ constexpr auto AccessStateAtomResponse::InternalGenerateClassData_() {
           false,
       },
       &AccessStateAtomResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2032,7 +2032,7 @@ constexpr auto GetPluginInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetPluginInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2181,7 +2181,7 @@ constexpr auto GetPluginInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetPluginInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2415,6 +2415,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

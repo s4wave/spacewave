@@ -13,11 +13,11 @@ import (
 	strings "strings"
 
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	transform "github.com/s4wave/spacewave/db/block/transform"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	transform "github.com/s4wave/spacewave/db/block/transform"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // ProjectConfig is a bldr project configuration.
@@ -822,12 +822,8 @@ func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
 		return (*PublishStorageConfig)(nil)
 	}
 	r := new(PublishStorageConfig)
-	if rhs := m.TransformConfFromRef; rhs != nil {
-		r.TransformConfFromRef = rhs.CloneVT()
-	}
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConfFromRef = m.TransformConfFromRef.CloneVT()
+	r.TransformConf = m.TransformConf.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}

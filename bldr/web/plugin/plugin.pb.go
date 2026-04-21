@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
 	_ "github.com/aperturerobotics/util/filter"
+	handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 )
 
 // HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.

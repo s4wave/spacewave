@@ -379,11 +379,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceAttachRequestDefaultTypeInternal _ResourceAttachRequest_default_instance_;
 }  // namespace resource
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x000, // bitmap
         0x004, // bitmap
@@ -497,7 +497,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::resource::_ResourceAttachDetach_default_instance_._instance,
     &::resource::_ResourceAttachDetachAck_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n8github.com/s4wave/spacewave/bldr/resou"
     "rce/resource.proto\022\010resource\032<github.com"
@@ -544,25 +544,25 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fre
     "eb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_deps[1] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_deps[1] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto = {
     false,
     false,
     1689,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
     "github.com/s4wave/spacewave/bldr/resource/resource.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_deps,
     1,
     14,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
 };
 namespace resource {
 // ===================================================================
@@ -622,7 +622,7 @@ constexpr auto ResourceClientRequest::InternalGenerateClassData_() {
           false,
       },
       &ResourceClientRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -840,7 +840,7 @@ constexpr auto ResourceClientResponse::InternalGenerateClassData_() {
           false,
       },
       &ResourceClientResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1153,7 +1153,7 @@ constexpr auto ResourceReleasedResponse::InternalGenerateClassData_() {
           false,
       },
       &ResourceReleasedResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1406,7 +1406,7 @@ constexpr auto ResourceClientInit::InternalGenerateClassData_() {
           false,
       },
       &ResourceClientInit::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1699,7 +1699,7 @@ constexpr auto ResourceRefReleaseRequest::InternalGenerateClassData_() {
           false,
       },
       &ResourceRefReleaseRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1964,7 +1964,7 @@ constexpr auto ResourceRefReleaseResponse::InternalGenerateClassData_() {
           false,
       },
       &ResourceRefReleaseResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2206,7 +2206,7 @@ constexpr auto ResourceAttachRequest::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2647,7 +2647,7 @@ constexpr auto ResourceAttachResponse::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2978,7 +2978,7 @@ constexpr auto ResourceAttachInit::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachInit::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3240,7 +3240,7 @@ constexpr auto ResourceAttachAck::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachAck::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3517,7 +3517,7 @@ constexpr auto ResourceAttachAdd::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachAdd::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3837,7 +3837,7 @@ constexpr auto ResourceAttachAddAck::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachAddAck::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4167,7 +4167,7 @@ constexpr auto ResourceAttachDetach::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachDetach::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4415,7 +4415,7 @@ constexpr auto ResourceAttachDetachAck::InternalGenerateClassData_() {
           false,
       },
       &ResourceAttachDetachAck::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4592,6 +4592,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

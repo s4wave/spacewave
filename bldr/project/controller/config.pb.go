@@ -11,12 +11,12 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	project "github.com/s4wave/spacewave/bldr/project"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	project "github.com/s4wave/spacewave/bldr/project"
 )
 
 // Config is the Project controller configuration.
@@ -238,12 +238,10 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.SourcePath = m.SourcePath
 	r.WorkingPath = m.WorkingPath
+	r.ProjectConfig = m.ProjectConfig.CloneVT()
 	r.Watch = m.Watch
 	r.Start = m.Start
 	r.FetchManifestRemote = m.FetchManifestRemote
-	if rhs := m.ProjectConfig; rhs != nil {
-		r.ProjectConfig = rhs.CloneVT()
-	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		r.BuildBackoff = rhs.CloneVT()
 	}
@@ -287,12 +285,8 @@ func (m *ManifestBuilderResult) CloneVT() *ManifestBuilderResult {
 		return (*ManifestBuilderResult)(nil)
 	}
 	r := new(ManifestBuilderResult)
-	if rhs := m.BuilderConfig; rhs != nil {
-		r.BuilderConfig = rhs.CloneVT()
-	}
-	if rhs := m.BuilderResult; rhs != nil {
-		r.BuilderResult = rhs.CloneVT()
-	}
+	r.BuilderConfig = m.BuilderConfig.CloneVT()
+	r.BuilderResult = m.BuilderResult.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -309,9 +303,7 @@ func (m *ManifestStartupBuildState) CloneVT() *ManifestStartupBuildState {
 	}
 	r := new(ManifestStartupBuildState)
 	r.ManifestBuilderConfig = m.ManifestBuilderConfig.CloneVT()
-	if rhs := m.BuilderResult; rhs != nil {
-		r.BuilderResult = rhs.CloneVT()
-	}
+	r.BuilderResult = m.BuilderResult.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

@@ -2,11 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/bldr/dist/dist.proto (package bldr.dist, syntax proto3)
 /* eslint-disable */
 
-import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { ObjectRef } from "../../db/bucket/bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
+import { createMessageType, ScalarType } from "@aptre/protobuf-es-lite";
 
-export const protobufPackage = 'bldr.dist'
+export const protobufPackage = "bldr.dist";
 
 /**
  * DistMeta is metadata embedded in a distribution entrypoint.
@@ -21,49 +21,45 @@ export interface DistMeta {
    *
    * @generated from field: string project_id = 1;
    */
-  projectId?: string
+  projectId?: string;
   /**
    * PlatformId is the destination platform ID.
    *
    * @generated from field: string platform_id = 2;
    */
-  platformId?: string
+  platformId?: string;
   /**
    * StartupPlugins is the list of plugins to run on startup.
    *
    * @generated from field: repeated string startup_plugins = 3;
    */
-  startupPlugins?: string[]
+  startupPlugins?: string[];
   /**
    * DistWorldRef is the root object ref to the static assets kvfile block-backed world.
    * Contains the transform configuration.
    *
    * @generated from field: bucket.ObjectRef dist_world_ref = 4;
    */
-  distWorldRef?: ObjectRef
+  distWorldRef?: ObjectRef;
   /**
    * DistObjectKey is the root object key to search for manifests in the dist world.
    *
    * @generated from field: string dist_object_key = 5;
    */
-  distObjectKey?: string
-}
+  distObjectKey?: string;
+
+};
 
 // DistMeta contains the message type declaration for DistMeta.
 export const DistMeta: MessageType<DistMeta> = createMessageType({
-  typeName: 'bldr.dist.DistMeta',
-  fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'startup_plugins',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 4, name: 'dist_world_ref', kind: 'message', T: () => ObjectRef },
-    { no: 5, name: 'dist_object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+    typeName: "bldr.dist.DistMeta",
+    fields: [
+        { no: 1, name: "project_id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "platform_id", kind: "scalar", T: ScalarType.STRING },
+        { no: 3, name: "startup_plugins", kind: "scalar", T: ScalarType.STRING, repeated: true },
+        { no: 4, name: "dist_world_ref", kind: "message", T: () => ObjectRef },
+        { no: 5, name: "dist_object_key", kind: "scalar", T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+});
+

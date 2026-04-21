@@ -12,10 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // StartupInputKind describes a reusable startup validation input type.
@@ -478,6 +478,7 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 		return (*BuilderConfig)(nil)
 	}
 	r := new(BuilderConfig)
+	r.ManifestMeta = m.ManifestMeta.CloneVT()
 	r.SourcePath = m.SourcePath
 	r.DistSourcePath = m.DistSourcePath
 	r.WorkingPath = m.WorkingPath
@@ -485,9 +486,6 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 	r.ObjectKey = m.ObjectKey
 	r.PeerId = m.PeerId
 	r.ProjectId = m.ProjectId
-	if rhs := m.ManifestMeta; rhs != nil {
-		r.ManifestMeta = rhs.CloneVT()
-	}
 	if rhs := m.LinkObjectKeys; rhs != nil {
 		r.LinkObjectKeys = slices.Clone(rhs)
 	}
@@ -509,13 +507,9 @@ func (m *BuilderResult) CloneVT() *BuilderResult {
 		return (*BuilderResult)(nil)
 	}
 	r := new(BuilderResult)
+	r.Manifest = m.Manifest.CloneVT()
+	r.ManifestRef = m.ManifestRef.CloneVT()
 	r.InputManifest = m.InputManifest.CloneVT()
-	if rhs := m.Manifest; rhs != nil {
-		r.Manifest = rhs.CloneVT()
-	}
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -573,9 +567,7 @@ func (m *InputManifest_ManifestDep) CloneVT() *InputManifest_ManifestDep {
 	}
 	r := new(InputManifest_ManifestDep)
 	r.ManifestId = m.ManifestId
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
+	r.ManifestRef = m.ManifestRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

@@ -259,11 +259,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace manifest
 }  // namespace bldr
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::ManifestMeta, _impl_._has_bits_),
@@ -360,62 +360,62 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::manifest::_FetchManifestValue_default_instance_._instance,
     &::bldr::manifest::_FetchManifestResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n8github.com/s4wave/spacewave/bldr/manif"
-    "est/manifest.proto\022\rbldr.manifest\0323githu"
-    "b.com/aperturerobotics/hydra/block/block"
-    ".proto\0325github.com/aperturerobotics/hydr"
-    "a/bucket/bucket.proto\032\037google/protobuf/t"
-    "imestamp.proto\"n\n\014ManifestMeta\022\023\n\013manife"
-    "st_id\030\001 \001(\t\022\022\n\nbuild_type\030\002 \001(\t\022\023\n\013platf"
-    "orm_id\030\003 \001(\t\022\013\n\003rev\030\004 \001(\004\022\023\n\013description"
-    "\030\005 \001(\t\"\227\001\n\010Manifest\022)\n\004meta\030\001 \001(\0132\033.bldr"
-    ".manifest.ManifestMeta\022\022\n\nentrypoint\030\002 \001"
-    "(\t\022$\n\013dist_fs_ref\030\003 \001(\0132\017.block.BlockRef"
-    "\022&\n\rassets_fs_ref\030\004 \001(\0132\017.block.BlockRef"
-    "\"a\n\013ManifestRef\022)\n\004meta\030\001 \001(\0132\033.bldr.man"
-    "ifest.ManifestMeta\022\'\n\014manifest_ref\030\002 \001(\013"
-    "2\021.bucket.ObjectRef\"r\n\016ManifestBundle\0221\n"
-    "\rmanifest_refs\030\001 \003(\0132\032.bldr.manifest.Man"
-    "ifestRef\022-\n\ttimestamp\030\002 \001(\0132\032.google.pro"
-    "tobuf.Timestamp\"f\n\020ManifestSnapshot\022\'\n\014m"
-    "anifest_ref\030\001 \001(\0132\021.bucket.ObjectRef\022)\n\010"
-    "manifest\030\002 \001(\0132\027.bldr.manifest.Manifest\""
-    "c\n\024FetchManifestRequest\022\023\n\013manifest_id\030\001"
-    " \001(\t\022\023\n\013build_types\030\002 \003(\t\022\024\n\014platform_id"
-    "s\030\003 \003(\t\022\013\n\003rev\030\004 \001(\004\"G\n\022FetchManifestVal"
-    "ue\0221\n\rmanifest_refs\030\001 \003(\0132\032.bldr.manifes"
-    "t.ManifestRef\"z\n\025FetchManifestResponse\022\020"
-    "\n\010value_id\030\001 \001(\r\0220\n\005value\030\002 \001(\0132!.bldr.m"
-    "anifest.FetchManifestValue\022\017\n\007removed\030\003 "
-    "\001(\010\022\014\n\004idle\030\004 \001(\r2o\n\rManifestFetch\022^\n\rFe"
-    "tchManifest\022#.bldr.manifest.FetchManifes"
-    "tRequest\032$.bldr.manifest.FetchManifestRe"
-    "sponse\"\0000\001b\006proto3"
+    "est/manifest.proto\022\rbldr.manifest\0320githu"
+    "b.com/s4wave/spacewave/db/block/block.pr"
+    "oto\0322github.com/s4wave/spacewave/db/buck"
+    "et/bucket.proto\032\037google/protobuf/timesta"
+    "mp.proto\"n\n\014ManifestMeta\022\023\n\013manifest_id\030"
+    "\001 \001(\t\022\022\n\nbuild_type\030\002 \001(\t\022\023\n\013platform_id"
+    "\030\003 \001(\t\022\013\n\003rev\030\004 \001(\004\022\023\n\013description\030\005 \001(\t"
+    "\"\227\001\n\010Manifest\022)\n\004meta\030\001 \001(\0132\033.bldr.manif"
+    "est.ManifestMeta\022\022\n\nentrypoint\030\002 \001(\t\022$\n\013"
+    "dist_fs_ref\030\003 \001(\0132\017.block.BlockRef\022&\n\ras"
+    "sets_fs_ref\030\004 \001(\0132\017.block.BlockRef\"a\n\013Ma"
+    "nifestRef\022)\n\004meta\030\001 \001(\0132\033.bldr.manifest."
+    "ManifestMeta\022\'\n\014manifest_ref\030\002 \001(\0132\021.buc"
+    "ket.ObjectRef\"r\n\016ManifestBundle\0221\n\rmanif"
+    "est_refs\030\001 \003(\0132\032.bldr.manifest.ManifestR"
+    "ef\022-\n\ttimestamp\030\002 \001(\0132\032.google.protobuf."
+    "Timestamp\"f\n\020ManifestSnapshot\022\'\n\014manifes"
+    "t_ref\030\001 \001(\0132\021.bucket.ObjectRef\022)\n\010manife"
+    "st\030\002 \001(\0132\027.bldr.manifest.Manifest\"c\n\024Fet"
+    "chManifestRequest\022\023\n\013manifest_id\030\001 \001(\t\022\023"
+    "\n\013build_types\030\002 \003(\t\022\024\n\014platform_ids\030\003 \003("
+    "\t\022\013\n\003rev\030\004 \001(\004\"G\n\022FetchManifestValue\0221\n\r"
+    "manifest_refs\030\001 \003(\0132\032.bldr.manifest.Mani"
+    "festRef\"z\n\025FetchManifestResponse\022\020\n\010valu"
+    "e_id\030\001 \001(\r\0220\n\005value\030\002 \001(\0132!.bldr.manifes"
+    "t.FetchManifestValue\022\017\n\007removed\030\003 \001(\010\022\014\n"
+    "\004idle\030\004 \001(\r2o\n\rManifestFetch\022^\n\rFetchMan"
+    "ifest\022#.bldr.manifest.FetchManifestReque"
+    "st\032$.bldr.manifest.FetchManifestResponse"
+    "\"\0000\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_deps[3] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto = {
     false,
     false,
-    1218,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+    1212,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/manifest.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto_deps,
     3,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
 };
 namespace bldr {
 namespace manifest {
@@ -524,7 +524,7 @@ constexpr auto ManifestMeta::InternalGenerateClassData_() {
           false,
       },
       &ManifestMeta::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -978,7 +978,7 @@ constexpr auto Manifest::InternalGenerateClassData_() {
           false,
       },
       &Manifest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1377,7 +1377,7 @@ constexpr auto ManifestRef::InternalGenerateClassData_() {
           false,
       },
       &ManifestRef::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1709,7 +1709,7 @@ constexpr auto ManifestBundle::InternalGenerateClassData_() {
           false,
       },
       &ManifestBundle::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2036,7 +2036,7 @@ constexpr auto ManifestSnapshot::InternalGenerateClassData_() {
           false,
       },
       &ManifestSnapshot::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2367,7 +2367,7 @@ constexpr auto FetchManifestRequest::InternalGenerateClassData_() {
           false,
       },
       &FetchManifestRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2758,7 +2758,7 @@ constexpr auto FetchManifestValue::InternalGenerateClassData_() {
           false,
       },
       &FetchManifestValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3046,7 +3046,7 @@ constexpr auto FetchManifestResponse::InternalGenerateClassData_() {
           false,
       },
       &FetchManifestResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3323,6 +3323,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fmanifest_2fmanifest_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

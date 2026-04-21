@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/resource/resource.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -38,7 +38,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto
 
 namespace google {
 namespace protobuf {
@@ -50,11 +50,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 }  // extern "C"
 namespace resource {
 class ResourceAttachAck;
@@ -310,7 +310,7 @@ class ResourceReleasedResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceReleasedResponse_class_data_;
@@ -444,7 +444,7 @@ class ResourceRefReleaseResponse final : public ::google::protobuf::internal::Ze
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceRefReleaseResponse_class_data_;
@@ -646,7 +646,7 @@ class ResourceRefReleaseRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceRefReleaseRequest_class_data_;
@@ -780,7 +780,7 @@ class ResourceClientRequest final : public ::google::protobuf::internal::ZeroFie
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceClientRequest_class_data_;
@@ -982,7 +982,7 @@ class ResourceClientInit final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceClientInit_class_data_;
@@ -1172,7 +1172,7 @@ class ResourceAttachInit final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachInit_class_data_;
@@ -1362,7 +1362,7 @@ class ResourceAttachDetachAck final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachDetachAck_class_data_;
@@ -1552,7 +1552,7 @@ class ResourceAttachDetach final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachDetach_class_data_;
@@ -1771,7 +1771,7 @@ class ResourceAttachAddAck final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachAddAck_class_data_;
@@ -1978,7 +1978,7 @@ class ResourceAttachAdd final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachAdd_class_data_;
@@ -2173,7 +2173,7 @@ class ResourceAttachAck final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachAck_class_data_;
@@ -2428,7 +2428,7 @@ class ResourceClientResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceClientResponse_class_data_;
@@ -2706,7 +2706,7 @@ class ResourceAttachResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachResponse_class_data_;
@@ -2984,7 +2984,7 @@ class ResourceAttachRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResourceAttachRequest_class_data_;
@@ -4459,4 +4459,4 @@ inline void ResourceAttachDetachAck::_internal_set_resource_id(::uint32_t value)
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fresource_2fresource_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_2epb_2eh

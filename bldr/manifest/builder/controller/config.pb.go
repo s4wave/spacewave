@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 )
 
 // Config is the manifest builder controller configuration.

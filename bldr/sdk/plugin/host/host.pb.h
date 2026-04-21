@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -37,7 +37,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto
 
 namespace google {
 namespace protobuf {
@@ -49,11 +49,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace plugin {
@@ -321,7 +321,7 @@ class GetPluginInfoResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetPluginInfoResponse_class_data_;
@@ -455,7 +455,7 @@ class GetPluginInfoRequest final : public ::google::protobuf::internal::ZeroFiel
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetPluginInfoRequest_class_data_;
@@ -645,7 +645,7 @@ class AccessVolumeResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessVolumeResponse_class_data_;
@@ -779,7 +779,7 @@ class AccessVolumeRequest final : public ::google::protobuf::internal::ZeroField
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessVolumeRequest_class_data_;
@@ -969,7 +969,7 @@ class AccessStateAtomResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessStateAtomResponse_class_data_;
@@ -1164,7 +1164,7 @@ class AccessStateAtomRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessStateAtomRequest_class_data_;
@@ -1354,7 +1354,7 @@ class AccessDistFSResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessDistFSResponse_class_data_;
@@ -1488,7 +1488,7 @@ class AccessDistFSRequest final : public ::google::protobuf::internal::ZeroField
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessDistFSRequest_class_data_;
@@ -1678,7 +1678,7 @@ class AccessAssetsFSResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessAssetsFSResponse_class_data_;
@@ -1812,7 +1812,7 @@ class AccessAssetsFSRequest final : public ::google::protobuf::internal::ZeroFie
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AccessAssetsFSRequest_class_data_;
@@ -2178,4 +2178,4 @@ inline void GetPluginInfoResponse::set_allocated_entrypoint(::std::string* PROTO
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_2epb_2eh

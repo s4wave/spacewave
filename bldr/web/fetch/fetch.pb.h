@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/web/fetch/fetch.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -40,7 +40,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto
 
 namespace google {
 namespace protobuf {
@@ -52,11 +52,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 }  // extern "C"
 namespace web {
 namespace fetch {
@@ -129,7 +129,7 @@ class ResponseInfo_HeadersEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -347,7 +347,7 @@ class ResponseData final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResponseData_class_data_;
@@ -375,7 +375,7 @@ class FetchRequestInfo_HeadersEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -593,7 +593,7 @@ class FetchRequestData final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchRequestData_class_data_;
@@ -861,7 +861,7 @@ class ResponseInfo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResponseInfo_class_data_;
@@ -1224,7 +1224,7 @@ class FetchRequestInfo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchRequestInfo_class_data_;
@@ -1459,7 +1459,7 @@ class FetchResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchResponse_class_data_;
@@ -1694,7 +1694,7 @@ class FetchRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchRequest_class_data_;
@@ -3157,4 +3157,4 @@ inline void ResponseData::_internal_set_done(bool value) {
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2ffetch_2ffetch_2eproto_2epb_2eh

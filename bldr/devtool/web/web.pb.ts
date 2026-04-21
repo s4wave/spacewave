@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/bldr/devtool/web/web.proto (package devtool.web, syntax proto3)
 /* eslint-disable */
 
-import { VolumeInfo } from '@go/github.com/s4wave/spacewave/db/volume/volume.pb.js'
+import { VolumeInfo } from '../../../db/volume/volume.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 

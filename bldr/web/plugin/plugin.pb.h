@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -39,7 +39,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto
 
 namespace google {
 namespace protobuf {
@@ -51,11 +51,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 }  // extern "C"
 namespace bldr {
 namespace web {
@@ -315,7 +315,7 @@ class HandleWebViewViaPluginResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebViewViaPluginResponse_class_data_;
@@ -527,7 +527,7 @@ class HandleWebViewViaPluginRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebViewViaPluginRequest_class_data_;
@@ -731,7 +731,7 @@ class HandleWebViewViaHandlersResponse final : public ::google::protobuf::Messag
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebViewViaHandlersResponse_class_data_;
@@ -935,7 +935,7 @@ class HandleWebPkgsViaPluginAssetsResponse final : public ::google::protobuf::Me
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebPkgsViaPluginAssetsResponse_class_data_;
@@ -1171,7 +1171,7 @@ class HandleWebPkgsViaPluginAssetsRequest final : public ::google::protobuf::Mes
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebPkgsViaPluginAssetsRequest_class_data_;
@@ -1375,7 +1375,7 @@ class HandleWebPkgViaPluginResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebPkgViaPluginResponse_class_data_;
@@ -1635,7 +1635,7 @@ class HandleWebPkgViaPluginRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebPkgViaPluginRequest_class_data_;
@@ -1839,7 +1839,7 @@ class HandleRpcViaPluginResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleRpcViaPluginResponse_class_data_;
@@ -2085,7 +2085,7 @@ class HandleRpcViaPluginRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleRpcViaPluginRequest_class_data_;
@@ -2280,7 +2280,7 @@ class HandleWebViewViaHandlersRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HandleWebViewViaHandlersRequest_class_data_;
@@ -3548,4 +3548,4 @@ inline HandleWebPkgsViaPluginAssetsResponse::BodyCase HandleWebPkgsViaPluginAsse
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_2epb_2eh
