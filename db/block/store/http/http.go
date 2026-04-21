@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/block"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
 )
 
 var (

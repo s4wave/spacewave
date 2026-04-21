@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )

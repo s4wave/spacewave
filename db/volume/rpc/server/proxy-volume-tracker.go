@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // proxyVolumeTracker tracks a ProxyVolume.

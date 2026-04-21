@@ -2,8 +2,8 @@ package block_transform
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewConfig constructs a new config with a set of underlying steps.

@@ -3,10 +3,10 @@ package block_gc_rpc_client
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_gc_rpc "github.com/s4wave/spacewave/db/block/gc/rpc"
-	"github.com/pkg/errors"
 )
 
 // RefGraph implements RefGraphOps backed by a RefGraph RPC service.

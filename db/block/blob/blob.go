@@ -7,9 +7,9 @@ import (
 	"math"
 	"slices"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
-	"github.com/pkg/errors"
 )
 
 // NewBlobBlock builds a new blob root block.

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/aperturerobotics/util/prng"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // buildMockRawBlob builds a new mock raw blob.

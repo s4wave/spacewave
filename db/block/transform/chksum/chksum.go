@@ -1,8 +1,8 @@
 package transform_chksum
 
 import (
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/pkg/errors"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // Chksum is the checksum step.

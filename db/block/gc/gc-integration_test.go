@@ -9,7 +9,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/block/gc/gcgraph"
@@ -17,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // testHarness sets up real OPFS-backed block store, GC graph, and WAL writer.

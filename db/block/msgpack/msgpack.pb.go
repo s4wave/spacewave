@@ -10,9 +10,9 @@ import (
 	slices "slices"
 	strings "strings"
 
-	blob "github.com/s4wave/spacewave/db/block/blob"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	blob "github.com/s4wave/spacewave/db/block/blob"
 )
 
 // MsgpackBlob is a block containing data packed with msgpack.

@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-git/go-billy/v6"
+	memfs "github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	unixfs_world_testbed "github.com/s4wave/spacewave/db/unixfs/world/testbed"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
-	"github.com/go-git/go-billy/v6"
-	memfs "github.com/go-git/go-billy/v6/memfs"
-	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

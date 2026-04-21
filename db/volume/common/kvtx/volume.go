@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -13,6 +12,7 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // StatsFn returns storage usage statistics for a volume.

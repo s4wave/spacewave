@@ -1,10 +1,10 @@
 package dex_solicit
 
 import (
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the identifier for the config type.

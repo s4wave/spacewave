@@ -1,9 +1,9 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/go-git/go-git/v6/plumbing/format/index"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // NewTreeEntry constructs a new tree entry from a git tree entry.

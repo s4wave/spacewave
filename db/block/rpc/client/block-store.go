@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // BlockStore implements a BlockStore backed by a BlockStore service.

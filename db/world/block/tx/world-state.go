@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // WorldState implements a WorldState which tracks applied operations as a TxBatch.

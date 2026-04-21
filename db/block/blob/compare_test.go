@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/aperturerobotics/util/prng"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

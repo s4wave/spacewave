@@ -3,9 +3,9 @@ package psecho
 import (
 	"time"
 
-	"github.com/s4wave/spacewave/net/pubsub"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/pubsub"
 )
 
 // publishWantList marshals and publishes the current wantlist snapshot.

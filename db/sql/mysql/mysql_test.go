@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	sqle "github.com/dolthub/go-mysql-server"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

@@ -11,8 +11,8 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	"github.com/aperturerobotics/util/csync"
+	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 )
 
 // Handle wraps unixfs.InodeReference to provide FUSE file/dir handle calls.

@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	b58 "github.com/mr-tron/base58/base58"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
@@ -19,7 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	volume_block "github.com/s4wave/spacewave/db/volume/block"
 	volume_test "github.com/s4wave/spacewave/db/volume/test"
-	b58 "github.com/mr-tron/base58/base58"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )

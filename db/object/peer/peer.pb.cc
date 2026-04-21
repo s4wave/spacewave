@@ -92,11 +92,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace peer
 }  // namespace object
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::object::peer::Config, _impl_._has_bits_),
@@ -125,37 +125,37 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::object::peer::_Config_default_instance_._instance,
     &::object::peer::_StoredValue_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n8github.com/s4wave/spacewave/db/obje"
-    "ct/peer/peer.proto\022\013object.peer\032Agithub."
-    "com/aperturerobotics/hydra/block/transfo"
-    "rm/transform.proto\"\177\n\006Config\022\027\n\017object_s"
-    "tore_id\030\001 \001(\t\022\021\n\tvolume_id\030\002 \001(\t\022\030\n\020obje"
-    "ct_store_key\030\003 \001(\t\022/\n\016transform_conf\030\004 \001"
-    "(\0132\027.block.transform.Config\"#\n\013StoredVal"
-    "ue\022\024\n\014priv_key_pem\030\001 \001(\tb\006proto3"
+    "\n5github.com/s4wave/spacewave/db/object/"
+    "peer/peer.proto\022\013object.peer\032>github.com"
+    "/s4wave/spacewave/db/block/transform/tra"
+    "nsform.proto\"\177\n\006Config\022\027\n\017object_store_i"
+    "d\030\001 \001(\t\022\021\n\tvolume_id\030\002 \001(\t\022\030\n\020object_sto"
+    "re_key\030\003 \001(\t\022/\n\016transform_conf\030\004 \001(\0132\027.b"
+    "lock.transform.Config\"#\n\013StoredValue\022\024\n\014"
+    "priv_key_pem\030\001 \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2ftransform_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2ftransform_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto = {
     false,
     false,
-    312,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto,
+    306,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto,
     "github.com/s4wave/spacewave/db/object/peer/peer.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto_deps,
     1,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto,
 };
 namespace object {
 namespace peer {
@@ -271,7 +271,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto,
       nullptr,  // tracker
   };
 }
@@ -659,7 +659,7 @@ constexpr auto StoredValue::InternalGenerateClassData_() {
           false,
       },
       &StoredValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto,
       nullptr,  // tracker
   };
 }
@@ -850,6 +850,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fobject_2fpeer_2fpeer_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fobject_2fpeer_2fpeer_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

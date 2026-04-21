@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_http "github.com/s4wave/spacewave/db/block/store/http"
 	block_store_http_server "github.com/s4wave/spacewave/db/block/store/http/server"
@@ -18,7 +18,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/testbed"
-	httplog "github.com/aperturerobotics/util/httplog"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 

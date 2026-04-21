@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/db/kvtx"
-	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/db/kvtx"
+	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 )
 
 // Tx is an ongoing transaction with a Store.

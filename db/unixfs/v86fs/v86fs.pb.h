@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -38,7 +38,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto
 
 namespace google {
 namespace protobuf {
@@ -50,11 +50,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 }  // extern "C"
 namespace unixfs {
 namespace v86fs {
@@ -450,7 +450,7 @@ class V86fsWriteRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsWriteRequest_class_data_;
@@ -652,7 +652,7 @@ class V86fsWriteReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsWriteReply_class_data_;
@@ -859,7 +859,7 @@ class V86fsUnlinkRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsUnlinkRequest_class_data_;
@@ -1049,7 +1049,7 @@ class V86fsUnlinkReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsUnlinkReply_class_data_;
@@ -1244,7 +1244,7 @@ class V86fsUmountNotify final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsUmountNotify_class_data_;
@@ -1468,7 +1468,7 @@ class V86fsSymlinkRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsSymlinkRequest_class_data_;
@@ -1682,7 +1682,7 @@ class V86fsSymlinkReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsSymlinkReply_class_data_;
@@ -1816,7 +1816,7 @@ class V86fsStatfsRequest final : public ::google::protobuf::internal::ZeroFields
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsStatfsRequest_class_data_;
@@ -2078,7 +2078,7 @@ class V86fsStatfsReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsStatfsReply_class_data_;
@@ -2304,7 +2304,7 @@ class V86fsSetattrRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsSetattrRequest_class_data_;
@@ -2494,7 +2494,7 @@ class V86fsSetattrReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsSetattrReply_class_data_;
@@ -2730,7 +2730,7 @@ class V86fsRenameRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsRenameRequest_class_data_;
@@ -2920,7 +2920,7 @@ class V86fsRenameReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsRenameReply_class_data_;
@@ -3110,7 +3110,7 @@ class V86fsReadlinkRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReadlinkRequest_class_data_;
@@ -3317,7 +3317,7 @@ class V86fsReadlinkReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReadlinkReply_class_data_;
@@ -3507,7 +3507,7 @@ class V86fsReaddirRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReaddirRequest_class_data_;
@@ -3721,7 +3721,7 @@ class V86fsReadRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReadRequest_class_data_;
@@ -3928,7 +3928,7 @@ class V86fsReadReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReadReply_class_data_;
@@ -4130,7 +4130,7 @@ class V86fsOpenRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsOpenRequest_class_data_;
@@ -4332,7 +4332,7 @@ class V86fsOpenReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsOpenReply_class_data_;
@@ -4527,7 +4527,7 @@ class V86fsMountRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMountRequest_class_data_;
@@ -4741,7 +4741,7 @@ class V86fsMountReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMountReply_class_data_;
@@ -4953,7 +4953,7 @@ class V86fsMountNotify final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMountNotify_class_data_;
@@ -5172,7 +5172,7 @@ class V86fsMkdirRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMkdirRequest_class_data_;
@@ -5386,7 +5386,7 @@ class V86fsMkdirReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMkdirReply_class_data_;
@@ -5593,7 +5593,7 @@ class V86fsLookupRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsLookupRequest_class_data_;
@@ -5819,7 +5819,7 @@ class V86fsLookupReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsLookupReply_class_data_;
@@ -6009,7 +6009,7 @@ class V86fsInvalidateDir final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsInvalidateDir_class_data_;
@@ -6223,7 +6223,7 @@ class V86fsInvalidate final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsInvalidate_class_data_;
@@ -6413,7 +6413,7 @@ class V86fsGetattrRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsGetattrRequest_class_data_;
@@ -6651,7 +6651,7 @@ class V86fsGetattrReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsGetattrReply_class_data_;
@@ -6841,7 +6841,7 @@ class V86fsFsyncRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsFsyncRequest_class_data_;
@@ -7031,7 +7031,7 @@ class V86fsFsyncReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsFsyncReply_class_data_;
@@ -7221,7 +7221,7 @@ class V86fsErrorReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsErrorReply_class_data_;
@@ -7440,7 +7440,7 @@ class V86fsDirEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsDirEntry_class_data_;
@@ -7659,7 +7659,7 @@ class V86fsCreateRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsCreateRequest_class_data_;
@@ -7873,7 +7873,7 @@ class V86fsCreateReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsCreateReply_class_data_;
@@ -8063,7 +8063,7 @@ class V86fsCloseRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsCloseRequest_class_data_;
@@ -8253,7 +8253,7 @@ class V86fsCloseReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsCloseReply_class_data_;
@@ -8462,7 +8462,7 @@ class V86fsReaddirReply final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsReaddirReply_class_data_;
@@ -9561,7 +9561,7 @@ class V86fsMessage final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull V86fsMessage_class_data_;
@@ -15883,4 +15883,4 @@ inline void V86fsErrorReply::_internal_set_status(::uint32_t value) {
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_2epb_2eh

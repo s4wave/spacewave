@@ -5,10 +5,10 @@ import (
 	"runtime/trace"
 	"sync"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/csync"
 	"github.com/sirupsen/logrus"
 )
 

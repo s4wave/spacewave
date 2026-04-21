@@ -7,10 +7,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_http "github.com/s4wave/spacewave/db/block/store/http"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // HTTPBlockServer is HTTP server serving a BlockStore.

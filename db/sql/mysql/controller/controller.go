@@ -5,6 +5,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -12,9 +15,6 @@ import (
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

@@ -1326,11 +1326,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace rpc
 }  // namespace unixfs
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::rpc::GetProxyCursorRequest, _impl_._has_bits_),
@@ -1796,204 +1796,204 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::rpc::_OpsRemoveRequest_default_instance_._instance,
     &::unixfs::rpc::_OpsRemoveResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n6github.com/s4wave/spacewave/db/unix"
-    "fs/rpc/rpc.proto\022\nunixfs.rpc\032;github.com"
-    "/aperturerobotics/hydra/unixfs/block/fst"
-    "ree.proto\032<github.com/aperturerobotics/h"
-    "ydra/unixfs/errors/errors.proto\032\037google/"
-    "protobuf/timestamp.proto\"K\n\025GetProxyCurs"
-    "orRequest\022\030\n\020cursor_handle_id\030\001 \001(\004\022\030\n\020c"
-    "lient_handle_id\030\002 \001(\004\"d\n\026GetProxyCursorR"
-    "esponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.e"
-    "rrors.UnixFSError\022\030\n\020cursor_handle_id\030\002 "
-    "\001(\004\"Z\n\016FSCursorChange\022\030\n\020cursor_handle_i"
-    "d\030\001 \001(\004\022\020\n\010released\030\002 \001(\010\022\016\n\006offset\030\003 \001("
-    "\004\022\014\n\004size\030\004 \001(\004\"I\n\016FSCursorDirent\022\014\n\004nam"
-    "e\030\001 \001(\t\022)\n\tnode_type\030\002 \001(\0162\026.unixfs.bloc"
-    "k.NodeType\"\027\n\025FSCursorClientRequest\"\263\001\n\026"
-    "FSCursorClientResponse\022(\n\004init\030\001 \001(\0132\030.u"
-    "nixfs.rpc.FSClientInitH\000\0223\n\rcursor_chang"
-    "e\030\002 \001(\0132\032.unixfs.rpc.FSCursorChangeH\000\0222\n"
-    "\014unixfs_error\030\003 \001(\0132\032.unixfs.errors.Unix"
-    "FSErrorH\000B\006\n\004body\"B\n\014FSClientInit\022\030\n\020cli"
-    "ent_handle_id\030\001 \001(\004\022\030\n\020cursor_handle_id\030"
-    "\002 \001(\004\"/\n\023GetCursorOpsRequest\022\030\n\020cursor_h"
-    "andle_id\030\001 \001(\004\"\230\001\n\024GetCursorOpsResponse\022"
-    "0\n\014unixfs_error\030\001 \001(\0132\032.unixfs.errors.Un"
-    "ixFSError\022\025\n\rops_handle_id\030\002 \001(\004\022\014\n\004name"
-    "\030\003 \001(\t\022)\n\tnode_type\030\004 \001(\0162\026.unixfs.block"
-    ".NodeType\"L\n\026ReleaseFSCursorRequest\022\030\n\020c"
-    "ursor_handle_id\030\001 \001(\004\022\030\n\020client_handle_i"
-    "d\030\002 \001(\004\"\031\n\027ReleaseFSCursorResponse\"1\n\030Op"
-    "sGetPermissionsRequest\022\025\n\rops_handle_id\030"
-    "\001 \001(\004\"`\n\031OpsGetPermissionsResponse\0220\n\014un"
-    "ixfs_error\030\001 \001(\0132\032.unixfs.errors.UnixFSE"
-    "rror\022\021\n\tfile_mode\030\002 \001(\r\"s\n\030OpsSetPermiss"
-    "ionsRequest\022\025\n\rops_handle_id\030\001 \001(\004\022\021\n\tfi"
-    "le_mode\030\002 \001(\r\022-\n\ttimestamp\030\003 \001(\0132\032.googl"
-    "e.protobuf.Timestamp\"M\n\031OpsSetPermission"
-    "sResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs"
-    ".errors.UnixFSError\"*\n\021OpsGetSizeRequest"
-    "\022\025\n\rops_handle_id\030\001 \001(\004\"T\n\022OpsGetSizeRes"
-    "ponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.err"
-    "ors.UnixFSError\022\014\n\004size\030\002 \001(\004\"2\n\031OpsGetM"
-    "odTimestampRequest\022\025\n\rops_handle_id\030\001 \001("
-    "\004\"\201\001\n\032OpsGetModTimestampResponse\0220\n\014unix"
-    "fs_error\030\001 \001(\0132\032.unixfs.errors.UnixFSErr"
-    "or\0221\n\rmod_timestamp\030\002 \001(\0132\032.google.proto"
-    "buf.Timestamp\"e\n\031OpsSetModTimestampReque"
-    "st\022\025\n\rops_handle_id\030\001 \001(\004\0221\n\rmod_timesta"
-    "mp\030\002 \001(\0132\032.google.protobuf.Timestamp\"N\n\032"
-    "OpsSetModTimestampResponse\0220\n\014unixfs_err"
-    "or\030\001 \001(\0132\032.unixfs.errors.UnixFSError\"G\n\020"
-    "OpsReadAtRequest\022\025\n\rops_handle_id\030\001 \001(\004\022"
-    "\016\n\006offset\030\002 \001(\003\022\014\n\004size\030\003 \001(\003\"S\n\021OpsRead"
-    "AtResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixf"
-    "s.errors.UnixFSError\022\014\n\004data\030\002 \001(\014\"6\n\035Op"
-    "sGetOptimalWriteSizeRequest\022\025\n\rops_handl"
-    "e_id\030\001 \001(\004\"n\n\036OpsGetOptimalWriteSizeResp"
-    "onse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.erro"
-    "rs.UnixFSError\022\032\n\022optimal_write_size\030\002 \001"
-    "(\003\"w\n\021OpsWriteAtRequest\022\025\n\rops_handle_id"
-    "\030\001 \001(\004\022\016\n\006offset\030\002 \001(\003\022\014\n\004data\030\003 \001(\014\022-\n\t"
-    "timestamp\030\004 \001(\0132\032.google.protobuf.Timest"
-    "amp\"F\n\022OpsWriteAtResponse\0220\n\014unixfs_erro"
-    "r\030\001 \001(\0132\032.unixfs.errors.UnixFSError\"i\n\022O"
-    "psTruncateRequest\022\025\n\rops_handle_id\030\001 \001(\004"
-    "\022\r\n\005nsize\030\002 \001(\004\022-\n\ttimestamp\030\003 \001(\0132\032.goo"
-    "gle.protobuf.Timestamp\"G\n\023OpsTruncateRes"
-    "ponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.err"
-    "ors.UnixFSError\"k\n\020OpsLookupRequest\022\030\n\020c"
-    "ursor_handle_id\030\001 \001(\004\022\025\n\rops_handle_id\030\002"
-    " \001(\004\022\030\n\020client_handle_id\030\003 \001(\004\022\014\n\004name\030\004"
-    " \001(\t\"_\n\021OpsLookupResponse\022\030\n\020cursor_hand"
-    "le_id\030\001 \001(\004\0220\n\014unixfs_error\030\002 \001(\0132\032.unix"
-    "fs.errors.UnixFSError\";\n\024OpsReaddirAllRe"
-    "quest\022\025\n\rops_handle_id\030\001 \001(\004\022\014\n\004skip\030\002 \001"
-    "(\004\"\221\001\n\025OpsReaddirAllResponse\0222\n\014unixfs_e"
-    "rror\030\001 \001(\0132\032.unixfs.errors.UnixFSErrorH\000"
-    "\022\016\n\004done\030\002 \001(\010H\000\022,\n\006dirent\030\003 \001(\0132\032.unixf"
-    "s.rpc.FSCursorDirentH\000B\006\n\004body\"\273\001\n\017OpsMk"
-    "nodRequest\022\025\n\rops_handle_id\030\001 \001(\004\022\023\n\013che"
-    "ck_exist\030\002 \001(\010\022\r\n\005names\030\003 \003(\t\022)\n\tnode_ty"
-    "pe\030\004 \001(\0162\026.unixfs.block.NodeType\022\023\n\013perm"
-    "issions\030\005 \001(\r\022-\n\ttimestamp\030\006 \001(\0132\032.googl"
-    "e.protobuf.Timestamp\"D\n\020OpsMknodResponse"
+    "\n3github.com/s4wave/spacewave/db/unixfs/"
+    "rpc/rpc.proto\022\nunixfs.rpc\0328github.com/s4"
+    "wave/spacewave/db/unixfs/block/fstree.pr"
+    "oto\0329github.com/s4wave/spacewave/db/unix"
+    "fs/errors/errors.proto\032\037google/protobuf/"
+    "timestamp.proto\"K\n\025GetProxyCursorRequest"
+    "\022\030\n\020cursor_handle_id\030\001 \001(\004\022\030\n\020client_han"
+    "dle_id\030\002 \001(\004\"d\n\026GetProxyCursorResponse\0220"
+    "\n\014unixfs_error\030\001 \001(\0132\032.unixfs.errors.Uni"
+    "xFSError\022\030\n\020cursor_handle_id\030\002 \001(\004\"Z\n\016FS"
+    "CursorChange\022\030\n\020cursor_handle_id\030\001 \001(\004\022\020"
+    "\n\010released\030\002 \001(\010\022\016\n\006offset\030\003 \001(\004\022\014\n\004size"
+    "\030\004 \001(\004\"I\n\016FSCursorDirent\022\014\n\004name\030\001 \001(\t\022)"
+    "\n\tnode_type\030\002 \001(\0162\026.unixfs.block.NodeTyp"
+    "e\"\027\n\025FSCursorClientRequest\"\263\001\n\026FSCursorC"
+    "lientResponse\022(\n\004init\030\001 \001(\0132\030.unixfs.rpc"
+    ".FSClientInitH\000\0223\n\rcursor_change\030\002 \001(\0132\032"
+    ".unixfs.rpc.FSCursorChangeH\000\0222\n\014unixfs_e"
+    "rror\030\003 \001(\0132\032.unixfs.errors.UnixFSErrorH\000"
+    "B\006\n\004body\"B\n\014FSClientInit\022\030\n\020client_handl"
+    "e_id\030\001 \001(\004\022\030\n\020cursor_handle_id\030\002 \001(\004\"/\n\023"
+    "GetCursorOpsRequest\022\030\n\020cursor_handle_id\030"
+    "\001 \001(\004\"\230\001\n\024GetCursorOpsResponse\0220\n\014unixfs"
+    "_error\030\001 \001(\0132\032.unixfs.errors.UnixFSError"
+    "\022\025\n\rops_handle_id\030\002 \001(\004\022\014\n\004name\030\003 \001(\t\022)\n"
+    "\tnode_type\030\004 \001(\0162\026.unixfs.block.NodeType"
+    "\"L\n\026ReleaseFSCursorRequest\022\030\n\020cursor_han"
+    "dle_id\030\001 \001(\004\022\030\n\020client_handle_id\030\002 \001(\004\"\031"
+    "\n\027ReleaseFSCursorResponse\"1\n\030OpsGetPermi"
+    "ssionsRequest\022\025\n\rops_handle_id\030\001 \001(\004\"`\n\031"
+    "OpsGetPermissionsResponse\0220\n\014unixfs_erro"
+    "r\030\001 \001(\0132\032.unixfs.errors.UnixFSError\022\021\n\tf"
+    "ile_mode\030\002 \001(\r\"s\n\030OpsSetPermissionsReque"
+    "st\022\025\n\rops_handle_id\030\001 \001(\004\022\021\n\tfile_mode\030\002"
+    " \001(\r\022-\n\ttimestamp\030\003 \001(\0132\032.google.protobu"
+    "f.Timestamp\"M\n\031OpsSetPermissionsResponse"
     "\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.errors.U"
-    "nixFSError\"\246\001\n\021OpsSymlinkRequest\022\025\n\rops_"
-    "handle_id\030\001 \001(\004\022\023\n\013check_exist\030\002 \001(\010\022\014\n\004"
-    "name\030\003 \001(\t\022(\n\007symlink\030\004 \001(\0132\027.unixfs.blo"
-    "ck.FSSymlink\022-\n\ttimestamp\030\005 \001(\0132\032.google"
-    ".protobuf.Timestamp\"F\n\022OpsSymlinkRespons"
+    "nixFSError\"*\n\021OpsGetSizeRequest\022\025\n\rops_h"
+    "andle_id\030\001 \001(\004\"T\n\022OpsGetSizeResponse\0220\n\014"
+    "unixfs_error\030\001 \001(\0132\032.unixfs.errors.UnixF"
+    "SError\022\014\n\004size\030\002 \001(\004\"2\n\031OpsGetModTimesta"
+    "mpRequest\022\025\n\rops_handle_id\030\001 \001(\004\"\201\001\n\032Ops"
+    "GetModTimestampResponse\0220\n\014unixfs_error\030"
+    "\001 \001(\0132\032.unixfs.errors.UnixFSError\0221\n\rmod"
+    "_timestamp\030\002 \001(\0132\032.google.protobuf.Times"
+    "tamp\"e\n\031OpsSetModTimestampRequest\022\025\n\rops"
+    "_handle_id\030\001 \001(\004\0221\n\rmod_timestamp\030\002 \001(\0132"
+    "\032.google.protobuf.Timestamp\"N\n\032OpsSetMod"
+    "TimestampResponse\0220\n\014unixfs_error\030\001 \001(\0132"
+    "\032.unixfs.errors.UnixFSError\"G\n\020OpsReadAt"
+    "Request\022\025\n\rops_handle_id\030\001 \001(\004\022\016\n\006offset"
+    "\030\002 \001(\003\022\014\n\004size\030\003 \001(\003\"S\n\021OpsReadAtRespons"
     "e\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.errors."
-    "UnixFSError\"9\n\022OpsReadlinkRequest\022\025\n\rops"
-    "_handle_id\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\"q\n\023OpsRea"
-    "dlinkResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.un"
-    "ixfs.errors.UnixFSError\022(\n\007symlink\030\002 \001(\013"
-    "2\027.unixfs.block.FSSymlink\"\217\001\n\020OpsCopyToR"
-    "equest\022\025\n\rops_handle_id\030\001 \001(\004\022 \n\030target_"
-    "dir_ops_handle_id\030\002 \001(\004\022\023\n\013target_name\030\003"
-    " \001(\t\022-\n\ttimestamp\030\004 \001(\0132\032.google.protobu"
-    "f.Timestamp\"S\n\021OpsCopyToResponse\0220\n\014unix"
+    "UnixFSError\022\014\n\004data\030\002 \001(\014\"6\n\035OpsGetOptim"
+    "alWriteSizeRequest\022\025\n\rops_handle_id\030\001 \001("
+    "\004\"n\n\036OpsGetOptimalWriteSizeResponse\0220\n\014u"
+    "nixfs_error\030\001 \001(\0132\032.unixfs.errors.UnixFS"
+    "Error\022\032\n\022optimal_write_size\030\002 \001(\003\"w\n\021Ops"
+    "WriteAtRequest\022\025\n\rops_handle_id\030\001 \001(\004\022\016\n"
+    "\006offset\030\002 \001(\003\022\014\n\004data\030\003 \001(\014\022-\n\ttimestamp"
+    "\030\004 \001(\0132\032.google.protobuf.Timestamp\"F\n\022Op"
+    "sWriteAtResponse\0220\n\014unixfs_error\030\001 \001(\0132\032"
+    ".unixfs.errors.UnixFSError\"i\n\022OpsTruncat"
+    "eRequest\022\025\n\rops_handle_id\030\001 \001(\004\022\r\n\005nsize"
+    "\030\002 \001(\004\022-\n\ttimestamp\030\003 \001(\0132\032.google.proto"
+    "buf.Timestamp\"G\n\023OpsTruncateResponse\0220\n\014"
+    "unixfs_error\030\001 \001(\0132\032.unixfs.errors.UnixF"
+    "SError\"k\n\020OpsLookupRequest\022\030\n\020cursor_han"
+    "dle_id\030\001 \001(\004\022\025\n\rops_handle_id\030\002 \001(\004\022\030\n\020c"
+    "lient_handle_id\030\003 \001(\004\022\014\n\004name\030\004 \001(\t\"_\n\021O"
+    "psLookupResponse\022\030\n\020cursor_handle_id\030\001 \001"
+    "(\004\0220\n\014unixfs_error\030\002 \001(\0132\032.unixfs.errors"
+    ".UnixFSError\";\n\024OpsReaddirAllRequest\022\025\n\r"
+    "ops_handle_id\030\001 \001(\004\022\014\n\004skip\030\002 \001(\004\"\221\001\n\025Op"
+    "sReaddirAllResponse\0222\n\014unixfs_error\030\001 \001("
+    "\0132\032.unixfs.errors.UnixFSErrorH\000\022\016\n\004done\030"
+    "\002 \001(\010H\000\022,\n\006dirent\030\003 \001(\0132\032.unixfs.rpc.FSC"
+    "ursorDirentH\000B\006\n\004body\"\273\001\n\017OpsMknodReques"
+    "t\022\025\n\rops_handle_id\030\001 \001(\004\022\023\n\013check_exist\030"
+    "\002 \001(\010\022\r\n\005names\030\003 \003(\t\022)\n\tnode_type\030\004 \001(\0162"
+    "\026.unixfs.block.NodeType\022\023\n\013permissions\030\005"
+    " \001(\r\022-\n\ttimestamp\030\006 \001(\0132\032.google.protobu"
+    "f.Timestamp\"D\n\020OpsMknodResponse\0220\n\014unixf"
+    "s_error\030\001 \001(\0132\032.unixfs.errors.UnixFSErro"
+    "r\"\246\001\n\021OpsSymlinkRequest\022\025\n\rops_handle_id"
+    "\030\001 \001(\004\022\023\n\013check_exist\030\002 \001(\010\022\014\n\004name\030\003 \001("
+    "\t\022(\n\007symlink\030\004 \001(\0132\027.unixfs.block.FSSyml"
+    "ink\022-\n\ttimestamp\030\005 \001(\0132\032.google.protobuf"
+    ".Timestamp\"F\n\022OpsSymlinkResponse\0220\n\014unix"
     "fs_error\030\001 \001(\0132\032.unixfs.errors.UnixFSErr"
-    "or\022\014\n\004done\030\002 \001(\010\"\212\001\n\022OpsCopyFromRequest\022"
-    "\025\n\rops_handle_id\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\022 \n\030"
-    "src_cursor_ops_handle_id\030\003 \001(\004\022-\n\ttimest"
-    "amp\030\004 \001(\0132\032.google.protobuf.Timestamp\"U\n"
-    "\023OpsCopyFromResponse\0220\n\014unixfs_error\030\001 \001"
-    "(\0132\032.unixfs.errors.UnixFSError\022\014\n\004done\030\002"
-    " \001(\010\"\217\001\n\020OpsMoveToRequest\022\025\n\rops_handle_"
-    "id\030\001 \001(\004\022 \n\030target_dir_ops_handle_id\030\002 \001"
-    "(\004\022\023\n\013target_name\030\003 \001(\t\022-\n\ttimestamp\030\004 \001"
-    "(\0132\032.google.protobuf.Timestamp\"S\n\021OpsMov"
-    "eToResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unix"
-    "fs.errors.UnixFSError\022\014\n\004done\030\002 \001(\010\"\203\001\n\022"
-    "OpsMoveFromRequest\022\025\n\rops_handle_id\030\001 \001("
-    "\004\022\014\n\004name\030\002 \001(\t\022\031\n\021src_ops_handle_id\030\003 \001"
-    "(\004\022-\n\ttimestamp\030\004 \001(\0132\032.google.protobuf."
-    "Timestamp\"U\n\023OpsMoveFromResponse\0220\n\014unix"
-    "fs_error\030\001 \001(\0132\032.unixfs.errors.UnixFSErr"
-    "or\022\014\n\004done\030\002 \001(\010\"g\n\020OpsRemoveRequest\022\025\n\r"
-    "ops_handle_id\030\001 \001(\004\022\r\n\005names\030\002 \003(\t\022-\n\tti"
-    "mestamp\030\003 \001(\0132\032.google.protobuf.Timestam"
-    "p\"E\n\021OpsRemoveResponse\0220\n\014unixfs_error\030\001"
-    " \001(\0132\032.unixfs.errors.UnixFSError2\331\017\n\017FSC"
-    "ursorService\022[\n\016FSCursorClient\022!.unixfs."
-    "rpc.FSCursorClientRequest\032\".unixfs.rpc.F"
-    "SCursorClientResponse\"\0000\001\022Y\n\016GetProxyCur"
-    "sor\022!.unixfs.rpc.GetProxyCursorRequest\032\""
-    ".unixfs.rpc.GetProxyCursorResponse\"\000\022S\n\014"
-    "GetCursorOps\022\037.unixfs.rpc.GetCursorOpsRe"
-    "quest\032 .unixfs.rpc.GetCursorOpsResponse\""
-    "\000\022\\\n\017ReleaseFSCursor\022\".unixfs.rpc.Releas"
-    "eFSCursorRequest\032#.unixfs.rpc.ReleaseFSC"
-    "ursorResponse\"\000\022b\n\021OpsGetPermissions\022$.u"
-    "nixfs.rpc.OpsGetPermissionsRequest\032%.uni"
-    "xfs.rpc.OpsGetPermissionsResponse\"\000\022b\n\021O"
-    "psSetPermissions\022$.unixfs.rpc.OpsSetPerm"
-    "issionsRequest\032%.unixfs.rpc.OpsSetPermis"
-    "sionsResponse\"\000\022M\n\nOpsGetSize\022\035.unixfs.r"
-    "pc.OpsGetSizeRequest\032\036.unixfs.rpc.OpsGet"
-    "SizeResponse\"\000\022e\n\022OpsGetModTimestamp\022%.u"
-    "nixfs.rpc.OpsGetModTimestampRequest\032&.un"
-    "ixfs.rpc.OpsGetModTimestampResponse\"\000\022e\n"
-    "\022OpsSetModTimestamp\022%.unixfs.rpc.OpsSetM"
-    "odTimestampRequest\032&.unixfs.rpc.OpsSetMo"
-    "dTimestampResponse\"\000\022J\n\tOpsReadAt\022\034.unix"
-    "fs.rpc.OpsReadAtRequest\032\035.unixfs.rpc.Ops"
-    "ReadAtResponse\"\000\022q\n\026OpsGetOptimalWriteSi"
-    "ze\022).unixfs.rpc.OpsGetOptimalWriteSizeRe"
-    "quest\032*.unixfs.rpc.OpsGetOptimalWriteSiz"
-    "eResponse\"\000\022M\n\nOpsWriteAt\022\035.unixfs.rpc.O"
-    "psWriteAtRequest\032\036.unixfs.rpc.OpsWriteAt"
-    "Response\"\000\022P\n\013OpsTruncate\022\036.unixfs.rpc.O"
-    "psTruncateRequest\032\037.unixfs.rpc.OpsTrunca"
-    "teResponse\"\000\022J\n\tOpsLookup\022\034.unixfs.rpc.O"
-    "psLookupRequest\032\035.unixfs.rpc.OpsLookupRe"
-    "sponse\"\000\022X\n\rOpsReaddirAll\022 .unixfs.rpc.O"
-    "psReaddirAllRequest\032!.unixfs.rpc.OpsRead"
-    "dirAllResponse\"\0000\001\022G\n\010OpsMknod\022\033.unixfs."
-    "rpc.OpsMknodRequest\032\034.unixfs.rpc.OpsMkno"
-    "dResponse\"\000\022M\n\nOpsSymlink\022\035.unixfs.rpc.O"
-    "psSymlinkRequest\032\036.unixfs.rpc.OpsSymlink"
-    "Response\"\000\022P\n\013OpsReadlink\022\036.unixfs.rpc.O"
-    "psReadlinkRequest\032\037.unixfs.rpc.OpsReadli"
-    "nkResponse\"\000\022J\n\tOpsCopyTo\022\034.unixfs.rpc.O"
-    "psCopyToRequest\032\035.unixfs.rpc.OpsCopyToRe"
-    "sponse\"\000\022P\n\013OpsCopyFrom\022\036.unixfs.rpc.Ops"
-    "CopyFromRequest\032\037.unixfs.rpc.OpsCopyFrom"
-    "Response\"\000\022J\n\tOpsMoveTo\022\034.unixfs.rpc.Ops"
-    "MoveToRequest\032\035.unixfs.rpc.OpsMoveToResp"
-    "onse\"\000\022P\n\013OpsMoveFrom\022\036.unixfs.rpc.OpsMo"
-    "veFromRequest\032\037.unixfs.rpc.OpsMoveFromRe"
-    "sponse\"\000\022J\n\tOpsRemove\022\034.unixfs.rpc.OpsRe"
-    "moveRequest\032\035.unixfs.rpc.OpsRemoveRespon"
-    "se\"\000b\006proto3"
+    "or\"9\n\022OpsReadlinkRequest\022\025\n\rops_handle_i"
+    "d\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\"q\n\023OpsReadlinkResp"
+    "onse\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.erro"
+    "rs.UnixFSError\022(\n\007symlink\030\002 \001(\0132\027.unixfs"
+    ".block.FSSymlink\"\217\001\n\020OpsCopyToRequest\022\025\n"
+    "\rops_handle_id\030\001 \001(\004\022 \n\030target_dir_ops_h"
+    "andle_id\030\002 \001(\004\022\023\n\013target_name\030\003 \001(\t\022-\n\tt"
+    "imestamp\030\004 \001(\0132\032.google.protobuf.Timesta"
+    "mp\"S\n\021OpsCopyToResponse\0220\n\014unixfs_error\030"
+    "\001 \001(\0132\032.unixfs.errors.UnixFSError\022\014\n\004don"
+    "e\030\002 \001(\010\"\212\001\n\022OpsCopyFromRequest\022\025\n\rops_ha"
+    "ndle_id\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\022 \n\030src_curso"
+    "r_ops_handle_id\030\003 \001(\004\022-\n\ttimestamp\030\004 \001(\013"
+    "2\032.google.protobuf.Timestamp\"U\n\023OpsCopyF"
+    "romResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.unix"
+    "fs.errors.UnixFSError\022\014\n\004done\030\002 \001(\010\"\217\001\n\020"
+    "OpsMoveToRequest\022\025\n\rops_handle_id\030\001 \001(\004\022"
+    " \n\030target_dir_ops_handle_id\030\002 \001(\004\022\023\n\013tar"
+    "get_name\030\003 \001(\t\022-\n\ttimestamp\030\004 \001(\0132\032.goog"
+    "le.protobuf.Timestamp\"S\n\021OpsMoveToRespon"
+    "se\0220\n\014unixfs_error\030\001 \001(\0132\032.unixfs.errors"
+    ".UnixFSError\022\014\n\004done\030\002 \001(\010\"\203\001\n\022OpsMoveFr"
+    "omRequest\022\025\n\rops_handle_id\030\001 \001(\004\022\014\n\004name"
+    "\030\002 \001(\t\022\031\n\021src_ops_handle_id\030\003 \001(\004\022-\n\ttim"
+    "estamp\030\004 \001(\0132\032.google.protobuf.Timestamp"
+    "\"U\n\023OpsMoveFromResponse\0220\n\014unixfs_error\030"
+    "\001 \001(\0132\032.unixfs.errors.UnixFSError\022\014\n\004don"
+    "e\030\002 \001(\010\"g\n\020OpsRemoveRequest\022\025\n\rops_handl"
+    "e_id\030\001 \001(\004\022\r\n\005names\030\002 \003(\t\022-\n\ttimestamp\030\003"
+    " \001(\0132\032.google.protobuf.Timestamp\"E\n\021OpsR"
+    "emoveResponse\0220\n\014unixfs_error\030\001 \001(\0132\032.un"
+    "ixfs.errors.UnixFSError2\331\017\n\017FSCursorServ"
+    "ice\022[\n\016FSCursorClient\022!.unixfs.rpc.FSCur"
+    "sorClientRequest\032\".unixfs.rpc.FSCursorCl"
+    "ientResponse\"\0000\001\022Y\n\016GetProxyCursor\022!.uni"
+    "xfs.rpc.GetProxyCursorRequest\032\".unixfs.r"
+    "pc.GetProxyCursorResponse\"\000\022S\n\014GetCursor"
+    "Ops\022\037.unixfs.rpc.GetCursorOpsRequest\032 .u"
+    "nixfs.rpc.GetCursorOpsResponse\"\000\022\\\n\017Rele"
+    "aseFSCursor\022\".unixfs.rpc.ReleaseFSCursor"
+    "Request\032#.unixfs.rpc.ReleaseFSCursorResp"
+    "onse\"\000\022b\n\021OpsGetPermissions\022$.unixfs.rpc"
+    ".OpsGetPermissionsRequest\032%.unixfs.rpc.O"
+    "psGetPermissionsResponse\"\000\022b\n\021OpsSetPerm"
+    "issions\022$.unixfs.rpc.OpsSetPermissionsRe"
+    "quest\032%.unixfs.rpc.OpsSetPermissionsResp"
+    "onse\"\000\022M\n\nOpsGetSize\022\035.unixfs.rpc.OpsGet"
+    "SizeRequest\032\036.unixfs.rpc.OpsGetSizeRespo"
+    "nse\"\000\022e\n\022OpsGetModTimestamp\022%.unixfs.rpc"
+    ".OpsGetModTimestampRequest\032&.unixfs.rpc."
+    "OpsGetModTimestampResponse\"\000\022e\n\022OpsSetMo"
+    "dTimestamp\022%.unixfs.rpc.OpsSetModTimesta"
+    "mpRequest\032&.unixfs.rpc.OpsSetModTimestam"
+    "pResponse\"\000\022J\n\tOpsReadAt\022\034.unixfs.rpc.Op"
+    "sReadAtRequest\032\035.unixfs.rpc.OpsReadAtRes"
+    "ponse\"\000\022q\n\026OpsGetOptimalWriteSize\022).unix"
+    "fs.rpc.OpsGetOptimalWriteSizeRequest\032*.u"
+    "nixfs.rpc.OpsGetOptimalWriteSizeResponse"
+    "\"\000\022M\n\nOpsWriteAt\022\035.unixfs.rpc.OpsWriteAt"
+    "Request\032\036.unixfs.rpc.OpsWriteAtResponse\""
+    "\000\022P\n\013OpsTruncate\022\036.unixfs.rpc.OpsTruncat"
+    "eRequest\032\037.unixfs.rpc.OpsTruncateRespons"
+    "e\"\000\022J\n\tOpsLookup\022\034.unixfs.rpc.OpsLookupR"
+    "equest\032\035.unixfs.rpc.OpsLookupResponse\"\000\022"
+    "X\n\rOpsReaddirAll\022 .unixfs.rpc.OpsReaddir"
+    "AllRequest\032!.unixfs.rpc.OpsReaddirAllRes"
+    "ponse\"\0000\001\022G\n\010OpsMknod\022\033.unixfs.rpc.OpsMk"
+    "nodRequest\032\034.unixfs.rpc.OpsMknodResponse"
+    "\"\000\022M\n\nOpsSymlink\022\035.unixfs.rpc.OpsSymlink"
+    "Request\032\036.unixfs.rpc.OpsSymlinkResponse\""
+    "\000\022P\n\013OpsReadlink\022\036.unixfs.rpc.OpsReadlin"
+    "kRequest\032\037.unixfs.rpc.OpsReadlinkRespons"
+    "e\"\000\022J\n\tOpsCopyTo\022\034.unixfs.rpc.OpsCopyToR"
+    "equest\032\035.unixfs.rpc.OpsCopyToResponse\"\000\022"
+    "P\n\013OpsCopyFrom\022\036.unixfs.rpc.OpsCopyFromR"
+    "equest\032\037.unixfs.rpc.OpsCopyFromResponse\""
+    "\000\022J\n\tOpsMoveTo\022\034.unixfs.rpc.OpsMoveToReq"
+    "uest\032\035.unixfs.rpc.OpsMoveToResponse\"\000\022P\n"
+    "\013OpsMoveFrom\022\036.unixfs.rpc.OpsMoveFromReq"
+    "uest\032\037.unixfs.rpc.OpsMoveFromResponse\"\000\022"
+    "J\n\tOpsRemove\022\034.unixfs.rpc.OpsRemoveReque"
+    "st\032\035.unixfs.rpc.OpsRemoveResponse\"\000b\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto_deps[3] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto = {
     false,
     false,
-    6892,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+    6883,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
     "github.com/s4wave/spacewave/db/unixfs/rpc/rpc.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto_deps,
     3,
     49,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
 };
 namespace unixfs {
 namespace rpc {
@@ -2082,7 +2082,7 @@ constexpr auto GetProxyCursorRequest::InternalGenerateClassData_() {
           false,
       },
       &GetProxyCursorRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2399,7 +2399,7 @@ constexpr auto GetProxyCursorResponse::InternalGenerateClassData_() {
           false,
       },
       &GetProxyCursorResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2694,7 +2694,7 @@ constexpr auto FSCursorChange::InternalGenerateClassData_() {
           false,
       },
       &FSCursorChange::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3051,7 +3051,7 @@ constexpr auto FSCursorDirent::InternalGenerateClassData_() {
           false,
       },
       &FSCursorDirent::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3321,7 +3321,7 @@ constexpr auto FSCursorClientRequest::InternalGenerateClassData_() {
           false,
       },
       &FSCursorClientRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3567,7 +3567,7 @@ constexpr auto FSCursorClientResponse::InternalGenerateClassData_() {
           false,
       },
       &FSCursorClientResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3883,7 +3883,7 @@ constexpr auto FSClientInit::InternalGenerateClassData_() {
           false,
       },
       &FSClientInit::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4171,7 +4171,7 @@ constexpr auto GetCursorOpsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetCursorOpsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4457,7 +4457,7 @@ constexpr auto GetCursorOpsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetCursorOpsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4826,7 +4826,7 @@ constexpr auto ReleaseFSCursorRequest::InternalGenerateClassData_() {
           false,
       },
       &ReleaseFSCursorRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5091,7 +5091,7 @@ constexpr auto ReleaseFSCursorResponse::InternalGenerateClassData_() {
           false,
       },
       &ReleaseFSCursorResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5223,7 +5223,7 @@ constexpr auto OpsGetPermissionsRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsGetPermissionsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5500,7 +5500,7 @@ constexpr auto OpsGetPermissionsResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsGetPermissionsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5825,7 +5825,7 @@ constexpr auto OpsSetPermissionsRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsSetPermissionsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6170,7 +6170,7 @@ constexpr auto OpsSetPermissionsResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsSetPermissionsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6424,7 +6424,7 @@ constexpr auto OpsGetSizeRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsGetSizeRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6701,7 +6701,7 @@ constexpr auto OpsGetSizeResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsGetSizeResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6991,7 +6991,7 @@ constexpr auto OpsGetModTimestampRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsGetModTimestampRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7277,7 +7277,7 @@ constexpr auto OpsGetModTimestampResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsGetModTimestampResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7601,7 +7601,7 @@ constexpr auto OpsSetModTimestampRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsSetModTimestampRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7914,7 +7914,7 @@ constexpr auto OpsSetModTimestampResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsSetModTimestampResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8173,7 +8173,7 @@ constexpr auto OpsReadAtRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsReadAtRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8515,7 +8515,7 @@ constexpr auto OpsReadAtResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsReadAtResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8810,7 +8810,7 @@ constexpr auto OpsGetOptimalWriteSizeRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsGetOptimalWriteSizeRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9087,7 +9087,7 @@ constexpr auto OpsGetOptimalWriteSizeResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsGetOptimalWriteSizeResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9415,7 +9415,7 @@ constexpr auto OpsWriteAtRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsWriteAtRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9797,7 +9797,7 @@ constexpr auto OpsWriteAtResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsWriteAtResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10086,7 +10086,7 @@ constexpr auto OpsTruncateRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsTruncateRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10431,7 +10431,7 @@ constexpr auto OpsTruncateResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsTruncateResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10712,7 +10712,7 @@ constexpr auto OpsLookupRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsLookupRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11097,7 +11097,7 @@ constexpr auto OpsLookupResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsLookupResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11392,7 +11392,7 @@ constexpr auto OpsReaddirAllRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsReaddirAllRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11777,7 +11777,7 @@ constexpr auto OpsReaddirAllResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsReaddirAllResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12131,7 +12131,7 @@ constexpr auto OpsMknodRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsMknodRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12569,7 +12569,7 @@ constexpr auto OpsMknodResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsMknodResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12871,7 +12871,7 @@ constexpr auto OpsSymlinkRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsSymlinkRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13291,7 +13291,7 @@ constexpr auto OpsSymlinkResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsSymlinkResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13561,7 +13561,7 @@ constexpr auto OpsReadlinkRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsReadlinkRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13892,7 +13892,7 @@ constexpr auto OpsReadlinkResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsReadlinkResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14225,7 +14225,7 @@ constexpr auto OpsCopyToRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsCopyToRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14618,7 +14618,7 @@ constexpr auto OpsCopyToResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsCopyToResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14945,7 +14945,7 @@ constexpr auto OpsCopyFromRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsCopyFromRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15338,7 +15338,7 @@ constexpr auto OpsCopyFromResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsCopyFromResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15665,7 +15665,7 @@ constexpr auto OpsMoveToRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsMoveToRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -16058,7 +16058,7 @@ constexpr auto OpsMoveToResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsMoveToResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -16385,7 +16385,7 @@ constexpr auto OpsMoveFromRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsMoveFromRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -16778,7 +16778,7 @@ constexpr auto OpsMoveFromResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsMoveFromResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -17110,7 +17110,7 @@ constexpr auto OpsRemoveRequest::InternalGenerateClassData_() {
           false,
       },
       &OpsRemoveRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -17463,7 +17463,7 @@ constexpr auto OpsRemoveResponse::InternalGenerateClassData_() {
           false,
       },
       &OpsRemoveResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto,
       nullptr,  // tracker
   };
 }
@@ -17647,6 +17647,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2frpc_2frpc_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2frpc_2frpc_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

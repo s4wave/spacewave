@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/entitygraph/reporter"
 	"github.com/aperturerobotics/entitygraph/store"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

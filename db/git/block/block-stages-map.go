@@ -1,8 +1,8 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // StagesMap is a sub-block representing a map from Stage to hash.

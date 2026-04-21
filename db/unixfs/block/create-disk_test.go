@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/testbed"
 	"golang.org/x/sys/unix"
 )
 

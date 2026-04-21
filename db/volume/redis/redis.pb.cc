@@ -62,11 +62,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace redis
 }  // namespace volume
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::redis::Config, _impl_._has_bits_),
@@ -94,47 +94,47 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::redis::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n:github.com/s4wave/spacewave/db/volu"
-    "me/redis/redis.proto\022\014volume.redis\0329gith"
-    "ub.com/aperturerobotics/hydra/store/kvke"
-    "y/kvkey.proto\0327github.com/apertureroboti"
-    "cs/hydra/store/kvtx/kvtx.proto\032>github.c"
-    "om/aperturerobotics/hydra/store/kvtx/red"
-    "is/redis.proto\032Dgithub.com/aperturerobot"
-    "ics/hydra/volume/controller/controller.p"
-    "roto\"\376\001\n\006Config\022.\n\006client\030\001 \001(\0132\036.store."
-    "kvtx.redis.ClientConfig\022(\n\013kv_key_opts\030\002"
-    " \001(\0132\023.store.kvkey.Config\022\027\n\017no_generate"
-    "_key\030\003 \001(\010\022\024\n\014no_write_key\030\007 \001(\010\022\017\n\007verb"
-    "ose\030\004 \001(\010\0220\n\rvolume_config\030\005 \001(\0132\031.volum"
-    "e.controller.Config\022(\n\014store_config\030\006 \001("
-    "\0132\022.store.kvtx.Configb\006proto3"
+    "\n7github.com/s4wave/spacewave/db/volume/"
+    "redis/redis.proto\022\014volume.redis\0326github."
+    "com/s4wave/spacewave/db/store/kvkey/kvke"
+    "y.proto\0324github.com/s4wave/spacewave/db/"
+    "store/kvtx/kvtx.proto\032;github.com/s4wave"
+    "/spacewave/db/store/kvtx/redis/redis.pro"
+    "to\032Agithub.com/s4wave/spacewave/db/volum"
+    "e/controller/controller.proto\"\376\001\n\006Config"
+    "\022.\n\006client\030\001 \001(\0132\036.store.kvtx.redis.Clie"
+    "ntConfig\022(\n\013kv_key_opts\030\002 \001(\0132\023.store.kv"
+    "key.Config\022\027\n\017no_generate_key\030\003 \001(\010\022\024\n\014n"
+    "o_write_key\030\007 \001(\010\022\017\n\007verbose\030\004 \001(\010\0220\n\rvo"
+    "lume_config\030\005 \001(\0132\031.volume.controller.Co"
+    "nfig\022(\n\014store_config\030\006 \001(\0132\022.store.kvtx."
+    "Configb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvkey_2fkvkey_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fredis_2fredis_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto_deps[4] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fredis_2fredis_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto = {
     false,
     false,
-    589,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto,
+    574,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto,
     "github.com/s4wave/spacewave/db/volume/redis/redis.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto_deps,
     4,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto,
 };
 namespace volume {
 namespace redis {
@@ -283,7 +283,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto,
       nullptr,  // tracker
   };
 }
@@ -652,6 +652,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fredis_2fredis_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fredis_2fredis_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

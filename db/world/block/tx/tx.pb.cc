@@ -335,11 +335,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace block
 }  // namespace world
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_._has_bits_),
@@ -453,79 +453,78 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_TxDeleteGraphQuad_default_instance_._instance,
     &::world::block::tx::_TxGCSweep_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n9github.com/s4wave/spacewave/db/worl"
-    "d/block/tx/tx.proto\022\016world.block.tx\0325git"
-    "hub.com/aperturerobotics/hydra/bucket/bu"
-    "cket.proto\0327github.com/aperturerobotics/"
-    "hydra/block/quad/quad.proto\"\337\004\n\002Tx\022\'\n\007tx"
-    "_type\030\001 \001(\0162\026.world.block.tx.TxType\0229\n\021t"
-    "x_apply_world_op\030\002 \001(\0132\036.world.block.tx."
-    "TxApplyWorldOp\022;\n\022tx_apply_object_op\030\003 \001"
-    "(\0132\037.world.block.tx.TxApplyObjectOp\0228\n\020t"
-    "x_create_object\030\004 \001(\0132\036.world.block.tx.T"
-    "xCreateObject\0222\n\rtx_object_set\030\005 \001(\0132\033.w"
-    "orld.block.tx.TxObjectSet\0229\n\021tx_object_i"
-    "nc_rev\030\006 \001(\0132\036.world.block.tx.TxObjectIn"
-    "cRev\0228\n\020tx_delete_object\030\007 \001(\0132\036.world.b"
-    "lock.tx.TxDeleteObject\0229\n\021tx_set_graph_q"
-    "uad\030\010 \001(\0132\036.world.block.tx.TxSetGraphQua"
-    "d\022\?\n\024tx_delete_graph_quad\030\t \001(\0132!.world."
-    "block.tx.TxDeleteGraphQuad\022)\n\010tx_batch\030\n"
-    " \001(\0132\027.world.block.tx.TxBatch\022.\n\013tx_gc_s"
-    "weep\030\013 \001(\0132\031.world.block.tx.TxGCSweep\"*\n"
-    "\007TxBatch\022\037\n\003txs\030\001 \003(\0132\022.world.block.tx.T"
-    "x\"C\n\016TxApplyWorldOp\022\031\n\021operation_type_id"
-    "\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\"X\n\017TxAppl"
-    "yObjectOp\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n\016"
-    "operation_body\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t"
-    "\"I\n\016TxCreateObject\022\022\n\nobject_key\030\001 \001(\t\022#"
-    "\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\"F\n\013T"
-    "xObjectSet\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_r"
-    "ef\030\002 \001(\0132\021.bucket.ObjectRef\"$\n\016TxObjectI"
-    "ncRev\022\022\n\nobject_key\030\001 \001(\t\"\?\n\016TxDeleteObj"
-    "ect\022\022\n\nobject_key\030\001 \001(\t\022\031\n\021fail_if_not_f"
-    "ound\030\002 \001(\010\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001"
-    "(\0132\n.quad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004q"
-    "uad\030\001 \001(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\231\002\n\006T"
-    "xType\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPL"
-    "Y_WORLD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002"
-    "\022\030\n\024TxType_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJ"
-    "ECT_SET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024"
-    "TxType_DELETE_OBJECT\020\006\022\031\n\025TxType_SET_GRA"
-    "PH_QUAD\020\007\022\034\n\030TxType_DELETE_GRAPH_QUAD\020\010\022"
-    "\020\n\014TxType_BATCH\020\t\022\023\n\017TxType_GC_SWEEP\020\nb\006"
-    "proto3"
+    "\n6github.com/s4wave/spacewave/db/world/b"
+    "lock/tx/tx.proto\022\016world.block.tx\0322github"
+    ".com/s4wave/spacewave/db/bucket/bucket.p"
+    "roto\0324github.com/s4wave/spacewave/db/blo"
+    "ck/quad/quad.proto\"\337\004\n\002Tx\022\'\n\007tx_type\030\001 \001"
+    "(\0162\026.world.block.tx.TxType\0229\n\021tx_apply_w"
+    "orld_op\030\002 \001(\0132\036.world.block.tx.TxApplyWo"
+    "rldOp\022;\n\022tx_apply_object_op\030\003 \001(\0132\037.worl"
+    "d.block.tx.TxApplyObjectOp\0228\n\020tx_create_"
+    "object\030\004 \001(\0132\036.world.block.tx.TxCreateOb"
+    "ject\0222\n\rtx_object_set\030\005 \001(\0132\033.world.bloc"
+    "k.tx.TxObjectSet\0229\n\021tx_object_inc_rev\030\006 "
+    "\001(\0132\036.world.block.tx.TxObjectIncRev\0228\n\020t"
+    "x_delete_object\030\007 \001(\0132\036.world.block.tx.T"
+    "xDeleteObject\0229\n\021tx_set_graph_quad\030\010 \001(\013"
+    "2\036.world.block.tx.TxSetGraphQuad\022\?\n\024tx_d"
+    "elete_graph_quad\030\t \001(\0132!.world.block.tx."
+    "TxDeleteGraphQuad\022)\n\010tx_batch\030\n \001(\0132\027.wo"
+    "rld.block.tx.TxBatch\022.\n\013tx_gc_sweep\030\013 \001("
+    "\0132\031.world.block.tx.TxGCSweep\"*\n\007TxBatch\022"
+    "\037\n\003txs\030\001 \003(\0132\022.world.block.tx.Tx\"C\n\016TxAp"
+    "plyWorldOp\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n"
+    "\016operation_body\030\002 \001(\014\"X\n\017TxApplyObjectOp"
+    "\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n\016operation"
+    "_body\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t\"I\n\016TxCre"
+    "ateObject\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_re"
+    "f\030\002 \001(\0132\021.bucket.ObjectRef\"F\n\013TxObjectSe"
+    "t\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132"
+    "\021.bucket.ObjectRef\"$\n\016TxObjectIncRev\022\022\n\n"
+    "object_key\030\001 \001(\t\"\?\n\016TxDeleteObject\022\022\n\nob"
+    "ject_key\030\001 \001(\t\022\031\n\021fail_if_not_found\030\002 \001("
+    "\010\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001(\0132\n.quad"
+    ".Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004quad\030\001 \001(\013"
+    "2\n.quad.Quad\"\013\n\tTxGCSweep*\231\002\n\006TxType\022\022\n\016"
+    "TxType_INVALID\020\000\022\031\n\025TxType_APPLY_WORLD_O"
+    "P\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002\022\030\n\024TxTyp"
+    "e_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJECT_SET\020\004"
+    "\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024TxType_DE"
+    "LETE_OBJECT\020\006\022\031\n\025TxType_SET_GRAPH_QUAD\020\007"
+    "\022\034\n\030TxType_DELETE_GRAPH_QUAD\020\010\022\020\n\014TxType"
+    "_BATCH\020\t\022\023\n\017TxType_GC_SWEEP\020\nb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fquad_2fquad_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fquad_2fquad_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto = {
     false,
     false,
-    1646,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+    1637,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
     "github.com/s4wave/spacewave/db/world/block/tx/tx.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_deps,
     2,
     11,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
 };
 namespace world {
 namespace block {
 namespace tx {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t TxType_internal_data_[] = {
     720896u, 0u, };
@@ -668,7 +667,7 @@ constexpr auto Tx::InternalGenerateClassData_() {
           false,
       },
       &Tx::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1275,7 +1274,7 @@ constexpr auto TxBatch::InternalGenerateClassData_() {
           false,
       },
       &TxBatch::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1551,7 +1550,7 @@ constexpr auto TxApplyWorldOp::InternalGenerateClassData_() {
           false,
       },
       &TxApplyWorldOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1871,7 +1870,7 @@ constexpr auto TxApplyObjectOp::InternalGenerateClassData_() {
           false,
       },
       &TxApplyObjectOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2235,7 +2234,7 @@ constexpr auto TxCreateObject::InternalGenerateClassData_() {
           false,
       },
       &TxCreateObject::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2561,7 +2560,7 @@ constexpr auto TxObjectSet::InternalGenerateClassData_() {
           false,
       },
       &TxObjectSet::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2875,7 +2874,7 @@ constexpr auto TxObjectIncRev::InternalGenerateClassData_() {
           false,
       },
       &TxObjectIncRev::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3152,7 +3151,7 @@ constexpr auto TxDeleteObject::InternalGenerateClassData_() {
           false,
       },
       &TxDeleteObject::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3467,7 +3466,7 @@ constexpr auto TxSetGraphQuad::InternalGenerateClassData_() {
           false,
       },
       &TxSetGraphQuad::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3744,7 +3743,7 @@ constexpr auto TxDeleteGraphQuad::InternalGenerateClassData_() {
           false,
       },
       &TxDeleteGraphQuad::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3975,7 +3974,7 @@ constexpr auto TxGCSweep::InternalGenerateClassData_() {
           false,
       },
       &TxGCSweep::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4038,6 +4037,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

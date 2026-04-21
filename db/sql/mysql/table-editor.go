@@ -3,10 +3,10 @@ package mysql
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
 // TableEditor implements row management operations against a table.

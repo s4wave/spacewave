@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block "github.com/s4wave/spacewave/db/block"
-	blob "github.com/s4wave/spacewave/db/block/blob"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
+	blob "github.com/s4wave/spacewave/db/block/blob"
 )
 
 // File defines a pattern for storing a block-addressed file.

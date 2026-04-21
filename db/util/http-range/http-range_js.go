@@ -5,8 +5,8 @@ package http_range
 import (
 	"context"
 
-	http_range_fetch "github.com/s4wave/spacewave/db/util/http-range/fetch"
 	fetch "github.com/aperturerobotics/util/js/fetch"
+	http_range_fetch "github.com/s4wave/spacewave/db/util/http-range/fetch"
 	"github.com/sirupsen/logrus"
 )
 

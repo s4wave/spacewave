@@ -6,11 +6,11 @@ import (
 	"context"
 	"testing"
 
-	git_examples "github.com/s4wave/spacewave/db/git/example"
-	"github.com/s4wave/spacewave/db/testbed"
 	billy "github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/go-git/go-git/v6/storage/memory"
+	git_examples "github.com/s4wave/spacewave/db/git/example"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

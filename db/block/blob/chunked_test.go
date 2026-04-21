@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/aperturerobotics/util/prng"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

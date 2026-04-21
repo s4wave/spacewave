@@ -5,11 +5,11 @@ import (
 	"context"
 	"regexp"
 
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/mqueue"
-	b58 "github.com/mr-tron/base58/base58"
 )
 
 // MarshalBucketReconcilerMqueueId encodes an id.

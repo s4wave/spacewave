@@ -3,11 +3,11 @@ package git_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
-	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/go-git/go-git/v6/plumbing/format/index"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	git_block "github.com/s4wave/spacewave/db/git/block"
 )
 
 // NewWorktreeBlock builds a new repo root block.

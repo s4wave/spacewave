@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/kvtx/rpc/kvtx.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -38,7 +38,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto
 
 namespace google {
 namespace protobuf {
@@ -50,11 +50,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 }  // extern "C"
 namespace kvtx {
 namespace rpc {
@@ -337,7 +337,7 @@ class KvtxTransactionInit final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionInit_class_data_;
@@ -556,7 +556,7 @@ class KvtxTransactionComplete final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionComplete_class_data_;
@@ -768,7 +768,7 @@ class KvtxTransactionAck final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionAck_class_data_;
@@ -963,7 +963,7 @@ class KvtxSetKeyResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxSetKeyResponse_class_data_;
@@ -1175,7 +1175,7 @@ class KvtxSetKeyRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxSetKeyRequest_class_data_;
@@ -1404,7 +1404,7 @@ class KvtxScanPrefixResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxScanPrefixResponse_class_data_;
@@ -1611,7 +1611,7 @@ class KvtxScanPrefixRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxScanPrefixRequest_class_data_;
@@ -1806,7 +1806,7 @@ class KvtxKeyRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxKeyRequest_class_data_;
@@ -2013,7 +2013,7 @@ class KvtxKeyExistsResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxKeyExistsResponse_class_data_;
@@ -2237,7 +2237,7 @@ class KvtxKeyDataResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxKeyDataResponse_class_data_;
@@ -2461,7 +2461,7 @@ class KvtxIterateStatus final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxIterateStatus_class_data_;
@@ -2680,7 +2680,7 @@ class KvtxIterateInit final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxIterateInit_class_data_;
@@ -2875,7 +2875,7 @@ class KvtxDeleteKeyResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxDeleteKeyResponse_class_data_;
@@ -3070,7 +3070,7 @@ class KvtxDeleteKeyRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxDeleteKeyRequest_class_data_;
@@ -3260,7 +3260,7 @@ class KeyCountResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KeyCountResponse_class_data_;
@@ -3394,7 +3394,7 @@ class KeyCountRequest final : public ::google::protobuf::internal::ZeroFieldsBas
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KeyCountRequest_class_data_;
@@ -3629,7 +3629,7 @@ class KvtxTransactionResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionResponse_class_data_;
@@ -3871,7 +3871,7 @@ class KvtxTransactionRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionRequest_class_data_;
@@ -4153,7 +4153,7 @@ class KvtxIterateResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxIterateResponse_class_data_;
@@ -4445,7 +4445,7 @@ class KvtxIterateRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KvtxIterateRequest_class_data_;
@@ -6987,4 +6987,4 @@ inline void KvtxIterateStatus::set_allocated_key(::std::string* PROTOBUF_NULLABL
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_2epb_2eh

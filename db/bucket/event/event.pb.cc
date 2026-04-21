@@ -140,11 +140,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace event
 }  // namespace bucket
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bucket::event::Event, _impl_._has_bits_),
@@ -191,50 +191,50 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bucket::event::_PutBlock_default_instance_._instance,
     &::bucket::event::_RmBlock_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n:github.com/s4wave/spacewave/db/buck"
-    "et/event/event.proto\022\014bucket.event\0323gith"
-    "ub.com/aperturerobotics/hydra/block/bloc"
-    "k.proto\"\210\001\n\005Event\022+\n\nevent_type\030\001 \001(\0162\027."
-    "bucket.event.EventType\022)\n\tput_block\030\002 \001("
-    "\0132\026.bucket.event.PutBlock\022\'\n\010rm_block\030\004 "
-    "\001(\0132\025.bucket.event.RmBlock\"p\n\013BlockCommo"
-    "n\022\021\n\tbucket_id\030\001 \001(\t\022\021\n\tvolume_id\030\002 \001(\t\022"
-    "\027\n\017bucket_conf_rev\030\003 \001(\r\022\"\n\tblock_ref\030\004 "
-    "\001(\0132\017.block.BlockRef\";\n\010PutBlock\022/\n\014bloc"
-    "k_common\030\001 \001(\0132\031.bucket.event.BlockCommo"
-    "n\":\n\007RmBlock\022/\n\014block_common\030\001 \001(\0132\031.buc"
-    "ket.event.BlockCommon*S\n\tEventType\022\025\n\021Ev"
-    "entType_UNKNOWN\020\000\022\027\n\023EventType_PUT_BLOCK"
-    "\020\001\022\026\n\022EventType_RM_BLOCK\020\003b\006proto3"
+    "\n7github.com/s4wave/spacewave/db/bucket/"
+    "event/event.proto\022\014bucket.event\0320github."
+    "com/s4wave/spacewave/db/block/block.prot"
+    "o\"\210\001\n\005Event\022+\n\nevent_type\030\001 \001(\0162\027.bucket"
+    ".event.EventType\022)\n\tput_block\030\002 \001(\0132\026.bu"
+    "cket.event.PutBlock\022\'\n\010rm_block\030\004 \001(\0132\025."
+    "bucket.event.RmBlock\"p\n\013BlockCommon\022\021\n\tb"
+    "ucket_id\030\001 \001(\t\022\021\n\tvolume_id\030\002 \001(\t\022\027\n\017buc"
+    "ket_conf_rev\030\003 \001(\r\022\"\n\tblock_ref\030\004 \001(\0132\017."
+    "block.BlockRef\";\n\010PutBlock\022/\n\014block_comm"
+    "on\030\001 \001(\0132\031.bucket.event.BlockCommon\":\n\007R"
+    "mBlock\022/\n\014block_common\030\001 \001(\0132\031.bucket.ev"
+    "ent.BlockCommon*S\n\tEventType\022\025\n\021EventTyp"
+    "e_UNKNOWN\020\000\022\027\n\023EventType_PUT_BLOCK\020\001\022\026\n\022"
+    "EventType_RM_BLOCK\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto = {
     false,
     false,
-    594,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+    588,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
     "github.com/s4wave/spacewave/db/bucket/event/event.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto_deps,
     1,
     4,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
 };
 namespace bucket {
 namespace event {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL EventType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t EventType_internal_data_[] = {
     131072u, 32u, 2u, };
@@ -345,7 +345,7 @@ constexpr auto Event::InternalGenerateClassData_() {
           false,
       },
       &Event::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
       nullptr,  // tracker
   };
 }
@@ -704,7 +704,7 @@ constexpr auto BlockCommon::InternalGenerateClassData_() {
           false,
       },
       &BlockCommon::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1091,7 +1091,7 @@ constexpr auto PutBlock::InternalGenerateClassData_() {
           false,
       },
       &PutBlock::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1362,7 +1362,7 @@ constexpr auto RmBlock::InternalGenerateClassData_() {
           false,
       },
       &RmBlock::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1546,6 +1546,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

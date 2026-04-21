@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/mqueue"
 	mqueue_rpc "github.com/s4wave/spacewave/db/mqueue/rpc"
 	mqueue_store "github.com/s4wave/spacewave/db/mqueue/store"
-	"github.com/aperturerobotics/starpc/rpcstream"
-	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // MqueueStore implements a message queue store backed by a MqueueStore service.

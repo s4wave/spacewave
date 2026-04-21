@@ -9,10 +9,10 @@ import (
 	"syscall/js"
 	"time"
 
-	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/opfs"
+	"github.com/s4wave/spacewave/db/opfs/filelock"
 )
 
 // walExtension is the file extension for WAL entries.

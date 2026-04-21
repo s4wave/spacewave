@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/pkg/errors"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // if the callback returns ErrReleased, the operation will be retried

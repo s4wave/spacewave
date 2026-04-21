@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	bdb "github.com/dgraph-io/badger/v4"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Iterator iterates over a badger bucket.

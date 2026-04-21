@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/blang/semver/v4"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
 // ControllerID is the controller identifier.

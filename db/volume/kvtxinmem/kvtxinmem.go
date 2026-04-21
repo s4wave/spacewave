@@ -3,13 +3,13 @@ package volume_kvtxinmem
 import (
 	"context"
 
+	"github.com/blang/semver/v4"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sinmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/volume"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/s4wave/spacewave/db/block"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // CreateFromDisk creates a unixfs_block FSNode from a disk path.

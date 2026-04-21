@@ -2,8 +2,8 @@ package block_store_s3
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/pkg/errors"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 )
 
 // ConfigID is the string used to identify this config object.

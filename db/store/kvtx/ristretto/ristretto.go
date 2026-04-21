@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/dgraph-io/ristretto/v2"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Store is a ristretto cache backed kvtx store.

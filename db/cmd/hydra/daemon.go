@@ -6,9 +6,6 @@ import (
 	"context"
 	"os"
 
-	bcli "github.com/s4wave/spacewave/net/cli"
-	"github.com/s4wave/spacewave/net/keypem/keyfile"
-	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -19,13 +16,16 @@ import (
 	"github.com/aperturerobotics/entitygraph"
 	egc "github.com/aperturerobotics/entitygraph/controller"
 	"github.com/aperturerobotics/entitygraph/entity"
+	"github.com/pkg/errors"
 	hcli "github.com/s4wave/spacewave/db/cli"
 	"github.com/s4wave/spacewave/db/daemon"
 	api_controller "github.com/s4wave/spacewave/db/daemon/api/controller"
 	"github.com/s4wave/spacewave/db/daemon/prof"
 	egctr "github.com/s4wave/spacewave/db/entitygraph"
 	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
-	"github.com/pkg/errors"
+	bcli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/keypem/keyfile"
+	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	"github.com/sirupsen/logrus"
 )
 

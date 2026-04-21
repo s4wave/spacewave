@@ -3,10 +3,10 @@ package world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // engineWorldState implements a WorldState on top of an Engine.

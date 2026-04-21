@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block "github.com/s4wave/spacewave/db/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 )
 
 // EventType is the type of bucket reconciler event.

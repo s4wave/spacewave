@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	rc "github.com/s4wave/spacewave/db/reconciler/controller"
 	"github.com/blang/semver/v4"
+	rc "github.com/s4wave/spacewave/db/reconciler/controller"
 )
 
 // Factory constructs a example reconciler controller.

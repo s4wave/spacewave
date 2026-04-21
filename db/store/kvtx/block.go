@@ -3,8 +3,8 @@ package store_kvtx
 import (
 	"context"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // GetHashType returns the preferred hash type for the store.

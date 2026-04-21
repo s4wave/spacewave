@@ -3,11 +3,11 @@ package mysql
 import (
 	"context"
 
+	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/sbset"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/pkg/errors"
 )
 
 // BuildTableRow constructs a TableRow by marshaling cols with msgpack blobs.

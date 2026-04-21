@@ -3,12 +3,12 @@ package git_block
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/restic/chunker"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
-	"github.com/pkg/errors"
-	"github.com/restic/chunker"
 )
 
 // NewEncodedObjectStoreBlock builds a new object store block.

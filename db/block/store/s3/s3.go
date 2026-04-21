@@ -7,11 +7,11 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/block"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/minio/minio-go/v7"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // S3Block is a block store on top of a S3 client and base URL prefix.

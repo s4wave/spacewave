@@ -88,11 +88,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace mock
 }  // namespace world
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::mock::MockObjectOp, _impl_._has_bits_),
@@ -117,30 +117,30 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::mock::_MockObjectOp_default_instance_._instance,
     &::world::mock::_MockWorldOp_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/worl"
-    "d/mock/mock.proto\022\nworld.mock\" \n\014MockObj"
-    "ectOp\022\020\n\010next_msg\030\001 \001(\t\"3\n\013MockWorldOp\022\022"
-    "\n\nobject_key\030\001 \001(\t\022\020\n\010next_msg\030\002 \001(\tb\006pr"
-    "oto3"
+    "\n4github.com/s4wave/spacewave/db/world/m"
+    "ock/mock.proto\022\nworld.mock\" \n\014MockObject"
+    "Op\022\020\n\010next_msg\030\001 \001(\t\"3\n\013MockWorldOp\022\022\n\no"
+    "bject_key\030\001 \001(\t\022\020\n\010next_msg\030\002 \001(\tb\006proto"
+    "3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto = {
     false,
     false,
-    164,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto,
+    161,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto,
     "github.com/s4wave/spacewave/db/world/mock/mock.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto_once,
     nullptr,
     0,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto,
 };
 namespace world {
 namespace mock {
@@ -238,7 +238,7 @@ constexpr auto MockObjectOp::InternalGenerateClassData_() {
           false,
       },
       &MockObjectOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -516,7 +516,7 @@ constexpr auto MockWorldOp::InternalGenerateClassData_() {
           false,
       },
       &MockWorldOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -749,6 +749,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fmock_2fmock_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fmock_2fmock_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

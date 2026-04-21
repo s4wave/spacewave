@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
-	"github.com/aperturerobotics/controllerbus/controller"
 )
 
 // NewVolumeInfo constructs volume info from a volume.

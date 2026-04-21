@@ -4,10 +4,10 @@ import (
 	"context"
 	"sort"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // WalkObjectBlocksCb is the callback called by WalkObjectBlocks.

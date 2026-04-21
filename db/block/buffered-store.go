@@ -6,9 +6,9 @@ import (
 	"runtime/trace"
 	"slices"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 type pendingBlock struct {

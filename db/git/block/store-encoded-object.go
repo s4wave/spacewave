@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/aperturerobotics/util/iocloser"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // StoreEncodedObject is an encoded object attached to a store.

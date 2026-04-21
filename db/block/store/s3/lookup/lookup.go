@@ -8,11 +8,11 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/dex"
 	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/dex"
 	"github.com/sirupsen/logrus"
 )
 

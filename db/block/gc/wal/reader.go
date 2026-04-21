@@ -6,9 +6,9 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
-	"github.com/pkg/errors"
 )
 
 // ReadWAL lists the WAL directory in lexicographic order, reads and

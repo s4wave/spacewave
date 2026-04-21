@@ -8,10 +8,10 @@ import (
 	"sync"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
-	"github.com/pkg/errors"
 )
 
 // MetaShard is a metadata store backed by a single OPFS page file

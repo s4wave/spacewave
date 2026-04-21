@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/filters"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -19,7 +20,6 @@ import (
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

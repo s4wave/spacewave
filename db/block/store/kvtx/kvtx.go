@@ -4,10 +4,10 @@ import (
 	"context"
 	"runtime/trace"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // KVTxBlock is a block store on top of a kvtx store.

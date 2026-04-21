@@ -5,7 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
@@ -13,11 +17,7 @@ import (
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
-	"github.com/aperturerobotics/starpc/rpcstream"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/keyed"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

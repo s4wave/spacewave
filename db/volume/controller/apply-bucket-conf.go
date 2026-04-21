@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/bucket"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // applyBucketConfigResolver resolves ApplyBucketConfig directives

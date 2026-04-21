@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bitset "github.com/s4wave/spacewave/db/block/bitset"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bitset "github.com/s4wave/spacewave/db/block/bitset"
 )
 
 // BloomFilter contains a bloom filter in a Block.

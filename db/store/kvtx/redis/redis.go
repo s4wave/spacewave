@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // Store is a redis database key-value store.

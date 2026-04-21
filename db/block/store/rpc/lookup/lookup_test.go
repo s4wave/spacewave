@@ -5,12 +5,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_store_rpc_server_bucket "github.com/s4wave/spacewave/db/block/store/rpc/server/bucket"
@@ -18,8 +18,8 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/testbed"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
+	"github.com/s4wave/spacewave/net/hash"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

@@ -6,6 +6,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/go-git/go-git/v6/storage/memory"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -13,8 +15,6 @@ import (
 	git "github.com/s4wave/spacewave/db/git/block"
 	git_examples "github.com/s4wave/spacewave/db/git/example"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/go-git/go-billy/v6/memfs"
-	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/sirupsen/logrus"
 )
 

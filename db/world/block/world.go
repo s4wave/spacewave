@@ -5,10 +5,11 @@ import (
 	"runtime/trace"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
+	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -19,8 +20,7 @@ import (
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/broadcast"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

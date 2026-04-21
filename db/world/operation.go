@@ -3,8 +3,8 @@ package world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

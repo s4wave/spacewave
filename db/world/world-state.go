@@ -5,12 +5,12 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // AccessWorldStateFunc is a function to access world state.

@@ -1,10 +1,10 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewCheckoutOpts constructs a new CheckoutOpts from a git checkout opts.

@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/ccontainer"
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -21,8 +23,6 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
-	"github.com/aperturerobotics/util/ccontainer"
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )

@@ -5,9 +5,9 @@ import (
 	"io"
 	"io/fs"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/pkg/errors"
 )
 
 // ATTR_* valid mask bits (matching Linux kernel).

@@ -12,9 +12,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block "github.com/s4wave/spacewave/db/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 )
 
 // BlockTransfer is a message on a block transfer stream.

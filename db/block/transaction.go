@@ -7,11 +7,11 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/aperturerobotics/util/conc"
 	simple "github.com/paralin/gonum-graph-simple"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/net/hash"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/topo"
 )

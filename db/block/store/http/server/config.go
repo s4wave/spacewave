@@ -1,10 +1,10 @@
 package block_store_http_server
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/controllerbus/config"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/pkg/errors"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // ConfigID is the string used to identify this config object.

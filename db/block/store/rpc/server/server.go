@@ -3,14 +3,14 @@ package block_store_rpc_server
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver/v4"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // ControllerID is the controller identifier.

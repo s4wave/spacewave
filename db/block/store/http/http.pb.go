@@ -12,10 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	block "github.com/s4wave/spacewave/db/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config configures the block store http controller.

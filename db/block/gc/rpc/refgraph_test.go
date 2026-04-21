@@ -5,14 +5,14 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_gc_rpc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	block_gc_rpc_client "github.com/s4wave/spacewave/db/block/gc/rpc/client"
 	block_gc_rpc_server "github.com/s4wave/spacewave/db/block/gc/rpc/server"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // newTestRPCRefGraph creates a real RefGraph, wires it through SRPC, and

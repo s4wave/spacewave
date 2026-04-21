@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
 	billy_test "github.com/go-git/go-billy/v6/test"
+	"github.com/s4wave/spacewave/db/unixfs"
 	check "gopkg.in/check.v1"
 )
 

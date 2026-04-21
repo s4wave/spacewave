@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	memfs "github.com/go-git/go-billy/v6/memfs"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_world_testbed "github.com/s4wave/spacewave/db/unixfs/world/testbed"
 	testbed0 "github.com/s4wave/spacewave/db/world/testbed"
-	memfs "github.com/go-git/go-billy/v6/memfs"
-	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 
 	// TestCheckout tests checking out a UnixFS to the disk.

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
-	"github.com/pkg/errors"
 )
 
 var (

@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config configures the Redis block store controller.

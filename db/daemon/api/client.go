@@ -1,9 +1,9 @@
 package hydra_api
 
 import (
-	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 	bus_api "github.com/aperturerobotics/controllerbus/bus/api"
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 )
 
 // HydraDaemonClient has all services provided by the daemon.

@@ -12,9 +12,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	_ "github.com/s4wave/spacewave/db/unixfs/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	_ "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
 // V86fsMessage wraps all v86fs protocol messages in a single oneof.

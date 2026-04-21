@@ -1,9 +1,9 @@
 package bloom
 
 import (
+	bbloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bitset"
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 )
 
 // NewBloom constructs a new bloom object from an existing bloom.

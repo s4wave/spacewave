@@ -11,7 +11,7 @@ import {
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { Blob, ChunkerArgs } from '../../block/blob/blob.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
-import { Hash } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import { Hash } from '../../../net/hash/hash.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'git.block'

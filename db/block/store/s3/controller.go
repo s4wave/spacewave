@@ -6,9 +6,9 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/blang/semver/v4"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/unixfs/world/unixfs.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -41,7 +41,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto
 
 namespace google {
 namespace protobuf {
@@ -53,11 +53,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 }  // extern "C"
 namespace unixfs {
 namespace world {
@@ -381,7 +381,7 @@ class MountValue final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MountValue_class_data_;
@@ -605,7 +605,7 @@ class UnixfsRef final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull UnixfsRef_class_data_;
@@ -812,7 +812,7 @@ class RefValue final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RefValue_class_data_;
@@ -1065,7 +1065,7 @@ class FsTruncateOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsTruncateOp_class_data_;
@@ -1320,7 +1320,7 @@ class FsSetPermissionsOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsSetPermissionsOp_class_data_;
@@ -1563,7 +1563,7 @@ class FsSetModTimestampOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsSetModTimestampOp_class_data_;
@@ -1821,7 +1821,7 @@ class FsRenameOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsRenameOp_class_data_;
@@ -2064,7 +2064,7 @@ class FsRemoveOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsRemoveOp_class_data_;
@@ -2331,7 +2331,7 @@ class FsMknodOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsMknodOp_class_data_;
@@ -2589,7 +2589,7 @@ class FsCopyOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsCopyOp_class_data_;
@@ -2859,7 +2859,7 @@ class FsWriteAtOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsWriteAtOp_class_data_;
@@ -3117,7 +3117,7 @@ class FsSymlinkOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsSymlinkOp_class_data_;
@@ -3399,7 +3399,7 @@ class FsMknodWithContentOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsMknodWithContentOp_class_data_;
@@ -3652,7 +3652,7 @@ class FsInitOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FsInitOp_class_data_;
@@ -7711,4 +7711,4 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::unixfs::world:
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_2epb_2eh

@@ -3,9 +3,9 @@ package git_block
 import (
 	"errors"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/go-git/go-git/v6/storage"
 	"github.com/go-git/go-git/v6/storage/memory"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // SetModuleReference sets the module reference to the Repo rooted at bcs.

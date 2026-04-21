@@ -3,9 +3,9 @@ package world_block_tx
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewTxApplyWorldOp constructs a new APPLY_WORLD_OP transaction.

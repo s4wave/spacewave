@@ -3,10 +3,10 @@ package coord
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // ForwardingWorldState wraps a read-only WorldState and routes write

@@ -3,10 +3,10 @@ package volume
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // LookupVolume is a directive to lookup running volumes.

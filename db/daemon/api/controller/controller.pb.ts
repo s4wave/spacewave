@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/db/daemon/api/controller/controller.proto (package hydra.api.controller, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '@go/github.com/s4wave/spacewave/net/daemon/api/api.pb.js'
+import { Config as Config$1 } from '../../../../net/daemon/api/api.pb.js'
 import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
 import { Config as Config$3 } from '../api.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'

@@ -1,8 +1,8 @@
 package transform_snappy
 
 import (
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/klauspost/compress/snappy"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // Snappy is the Snappy compression step.

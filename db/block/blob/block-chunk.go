@@ -4,9 +4,9 @@ import (
 	"context"
 	"math"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
-	"github.com/pkg/errors"
 )
 
 // NewChunk constructs a new chunk.

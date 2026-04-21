@@ -3,7 +3,7 @@ package volume_rpc_server
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/aperturerobotics/starpc/srpc"
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_gc_server "github.com/s4wave/spacewave/db/block/gc/rpc/server"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
@@ -16,7 +16,7 @@ import (
 	rpc_object_server "github.com/s4wave/spacewave/db/object/rpc/server"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
-	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // ProxyVolume implements the ProxyVolume service with a Volume.

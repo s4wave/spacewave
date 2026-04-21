@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
 // MergeSegments performs a k-way merge of segment entries.

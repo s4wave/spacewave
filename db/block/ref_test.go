@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // TestBlockRef ensures the marshaling is consistent

@@ -3,8 +3,8 @@ package traverse
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // ErrBreak will terminate visit execution returning a nil error.

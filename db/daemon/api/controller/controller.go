@@ -4,14 +4,14 @@ import (
 	"context"
 	"net"
 
-	bapi "github.com/s4wave/spacewave/net/daemon/api"
 	"github.com/aperturerobotics/controllerbus/bus"
 	cbapi "github.com/aperturerobotics/controllerbus/bus/api"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	hydra_api "github.com/s4wave/spacewave/db/daemon/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	hydra_api "github.com/s4wave/spacewave/db/daemon/api"
+	bapi "github.com/s4wave/spacewave/net/daemon/api"
 	"github.com/sirupsen/logrus"
 )
 

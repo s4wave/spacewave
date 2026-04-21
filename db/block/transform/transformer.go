@@ -4,8 +4,8 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // Transformer is constructed using a factory set and a configuration.

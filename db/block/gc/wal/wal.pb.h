@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/block/gc/wal/wal.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -36,7 +36,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto
 
 namespace google {
 namespace protobuf {
@@ -48,11 +48,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto;
 }  // extern "C"
 namespace block {
 namespace gc {
@@ -288,7 +288,7 @@ class RefEdge final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RefEdge_class_data_;
@@ -528,7 +528,7 @@ class WALEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WALEntry_class_data_;
@@ -859,4 +859,4 @@ inline void RefEdge::set_allocated_object(::std::string* PROTOBUF_NULLABLE value
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2fwal_2fwal_2eproto_2epb_2eh

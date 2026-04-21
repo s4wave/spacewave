@@ -6,10 +6,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/blang/semver/v4"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/volume"
 	vc "github.com/s4wave/spacewave/db/volume/controller"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

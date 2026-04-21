@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NamedSubBlock is a named sub-block.

@@ -5,6 +5,8 @@ package volume_opfs
 import (
 	"context"
 
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/block/gc/gcgraph"
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
@@ -18,8 +20,6 @@ import (
 	kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/metashard"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

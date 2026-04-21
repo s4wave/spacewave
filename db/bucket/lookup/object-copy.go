@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // CopyObjectToBucket copies an object from srcCursor to destCursor.

@@ -3,10 +3,10 @@ package git_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
-	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
 	gconfig "github.com/go-git/go-git/v6/config"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
 )
 
 // NewRepo constructs a new repo with default settings.

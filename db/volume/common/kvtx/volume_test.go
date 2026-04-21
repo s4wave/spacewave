@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	bifrost_hash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	bifrost_hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type countingBatchStore struct {

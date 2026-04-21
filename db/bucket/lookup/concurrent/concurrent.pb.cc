@@ -66,11 +66,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace concurrent
 }  // namespace lookup
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[3];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[3];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::lookup::concurrent::Config, _impl_._has_bits_),
@@ -98,67 +98,66 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::lookup::concurrent::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\nKgithub.com/s4wave/spacewave/db/buck"
-    "et/lookup/concurrent/concurrent.proto\022\021l"
-    "ookup.concurrent\0325github.com/aperturerob"
-    "otics/hydra/bucket/bucket.proto\"\277\002\n\006Conf"
-    "ig\022#\n\013bucket_conf\030\001 \001(\0132\016.bucket.Config\022"
-    "\?\n\022not_found_behavior\030\002 \001(\0162#.lookup.con"
-    "current.NotFoundBehavior\022\?\n\022put_block_be"
-    "havior\030\003 \001(\0162#.lookup.concurrent.PutBloc"
-    "kBehavior\022@\n\022writeback_behavior\030\004 \001(\0162$."
-    "lookup.concurrent.WritebackBehavior\022\032\n\022l"
-    "ookup_timeout_dur\030\006 \001(\t\022\017\n\007verbose\030\005 \001(\010"
-    "\022\037\n\027fallback_block_store_id\030\007 \001(\t*\200\001\n\020No"
-    "tFoundBehavior\022\031\n\025NotFoundBehavior_NONE\020"
-    "\000\022%\n!NotFoundBehavior_LOOKUP_DIRECTIVE\020\001"
-    "\022*\n&NotFoundBehavior_LOOKUP_DIRECTIVE_WA"
-    "IT\020\002*G\n\020PutBlockBehavior\022\031\n\025PutBlockBeha"
-    "vior_NONE\020\000\022\030\n\024PutBlockBehavior_ALL\020\001*J\n"
-    "\021WritebackBehavior\022\032\n\026WritebackBehavior_"
-    "NONE\020\000\022\031\n\025WritebackBehavior_ALL\020\001b\006proto"
-    "3"
+    "\nHgithub.com/s4wave/spacewave/db/bucket/"
+    "lookup/concurrent/concurrent.proto\022\021look"
+    "up.concurrent\0322github.com/s4wave/spacewa"
+    "ve/db/bucket/bucket.proto\"\277\002\n\006Config\022#\n\013"
+    "bucket_conf\030\001 \001(\0132\016.bucket.Config\022\?\n\022not"
+    "_found_behavior\030\002 \001(\0162#.lookup.concurren"
+    "t.NotFoundBehavior\022\?\n\022put_block_behavior"
+    "\030\003 \001(\0162#.lookup.concurrent.PutBlockBehav"
+    "ior\022@\n\022writeback_behavior\030\004 \001(\0162$.lookup"
+    ".concurrent.WritebackBehavior\022\032\n\022lookup_"
+    "timeout_dur\030\006 \001(\t\022\017\n\007verbose\030\005 \001(\010\022\037\n\027fa"
+    "llback_block_store_id\030\007 \001(\t*\200\001\n\020NotFound"
+    "Behavior\022\031\n\025NotFoundBehavior_NONE\020\000\022%\n!N"
+    "otFoundBehavior_LOOKUP_DIRECTIVE\020\001\022*\n&No"
+    "tFoundBehavior_LOOKUP_DIRECTIVE_WAIT\020\002*G"
+    "\n\020PutBlockBehavior\022\031\n\025PutBlockBehavior_N"
+    "ONE\020\000\022\030\n\024PutBlockBehavior_ALL\020\001*J\n\021Write"
+    "backBehavior\022\032\n\026WritebackBehavior_NONE\020\000"
+    "\022\031\n\025WritebackBehavior_ALL\020\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto = {
     false,
     false,
-    761,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
+    755,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
     "github.com/s4wave/spacewave/db/bucket/lookup/concurrent/concurrent.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto_deps,
     1,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
 };
 namespace lookup {
 namespace concurrent {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL NotFoundBehavior_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t NotFoundBehavior_internal_data_[] = {
     196608u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL PutBlockBehavior_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[1];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t PutBlockBehavior_internal_data_[] = {
     131072u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WritebackBehavior_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[2];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto[2];
 }
 PROTOBUF_CONSTINIT const uint32_t WritebackBehavior_internal_data_[] = {
     131072u, 0u, };
@@ -283,7 +282,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto,
       nullptr,  // tracker
   };
 }
@@ -668,6 +667,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2flookup_2fconcurrent_2fconcurrent_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

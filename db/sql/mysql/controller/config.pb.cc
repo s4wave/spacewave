@@ -101,11 +101,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace controller
 }  // namespace mysql
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::mysql::controller::Config, _impl_._has_bits_),
@@ -144,44 +144,44 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::mysql::controller::_Config_default_instance_._instance,
     &::mysql::controller::_HeadState_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\nCgithub.com/s4wave/spacewave/db/sql/"
-    "mysql/controller/config.proto\022\020mysql.con"
-    "troller\0325github.com/aperturerobotics/hyd"
-    "ra/bucket/bucket.proto\032Agithub.com/apert"
-    "urerobotics/hydra/block/transform/transf"
-    "orm.proto\"\213\002\n\006Config\022\021\n\tsql_db_id\030\001 \001(\t\022"
-    "\021\n\tbucket_id\030\002 \001(\t\022\021\n\tvolume_id\030\003 \001(\t\022\027\n"
-    "\017object_store_id\030\004 \001(\t\022\033\n\023object_store_p"
-    "refix\030\005 \001(\t\022\035\n\025object_store_head_key\030\006 \001"
-    "(\t\022(\n\rinit_head_ref\030\007 \001(\0132\021.bucket.Objec"
-    "tRef\0225\n\024state_transform_conf\030\010 \001(\0132\027.blo"
-    "ck.transform.Config\022\022\n\ncreate_dbs\030\t \003(\t\""
-    "0\n\tHeadState\022#\n\010head_ref\030\001 \001(\0132\021.bucket."
-    "ObjectRefb\006proto3"
+    "\n@github.com/s4wave/spacewave/db/sql/mys"
+    "ql/controller/config.proto\022\020mysql.contro"
+    "ller\0322github.com/s4wave/spacewave/db/buc"
+    "ket/bucket.proto\032>github.com/s4wave/spac"
+    "ewave/db/block/transform/transform.proto"
+    "\"\213\002\n\006Config\022\021\n\tsql_db_id\030\001 \001(\t\022\021\n\tbucket"
+    "_id\030\002 \001(\t\022\021\n\tvolume_id\030\003 \001(\t\022\027\n\017object_s"
+    "tore_id\030\004 \001(\t\022\033\n\023object_store_prefix\030\005 \001"
+    "(\t\022\035\n\025object_store_head_key\030\006 \001(\t\022(\n\rini"
+    "t_head_ref\030\007 \001(\0132\021.bucket.ObjectRef\0225\n\024s"
+    "tate_transform_conf\030\010 \001(\0132\027.block.transf"
+    "orm.Config\022\022\n\ncreate_dbs\030\t \003(\t\"0\n\tHeadSt"
+    "ate\022#\n\010head_ref\030\001 \001(\0132\021.bucket.ObjectRef"
+    "b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2ftransform_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2ftransform_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto = {
     false,
     false,
-    537,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
+    528,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
     "github.com/s4wave/spacewave/db/sql/mysql/controller/config.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto_deps,
     2,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
 };
 namespace mysql {
 namespace controller {
@@ -335,7 +335,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -923,7 +923,7 @@ constexpr auto HeadState::InternalGenerateClassData_() {
           false,
       },
       &HeadState::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1107,6 +1107,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fcontroller_2fconfig_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fcontroller_2fconfig_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

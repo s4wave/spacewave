@@ -6,11 +6,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/net/link"
-	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/link"
+	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	"github.com/sirupsen/logrus"
 )
 

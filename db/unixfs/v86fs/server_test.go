@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -14,9 +17,6 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	iofs_mock "github.com/s4wave/spacewave/db/unixfs/iofs/mock"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/sirupsen/logrus"
 )
 

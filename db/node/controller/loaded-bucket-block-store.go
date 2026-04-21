@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
 

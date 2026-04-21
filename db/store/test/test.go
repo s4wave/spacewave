@@ -5,13 +5,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/mqueue"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/store"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

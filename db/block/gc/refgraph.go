@@ -13,11 +13,11 @@ import (
 	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
-	"github.com/pkg/errors"
 )
 
 // RefGraph is a unified reference graph for garbage collection backed by Cayley.

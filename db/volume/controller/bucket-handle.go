@@ -4,14 +4,14 @@ import (
 	"context"
 	"runtime/trace"
 
-	"github.com/s4wave/spacewave/net/hash"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_event "github.com/s4wave/spacewave/db/bucket/event"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/keyed"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // bucketHandleTracker implements Bucket with a volume handle.

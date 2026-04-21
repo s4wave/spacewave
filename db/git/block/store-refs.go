@@ -3,10 +3,10 @@ package git_block
 import (
 	"bytes"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/go-git/go-git/v6/storage"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // SetReference sets the reference in the block graph.

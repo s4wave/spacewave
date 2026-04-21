@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/blang/semver/v4"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -15,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

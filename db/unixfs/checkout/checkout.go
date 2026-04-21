@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
+	"github.com/go-git/go-billy/v6/osfs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
-	"github.com/go-git/go-billy/v6/osfs"
 )
 
 // Checkout recursively copies the contents of the UnixFS to disk.

@@ -1,11 +1,11 @@
 package block_store_redis
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // RedisBlock is a block store on top of a Redis database.

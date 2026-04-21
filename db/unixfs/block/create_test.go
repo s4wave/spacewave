@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
 	"github.com/s4wave/spacewave/db/testbed"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 //go:embed fs

@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 )
 
 // KVImplType is the key/value store implementation enum.

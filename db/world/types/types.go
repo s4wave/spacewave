@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/path"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
 )
 
 // TypesPrefix is the prefix string for all types identifiers.

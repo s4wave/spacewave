@@ -3,11 +3,11 @@ package volume_redis
 import (
 	"context"
 
+	"github.com/blang/semver/v4"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
 	kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

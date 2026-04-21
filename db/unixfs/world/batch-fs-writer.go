@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // pendingEntry is one accumulated dirent waiting to be merged at Commit.

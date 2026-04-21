@@ -4,18 +4,18 @@ import (
 	"context"
 	"errors"
 
-	"github.com/s4wave/spacewave/net/keypem"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/blang/semver/v4"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // ControllerID is the controller id.

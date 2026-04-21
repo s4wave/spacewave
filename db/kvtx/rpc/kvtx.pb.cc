@@ -580,11 +580,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace rpc
 }  // namespace kvtx
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x004, // bitmap
         PROTOBUF_FIELD_OFFSET(::kvtx::rpc::KvtxTransactionRequest, _impl_._oneof_case_[0]),
@@ -765,85 +765,85 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::kvtx::rpc::_KvtxIterateResponse_default_instance_._instance,
     &::kvtx::rpc::_KvtxIterateStatus_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n5github.com/s4wave/spacewave/db/kvtx"
-    "/rpc/kvtx.proto\022\010kvtx.rpc\032<github.com/ap"
-    "erturerobotics/starpc/rpcstream/rpcstrea"
-    "m.proto\"t\n\026KvtxTransactionRequest\022-\n\004ini"
-    "t\030\001 \001(\0132\035.kvtx.rpc.KvtxTransactionInitH\000"
-    "\022\020\n\006commit\030\002 \001(\010H\000\022\021\n\007discard\030\003 \001(\010H\000B\006\n"
-    "\004body\"$\n\023KvtxTransactionInit\022\r\n\005write\030\001 "
-    "\001(\010\"\205\001\n\027KvtxTransactionResponse\022+\n\003ack\030\001"
-    " \001(\0132\034.kvtx.rpc.KvtxTransactionAckH\000\0225\n\010"
-    "complete\030\002 \001(\0132!.kvtx.rpc.KvtxTransactio"
-    "nCompleteH\000B\006\n\004body\";\n\022KvtxTransactionAc"
-    "k\022\r\n\005error\030\001 \001(\t\022\026\n\016transaction_id\030\002 \001(\t"
-    "\"N\n\027KvtxTransactionComplete\022\r\n\005error\030\001 \001"
-    "(\t\022\021\n\tcommitted\030\002 \001(\010\022\021\n\tdiscarded\030\003 \001(\010"
-    "\"\021\n\017KeyCountRequest\"%\n\020KeyCountResponse\022"
-    "\021\n\tkey_count\030\001 \001(\004\"\035\n\016KvtxKeyRequest\022\013\n\003"
-    "key\030\001 \001(\014\"A\n\023KvtxKeyDataResponse\022\r\n\005erro"
-    "r\030\001 \001(\t\022\r\n\005found\030\002 \001(\010\022\014\n\004data\030\003 \001(\014\"5\n\025"
-    "KvtxKeyExistsResponse\022\r\n\005error\030\001 \001(\t\022\r\n\005"
-    "found\030\002 \001(\010\"/\n\021KvtxSetKeyRequest\022\013\n\003key\030"
-    "\001 \001(\014\022\r\n\005value\030\002 \001(\014\"#\n\022KvtxSetKeyRespon"
-    "se\022\r\n\005error\030\001 \001(\t\"#\n\024KvtxDeleteKeyReques"
-    "t\022\013\n\003key\030\001 \001(\014\"&\n\025KvtxDeleteKeyResponse\022"
-    "\r\n\005error\030\001 \001(\t\":\n\025KvtxScanPrefixRequest\022"
-    "\016\n\006prefix\030\001 \001(\014\022\021\n\tonly_keys\030\002 \001(\010\"C\n\026Kv"
-    "txScanPrefixResponse\022\r\n\005error\030\001 \001(\t\022\013\n\003k"
-    "ey\030\002 \001(\014\022\r\n\005value\030\003 \001(\014\"\252\001\n\022KvtxIterateR"
-    "equest\022)\n\004init\030\001 \001(\0132\031.kvtx.rpc.KvtxIter"
-    "ateInitH\000\022\026\n\014lookup_value\030\002 \001(\010H\000\022\016\n\004nex"
-    "t\030\003 \001(\010H\000\022\016\n\004seek\030\004 \001(\014H\000\022\030\n\016seek_beginn"
-    "ing\030\005 \001(\010H\000\022\017\n\005close\030\006 \001(\010H\000B\006\n\004body\"@\n\017"
-    "KvtxIterateInit\022\016\n\006prefix\030\001 \001(\014\022\014\n\004sort\030"
-    "\002 \001(\010\022\017\n\007reverse\030\003 \001(\010\"\223\001\n\023KvtxIterateRe"
-    "sponse\022\r\n\003ack\030\001 \001(\010H\000\022\023\n\treq_error\030\002 \001(\t"
-    "H\000\022-\n\006status\030\003 \001(\0132\033.kvtx.rpc.KvtxIterat"
-    "eStatusH\000\022\017\n\005value\030\004 \001(\014H\000\022\020\n\006closed\030\005 \001"
-    "(\010H\000B\006\n\004body\">\n\021KvtxIterateStatus\022\r\n\005err"
-    "or\030\001 \001(\t\022\r\n\005valid\030\002 \001(\010\022\013\n\003key\030\003 \001(\0142\264\001\n"
-    "\004Kvtx\022Z\n\017KvtxTransaction\022 .kvtx.rpc.Kvtx"
-    "TransactionRequest\032!.kvtx.rpc.KvtxTransa"
-    "ctionResponse(\0010\001\022P\n\022KvtxTransactionRpc\022"
-    "\032.rpcstream.RpcStreamPacket\032\032.rpcstream."
-    "RpcStreamPacket(\0010\0012\212\004\n\007KvtxOps\022A\n\010KeyCo"
-    "unt\022\031.kvtx.rpc.KeyCountRequest\032\032.kvtx.rp"
-    "c.KeyCountResponse\022B\n\007KeyData\022\030.kvtx.rpc"
-    ".KvtxKeyRequest\032\035.kvtx.rpc.KvtxKeyDataRe"
-    "sponse\022F\n\tKeyExists\022\030.kvtx.rpc.KvtxKeyRe"
-    "quest\032\037.kvtx.rpc.KvtxKeyExistsResponse\022C"
-    "\n\006SetKey\022\033.kvtx.rpc.KvtxSetKeyRequest\032\034."
-    "kvtx.rpc.KvtxSetKeyResponse\022L\n\tDeleteKey"
-    "\022\036.kvtx.rpc.KvtxDeleteKeyRequest\032\037.kvtx."
-    "rpc.KvtxDeleteKeyResponse\022Q\n\nScanPrefix\022"
-    "\037.kvtx.rpc.KvtxScanPrefixRequest\032 .kvtx."
-    "rpc.KvtxScanPrefixResponse0\001\022J\n\007Iterate\022"
-    "\034.kvtx.rpc.KvtxIterateRequest\032\035.kvtx.rpc"
-    ".KvtxIterateResponse(\0010\001b\006proto3"
+    "\n2github.com/s4wave/spacewave/db/kvtx/rp"
+    "c/kvtx.proto\022\010kvtx.rpc\032<github.com/apert"
+    "urerobotics/starpc/rpcstream/rpcstream.p"
+    "roto\"t\n\026KvtxTransactionRequest\022-\n\004init\030\001"
+    " \001(\0132\035.kvtx.rpc.KvtxTransactionInitH\000\022\020\n"
+    "\006commit\030\002 \001(\010H\000\022\021\n\007discard\030\003 \001(\010H\000B\006\n\004bo"
+    "dy\"$\n\023KvtxTransactionInit\022\r\n\005write\030\001 \001(\010"
+    "\"\205\001\n\027KvtxTransactionResponse\022+\n\003ack\030\001 \001("
+    "\0132\034.kvtx.rpc.KvtxTransactionAckH\000\0225\n\010com"
+    "plete\030\002 \001(\0132!.kvtx.rpc.KvtxTransactionCo"
+    "mpleteH\000B\006\n\004body\";\n\022KvtxTransactionAck\022\r"
+    "\n\005error\030\001 \001(\t\022\026\n\016transaction_id\030\002 \001(\t\"N\n"
+    "\027KvtxTransactionComplete\022\r\n\005error\030\001 \001(\t\022"
+    "\021\n\tcommitted\030\002 \001(\010\022\021\n\tdiscarded\030\003 \001(\010\"\021\n"
+    "\017KeyCountRequest\"%\n\020KeyCountResponse\022\021\n\t"
+    "key_count\030\001 \001(\004\"\035\n\016KvtxKeyRequest\022\013\n\003key"
+    "\030\001 \001(\014\"A\n\023KvtxKeyDataResponse\022\r\n\005error\030\001"
+    " \001(\t\022\r\n\005found\030\002 \001(\010\022\014\n\004data\030\003 \001(\014\"5\n\025Kvt"
+    "xKeyExistsResponse\022\r\n\005error\030\001 \001(\t\022\r\n\005fou"
+    "nd\030\002 \001(\010\"/\n\021KvtxSetKeyRequest\022\013\n\003key\030\001 \001"
+    "(\014\022\r\n\005value\030\002 \001(\014\"#\n\022KvtxSetKeyResponse\022"
+    "\r\n\005error\030\001 \001(\t\"#\n\024KvtxDeleteKeyRequest\022\013"
+    "\n\003key\030\001 \001(\014\"&\n\025KvtxDeleteKeyResponse\022\r\n\005"
+    "error\030\001 \001(\t\":\n\025KvtxScanPrefixRequest\022\016\n\006"
+    "prefix\030\001 \001(\014\022\021\n\tonly_keys\030\002 \001(\010\"C\n\026KvtxS"
+    "canPrefixResponse\022\r\n\005error\030\001 \001(\t\022\013\n\003key\030"
+    "\002 \001(\014\022\r\n\005value\030\003 \001(\014\"\252\001\n\022KvtxIterateRequ"
+    "est\022)\n\004init\030\001 \001(\0132\031.kvtx.rpc.KvtxIterate"
+    "InitH\000\022\026\n\014lookup_value\030\002 \001(\010H\000\022\016\n\004next\030\003"
+    " \001(\010H\000\022\016\n\004seek\030\004 \001(\014H\000\022\030\n\016seek_beginning"
+    "\030\005 \001(\010H\000\022\017\n\005close\030\006 \001(\010H\000B\006\n\004body\"@\n\017Kvt"
+    "xIterateInit\022\016\n\006prefix\030\001 \001(\014\022\014\n\004sort\030\002 \001"
+    "(\010\022\017\n\007reverse\030\003 \001(\010\"\223\001\n\023KvtxIterateRespo"
+    "nse\022\r\n\003ack\030\001 \001(\010H\000\022\023\n\treq_error\030\002 \001(\tH\000\022"
+    "-\n\006status\030\003 \001(\0132\033.kvtx.rpc.KvtxIterateSt"
+    "atusH\000\022\017\n\005value\030\004 \001(\014H\000\022\020\n\006closed\030\005 \001(\010H"
+    "\000B\006\n\004body\">\n\021KvtxIterateStatus\022\r\n\005error\030"
+    "\001 \001(\t\022\r\n\005valid\030\002 \001(\010\022\013\n\003key\030\003 \001(\0142\264\001\n\004Kv"
+    "tx\022Z\n\017KvtxTransaction\022 .kvtx.rpc.KvtxTra"
+    "nsactionRequest\032!.kvtx.rpc.KvtxTransacti"
+    "onResponse(\0010\001\022P\n\022KvtxTransactionRpc\022\032.r"
+    "pcstream.RpcStreamPacket\032\032.rpcstream.Rpc"
+    "StreamPacket(\0010\0012\212\004\n\007KvtxOps\022A\n\010KeyCount"
+    "\022\031.kvtx.rpc.KeyCountRequest\032\032.kvtx.rpc.K"
+    "eyCountResponse\022B\n\007KeyData\022\030.kvtx.rpc.Kv"
+    "txKeyRequest\032\035.kvtx.rpc.KvtxKeyDataRespo"
+    "nse\022F\n\tKeyExists\022\030.kvtx.rpc.KvtxKeyReque"
+    "st\032\037.kvtx.rpc.KvtxKeyExistsResponse\022C\n\006S"
+    "etKey\022\033.kvtx.rpc.KvtxSetKeyRequest\032\034.kvt"
+    "x.rpc.KvtxSetKeyResponse\022L\n\tDeleteKey\022\036."
+    "kvtx.rpc.KvtxDeleteKeyRequest\032\037.kvtx.rpc"
+    ".KvtxDeleteKeyResponse\022Q\n\nScanPrefix\022\037.k"
+    "vtx.rpc.KvtxScanPrefixRequest\032 .kvtx.rpc"
+    ".KvtxScanPrefixResponse0\001\022J\n\007Iterate\022\034.k"
+    "vtx.rpc.KvtxIterateRequest\032\035.kvtx.rpc.Kv"
+    "txIterateResponse(\0010\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_deps[1] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_deps[1] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto = {
     false,
     false,
-    2232,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+    2229,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
     "github.com/s4wave/spacewave/db/kvtx/rpc/kvtx.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto_deps,
     1,
     20,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
 };
 namespace kvtx {
 namespace rpc {
@@ -996,7 +996,7 @@ constexpr auto KvtxTransactionRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxTransactionRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1295,7 +1295,7 @@ constexpr auto KvtxTransactionInit::InternalGenerateClassData_() {
           false,
       },
       &KvtxTransactionInit::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1621,7 +1621,7 @@ constexpr auto KvtxTransactionResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxTransactionResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1926,7 +1926,7 @@ constexpr auto KvtxTransactionAck::InternalGenerateClassData_() {
           false,
       },
       &KvtxTransactionAck::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2256,7 +2256,7 @@ constexpr auto KvtxTransactionComplete::InternalGenerateClassData_() {
           false,
       },
       &KvtxTransactionComplete::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2559,7 +2559,7 @@ constexpr auto KeyCountRequest::InternalGenerateClassData_() {
           false,
       },
       &KeyCountRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2691,7 +2691,7 @@ constexpr auto KeyCountResponse::InternalGenerateClassData_() {
           false,
       },
       &KeyCountResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2953,7 +2953,7 @@ constexpr auto KvtxKeyRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxKeyRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3228,7 +3228,7 @@ constexpr auto KvtxKeyDataResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxKeyDataResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3573,7 +3573,7 @@ constexpr auto KvtxKeyExistsResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxKeyExistsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3882,7 +3882,7 @@ constexpr auto KvtxSetKeyRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxSetKeyRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4191,7 +4191,7 @@ constexpr auto KvtxSetKeyResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxSetKeyResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4466,7 +4466,7 @@ constexpr auto KvtxDeleteKeyRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxDeleteKeyRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4736,7 +4736,7 @@ constexpr auto KvtxDeleteKeyResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxDeleteKeyResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5013,7 +5013,7 @@ constexpr auto KvtxScanPrefixRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxScanPrefixRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5320,7 +5320,7 @@ constexpr auto KvtxScanPrefixResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxScanPrefixResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5745,7 +5745,7 @@ constexpr auto KvtxIterateRequest::InternalGenerateClassData_() {
           false,
       },
       &KvtxIterateRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6125,7 +6125,7 @@ constexpr auto KvtxIterateInit::InternalGenerateClassData_() {
           false,
       },
       &KvtxIterateInit::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6529,7 +6529,7 @@ constexpr auto KvtxIterateResponse::InternalGenerateClassData_() {
           false,
       },
       &KvtxIterateResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6892,7 +6892,7 @@ constexpr auto KvtxIterateStatus::InternalGenerateClassData_() {
           false,
       },
       &KvtxIterateStatus::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7151,6 +7151,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2frpc_2fkvtx_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

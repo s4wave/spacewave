@@ -1,11 +1,11 @@
 package psecho
 
 import (
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the identifier for the config type.

@@ -12,12 +12,12 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	block "github.com/s4wave/spacewave/db/block"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	event "github.com/s4wave/spacewave/db/bucket/event"
 	volume "github.com/s4wave/spacewave/db/volume"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // BucketOp is a bucket operation.

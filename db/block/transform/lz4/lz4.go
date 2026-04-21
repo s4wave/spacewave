@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"io"
 
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/pierrec/lz4/v4"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // LZ4 is the LZ4 compression step.

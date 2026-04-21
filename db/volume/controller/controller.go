@@ -6,17 +6,17 @@ import (
 	"sync"
 	"time"
 
-	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	volume "github.com/s4wave/spacewave/db/volume"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/keyed"
+	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,10 +3,10 @@ package unixfs_access_http
 import (
 	"regexp"
 
-	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver/v4"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
 // ControllerID is the controller identifier.

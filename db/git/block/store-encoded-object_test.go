@@ -6,8 +6,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

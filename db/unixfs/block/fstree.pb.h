@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/unixfs/block/fstree.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -40,7 +40,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto
 
 namespace google {
 namespace protobuf {
@@ -52,11 +52,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 }  // extern "C"
 namespace unixfs {
 namespace block {
@@ -403,7 +403,7 @@ class FSXattr final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSXattr_class_data_;
@@ -617,7 +617,7 @@ class FSPath final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSPath_class_data_;
@@ -812,7 +812,7 @@ class FSHostVolume final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSHostVolume_class_data_;
@@ -1002,7 +1002,7 @@ class FSConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSConfig_class_data_;
@@ -1197,7 +1197,7 @@ class FSSymlink final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSSymlink_class_data_;
@@ -1483,7 +1483,7 @@ class FSChange final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSChange_class_data_;
@@ -1707,7 +1707,7 @@ class Dirent final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Dirent_class_data_;
@@ -1998,7 +1998,7 @@ class FSNode final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSNode_class_data_;
@@ -2227,7 +2227,7 @@ class FSObject final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FSObject_class_data_;
@@ -4022,4 +4022,4 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::unixfs::block:
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto_2epb_2eh

@@ -3,12 +3,12 @@ package block_store_rpc_server_bucket
 import (
 	"regexp"
 
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the string used to identify this config object.

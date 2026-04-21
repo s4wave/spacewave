@@ -4,10 +4,10 @@ import (
 	"context"
 	"slices"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/aperturerobotics/util/broadcast"
 )
 
 // FSWatcherCb is a function called with the FSOps and FSCursor when the

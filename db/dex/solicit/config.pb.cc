@@ -63,11 +63,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace solicit
 }  // namespace dex
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::dex::solicit::Config, _impl_._has_bits_),
@@ -89,30 +89,30 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::dex::solicit::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n:github.com/s4wave/spacewave/db/dex/"
-    "solicit/config.proto\022\013dex.solicit\"\\\n\006Con"
-    "fig\022\021\n\tbucket_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\022"
-    "\024\n\014transport_id\030\003 \001(\004\022\030\n\020max_forward_hop"
-    "s\030\004 \001(\rb\006proto3"
+    "\n7github.com/s4wave/spacewave/db/dex/sol"
+    "icit/config.proto\022\013dex.solicit\"\\\n\006Config"
+    "\022\021\n\tbucket_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\022\024\n\014"
+    "transport_id\030\003 \001(\004\022\030\n\020max_forward_hops\030\004"
+    " \001(\rb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto = {
     false,
     false,
-    175,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto,
+    172,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto,
     "github.com/s4wave/spacewave/db/dex/solicit/config.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto_once,
     nullptr,
     0,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto,
 };
 namespace dex {
 namespace solicit {
@@ -226,7 +226,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -524,6 +524,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdex_2fsolicit_2fconfig_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdex_2fsolicit_2fconfig_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

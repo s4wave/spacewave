@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/gomodule/redigo/redis"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // txOps implements the transaction operations against a redis conn.

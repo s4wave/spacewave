@@ -4,9 +4,9 @@ import (
 	"context"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/pkg/errors"
 )
 
 // DirentSlice implements dirent slice functions.

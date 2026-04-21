@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

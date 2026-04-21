@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

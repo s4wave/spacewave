@@ -1,8 +1,8 @@
 package unixfs_block
 
 import (
-	"github.com/s4wave/spacewave/db/block"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewFSObject constructs a new FSObject with defaults.

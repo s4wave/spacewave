@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	transform "github.com/s4wave/spacewave/db/block/transform"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	transform "github.com/s4wave/spacewave/db/block/transform"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // Config configures a object store backed sql db controller.

@@ -10,10 +10,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/bucket"
-	volume "github.com/s4wave/spacewave/db/volume"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
+	"github.com/s4wave/spacewave/db/bucket"
+	volume "github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 

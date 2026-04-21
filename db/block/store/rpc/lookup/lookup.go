@@ -6,9 +6,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/blang/semver/v4"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	"github.com/s4wave/spacewave/db/dex"
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

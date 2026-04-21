@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_txcache "github.com/s4wave/spacewave/db/kvtx/txcache"
-	"github.com/gomodule/redigo/redis"
 )
 
 // ErrNotWrite is returned if a read transaction is used to write.

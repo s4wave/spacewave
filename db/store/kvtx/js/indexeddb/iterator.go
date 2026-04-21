@@ -9,9 +9,9 @@ import (
 
 	"github.com/aperturerobotics/go-indexeddb/durable"
 	"github.com/aperturerobotics/go-indexeddb/idb"
+	"github.com/hack-pad/safejs"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/util/jsbuf"
-	"github.com/hack-pad/safejs"
 )
 
 // kvtxIterator implements a kvtx Iterator for IndexedDB.

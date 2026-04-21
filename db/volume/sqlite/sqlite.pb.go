@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	controller "github.com/s4wave/spacewave/db/volume/controller"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Config is the sqlite volume controller config.

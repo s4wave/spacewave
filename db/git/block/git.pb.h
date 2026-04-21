@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/git/block/git.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -36,7 +36,7 @@
 #include "google/protobuf/map_field.h"
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/s4wave/spacewave/net/hash/hash.pb.h"
+#include "../../../net/hash/hash.pb.h"
 #include "../../block/block.pb.h"
 #include "../../block/blob/blob.pb.h"
 #include "../../kvtx/block/kvtx.pb.h"
@@ -46,7 +46,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto
 
 namespace google {
 namespace protobuf {
@@ -58,11 +58,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 }  // extern "C"
 namespace git {
 namespace block {
@@ -599,7 +599,7 @@ class FetchOpts final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchOpts_class_data_;
@@ -929,7 +929,7 @@ class CloneOpts final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CloneOpts_class_data_;
@@ -1141,7 +1141,7 @@ class AuthOpts final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AuthOpts_class_data_;
@@ -1377,7 +1377,7 @@ class TreeEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TreeEntry_class_data_;
@@ -1574,7 +1574,7 @@ class ShallowRefsStore final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ShallowRefsStore_class_data_;
@@ -1602,7 +1602,7 @@ class ResolveUndoEntry_StagesEntry_DoNotUse final
 
  private:
   friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<1, 2,
@@ -1854,7 +1854,7 @@ class Reference final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Reference_class_data_;
@@ -2208,7 +2208,7 @@ class IndexEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull IndexEntry_class_data_;
@@ -2415,7 +2415,7 @@ class EndOfIndexEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EndOfIndexEntry_class_data_;
@@ -2663,7 +2663,7 @@ class CheckoutOpts final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CheckoutOpts_class_data_;
@@ -2860,7 +2860,7 @@ class Tree final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Tree_class_data_;
@@ -3072,7 +3072,7 @@ class Submodule final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Submodule_class_data_;
@@ -3287,7 +3287,7 @@ class ResolveUndoEntry final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResolveUndoEntry_class_data_;
@@ -3484,7 +3484,7 @@ class ResolveUndo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ResolveUndo_class_data_;
@@ -3744,7 +3744,7 @@ class Index final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Index_class_data_;
@@ -3968,7 +3968,7 @@ class EncodedObject final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EncodedObject_class_data_;
@@ -4163,7 +4163,7 @@ class ReferencesStore final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ReferencesStore_class_data_;
@@ -4358,7 +4358,7 @@ class ModuleReferencesStore final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ModuleReferencesStore_class_data_;
@@ -4570,7 +4570,7 @@ class EncodedObjectStore final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull EncodedObjectStore_class_data_;
@@ -4833,7 +4833,7 @@ class Repo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Repo_class_data_;
@@ -9126,4 +9126,4 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::git::block::Ta
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_2epb_2eh

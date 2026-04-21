@@ -3,14 +3,14 @@ package git_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
-	git_block "github.com/s4wave/spacewave/db/git/block"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
 	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
+	git_block "github.com/s4wave/spacewave/db/git/block"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

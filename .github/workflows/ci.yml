@@ -65,8 +65,3 @@ jobs:
       - name: Lint Go
         working-directory: ${{ matrix.member.dir }}
         run: bun run lint:go
-
-      - name: Depcheck Js
-        if: ${{ matrix.member.has_js }}
-        working-directory: ${{ matrix.member.dir }}
-        run: bun run deps

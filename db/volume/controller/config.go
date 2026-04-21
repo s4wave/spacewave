@@ -3,8 +3,8 @@ package volume_controller
 import (
 	"time"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // defaultGCInterval is the default GC sweep interval.

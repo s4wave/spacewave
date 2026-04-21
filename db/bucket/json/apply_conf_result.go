@@ -6,8 +6,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/fastjson"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // ApplyBucketConfigResult is the JSON marshaler for the response.

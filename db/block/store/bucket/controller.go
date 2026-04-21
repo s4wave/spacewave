@@ -5,11 +5,11 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/blang/semver/v4"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // ControllerID is the controller id.

@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/aperturerobotics/util/cqueue"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // FSHandle is an open handle to a location in a FSTree.

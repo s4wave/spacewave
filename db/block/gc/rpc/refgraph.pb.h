@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/block/gc/rpc/refgraph.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -37,7 +37,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto
 
 namespace google {
 namespace protobuf {
@@ -49,11 +49,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 }  // extern "C"
 namespace block {
 namespace gc {
@@ -320,7 +320,7 @@ class RemoveRefResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoveRefResponse_class_data_;
@@ -532,7 +532,7 @@ class RemoveRefRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoveRefRequest_class_data_;
@@ -751,7 +751,7 @@ class RemoveNodeRefsResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoveNodeRefsResponse_class_data_;
@@ -958,7 +958,7 @@ class RemoveNodeRefsRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoveNodeRefsRequest_class_data_;
@@ -1165,7 +1165,7 @@ class HasIncomingRefsResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HasIncomingRefsResponse_class_data_;
@@ -1360,7 +1360,7 @@ class HasIncomingRefsRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull HasIncomingRefsRequest_class_data_;
@@ -1579,7 +1579,7 @@ class GetUnreferencedNodesResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetUnreferencedNodesResponse_class_data_;
@@ -1713,7 +1713,7 @@ class GetUnreferencedNodesRequest final : public ::google::protobuf::internal::Z
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetUnreferencedNodesRequest_class_data_;
@@ -1932,7 +1932,7 @@ class GetOutgoingRefsResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetOutgoingRefsResponse_class_data_;
@@ -2127,7 +2127,7 @@ class GetOutgoingRefsRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetOutgoingRefsRequest_class_data_;
@@ -2346,7 +2346,7 @@ class GetIncomingRefsResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetIncomingRefsResponse_class_data_;
@@ -2541,7 +2541,7 @@ class GetIncomingRefsRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetIncomingRefsRequest_class_data_;
@@ -2736,7 +2736,7 @@ class AddRefResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AddRefResponse_class_data_;
@@ -2948,7 +2948,7 @@ class AddRefRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AddRefRequest_class_data_;
@@ -4348,4 +4348,4 @@ inline void GetUnreferencedNodesResponse::set_allocated_error(::std::string* PRO
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto_2epb_2eh

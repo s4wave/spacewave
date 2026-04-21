@@ -459,11 +459,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace world
 }  // namespace unixfs
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::world::UnixfsRef, _impl_._has_bits_),
@@ -670,108 +670,108 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::world::_MountValue_default_instance_._instance,
     &::unixfs::world::_RefValue_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n;github.com/s4wave/spacewave/db/unix"
-    "fs/world/unixfs.proto\022\014unixfs.world\0323git"
-    "hub.com/aperturerobotics/hydra/block/blo"
-    "ck.proto\0325github.com/aperturerobotics/hy"
-    "dra/bucket/bucket.proto\032;github.com/aper"
-    "turerobotics/hydra/unixfs/block/fstree.p"
-    "roto\032\037google/protobuf/timestamp.proto\"j\n"
-    "\tUnixfsRef\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_typ"
-    "e\030\002 \001(\0162\024.unixfs.world.FSType\022\"\n\004path\030\003 "
-    "\001(\0132\024.unixfs.block.FSPath\"\255\001\n\010FsInitOp\022\022"
-    "\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.un"
-    "ixfs.world.FSType\022!\n\006fs_ref\030\003 \001(\0132\021.buck"
-    "et.ObjectRef\022\024\n\014fs_overwrite\030\005 \001(\010\022-\n\tti"
-    "mestamp\030\006 \001(\0132\032.google.protobuf.Timestam"
-    "p\"\332\001\n\tFsMknodOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007f"
-    "s_type\030\002 \001(\0162\024.unixfs.world.FSType\022#\n\005pa"
-    "ths\030\003 \003(\0132\024.unixfs.block.FSPath\022\023\n\013permi"
-    "ssions\030\004 \001(\r\022)\n\tnode_type\030\005 \001(\0162\026.unixfs"
-    ".block.NodeType\022-\n\ttimestamp\030\006 \001(\0132\032.goo"
-    "gle.protobuf.Timestamp\"\305\001\n\013FsSymlinkOp\022\022"
+    "\n8github.com/s4wave/spacewave/db/unixfs/"
+    "world/unixfs.proto\022\014unixfs.world\0320github"
+    ".com/s4wave/spacewave/db/block/block.pro"
+    "to\0322github.com/s4wave/spacewave/db/bucke"
+    "t/bucket.proto\0328github.com/s4wave/spacew"
+    "ave/db/unixfs/block/fstree.proto\032\037google"
+    "/protobuf/timestamp.proto\"j\n\tUnixfsRef\022\022"
     "\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.un"
     "ixfs.world.FSType\022\"\n\004path\030\003 \001(\0132\024.unixfs"
-    ".block.FSPath\022(\n\007symlink\030\004 \001(\0132\027.unixfs."
-    "block.FSSymlink\022-\n\ttimestamp\030\005 \001(\0132\032.goo"
-    "gle.protobuf.Timestamp\"\270\001\n\022FsSetPermissi"
-    "onsOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001"
-    "(\0162\024.unixfs.world.FSType\022#\n\005paths\030\003 \003(\0132"
-    "\024.unixfs.block.FSPath\022\023\n\013permissions\030\004 \001"
-    "(\r\022-\n\ttimestamp\030\005 \001(\0132\032.google.protobuf."
-    "Timestamp\"\244\001\n\023FsSetModTimestampOp\022\022\n\nobj"
+    ".block.FSPath\"\255\001\n\010FsInitOp\022\022\n\nobject_key"
+    "\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.world.F"
+    "SType\022!\n\006fs_ref\030\003 \001(\0132\021.bucket.ObjectRef"
+    "\022\024\n\014fs_overwrite\030\005 \001(\010\022-\n\ttimestamp\030\006 \001("
+    "\0132\032.google.protobuf.Timestamp\"\332\001\n\tFsMkno"
+    "dOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\016"
+    "2\024.unixfs.world.FSType\022#\n\005paths\030\003 \003(\0132\024."
+    "unixfs.block.FSPath\022\023\n\013permissions\030\004 \001(\r"
+    "\022)\n\tnode_type\030\005 \001(\0162\026.unixfs.block.NodeT"
+    "ype\022-\n\ttimestamp\030\006 \001(\0132\032.google.protobuf"
+    ".Timestamp\"\305\001\n\013FsSymlinkOp\022\022\n\nobject_key"
+    "\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.world.F"
+    "SType\022\"\n\004path\030\003 \001(\0132\024.unixfs.block.FSPat"
+    "h\022(\n\007symlink\030\004 \001(\0132\027.unixfs.block.FSSyml"
+    "ink\022-\n\ttimestamp\030\005 \001(\0132\032.google.protobuf"
+    ".Timestamp\"\270\001\n\022FsSetPermissionsOp\022\022\n\nobj"
     "ect_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs."
     "world.FSType\022#\n\005paths\030\003 \003(\0132\024.unixfs.blo"
-    "ck.FSPath\022-\n\ttimestamp\030\004 \001(\0132\032.google.pr"
-    "otobuf.Timestamp\"\316\001\n\013FsWriteAtOp\022\022\n\nobje"
-    "ct_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.w"
-    "orld.FSType\022\"\n\004path\030\003 \001(\0132\024.unixfs.block"
-    ".FSPath\022\016\n\006offset\030\004 \001(\003\022!\n\010blob_ref\030\005 \001("
-    "\0132\017.block.BlockRef\022-\n\ttimestamp\030\006 \001(\0132\032."
-    "google.protobuf.Timestamp\"\257\001\n\014FsTruncate"
-    "Op\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162"
-    "\024.unixfs.world.FSType\022\"\n\004path\030\003 \001(\0132\024.un"
-    "ixfs.block.FSPath\022\021\n\tfile_size\030\004 \001(\003\022-\n\t"
-    "timestamp\030\005 \001(\0132\032.google.protobuf.Timest"
-    "amp\"\305\001\n\010FsCopyOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007"
-    "fs_type\030\002 \001(\0162\024.unixfs.world.FSType\022&\n\010s"
-    "rc_path\030\003 \001(\0132\024.unixfs.block.FSPath\022\'\n\td"
-    "est_path\030\004 \001(\0132\024.unixfs.block.FSPath\022-\n\t"
-    "timestamp\030\005 \001(\0132\032.google.protobuf.Timest"
-    "amp\"\307\001\n\nFsRenameOp\022\022\n\nobject_key\030\001 \001(\t\022%"
-    "\n\007fs_type\030\002 \001(\0162\024.unixfs.world.FSType\022&\n"
-    "\010src_path\030\003 \001(\0132\024.unixfs.block.FSPath\022\'\n"
-    "\tdest_path\030\004 \001(\0132\024.unixfs.block.FSPath\022-"
-    "\n\ttimestamp\030\005 \001(\0132\032.google.protobuf.Time"
-    "stamp\"\207\002\n\024FsMknodWithContentOp\022\022\n\nobject"
+    "ck.FSPath\022\023\n\013permissions\030\004 \001(\r\022-\n\ttimest"
+    "amp\030\005 \001(\0132\032.google.protobuf.Timestamp\"\244\001"
+    "\n\023FsSetModTimestampOp\022\022\n\nobject_key\030\001 \001("
+    "\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.world.FSType"
+    "\022#\n\005paths\030\003 \003(\0132\024.unixfs.block.FSPath\022-\n"
+    "\ttimestamp\030\004 \001(\0132\032.google.protobuf.Times"
+    "tamp\"\316\001\n\013FsWriteAtOp\022\022\n\nobject_key\030\001 \001(\t"
+    "\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.world.FSType\022"
+    "\"\n\004path\030\003 \001(\0132\024.unixfs.block.FSPath\022\016\n\006o"
+    "ffset\030\004 \001(\003\022!\n\010blob_ref\030\005 \001(\0132\017.block.Bl"
+    "ockRef\022-\n\ttimestamp\030\006 \001(\0132\032.google.proto"
+    "buf.Timestamp\"\257\001\n\014FsTruncateOp\022\022\n\nobject"
     "_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs.wor"
     "ld.FSType\022\"\n\004path\030\003 \001(\0132\024.unixfs.block.F"
-    "SPath\022\023\n\013permissions\030\004 \001(\r\022)\n\tnode_type\030"
-    "\005 \001(\0162\026.unixfs.block.NodeType\022-\n\ttimesta"
-    "mp\030\006 \001(\0132\032.google.protobuf.Timestamp\022!\n\010"
-    "blob_ref\030\007 \001(\0132\017.block.BlockRef\"\233\001\n\nFsRe"
-    "moveOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 "
-    "\001(\0162\024.unixfs.world.FSType\022#\n\005paths\030\003 \003(\013"
-    "2\024.unixfs.block.FSPath\022-\n\ttimestamp\030\004 \001("
-    "\0132\032.google.protobuf.Timestamp\"0\n\nMountVa"
-    "lue\022\022\n\nmountpoint\030\001 \001(\t\022\016\n\006prefix\030\002 \001(\t\""
-    "U\n\010RefValue\022%\n\007fs_type\030\001 \001(\0162\024.unixfs.wo"
-    "rld.FSType\022\"\n\004path\030\002 \001(\0132\024.unixfs.block."
-    "FSPath*a\n\006FSType\022\022\n\016FSType_UNKNOWN\020\000\022\022\n\016"
-    "FSType_FS_NODE\020\001\022\024\n\020FSType_FS_OBJECT\020\002\022\031"
-    "\n\025FSType_FS_HOST_VOLUME\020\003b\006proto3"
+    "SPath\022\021\n\tfile_size\030\004 \001(\003\022-\n\ttimestamp\030\005 "
+    "\001(\0132\032.google.protobuf.Timestamp\"\305\001\n\010FsCo"
+    "pyOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001("
+    "\0162\024.unixfs.world.FSType\022&\n\010src_path\030\003 \001("
+    "\0132\024.unixfs.block.FSPath\022\'\n\tdest_path\030\004 \001"
+    "(\0132\024.unixfs.block.FSPath\022-\n\ttimestamp\030\005 "
+    "\001(\0132\032.google.protobuf.Timestamp\"\307\001\n\nFsRe"
+    "nameOp\022\022\n\nobject_key\030\001 \001(\t\022%\n\007fs_type\030\002 "
+    "\001(\0162\024.unixfs.world.FSType\022&\n\010src_path\030\003 "
+    "\001(\0132\024.unixfs.block.FSPath\022\'\n\tdest_path\030\004"
+    " \001(\0132\024.unixfs.block.FSPath\022-\n\ttimestamp\030"
+    "\005 \001(\0132\032.google.protobuf.Timestamp\"\207\002\n\024Fs"
+    "MknodWithContentOp\022\022\n\nobject_key\030\001 \001(\t\022%"
+    "\n\007fs_type\030\002 \001(\0162\024.unixfs.world.FSType\022\"\n"
+    "\004path\030\003 \001(\0132\024.unixfs.block.FSPath\022\023\n\013per"
+    "missions\030\004 \001(\r\022)\n\tnode_type\030\005 \001(\0162\026.unix"
+    "fs.block.NodeType\022-\n\ttimestamp\030\006 \001(\0132\032.g"
+    "oogle.protobuf.Timestamp\022!\n\010blob_ref\030\007 \001"
+    "(\0132\017.block.BlockRef\"\233\001\n\nFsRemoveOp\022\022\n\nob"
+    "ject_key\030\001 \001(\t\022%\n\007fs_type\030\002 \001(\0162\024.unixfs"
+    ".world.FSType\022#\n\005paths\030\003 \003(\0132\024.unixfs.bl"
+    "ock.FSPath\022-\n\ttimestamp\030\004 \001(\0132\032.google.p"
+    "rotobuf.Timestamp\"0\n\nMountValue\022\022\n\nmount"
+    "point\030\001 \001(\t\022\016\n\006prefix\030\002 \001(\t\"U\n\010RefValue\022"
+    "%\n\007fs_type\030\001 \001(\0162\024.unixfs.world.FSType\022\""
+    "\n\004path\030\002 \001(\0132\024.unixfs.block.FSPath*a\n\006FS"
+    "Type\022\022\n\016FSType_UNKNOWN\020\000\022\022\n\016FSType_FS_NO"
+    "DE\020\001\022\024\n\020FSType_FS_OBJECT\020\002\022\031\n\025FSType_FS_"
+    "HOST_VOLUME\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_deps[4] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto = {
     false,
     false,
-    2793,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+    2781,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
     "github.com/s4wave/spacewave/db/unixfs/world/unixfs.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto_deps,
     4,
     14,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
 };
 namespace unixfs {
 namespace world {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL FSType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t FSType_internal_data_[] = {
     262144u, 0u, };
@@ -887,7 +887,7 @@ constexpr auto UnixfsRef::InternalGenerateClassData_() {
           false,
       },
       &UnixfsRef::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1269,7 +1269,7 @@ constexpr auto FsInitOp::InternalGenerateClassData_() {
           false,
       },
       &FsInitOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1724,7 +1724,7 @@ constexpr auto FsMknodOp::InternalGenerateClassData_() {
           false,
       },
       &FsMknodOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2205,7 +2205,7 @@ constexpr auto FsSymlinkOp::InternalGenerateClassData_() {
           false,
       },
       &FsSymlinkOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2661,7 +2661,7 @@ constexpr auto FsSetPermissionsOp::InternalGenerateClassData_() {
           false,
       },
       &FsSetPermissionsOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3116,7 +3116,7 @@ constexpr auto FsSetModTimestampOp::InternalGenerateClassData_() {
           false,
       },
       &FsSetModTimestampOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3543,7 +3543,7 @@ constexpr auto FsWriteAtOp::InternalGenerateClassData_() {
           false,
       },
       &FsWriteAtOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4019,7 +4019,7 @@ constexpr auto FsTruncateOp::InternalGenerateClassData_() {
           false,
       },
       &FsTruncateOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4469,7 +4469,7 @@ constexpr auto FsCopyOp::InternalGenerateClassData_() {
           false,
       },
       &FsCopyOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4919,7 +4919,7 @@ constexpr auto FsRenameOp::InternalGenerateClassData_() {
           false,
       },
       &FsRenameOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5375,7 +5375,7 @@ constexpr auto FsMknodWithContentOp::InternalGenerateClassData_() {
           false,
       },
       &FsMknodWithContentOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5881,7 +5881,7 @@ constexpr auto FsRemoveOp::InternalGenerateClassData_() {
           false,
       },
       &FsRemoveOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6267,7 +6267,7 @@ constexpr auto MountValue::InternalGenerateClassData_() {
           false,
       },
       &MountValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6599,7 +6599,7 @@ constexpr auto RefValue::InternalGenerateClassData_() {
           false,
       },
       &RefValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6819,6 +6819,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

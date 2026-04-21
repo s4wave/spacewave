@@ -3,8 +3,8 @@ package dex
 import (
 	// "github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // LookupBlockFromNetwork is a directive to find a block from remote DHT.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/pkg/errors"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // FSCursorGetter implements a FSCursor with a getter function.

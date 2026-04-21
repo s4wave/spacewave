@@ -5,9 +5,9 @@ import (
 	"context"
 	"math"
 
+	"github.com/pkg/errors"
 	hydra_heap "github.com/s4wave/spacewave/db/heap"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/pkg/errors"
 )
 
 // FibbonaciHeap is an implementation of a db backed Fibbonaci heap.

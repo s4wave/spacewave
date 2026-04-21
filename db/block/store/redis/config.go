@@ -2,9 +2,9 @@ package block_store_redis
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	store_kvtx_redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.

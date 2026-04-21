@@ -11,9 +11,9 @@ import (
 	slices "slices"
 	strings "strings"
 
-	blockenc "github.com/s4wave/spacewave/db/util/blockenc"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	blockenc "github.com/s4wave/spacewave/db/util/blockenc"
 )
 
 // Config configures the block encrypt transform.

@@ -4,12 +4,12 @@ import (
 	"context"
 	"runtime/trace"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/csync"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // Tx implements the hydra world transaction interface.

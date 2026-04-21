@@ -7,9 +7,9 @@ import (
 	"database/sql"
 	"os"
 
+	"github.com/mattn/go-sqlite3"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
-	"github.com/mattn/go-sqlite3"
 )
 
 // CGOConfig implements the SQLiteDriverConfig interface for CGO SQLite driver.

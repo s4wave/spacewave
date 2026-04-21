@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/go-git/go-billy/v6/osfs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
-	"github.com/go-git/go-billy/v6/osfs"
 )
 
 // Sync recursively synchronizes the contents of the UnixFS to disk.

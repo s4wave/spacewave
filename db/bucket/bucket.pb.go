@@ -12,11 +12,11 @@ import (
 	strings "strings"
 
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	block "github.com/s4wave/spacewave/db/block"
-	transform "github.com/s4wave/spacewave/db/block/transform"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	block "github.com/s4wave/spacewave/db/block"
+	transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // Config is a bucket configuration object.

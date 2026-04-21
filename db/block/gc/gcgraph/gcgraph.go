@@ -12,10 +12,10 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
-	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
 )
 

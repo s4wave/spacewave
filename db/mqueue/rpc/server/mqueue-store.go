@@ -3,10 +3,10 @@ package mqueue_rpc_server
 import (
 	"context"
 
-	mqueue_rpc "github.com/s4wave/spacewave/db/mqueue/rpc"
-	mqueue_store "github.com/s4wave/spacewave/db/mqueue/store"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	mqueue_rpc "github.com/s4wave/spacewave/db/mqueue/rpc"
+	mqueue_store "github.com/s4wave/spacewave/db/mqueue/store"
 )
 
 // MqueueStore implements the server with a MqueueStore.

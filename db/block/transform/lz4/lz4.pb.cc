@@ -59,11 +59,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace lz4
 }  // namespace transform
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::transform::lz4::Config, _impl_._has_bits_),
@@ -85,39 +85,39 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::transform::lz4::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n\?github.com/s4wave/spacewave/db/bloc"
-    "k/transform/lz4/lz4.proto\022\rtransform.lz4"
-    "\"\203\001\n\006Config\022,\n\nblock_size\030\001 \001(\0162\030.transf"
-    "orm.lz4.BlockSize\022\026\n\016block_checksum\030\002 \001("
-    "\010\022\030\n\020disable_checksum\030\003 \001(\010\022\031\n\021compressi"
-    "on_level\030\004 \001(\r*Z\n\tBlockSize\022\021\n\rBlockSize"
-    "_4MB\020\000\022\022\n\016BlockSize_64KB\020\001\022\023\n\017BlockSize_"
-    "256KB\020\002\022\021\n\rBlockSize_1MB\020\003b\006proto3"
+    "\n<github.com/s4wave/spacewave/db/block/t"
+    "ransform/lz4/lz4.proto\022\rtransform.lz4\"\203\001"
+    "\n\006Config\022,\n\nblock_size\030\001 \001(\0162\030.transform"
+    ".lz4.BlockSize\022\026\n\016block_checksum\030\002 \001(\010\022\030"
+    "\n\020disable_checksum\030\003 \001(\010\022\031\n\021compression_"
+    "level\030\004 \001(\r*Z\n\tBlockSize\022\021\n\rBlockSize_4M"
+    "B\020\000\022\022\n\016BlockSize_64KB\020\001\022\023\n\017BlockSize_256"
+    "KB\020\002\022\021\n\rBlockSize_1MB\020\003b\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto = {
     false,
     false,
-    314,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto,
+    311,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto,
     "github.com/s4wave/spacewave/db/block/transform/lz4/lz4.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto_once,
     nullptr,
     0,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto,
 };
 namespace transform {
 namespace lz4 {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL BlockSize_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t BlockSize_internal_data_[] = {
     262144u, 0u, };
@@ -206,7 +206,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto,
       nullptr,  // tracker
   };
 }
@@ -476,6 +476,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ftransform_2flz4_2flz4_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2flz4_2flz4_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -12,9 +12,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 )
 
 // Config configures the block store kvfile via http controller.

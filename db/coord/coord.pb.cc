@@ -240,11 +240,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetParticipantInfoRequestDefaultTypeInternal _GetParticipantInfoRequest_default_instance_;
 }  // namespace coord
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::coord::ParticipantRecord, _impl_._has_bits_),
@@ -325,57 +325,57 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::coord::_WatchWorldSeqnoResponse_default_instance_._instance,
     &::coord::_LeaseRecord_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n3github.com/s4wave/spacewave/db/coor"
-    "d/coord.proto\022\005coord\"\256\001\n\021ParticipantReco"
-    "rd\022\013\n\003pid\030\001 \001(\r\022$\n\004role\030\002 \001(\0162\026.coord.Pa"
-    "rticipantRole\022\030\n\020start_time_nanos\030\003 \001(\003\022"
-    "\024\n\014capabilities\030\004 \003(\t\022\030\n\020srpc_socket_pat"
-    "h\030\005 \001(\t\022\034\n\024last_heartbeat_nanos\030\006 \001(\003\"\033\n"
-    "\031GetParticipantInfoRequest\"e\n\032GetPartici"
-    "pantInfoResponse\022\013\n\003pid\030\001 \001(\r\022$\n\004role\030\002 "
-    "\001(\0162\026.coord.ParticipantRole\022\024\n\014capabilit"
-    "ies\030\003 \003(\t\"\'\n\024SubmitWorldOpRequest\022\017\n\007op_"
-    "data\030\001 \001(\014\"5\n\025SubmitWorldOpResponse\022\r\n\005s"
-    "eqno\030\001 \001(\004\022\r\n\005error\030\002 \001(\t\"1\n\026WatchWorldS"
-    "eqnoRequest\022\027\n\017last_seen_seqno\030\001 \001(\004\"(\n\027"
-    "WatchWorldSeqnoResponse\022\r\n\005seqno\030\001 \001(\004\"\\"
-    "\n\013LeaseRecord\022\022\n\nleader_pid\030\001 \001(\r\022\035\n\025lea"
-    "se_timestamp_nanos\030\002 \001(\003\022\032\n\022leader_socke"
-    "t_path\030\003 \001(\t*h\n\017ParticipantRole\022\033\n\027Parti"
-    "cipantRole_UNKNOWN\020\000\022\032\n\026ParticipantRole_"
-    "LEADER\020\001\022\034\n\030ParticipantRole_FOLLOWER\020\0022o"
-    "\n\022ParticipantService\022Y\n\022GetParticipantIn"
-    "fo\022 .coord.GetParticipantInfoRequest\032!.c"
-    "oord.GetParticipantInfoResponse2\264\001\n\022Coor"
-    "dinatorService\022J\n\rSubmitWorldOp\022\033.coord."
-    "SubmitWorldOpRequest\032\034.coord.SubmitWorld"
-    "OpResponse\022R\n\017WatchWorldSeqno\022\035.coord.Wa"
-    "tchWorldSeqnoRequest\032\036.coord.WatchWorldS"
-    "eqnoResponse0\001b\006proto3"
+    "\n0github.com/s4wave/spacewave/db/coord/c"
+    "oord.proto\022\005coord\"\256\001\n\021ParticipantRecord\022"
+    "\013\n\003pid\030\001 \001(\r\022$\n\004role\030\002 \001(\0162\026.coord.Parti"
+    "cipantRole\022\030\n\020start_time_nanos\030\003 \001(\003\022\024\n\014"
+    "capabilities\030\004 \003(\t\022\030\n\020srpc_socket_path\030\005"
+    " \001(\t\022\034\n\024last_heartbeat_nanos\030\006 \001(\003\"\033\n\031Ge"
+    "tParticipantInfoRequest\"e\n\032GetParticipan"
+    "tInfoResponse\022\013\n\003pid\030\001 \001(\r\022$\n\004role\030\002 \001(\016"
+    "2\026.coord.ParticipantRole\022\024\n\014capabilities"
+    "\030\003 \003(\t\"\'\n\024SubmitWorldOpRequest\022\017\n\007op_dat"
+    "a\030\001 \001(\014\"5\n\025SubmitWorldOpResponse\022\r\n\005seqn"
+    "o\030\001 \001(\004\022\r\n\005error\030\002 \001(\t\"1\n\026WatchWorldSeqn"
+    "oRequest\022\027\n\017last_seen_seqno\030\001 \001(\004\"(\n\027Wat"
+    "chWorldSeqnoResponse\022\r\n\005seqno\030\001 \001(\004\"\\\n\013L"
+    "easeRecord\022\022\n\nleader_pid\030\001 \001(\r\022\035\n\025lease_"
+    "timestamp_nanos\030\002 \001(\003\022\032\n\022leader_socket_p"
+    "ath\030\003 \001(\t*h\n\017ParticipantRole\022\033\n\027Particip"
+    "antRole_UNKNOWN\020\000\022\032\n\026ParticipantRole_LEA"
+    "DER\020\001\022\034\n\030ParticipantRole_FOLLOWER\020\0022o\n\022P"
+    "articipantService\022Y\n\022GetParticipantInfo\022"
+    " .coord.GetParticipantInfoRequest\032!.coor"
+    "d.GetParticipantInfoResponse2\264\001\n\022Coordin"
+    "atorService\022J\n\rSubmitWorldOp\022\033.coord.Sub"
+    "mitWorldOpRequest\032\034.coord.SubmitWorldOpR"
+    "esponse\022R\n\017WatchWorldSeqno\022\035.coord.Watch"
+    "WorldSeqnoRequest\032\036.coord.WatchWorldSeqn"
+    "oResponse0\001b\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto = {
     false,
     false,
-    1062,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+    1059,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
     "github.com/s4wave/spacewave/db/coord/coord.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto_once,
     nullptr,
     0,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
 };
 namespace coord {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ParticipantRole_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t ParticipantRole_internal_data_[] = {
     196608u, 0u, };
@@ -500,7 +500,7 @@ constexpr auto ParticipantRecord::InternalGenerateClassData_() {
           false,
       },
       &ParticipantRecord::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -900,7 +900,7 @@ constexpr auto GetParticipantInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetParticipantInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1070,7 +1070,7 @@ constexpr auto GetParticipantInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetParticipantInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1411,7 +1411,7 @@ constexpr auto SubmitWorldOpRequest::InternalGenerateClassData_() {
           false,
       },
       &SubmitWorldOpRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1683,7 +1683,7 @@ constexpr auto SubmitWorldOpResponse::InternalGenerateClassData_() {
           false,
       },
       &SubmitWorldOpResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1976,7 +1976,7 @@ constexpr auto WatchWorldSeqnoRequest::InternalGenerateClassData_() {
           false,
       },
       &WatchWorldSeqnoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2224,7 +2224,7 @@ constexpr auto WatchWorldSeqnoResponse::InternalGenerateClassData_() {
           false,
       },
       &WatchWorldSeqnoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2499,7 +2499,7 @@ constexpr auto LeaseRecord::InternalGenerateClassData_() {
           false,
       },
       &LeaseRecord::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2758,6 +2758,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fcoord_2fcoord_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fcoord_2fcoord_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

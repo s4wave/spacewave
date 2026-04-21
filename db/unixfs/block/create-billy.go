@@ -5,11 +5,11 @@ import (
 	"io/fs"
 	"path"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	billy "github.com/go-git/go-billy/v6"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/file"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	billy "github.com/go-git/go-billy/v6"
 )
 
 // CreateFromBillyFS creates a unixfs_block FSNode from the billy FS.

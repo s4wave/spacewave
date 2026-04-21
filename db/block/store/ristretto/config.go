@@ -2,9 +2,9 @@ package block_store_ristretto
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	kvtx_ristretto "github.com/s4wave/spacewave/db/store/kvtx/ristretto"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.

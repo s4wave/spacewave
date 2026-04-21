@@ -241,11 +241,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace store
 }  // namespace bucket
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bucket::store::rpc::ApplyBucketConfigRequest, _impl_._has_bits_),
@@ -314,56 +314,56 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bucket::store::rpc::_ListBucketInfoRequest_default_instance_._instance,
     &::bucket::store::rpc::_ListBucketInfoResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n\?github.com/s4wave/spacewave/db/buck"
-    "et/store/rpc/bucket.proto\022\020bucket.store."
-    "rpc\0325github.com/s4wave/spacewave/db/b"
-    "ucket/bucket.proto\":\n\030ApplyBucketConfigR"
-    "equest\022\036\n\006config\030\001 \001(\0132\016.bucket.Config\"h"
-    "\n\031ApplyBucketConfigResponse\022\017\n\007updated\030\001"
-    " \001(\010\022\034\n\004prev\030\002 \001(\0132\016.bucket.Config\022\034\n\004cu"
-    "rr\030\003 \001(\0132\016.bucket.Config\"+\n\026GetBucketCon"
-    "figRequest\022\021\n\tbucket_id\030\001 \001(\t\"9\n\027GetBuck"
-    "etConfigResponse\022\036\n\006config\030\001 \001(\0132\016.bucke"
-    "t.Config\")\n\024GetBucketInfoRequest\022\021\n\tbuck"
-    "et_id\030\001 \001(\t\"@\n\025GetBucketInfoResponse\022\'\n\013"
-    "bucket_info\030\001 \001(\0132\022.bucket.BucketInfo\"-\n"
-    "\025ListBucketInfoRequest\022\024\n\014bucket_id_re\030\001"
-    " \001(\t\"A\n\026ListBucketInfoResponse\022\'\n\013bucket"
-    "_info\030\001 \003(\0132\022.bucket.BucketInfo2\252\003\n\013Buck"
-    "etStore\022f\n\017GetBucketConfig\022(.bucket.stor"
-    "e.rpc.GetBucketConfigRequest\032).bucket.st"
-    "ore.rpc.GetBucketConfigResponse\022l\n\021Apply"
-    "BucketConfig\022*.bucket.store.rpc.ApplyBuc"
-    "ketConfigRequest\032+.bucket.store.rpc.Appl"
-    "yBucketConfigResponse\022`\n\rGetBucketInfo\022&"
-    ".bucket.store.rpc.GetBucketInfoRequest\032\'"
-    ".bucket.store.rpc.GetBucketInfoResponse\022"
-    "c\n\016ListBucketInfo\022\'.bucket.store.rpc.Lis"
-    "tBucketInfoRequest\032(.bucket.store.rpc.Li"
-    "stBucketInfoResponseb\006proto3"
+    "\n<github.com/s4wave/spacewave/db/bucket/"
+    "store/rpc/bucket.proto\022\020bucket.store.rpc"
+    "\0322github.com/s4wave/spacewave/db/bucket/"
+    "bucket.proto\":\n\030ApplyBucketConfigRequest"
+    "\022\036\n\006config\030\001 \001(\0132\016.bucket.Config\"h\n\031Appl"
+    "yBucketConfigResponse\022\017\n\007updated\030\001 \001(\010\022\034"
+    "\n\004prev\030\002 \001(\0132\016.bucket.Config\022\034\n\004curr\030\003 \001"
+    "(\0132\016.bucket.Config\"+\n\026GetBucketConfigReq"
+    "uest\022\021\n\tbucket_id\030\001 \001(\t\"9\n\027GetBucketConf"
+    "igResponse\022\036\n\006config\030\001 \001(\0132\016.bucket.Conf"
+    "ig\")\n\024GetBucketInfoRequest\022\021\n\tbucket_id\030"
+    "\001 \001(\t\"@\n\025GetBucketInfoResponse\022\'\n\013bucket"
+    "_info\030\001 \001(\0132\022.bucket.BucketInfo\"-\n\025ListB"
+    "ucketInfoRequest\022\024\n\014bucket_id_re\030\001 \001(\t\"A"
+    "\n\026ListBucketInfoResponse\022\'\n\013bucket_info\030"
+    "\001 \003(\0132\022.bucket.BucketInfo2\252\003\n\013BucketStor"
+    "e\022f\n\017GetBucketConfig\022(.bucket.store.rpc."
+    "GetBucketConfigRequest\032).bucket.store.rp"
+    "c.GetBucketConfigResponse\022l\n\021ApplyBucket"
+    "Config\022*.bucket.store.rpc.ApplyBucketCon"
+    "figRequest\032+.bucket.store.rpc.ApplyBucke"
+    "tConfigResponse\022`\n\rGetBucketInfo\022&.bucke"
+    "t.store.rpc.GetBucketInfoRequest\032\'.bucke"
+    "t.store.rpc.GetBucketInfoResponse\022c\n\016Lis"
+    "tBucketInfo\022\'.bucket.store.rpc.ListBucke"
+    "tInfoRequest\032(.bucket.store.rpc.ListBuck"
+    "etInfoResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto = {
     false,
     false,
-    1068,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+    1062,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
     "github.com/s4wave/spacewave/db/bucket/store/rpc/bucket.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto_deps,
     1,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
 };
 namespace bucket {
 namespace store {
@@ -471,7 +471,7 @@ constexpr auto ApplyBucketConfigRequest::InternalGenerateClassData_() {
           false,
       },
       &ApplyBucketConfigRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -764,7 +764,7 @@ constexpr auto ApplyBucketConfigResponse::InternalGenerateClassData_() {
           false,
       },
       &ApplyBucketConfigResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1101,7 +1101,7 @@ constexpr auto GetBucketConfigRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBucketConfigRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1385,7 +1385,7 @@ constexpr auto GetBucketConfigResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBucketConfigResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1653,7 +1653,7 @@ constexpr auto GetBucketInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBucketInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1937,7 +1937,7 @@ constexpr auto GetBucketInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBucketInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2205,7 +2205,7 @@ constexpr auto ListBucketInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &ListBucketInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2497,7 +2497,7 @@ constexpr auto ListBucketInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &ListBucketInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2687,6 +2687,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fstore_2frpc_2fbucket_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fstore_2frpc_2fbucket_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -59,11 +59,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace errors
 }  // namespace unixfs
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::errors::UnixFSError, _impl_._has_bits_),
@@ -81,45 +81,45 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::errors::_UnixFSError_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n<github.com/s4wave/spacewave/db/unix"
-    "fs/errors/errors.proto\022\runixfs.errors\"U\n"
-    "\013UnixFSError\0222\n\nerror_type\030\001 \001(\0162\036.unixf"
-    "s.errors.UnixFSErrorType\022\022\n\nerror_body\030\002"
-    " \001(\t*\376\002\n\017UnixFSErrorType\022\010\n\004NONE\020\000\022\t\n\005OT"
-    "HER\020\001\022\020\n\014FS_NOT_FOUND\020\002\022\t\n\005EXIST\020\003\022\r\n\tNO"
-    "T_EXIST\020\004\022\n\n\006CLOSED\020\005\022\r\n\tREAD_ONLY\020\006\022\014\n\010"
-    "RELEASED\020\007\022\021\n\rNOT_DIRECTORY\020\010\022\014\n\010NOT_FIL"
-    "E\020\t\022\021\n\rOUT_OF_BOUNDS\020\n\022\016\n\nEMPTY_PATH\020\013\022\021"
-    "\n\rABSOLUTE_PATH\020\014\022\026\n\022INODE_UNRESOLVABLE\020"
-    "\r\022\017\n\013NOT_SYMLINK\020\016\022\023\n\017EMPTY_TIMESTAMP\020\017\022"
-    "\020\n\014MOVE_TO_SELF\020\020\022\021\n\rINVALID_WRITE\020\021\022\023\n\017"
-    "EMPTY_UNIXFS_ID\020\022\022\023\n\017CROSS_FS_RENAME\020\025\022\024"
-    "\n\020CONTEXT_CANCELED\020\023\022\007\n\003EOF\020\024b\006proto3"
+    "\n9github.com/s4wave/spacewave/db/unixfs/"
+    "errors/errors.proto\022\runixfs.errors\"U\n\013Un"
+    "ixFSError\0222\n\nerror_type\030\001 \001(\0162\036.unixfs.e"
+    "rrors.UnixFSErrorType\022\022\n\nerror_body\030\002 \001("
+    "\t*\376\002\n\017UnixFSErrorType\022\010\n\004NONE\020\000\022\t\n\005OTHER"
+    "\020\001\022\020\n\014FS_NOT_FOUND\020\002\022\t\n\005EXIST\020\003\022\r\n\tNOT_E"
+    "XIST\020\004\022\n\n\006CLOSED\020\005\022\r\n\tREAD_ONLY\020\006\022\014\n\010REL"
+    "EASED\020\007\022\021\n\rNOT_DIRECTORY\020\010\022\014\n\010NOT_FILE\020\t"
+    "\022\021\n\rOUT_OF_BOUNDS\020\n\022\016\n\nEMPTY_PATH\020\013\022\021\n\rA"
+    "BSOLUTE_PATH\020\014\022\026\n\022INODE_UNRESOLVABLE\020\r\022\017"
+    "\n\013NOT_SYMLINK\020\016\022\023\n\017EMPTY_TIMESTAMP\020\017\022\020\n\014"
+    "MOVE_TO_SELF\020\020\022\021\n\rINVALID_WRITE\020\021\022\023\n\017EMP"
+    "TY_UNIXFS_ID\020\022\022\023\n\017CROSS_FS_RENAME\020\025\022\024\n\020C"
+    "ONTEXT_CANCELED\020\023\022\007\n\003EOF\020\024b\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto = {
     false,
     false,
-    557,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto,
+    554,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto,
     "github.com/s4wave/spacewave/db/unixfs/errors/errors.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto_once,
     nullptr,
     0,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto,
 };
 namespace unixfs {
 namespace errors {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL UnixFSErrorType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t UnixFSErrorType_internal_data_[] = {
     1441792u, 0u, };
@@ -219,7 +219,7 @@ constexpr auto UnixFSError::InternalGenerateClassData_() {
           false,
       },
       &UnixFSError::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto,
       nullptr,  // tracker
   };
 }
@@ -442,6 +442,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2ferrors_2ferrors_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2ferrors_2ferrors_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

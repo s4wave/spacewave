@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	world "github.com/s4wave/spacewave/db/unixfs/world"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	world "github.com/s4wave/spacewave/db/unixfs/world"
 )
 
 // Config configures the world-backed UnixFS access controller.

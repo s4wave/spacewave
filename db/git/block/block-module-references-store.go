@@ -3,10 +3,10 @@ package git_block
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
-	"github.com/pkg/errors"
 )
 
 // NewModuleReferencesStoreBlock builds a new modules references block.

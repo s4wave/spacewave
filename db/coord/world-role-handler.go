@@ -5,8 +5,8 @@ package coord
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 

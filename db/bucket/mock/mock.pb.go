@@ -10,9 +10,9 @@ import (
 	slices "slices"
 	strings "strings"
 
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // Root is the root of the mock structure.

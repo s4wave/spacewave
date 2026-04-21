@@ -8,13 +8,13 @@ import (
 	"net"
 	"strings"
 
-	bifrost_cli "github.com/s4wave/spacewave/net/cli"
 	ucli "github.com/aperturerobotics/cli"
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/bucket"
 	api "github.com/s4wave/spacewave/db/daemon/api"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/aperturerobotics/starpc/srpc"
+	bifrost_cli "github.com/s4wave/spacewave/net/cli"
 	"github.com/sirupsen/logrus"
 )
 

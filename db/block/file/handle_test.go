@@ -7,11 +7,11 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/util/prng"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
-	"github.com/aperturerobotics/util/prng"
-	"github.com/pkg/errors"
 )
 
 func TestBasicReader(t *testing.T) {

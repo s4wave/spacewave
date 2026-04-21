@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/binary"
 
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
 )
 
 // Transport abstracts the 9p message transport.

@@ -12,10 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	mqueue "github.com/s4wave/spacewave/db/kvtx/mqueue"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	mqueue "github.com/s4wave/spacewave/db/kvtx/mqueue"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config is the configuration for the kvtx store.

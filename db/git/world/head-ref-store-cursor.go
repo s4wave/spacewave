@@ -1,9 +1,9 @@
 package git_world
 
 import (
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/s4wave/spacewave/db/block"
 	git_block "github.com/s4wave/spacewave/db/git/block"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // HeadRefStoreCursor implements ReferencesStore with a HeadRefStore.

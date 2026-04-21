@@ -12,9 +12,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc"
 )
 
 // driverName is the name registered with database/sql.

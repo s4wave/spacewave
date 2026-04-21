@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/s4wave/spacewave/db/block"
-	namedsbset "github.com/s4wave/spacewave/db/block/sbset"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	namedsbset "github.com/s4wave/spacewave/db/block/sbset"
 )
 
 // Database is the block-graph backed SQL db cursor.

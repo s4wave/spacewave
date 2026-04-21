@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/aperturerobotics/controllerbus/bus"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
 // HTTPHandler implements a HTTP handler which uses a refcount driven AccessUnixFS.

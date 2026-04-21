@@ -4,10 +4,10 @@ import (
 	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // API implements the daemon API.

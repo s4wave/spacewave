@@ -13,11 +13,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	controller "github.com/s4wave/spacewave/db/volume/controller"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Config is the OPFS volume controller config.
@@ -170,24 +170,18 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.RootPath = m.RootPath
 	r.LockPrefix = m.LockPrefix
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
+	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.BlockShardCount = m.BlockShardCount
 	r.MetaShardCount = m.MetaShardCount
 	r.BlockBloomFpr = m.BlockBloomFpr
 	r.BlockCompactionTrigger = m.BlockCompactionTrigger
 	r.PageSize = m.PageSize
 	r.AsyncIo = m.AsyncIo
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
-	if rhs := m.StoreConfig; rhs != nil {
-		r.StoreConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

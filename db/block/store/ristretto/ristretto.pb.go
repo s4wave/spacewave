@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	ristretto "github.com/s4wave/spacewave/db/store/kvtx/ristretto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	ristretto "github.com/s4wave/spacewave/db/store/kvtx/ristretto"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config configures the Ristretto block cache controller.

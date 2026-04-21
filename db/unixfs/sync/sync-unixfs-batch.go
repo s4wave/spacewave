@@ -5,10 +5,10 @@ import (
 	"io"
 	"path"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	"github.com/pkg/errors"
 )
 
 // SyncToUnixfsBatch walks a source FSHandle and drives a BatchFSWriter,

@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
+	bdb "github.com/dgraph-io/badger/v4"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
 	store_test "github.com/s4wave/spacewave/db/store/test"
-	bdb "github.com/dgraph-io/badger/v4"
 	"github.com/sirupsen/logrus"
 )
 

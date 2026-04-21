@@ -8,9 +8,9 @@ import (
 	"io"
 	"strconv"
 
-	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
 // defaultChunkSize is the default chunk size in bytes (1KB).

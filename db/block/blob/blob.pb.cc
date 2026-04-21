@@ -223,11 +223,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BlobDefaultTypeInternal _Blob_default_instance_;
 }  // namespace blob
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto[2];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::blob::Blob, _impl_._has_bits_),
@@ -315,64 +315,64 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::blob::_JcArgs_default_instance_._instance,
     &::blob::_Chunk_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/bloc"
-    "k/blob/blob.proto\022\004blob\0323github.com/aper"
-    "turerobotics/hydra/block/block.proto\"v\n\004"
-    "Blob\022!\n\tblob_type\030\001 \001(\0162\016.blob.BlobType\022"
-    "\022\n\ntotal_size\030\002 \001(\004\022\020\n\010raw_data\030\003 \001(\014\022%\n"
-    "\013chunk_index\030\004 \001(\0132\020.blob.ChunkIndex\"U\n\r"
-    "BuildBlobOpts\022\033\n\023raw_high_water_mark\030\001 \001"
-    "(\004\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.ChunkerA"
-    "rgs\"R\n\nChunkIndex\022\033\n\006chunks\030\001 \003(\0132\013.blob"
-    ".Chunk\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.Chun"
-    "kerArgs\"z\n\013ChunkerArgs\022\'\n\014chunker_type\030\001"
-    " \001(\0162\021.blob.ChunkerType\022#\n\nrabin_args\030\002 "
-    "\001(\0132\017.blob.RabinArgs\022\035\n\007jc_args\030\003 \001(\0132\014."
-    "blob.JcArgs\"b\n\tRabinArgs\022\013\n\003pol\030\001 \001(\004\022\022\n"
-    "\nrandom_pol\030\004 \001(\010\022\031\n\021chunking_min_size\030\002"
-    " \001(\004\022\031\n\021chunking_max_size\030\003 \001(\004\"i\n\006JcArg"
-    "s\022\013\n\003key\030\001 \001(\014\022\031\n\021chunking_min_size\030\002 \001("
-    "\004\022\034\n\024chunking_target_size\030\003 \001(\004\022\031\n\021chunk"
-    "ing_max_size\030\004 \001(\004\"G\n\005Chunk\022!\n\010data_ref\030"
-    "\001 \001(\0132\017.block.BlockRef\022\014\n\004size\030\002 \001(\004\022\r\n\005"
-    "start\030\003 \001(\004*2\n\010BlobType\022\020\n\014BlobType_RAW\020"
-    "\000\022\024\n\020BlobType_CHUNKED\020\001*Q\n\013ChunkerType\022\027"
-    "\n\023ChunkerType_DEFAULT\020\000\022\025\n\021ChunkerType_R"
-    "ABIN\020\001\022\022\n\016ChunkerType_JC\020\002b\006proto3"
+    "\n4github.com/s4wave/spacewave/db/block/b"
+    "lob/blob.proto\022\004blob\0320github.com/s4wave/"
+    "spacewave/db/block/block.proto\"v\n\004Blob\022!"
+    "\n\tblob_type\030\001 \001(\0162\016.blob.BlobType\022\022\n\ntot"
+    "al_size\030\002 \001(\004\022\020\n\010raw_data\030\003 \001(\014\022%\n\013chunk"
+    "_index\030\004 \001(\0132\020.blob.ChunkIndex\"U\n\rBuildB"
+    "lobOpts\022\033\n\023raw_high_water_mark\030\001 \001(\004\022\'\n\014"
+    "chunker_args\030\002 \001(\0132\021.blob.ChunkerArgs\"R\n"
+    "\nChunkIndex\022\033\n\006chunks\030\001 \003(\0132\013.blob.Chunk"
+    "\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.ChunkerArg"
+    "s\"z\n\013ChunkerArgs\022\'\n\014chunker_type\030\001 \001(\0162\021"
+    ".blob.ChunkerType\022#\n\nrabin_args\030\002 \001(\0132\017."
+    "blob.RabinArgs\022\035\n\007jc_args\030\003 \001(\0132\014.blob.J"
+    "cArgs\"b\n\tRabinArgs\022\013\n\003pol\030\001 \001(\004\022\022\n\nrando"
+    "m_pol\030\004 \001(\010\022\031\n\021chunking_min_size\030\002 \001(\004\022\031"
+    "\n\021chunking_max_size\030\003 \001(\004\"i\n\006JcArgs\022\013\n\003k"
+    "ey\030\001 \001(\014\022\031\n\021chunking_min_size\030\002 \001(\004\022\034\n\024c"
+    "hunking_target_size\030\003 \001(\004\022\031\n\021chunking_ma"
+    "x_size\030\004 \001(\004\"G\n\005Chunk\022!\n\010data_ref\030\001 \001(\0132"
+    "\017.block.BlockRef\022\014\n\004size\030\002 \001(\004\022\r\n\005start\030"
+    "\003 \001(\004*2\n\010BlobType\022\020\n\014BlobType_RAW\020\000\022\024\n\020B"
+    "lobType_CHUNKED\020\001*Q\n\013ChunkerType\022\027\n\023Chun"
+    "kerType_DEFAULT\020\000\022\025\n\021ChunkerType_RABIN\020\001"
+    "\022\022\n\016ChunkerType_JC\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto = {
     false,
     false,
-    954,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+    948,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
     "github.com/s4wave/spacewave/db/block/blob/blob.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto_deps,
     1,
     7,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
 };
 namespace blob {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL BlobType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t BlobType_internal_data_[] = {
     131072u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ChunkerType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto[1];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t ChunkerType_internal_data_[] = {
     196608u, 0u, };
@@ -488,7 +488,7 @@ constexpr auto Blob::InternalGenerateClassData_() {
           false,
       },
       &Blob::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -870,7 +870,7 @@ constexpr auto BuildBlobOpts::InternalGenerateClassData_() {
           false,
       },
       &BuildBlobOpts::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1191,7 +1191,7 @@ constexpr auto ChunkIndex::InternalGenerateClassData_() {
           false,
       },
       &ChunkIndex::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1513,7 +1513,7 @@ constexpr auto ChunkerArgs::InternalGenerateClassData_() {
           false,
       },
       &ChunkerArgs::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1842,7 +1842,7 @@ constexpr auto RabinArgs::InternalGenerateClassData_() {
           false,
       },
       &RabinArgs::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2210,7 +2210,7 @@ constexpr auto JcArgs::InternalGenerateClassData_() {
           false,
       },
       &JcArgs::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2596,7 +2596,7 @@ constexpr auto Chunk::InternalGenerateClassData_() {
           false,
       },
       &Chunk::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2847,6 +2847,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

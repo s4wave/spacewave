@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	transform "github.com/s4wave/spacewave/db/block/transform"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // Config configures the object store peer controller.

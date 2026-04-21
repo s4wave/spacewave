@@ -2,9 +2,9 @@ package world_block_engine
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.

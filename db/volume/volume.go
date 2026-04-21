@@ -4,13 +4,13 @@ import (
 	"context"
 	"strings"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/store"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

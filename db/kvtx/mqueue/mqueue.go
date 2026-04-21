@@ -8,9 +8,9 @@ import (
 	"time"
 
 	// "github.com/s4wave/spacewave/db/bucket/store"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/mqueue"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // MQueue implements a Hydra Object-Store message queue.

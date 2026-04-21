@@ -3,9 +3,9 @@ package unixfs_block
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
-	"github.com/pkg/errors"
 )
 
 // IsNil returns if the object is nil.

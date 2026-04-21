@@ -3,10 +3,10 @@ package mysql
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
 // NewTableRootBlock constructs a new db root block.

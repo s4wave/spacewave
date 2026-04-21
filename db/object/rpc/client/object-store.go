@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/starpc/srpc"
 	rpc_kvtx "github.com/s4wave/spacewave/db/kvtx/rpc"
 	rpc_kvtx_client "github.com/s4wave/spacewave/db/kvtx/rpc/client"
 	"github.com/s4wave/spacewave/db/object"
 	object_rpc "github.com/s4wave/spacewave/db/object/rpc"
 	object_store "github.com/s4wave/spacewave/db/object/store"
-	"github.com/aperturerobotics/starpc/rpcstream"
-	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // ObjectStore implements a ObjectStore backed by a ObjectStore service.

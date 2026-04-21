@@ -6,9 +6,9 @@ import (
 	"context"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/pkg/errors"
 )
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.

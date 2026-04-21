@@ -5,8 +5,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // withTx executes a function within a transaction context, ensuring proper cleanup

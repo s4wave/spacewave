@@ -6,10 +6,10 @@ import (
 	"context"
 	"runtime/trace"
 
-	"github.com/s4wave/spacewave/net/hash"
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
-	b58 "github.com/mr-tron/base58/base58"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // BlockStore wraps the shard engine to implement block.StoreOps.

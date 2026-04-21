@@ -81,11 +81,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace badger
 }  // namespace volume
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::badger::Config, _impl_._has_bits_),
@@ -143,54 +143,53 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::badger::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n<github.com/s4wave/spacewave/db/volu"
-    "me/badger/badger.proto\022\rvolume.badger\0327g"
-    "ithub.com/aperturerobotics/hydra/store/k"
-    "vtx/kvtx.proto\0329github.com/aperturerobot"
-    "ics/hydra/store/kvkey/kvkey.proto\032Dgithu"
-    "b.com/aperturerobotics/hydra/volume/cont"
-    "roller/controller.proto\"\347\004\n\006Config\022\013\n\003di"
-    "r\030\001 \001(\t\022\021\n\tvalue_dir\030\002 \001(\t\022(\n\013kv_key_opt"
-    "s\030\003 \001(\0132\023.store.kvkey.Config\022\027\n\017no_gener"
-    "ate_key\030\004 \001(\010\022\024\n\014no_write_key\030\031 \001(\010\022\017\n\007v"
-    "erbose\030\025 \001(\010\022\024\n\014badger_debug\030\030 \001(\010\0220\n\rvo"
-    "lume_config\030\026 \001(\0132\031.volume.controller.Co"
-    "nfig\022(\n\014store_config\030\027 \001(\0132\022.store.kvtx."
-    "Config\022\034\n\024num_versions_to_keep\030\007 \001(\r\022\027\n\017"
-    "base_table_size\030\032 \001(\004\022\035\n\025level_size_mult"
-    "iplier\030\t \001(\r\022\022\n\nmax_levels\030\n \001(\r\022\027\n\017valu"
-    "e_threshold\030\033 \001(\004\022\025\n\rnum_memtables\030\014 \001(\r"
-    "\022\035\n\025num_level_zero_tables\030\r \001(\r\022#\n\033num_l"
-    "evel_zero_tables_stall\030\016 \001(\r\022\027\n\017base_lev"
-    "el_size\030\034 \001(\004\022\033\n\023value_log_file_size\030\020 \001"
-    "(\004\022\035\n\025value_log_max_entries\030\021 \001(\r\022\026\n\016num"
-    "_compactors\030\022 \001(\r\022\026\n\016no_sync_writes\030\024 \001("
-    "\010b\006proto3"
+    "\n9github.com/s4wave/spacewave/db/volume/"
+    "badger/badger.proto\022\rvolume.badger\0324gith"
+    "ub.com/s4wave/spacewave/db/store/kvtx/kv"
+    "tx.proto\0326github.com/s4wave/spacewave/db"
+    "/store/kvkey/kvkey.proto\032Agithub.com/s4w"
+    "ave/spacewave/db/volume/controller/contr"
+    "oller.proto\"\347\004\n\006Config\022\013\n\003dir\030\001 \001(\t\022\021\n\tv"
+    "alue_dir\030\002 \001(\t\022(\n\013kv_key_opts\030\003 \001(\0132\023.st"
+    "ore.kvkey.Config\022\027\n\017no_generate_key\030\004 \001("
+    "\010\022\024\n\014no_write_key\030\031 \001(\010\022\017\n\007verbose\030\025 \001(\010"
+    "\022\024\n\014badger_debug\030\030 \001(\010\0220\n\rvolume_config\030"
+    "\026 \001(\0132\031.volume.controller.Config\022(\n\014stor"
+    "e_config\030\027 \001(\0132\022.store.kvtx.Config\022\034\n\024nu"
+    "m_versions_to_keep\030\007 \001(\r\022\027\n\017base_table_s"
+    "ize\030\032 \001(\004\022\035\n\025level_size_multiplier\030\t \001(\r"
+    "\022\022\n\nmax_levels\030\n \001(\r\022\027\n\017value_threshold\030"
+    "\033 \001(\004\022\025\n\rnum_memtables\030\014 \001(\r\022\035\n\025num_leve"
+    "l_zero_tables\030\r \001(\r\022#\n\033num_level_zero_ta"
+    "bles_stall\030\016 \001(\r\022\027\n\017base_level_size\030\034 \001("
+    "\004\022\033\n\023value_log_file_size\030\020 \001(\004\022\035\n\025value_"
+    "log_max_entries\030\021 \001(\r\022\026\n\016num_compactors\030"
+    "\022 \001(\r\022\026\n\016no_sync_writes\030\024 \001(\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvkey_2fkvkey_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fcontroller_2fcontroller_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto_deps[3] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fcontroller_2fcontroller_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto = {
     false,
     false,
-    889,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto,
+    877,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto,
     "github.com/s4wave/spacewave/db/volume/badger/badger.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto_deps,
     3,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto,
 };
 namespace volume {
 namespace badger {
@@ -335,7 +334,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1156,6 +1155,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fbadger_2fbadger_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fbadger_2fbadger_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

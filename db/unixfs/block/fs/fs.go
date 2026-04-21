@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/aperturerobotics/util/csync"
 )
 
 // OptimalWriteSize is a constant target size to use for Blob writes.

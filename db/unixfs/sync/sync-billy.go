@@ -8,14 +8,14 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/s4wave/spacewave/db/util/mbuffer"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/go-git/go-billy/v6"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
+	"github.com/s4wave/spacewave/db/util/mbuffer"
 )
 
 // BillyFS has the needed billy filesystem interfaces.

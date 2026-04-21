@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/core"
@@ -15,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

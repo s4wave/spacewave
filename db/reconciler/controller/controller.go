@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/reconciler"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/s4wave/spacewave/db/reconciler"
 	"github.com/sirupsen/logrus"
 )
 

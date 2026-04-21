@@ -3,11 +3,11 @@ package lookup_concurrent
 import (
 	"time"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the id attached to the config objects.

@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	block "github.com/s4wave/spacewave/db/block"
 	msgpack "github.com/s4wave/spacewave/db/block/msgpack"
 	block1 "github.com/s4wave/spacewave/db/kvtx/block"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Root is the root object of the mysql database.

@@ -249,11 +249,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace rpc
 }  // namespace block
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::block::rpc::PutBlockRequest, _impl_._has_bits_),
@@ -330,52 +330,52 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::block::rpc::_RmBlockRequest_default_instance_._instance,
     &::block::rpc::_RmBlockResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/bloc"
-    "k/rpc/block.proto\022\tblock.rpc\0323github.com"
-    "/aperturerobotics/hydra/block/block.prot"
-    "o\"A\n\017PutBlockRequest\022\014\n\004data\030\001 \001(\014\022 \n\010pu"
-    "t_opts\030\002 \001(\0132\016.block.PutOpts\"P\n\020PutBlock"
-    "Response\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\017"
-    "\n\007existed\030\002 \001(\010\022\r\n\005error\030\003 \001(\t\"/\n\017GetBlo"
-    "ckRequest\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\""
-    "\?\n\020GetBlockResponse\022\016\n\006exists\030\001 \001(\010\022\014\n\004d"
-    "ata\030\002 \001(\014\022\r\n\005error\030\003 \001(\t\"5\n\025GetBlockExis"
-    "tsRequest\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\""
-    "7\n\026GetBlockExistsResponse\022\016\n\006exists\030\001 \001("
-    "\010\022\r\n\005error\030\002 \001(\t\".\n\016RmBlockRequest\022\034\n\003re"
-    "f\030\001 \001(\0132\017.block.BlockRef\" \n\017RmBlockRespo"
-    "nse\022\r\n\005error\030\001 \001(\t2\257\002\n\nBlockStore\022C\n\010Put"
-    "Block\022\032.block.rpc.PutBlockRequest\032\033.bloc"
-    "k.rpc.PutBlockResponse\022C\n\010GetBlock\022\032.blo"
-    "ck.rpc.GetBlockRequest\032\033.block.rpc.GetBl"
-    "ockResponse\022U\n\016GetBlockExists\022 .block.rp"
-    "c.GetBlockExistsRequest\032!.block.rpc.GetB"
-    "lockExistsResponse\022@\n\007RmBlock\022\031.block.rp"
-    "c.RmBlockRequest\032\032.block.rpc.RmBlockResp"
-    "onseb\006proto3"
+    "\n4github.com/s4wave/spacewave/db/block/r"
+    "pc/block.proto\022\tblock.rpc\0320github.com/s4"
+    "wave/spacewave/db/block/block.proto\"A\n\017P"
+    "utBlockRequest\022\014\n\004data\030\001 \001(\014\022 \n\010put_opts"
+    "\030\002 \001(\0132\016.block.PutOpts\"P\n\020PutBlockRespon"
+    "se\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\017\n\007exis"
+    "ted\030\002 \001(\010\022\r\n\005error\030\003 \001(\t\"/\n\017GetBlockRequ"
+    "est\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\"\?\n\020Get"
+    "BlockResponse\022\016\n\006exists\030\001 \001(\010\022\014\n\004data\030\002 "
+    "\001(\014\022\r\n\005error\030\003 \001(\t\"5\n\025GetBlockExistsRequ"
+    "est\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\"7\n\026Get"
+    "BlockExistsResponse\022\016\n\006exists\030\001 \001(\010\022\r\n\005e"
+    "rror\030\002 \001(\t\".\n\016RmBlockRequest\022\034\n\003ref\030\001 \001("
+    "\0132\017.block.BlockRef\" \n\017RmBlockResponse\022\r\n"
+    "\005error\030\001 \001(\t2\257\002\n\nBlockStore\022C\n\010PutBlock\022"
+    "\032.block.rpc.PutBlockRequest\032\033.block.rpc."
+    "PutBlockResponse\022C\n\010GetBlock\022\032.block.rpc"
+    ".GetBlockRequest\032\033.block.rpc.GetBlockRes"
+    "ponse\022U\n\016GetBlockExists\022 .block.rpc.GetB"
+    "lockExistsRequest\032!.block.rpc.GetBlockEx"
+    "istsResponse\022@\n\007RmBlock\022\031.block.rpc.RmBl"
+    "ockRequest\032\032.block.rpc.RmBlockResponseb\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = {
     false,
     false,
-    892,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+    886,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
     "github.com/s4wave/spacewave/db/block/rpc/block.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_deps,
     1,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
 };
 namespace block {
 namespace rpc {
@@ -485,7 +485,7 @@ constexpr auto PutBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &PutBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -812,7 +812,7 @@ constexpr auto PutBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &PutBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1168,7 +1168,7 @@ constexpr auto GetBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1441,7 +1441,7 @@ constexpr auto GetBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1793,7 +1793,7 @@ constexpr auto GetBlockExistsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2063,7 +2063,7 @@ constexpr auto GetBlockExistsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2378,7 +2378,7 @@ constexpr auto RmBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &RmBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2646,7 +2646,7 @@ constexpr auto RmBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &RmBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2837,6 +2837,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

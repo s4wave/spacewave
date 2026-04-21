@@ -6,9 +6,9 @@ import (
 	"io"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/testbed"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

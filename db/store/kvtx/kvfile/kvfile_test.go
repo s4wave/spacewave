@@ -5,13 +5,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/go-kvfile"
 	kvtx_kvfile "github.com/s4wave/spacewave/db/kvtx/kvfile"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	store_kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

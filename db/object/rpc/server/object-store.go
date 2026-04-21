@@ -3,12 +3,12 @@ package object_rpc_server
 import (
 	"context"
 
-	rpc_kvtx "github.com/s4wave/spacewave/db/kvtx/rpc"
-	object_rpc "github.com/s4wave/spacewave/db/object/rpc"
-	object_store "github.com/s4wave/spacewave/db/object/store"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
+	rpc_kvtx "github.com/s4wave/spacewave/db/kvtx/rpc"
+	object_rpc "github.com/s4wave/spacewave/db/object/rpc"
+	object_store "github.com/s4wave/spacewave/db/object/store"
 )
 
 // ObjectStore implements the server with a ObjectStore.

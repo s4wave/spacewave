@@ -1,10 +1,10 @@
 package filters
 
 import (
-	"github.com/s4wave/spacewave/db/block/bloom"
-	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/aperturerobotics/util/commonprefix"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/block/quad"
 )
 
 // keyFiltersFpRate is the hard-coded 10% false-positive rate.

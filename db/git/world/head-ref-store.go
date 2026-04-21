@@ -1,10 +1,10 @@
 package git_world
 
 import (
-	"github.com/s4wave/spacewave/db/block"
-	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	git_block "github.com/s4wave/spacewave/db/git/block"
 )
 
 // IsNil returns if the object is nil.

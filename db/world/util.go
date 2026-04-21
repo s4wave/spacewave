@@ -3,9 +3,9 @@ package world
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // ExecTransaction executes a transaction inside a function callback.

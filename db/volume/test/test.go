@@ -3,9 +3,9 @@ package volume_test
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	store_test "github.com/s4wave/spacewave/db/store/test"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/pkg/errors"
 )
 
 // CheckVolume checks a volume with all store tests.

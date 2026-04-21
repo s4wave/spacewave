@@ -3,10 +3,10 @@ package world_block_tx
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // Transaction is an instance of a transaction object.

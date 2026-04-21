@@ -70,11 +70,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace world
 }  // namespace unixfs
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::world::access::Config, _impl_._has_bits_),
@@ -102,40 +102,40 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::world::access::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\nBgithub.com/s4wave/spacewave/db/unix"
-    "fs/world/access/access.proto\022\023unixfs.wor"
-    "ld.access\032;github.com/aperturerobotics/h"
-    "ydra/unixfs/world/unixfs.proto\032\037google/p"
-    "rotobuf/timestamp.proto\"\306\001\n\006Config\022\r\n\005fs"
-    "_id\030\001 \001(\t\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007peer_id\030"
-    "\003 \001(\t\022\'\n\006fs_ref\030\004 \001(\0132\027.unixfs.world.Uni"
-    "xfsRef\022\022\n\nmkdir_path\030\005 \001(\010\022\035\n\025disable_wa"
-    "tch_changes\030\006 \001(\010\022-\n\ttimestamp\030\007 \001(\0132\032.g"
-    "oogle.protobuf.Timestampb\006proto3"
+    "\n\?github.com/s4wave/spacewave/db/unixfs/"
+    "world/access/access.proto\022\023unixfs.world."
+    "access\0328github.com/s4wave/spacewave/db/u"
+    "nixfs/world/unixfs.proto\032\037google/protobu"
+    "f/timestamp.proto\"\306\001\n\006Config\022\r\n\005fs_id\030\001 "
+    "\001(\t\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007peer_id\030\003 \001(\t\022"
+    "\'\n\006fs_ref\030\004 \001(\0132\027.unixfs.world.UnixfsRef"
+    "\022\022\n\nmkdir_path\030\005 \001(\010\022\035\n\025disable_watch_ch"
+    "anges\030\006 \001(\010\022-\n\ttimestamp\030\007 \001(\0132\032.google."
+    "protobuf.Timestampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto = {
     false,
     false,
-    392,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto,
+    386,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto,
     "github.com/s4wave/spacewave/db/unixfs/world/access/access.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto_deps,
     2,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto,
 };
 namespace unixfs {
 namespace world {
@@ -274,7 +274,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto,
       nullptr,  // tracker
   };
 }
@@ -671,6 +671,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2faccess_2faccess_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2faccess_2faccess_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

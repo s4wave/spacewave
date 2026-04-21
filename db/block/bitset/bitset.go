@@ -1,8 +1,8 @@
 package bitset
 
 import (
-	"github.com/s4wave/spacewave/db/block"
 	bb "github.com/bits-and-blooms/bitset"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewBitset constructs a new bitset from an existing bitset.

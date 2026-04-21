@@ -307,11 +307,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace world
 }  // namespace git
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::world::GitInitOp, _impl_._has_bits_),
@@ -437,74 +437,74 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::world::_GitStageOp_default_instance_._instance,
     &::git::world::_GitUnstageOp_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n5github.com/s4wave/spacewave/db/git/"
-    "world/git.proto\022\tgit.world\0325github.com/a"
-    "perturerobotics/hydra/bucket/bucket.prot"
-    "o\0325github.com/s4wave/spacewave/db/git"
-    "/block/git.proto\032;github.com/aperturerob"
-    "otics/hydra/unixfs/world/unixfs.proto\032\037g"
-    "oogle/protobuf/timestamp.proto\"\306\001\n\tGitIn"
-    "itOp\022\022\n\nobject_key\030\001 \001(\t\022#\n\010repo_ref\030\002 \001"
-    "(\0132\021.bucket.ObjectRef\022\030\n\020disable_checkou"
-    "t\030\003 \001(\010\0227\n\017create_worktree\030\004 \001(\0132\036.git.w"
-    "orld.GitCreateWorktreeOp\022-\n\ttimestamp\030\005 "
-    "\001(\0132\032.google.protobuf.Timestamp\"`\n\010Workt"
-    "ree\022#\n\tgit_index\030\001 \001(\0132\020.git.block.Index"
-    "\022/\n\016head_ref_store\030\002 \001(\0132\027.git.world.Hea"
-    "dRefStore\"{\n\014HeadRefStore\022\026\n\016submodule_n"
-    "ame\030\001 \001(\t\022&\n\010head_ref\030\002 \001(\0132\024.git.block."
-    "Reference\022+\n\nsubmodules\030\003 \003(\0132\027.git.worl"
-    "d.HeadRefStore\"\201\002\n\023GitCreateWorktreeOp\022\022"
-    "\n\nobject_key\030\001 \001(\t\022\027\n\017repo_object_key\030\002 "
-    "\001(\t\022,\n\013workdir_ref\030\003 \001(\0132\027.unixfs.world."
-    "UnixfsRef\022\026\n\016create_workdir\030\004 \001(\010\022.\n\rche"
-    "ckout_opts\030\005 \001(\0132\027.git.block.CheckoutOpt"
-    "s\022\030\n\020disable_checkout\030\006 \001(\010\022-\n\ttimestamp"
-    "\030\007 \001(\0132\032.google.protobuf.Timestamp\"J\n\nGi"
-    "tFetchOp\022\022\n\nobject_key\030\001 \001(\t\022(\n\nfetch_op"
-    "ts\030\002 \001(\0132\024.git.block.FetchOpts\"\314\001\n\nGitCl"
-    "oneOp\022\022\n\nobject_key\030\001 \001(\t\022(\n\nclone_opts\030"
-    "\002 \001(\0132\024.git.block.CloneOpts\022\030\n\020disable_c"
-    "heckout\030\003 \001(\010\0227\n\017create_worktree\030\004 \001(\0132\036"
-    ".git.world.GitCreateWorktreeOp\022-\n\ttimest"
-    "amp\030\005 \001(\0132\032.google.protobuf.Timestamp\"\243\001"
-    "\n\025GitWorktreeCheckoutOp\022\022\n\nobject_key\030\001 "
-    "\001(\t\022\027\n\017repo_object_key\030\002 \001(\t\022.\n\rcheckout"
-    "_opts\030\003 \001(\0132\027.git.block.CheckoutOpts\022-\n\t"
-    "timestamp\030\004 \001(\0132\032.google.protobuf.Timest"
-    "amp\"w\n\nGitStageOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n"
-    "\017repo_object_key\030\002 \001(\t\022\r\n\005paths\030\003 \003(\t\022-\n"
-    "\ttimestamp\030\004 \001(\0132\032.google.protobuf.Times"
-    "tamp\"y\n\014GitUnstageOp\022\022\n\nobject_key\030\001 \001(\t"
-    "\022\027\n\017repo_object_key\030\002 \001(\t\022\r\n\005paths\030\003 \003(\t"
-    "\022-\n\ttimestamp\030\004 \001(\0132\032.google.protobuf.Ti"
-    "mestampb\006proto3"
+    "\n2github.com/s4wave/spacewave/db/git/wor"
+    "ld/git.proto\022\tgit.world\0322github.com/s4wa"
+    "ve/spacewave/db/bucket/bucket.proto\0322git"
+    "hub.com/s4wave/spacewave/db/git/block/gi"
+    "t.proto\0328github.com/s4wave/spacewave/db/"
+    "unixfs/world/unixfs.proto\032\037google/protob"
+    "uf/timestamp.proto\"\306\001\n\tGitInitOp\022\022\n\nobje"
+    "ct_key\030\001 \001(\t\022#\n\010repo_ref\030\002 \001(\0132\021.bucket."
+    "ObjectRef\022\030\n\020disable_checkout\030\003 \001(\010\0227\n\017c"
+    "reate_worktree\030\004 \001(\0132\036.git.world.GitCrea"
+    "teWorktreeOp\022-\n\ttimestamp\030\005 \001(\0132\032.google"
+    ".protobuf.Timestamp\"`\n\010Worktree\022#\n\tgit_i"
+    "ndex\030\001 \001(\0132\020.git.block.Index\022/\n\016head_ref"
+    "_store\030\002 \001(\0132\027.git.world.HeadRefStore\"{\n"
+    "\014HeadRefStore\022\026\n\016submodule_name\030\001 \001(\t\022&\n"
+    "\010head_ref\030\002 \001(\0132\024.git.block.Reference\022+\n"
+    "\nsubmodules\030\003 \003(\0132\027.git.world.HeadRefSto"
+    "re\"\201\002\n\023GitCreateWorktreeOp\022\022\n\nobject_key"
+    "\030\001 \001(\t\022\027\n\017repo_object_key\030\002 \001(\t\022,\n\013workd"
+    "ir_ref\030\003 \001(\0132\027.unixfs.world.UnixfsRef\022\026\n"
+    "\016create_workdir\030\004 \001(\010\022.\n\rcheckout_opts\030\005"
+    " \001(\0132\027.git.block.CheckoutOpts\022\030\n\020disable"
+    "_checkout\030\006 \001(\010\022-\n\ttimestamp\030\007 \001(\0132\032.goo"
+    "gle.protobuf.Timestamp\"J\n\nGitFetchOp\022\022\n\n"
+    "object_key\030\001 \001(\t\022(\n\nfetch_opts\030\002 \001(\0132\024.g"
+    "it.block.FetchOpts\"\314\001\n\nGitCloneOp\022\022\n\nobj"
+    "ect_key\030\001 \001(\t\022(\n\nclone_opts\030\002 \001(\0132\024.git."
+    "block.CloneOpts\022\030\n\020disable_checkout\030\003 \001("
+    "\010\0227\n\017create_worktree\030\004 \001(\0132\036.git.world.G"
+    "itCreateWorktreeOp\022-\n\ttimestamp\030\005 \001(\0132\032."
+    "google.protobuf.Timestamp\"\243\001\n\025GitWorktre"
+    "eCheckoutOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017repo_"
+    "object_key\030\002 \001(\t\022.\n\rcheckout_opts\030\003 \001(\0132"
+    "\027.git.block.CheckoutOpts\022-\n\ttimestamp\030\004 "
+    "\001(\0132\032.google.protobuf.Timestamp\"w\n\nGitSt"
+    "ageOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017repo_object"
+    "_key\030\002 \001(\t\022\r\n\005paths\030\003 \003(\t\022-\n\ttimestamp\030\004"
+    " \001(\0132\032.google.protobuf.Timestamp\"y\n\014GitU"
+    "nstageOp\022\022\n\nobject_key\030\001 \001(\t\022\027\n\017repo_obj"
+    "ect_key\030\002 \001(\t\022\r\n\005paths\030\003 \003(\t\022-\n\ttimestam"
+    "p\030\004 \001(\0132\032.google.protobuf.Timestampb\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fworld_2funixfs_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto_deps[4] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fworld_2funixfs_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto = {
     false,
     false,
-    1655,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+    1643,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
     "github.com/s4wave/spacewave/db/git/world/git.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto_deps,
     4,
     9,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
 };
 namespace git {
 namespace world {
@@ -634,7 +634,7 @@ constexpr auto GitInitOp::InternalGenerateClassData_() {
           false,
       },
       &GitInitOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1063,7 +1063,7 @@ constexpr auto Worktree::InternalGenerateClassData_() {
           false,
       },
       &Worktree::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1398,7 +1398,7 @@ constexpr auto HeadRefStore::InternalGenerateClassData_() {
           false,
       },
       &HeadRefStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1796,7 +1796,7 @@ constexpr auto GitCreateWorktreeOp::InternalGenerateClassData_() {
           false,
       },
       &GitCreateWorktreeOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2282,7 +2282,7 @@ constexpr auto GitFetchOp::InternalGenerateClassData_() {
           false,
       },
       &GitFetchOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2628,7 +2628,7 @@ constexpr auto GitCloneOp::InternalGenerateClassData_() {
           false,
       },
       &GitCloneOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3069,7 +3069,7 @@ constexpr auto GitWorktreeCheckoutOp::InternalGenerateClassData_() {
           false,
       },
       &GitWorktreeCheckoutOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3485,7 +3485,7 @@ constexpr auto GitStageOp::InternalGenerateClassData_() {
           false,
       },
       &GitStageOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3900,7 +3900,7 @@ constexpr auto GitUnstageOp::InternalGenerateClassData_() {
           false,
       },
       &GitUnstageOp::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4202,6 +4202,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -6,17 +6,17 @@ import (
 	"regexp"
 	"testing"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver/v4"
 	store_test "github.com/s4wave/spacewave/db/store/test"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

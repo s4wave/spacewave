@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_e2e "github.com/s4wave/spacewave/db/unixfs/e2e"
-	"github.com/go-git/go-billy/v6/memfs"
 )
 
 func TestBillyFSCursor(t *testing.T) {

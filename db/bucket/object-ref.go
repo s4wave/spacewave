@@ -1,11 +1,11 @@
 package bucket
 
 import (
-	"github.com/s4wave/spacewave/db/block"
-	transform "github.com/s4wave/spacewave/db/block/transform"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/s4wave/spacewave/db/block"
+	transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // NewObjectRefBlock constructs a new object ref block.

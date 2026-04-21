@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/path"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -17,7 +18,6 @@ import (
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

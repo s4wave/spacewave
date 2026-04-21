@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/block/msgpack/msgpack.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -37,7 +37,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto
 
 namespace google {
 namespace protobuf {
@@ -49,11 +49,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto;
 }  // extern "C"
 namespace msgpack {
 class MsgpackBlob;
@@ -262,7 +262,7 @@ class MsgpackBlob final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MsgpackBlob_class_data_;
@@ -388,4 +388,4 @@ inline void MsgpackBlob::set_allocated_blob(::blob::Blob* PROTOBUF_NULLABLE valu
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto_2epb_2eh

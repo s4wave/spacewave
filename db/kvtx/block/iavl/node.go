@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 

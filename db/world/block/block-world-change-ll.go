@@ -3,9 +3,9 @@ package world_block
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
 )
 
 // NewWorldChangeLLBlock constructs a new WorldChangeLL block.

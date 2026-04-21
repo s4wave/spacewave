@@ -3,12 +3,12 @@ package git_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
-	peer_ssh "github.com/s4wave/spacewave/net/peer/ssh"
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/go-git/go-git/v6/plumbing/transport"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
+	"github.com/s4wave/spacewave/net/peer"
+	peer_ssh "github.com/s4wave/spacewave/net/peer/ssh"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ResolveAuth resolves authentication on a bus from the config.

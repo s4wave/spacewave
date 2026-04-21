@@ -3,13 +3,13 @@ package block_store_kvfile
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_vlogger "github.com/s4wave/spacewave/db/block/store/vlogger"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 

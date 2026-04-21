@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
 	sqlite "github.com/ncruces/go-sqlite3"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/vfs/memdb"
+	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
 )
 
 // SqliteWasmConfig implements the SQLiteDriverConfig interface for pure Go SQLite driver.

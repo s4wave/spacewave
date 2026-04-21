@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
-	"github.com/dolthub/go-mysql-server/sql"
 )
 
 // Tx contains a transaction against the mysql data store.

@@ -5,11 +5,11 @@ import (
 	"io"
 
 	kvfile "github.com/aperturerobotics/go-kvfile"
+	"github.com/pkg/errors"
 	block_store_kvfile "github.com/s4wave/spacewave/db/block/store/kvfile"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	buffered_reader_at "github.com/s4wave/spacewave/db/util/buffered-reader-at"
 	http_range "github.com/s4wave/spacewave/db/util/http-range"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

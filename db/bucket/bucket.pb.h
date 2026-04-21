@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/bucket/bucket.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -40,7 +40,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto
 
 namespace google {
 namespace protobuf {
@@ -52,11 +52,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 }  // extern "C"
 namespace bucket {
 class ApplyBucketConfigResult;
@@ -306,7 +306,7 @@ class BucketOpArgs final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BucketOpArgs_class_data_;
@@ -530,7 +530,7 @@ class ReconcilerConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ReconcilerConfig_class_data_;
@@ -737,7 +737,7 @@ class LookupConfig final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull LookupConfig_class_data_;
@@ -983,7 +983,7 @@ class ObjectRef final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ObjectRef_class_data_;
@@ -1243,7 +1243,7 @@ class Config final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
@@ -1438,7 +1438,7 @@ class BucketInfo final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BucketInfo_class_data_;
@@ -1730,7 +1730,7 @@ class ApplyBucketConfigResult final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ApplyBucketConfigResult_class_data_;
@@ -3510,4 +3510,4 @@ inline void BucketOpArgs::set_allocated_volume_id(::std::string* PROTOBUF_NULLAB
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto_2epb_2eh

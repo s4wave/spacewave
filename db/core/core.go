@@ -3,8 +3,6 @@ package core
 import (
 	"context"
 
-	bifrostcore "github.com/s4wave/spacewave/net/core"
-	nctr "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -15,6 +13,8 @@ import (
 	"github.com/s4wave/spacewave/db/dex/psecho"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	bifrostcore "github.com/s4wave/spacewave/net/core"
+	nctr "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
 

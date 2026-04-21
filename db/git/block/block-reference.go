@@ -1,11 +1,11 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/sbset"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // NewReference constructs a new repo ref.

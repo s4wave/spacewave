@@ -3,11 +3,11 @@ package block_store_overlay
 import (
 	"time"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the string used to identify this config object.

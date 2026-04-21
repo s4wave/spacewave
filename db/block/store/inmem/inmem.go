@@ -1,11 +1,11 @@
 package block_store_inmem
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // InmemBlock is a block store on top of a Ristretto cache.

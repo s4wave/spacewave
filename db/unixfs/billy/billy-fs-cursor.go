@@ -7,9 +7,9 @@ import (
 	"path"
 	"sync/atomic"
 
+	"github.com/go-git/go-billy/v6"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/go-git/go-billy/v6"
 )
 
 // BillyFSCursor is an FSCursor implementation backed by a BillyFS.

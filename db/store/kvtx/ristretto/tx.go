@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/dgraph-io/ristretto/v2"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Tx implements a transaction on top of the cache.

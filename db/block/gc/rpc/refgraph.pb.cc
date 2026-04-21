@@ -414,11 +414,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace gc
 }  // namespace block
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::block::gc::rpc::AddRefRequest, _impl_._has_bits_),
@@ -537,61 +537,61 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::block::gc::rpc::_GetUnreferencedNodesRequest_default_instance_._instance,
     &::block::gc::rpc::_GetUnreferencedNodesResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n=github.com/s4wave/spacewave/db/bloc"
-    "k/gc/rpc/refgraph.proto\022\014block.gc.rpc\"0\n"
-    "\rAddRefRequest\022\017\n\007subject\030\001 \001(\t\022\016\n\006objec"
-    "t\030\002 \001(\t\"\037\n\016AddRefResponse\022\r\n\005error\030\001 \001(\t"
-    "\"3\n\020RemoveRefRequest\022\017\n\007subject\030\001 \001(\t\022\016\n"
-    "\006object\030\002 \001(\t\"\"\n\021RemoveRefResponse\022\r\n\005er"
-    "ror\030\001 \001(\t\"<\n\025RemoveNodeRefsRequest\022\014\n\004no"
-    "de\030\001 \001(\t\022\025\n\rmark_orphaned\030\002 \001(\010\"8\n\026Remov"
-    "eNodeRefsResponse\022\017\n\007targets\030\001 \003(\t\022\r\n\005er"
-    "ror\030\002 \001(\t\"&\n\026HasIncomingRefsRequest\022\014\n\004n"
-    "ode\030\001 \001(\t\":\n\027HasIncomingRefsResponse\022\020\n\010"
-    "has_refs\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\"&\n\026GetOutg"
-    "oingRefsRequest\022\014\n\004node\030\001 \001(\t\"9\n\027GetOutg"
-    "oingRefsResponse\022\017\n\007targets\030\001 \003(\t\022\r\n\005err"
-    "or\030\002 \001(\t\"&\n\026GetIncomingRefsRequest\022\014\n\004no"
-    "de\030\001 \001(\t\"9\n\027GetIncomingRefsResponse\022\017\n\007s"
-    "ources\030\001 \003(\t\022\r\n\005error\030\002 \001(\t\"\035\n\033GetUnrefe"
-    "rencedNodesRequest\"<\n\034GetUnreferencedNod"
-    "esResponse\022\r\n\005nodes\030\001 \003(\t\022\r\n\005error\030\002 \001(\t"
-    "2\211\005\n\010RefGraph\022C\n\006AddRef\022\033.block.gc.rpc.A"
-    "ddRefRequest\032\034.block.gc.rpc.AddRefRespon"
-    "se\022L\n\tRemoveRef\022\036.block.gc.rpc.RemoveRef"
-    "Request\032\037.block.gc.rpc.RemoveRefResponse"
-    "\022[\n\016RemoveNodeRefs\022#.block.gc.rpc.Remove"
-    "NodeRefsRequest\032$.block.gc.rpc.RemoveNod"
-    "eRefsResponse\022^\n\017HasIncomingRefs\022$.block"
-    ".gc.rpc.HasIncomingRefsRequest\032%.block.g"
-    "c.rpc.HasIncomingRefsResponse\022^\n\017GetOutg"
-    "oingRefs\022$.block.gc.rpc.GetOutgoingRefsR"
-    "equest\032%.block.gc.rpc.GetOutgoingRefsRes"
-    "ponse\022^\n\017GetIncomingRefs\022$.block.gc.rpc."
-    "GetIncomingRefsRequest\032%.block.gc.rpc.Ge"
-    "tIncomingRefsResponse\022m\n\024GetUnreferenced"
-    "Nodes\022).block.gc.rpc.GetUnreferencedNode"
-    "sRequest\032*.block.gc.rpc.GetUnreferencedN"
-    "odesResponseb\006proto3"
+    "\n:github.com/s4wave/spacewave/db/block/g"
+    "c/rpc/refgraph.proto\022\014block.gc.rpc\"0\n\rAd"
+    "dRefRequest\022\017\n\007subject\030\001 \001(\t\022\016\n\006object\030\002"
+    " \001(\t\"\037\n\016AddRefResponse\022\r\n\005error\030\001 \001(\t\"3\n"
+    "\020RemoveRefRequest\022\017\n\007subject\030\001 \001(\t\022\016\n\006ob"
+    "ject\030\002 \001(\t\"\"\n\021RemoveRefResponse\022\r\n\005error"
+    "\030\001 \001(\t\"<\n\025RemoveNodeRefsRequest\022\014\n\004node\030"
+    "\001 \001(\t\022\025\n\rmark_orphaned\030\002 \001(\010\"8\n\026RemoveNo"
+    "deRefsResponse\022\017\n\007targets\030\001 \003(\t\022\r\n\005error"
+    "\030\002 \001(\t\"&\n\026HasIncomingRefsRequest\022\014\n\004node"
+    "\030\001 \001(\t\":\n\027HasIncomingRefsResponse\022\020\n\010has"
+    "_refs\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\"&\n\026GetOutgoin"
+    "gRefsRequest\022\014\n\004node\030\001 \001(\t\"9\n\027GetOutgoin"
+    "gRefsResponse\022\017\n\007targets\030\001 \003(\t\022\r\n\005error\030"
+    "\002 \001(\t\"&\n\026GetIncomingRefsRequest\022\014\n\004node\030"
+    "\001 \001(\t\"9\n\027GetIncomingRefsResponse\022\017\n\007sour"
+    "ces\030\001 \003(\t\022\r\n\005error\030\002 \001(\t\"\035\n\033GetUnreferen"
+    "cedNodesRequest\"<\n\034GetUnreferencedNodesR"
+    "esponse\022\r\n\005nodes\030\001 \003(\t\022\r\n\005error\030\002 \001(\t2\211\005"
+    "\n\010RefGraph\022C\n\006AddRef\022\033.block.gc.rpc.AddR"
+    "efRequest\032\034.block.gc.rpc.AddRefResponse\022"
+    "L\n\tRemoveRef\022\036.block.gc.rpc.RemoveRefReq"
+    "uest\032\037.block.gc.rpc.RemoveRefResponse\022[\n"
+    "\016RemoveNodeRefs\022#.block.gc.rpc.RemoveNod"
+    "eRefsRequest\032$.block.gc.rpc.RemoveNodeRe"
+    "fsResponse\022^\n\017HasIncomingRefs\022$.block.gc"
+    ".rpc.HasIncomingRefsRequest\032%.block.gc.r"
+    "pc.HasIncomingRefsResponse\022^\n\017GetOutgoin"
+    "gRefs\022$.block.gc.rpc.GetOutgoingRefsRequ"
+    "est\032%.block.gc.rpc.GetOutgoingRefsRespon"
+    "se\022^\n\017GetIncomingRefs\022$.block.gc.rpc.Get"
+    "IncomingRefsRequest\032%.block.gc.rpc.GetIn"
+    "comingRefsResponse\022m\n\024GetUnreferencedNod"
+    "es\022).block.gc.rpc.GetUnreferencedNodesRe"
+    "quest\032*.block.gc.rpc.GetUnreferencedNode"
+    "sResponseb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto = {
     false,
     false,
-    1420,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+    1417,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
     "github.com/s4wave/spacewave/db/block/gc/rpc/refgraph.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto_once,
     nullptr,
     0,
     14,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
 };
 namespace block {
 namespace gc {
@@ -693,7 +693,7 @@ constexpr auto AddRefRequest::InternalGenerateClassData_() {
           false,
       },
       &AddRefRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1010,7 +1010,7 @@ constexpr auto AddRefResponse::InternalGenerateClassData_() {
           false,
       },
       &AddRefResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1288,7 +1288,7 @@ constexpr auto RemoveRefRequest::InternalGenerateClassData_() {
           false,
       },
       &RemoveRefRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1605,7 +1605,7 @@ constexpr auto RemoveRefResponse::InternalGenerateClassData_() {
           false,
       },
       &RemoveRefResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1882,7 +1882,7 @@ constexpr auto RemoveNodeRefsRequest::InternalGenerateClassData_() {
           false,
       },
       &RemoveNodeRefsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2202,7 +2202,7 @@ constexpr auto RemoveNodeRefsResponse::InternalGenerateClassData_() {
           false,
       },
       &RemoveNodeRefsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2518,7 +2518,7 @@ constexpr auto HasIncomingRefsRequest::InternalGenerateClassData_() {
           false,
       },
       &HasIncomingRefsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2795,7 +2795,7 @@ constexpr auto HasIncomingRefsResponse::InternalGenerateClassData_() {
           false,
       },
       &HasIncomingRefsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3101,7 +3101,7 @@ constexpr auto GetOutgoingRefsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetOutgoingRefsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3390,7 +3390,7 @@ constexpr auto GetOutgoingRefsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetOutgoingRefsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3706,7 +3706,7 @@ constexpr auto GetIncomingRefsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetIncomingRefsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3995,7 +3995,7 @@ constexpr auto GetIncomingRefsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetIncomingRefsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4274,7 +4274,7 @@ constexpr auto GetUnreferencedNodesRequest::InternalGenerateClassData_() {
           false,
       },
       &GetUnreferencedNodesRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4434,7 +4434,7 @@ constexpr auto GetUnreferencedNodesResponse::InternalGenerateClassData_() {
           false,
       },
       &GetUnreferencedNodesResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4667,6 +4667,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fgc_2frpc_2frefgraph_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fgc_2frpc_2frefgraph_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

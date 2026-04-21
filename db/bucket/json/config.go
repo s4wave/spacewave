@@ -7,9 +7,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/fastjson"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // Config implements the bucket configuration JSON marshalling logic.

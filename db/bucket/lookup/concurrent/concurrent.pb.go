@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // NotFoundBehavior controls what happens when a block was not found locally.

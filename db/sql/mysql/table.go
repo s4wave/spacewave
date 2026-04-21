@@ -4,10 +4,10 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // Table is the block-graph backed data table cursor.

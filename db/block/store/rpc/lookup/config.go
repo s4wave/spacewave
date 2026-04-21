@@ -2,8 +2,8 @@ package block_store_rpc_lookup
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // ConfigID is the string used to identify this config object.

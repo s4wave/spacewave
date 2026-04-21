@@ -8,8 +8,8 @@ import (
 	"slices"
 	"time"
 
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/pkg/errors"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // MaxReadFileSize is the maximum size for ReadFile operations (4GB)

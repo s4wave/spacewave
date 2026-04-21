@@ -4,8 +4,8 @@ package block_copy
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // CopyBlockDAG copies all blocks reachable from rootRef from src to dest.

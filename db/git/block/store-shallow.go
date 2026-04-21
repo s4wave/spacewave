@@ -1,9 +1,9 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/storer"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // SetShallow sets the list of shallow refs.

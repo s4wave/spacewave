@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // TestUnixFS runs end to end tests on a UnixFS handle.

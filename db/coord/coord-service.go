@@ -5,9 +5,9 @@ package coord
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
-	"github.com/pkg/errors"
 )
 
 // coordinatorServiceServer implements SRPCCoordinatorServiceServer.

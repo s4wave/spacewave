@@ -11,9 +11,9 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config configures the block store rpc server.

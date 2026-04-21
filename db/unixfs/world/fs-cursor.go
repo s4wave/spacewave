@@ -4,7 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -12,8 +13,7 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/world"
 	control "github.com/s4wave/spacewave/db/world/control"
-	"github.com/aperturerobotics/util/broadcast"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

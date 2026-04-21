@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/restic/chunker"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // defRabinPol is the default rabin polynomial

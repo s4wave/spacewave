@@ -3,9 +3,9 @@ package git_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // NewEncodedObjectBlock builds a new encoded object block.

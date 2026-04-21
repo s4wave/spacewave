@@ -3,9 +3,6 @@ package daemon
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/peer"
-	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -13,6 +10,9 @@ import (
 	"github.com/s4wave/spacewave/db/core"
 	core_all "github.com/s4wave/spacewave/db/core/all"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
+	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
 

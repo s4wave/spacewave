@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // TablePartitionRowIter is a table partition iterator.

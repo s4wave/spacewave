@@ -3,9 +3,9 @@ package object_rpc_server
 import (
 	"context"
 
-	rpc_kvtx_server "github.com/s4wave/spacewave/db/kvtx/rpc/server"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	rpc_kvtx_server "github.com/s4wave/spacewave/db/kvtx/rpc/server"
 )
 
 // kvtxStoreTracker tracks a kvtx.Store

@@ -3,8 +3,8 @@ package unixfs_block
 import (
 	"io/fs"
 
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
 )
 
 // NodeTypeToFSCursorNodeType converts a NodeType to a FSCursorNodeType.

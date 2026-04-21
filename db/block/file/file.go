@@ -5,9 +5,9 @@ import (
 	"context"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/pkg/errors"
 )
 
 // NewFileBlock builds a new file root block.

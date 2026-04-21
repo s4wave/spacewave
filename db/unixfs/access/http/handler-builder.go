@@ -5,16 +5,16 @@ import (
 	"net/http"
 	"time"
 
-	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-billy/v6/helper/chroot"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/util/billyhttp"
-	"github.com/go-git/go-billy/v6"
-	"github.com/go-git/go-billy/v6/helper/chroot"
-	"github.com/pkg/errors"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
 // NewHTTPHandlerBuilder constructs a HTTPHandlerBuilder function.

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // ErrNotImplemented is returned for operations not implemented by Lookup().

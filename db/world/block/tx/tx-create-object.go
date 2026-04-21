@@ -3,9 +3,9 @@ package world_block_tx
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewTxCreateObject constructs a new CREATE_OBJECT transaction.

@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/peer"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_gc_client "github.com/s4wave/spacewave/db/block/gc/rpc/client"
@@ -20,6 +18,8 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
 	volume_store "github.com/s4wave/spacewave/db/volume/store"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // ProxyVolume implements a volume backed by a ProxyVolume service.

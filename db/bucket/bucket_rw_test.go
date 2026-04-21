@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type bucketRWTestStore struct {

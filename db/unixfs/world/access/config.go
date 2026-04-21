@@ -1,12 +1,12 @@
 package unixfs_world_access
 
 import (
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the string used to identify this config object.

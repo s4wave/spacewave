@@ -56,11 +56,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BitSetDefaultTypeInternal _BitSet_default_instance_;
 }  // namespace bitset
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bitset::BitSet, _impl_._has_bits_),
@@ -78,28 +78,28 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bitset::_BitSet_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n;github.com/s4wave/spacewave/db/bloc"
-    "k/bitset/bitset.proto\022\006bitset\"\"\n\006BitSet\022"
-    "\013\n\003set\030\001 \003(\004\022\013\n\003len\030\002 \001(\rb\006proto3"
+    "\n8github.com/s4wave/spacewave/db/block/b"
+    "itset/bitset.proto\022\006bitset\"\"\n\006BitSet\022\013\n\003"
+    "set\030\001 \003(\004\022\013\n\003len\030\002 \001(\rb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto = {
     false,
     false,
-    113,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto,
+    110,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto,
     "github.com/s4wave/spacewave/db/block/bitset/bitset.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto_once,
     nullptr,
     0,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto,
 };
 namespace bitset {
 // ===================================================================
@@ -211,7 +211,7 @@ constexpr auto BitSet::InternalGenerateClassData_() {
           false,
       },
       &BitSet::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto,
       nullptr,  // tracker
   };
 }
@@ -423,6 +423,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbitset_2fbitset_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbitset_2fbitset_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -5,10 +5,10 @@ import (
 	"io"
 	"math"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/sbset"
-	"github.com/pkg/errors"
 )
 
 // Handle is a open file handle, using a block transaction and a

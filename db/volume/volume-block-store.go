@@ -3,10 +3,10 @@ package volume
 import (
 	"context"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // VolumeBlockStore wraps a volume with a block store.

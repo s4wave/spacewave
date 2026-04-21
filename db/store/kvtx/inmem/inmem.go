@@ -3,8 +3,8 @@ package store_kvtx_inmem
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/tidwall/btree"
 )
 

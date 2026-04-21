@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 
+	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/pkg/errors"
 )
 
 // gcJournalSubBlock is the sub-block index for the GC deferred journal.

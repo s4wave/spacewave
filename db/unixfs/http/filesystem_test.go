@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	iofs_mock "github.com/s4wave/spacewave/db/unixfs/iofs/mock"
-	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/sirupsen/logrus"
 )
 

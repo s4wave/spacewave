@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/mqueue/rpc/mqueue.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -39,7 +39,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto
 
 namespace google {
 namespace protobuf {
@@ -51,11 +51,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 }  // extern "C"
 namespace mqueue {
 namespace rpc {
@@ -318,7 +318,7 @@ class WaitRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WaitRequest_class_data_;
@@ -513,7 +513,7 @@ class RmMqueueResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RmMqueueResponse_class_data_;
@@ -708,7 +708,7 @@ class RmMqueueRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RmMqueueRequest_class_data_;
@@ -903,7 +903,7 @@ class PushRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PushRequest_class_data_;
@@ -1037,7 +1037,7 @@ class PeekRequest final : public ::google::protobuf::internal::ZeroFieldsBase
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PeekRequest_class_data_;
@@ -1256,7 +1256,7 @@ class ListMqueuesResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ListMqueuesResponse_class_data_;
@@ -1463,7 +1463,7 @@ class ListMqueuesRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ListMqueuesRequest_class_data_;
@@ -1658,7 +1658,7 @@ class DeleteQueueResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DeleteQueueResponse_class_data_;
@@ -1792,7 +1792,7 @@ class DeleteQueueRequest final : public ::google::protobuf::internal::ZeroFields
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DeleteQueueRequest_class_data_;
@@ -1987,7 +1987,7 @@ class AckResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AckResponse_class_data_;
@@ -2177,7 +2177,7 @@ class AckRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AckRequest_class_data_;
@@ -2401,7 +2401,7 @@ class MqueueMsg final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MqueueMsg_class_data_;
@@ -2596,7 +2596,7 @@ class WaitResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WaitResponse_class_data_;
@@ -2808,7 +2808,7 @@ class PushResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PushResponse_class_data_;
@@ -3032,7 +3032,7 @@ class PeekResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PeekResponse_class_data_;
@@ -4359,4 +4359,4 @@ inline void DeleteQueueResponse::set_allocated_error(::std::string* PROTOBUF_NUL
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fmqueue_2frpc_2fmqueue_2eproto_2epb_2eh

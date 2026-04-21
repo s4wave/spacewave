@@ -3,9 +3,9 @@ package unixfs_sync_git
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/gitcmd"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
-	"github.com/aperturerobotics/util/gitcmd"
 )
 
 // SyncFromGitWorkdir calls "git ls-files" using os/exec to determine the list of

@@ -4,10 +4,10 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
-	"github.com/dolthub/go-mysql-server/sql"
 )
 
 // TablePartition is a table partition handle.

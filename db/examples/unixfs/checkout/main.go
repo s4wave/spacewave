@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
 	hcli "github.com/s4wave/spacewave/db/cli"
@@ -20,8 +22,6 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

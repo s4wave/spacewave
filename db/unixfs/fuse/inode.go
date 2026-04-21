@@ -13,9 +13,9 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	"github.com/pkg/errors"
 )
 
 // Inode wraps unixfs.FSHandle to provide FUSE inode calls.

@@ -10,9 +10,9 @@ import (
 	slices "slices"
 	strings "strings"
 
-	session "github.com/s4wave/spacewave/db/dex/session"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	session "github.com/s4wave/spacewave/db/dex/session"
 )
 
 // SyncMessage wraps a BlockTransfer for psecho sync streams.

@@ -11,12 +11,12 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block1 "github.com/s4wave/spacewave/db/block"
-	bucket "github.com/s4wave/spacewave/db/bucket"
-	block "github.com/s4wave/spacewave/db/unixfs/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	block1 "github.com/s4wave/spacewave/db/block"
+	bucket "github.com/s4wave/spacewave/db/bucket"
+	block "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
 // FSType indicates the type of unixfs reference.

@@ -1,8 +1,8 @@
 package transform_s2
 
 import (
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/klauspost/compress/s2"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
 // S2 is the S2 compression step.

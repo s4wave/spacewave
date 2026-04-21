@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	controller "github.com/aperturerobotics/controllerbus/controller"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bucket "github.com/s4wave/spacewave/db/bucket"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // VolumeInfo contains basic information about a volume.

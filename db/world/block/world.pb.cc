@@ -180,11 +180,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace block
 }  // namespace world
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::World, _impl_._has_bits_),
@@ -268,81 +268,81 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::_WorldChangeLL_default_instance_._instance,
     &::world::block::_ChangeLogLL_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n9github.com/s4wave/spacewave/db/worl"
-    "d/block/world.proto\022\013world.block\0323github"
-    ".com/aperturerobotics/hydra/block/block."
-    "proto\0329github.com/s4wave/spacewave/db"
-    "/block/bloom/bloom.proto\032=github.com/ape"
-    "rturerobotics/hydra/block/filters/filter"
-    "s.proto\0327github.com/aperturerobotics/hyd"
-    "ra/block/quad/quad.proto\0327github.com/ape"
-    "rturerobotics/hydra/kvtx/block/kvtx.prot"
-    "o\0325github.com/s4wave/spacewave/db/buc"
-    "ket/bucket.proto\032\037google/protobuf/timest"
-    "amp.proto\"\230\002\n\005World\0223\n\020object_key_value\030"
-    "\001 \001(\0132\031.kvtx.block.KeyValueStore\0222\n\017grap"
-    "h_key_value\030\002 \001(\0132\031.kvtx.block.KeyValueS"
-    "tore\022-\n\013last_change\030\003 \001(\0132\030.world.block."
-    "ChangeLogLL\022\033\n\023last_change_disable\030\004 \001(\010"
-    "\022+\n\010gc_graph\030\005 \001(\0132\031.kvtx.block.KeyValue"
-    "Store\022-\n\ngc_journal\030\006 \001(\0132\031.kvtx.block.K"
-    "eyValueStore\"G\n\006Object\022\013\n\003key\030\001 \001(\t\022#\n\010r"
-    "oot_ref\030\002 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030"
-    "\003 \001(\004\"\364\001\n\013WorldChange\0221\n\013change_type\030\001 \001"
-    "(\0162\034.world.block.WorldChangeType\022\013\n\003key\030"
-    "\002 \001(\t\022\030\n\004quad\030\003 \001(\0132\n.quad.Quad\022(\n\017trans"
-    "action_ref\030\004 \001(\0132\017.block.BlockRef\022#\n\nobj"
-    "ect_ref\030\005 \001(\0132\017.block.BlockRef\022(\n\017prev_o"
-    "bject_ref\030\006 \001(\0132\017.block.BlockRef\022\022\n\nobje"
-    "ct_rev\030\007 \001(\004\"\201\001\n\rWorldChangeLL\022\016\n\006height"
-    "\030\001 \001(\r\022!\n\010prev_ref\030\002 \001(\0132\017.block.BlockRe"
-    "f\022\022\n\ntotal_size\030\003 \001(\r\022)\n\007changes\030\004 \003(\0132\030"
-    ".world.block.WorldChange\"\316\001\n\013ChangeLogLL"
-    "\022\r\n\005seqno\030\001 \001(\004\022!\n\010prev_ref\030\002 \001(\0132\017.bloc"
-    "k.BlockRef\0220\n\014change_batch\030\003 \001(\0132\032.world"
-    ".block.WorldChangeLL\0221\n\013change_type\030\004 \001("
-    "\0162\034.world.block.WorldChangeType\022(\n\013key_f"
-    "ilters\030\005 \001(\0132\023.filters.KeyFilters*\276\001\n\017Wo"
-    "rldChangeType\022\027\n\023WorldChange_INVALID\020\000\022\032"
-    "\n\026WorldChange_OBJECT_SET\020\001\022\036\n\032WorldChang"
-    "e_OBJECT_INC_REV\020\002\022\035\n\031WorldChange_OBJECT"
-    "_DELETE\020\003\022\031\n\025WorldChange_GRAPH_SET\020\005\022\034\n\030"
-    "WorldChange_GRAPH_DELETE\020\006b\006proto3"
+    "\n6github.com/s4wave/spacewave/db/world/b"
+    "lock/world.proto\022\013world.block\0320github.co"
+    "m/s4wave/spacewave/db/block/block.proto\032"
+    "6github.com/s4wave/spacewave/db/block/bl"
+    "oom/bloom.proto\032:github.com/s4wave/space"
+    "wave/db/block/filters/filters.proto\0324git"
+    "hub.com/s4wave/spacewave/db/block/quad/q"
+    "uad.proto\0324github.com/s4wave/spacewave/d"
+    "b/kvtx/block/kvtx.proto\0322github.com/s4wa"
+    "ve/spacewave/db/bucket/bucket.proto\032\037goo"
+    "gle/protobuf/timestamp.proto\"\230\002\n\005World\0223"
+    "\n\020object_key_value\030\001 \001(\0132\031.kvtx.block.Ke"
+    "yValueStore\0222\n\017graph_key_value\030\002 \001(\0132\031.k"
+    "vtx.block.KeyValueStore\022-\n\013last_change\030\003"
+    " \001(\0132\030.world.block.ChangeLogLL\022\033\n\023last_c"
+    "hange_disable\030\004 \001(\010\022+\n\010gc_graph\030\005 \001(\0132\031."
+    "kvtx.block.KeyValueStore\022-\n\ngc_journal\030\006"
+    " \001(\0132\031.kvtx.block.KeyValueStore\"G\n\006Objec"
+    "t\022\013\n\003key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucke"
+    "t.ObjectRef\022\013\n\003rev\030\003 \001(\004\"\364\001\n\013WorldChange"
+    "\0221\n\013change_type\030\001 \001(\0162\034.world.block.Worl"
+    "dChangeType\022\013\n\003key\030\002 \001(\t\022\030\n\004quad\030\003 \001(\0132\n"
+    ".quad.Quad\022(\n\017transaction_ref\030\004 \001(\0132\017.bl"
+    "ock.BlockRef\022#\n\nobject_ref\030\005 \001(\0132\017.block"
+    ".BlockRef\022(\n\017prev_object_ref\030\006 \001(\0132\017.blo"
+    "ck.BlockRef\022\022\n\nobject_rev\030\007 \001(\004\"\201\001\n\rWorl"
+    "dChangeLL\022\016\n\006height\030\001 \001(\r\022!\n\010prev_ref\030\002 "
+    "\001(\0132\017.block.BlockRef\022\022\n\ntotal_size\030\003 \001(\r"
+    "\022)\n\007changes\030\004 \003(\0132\030.world.block.WorldCha"
+    "nge\"\316\001\n\013ChangeLogLL\022\r\n\005seqno\030\001 \001(\004\022!\n\010pr"
+    "ev_ref\030\002 \001(\0132\017.block.BlockRef\0220\n\014change_"
+    "batch\030\003 \001(\0132\032.world.block.WorldChangeLL\022"
+    "1\n\013change_type\030\004 \001(\0162\034.world.block.World"
+    "ChangeType\022(\n\013key_filters\030\005 \001(\0132\023.filter"
+    "s.KeyFilters*\276\001\n\017WorldChangeType\022\027\n\023Worl"
+    "dChange_INVALID\020\000\022\032\n\026WorldChange_OBJECT_"
+    "SET\020\001\022\036\n\032WorldChange_OBJECT_INC_REV\020\002\022\035\n"
+    "\031WorldChange_OBJECT_DELETE\020\003\022\031\n\025WorldCha"
+    "nge_GRAPH_SET\020\005\022\034\n\030WorldChange_GRAPH_DEL"
+    "ETE\020\006b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_deps[7] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fbloom_2fbloom_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2ffilters_2ffilters_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fquad_2fquad_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto_deps[7] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fbloom_2fbloom_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ffilters_2ffilters_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fquad_2fquad_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto = {
     false,
     false,
-    1594,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+    1573,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
     "github.com/s4wave/spacewave/db/world/block/world.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto_deps,
     7,
     5,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
 };
 namespace world {
 namespace block {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WorldChangeType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t WorldChangeType_internal_data_[] = {
     262144u, 32u, 6u, };
@@ -489,7 +489,7 @@ constexpr auto World::InternalGenerateClassData_() {
           false,
       },
       &World::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
       nullptr,  // tracker
   };
 }
@@ -938,7 +938,7 @@ constexpr auto Object::InternalGenerateClassData_() {
           false,
       },
       &Object::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1340,7 +1340,7 @@ constexpr auto WorldChange::InternalGenerateClassData_() {
           false,
       },
       &WorldChange::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1847,7 +1847,7 @@ constexpr auto WorldChangeLL::InternalGenerateClassData_() {
           false,
       },
       &WorldChangeLL::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2255,7 +2255,7 @@ constexpr auto ChangeLogLL::InternalGenerateClassData_() {
           false,
       },
       &ChangeLogLL::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2573,6 +2573,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2fworld_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"syscall/js"
 
-	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/opfs"
 )
 
 // File is the interface returned by AcquireFile. Callers use this for

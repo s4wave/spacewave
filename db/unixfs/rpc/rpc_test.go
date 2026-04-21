@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -19,9 +22,6 @@ import (
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_client "github.com/s4wave/spacewave/db/unixfs/rpc/client"
 	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/starpc/srpc"
-	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/sirupsen/logrus"
 )
 

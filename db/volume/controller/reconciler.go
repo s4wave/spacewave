@@ -3,11 +3,11 @@ package volume_controller
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	"github.com/s4wave/spacewave/db/mqueue"
 	volume "github.com/s4wave/spacewave/db/volume"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

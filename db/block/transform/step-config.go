@@ -5,10 +5,10 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/block"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewStepConfig constructs the step config with a underlying config.

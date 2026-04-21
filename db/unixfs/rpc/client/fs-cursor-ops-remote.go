@@ -7,11 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // remoteFSCursorOps represents a remote FSCursorOps object.

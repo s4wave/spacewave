@@ -4,10 +4,10 @@ import (
 	"context"
 	"runtime/trace"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
-	"github.com/pkg/errors"
 )
 
 // DefaultKeyValueStoreImpl is the default implementation.

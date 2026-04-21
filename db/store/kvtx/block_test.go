@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	hash "github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type kvtxBlockTestStore struct {

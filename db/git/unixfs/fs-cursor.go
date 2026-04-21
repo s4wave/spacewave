@@ -10,11 +10,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/go-git/go-git/v6/plumbing/filemode"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/go-git/go-git/v6/plumbing/storer"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // GitFSCursor implements unixfs.FSCursor backed by a go-git tree.

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/go-git/go-git/v6/storage/memory"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 )
 
 // newTestBillyFS creates a BillyFS backed by memfs for testing.

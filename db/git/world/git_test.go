@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
@@ -21,8 +23,6 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/go-git/go-billy/v6"
-	"github.com/go-git/go-git/v6"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )

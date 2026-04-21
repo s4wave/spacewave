@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
@@ -15,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )

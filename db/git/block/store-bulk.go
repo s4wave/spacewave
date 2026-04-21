@@ -5,9 +5,9 @@ import (
 	"iter"
 	"sort"
 
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/s4wave/spacewave/db/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // bulkEntry is a key-value pair for bulk IAVL tree construction.

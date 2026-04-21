@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/pkg/errors"
 )
 
 // pendingMarker is the filename used to mark an in-flight write.

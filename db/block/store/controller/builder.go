@@ -3,9 +3,9 @@ package block_store_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/refcount"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_vlogger "github.com/s4wave/spacewave/db/block/store/vlogger"
-	"github.com/aperturerobotics/util/refcount"
 	"github.com/sirupsen/logrus"
 )
 

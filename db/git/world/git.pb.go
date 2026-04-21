@@ -11,12 +11,12 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bucket "github.com/s4wave/spacewave/db/bucket"
-	block "github.com/s4wave/spacewave/db/git/block"
-	world "github.com/s4wave/spacewave/db/unixfs/world"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	bucket "github.com/s4wave/spacewave/db/bucket"
+	block "github.com/s4wave/spacewave/db/git/block"
+	world "github.com/s4wave/spacewave/db/unixfs/world"
 )
 
 // GitInitOp is an operation to create a repo with a root ref or empty.

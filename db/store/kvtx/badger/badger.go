@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	bdb "github.com/dgraph-io/badger/v4"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Store is a badger database key-value store.

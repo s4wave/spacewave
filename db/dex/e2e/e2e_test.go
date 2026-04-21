@@ -3,13 +3,13 @@ package e2e_test
 import (
 	"testing"
 
-	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/s4wave/spacewave/db/bucket"
 	ee "github.com/s4wave/spacewave/db/dex/e2e"
 	"github.com/s4wave/spacewave/db/dex/psecho"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/db/testbed"
+	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 )
 
 // TestCoexistenceDEX tests that both psecho and solicit backends can

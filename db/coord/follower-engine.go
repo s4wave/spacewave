@@ -6,11 +6,11 @@ import (
 	"context"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

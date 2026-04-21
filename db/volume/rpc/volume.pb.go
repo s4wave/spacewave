@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	volume "github.com/s4wave/spacewave/db/volume"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	_ "github.com/aperturerobotics/starpc/rpcstream"
+	volume "github.com/s4wave/spacewave/db/volume"
 )
 
 // WatchVolumeInfoRequest is a request to watch volume information.

@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/db/block"
-	hydra_git "github.com/s4wave/spacewave/db/git"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/go-git/go-git/v6/storage"
+	"github.com/s4wave/spacewave/db/block"
+	hydra_git "github.com/s4wave/spacewave/db/git"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Store contains a open handle to a git repository.

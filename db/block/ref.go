@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/s4wave/spacewave/net/hash"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // DefaultHashType is the default hash type for refs.

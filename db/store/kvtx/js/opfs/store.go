@@ -7,11 +7,11 @@ import (
 	"sync"
 	"syscall/js"
 
+	b58 "github.com/mr-tron/base58/base58"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_txcache "github.com/s4wave/spacewave/db/kvtx/txcache"
 	"github.com/s4wave/spacewave/db/opfs"
-	b58 "github.com/mr-tron/base58/base58"
-	"github.com/pkg/errors"
 )
 
 // Store is an OPFS-backed key-value store using WebLock coordination.

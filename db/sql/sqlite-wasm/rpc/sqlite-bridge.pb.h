@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc/sqlite-bridge.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -37,7 +37,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto
 
 namespace google {
 namespace protobuf {
@@ -49,11 +49,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 }  // extern "C"
 namespace sql {
 namespace sqlite_wasm {
@@ -372,7 +372,7 @@ class SqlValue final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SqlValue_class_data_;
@@ -562,7 +562,7 @@ class OpenDbResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull OpenDbResponse_class_data_;
@@ -757,7 +757,7 @@ class OpenDbRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull OpenDbRequest_class_data_;
@@ -959,7 +959,7 @@ class ExecResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ExecResponse_class_data_;
@@ -1093,7 +1093,7 @@ class DeleteDbResponse final : public ::google::protobuf::internal::ZeroFieldsBa
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DeleteDbResponse_class_data_;
@@ -1288,7 +1288,7 @@ class DeleteDbRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DeleteDbRequest_class_data_;
@@ -1422,7 +1422,7 @@ class CloseDbResponse final : public ::google::protobuf::internal::ZeroFieldsBas
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CloseDbResponse_class_data_;
@@ -1612,7 +1612,7 @@ class CloseDbRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CloseDbRequest_class_data_;
@@ -1833,7 +1833,7 @@ class QueryResponse final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull QueryResponse_class_data_;
@@ -2059,7 +2059,7 @@ class QueryRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull QueryRequest_class_data_;
@@ -2285,7 +2285,7 @@ class ExecRequest final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ExecRequest_class_data_;
@@ -3243,4 +3243,4 @@ inline void DeleteDbRequest::set_allocated_path(::std::string* PROTOBUF_NULLABLE
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_2epb_2eh

@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -31,14 +31,14 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/s4wave/spacewave/net/hash/hash.pb.h"
+#include "../../../net/hash/hash.pb.h"
 #include "../../kvtx/mqueue/mqueue.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto
 
 namespace google {
 namespace protobuf {
@@ -50,11 +50,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
 }  // extern "C"
 namespace store {
 namespace kvtx {
@@ -274,7 +274,7 @@ class MqueueMeta final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MqueueMeta_class_data_;
@@ -486,7 +486,7 @@ class BucketReconcilerMqueueId final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BucketReconcilerMqueueId_class_data_;
@@ -705,7 +705,7 @@ class Config final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
@@ -1085,4 +1085,4 @@ inline void BucketReconcilerMqueueId::set_allocated_reconciler_id(::std::string*
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fhydra_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto_2epb_2eh

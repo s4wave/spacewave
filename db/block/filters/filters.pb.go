@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	bloom "github.com/s4wave/spacewave/db/block/bloom"
-	quad "github.com/s4wave/spacewave/db/block/quad"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	bloom "github.com/s4wave/spacewave/db/block/bloom"
+	quad "github.com/s4wave/spacewave/db/block/quad"
 )
 
 // KeyFilters contains fields used to determine if a key might be in a set.

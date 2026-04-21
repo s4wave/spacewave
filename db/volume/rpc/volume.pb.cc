@@ -215,11 +215,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace rpc
 }  // namespace volume
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::rpc::WatchVolumeInfoRequest, _impl_._has_bits_),
@@ -274,56 +274,56 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::rpc::_GetStorageStatsRequest_default_instance_._instance,
     &::volume::rpc::_GetStorageStatsResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n9github.com/s4wave/spacewave/db/volu"
-    "me/rpc/volume.proto\022\nvolume.rpc\0325github."
-    "com/aperturerobotics/hydra/volume/volume"
-    ".proto\032<github.com/aperturerobotics/star"
-    "pc/rpcstream/rpcstream.proto\"+\n\026WatchVol"
-    "umeInfoRequest\022\021\n\tvolume_id\030\001 \001(\t\"U\n\027Wat"
-    "chVolumeInfoResponse\022\021\n\tnot_found\030\001 \001(\010\022"
-    "\'\n\013volume_info\030\002 \001(\0132\022.volume.VolumeInfo"
-    "\"\026\n\024GetVolumeInfoRequest\"@\n\025GetVolumeInf"
-    "oResponse\022\'\n\013volume_info\030\001 \001(\0132\022.volume."
-    "VolumeInfo\"\024\n\022GetPeerPrivRequest\"\'\n\023GetP"
-    "eerPrivResponse\022\020\n\010priv_key\030\001 \001(\t\"\030\n\026Get"
-    "StorageStatsRequest\"F\n\027GetStorageStatsRe"
-    "sponse\022+\n\rstorage_stats\030\001 \001(\0132\024.volume.S"
-    "torageStats2\266\001\n\rAccessVolumes\022\\\n\017WatchVo"
-    "lumeInfo\022\".volume.rpc.WatchVolumeInfoReq"
-    "uest\032#.volume.rpc.WatchVolumeInfoRespons"
-    "e0\001\022G\n\tVolumeRpc\022\032.rpcstream.RpcStreamPa"
-    "cket\032\032.rpcstream.RpcStreamPacket(\0010\0012\217\002\n"
-    "\013ProxyVolume\022T\n\rGetVolumeInfo\022 .volume.r"
-    "pc.GetVolumeInfoRequest\032!.volume.rpc.Get"
-    "VolumeInfoResponse\022N\n\013GetPeerPriv\022\036.volu"
-    "me.rpc.GetPeerPrivRequest\032\037.volume.rpc.G"
-    "etPeerPrivResponse\022Z\n\017GetStorageStats\022\"."
-    "volume.rpc.GetStorageStatsRequest\032#.volu"
-    "me.rpc.GetStorageStatsResponseb\006proto3"
+    "\n6github.com/s4wave/spacewave/db/volume/"
+    "rpc/volume.proto\022\nvolume.rpc\0322github.com"
+    "/s4wave/spacewave/db/volume/volume.proto"
+    "\032<github.com/aperturerobotics/starpc/rpc"
+    "stream/rpcstream.proto\"+\n\026WatchVolumeInf"
+    "oRequest\022\021\n\tvolume_id\030\001 \001(\t\"U\n\027WatchVolu"
+    "meInfoResponse\022\021\n\tnot_found\030\001 \001(\010\022\'\n\013vol"
+    "ume_info\030\002 \001(\0132\022.volume.VolumeInfo\"\026\n\024Ge"
+    "tVolumeInfoRequest\"@\n\025GetVolumeInfoRespo"
+    "nse\022\'\n\013volume_info\030\001 \001(\0132\022.volume.Volume"
+    "Info\"\024\n\022GetPeerPrivRequest\"\'\n\023GetPeerPri"
+    "vResponse\022\020\n\010priv_key\030\001 \001(\t\"\030\n\026GetStorag"
+    "eStatsRequest\"F\n\027GetStorageStatsResponse"
+    "\022+\n\rstorage_stats\030\001 \001(\0132\024.volume.Storage"
+    "Stats2\266\001\n\rAccessVolumes\022\\\n\017WatchVolumeIn"
+    "fo\022\".volume.rpc.WatchVolumeInfoRequest\032#"
+    ".volume.rpc.WatchVolumeInfoResponse0\001\022G\n"
+    "\tVolumeRpc\022\032.rpcstream.RpcStreamPacket\032\032"
+    ".rpcstream.RpcStreamPacket(\0010\0012\217\002\n\013Proxy"
+    "Volume\022T\n\rGetVolumeInfo\022 .volume.rpc.Get"
+    "VolumeInfoRequest\032!.volume.rpc.GetVolume"
+    "InfoResponse\022N\n\013GetPeerPriv\022\036.volume.rpc"
+    ".GetPeerPrivRequest\032\037.volume.rpc.GetPeer"
+    "PrivResponse\022Z\n\017GetStorageStats\022\".volume"
+    ".rpc.GetStorageStatsRequest\032#.volume.rpc"
+    ".GetStorageStatsResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fvolume_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fstarpc_2frpcstream_2frpcstream_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fvolume_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto = {
     false,
     false,
-    1038,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+    1032,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
     "github.com/s4wave/spacewave/db/volume/rpc/volume.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_deps,
     2,
     8,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
 };
 namespace volume {
 namespace rpc {
@@ -421,7 +421,7 @@ constexpr auto WatchVolumeInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &WatchVolumeInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -711,7 +711,7 @@ constexpr auto WatchVolumeInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &WatchVolumeInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -977,7 +977,7 @@ constexpr auto GetVolumeInfoRequest::InternalGenerateClassData_() {
           false,
       },
       &GetVolumeInfoRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1132,7 +1132,7 @@ constexpr auto GetVolumeInfoResponse::InternalGenerateClassData_() {
           false,
       },
       &GetVolumeInfoResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1363,7 +1363,7 @@ constexpr auto GetPeerPrivRequest::InternalGenerateClassData_() {
           false,
       },
       &GetPeerPrivRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1509,7 +1509,7 @@ constexpr auto GetPeerPrivResponse::InternalGenerateClassData_() {
           false,
       },
       &GetPeerPrivResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1747,7 +1747,7 @@ constexpr auto GetStorageStatsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetStorageStatsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1902,7 +1902,7 @@ constexpr auto GetStorageStatsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetStorageStatsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2086,6 +2086,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2frpc_2fvolume_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

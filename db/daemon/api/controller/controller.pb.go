@@ -11,11 +11,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	api "github.com/s4wave/spacewave/net/daemon/api"
 	api1 "github.com/aperturerobotics/controllerbus/bus/api"
-	api2 "github.com/s4wave/spacewave/db/daemon/api"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	api2 "github.com/s4wave/spacewave/db/daemon/api"
+	api "github.com/s4wave/spacewave/net/daemon/api"
 )
 
 // Config configures the RPC API.
@@ -90,11 +90,9 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.ListenAddr = m.ListenAddr
 	r.DisableBifrostApi = m.DisableBifrostApi
+	r.BifrostApiConfig = m.BifrostApiConfig.CloneVT()
 	r.DisableBusApi = m.DisableBusApi
 	r.HydraApiConfig = m.HydraApiConfig.CloneVT()
-	if rhs := m.BifrostApiConfig; rhs != nil {
-		r.BifrostApiConfig = rhs.CloneVT()
-	}
 	if rhs := m.BusApiConfig; rhs != nil {
 		r.BusApiConfig = rhs.CloneVT()
 	}

@@ -6,11 +6,11 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/db/dex"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/refcount"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/dex"
 	"github.com/sirupsen/logrus"
 )
 

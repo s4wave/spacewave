@@ -108,11 +108,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace mock
 }  // namespace block
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::block::mock::Root, _impl_._has_bits_),
@@ -142,36 +142,36 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::block::mock::_SubBlock_default_instance_._instance,
     &::block::mock::_Example_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/bloc"
-    "k/mock/mock.proto\022\nblock.mock\0323github.co"
-    "m/aperturerobotics/hydra/block/block.pro"
-    "to\"7\n\004Root\022/\n\021example_sub_block\030\001 \001(\0132\024."
-    "block.mock.SubBlock\"0\n\010SubBlock\022$\n\013examp"
-    "le_ptr\030\001 \001(\0132\017.block.BlockRef\"\026\n\007Example"
-    "\022\013\n\003msg\030\001 \001(\tb\006proto3"
+    "\n4github.com/s4wave/spacewave/db/block/m"
+    "ock/mock.proto\022\nblock.mock\0320github.com/s"
+    "4wave/spacewave/db/block/block.proto\"7\n\004"
+    "Root\022/\n\021example_sub_block\030\001 \001(\0132\024.block."
+    "mock.SubBlock\"0\n\010SubBlock\022$\n\013example_ptr"
+    "\030\001 \001(\0132\017.block.BlockRef\"\026\n\007Example\022\013\n\003ms"
+    "g\030\001 \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto = {
     false,
     false,
-    261,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
+    255,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
     "github.com/s4wave/spacewave/db/block/mock/mock.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto_deps,
     1,
     3,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
 };
 namespace block {
 namespace mock {
@@ -272,7 +272,7 @@ constexpr auto Root::InternalGenerateClassData_() {
           false,
       },
       &Root::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -549,7 +549,7 @@ constexpr auto SubBlock::InternalGenerateClassData_() {
           false,
       },
       &SubBlock::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -817,7 +817,7 @@ constexpr auto Example::InternalGenerateClassData_() {
           false,
       },
       &Example::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1008,6 +1008,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmock_2fmock_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmock_2fmock_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

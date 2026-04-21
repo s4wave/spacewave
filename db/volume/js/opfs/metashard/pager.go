@@ -6,9 +6,9 @@ import (
 	"io"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
-	"github.com/pkg/errors"
 )
 
 // OpfsPager implements pagestore.Pager backed by a single OPFS file.

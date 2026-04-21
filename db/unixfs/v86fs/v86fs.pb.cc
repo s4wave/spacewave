@@ -1133,11 +1133,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace v86fs
 }  // namespace unixfs
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x085, // bitmap
         PROTOBUF_FIELD_OFFSET(::unixfs::v86fs::V86fsMessage, _impl_._has_bits_),
@@ -1609,152 +1609,151 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::unixfs::v86fs::_V86fsUmountNotify_default_instance_._instance,
     &::unixfs::v86fs::_V86fsErrorReply_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n:github.com/s4wave/spacewave/db/unix"
-    "fs/v86fs/v86fs.proto\022\014unixfs.v86fs\032;gith"
-    "ub.com/aperturerobotics/hydra/unixfs/blo"
-    "ck/fstree.proto\"\344\021\n\014V86fsMessage\022\013\n\003tag\030"
-    "\001 \001(\r\0228\n\rmount_request\030\002 \001(\0132\037.unixfs.v8"
-    "6fs.V86fsMountRequestH\000\022:\n\016lookup_reques"
-    "t\030\003 \001(\0132 .unixfs.v86fs.V86fsLookupReques"
-    "tH\000\022<\n\017getattr_request\030\004 \001(\0132!.unixfs.v8"
-    "6fs.V86fsGetattrRequestH\000\022<\n\017readdir_req"
-    "uest\030\005 \001(\0132!.unixfs.v86fs.V86fsReaddirRe"
-    "questH\000\0226\n\014open_request\030\006 \001(\0132\036.unixfs.v"
-    "86fs.V86fsOpenRequestH\000\0228\n\rclose_request"
-    "\030\007 \001(\0132\037.unixfs.v86fs.V86fsCloseRequestH"
-    "\000\0226\n\014read_request\030\010 \001(\0132\036.unixfs.v86fs.V"
-    "86fsReadRequestH\000\022:\n\016create_request\030\t \001("
-    "\0132 .unixfs.v86fs.V86fsCreateRequestH\000\0228\n"
-    "\rwrite_request\030\n \001(\0132\037.unixfs.v86fs.V86f"
-    "sWriteRequestH\000\0228\n\rmkdir_request\030\013 \001(\0132\037"
-    ".unixfs.v86fs.V86fsMkdirRequestH\000\022<\n\017set"
-    "attr_request\030\014 \001(\0132!.unixfs.v86fs.V86fsS"
-    "etattrRequestH\000\0228\n\rfsync_request\030\r \001(\0132\037"
-    ".unixfs.v86fs.V86fsFsyncRequestH\000\022:\n\016unl"
-    "ink_request\030\016 \001(\0132 .unixfs.v86fs.V86fsUn"
-    "linkRequestH\000\022:\n\016rename_request\030\017 \001(\0132 ."
-    "unixfs.v86fs.V86fsRenameRequestH\000\022<\n\017sym"
-    "link_request\030\020 \001(\0132!.unixfs.v86fs.V86fsS"
-    "ymlinkRequestH\000\022>\n\020readlink_request\030\021 \001("
-    "\0132\".unixfs.v86fs.V86fsReadlinkRequestH\000\022"
-    ":\n\016statfs_request\030\022 \001(\0132 .unixfs.v86fs.V"
-    "86fsStatfsRequestH\000\0224\n\013mount_reply\030  \001(\013"
-    "2\035.unixfs.v86fs.V86fsMountReplyH\000\0226\n\014loo"
-    "kup_reply\030! \001(\0132\036.unixfs.v86fs.V86fsLook"
-    "upReplyH\000\0228\n\rgetattr_reply\030\" \001(\0132\037.unixf"
-    "s.v86fs.V86fsGetattrReplyH\000\0228\n\rreaddir_r"
-    "eply\030# \001(\0132\037.unixfs.v86fs.V86fsReaddirRe"
-    "plyH\000\0222\n\nopen_reply\030$ \001(\0132\034.unixfs.v86fs"
-    ".V86fsOpenReplyH\000\0224\n\013close_reply\030% \001(\0132\035"
-    ".unixfs.v86fs.V86fsCloseReplyH\000\0222\n\nread_"
-    "reply\030& \001(\0132\034.unixfs.v86fs.V86fsReadRepl"
-    "yH\000\0226\n\014create_reply\030\' \001(\0132\036.unixfs.v86fs"
-    ".V86fsCreateReplyH\000\0224\n\013write_reply\030( \001(\013"
-    "2\035.unixfs.v86fs.V86fsWriteReplyH\000\0224\n\013mkd"
-    "ir_reply\030) \001(\0132\035.unixfs.v86fs.V86fsMkdir"
-    "ReplyH\000\0228\n\rsetattr_reply\030* \001(\0132\037.unixfs."
-    "v86fs.V86fsSetattrReplyH\000\0224\n\013fsync_reply"
-    "\030+ \001(\0132\035.unixfs.v86fs.V86fsFsyncReplyH\000\022"
-    "6\n\014unlink_reply\030, \001(\0132\036.unixfs.v86fs.V86"
-    "fsUnlinkReplyH\000\0226\n\014rename_reply\030- \001(\0132\036."
-    "unixfs.v86fs.V86fsRenameReplyH\000\0228\n\rsymli"
-    "nk_reply\030. \001(\0132\037.unixfs.v86fs.V86fsSymli"
-    "nkReplyH\000\022:\n\016readlink_reply\030/ \001(\0132 .unix"
-    "fs.v86fs.V86fsReadlinkReplyH\000\0226\n\014statfs_"
-    "reply\0300 \001(\0132\036.unixfs.v86fs.V86fsStatfsRe"
-    "plyH\000\0223\n\ninvalidate\030@ \001(\0132\035.unixfs.v86fs"
-    ".V86fsInvalidateH\000\022:\n\016invalidate_dir\030A \001"
-    "(\0132 .unixfs.v86fs.V86fsInvalidateDirH\000\0226"
-    "\n\014mount_notify\030B \001(\0132\036.unixfs.v86fs.V86f"
-    "sMountNotifyH\000\0228\n\rumount_notify\030C \001(\0132\037."
-    "unixfs.v86fs.V86fsUmountNotifyH\000\0224\n\013erro"
-    "r_reply\030P \001(\0132\035.unixfs.v86fs.V86fsErrorR"
-    "eplyH\000B\006\n\004body\"!\n\021V86fsMountRequest\022\014\n\004n"
-    "ame\030\001 \001(\t\"F\n\017V86fsMountReply\022\016\n\006status\030\001"
-    " \001(\r\022\025\n\rroot_inode_id\030\002 \001(\004\022\014\n\004mode\030\003 \001("
-    "\r\"5\n\022V86fsLookupRequest\022\021\n\tparent_id\030\001 \001"
-    "(\004\022\014\n\004name\030\002 \001(\t\"P\n\020V86fsLookupReply\022\016\n\006"
-    "status\030\001 \001(\r\022\020\n\010inode_id\030\002 \001(\004\022\014\n\004mode\030\003"
-    " \001(\r\022\014\n\004size\030\004 \001(\004\"\'\n\023V86fsGetattrReques"
-    "t\022\020\n\010inode_id\030\001 \001(\004\"f\n\021V86fsGetattrReply"
-    "\022\016\n\006status\030\001 \001(\r\022\014\n\004mode\030\002 \001(\r\022\014\n\004size\030\003"
-    " \001(\004\022\021\n\tmtime_sec\030\004 \001(\003\022\022\n\nmtime_nsec\030\005 "
-    "\001(\r\"@\n\rV86fsDirEntry\022\020\n\010inode_id\030\001 \001(\004\022\017"
-    "\n\007dt_type\030\002 \001(\r\022\014\n\004name\030\003 \001(\t\"%\n\023V86fsRe"
-    "addirRequest\022\016\n\006dir_id\030\001 \001(\004\"Q\n\021V86fsRea"
-    "ddirReply\022\016\n\006status\030\001 \001(\r\022,\n\007entries\030\002 \003"
-    "(\0132\033.unixfs.v86fs.V86fsDirEntry\"3\n\020V86fs"
-    "OpenRequest\022\020\n\010inode_id\030\001 \001(\004\022\r\n\005flags\030\002"
-    " \001(\r\"3\n\016V86fsOpenReply\022\016\n\006status\030\001 \001(\r\022\021"
-    "\n\thandle_id\030\002 \001(\004\"&\n\021V86fsCloseRequest\022\021"
-    "\n\thandle_id\030\001 \001(\004\"!\n\017V86fsCloseReply\022\016\n\006"
-    "status\030\001 \001(\r\"C\n\020V86fsReadRequest\022\021\n\thand"
-    "le_id\030\001 \001(\004\022\016\n\006offset\030\002 \001(\004\022\014\n\004size\030\003 \001("
-    "\r\".\n\016V86fsReadReply\022\016\n\006status\030\001 \001(\r\022\014\n\004d"
-    "ata\030\002 \001(\014\"C\n\022V86fsCreateRequest\022\021\n\tparen"
-    "t_id\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\022\014\n\004mode\030\003 \001(\r\"B"
-    "\n\020V86fsCreateReply\022\016\n\006status\030\001 \001(\r\022\020\n\010in"
-    "ode_id\030\002 \001(\004\022\014\n\004mode\030\003 \001(\r\"C\n\021V86fsWrite"
-    "Request\022\020\n\010inode_id\030\001 \001(\004\022\016\n\006offset\030\002 \001("
-    "\004\022\014\n\004data\030\003 \001(\014\"8\n\017V86fsWriteReply\022\016\n\006st"
-    "atus\030\001 \001(\r\022\025\n\rbytes_written\030\002 \001(\r\"B\n\021V86"
-    "fsMkdirRequest\022\021\n\tparent_id\030\001 \001(\004\022\014\n\004nam"
-    "e\030\002 \001(\t\022\014\n\004mode\030\003 \001(\r\"A\n\017V86fsMkdirReply"
-    "\022\016\n\006status\030\001 \001(\r\022\020\n\010inode_id\030\002 \001(\004\022\014\n\004mo"
-    "de\030\003 \001(\r\"R\n\023V86fsSetattrRequest\022\020\n\010inode"
-    "_id\030\001 \001(\004\022\r\n\005valid\030\002 \001(\r\022\014\n\004mode\030\003 \001(\r\022\014"
-    "\n\004size\030\004 \001(\004\"#\n\021V86fsSetattrReply\022\016\n\006sta"
-    "tus\030\001 \001(\r\"%\n\021V86fsFsyncRequest\022\020\n\010inode_"
-    "id\030\001 \001(\004\"!\n\017V86fsFsyncReply\022\016\n\006status\030\001 "
-    "\001(\r\"5\n\022V86fsUnlinkRequest\022\021\n\tparent_id\030\001"
-    " \001(\004\022\014\n\004name\030\002 \001(\t\"\"\n\020V86fsUnlinkReply\022\016"
-    "\n\006status\030\001 \001(\r\"f\n\022V86fsRenameRequest\022\025\n\r"
-    "old_parent_id\030\001 \001(\004\022\020\n\010old_name\030\002 \001(\t\022\025\n"
-    "\rnew_parent_id\030\003 \001(\004\022\020\n\010new_name\030\004 \001(\t\"\""
-    "\n\020V86fsRenameReply\022\016\n\006status\030\001 \001(\r\"F\n\023V8"
-    "6fsSymlinkRequest\022\021\n\tparent_id\030\001 \001(\004\022\014\n\004"
-    "name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\"C\n\021V86fsSymli"
-    "nkReply\022\016\n\006status\030\001 \001(\r\022\020\n\010inode_id\030\002 \001("
-    "\004\022\014\n\004mode\030\003 \001(\r\"(\n\024V86fsReadlinkRequest\022"
-    "\020\n\010inode_id\030\001 \001(\004\"4\n\022V86fsReadlinkReply\022"
-    "\016\n\006status\030\001 \001(\r\022\016\n\006target\030\002 \001(\t\"\024\n\022V86fs"
-    "StatfsRequest\"~\n\020V86fsStatfsReply\022\016\n\006sta"
-    "tus\030\001 \001(\r\022\016\n\006blocks\030\002 \001(\004\022\r\n\005bfree\030\003 \001(\004"
-    "\022\016\n\006bavail\030\004 \001(\004\022\r\n\005files\030\005 \001(\004\022\r\n\005ffree"
-    "\030\006 \001(\004\022\r\n\005bsize\030\007 \001(\r\"A\n\017V86fsInvalidate"
-    "\022\020\n\010inode_id\030\001 \001(\004\022\016\n\006offset\030\002 \001(\004\022\014\n\004si"
-    "ze\030\003 \001(\004\"$\n\022V86fsInvalidateDir\022\016\n\006dir_id"
-    "\030\001 \001(\004\"4\n\020V86fsMountNotify\022\014\n\004name\030\001 \001(\t"
-    "\022\022\n\nmount_path\030\002 \001(\t\"\'\n\021V86fsUmountNotif"
-    "y\022\022\n\nmount_path\030\001 \001(\t\"!\n\017V86fsErrorReply"
-    "\022\016\n\006status\030\001 \001(\r2Z\n\014V86fsService\022J\n\nRela"
-    "yV86fs\022\032.unixfs.v86fs.V86fsMessage\032\032.uni"
-    "xfs.v86fs.V86fsMessage\"\000(\0010\001B0Z.github.c"
-    "om/aperturerobotics/hydra/unixfs/v86fsb\006"
-    "proto3"
+    "\n7github.com/s4wave/spacewave/db/unixfs/"
+    "v86fs/v86fs.proto\022\014unixfs.v86fs\0328github."
+    "com/s4wave/spacewave/db/unixfs/block/fst"
+    "ree.proto\"\344\021\n\014V86fsMessage\022\013\n\003tag\030\001 \001(\r\022"
+    "8\n\rmount_request\030\002 \001(\0132\037.unixfs.v86fs.V8"
+    "6fsMountRequestH\000\022:\n\016lookup_request\030\003 \001("
+    "\0132 .unixfs.v86fs.V86fsLookupRequestH\000\022<\n"
+    "\017getattr_request\030\004 \001(\0132!.unixfs.v86fs.V8"
+    "6fsGetattrRequestH\000\022<\n\017readdir_request\030\005"
+    " \001(\0132!.unixfs.v86fs.V86fsReaddirRequestH"
+    "\000\0226\n\014open_request\030\006 \001(\0132\036.unixfs.v86fs.V"
+    "86fsOpenRequestH\000\0228\n\rclose_request\030\007 \001(\013"
+    "2\037.unixfs.v86fs.V86fsCloseRequestH\000\0226\n\014r"
+    "ead_request\030\010 \001(\0132\036.unixfs.v86fs.V86fsRe"
+    "adRequestH\000\022:\n\016create_request\030\t \001(\0132 .un"
+    "ixfs.v86fs.V86fsCreateRequestH\000\0228\n\rwrite"
+    "_request\030\n \001(\0132\037.unixfs.v86fs.V86fsWrite"
+    "RequestH\000\0228\n\rmkdir_request\030\013 \001(\0132\037.unixf"
+    "s.v86fs.V86fsMkdirRequestH\000\022<\n\017setattr_r"
+    "equest\030\014 \001(\0132!.unixfs.v86fs.V86fsSetattr"
+    "RequestH\000\0228\n\rfsync_request\030\r \001(\0132\037.unixf"
+    "s.v86fs.V86fsFsyncRequestH\000\022:\n\016unlink_re"
+    "quest\030\016 \001(\0132 .unixfs.v86fs.V86fsUnlinkRe"
+    "questH\000\022:\n\016rename_request\030\017 \001(\0132 .unixfs"
+    ".v86fs.V86fsRenameRequestH\000\022<\n\017symlink_r"
+    "equest\030\020 \001(\0132!.unixfs.v86fs.V86fsSymlink"
+    "RequestH\000\022>\n\020readlink_request\030\021 \001(\0132\".un"
+    "ixfs.v86fs.V86fsReadlinkRequestH\000\022:\n\016sta"
+    "tfs_request\030\022 \001(\0132 .unixfs.v86fs.V86fsSt"
+    "atfsRequestH\000\0224\n\013mount_reply\030  \001(\0132\035.uni"
+    "xfs.v86fs.V86fsMountReplyH\000\0226\n\014lookup_re"
+    "ply\030! \001(\0132\036.unixfs.v86fs.V86fsLookupRepl"
+    "yH\000\0228\n\rgetattr_reply\030\" \001(\0132\037.unixfs.v86f"
+    "s.V86fsGetattrReplyH\000\0228\n\rreaddir_reply\030#"
+    " \001(\0132\037.unixfs.v86fs.V86fsReaddirReplyH\000\022"
+    "2\n\nopen_reply\030$ \001(\0132\034.unixfs.v86fs.V86fs"
+    "OpenReplyH\000\0224\n\013close_reply\030% \001(\0132\035.unixf"
+    "s.v86fs.V86fsCloseReplyH\000\0222\n\nread_reply\030"
+    "& \001(\0132\034.unixfs.v86fs.V86fsReadReplyH\000\0226\n"
+    "\014create_reply\030\' \001(\0132\036.unixfs.v86fs.V86fs"
+    "CreateReplyH\000\0224\n\013write_reply\030( \001(\0132\035.uni"
+    "xfs.v86fs.V86fsWriteReplyH\000\0224\n\013mkdir_rep"
+    "ly\030) \001(\0132\035.unixfs.v86fs.V86fsMkdirReplyH"
+    "\000\0228\n\rsetattr_reply\030* \001(\0132\037.unixfs.v86fs."
+    "V86fsSetattrReplyH\000\0224\n\013fsync_reply\030+ \001(\013"
+    "2\035.unixfs.v86fs.V86fsFsyncReplyH\000\0226\n\014unl"
+    "ink_reply\030, \001(\0132\036.unixfs.v86fs.V86fsUnli"
+    "nkReplyH\000\0226\n\014rename_reply\030- \001(\0132\036.unixfs"
+    ".v86fs.V86fsRenameReplyH\000\0228\n\rsymlink_rep"
+    "ly\030. \001(\0132\037.unixfs.v86fs.V86fsSymlinkRepl"
+    "yH\000\022:\n\016readlink_reply\030/ \001(\0132 .unixfs.v86"
+    "fs.V86fsReadlinkReplyH\000\0226\n\014statfs_reply\030"
+    "0 \001(\0132\036.unixfs.v86fs.V86fsStatfsReplyH\000\022"
+    "3\n\ninvalidate\030@ \001(\0132\035.unixfs.v86fs.V86fs"
+    "InvalidateH\000\022:\n\016invalidate_dir\030A \001(\0132 .u"
+    "nixfs.v86fs.V86fsInvalidateDirH\000\0226\n\014moun"
+    "t_notify\030B \001(\0132\036.unixfs.v86fs.V86fsMount"
+    "NotifyH\000\0228\n\rumount_notify\030C \001(\0132\037.unixfs"
+    ".v86fs.V86fsUmountNotifyH\000\0224\n\013error_repl"
+    "y\030P \001(\0132\035.unixfs.v86fs.V86fsErrorReplyH\000"
+    "B\006\n\004body\"!\n\021V86fsMountRequest\022\014\n\004name\030\001 "
+    "\001(\t\"F\n\017V86fsMountReply\022\016\n\006status\030\001 \001(\r\022\025"
+    "\n\rroot_inode_id\030\002 \001(\004\022\014\n\004mode\030\003 \001(\r\"5\n\022V"
+    "86fsLookupRequest\022\021\n\tparent_id\030\001 \001(\004\022\014\n\004"
+    "name\030\002 \001(\t\"P\n\020V86fsLookupReply\022\016\n\006status"
+    "\030\001 \001(\r\022\020\n\010inode_id\030\002 \001(\004\022\014\n\004mode\030\003 \001(\r\022\014"
+    "\n\004size\030\004 \001(\004\"\'\n\023V86fsGetattrRequest\022\020\n\010i"
+    "node_id\030\001 \001(\004\"f\n\021V86fsGetattrReply\022\016\n\006st"
+    "atus\030\001 \001(\r\022\014\n\004mode\030\002 \001(\r\022\014\n\004size\030\003 \001(\004\022\021"
+    "\n\tmtime_sec\030\004 \001(\003\022\022\n\nmtime_nsec\030\005 \001(\r\"@\n"
+    "\rV86fsDirEntry\022\020\n\010inode_id\030\001 \001(\004\022\017\n\007dt_t"
+    "ype\030\002 \001(\r\022\014\n\004name\030\003 \001(\t\"%\n\023V86fsReaddirR"
+    "equest\022\016\n\006dir_id\030\001 \001(\004\"Q\n\021V86fsReaddirRe"
+    "ply\022\016\n\006status\030\001 \001(\r\022,\n\007entries\030\002 \003(\0132\033.u"
+    "nixfs.v86fs.V86fsDirEntry\"3\n\020V86fsOpenRe"
+    "quest\022\020\n\010inode_id\030\001 \001(\004\022\r\n\005flags\030\002 \001(\r\"3"
+    "\n\016V86fsOpenReply\022\016\n\006status\030\001 \001(\r\022\021\n\thand"
+    "le_id\030\002 \001(\004\"&\n\021V86fsCloseRequest\022\021\n\thand"
+    "le_id\030\001 \001(\004\"!\n\017V86fsCloseReply\022\016\n\006status"
+    "\030\001 \001(\r\"C\n\020V86fsReadRequest\022\021\n\thandle_id\030"
+    "\001 \001(\004\022\016\n\006offset\030\002 \001(\004\022\014\n\004size\030\003 \001(\r\".\n\016V"
+    "86fsReadReply\022\016\n\006status\030\001 \001(\r\022\014\n\004data\030\002 "
+    "\001(\014\"C\n\022V86fsCreateRequest\022\021\n\tparent_id\030\001"
+    " \001(\004\022\014\n\004name\030\002 \001(\t\022\014\n\004mode\030\003 \001(\r\"B\n\020V86f"
+    "sCreateReply\022\016\n\006status\030\001 \001(\r\022\020\n\010inode_id"
+    "\030\002 \001(\004\022\014\n\004mode\030\003 \001(\r\"C\n\021V86fsWriteReques"
+    "t\022\020\n\010inode_id\030\001 \001(\004\022\016\n\006offset\030\002 \001(\004\022\014\n\004d"
+    "ata\030\003 \001(\014\"8\n\017V86fsWriteReply\022\016\n\006status\030\001"
+    " \001(\r\022\025\n\rbytes_written\030\002 \001(\r\"B\n\021V86fsMkdi"
+    "rRequest\022\021\n\tparent_id\030\001 \001(\004\022\014\n\004name\030\002 \001("
+    "\t\022\014\n\004mode\030\003 \001(\r\"A\n\017V86fsMkdirReply\022\016\n\006st"
+    "atus\030\001 \001(\r\022\020\n\010inode_id\030\002 \001(\004\022\014\n\004mode\030\003 \001"
+    "(\r\"R\n\023V86fsSetattrRequest\022\020\n\010inode_id\030\001 "
+    "\001(\004\022\r\n\005valid\030\002 \001(\r\022\014\n\004mode\030\003 \001(\r\022\014\n\004size"
+    "\030\004 \001(\004\"#\n\021V86fsSetattrReply\022\016\n\006status\030\001 "
+    "\001(\r\"%\n\021V86fsFsyncRequest\022\020\n\010inode_id\030\001 \001"
+    "(\004\"!\n\017V86fsFsyncReply\022\016\n\006status\030\001 \001(\r\"5\n"
+    "\022V86fsUnlinkRequest\022\021\n\tparent_id\030\001 \001(\004\022\014"
+    "\n\004name\030\002 \001(\t\"\"\n\020V86fsUnlinkReply\022\016\n\006stat"
+    "us\030\001 \001(\r\"f\n\022V86fsRenameRequest\022\025\n\rold_pa"
+    "rent_id\030\001 \001(\004\022\020\n\010old_name\030\002 \001(\t\022\025\n\rnew_p"
+    "arent_id\030\003 \001(\004\022\020\n\010new_name\030\004 \001(\t\"\"\n\020V86f"
+    "sRenameReply\022\016\n\006status\030\001 \001(\r\"F\n\023V86fsSym"
+    "linkRequest\022\021\n\tparent_id\030\001 \001(\004\022\014\n\004name\030\002"
+    " \001(\t\022\016\n\006target\030\003 \001(\t\"C\n\021V86fsSymlinkRepl"
+    "y\022\016\n\006status\030\001 \001(\r\022\020\n\010inode_id\030\002 \001(\004\022\014\n\004m"
+    "ode\030\003 \001(\r\"(\n\024V86fsReadlinkRequest\022\020\n\010ino"
+    "de_id\030\001 \001(\004\"4\n\022V86fsReadlinkReply\022\016\n\006sta"
+    "tus\030\001 \001(\r\022\016\n\006target\030\002 \001(\t\"\024\n\022V86fsStatfs"
+    "Request\"~\n\020V86fsStatfsReply\022\016\n\006status\030\001 "
+    "\001(\r\022\016\n\006blocks\030\002 \001(\004\022\r\n\005bfree\030\003 \001(\004\022\016\n\006ba"
+    "vail\030\004 \001(\004\022\r\n\005files\030\005 \001(\004\022\r\n\005ffree\030\006 \001(\004"
+    "\022\r\n\005bsize\030\007 \001(\r\"A\n\017V86fsInvalidate\022\020\n\010in"
+    "ode_id\030\001 \001(\004\022\016\n\006offset\030\002 \001(\004\022\014\n\004size\030\003 \001"
+    "(\004\"$\n\022V86fsInvalidateDir\022\016\n\006dir_id\030\001 \001(\004"
+    "\"4\n\020V86fsMountNotify\022\014\n\004name\030\001 \001(\t\022\022\n\nmo"
+    "unt_path\030\002 \001(\t\"\'\n\021V86fsUmountNotify\022\022\n\nm"
+    "ount_path\030\001 \001(\t\"!\n\017V86fsErrorReply\022\016\n\006st"
+    "atus\030\001 \001(\r2Z\n\014V86fsService\022J\n\nRelayV86fs"
+    "\022\032.unixfs.v86fs.V86fsMessage\032\032.unixfs.v8"
+    "6fs.V86fsMessage\"\000(\0010\001B-Z+github.com/s4w"
+    "ave/spacewave/db/unixfs/v86fsb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fblock_2ffstree_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fblock_2ffstree_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto = {
     false,
     false,
-    4886,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+    4877,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
     "github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto_deps,
     1,
     41,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
 };
 namespace unixfs {
 namespace v86fs {
@@ -2812,7 +2811,7 @@ constexpr auto V86fsMessage::InternalGenerateClassData_() {
           false,
       },
       &V86fsMessage::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4005,7 +4004,7 @@ constexpr auto V86fsMountRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsMountRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4271,7 +4270,7 @@ constexpr auto V86fsMountReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsMountReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4603,7 +4602,7 @@ constexpr auto V86fsLookupRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsLookupRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4901,7 +4900,7 @@ constexpr auto V86fsLookupReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsLookupReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5243,7 +5242,7 @@ constexpr auto V86fsGetattrRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsGetattrRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5496,7 +5495,7 @@ constexpr auto V86fsGetattrReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsGetattrReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5895,7 +5894,7 @@ constexpr auto V86fsDirEntry::InternalGenerateClassData_() {
           false,
       },
       &V86fsDirEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6225,7 +6224,7 @@ constexpr auto V86fsReaddirRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsReaddirRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6500,7 +6499,7 @@ constexpr auto V86fsReaddirReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsReaddirReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6795,7 +6794,7 @@ constexpr auto V86fsOpenRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsOpenRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7088,7 +7087,7 @@ constexpr auto V86fsOpenReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsOpenReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7376,7 +7375,7 @@ constexpr auto V86fsCloseRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsCloseRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7624,7 +7623,7 @@ constexpr auto V86fsCloseReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsCloseReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7877,7 +7876,7 @@ constexpr auto V86fsReadRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsReadRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8209,7 +8208,7 @@ constexpr auto V86fsReadReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsReadReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8524,7 +8523,7 @@ constexpr auto V86fsCreateRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsCreateRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8859,7 +8858,7 @@ constexpr auto V86fsCreateReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsCreateReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9202,7 +9201,7 @@ constexpr auto V86fsWriteRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsWriteRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9532,7 +9531,7 @@ constexpr auto V86fsWriteReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsWriteReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -9847,7 +9846,7 @@ constexpr auto V86fsMkdirRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsMkdirRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10182,7 +10181,7 @@ constexpr auto V86fsMkdirReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsMkdirReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10503,7 +10502,7 @@ constexpr auto V86fsSetattrRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsSetattrRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -10845,7 +10844,7 @@ constexpr auto V86fsSetattrReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsSetattrReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11093,7 +11092,7 @@ constexpr auto V86fsFsyncRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsFsyncRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11341,7 +11340,7 @@ constexpr auto V86fsFsyncReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsFsyncReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11605,7 +11604,7 @@ constexpr auto V86fsUnlinkRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsUnlinkRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -11898,7 +11897,7 @@ constexpr auto V86fsUnlinkReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsUnlinkReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12176,7 +12175,7 @@ constexpr auto V86fsRenameRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsRenameRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12544,7 +12543,7 @@ constexpr auto V86fsRenameReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsRenameReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -12811,7 +12810,7 @@ constexpr auto V86fsSymlinkRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsSymlinkRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13149,7 +13148,7 @@ constexpr auto V86fsSymlinkReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsSymlinkReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13465,7 +13464,7 @@ constexpr auto V86fsReadlinkRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsReadlinkRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13729,7 +13728,7 @@ constexpr auto V86fsReadlinkReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsReadlinkReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -13999,7 +13998,7 @@ constexpr auto V86fsStatfsRequest::InternalGenerateClassData_() {
           false,
       },
       &V86fsStatfsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14136,7 +14135,7 @@ constexpr auto V86fsStatfsReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsStatfsReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14565,7 +14564,7 @@ constexpr auto V86fsInvalidate::InternalGenerateClassData_() {
           false,
       },
       &V86fsInvalidate::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -14881,7 +14880,7 @@ constexpr auto V86fsInvalidateDir::InternalGenerateClassData_() {
           false,
       },
       &V86fsInvalidateDir::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15146,7 +15145,7 @@ constexpr auto V86fsMountNotify::InternalGenerateClassData_() {
           false,
       },
       &V86fsMountNotify::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15463,7 +15462,7 @@ constexpr auto V86fsUmountNotify::InternalGenerateClassData_() {
           false,
       },
       &V86fsUmountNotify::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15724,7 +15723,7 @@ constexpr auto V86fsErrorReply::InternalGenerateClassData_() {
           false,
       },
       &V86fsErrorReply::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto,
       nullptr,  // tracker
   };
 }
@@ -15902,6 +15901,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2funixfs_2fv86fs_2fv86fs_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2funixfs_2fv86fs_2fv86fs_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

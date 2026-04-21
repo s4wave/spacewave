@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	gdriver "github.com/dolthub/go-mysql-server/driver"
+	hydra_sql "github.com/s4wave/spacewave/db/sql"
 )
 
 // NewSqlDriver constructs a sql driver from a transaction.

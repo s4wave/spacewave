@@ -2,9 +2,9 @@ package volume_world
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the id attached to the config objects.

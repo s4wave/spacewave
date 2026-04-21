@@ -6,12 +6,12 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/file"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/file"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // FSTree is a handle to a filesystem tree.

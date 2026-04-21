@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/cayley/graph/iterator"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/path"
+	"github.com/pkg/errors"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

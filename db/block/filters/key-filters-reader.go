@@ -3,8 +3,8 @@ package filters
 import (
 	"strings"
 
-	"github.com/s4wave/spacewave/db/block/quad"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/s4wave/spacewave/db/block/quad"
 )
 
 // KeyFiltersReader reads information from a KeyFilters object.

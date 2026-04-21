@@ -11,8 +11,8 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
-	"github.com/s4wave/spacewave/db/kvtx"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Tx is a bolt transaction.

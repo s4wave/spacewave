@@ -1,9 +1,9 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // GitHashType is the hash type used in Git.

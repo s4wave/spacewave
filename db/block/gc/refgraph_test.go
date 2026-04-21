@@ -5,9 +5,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 func newTestRefGraph(t *testing.T) *RefGraph {

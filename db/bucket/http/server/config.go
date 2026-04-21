@@ -1,10 +1,10 @@
 package bucket_http_server
 
 import (
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // ConfigID is the string used to identify this config object.

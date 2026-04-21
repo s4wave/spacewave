@@ -3,13 +3,13 @@ package psecho
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/link"
-	"github.com/s4wave/spacewave/net/stream"
+	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	dex_session "github.com/s4wave/spacewave/db/dex/session"
-	"github.com/aperturerobotics/util/keyed"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/stream"
 )
 
 // WithLocalOnly is a shorthand for bucket_lookup.WithLocalOnly.

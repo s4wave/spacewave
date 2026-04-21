@@ -57,11 +57,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace block
 }  // namespace kvtx
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::kvtx::block::KeyValueStore, _impl_._has_bits_),
@@ -79,43 +79,43 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::kvtx::block::_KeyValueStore_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/kvtx"
-    "/block/kvtx.proto\022\nkvtx.block\032<github.co"
-    "m/aperturerobotics/hydra/kvtx/block/iavl"
-    "/iavl.proto\"d\n\rKeyValueStore\022)\n\timpl_typ"
-    "e\030\001 \001(\0162\026.kvtx.block.KVImplType\022(\n\tiavl_"
-    "root\030\002 \001(\0132\025.kvtx.block.iavl.Node*=\n\nKVI"
-    "mplType\022\030\n\024KV_IMPL_TYPE_UNKNOWN\020\000\022\025\n\021KV_"
-    "IMPL_TYPE_IAVL\020\001b\006proto3"
+    "\n4github.com/s4wave/spacewave/db/kvtx/bl"
+    "ock/kvtx.proto\022\nkvtx.block\0329github.com/s"
+    "4wave/spacewave/db/kvtx/block/iavl/iavl."
+    "proto\"d\n\rKeyValueStore\022)\n\timpl_type\030\001 \001("
+    "\0162\026.kvtx.block.KVImplType\022(\n\tiavl_root\030\002"
+    " \001(\0132\025.kvtx.block.iavl.Node*=\n\nKVImplTyp"
+    "e\022\030\n\024KV_IMPL_TYPE_UNKNOWN\020\000\022\025\n\021KV_IMPL_T"
+    "YPE_IAVL\020\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fiavl_2fiavl_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fiavl_2fiavl_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto = {
     false,
     false,
-    304,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+    298,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
     "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_deps,
     1,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
 };
 namespace kvtx {
 namespace block {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL KVImplType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t KVImplType_internal_data_[] = {
     131072u, 0u, };
@@ -228,7 +228,7 @@ constexpr auto KeyValueStore::InternalGenerateClassData_() {
           false,
       },
       &KeyValueStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
       nullptr,  // tracker
   };
 }
@@ -448,6 +448,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

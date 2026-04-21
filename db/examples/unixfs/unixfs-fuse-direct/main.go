@@ -10,8 +10,9 @@ import (
 	"time"
 
 	bfuse "bazil.org/fuse"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/cli"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
 	hcli "github.com/s4wave/spacewave/db/cli"
@@ -24,8 +25,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

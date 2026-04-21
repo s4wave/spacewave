@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
-	"github.com/pkg/errors"
 )
 
 func newTestMetaShard(t *testing.T, name string) *MetaShard {

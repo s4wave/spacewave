@@ -309,11 +309,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace sqlite_wasm
 }  // namespace sql
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x004, // bitmap
         PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_._oneof_case_[0]),
@@ -405,54 +405,54 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sql::sqlite_wasm::rpc::_DeleteDbRequest_default_instance_._instance,
     &::sql::sqlite_wasm::rpc::_DeleteDbResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\nIgithub.com/s4wave/spacewave/db/sql/"
-    "sqlite-wasm/rpc/sqlite-bridge.proto\022\023sql"
-    ".sqlite_wasm.rpc\"j\n\010SqlValue\022\023\n\tint_valu"
-    "e\030\001 \001(\003H\000\022\025\n\013float_value\030\002 \001(\001H\000\022\023\n\tstr_"
-    "value\030\003 \001(\tH\000\022\024\n\nblob_value\030\004 \001(\014H\000B\007\n\005v"
-    "alue\"\035\n\rOpenDbRequest\022\014\n\004path\030\001 \001(\t\"\037\n\016O"
-    "penDbResponse\022\r\n\005db_id\030\001 \001(\r\"\037\n\016CloseDbR"
-    "equest\022\r\n\005db_id\030\001 \001(\r\"\021\n\017CloseDbResponse"
-    "\"X\n\013ExecRequest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 "
-    "\001(\t\022-\n\006params\030\003 \003(\0132\035.sql.sqlite_wasm.rp"
-    "c.SqlValue\";\n\014ExecResponse\022\017\n\007changes\030\001 "
-    "\001(\003\022\032\n\022last_insert_row_id\030\002 \001(\003\"Y\n\014Query"
-    "Request\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t\022-\n\006p"
-    "arams\030\003 \003(\0132\035.sql.sqlite_wasm.rpc.SqlVal"
-    "ue\"Q\n\rQueryResponse\022\024\n\014column_names\030\001 \003("
-    "\t\022*\n\003row\030\002 \003(\0132\035.sql.sqlite_wasm.rpc.Sql"
-    "Value\"\037\n\017DeleteDbRequest\022\014\n\004path\030\001 \001(\t\"\022"
-    "\n\020DeleteDbResponse2\257\003\n\014SqliteBridge\022Q\n\006O"
-    "penDb\022\".sql.sqlite_wasm.rpc.OpenDbReques"
-    "t\032#.sql.sqlite_wasm.rpc.OpenDbResponse\022T"
-    "\n\007CloseDb\022#.sql.sqlite_wasm.rpc.CloseDbR"
-    "equest\032$.sql.sqlite_wasm.rpc.CloseDbResp"
-    "onse\022K\n\004Exec\022 .sql.sqlite_wasm.rpc.ExecR"
-    "equest\032!.sql.sqlite_wasm.rpc.ExecRespons"
-    "e\022P\n\005Query\022!.sql.sqlite_wasm.rpc.QueryRe"
-    "quest\032\".sql.sqlite_wasm.rpc.QueryRespons"
-    "e0\001\022W\n\010DeleteDb\022$.sql.sqlite_wasm.rpc.De"
-    "leteDbRequest\032%.sql.sqlite_wasm.rpc.Dele"
-    "teDbResponseb\006proto3"
+    "\nFgithub.com/s4wave/spacewave/db/sql/sql"
+    "ite-wasm/rpc/sqlite-bridge.proto\022\023sql.sq"
+    "lite_wasm.rpc\"j\n\010SqlValue\022\023\n\tint_value\030\001"
+    " \001(\003H\000\022\025\n\013float_value\030\002 \001(\001H\000\022\023\n\tstr_val"
+    "ue\030\003 \001(\tH\000\022\024\n\nblob_value\030\004 \001(\014H\000B\007\n\005valu"
+    "e\"\035\n\rOpenDbRequest\022\014\n\004path\030\001 \001(\t\"\037\n\016Open"
+    "DbResponse\022\r\n\005db_id\030\001 \001(\r\"\037\n\016CloseDbRequ"
+    "est\022\r\n\005db_id\030\001 \001(\r\"\021\n\017CloseDbResponse\"X\n"
+    "\013ExecRequest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t"
+    "\022-\n\006params\030\003 \003(\0132\035.sql.sqlite_wasm.rpc.S"
+    "qlValue\";\n\014ExecResponse\022\017\n\007changes\030\001 \001(\003"
+    "\022\032\n\022last_insert_row_id\030\002 \001(\003\"Y\n\014QueryReq"
+    "uest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t\022-\n\006para"
+    "ms\030\003 \003(\0132\035.sql.sqlite_wasm.rpc.SqlValue\""
+    "Q\n\rQueryResponse\022\024\n\014column_names\030\001 \003(\t\022*"
+    "\n\003row\030\002 \003(\0132\035.sql.sqlite_wasm.rpc.SqlVal"
+    "ue\"\037\n\017DeleteDbRequest\022\014\n\004path\030\001 \001(\t\"\022\n\020D"
+    "eleteDbResponse2\257\003\n\014SqliteBridge\022Q\n\006Open"
+    "Db\022\".sql.sqlite_wasm.rpc.OpenDbRequest\032#"
+    ".sql.sqlite_wasm.rpc.OpenDbResponse\022T\n\007C"
+    "loseDb\022#.sql.sqlite_wasm.rpc.CloseDbRequ"
+    "est\032$.sql.sqlite_wasm.rpc.CloseDbRespons"
+    "e\022K\n\004Exec\022 .sql.sqlite_wasm.rpc.ExecRequ"
+    "est\032!.sql.sqlite_wasm.rpc.ExecResponse\022P"
+    "\n\005Query\022!.sql.sqlite_wasm.rpc.QueryReque"
+    "st\032\".sql.sqlite_wasm.rpc.QueryResponse0\001"
+    "\022W\n\010DeleteDb\022$.sql.sqlite_wasm.rpc.Delet"
+    "eDbRequest\032%.sql.sqlite_wasm.rpc.DeleteD"
+    "bResponseb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = {
     false,
     false,
-    1140,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+    1137,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
     "github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc/sqlite-bridge.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once,
     nullptr,
     0,
     11,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
 };
 namespace sql {
 namespace sqlite_wasm {
@@ -596,7 +596,7 @@ constexpr auto SqlValue::InternalGenerateClassData_() {
           false,
       },
       &SqlValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -931,7 +931,7 @@ constexpr auto OpenDbRequest::InternalGenerateClassData_() {
           false,
       },
       &OpenDbRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1192,7 +1192,7 @@ constexpr auto OpenDbResponse::InternalGenerateClassData_() {
           false,
       },
       &OpenDbResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1440,7 +1440,7 @@ constexpr auto CloseDbRequest::InternalGenerateClassData_() {
           false,
       },
       &CloseDbRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1665,7 +1665,7 @@ constexpr auto CloseDbResponse::InternalGenerateClassData_() {
           false,
       },
       &CloseDbResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1827,7 +1827,7 @@ constexpr auto ExecRequest::InternalGenerateClassData_() {
           false,
       },
       &ExecRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2166,7 +2166,7 @@ constexpr auto ExecResponse::InternalGenerateClassData_() {
           false,
       },
       &ExecResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2484,7 +2484,7 @@ constexpr auto QueryRequest::InternalGenerateClassData_() {
           false,
       },
       &QueryRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2849,7 +2849,7 @@ constexpr auto QueryResponse::InternalGenerateClassData_() {
           false,
       },
       &QueryResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3163,7 +3163,7 @@ constexpr auto DeleteDbRequest::InternalGenerateClassData_() {
           false,
       },
       &DeleteDbRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3401,7 +3401,7 @@ constexpr auto DeleteDbResponse::InternalGenerateClassData_() {
           false,
       },
       &DeleteDbResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3464,6 +3464,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

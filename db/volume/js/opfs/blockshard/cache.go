@@ -9,9 +9,9 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
-	"github.com/pkg/errors"
 )
 
 const (

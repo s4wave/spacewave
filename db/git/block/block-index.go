@@ -1,8 +1,8 @@
 package git_block
 
 import (
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // NewIndexBlock builds a new index block.

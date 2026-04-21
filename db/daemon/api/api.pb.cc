@@ -297,11 +297,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace api
 }  // namespace hydra
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto[2];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x000, // bitmap
         0x000, // bitmap
@@ -400,90 +400,89 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::hydra::api::_ObjectStoreOpRequest_default_instance_._instance,
     &::hydra::api::_ObjectStoreOpResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n6github.com/s4wave/spacewave/db/daem"
-    "on/api/api.proto\022\thydra.api\0323github.com/"
-    "aperturerobotics/hydra/block/block.proto"
-    "\0325github.com/s4wave/spacewave/db/buck"
-    "et/bucket.proto\032:github.com/aperturerobo"
-    "tics/hydra/bucket/event/event.proto\0325git"
-    "hub.com/aperturerobotics/hydra/volume/vo"
-    "lume.proto\"\010\n\006Config\"\024\n\022ListVolumesReque"
-    "st\":\n\023ListVolumesResponse\022#\n\007volumes\030\001 \003"
-    "(\0132\022.volume.VolumeInfo\"@\n\023ListBucketsRes"
-    "ponse\022)\n\007buckets\030\001 \003(\0132\030.volume.VolumeBu"
-    "cketInfo\"h\n\030ApplyBucketConfigRequest\022\036\n\006"
-    "config\030\001 \001(\0132\016.bucket.Config\022\024\n\014volume_i"
-    "d_re\030\002 \001(\t\022\026\n\016volume_id_list\030\003 \003(\t\"W\n\031Ap"
-    "plyBucketConfigResponse\022:\n\021apply_conf_re"
-    "sult\030\001 \001(\0132\037.bucket.ApplyBucketConfigRes"
-    "ult\"\264\001\n\017BucketOpRequest\022\037\n\002op\030\001 \001(\0162\023.hy"
-    "dra.api.BucketOp\022,\n\016bucket_op_args\030\002 \001(\013"
-    "2\024.bucket.BucketOpArgs\022\"\n\tblock_ref\030\003 \001("
-    "\0132\017.block.BlockRef\022 \n\010put_opts\030\004 \001(\0132\016.b"
-    "lock.PutOpts\022\014\n\004data\030\005 \001(\014\"S\n\020BucketOpRe"
-    "sponse\022\"\n\005event\030\001 \001(\0132\023.bucket.event.Eve"
-    "nt\022\014\n\004data\030\002 \001(\014\022\r\n\005found\030\003 \001(\010\"~\n\024Objec"
-    "tStoreOpRequest\022$\n\002op\030\001 \001(\0162\030.hydra.api."
-    "ObjectStoreOp\022\021\n\tvolume_id\030\002 \001(\t\022\022\n\nstor"
-    "e_name\030\003 \001(\t\022\013\n\003key\030\004 \001(\t\022\014\n\004data\030\005 \001(\014\""
-    "B\n\025ObjectStoreOpResponse\022\014\n\004data\030\001 \001(\014\022\r"
-    "\n\005found\030\002 \001(\010\022\014\n\004keys\030\003 \003(\014*g\n\010BucketOp\022"
-    "\024\n\020BucketOp_UNKNOWN\020\000\022\026\n\022BucketOp_BLOCK_"
-    "GET\020\001\022\026\n\022BucketOp_BLOCK_PUT\020\002\022\025\n\021BucketO"
-    "p_BLOCK_RM\020\003*\233\001\n\rObjectStoreOp\022\031\n\025Object"
-    "StoreOp_UNKNOWN\020\000\022\031\n\025ObjectStoreOp_GET_K"
-    "EY\020\001\022\031\n\025ObjectStoreOp_PUT_KEY\020\002\022\033\n\027Objec"
-    "tStoreOp_LIST_KEYS\020\003\022\034\n\030ObjectStoreOp_DE"
-    "LETE_KEY\020\0042\262\003\n\022HydraDaemonService\022N\n\013Lis"
-    "tVolumes\022\035.hydra.api.ListVolumesRequest\032"
-    "\036.hydra.api.ListVolumesResponse\"\000\022K\n\013Lis"
-    "tBuckets\022\032.volume.ListBucketsRequest\032\036.h"
-    "ydra.api.ListBucketsResponse\"\000\022b\n\021ApplyB"
-    "ucketConfig\022#.hydra.api.ApplyBucketConfi"
-    "gRequest\032$.hydra.api.ApplyBucketConfigRe"
-    "sponse\"\0000\001\022E\n\010BucketOp\022\032.hydra.api.Bucke"
-    "tOpRequest\032\033.hydra.api.BucketOpResponse\""
-    "\000\022T\n\rObjectStoreOp\022\037.hydra.api.ObjectSto"
-    "reOpRequest\032 .hydra.api.ObjectStoreOpRes"
-    "ponse\"\000b\006proto3"
+    "\n3github.com/s4wave/spacewave/db/daemon/"
+    "api/api.proto\022\thydra.api\0320github.com/s4w"
+    "ave/spacewave/db/block/block.proto\0322gith"
+    "ub.com/s4wave/spacewave/db/bucket/bucket"
+    ".proto\0327github.com/s4wave/spacewave/db/b"
+    "ucket/event/event.proto\0322github.com/s4wa"
+    "ve/spacewave/db/volume/volume.proto\"\010\n\006C"
+    "onfig\"\024\n\022ListVolumesRequest\":\n\023ListVolum"
+    "esResponse\022#\n\007volumes\030\001 \003(\0132\022.volume.Vol"
+    "umeInfo\"@\n\023ListBucketsResponse\022)\n\007bucket"
+    "s\030\001 \003(\0132\030.volume.VolumeBucketInfo\"h\n\030App"
+    "lyBucketConfigRequest\022\036\n\006config\030\001 \001(\0132\016."
+    "bucket.Config\022\024\n\014volume_id_re\030\002 \001(\t\022\026\n\016v"
+    "olume_id_list\030\003 \003(\t\"W\n\031ApplyBucketConfig"
+    "Response\022:\n\021apply_conf_result\030\001 \001(\0132\037.bu"
+    "cket.ApplyBucketConfigResult\"\264\001\n\017BucketO"
+    "pRequest\022\037\n\002op\030\001 \001(\0162\023.hydra.api.BucketO"
+    "p\022,\n\016bucket_op_args\030\002 \001(\0132\024.bucket.Bucke"
+    "tOpArgs\022\"\n\tblock_ref\030\003 \001(\0132\017.block.Block"
+    "Ref\022 \n\010put_opts\030\004 \001(\0132\016.block.PutOpts\022\014\n"
+    "\004data\030\005 \001(\014\"S\n\020BucketOpResponse\022\"\n\005event"
+    "\030\001 \001(\0132\023.bucket.event.Event\022\014\n\004data\030\002 \001("
+    "\014\022\r\n\005found\030\003 \001(\010\"~\n\024ObjectStoreOpRequest"
+    "\022$\n\002op\030\001 \001(\0162\030.hydra.api.ObjectStoreOp\022\021"
+    "\n\tvolume_id\030\002 \001(\t\022\022\n\nstore_name\030\003 \001(\t\022\013\n"
+    "\003key\030\004 \001(\t\022\014\n\004data\030\005 \001(\014\"B\n\025ObjectStoreO"
+    "pResponse\022\014\n\004data\030\001 \001(\014\022\r\n\005found\030\002 \001(\010\022\014"
+    "\n\004keys\030\003 \003(\014*g\n\010BucketOp\022\024\n\020BucketOp_UNK"
+    "NOWN\020\000\022\026\n\022BucketOp_BLOCK_GET\020\001\022\026\n\022Bucket"
+    "Op_BLOCK_PUT\020\002\022\025\n\021BucketOp_BLOCK_RM\020\003*\233\001"
+    "\n\rObjectStoreOp\022\031\n\025ObjectStoreOp_UNKNOWN"
+    "\020\000\022\031\n\025ObjectStoreOp_GET_KEY\020\001\022\031\n\025ObjectS"
+    "toreOp_PUT_KEY\020\002\022\033\n\027ObjectStoreOp_LIST_K"
+    "EYS\020\003\022\034\n\030ObjectStoreOp_DELETE_KEY\020\0042\262\003\n\022"
+    "HydraDaemonService\022N\n\013ListVolumes\022\035.hydr"
+    "a.api.ListVolumesRequest\032\036.hydra.api.Lis"
+    "tVolumesResponse\"\000\022K\n\013ListBuckets\022\032.volu"
+    "me.ListBucketsRequest\032\036.hydra.api.ListBu"
+    "cketsResponse\"\000\022b\n\021ApplyBucketConfig\022#.h"
+    "ydra.api.ApplyBucketConfigRequest\032$.hydr"
+    "a.api.ApplyBucketConfigResponse\"\0000\001\022E\n\010B"
+    "ucketOp\022\032.hydra.api.BucketOpRequest\032\033.hy"
+    "dra.api.BucketOpResponse\"\000\022T\n\rObjectStor"
+    "eOp\022\037.hydra.api.ObjectStoreOpRequest\032 .h"
+    "ydra.api.ObjectStoreOpResponse\"\000b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fbucket_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fbucket_2fevent_2fevent_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fvolume_2fvolume_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto_deps[4] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fevent_2fevent_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fvolume_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto = {
     false,
     false,
-    1815,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+    1800,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
     "github.com/s4wave/spacewave/db/daemon/api/api.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto_deps,
     4,
     10,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
 };
 namespace hydra {
 namespace api {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL BucketOp_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t BucketOp_internal_data_[] = {
     262144u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ObjectStoreOp_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto[1];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t ObjectStoreOp_internal_data_[] = {
     327680u, 0u, };
@@ -544,7 +543,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -653,7 +652,7 @@ constexpr auto ListVolumesRequest::InternalGenerateClassData_() {
           false,
       },
       &ListVolumesRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -816,7 +815,7 @@ constexpr auto ListVolumesResponse::InternalGenerateClassData_() {
           false,
       },
       &ListVolumesResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1106,7 +1105,7 @@ constexpr auto ListBucketsResponse::InternalGenerateClassData_() {
           false,
       },
       &ListBucketsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1405,7 +1404,7 @@ constexpr auto ApplyBucketConfigRequest::InternalGenerateClassData_() {
           false,
       },
       &ApplyBucketConfigRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1764,7 +1763,7 @@ constexpr auto ApplyBucketConfigResponse::InternalGenerateClassData_() {
           false,
       },
       &ApplyBucketConfigResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2070,7 +2069,7 @@ constexpr auto BucketOpRequest::InternalGenerateClassData_() {
           false,
       },
       &BucketOpRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2495,7 +2494,7 @@ constexpr auto BucketOpResponse::InternalGenerateClassData_() {
           false,
       },
       &BucketOpResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2848,7 +2847,7 @@ constexpr auto ObjectStoreOpRequest::InternalGenerateClassData_() {
           false,
       },
       &ObjectStoreOpRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3284,7 +3283,7 @@ constexpr auto ObjectStoreOpResponse::InternalGenerateClassData_() {
           false,
       },
       &ObjectStoreOpResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3537,6 +3536,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

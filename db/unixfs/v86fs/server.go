@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // MountResolver resolves a mount name to an FSHandle root.

@@ -3,9 +3,9 @@ package block_store_s3_lookup
 import (
 	"net/url"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the string used to identify this config object.

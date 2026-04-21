@@ -6,9 +6,9 @@ import (
 	"sort"
 	"sync/atomic"
 
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/aperturerobotics/util/cqueue"
 	"github.com/aperturerobotics/util/csync"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // fsInodeTries is the maximum number of tries for an operation.

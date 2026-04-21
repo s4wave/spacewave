@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ListBuckets is a directive to list buckets.

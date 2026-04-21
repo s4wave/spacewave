@@ -12,13 +12,13 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	block "github.com/s4wave/spacewave/db/block"
-	blob "github.com/s4wave/spacewave/db/block/blob"
-	block1 "github.com/s4wave/spacewave/db/kvtx/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	block "github.com/s4wave/spacewave/db/block"
+	blob "github.com/s4wave/spacewave/db/block/blob"
+	block1 "github.com/s4wave/spacewave/db/kvtx/block"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // ReferenceType are the types of reference objects.
@@ -1200,10 +1200,8 @@ func (m *Reference) CloneVT() *Reference {
 	r := new(Reference)
 	r.Name = m.Name
 	r.ReferenceType = m.ReferenceType
+	r.Hash = m.Hash.CloneVT()
 	r.TargetReferenceName = m.TargetReferenceName
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1220,10 +1218,8 @@ func (m *EncodedObject) CloneVT() *EncodedObject {
 	}
 	r := new(EncodedObject)
 	r.DataBlob = m.DataBlob.CloneVT()
+	r.DataHash = m.DataHash.CloneVT()
 	r.EncodedObjectType = m.EncodedObjectType
-	if rhs := m.DataHash; rhs != nil {
-		r.DataHash = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1288,9 +1284,7 @@ func (m *TreeEntry) CloneVT() *TreeEntry {
 	r.Path = m.Path
 	r.Entries = m.Entries
 	r.Trees = m.Trees
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1350,9 +1344,7 @@ func (m *EndOfIndexEntry) CloneVT() *EndOfIndexEntry {
 	}
 	r := new(EndOfIndexEntry)
 	r.Offset = m.Offset
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1368,6 +1360,7 @@ func (m *IndexEntry) CloneVT() *IndexEntry {
 		return (*IndexEntry)(nil)
 	}
 	r := new(IndexEntry)
+	r.DataHash = m.DataHash.CloneVT()
 	r.Name = m.Name
 	r.Dev = m.Dev
 	r.Inode = m.Inode
@@ -1378,9 +1371,6 @@ func (m *IndexEntry) CloneVT() *IndexEntry {
 	r.Stage = m.Stage
 	r.SkipWorktree = m.SkipWorktree
 	r.IntentToAdd = m.IntentToAdd
-	if rhs := m.DataHash; rhs != nil {
-		r.DataHash = rhs.CloneVT()
-	}
 	if rhs := m.CreatedAt; rhs != nil {
 		r.CreatedAt = rhs.CloneVT()
 	}
@@ -1471,13 +1461,11 @@ func (m *CheckoutOpts) CloneVT() *CheckoutOpts {
 		return (*CheckoutOpts)(nil)
 	}
 	r := new(CheckoutOpts)
+	r.Commit = m.Commit.CloneVT()
 	r.Branch = m.Branch
 	r.Create = m.Create
 	r.Force = m.Force
 	r.Keep = m.Keep
-	if rhs := m.Commit; rhs != nil {
-		r.Commit = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

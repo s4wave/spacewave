@@ -12,10 +12,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	quad "github.com/s4wave/spacewave/db/block/quad"
-	bucket "github.com/s4wave/spacewave/db/bucket"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	quad "github.com/s4wave/spacewave/db/block/quad"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
 // TxType indicates the kind of transaction.
@@ -552,9 +552,7 @@ func (m *TxCreateObject) CloneVT() *TxCreateObject {
 	}
 	r := new(TxCreateObject)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -571,9 +569,7 @@ func (m *TxObjectSet) CloneVT() *TxObjectSet {
 	}
 	r := new(TxObjectSet)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -622,9 +618,7 @@ func (m *TxSetGraphQuad) CloneVT() *TxSetGraphQuad {
 		return (*TxSetGraphQuad)(nil)
 	}
 	r := new(TxSetGraphQuad)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -640,9 +634,7 @@ func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 		return (*TxDeleteGraphQuad)(nil)
 	}
 	r := new(TxDeleteGraphQuad)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

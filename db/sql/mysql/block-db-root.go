@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	namedsbset "github.com/s4wave/spacewave/db/block/sbset"
-	"github.com/pkg/errors"
 )
 
 // NewDatabaseRootBlock constructs a new db root block.

@@ -3,11 +3,6 @@ package git_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/db/block"
-	bucket "github.com/s4wave/spacewave/db/bucket"
-	git_block "github.com/s4wave/spacewave/db/git/block"
-	"github.com/s4wave/spacewave/db/world"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/go-git/go-git/v6"
@@ -15,6 +10,11 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	bucket "github.com/s4wave/spacewave/db/bucket"
+	git_block "github.com/s4wave/spacewave/db/git/block"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // GitClone performs a git clone operation against a world.

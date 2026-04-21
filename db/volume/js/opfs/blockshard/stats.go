@@ -5,8 +5,8 @@ package blockshard
 import (
 	"bytes"
 
-	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
 // LiveStats returns the current live block count and total live bytes.

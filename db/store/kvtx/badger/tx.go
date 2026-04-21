@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/s4wave/spacewave/db/kvtx"
 	bdb "github.com/dgraph-io/badger/v4"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Tx is a badger transaction.

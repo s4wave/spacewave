@@ -11,15 +11,15 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	_ "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	block1 "github.com/s4wave/spacewave/db/block"
 	_ "github.com/s4wave/spacewave/db/block/bloom"
 	filters "github.com/s4wave/spacewave/db/block/filters"
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	block "github.com/s4wave/spacewave/db/kvtx/block"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	_ "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // WorldChangeType is the list of possible change types for the world.
@@ -395,20 +395,12 @@ func (m *World) CloneVT() *World {
 		return (*World)(nil)
 	}
 	r := new(World)
+	r.ObjectKeyValue = m.ObjectKeyValue.CloneVT()
+	r.GraphKeyValue = m.GraphKeyValue.CloneVT()
 	r.LastChange = m.LastChange.CloneVT()
 	r.LastChangeDisable = m.LastChangeDisable
-	if rhs := m.ObjectKeyValue; rhs != nil {
-		r.ObjectKeyValue = rhs.CloneVT()
-	}
-	if rhs := m.GraphKeyValue; rhs != nil {
-		r.GraphKeyValue = rhs.CloneVT()
-	}
-	if rhs := m.GcGraph; rhs != nil {
-		r.GcGraph = rhs.CloneVT()
-	}
-	if rhs := m.GcJournal; rhs != nil {
-		r.GcJournal = rhs.CloneVT()
-	}
+	r.GcGraph = m.GcGraph.CloneVT()
+	r.GcJournal = m.GcJournal.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -425,10 +417,8 @@ func (m *Object) CloneVT() *Object {
 	}
 	r := new(Object)
 	r.Key = m.Key
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -446,19 +436,11 @@ func (m *WorldChange) CloneVT() *WorldChange {
 	r := new(WorldChange)
 	r.ChangeType = m.ChangeType
 	r.Key = m.Key
+	r.Quad = m.Quad.CloneVT()
+	r.TransactionRef = m.TransactionRef.CloneVT()
+	r.ObjectRef = m.ObjectRef.CloneVT()
+	r.PrevObjectRef = m.PrevObjectRef.CloneVT()
 	r.ObjectRev = m.ObjectRev
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
-	if rhs := m.TransactionRef; rhs != nil {
-		r.TransactionRef = rhs.CloneVT()
-	}
-	if rhs := m.ObjectRef; rhs != nil {
-		r.ObjectRef = rhs.CloneVT()
-	}
-	if rhs := m.PrevObjectRef; rhs != nil {
-		r.PrevObjectRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -475,10 +457,8 @@ func (m *WorldChangeLL) CloneVT() *WorldChangeLL {
 	}
 	r := new(WorldChangeLL)
 	r.Height = m.Height
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.TotalSize = m.TotalSize
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
 	if rhs := m.Changes; rhs != nil {
 		r.Changes = make([]*WorldChange, len(rhs))
 		for k, v := range rhs {
@@ -501,14 +481,10 @@ func (m *ChangeLogLL) CloneVT() *ChangeLogLL {
 	}
 	r := new(ChangeLogLL)
 	r.Seqno = m.Seqno
+	r.PrevRef = m.PrevRef.CloneVT()
 	r.ChangeBatch = m.ChangeBatch.CloneVT()
 	r.ChangeType = m.ChangeType
-	if rhs := m.PrevRef; rhs != nil {
-		r.PrevRef = rhs.CloneVT()
-	}
-	if rhs := m.KeyFilters; rhs != nil {
-		r.KeyFilters = rhs.CloneVT()
-	}
+	r.KeyFilters = m.KeyFilters.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

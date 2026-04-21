@@ -4,14 +4,14 @@ import (
 	"context"
 	"os"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/go-git/go-billy/v6"
-	"github.com/go-git/go-git/v6"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

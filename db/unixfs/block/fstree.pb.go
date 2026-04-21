@@ -12,11 +12,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	block "github.com/s4wave/spacewave/db/block"
-	file "github.com/s4wave/spacewave/db/block/file"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	block "github.com/s4wave/spacewave/db/block"
+	file "github.com/s4wave/spacewave/db/block/file"
 )
 
 // NodeType indicates the type of node.

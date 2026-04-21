@@ -3,14 +3,14 @@ package block_store_rpc
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/blang/semver/v4"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
-	"github.com/blang/semver/v4"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

@@ -613,11 +613,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace block
 }  // namespace git
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[3];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto[3];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::block::Repo, _impl_._has_bits_),
@@ -878,130 +878,130 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::block::_FetchOpts_default_instance_._instance,
     &::git::block::_CheckoutOpts_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n5github.com/s4wave/spacewave/db/git/"
-    "block/git.proto\022\tgit.block\0323github.com/a"
-    "perturerobotics/bifrost/hash/hash.proto\032"
-    "3github.com/s4wave/spacewave/db/block"
-    "/block.proto\0327github.com/aperturerobotic"
-    "s/hydra/block/blob/blob.proto\0327github.co"
-    "m/aperturerobotics/hydra/kvtx/block/kvtx"
-    ".proto\032\037google/protobuf/timestamp.proto\""
-    "\201\002\n\004Repo\0224\n\020references_store\030\001 \001(\0132\032.git"
-    ".block.ReferencesStore\022A\n\027module_referen"
-    "ces_store\030\002 \001(\0132 .git.block.ModuleRefere"
-    "ncesStore\022;\n\024encoded_object_store\030\003 \001(\0132"
-    "\035.git.block.EncodedObjectStore\022/\n\026shallo"
-    "w_refs_store_ref\030\004 \001(\0132\017.block.BlockRef\022"
-    "\022\n\ngit_config\030\005 \001(\t\"k\n\022EncodedObjectStor"
-    "e\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block.KeyVal"
-    "ueStore\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.Chu"
-    "nkerArgs\"\?\n\017ReferencesStore\022,\n\tkvtx_root"
-    "\030\001 \001(\0132\031.kvtx.block.KeyValueStore\"E\n\025Mod"
-    "uleReferencesStore\022,\n\tkvtx_root\030\001 \001(\0132\031."
-    "kvtx.block.KeyValueStore\"4\n\020ShallowRefsS"
-    "tore\022 \n\014shallow_refs\030\001 \003(\0132\n.hash.Hash\"<"
-    "\n\tSubmodule\022\014\n\004name\030\001 \001(\t\022!\n\010repo_ref\030\002 "
-    "\001(\0132\017.block.BlockRef\"\204\001\n\tReference\022\014\n\004na"
-    "me\030\001 \001(\t\0220\n\016reference_type\030\002 \001(\0162\030.git.b"
-    "lock.ReferenceType\022\030\n\004hash\030\003 \001(\0132\n.hash."
-    "Hash\022\035\n\025target_reference_name\030\004 \001(\t\"\210\001\n\r"
-    "EncodedObject\022\035\n\tdata_blob\030\001 \001(\0132\n.blob."
-    "Blob\022\035\n\tdata_hash\030\002 \001(\0132\n.hash.Hash\0229\n\023e"
-    "ncoded_object_type\030\003 \001(\0162\034.git.block.Enc"
-    "odedObjectType\"\306\001\n\005Index\022\017\n\007version\030\001 \001("
-    "\r\022&\n\007entries\030\002 \003(\0132\025.git.block.IndexEntr"
-    "y\022\036\n\005cache\030\003 \001(\0132\017.git.block.Tree\022,\n\014res"
-    "olve_undo\030\004 \001(\0132\026.git.block.ResolveUndo\022"
-    "6\n\022end_of_index_entry\030\005 \001(\0132\032.git.block."
-    "EndOfIndexEntry\"-\n\004Tree\022%\n\007entries\030\001 \003(\013"
-    "2\024.git.block.TreeEntry\"S\n\tTreeEntry\022\014\n\004p"
-    "ath\030\001 \001(\t\022\017\n\007entries\030\002 \001(\005\022\r\n\005trees\030\003 \001("
-    "\005\022\030\n\004hash\030\004 \001(\0132\n.hash.Hash\";\n\013ResolveUn"
-    "do\022,\n\007entries\030\001 \003(\0132\033.git.block.ResolveU"
-    "ndoEntry\"\224\001\n\020ResolveUndoEntry\022\014\n\004path\030\001 "
-    "\001(\t\0227\n\006stages\030\002 \003(\0132\'.git.block.ResolveU"
-    "ndoEntry.StagesEntry\0329\n\013StagesEntry\022\013\n\003k"
-    "ey\030\001 \001(\r\022\031\n\005value\030\002 \001(\0132\n.hash.Hash:\0028\001\""
-    ";\n\017EndOfIndexEntry\022\016\n\006offset\030\001 \001(\r\022\030\n\004ha"
-    "sh\030\002 \001(\0132\n.hash.Hash\"\256\002\n\nIndexEntry\022\035\n\td"
-    "ata_hash\030\001 \001(\0132\n.hash.Hash\022\014\n\004name\030\002 \001(\t"
-    "\022.\n\ncreated_at\030\003 \001(\0132\032.google.protobuf.T"
-    "imestamp\022/\n\013modified_at\030\004 \001(\0132\032.google.p"
-    "rotobuf.Timestamp\022\013\n\003dev\030\005 \001(\r\022\r\n\005inode\030"
-    "\006 \001(\r\022\021\n\tfile_mode\030\007 \001(\r\022\013\n\003uid\030\010 \001(\r\022\013\n"
-    "\003gid\030\t \001(\r\022\014\n\004size\030\n \001(\r\022\r\n\005stage\030\013 \001(\r\022"
-    "\025\n\rskip_worktree\030\014 \001(\010\022\025\n\rintent_to_add\030"
-    "\r \001(\010\"-\n\010AuthOpts\022\020\n\010username\030\001 \001(\t\022\017\n\007p"
-    "eer_id\030\002 \001(\t\"\361\001\n\tCloneOpts\022\013\n\003url\030\001 \001(\t\022"
-    "\023\n\013remote_name\030\002 \001(\t\022\013\n\003ref\030\003 \001(\t\022\025\n\rsin"
-    "gle_branch\030\004 \001(\010\022\030\n\020disable_checkout\030\005 \001"
-    "(\010\022\r\n\005depth\030\006 \001(\r\022\021\n\trecursive\030\007 \001(\010\022\027\n\017"
-    "recursion_depth\030\013 \001(\r\022$\n\010tag_mode\030\010 \001(\0162"
-    "\022.git.block.TagMode\022\020\n\010insecure\030\t \001(\010\022\021\n"
-    "\tca_bundle\030\n \001(\t\"\277\001\n\tFetchOpts\022\023\n\013remote"
-    "_name\030\001 \001(\t\022\022\n\nremote_url\030\002 \001(\t\022\021\n\tref_s"
-    "pecs\030\003 \003(\t\022\r\n\005depth\030\004 \001(\r\022$\n\010tag_mode\030\005 "
-    "\001(\0162\022.git.block.TagMode\022\r\n\005force\030\006 \001(\010\022\020"
-    "\n\010insecure\030\007 \001(\010\022\021\n\tca_bundle\030\010 \001(\t\022\r\n\005p"
-    "rune\030\t \001(\010\"g\n\014CheckoutOpts\022\032\n\006commit\030\001 \001"
-    "(\0132\n.hash.Hash\022\016\n\006branch\030\002 \001(\t\022\016\n\006create"
-    "\030\003 \001(\010\022\r\n\005force\030\004 \001(\010\022\014\n\004keep\030\005 \001(\010*^\n\rR"
-    "eferenceType\022\031\n\025ReferenceType_INVALID\020\000\022"
-    "\026\n\022ReferenceType_HASH\020\001\022\032\n\026ReferenceType"
-    "_SYMBOLIC\020\002*\345\001\n\021EncodedObjectType\022\035\n\031Enc"
-    "odedObjectType_INVALID\020\000\022\034\n\030EncodedObjec"
-    "tType_COMMIT\020\001\022\032\n\026EncodedObjectType_TREE"
-    "\020\002\022\032\n\026EncodedObjectType_BLOB\020\003\022\031\n\025Encode"
-    "dObjectType_TAG\020\004\022\037\n\033EncodedObjectType_O"
-    "FS_DELTA\020\006\022\037\n\033EncodedObjectType_REF_DELT"
-    "A\020\007*X\n\007TagMode\022\023\n\017TagMode_DEFAULT\020\000\022\020\n\014T"
-    "agMode_NONE\020\001\022\017\n\013TagMode_ALL\020\002\022\025\n\021TagMod"
-    "e_FOLLOWING\020\003b\006proto3"
+    "\n2github.com/s4wave/spacewave/db/git/blo"
+    "ck/git.proto\022\tgit.block\032/github.com/s4wa"
+    "ve/spacewave/net/hash/hash.proto\0320github"
+    ".com/s4wave/spacewave/db/block/block.pro"
+    "to\0324github.com/s4wave/spacewave/db/block"
+    "/blob/blob.proto\0324github.com/s4wave/spac"
+    "ewave/db/kvtx/block/kvtx.proto\032\037google/p"
+    "rotobuf/timestamp.proto\"\201\002\n\004Repo\0224\n\020refe"
+    "rences_store\030\001 \001(\0132\032.git.block.Reference"
+    "sStore\022A\n\027module_references_store\030\002 \001(\0132"
+    " .git.block.ModuleReferencesStore\022;\n\024enc"
+    "oded_object_store\030\003 \001(\0132\035.git.block.Enco"
+    "dedObjectStore\022/\n\026shallow_refs_store_ref"
+    "\030\004 \001(\0132\017.block.BlockRef\022\022\n\ngit_config\030\005 "
+    "\001(\t\"k\n\022EncodedObjectStore\022,\n\tkvtx_root\030\001"
+    " \001(\0132\031.kvtx.block.KeyValueStore\022\'\n\014chunk"
+    "er_args\030\002 \001(\0132\021.blob.ChunkerArgs\"\?\n\017Refe"
+    "rencesStore\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.bl"
+    "ock.KeyValueStore\"E\n\025ModuleReferencesSto"
+    "re\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block.KeyVa"
+    "lueStore\"4\n\020ShallowRefsStore\022 \n\014shallow_"
+    "refs\030\001 \003(\0132\n.hash.Hash\"<\n\tSubmodule\022\014\n\004n"
+    "ame\030\001 \001(\t\022!\n\010repo_ref\030\002 \001(\0132\017.block.Bloc"
+    "kRef\"\204\001\n\tReference\022\014\n\004name\030\001 \001(\t\0220\n\016refe"
+    "rence_type\030\002 \001(\0162\030.git.block.ReferenceTy"
+    "pe\022\030\n\004hash\030\003 \001(\0132\n.hash.Hash\022\035\n\025target_r"
+    "eference_name\030\004 \001(\t\"\210\001\n\rEncodedObject\022\035\n"
+    "\tdata_blob\030\001 \001(\0132\n.blob.Blob\022\035\n\tdata_has"
+    "h\030\002 \001(\0132\n.hash.Hash\0229\n\023encoded_object_ty"
+    "pe\030\003 \001(\0162\034.git.block.EncodedObjectType\"\306"
+    "\001\n\005Index\022\017\n\007version\030\001 \001(\r\022&\n\007entries\030\002 \003"
+    "(\0132\025.git.block.IndexEntry\022\036\n\005cache\030\003 \001(\013"
+    "2\017.git.block.Tree\022,\n\014resolve_undo\030\004 \001(\0132"
+    "\026.git.block.ResolveUndo\0226\n\022end_of_index_"
+    "entry\030\005 \001(\0132\032.git.block.EndOfIndexEntry\""
+    "-\n\004Tree\022%\n\007entries\030\001 \003(\0132\024.git.block.Tre"
+    "eEntry\"S\n\tTreeEntry\022\014\n\004path\030\001 \001(\t\022\017\n\007ent"
+    "ries\030\002 \001(\005\022\r\n\005trees\030\003 \001(\005\022\030\n\004hash\030\004 \001(\0132"
+    "\n.hash.Hash\";\n\013ResolveUndo\022,\n\007entries\030\001 "
+    "\003(\0132\033.git.block.ResolveUndoEntry\"\224\001\n\020Res"
+    "olveUndoEntry\022\014\n\004path\030\001 \001(\t\0227\n\006stages\030\002 "
+    "\003(\0132\'.git.block.ResolveUndoEntry.StagesE"
+    "ntry\0329\n\013StagesEntry\022\013\n\003key\030\001 \001(\r\022\031\n\005valu"
+    "e\030\002 \001(\0132\n.hash.Hash:\0028\001\";\n\017EndOfIndexEnt"
+    "ry\022\016\n\006offset\030\001 \001(\r\022\030\n\004hash\030\002 \001(\0132\n.hash."
+    "Hash\"\256\002\n\nIndexEntry\022\035\n\tdata_hash\030\001 \001(\0132\n"
+    ".hash.Hash\022\014\n\004name\030\002 \001(\t\022.\n\ncreated_at\030\003"
+    " \001(\0132\032.google.protobuf.Timestamp\022/\n\013modi"
+    "fied_at\030\004 \001(\0132\032.google.protobuf.Timestam"
+    "p\022\013\n\003dev\030\005 \001(\r\022\r\n\005inode\030\006 \001(\r\022\021\n\tfile_mo"
+    "de\030\007 \001(\r\022\013\n\003uid\030\010 \001(\r\022\013\n\003gid\030\t \001(\r\022\014\n\004si"
+    "ze\030\n \001(\r\022\r\n\005stage\030\013 \001(\r\022\025\n\rskip_worktree"
+    "\030\014 \001(\010\022\025\n\rintent_to_add\030\r \001(\010\"-\n\010AuthOpt"
+    "s\022\020\n\010username\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"\361\001\n"
+    "\tCloneOpts\022\013\n\003url\030\001 \001(\t\022\023\n\013remote_name\030\002"
+    " \001(\t\022\013\n\003ref\030\003 \001(\t\022\025\n\rsingle_branch\030\004 \001(\010"
+    "\022\030\n\020disable_checkout\030\005 \001(\010\022\r\n\005depth\030\006 \001("
+    "\r\022\021\n\trecursive\030\007 \001(\010\022\027\n\017recursion_depth\030"
+    "\013 \001(\r\022$\n\010tag_mode\030\010 \001(\0162\022.git.block.TagM"
+    "ode\022\020\n\010insecure\030\t \001(\010\022\021\n\tca_bundle\030\n \001(\t"
+    "\"\277\001\n\tFetchOpts\022\023\n\013remote_name\030\001 \001(\t\022\022\n\nr"
+    "emote_url\030\002 \001(\t\022\021\n\tref_specs\030\003 \003(\t\022\r\n\005de"
+    "pth\030\004 \001(\r\022$\n\010tag_mode\030\005 \001(\0162\022.git.block."
+    "TagMode\022\r\n\005force\030\006 \001(\010\022\020\n\010insecure\030\007 \001(\010"
+    "\022\021\n\tca_bundle\030\010 \001(\t\022\r\n\005prune\030\t \001(\010\"g\n\014Ch"
+    "eckoutOpts\022\032\n\006commit\030\001 \001(\0132\n.hash.Hash\022\016"
+    "\n\006branch\030\002 \001(\t\022\016\n\006create\030\003 \001(\010\022\r\n\005force\030"
+    "\004 \001(\010\022\014\n\004keep\030\005 \001(\010*^\n\rReferenceType\022\031\n\025"
+    "ReferenceType_INVALID\020\000\022\026\n\022ReferenceType"
+    "_HASH\020\001\022\032\n\026ReferenceType_SYMBOLIC\020\002*\345\001\n\021"
+    "EncodedObjectType\022\035\n\031EncodedObjectType_I"
+    "NVALID\020\000\022\034\n\030EncodedObjectType_COMMIT\020\001\022\032"
+    "\n\026EncodedObjectType_TREE\020\002\022\032\n\026EncodedObj"
+    "ectType_BLOB\020\003\022\031\n\025EncodedObjectType_TAG\020"
+    "\004\022\037\n\033EncodedObjectType_OFS_DELTA\020\006\022\037\n\033En"
+    "codedObjectType_REF_DELTA\020\007*X\n\007TagMode\022\023"
+    "\n\017TagMode_DEFAULT\020\000\022\020\n\014TagMode_NONE\020\001\022\017\n"
+    "\013TagMode_ALL\020\002\022\025\n\021TagMode_FOLLOWING\020\003b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps[5] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbifrost_2fhash_2fhash_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblob_2fblob_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_deps[5] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblob_2fblob_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fnet_2fhash_2fhash_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto = {
     false,
     false,
-    3141,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+    3125,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
     "github.com/s4wave/spacewave/db/git/block/git.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto_deps,
     5,
     20,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
 };
 namespace git {
 namespace block {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ReferenceType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t ReferenceType_internal_data_[] = {
     196608u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL EncodedObjectType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[1];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t EncodedObjectType_internal_data_[] = {
     327680u, 32u, 6u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TagMode_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto[2];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto[2];
 }
 PROTOBUF_CONSTINIT const uint32_t TagMode_internal_data_[] = {
     262144u, 0u, };
@@ -1128,7 +1128,7 @@ constexpr auto Repo::InternalGenerateClassData_() {
           false,
       },
       &Repo::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1567,7 +1567,7 @@ constexpr auto EncodedObjectStore::InternalGenerateClassData_() {
           false,
       },
       &EncodedObjectStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1885,7 +1885,7 @@ constexpr auto ReferencesStore::InternalGenerateClassData_() {
           false,
       },
       &ReferencesStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2162,7 +2162,7 @@ constexpr auto ModuleReferencesStore::InternalGenerateClassData_() {
           false,
       },
       &ModuleReferencesStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2447,7 +2447,7 @@ constexpr auto ShallowRefsStore::InternalGenerateClassData_() {
           false,
       },
       &ShallowRefsStore::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2732,7 +2732,7 @@ constexpr auto Submodule::InternalGenerateClassData_() {
           false,
       },
       &Submodule::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3067,7 +3067,7 @@ constexpr auto Reference::InternalGenerateClassData_() {
           false,
       },
       &Reference::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3476,7 +3476,7 @@ constexpr auto EncodedObject::InternalGenerateClassData_() {
           false,
       },
       &EncodedObject::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3845,7 +3845,7 @@ constexpr auto Index::InternalGenerateClassData_() {
           false,
       },
       &Index::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4263,7 +4263,7 @@ constexpr auto Tree::InternalGenerateClassData_() {
           false,
       },
       &Tree::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4560,7 +4560,7 @@ constexpr auto TreeEntry::InternalGenerateClassData_() {
           false,
       },
       &TreeEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4949,7 +4949,7 @@ constexpr auto ResolveUndo::InternalGenerateClassData_() {
           false,
       },
       &ResolveUndo::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5167,7 +5167,7 @@ constexpr auto ResolveUndoEntry_StagesEntry_DoNotUse::InternalGenerateClassData_
           false,
       },
       &ResolveUndoEntry_StagesEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5338,7 +5338,7 @@ constexpr auto ResolveUndoEntry::InternalGenerateClassData_() {
           false,
       },
       &ResolveUndoEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5679,7 +5679,7 @@ constexpr auto EndOfIndexEntry::InternalGenerateClassData_() {
           false,
       },
       &EndOfIndexEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6027,7 +6027,7 @@ constexpr auto IndexEntry::InternalGenerateClassData_() {
           false,
       },
       &IndexEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6669,7 +6669,7 @@ constexpr auto AuthOpts::InternalGenerateClassData_() {
           false,
       },
       &AuthOpts::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7008,7 +7008,7 @@ constexpr auto CloneOpts::InternalGenerateClassData_() {
           false,
       },
       &CloneOpts::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7642,7 +7642,7 @@ constexpr auto FetchOpts::InternalGenerateClassData_() {
           false,
       },
       &FetchOpts::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8209,7 +8209,7 @@ constexpr auto CheckoutOpts::InternalGenerateClassData_() {
           false,
       },
       &CheckoutOpts::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8528,6 +8528,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

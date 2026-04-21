@@ -4,11 +4,11 @@ import (
 	"context"
 	"io/fs"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
 	"github.com/s4wave/spacewave/db/unixfs"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
 )
 
 // NewFSNode constructs a new FSNode.

@@ -3,11 +3,11 @@ package world_block_tx
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/sbset"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewTxBatch constructs a new BATCH transaction.

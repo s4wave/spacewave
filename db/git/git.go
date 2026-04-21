@@ -3,8 +3,8 @@ package hydra_git
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/go-git/go-git/v6/storage"
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // Storer is the interface for storing Git repository data.

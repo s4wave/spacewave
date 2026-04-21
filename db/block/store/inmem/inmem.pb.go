@@ -11,10 +11,10 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	hash "github.com/s4wave/spacewave/net/hash"
-	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // Config configures the inmem block store controller.

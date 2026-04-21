@@ -314,11 +314,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableRootDefaultTypeInternal _TableRoot_default_instance_;
 }  // namespace mysql
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::mysql::Root, _impl_._has_bits_),
@@ -429,60 +429,60 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::mysql::_TableSchema_default_instance_._instance,
     &::mysql::_TableSchemaColumn_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/sql/"
-    "mysql/mysql.proto\022\005mysql\0323github.com/ape"
-    "rturerobotics/hydra/block/block.proto\032=g"
-    "ithub.com/aperturerobotics/hydra/block/m"
-    "sgpack/msgpack.proto\0327github.com/apertur"
-    "erobotics/hydra/kvtx/block/kvtx.proto\"(\n"
-    "\004Root\022 \n\tdatabases\030\001 \003(\0132\r.mysql.RootDb\""
-    "4\n\006RootDb\022\014\n\004name\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.b"
-    "lock.BlockRef\"8\n\014DatabaseRoot\022(\n\006tables\030"
-    "\001 \003(\0132\030.mysql.DatabaseRootTable\"\?\n\021Datab"
-    "aseRootTable\022\014\n\004name\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132"
-    "\017.block.BlockRef\"\355\001\n\tTableRoot\022(\n\014table_"
-    "schema\030\001 \001(\0132\022.mysql.TableSchema\022\034\n\024prim"
-    "ary_key_ordinals\030\005 \003(\005\0223\n\020table_partitio"
-    "ns\030\002 \003(\0132\031.mysql.TablePartitionRoot\022\021\n\tr"
-    "ow_nonce\030\003 \001(\004\022)\n\rauto_incr_val\030\004 \001(\0132\022."
-    "mysql.TableColumn\022\024\n\014collation_id\030\006 \001(\r\022"
-    "\017\n\007comment\030\007 \001(\t\"F\n\022TablePartitionRoot\0220"
-    "\n\rrow_key_value\030\001 \001(\0132\031.kvtx.block.KeyVa"
-    "lueStore\"/\n\010TableRow\022#\n\007columns\030\001 \003(\0132\022."
-    "mysql.TableColumn\"9\n\013TableColumn\022*\n\014msgp"
-    "ack_blob\030\001 \001(\0132\024.msgpack.MsgpackBlob\"8\n\013"
-    "TableSchema\022)\n\007columns\030\001 \003(\0132\030.mysql.Tab"
-    "leSchemaColumn\"\301\001\n\021TableSchemaColumn\022\014\n\004"
-    "name\030\001 \001(\t\022\023\n\013column_type\030\002 \001(\t\022\032\n\022defau"
-    "lt_value_expr\030\003 \001(\t\022\026\n\016auto_increment\030\004 "
-    "\001(\010\022\020\n\010nullable\030\005 \001(\010\022\016\n\006source\030\006 \001(\t\022\023\n"
-    "\013primary_key\030\007 \001(\010\022\017\n\007comment\030\010 \001(\t\022\r\n\005e"
-    "xtra\030\t \001(\tb\006proto3"
+    "\n4github.com/s4wave/spacewave/db/sql/mys"
+    "ql/mysql.proto\022\005mysql\0320github.com/s4wave"
+    "/spacewave/db/block/block.proto\032:github."
+    "com/s4wave/spacewave/db/block/msgpack/ms"
+    "gpack.proto\0324github.com/s4wave/spacewave"
+    "/db/kvtx/block/kvtx.proto\"(\n\004Root\022 \n\tdat"
+    "abases\030\001 \003(\0132\r.mysql.RootDb\"4\n\006RootDb\022\014\n"
+    "\004name\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.block.BlockRe"
+    "f\"8\n\014DatabaseRoot\022(\n\006tables\030\001 \003(\0132\030.mysq"
+    "l.DatabaseRootTable\"\?\n\021DatabaseRootTable"
+    "\022\014\n\004name\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.block.Bloc"
+    "kRef\"\355\001\n\tTableRoot\022(\n\014table_schema\030\001 \001(\013"
+    "2\022.mysql.TableSchema\022\034\n\024primary_key_ordi"
+    "nals\030\005 \003(\005\0223\n\020table_partitions\030\002 \003(\0132\031.m"
+    "ysql.TablePartitionRoot\022\021\n\trow_nonce\030\003 \001"
+    "(\004\022)\n\rauto_incr_val\030\004 \001(\0132\022.mysql.TableC"
+    "olumn\022\024\n\014collation_id\030\006 \001(\r\022\017\n\007comment\030\007"
+    " \001(\t\"F\n\022TablePartitionRoot\0220\n\rrow_key_va"
+    "lue\030\001 \001(\0132\031.kvtx.block.KeyValueStore\"/\n\010"
+    "TableRow\022#\n\007columns\030\001 \003(\0132\022.mysql.TableC"
+    "olumn\"9\n\013TableColumn\022*\n\014msgpack_blob\030\001 \001"
+    "(\0132\024.msgpack.MsgpackBlob\"8\n\013TableSchema\022"
+    ")\n\007columns\030\001 \003(\0132\030.mysql.TableSchemaColu"
+    "mn\"\301\001\n\021TableSchemaColumn\022\014\n\004name\030\001 \001(\t\022\023"
+    "\n\013column_type\030\002 \001(\t\022\032\n\022default_value_exp"
+    "r\030\003 \001(\t\022\026\n\016auto_increment\030\004 \001(\010\022\020\n\010nulla"
+    "ble\030\005 \001(\010\022\016\n\006source\030\006 \001(\t\022\023\n\013primary_key"
+    "\030\007 \001(\010\022\017\n\007comment\030\010 \001(\t\022\r\n\005extra\030\t \001(\tb\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fmsgpack_2fmsgpack_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fkvtx_2fblock_2fkvtx_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_deps[3] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fmsgpack_2fmsgpack_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto = {
     false,
     false,
-    1138,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+    1126,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
     "github.com/s4wave/spacewave/db/sql/mysql/mysql.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_deps,
     3,
     10,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
 };
 namespace mysql {
 // ===================================================================
@@ -590,7 +590,7 @@ constexpr auto Root::InternalGenerateClassData_() {
           false,
       },
       &Root::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -875,7 +875,7 @@ constexpr auto RootDb::InternalGenerateClassData_() {
           false,
       },
       &RootDb::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1200,7 +1200,7 @@ constexpr auto DatabaseRoot::InternalGenerateClassData_() {
           false,
       },
       &DatabaseRoot::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1485,7 +1485,7 @@ constexpr auto DatabaseRootTable::InternalGenerateClassData_() {
           false,
       },
       &DatabaseRootTable::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1843,7 +1843,7 @@ constexpr auto TableRoot::InternalGenerateClassData_() {
           false,
       },
       &TableRoot::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2329,7 +2329,7 @@ constexpr auto TablePartitionRoot::InternalGenerateClassData_() {
           false,
       },
       &TablePartitionRoot::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2608,7 +2608,7 @@ constexpr auto TableRow::InternalGenerateClassData_() {
           false,
       },
       &TableRow::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2890,7 +2890,7 @@ constexpr auto TableColumn::InternalGenerateClassData_() {
           false,
       },
       &TableColumn::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3169,7 +3169,7 @@ constexpr auto TableSchema::InternalGenerateClassData_() {
           false,
       },
       &TableSchema::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3470,7 +3470,7 @@ constexpr auto TableSchemaColumn::InternalGenerateClassData_() {
           false,
       },
       &TableSchemaColumn::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3947,6 +3947,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fsql_2fmysql_2fmysql_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"
