@@ -1,0 +1,30 @@
+syntax = "proto3";
+package object.rpc;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// ObjectStore implements ObjectStore wrapping a object_store.Store.
+service ObjectStore {
+  // ObjectStoreRpc is a rpc request for an ObjectStore Kvtx service by ID.
+  // Corresponds to a call to BuildObjectStoreAPI.
+  // If the ObjectStore doesn't exist, it will be created.
+  // Exposes service: rpc.kvtx.Kvtx
+  // Component ID: object store ID.
+  rpc ObjectStoreRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // DeleteObjectStore deletes the object store and all contents by ID.
+  rpc DeleteObjectStore(DeleteObjectStoreRequest) returns (DeleteObjectStoreResponse);
+}
+
+// DeleteObjectStoreRequest requests to remove an object store and all contents.
+message DeleteObjectStoreRequest {
+  // ObjectStoreId is the object store identifier to remove.
+  string object_store_id = 1;
+}
+
+// DeleteObjectStoreResponse is the response to removing an object store.
+message DeleteObjectStoreResponse {
+  // Error is any error removing the object store.
+  // Will be empty if the store did not exist.
+  string error = 1;
+}

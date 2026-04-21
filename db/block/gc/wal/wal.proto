@@ -1,0 +1,24 @@
+syntax = "proto3";
+package block.gc.wal;
+
+// WALEntry is a single write-ahead log entry for the GC ref graph.
+// Each entry records a batch of edge additions and removals from a
+// single transaction commit.
+message WALEntry {
+  // sequence is the durable replay order for this entry.
+  uint64 sequence = 1;
+  // timestamp is when the entry was written (unix nanos).
+  int64 timestamp = 2;
+  // adds are edges to add to the GC graph.
+  repeated RefEdge adds = 3;
+  // removes are edges to remove from the GC graph.
+  repeated RefEdge removes = 4;
+}
+
+// RefEdge is a directed edge in the GC reference graph.
+message RefEdge {
+  // subject is the source node IRI.
+  string subject = 1;
+  // object is the target node IRI.
+  string object = 2;
+}

@@ -1,0 +1,177 @@
+package world_block
+
+import (
+	"context"
+
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/db/world"
+)
+
+// EngineTxObjectState is an ObjectState handle attached to a EngineTx.
+type EngineTxObjectState struct {
+	t   *EngineTx
+	key string
+	obj world.ObjectState
+}
+
+// newEngineTxObjectState constructs a new EngineTx ObjectState object.
+func newEngineTxObjectState(t *EngineTx, key string, obj world.ObjectState) *EngineTxObjectState {
+	return &EngineTxObjectState{t: t, key: key, obj: obj}
+}
+
+// GetKey returns the key this state object is for.
+func (t *EngineTxObjectState) GetKey() string {
+	return t.key
+}
+
+// GetRootRef returns the root reference of the object.
+func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
+	var rref *bucket.ObjectRef
+	var outRev uint64
+	err := t.t.performOp(func(tx *Tx) error {
+		obj, err := t.lookupObject(ctx, tx)
+		if err != nil {
+			return err
+		}
+		rref, outRev, err = obj.GetRootRef(ctx)
+		return err
+	})
+	return rref, outRev, err
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, will default to the object RootRef.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (t *EngineTxObjectState) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return t.t.AccessWorldState(ctx, ref, cb)
+}
+
+// SetRootRef changes the root reference of the object.
+func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
+	if t.t.GetReadOnly() {
+		return 0, tx.ErrNotWrite
+	}
+
+	var outRev uint64
+	err := t.t.performOp(func(tx *Tx) error {
+		obj, berr := t.lookupObject(ctx, tx)
+		if berr == nil {
+			outRev, berr = obj.SetRootRef(ctx, nref)
+		}
+		return berr
+	})
+	return outRev, err
+}
+
+// ApplyObjectOp applies a batch operation at the object level.
+// The handling of the operation is operation-type specific.
+// Returns the revision following the operation execution.
+// If nil is returned for the error, implies success.
+func (t *EngineTxObjectState) ApplyObjectOp(
+	ctx context.Context,
+	op world.Operation,
+	opSender peer.ID,
+) (uint64, bool, error) {
+	if t.t.GetReadOnly() {
+		return 0, false, tx.ErrNotWrite
+	}
+
+	var outRev uint64
+	var outSysErr bool
+	err := t.t.performOp(func(tx *Tx) error {
+		obj, berr := t.lookupObject(ctx, tx)
+		if berr == nil {
+			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
+		}
+		return berr
+	})
+	return outRev, outSysErr, err
+}
+
+// IncrementRev increments the revision of the object.
+// Returns the new latest revision.
+func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
+	if t.t.GetReadOnly() {
+		return 0, tx.ErrNotWrite
+	}
+
+	var val uint64
+	err := t.t.performOp(func(tx *Tx) error {
+		obj, berr := t.lookupObject(ctx, tx)
+		if berr == nil {
+			val, berr = obj.IncrementRev(ctx)
+		}
+		return berr
+	})
+	return val, err
+}
+
+// WaitRev waits until the object rev is >= the specified.
+// Returns ErrObjectNotFound if the object is deleted.
+// If ignoreNotFound is set, waits for the object to exist.
+// Returns the new rev.
+func (t *EngineTxObjectState) WaitRev(
+	ctx context.Context,
+	rev uint64,
+	ignoreNotFound bool,
+) (uint64, error) {
+	seqno, err := t.t.GetSeqno(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// XXX: optimization: watch changelog for object changes
+	for {
+		_, currRev, err := t.GetRootRef(ctx)
+		if err != nil {
+			return 0, err
+		}
+
+		if currRev >= rev {
+			return currRev, nil
+		}
+
+		// If this is a write transaction: wait for any change to the write
+		// transaction to exceed the seqno. Otherwise, wait for the engine.
+		if writeTx := t.t.writeTx; writeTx != nil {
+			seqno, err = writeTx.WaitSeqno(ctx, seqno+1)
+		} else {
+			seqno, err = t.t.engine.WaitSeqno(ctx, seqno+1)
+		}
+		if err != nil {
+			return 0, err
+		}
+	}
+}
+
+// lookupObject returns the object or ErrObjectNotFound
+func (t *EngineTxObjectState) lookupObject(ctx context.Context, tx *Tx) (world.ObjectState, error) {
+	if t.obj != nil && t.t.writeTx != nil {
+		return t.obj, nil
+	}
+
+	obj, found, err := tx.GetObject(ctx, t.key)
+	if err != nil {
+		return nil, err
+	}
+	// note: to create a EngineTxObjectState, we previously checked
+	// if the object key exists. it must have been deleted since.
+	if !found {
+		return nil, world.ErrObjectNotFound
+	}
+	if t.t.writeTx != nil {
+		t.obj = obj
+	}
+	return obj, nil
+}
+
+// _ is a type assertion
+var _ world.ObjectState = (*EngineTxObjectState)(nil)

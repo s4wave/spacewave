@@ -1,0 +1,62 @@
+syntax = "proto3";
+package lookup.concurrent;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// TODO: Drop LookupBlockFromNetwork and use block stores instead?
+
+// NotFoundBehavior controls what happens when a block was not found locally.
+enum NotFoundBehavior {
+  // NotFoundBehavior_NONE does nothing when we don't find a block.
+  NotFoundBehavior_NONE = 0;
+  // NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block.
+  // If the directive becomes idle returns not found.
+  NotFoundBehavior_LOOKUP_DIRECTIVE = 1;
+  // NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT uses LookupBlockFromNetwork to lookup the block.
+  // Continues to wait even if the directive becomes idle.
+  NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT = 2;
+}
+
+// PutBlockBehavior controls what PutBlock does on the lookup handle.
+enum PutBlockBehavior {
+  // PutBlockBehavior_NONE does nothing with the block.
+  PutBlockBehavior_NONE = 0;
+  // PutBlockBehavior_ALL writes the block to all block stores.
+  PutBlockBehavior_ALL = 1;
+}
+
+// WritebackBehavior controls what to do with blocks looked up from the network.
+enum WritebackBehavior {
+  // WritebackBehavior_NONE returns the block without writing it back.
+  WritebackBehavior_NONE = 0;
+  // WritebackBehavior_ALL writes the block to all block stores.
+  WritebackBehavior_ALL = 1;
+}
+
+// Config is the example lookup config.
+message Config {
+  // BucketConf is the bucket configuration.
+  .bucket.Config bucket_conf = 1;
+  // NotFoundBehavior controls the not-found behavior.
+  NotFoundBehavior not_found_behavior = 2;
+  // PutBlockBehavior controls the PutBlock behavior.
+  PutBlockBehavior put_block_behavior = 3;
+  // WritebackBehavior controls what to do after fetching a block.
+  WritebackBehavior writeback_behavior = 4;
+  // LookupTimeoutDur is the duration to wait for looking up a block.
+  // Examples: 1s, 1m, 1h
+  // Note: this can be overridden by the lookup options.
+  // If this timeout is exceeded, returns context.ErrDeadlineExceeded.
+  // If unset, waits forever.
+  string lookup_timeout_dur = 6;
+  // Verbose enables verbose debug logging.
+  bool verbose = 5;
+
+  // FallbackBlockStoreId is a block store to use to lookup the block if not
+  // found. If the block is found in this store, it will be written back
+  // according to the writeback behavior.
+  //
+  // The lookup will be performed before the NotFoundBehavior is evaluated.
+  string fallback_block_store_id = 7;
+}
+

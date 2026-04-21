@@ -1,0 +1,30 @@
+syntax = "proto3";
+package volume.kvtxinmem;
+
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the kvtx in-memory volume controller config.
+message Config {
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 1;
+  // Verbose will log all operations to the logger for debugging.
+  bool verbose = 2;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 3;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 4;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is not already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, returns an error.
+  bool no_generate_key = 5;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 6;
+}
+

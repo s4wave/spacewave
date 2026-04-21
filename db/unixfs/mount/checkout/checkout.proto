@@ -1,0 +1,14 @@
+syntax = "proto3";
+package unixfs.mount.checkout;
+
+// Config configures the disk checkout controller.
+// Copies the contents of the UnixFS to the disk.
+message Config {
+  // MountPath is the destination mount path.
+  string mount_path = 1;
+  // Verbose enables verbose logging.
+  // Volume attribute: verbose=true
+  bool verbose = 2;
+  // SkipPathPrefixes are source path prefixes to skip when syncing.
+  repeated string skip_path_prefixes = 3;
+}

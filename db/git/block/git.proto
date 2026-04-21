@@ -1,0 +1,296 @@
+syntax = "proto3";
+package git.block;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/blob/blob.proto";
+import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
+import "google/protobuf/timestamp.proto";
+
+// Repo contains a Git repository.
+// Changes are transactional and deterministic.
+message Repo {
+  // ReferencesStore contains the named references store.
+  ReferencesStore references_store = 1;
+  // ModuleReferencesStore contains the named submodules store.
+  ModuleReferencesStore module_references_store = 2;
+  // EncodedObjectStore contains the encoded objects tree.
+  EncodedObjectStore encoded_object_store = 3;
+  // ShallowRefsStoreRef contains the list of shallow refs.
+  .block.BlockRef shallow_refs_store_ref = 4;
+  // GitConfig contains the git configuration marshaled in Git format.
+  // Some fields are always dropped, and repo is always marked as bare.
+  string git_config = 5;
+}
+
+// EncodedObjectStore contains the encoded objects store.
+message EncodedObjectStore {
+  // KvtxRoot is the root of the object tree.
+  .kvtx.block.KeyValueStore kvtx_root = 1;
+  // ChunkerArgs are arguments passed to ensure consistent chunking.
+  .blob.ChunkerArgs chunker_args = 2;
+}
+
+// ReferencesStore maps between ReferenceName and Reference.
+message ReferencesStore {
+  // KvtxRoot is the root of the reference tree.
+  // Contains value type Reference.
+  .kvtx.block.KeyValueStore kvtx_root = 1;
+}
+
+// ModuleReferences maps between submodule name and a block ref to the Repo.
+message ModuleReferencesStore {
+  // KvtxRoot is the root of the module reference tree.
+  // Key: submodule name, value: Submodule object.
+  .kvtx.block.KeyValueStore kvtx_root = 1;
+}
+
+// ShallowRefsStore contains the list of shallow refs.
+message ShallowRefsStore {
+  // ShallowRefs contains the list of shallow reference hashes.
+  repeated hash.Hash shallow_refs = 1;
+}
+
+// Submodule contains a sub-module reference.
+message Submodule {
+  // Name is the name of the submodule.
+  string name = 1;
+  // RepoRef is the reference to the Repo object.
+  .block.BlockRef repo_ref = 2;
+}
+
+// ReferenceType are the types of reference objects.
+// Note: the values match the Git reference type values.
+enum ReferenceType {
+  ReferenceType_INVALID  = 0;
+  ReferenceType_HASH     = 1;
+  ReferenceType_SYMBOLIC = 2;
+}
+
+// Reference contains a repository reference.
+// Go type: plumbing.Reference
+message Reference {
+  // Name contains the reference name.
+  // Go type: plumbing.ReferenceName
+  string name = 1;
+  // ReferenceType contains the reference type.
+  // One of: HashReference(1), SymbolicReference(2)
+  ReferenceType reference_type = 2;
+  // Hash contains the sha1 hash (20 bytes) if hash reference.
+  // Note: currently, this is enforced to hash type SHA1.
+  .hash.Hash hash = 3;
+  // TargetReferenceName is the target reference name if symbolic.
+  string target_reference_name = 4;
+}
+
+// EncodedObjectType are the types of encoded objects.
+// Note: the values match the Git object type values.
+enum EncodedObjectType {
+  EncodedObjectType_INVALID = 0;
+  EncodedObjectType_COMMIT  = 1;
+  EncodedObjectType_TREE    = 2;
+  EncodedObjectType_BLOB    = 3;
+  EncodedObjectType_TAG     = 4;
+  // 5 reserved for future expansion
+  EncodedObjectType_OFS_DELTA = 6;
+  EncodedObjectType_REF_DELTA = 7;
+}
+
+// EncodedObject contains an encoded object, stored as a Blob.
+message EncodedObject {
+  // DataBlob is the encoded object data.
+  blob.Blob data_blob = 1;
+  // DataHash is the hash of DataBlob.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash data_hash = 2;
+  // ObjectType is the encoded object type.
+  EncodedObjectType encoded_object_type = 3;
+}
+
+// Index stores a git index.
+message Index {
+  // Version is the index version (usually 2).
+  uint32 version = 1;
+  // Entries is the list of entries represented by the Index.
+  repeated IndexEntry entries = 2;
+  // Cache represents the "cached tree" extension.
+  Tree cache = 3;
+  // ResolveUndo represents the "resolve undo" extension.
+  ResolveUndo resolve_undo = 4;
+  // EndOfIndexEntry represents the "End of Index Entry" extension
+  EndOfIndexEntry end_of_index_entry = 5;
+}
+
+// Tree contains pre-computed hashes for trees that can be derived from the
+// index. It helps speed up tree object generation from index for a new commit.
+message Tree {
+  // Entries are entries in the tree.
+  repeated TreeEntry entries = 1;
+}
+
+// TreeEntry is an entry in the tree.
+message TreeEntry {
+  // Path is the path within the parent directory.
+  string path = 1;
+  // Entries is the number of entries in the index that is covered by the tree
+  // this entry represents.
+  int32 entries = 2;
+  // Trees is the number that represents the number of subtrees this tree has.
+  int32 trees = 3;
+  // Hash is the hash of the object that would result from writing this span of
+  // index as a tree. Note: currently this is sha1.
+  hash.Hash hash = 4;
+}
+
+// ResolveUndo is used when a conflict is resolved (e.g. with "git add path"),
+// these higher stage entries are removed and a stage-0 entry with proper
+// resolution is added. When these higher stage entries are removed, they are
+// saved in the resolve undo extension.
+message ResolveUndo {
+  // Entries is the list of resolve undo entries.
+  repeated ResolveUndoEntry entries = 1;
+}
+
+// ResolveUndoEntry contains the information about a conflict when is resolved.
+message ResolveUndoEntry {
+  // Path is the path within the parent directory.
+  string path = 1;
+  // Stages are the merge conflict stages.
+  map<uint32, hash.Hash> stages = 2;
+}
+
+// EndOfIndexEntry is the End of Index Entry (EOIE) is used to locate the end of
+// the variable length index entries and the beginning of the extensions.
+message EndOfIndexEntry {
+  // Offset is the offset to the end of the index entries.
+  uint32 offset = 1;
+  // Hash is the sha-1 of the extension types and their sizes.
+  hash.Hash hash = 2;
+}
+
+// IndexEntry stores an entry in the git index.
+message IndexEntry {
+  // DataHash is the hash of the index entry.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash data_hash = 1;
+  // Name is the entry path name relative to top directory.
+  string name = 2;
+  // CreatedAt is the time when the path was created.
+  google.protobuf.Timestamp created_at = 3;
+  // ModifiedAt is the time when the path was modified.
+  google.protobuf.Timestamp modified_at = 4;
+  // Dev is the device of the tracked path.
+  uint32 dev = 5;
+  // Inode is the inode of the tracked path.
+  uint32 inode = 6;
+  // Mode is the Git file mode used for the entry.
+  // i.e. Dir, Regular, Executable, Symlink, Submodule
+  uint32 file_mode = 7;
+  // Uid is the user id of the owner.
+  uint32 uid = 8;
+  // Gid is the group id of the owner.
+  uint32 gid = 9;
+  // Size is the length in bytes for regular files.
+  uint32 size = 10;
+  // Stage contains the merging state of the index item.
+  // https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
+  uint32 stage = 11;
+  // SkipWorktree is used in sparse checkouts.
+  bool skip_worktree = 12;
+  // IntentToAdd indicates the path will be added later.
+  // git add -N
+  bool intent_to_add = 13;
+}
+
+// TagMode is the available modes for fetching tags.
+enum TagMode {
+  // TagMode_DEFAULT indicates to use default tag mode.
+  // Default is to fetch ALL.
+  TagMode_DEFAULT = 0;
+  // TagMode_NONE fetches no tags from the remote.
+  TagMode_NONE = 1;
+  // TagMode_ALL fetches all tags from the remote.
+  TagMode_ALL = 2;
+  // TagMode_FOLLOWING fetches only tags that refer to commits being cloned.
+  TagMode_FOLLOWING = 3;
+}
+
+// AuthOpts configures strategies for authenticating with a Git server.
+message AuthOpts {
+  // Username is the ssh username to authenticate with.
+  string username = 1;
+  // PeerId configures looking up peer priv key by id for ssh.
+  string peer_id = 2;
+}
+
+// CloneOpts are options for a Git clone.
+message CloneOpts {
+  // Url is the Git URL to clone from.
+  string url = 1;
+  // RemoteName is the name of the remote to add, by default "origin."
+  string remote_name = 2;
+  // Ref is the reference name to clone, uses default if empty.
+  string ref = 3;
+  // SingleBranch fetches the ref and nothing more.
+  bool single_branch = 4;
+  // DisableCheckout disables setting the Worktree and Workdir.
+  bool disable_checkout = 5;
+  // Depth limits to the specific number of commits.
+  // If zero, fetches all of the commits.
+  uint32 depth = 6;
+  // Recursive indicates submodules will be fetched as well.
+  bool recursive = 7;
+  // RecursionDepth overrides the default submodule recursion depth (10).
+  // Only used when recursive is true. Zero means use the default.
+  uint32 recursion_depth = 11;
+  // TagMode controls the fetching of tags.
+  TagMode tag_mode = 8;
+  // Insecure indicates that TLS checks should be skipped.
+  bool insecure = 9;
+  // CaBundle contains additional CA certificates to trust.
+  string ca_bundle = 10;
+}
+
+// FetchOpts are options for a Git fetch.
+message FetchOpts {
+  // RemoteName is the name of the remote to fetch from, by default "origin."
+  string remote_name = 1;
+  // RemoteUrl overrides the remote repo address with a custom URL.
+  string remote_url = 2;
+  // RefSpecs are the refspecs to use for the fetch.
+  // If empty, uses the default refspecs for the remote.
+  repeated string ref_specs = 3;
+  // Depth limits to the specific number of commits.
+  // If zero, fetches all of the commits.
+  uint32 depth = 4;
+  // TagMode controls the fetching of tags.
+  TagMode tag_mode = 5;
+  // Force allows the fetch to update a local branch even when the remote
+  // branch does not descend from it.
+  bool force = 6;
+  // Insecure indicates that TLS checks should be skipped.
+  bool insecure = 7;
+  // CaBundle contains additional CA certificates to trust.
+  string ca_bundle = 8;
+  // Prune indicates that local refs matching RefSpecs that do not exist
+  // remotely will be removed.
+  bool prune = 9;
+}
+
+// CheckoutOpts are options when checking out a repo.
+message CheckoutOpts {
+  // Commit is the commit hash to check out.
+  // Note: currently, this is enforced to hash type SHA1.
+  .hash.Hash commit = 1;
+  // Branch is the branch to check out.
+  // If !create, cannot be set if commit is also set.
+  string branch = 2;
+  // Create indicates to create a branch from the specified commit.
+  bool create = 3;
+  // Force indicates to continue even if index or working tree is not HEAD.
+  // Throws away any changes when checking out.
+  bool force = 4;
+  // Keep maintains index or working dir changes.
+  // Cannot be set if force is also set.
+  bool keep = 5;
+}

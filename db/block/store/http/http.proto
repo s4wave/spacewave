@@ -1,0 +1,76 @@
+syntax = "proto3";
+package block.store.http;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Config configures the block store http controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Url is the base url to access the api.
+  string url = 2;
+  // ReadOnly disables writing to the http store.
+  bool read_only = 3;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 4;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 5;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 6;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 7;
+}
+
+// PutRequest is the request body for a Put request.
+message PutRequest {
+  // Data is the data to put at the key.
+  bytes data = 1;
+  // PutOpts sets the put options.
+  .block.PutOpts put_opts = 2;
+}
+
+// PutResponse is the response to a Put request.
+message PutResponse {
+  // Ref contains the put block ref.
+  .block.BlockRef ref = 1;
+  // Exists indicates that the block already existed in the store.
+  // Some stores may always return false for this.
+  bool exists = 2;
+  // Err contains any error putting the ref.
+  // If empty, the ref must not be nil, op succeeded.
+  string err = 3;
+}
+
+// GetResponse is the response to a Get request.
+message GetResponse {
+  // NotFound indicates that the block did not exist in the store.
+  bool not_found = 1;
+  // Data contains the block data, if not_found and err are empty.
+  bytes data = 2;
+  // Err contains any error getting the ref.
+  // If empty, not_found or data must be set.
+  string err = 3;
+}
+
+// ExistsResponse is the response to a Exists request.
+message ExistsResponse {
+  // Exists indicates that the block existed in the store.
+  bool exists = 1;
+  // NotFound indicates that the block did not exist in the store.
+  // If false, exists=true.
+  bool not_found = 2;
+  // Err contains any error checking if the ref exists.
+  // If empty, not_found or data must be set.
+  string err = 3;
+}
+
+// RmResponse is the response to a Rm request.
+message RmResponse {
+  // Removed indicates the request was processed successfully.
+  // Must be set if err is empty.
+  bool removed = 1;
+  // Err contains any error deleting the block.
+  string err = 2;
+}

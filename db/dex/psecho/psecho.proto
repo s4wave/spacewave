@@ -1,0 +1,16 @@
+syntax = "proto3";
+package psecho;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// PubSubMessage is gossipped on the pub-sub channel.
+message PubSubMessage {
+  // WantRefs is a full snapshot of blocks we currently want.
+  repeated .block.BlockRef want_refs = 1;
+  // ClearRefs signals we no longer want these blocks.
+  repeated .block.BlockRef clear_refs = 2;
+  // WantEmpty indicates the wantlist is empty.
+  bool want_empty = 3;
+  // TimestampUnixNano is the message timestamp (for ordering).
+  int64 timestamp_unix_nano = 4;
+}

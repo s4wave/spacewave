@@ -1,0 +1,44 @@
+syntax = "proto3";
+package volume.opfs;
+
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the OPFS volume controller config.
+message Config {
+  // RootPath is the OPFS directory path for this volume.
+  // The volume data is stored under this path.
+  string root_path = 1;
+  // LockPrefix is the WebLock name prefix for this volume.
+  // Defaults to RootPath if empty.
+  string lock_prefix = 2;
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 3;
+  // NoGenerateKey disables auto-generating a peer private key.
+  bool no_generate_key = 4;
+  // NoWriteKey disables writing the generated key to storage.
+  bool no_write_key = 5;
+  // Verbose enables verbose logging.
+  bool verbose = 6;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 7;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 8;
+  // BlockShardCount is the number of OPFS block shards.
+  uint32 block_shard_count = 9;
+  // MetaShardCount is the number of metadata shards.
+  // The current implementation requires exactly 1 when set.
+  uint32 meta_shard_count = 10;
+  // BlockBloomFpr is the block SSTable bloom-filter false-positive rate.
+  double block_bloom_fpr = 11;
+  // BlockCompactionTrigger is the L0 compaction trigger per shard.
+  uint32 block_compaction_trigger = 12;
+  // PageSize is the metadata page size in bytes.
+  uint32 page_size = 13;
+  // AsyncIo forces using the async OPFS API instead of the sync API.
+  // When enabled, writes yield the Go thread via AwaitPromise, allowing
+  // other goroutines to continue encoding and enqueuing while I/O is
+  // in flight.
+  bool async_io = 14;
+}

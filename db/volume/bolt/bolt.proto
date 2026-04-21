@@ -1,0 +1,41 @@
+syntax = "proto3";
+package volume.bolt;
+
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the bolt volume controller config.
+message Config {
+	// Path is the file to store the data in.
+  string path = 1;
+  // KvKeyOpts are key/value options..
+  .store.kvkey.Config kv_key_opts = 2;
+  // Verbose indicates we should log every operation.
+  bool verbose = 3;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 5;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 6;
+  // NoGenerateKey indicates to skip generating a private key.
+  // This has no effect if a key already exists.
+  bool no_generate_key = 7;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 10;
+
+  // Sync indicates to sync after every write.
+  // Reduces write performance but increases data safety.
+  bool sync = 8;
+  // FreelistSync enables syncing the freelist to disk.
+  // Reduces write performance but increases recovery performance.
+  bool freelist_sync = 9;
+  // BatchSize coalesces this many write transactions into one BoltDB commit.
+  // Dramatically reduces fsync overhead for bulk write workloads.
+  // 0 or 1 disables batching (default). Typical value: 100-1000.
+  uint32 batch_size = 11;
+}
+

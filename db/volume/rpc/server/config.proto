@@ -1,0 +1,26 @@
+syntax = "proto3";
+package volume.rpc.server;
+
+// Config configures the rpc volume server.
+// Provides the AccessVolumes RPC service.
+// Accesses volumes with LookupVolume and other directives.
+message Config {
+  // ServiceId is the service id to listen on.
+  // Usually a prefix with: rpc.volume.AccessVolumes
+  // Cannot be empty.
+  string service_id = 1;
+  // VolumeIdRe is a regex string to match volume IDs.
+  // Set to '.*' to match all volumes.
+  // ignored if empty.
+  string volume_id_re = 2;
+  // VolumeIdList is a list of volume IDs to match.
+  // If the value is in this list, overrides volume_id_re.
+  // ignored if empty.
+  repeated string volume_id_list = 3;
+  // ExposePrivateKey enables callers to fetch the private key for the volume.
+  // Defaults to false.
+  bool expose_private_key = 4;
+  // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+  // If empty string, defaults to 1s (1 second).
+  string release_delay = 5;
+}

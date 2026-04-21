@@ -1,0 +1,23 @@
+syntax = "proto3";
+package block.store.http.lookup;
+
+// Config configures the http block lookup controller.
+// Serves LookupBlockFromNetwork directives by calling a http api.
+message Config {
+  // BucketId is the bucket id to serve lookups for.
+  string bucket_id = 1;
+  // Url is the HTTP base URL to call the block lookup service.
+  // E.x: https://myservice.local/block
+  // Expects the block store http server to be served at the URL.
+  // Calls will then be, for example:
+  //  - GET /block/get/{block-ref}
+  //  - GET /block/exists/{block-ref}
+  //  - POST /block/put
+  //  - DELETE /block/rm
+  // Must be set and a valid http or https url.
+  string url = 2;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 3;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 4;
+}

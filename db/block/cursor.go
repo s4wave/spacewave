@@ -1,0 +1,1042 @@
+package block
+
+import (
+	"context"
+	"errors"
+	"runtime/trace"
+)
+
+// Cursor tracks traversal of a block reference DAG structure with an associated
+// Transaction. Manages interacting with block handles, the transaction cache,
+// the decoder and marshaller, and the transformers.
+type Cursor struct {
+	// t is the transaction
+	// if nil: cursor is ephemeral (no associated block graph)
+	t *Transaction
+	// store is the block store to read from
+	// if nil, use the store from transaction.
+	store StoreOps
+	// pos is the current block handle
+	// if ephemeral, does not contain a block graph.
+	pos *handle
+}
+
+// newCursor builds a new cursor.
+func newCursor(t *Transaction, pos *handle, storeOverride StoreOps) *Cursor {
+	return &Cursor{t: t, pos: pos, store: storeOverride}
+}
+
+// IsSubBlock indicates if the cursor is currently at a sub-block position.
+func (c *Cursor) IsSubBlock() bool {
+	if c == nil {
+		return false
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	return c.pos.isSubBlock
+}
+
+// IsDirty indicates if the position or any sub-positions were changed.
+func (c *Cursor) IsDirty() bool {
+	if c != nil && c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	if c == nil || c.pos == nil {
+		return false
+	}
+	return c.pos.dirty
+}
+
+// GetTransaction returns the cursor's associated transaction, may be nil.
+func (c *Cursor) GetTransaction() *Transaction {
+	if c == nil {
+		return nil
+	}
+	return c.t
+}
+
+// GetBlockStore returns the block store used for the transaction.
+func (c *Cursor) GetBlockStore() (StoreOps, bool) {
+	if c != nil {
+		if c.store != nil {
+			return c.store, true
+		}
+		if c.t != nil {
+			return c.t.store, false
+		}
+	}
+	return nil, false
+}
+
+// SetBlockStore sets the store to read from for this cursor and all sub-cursors.
+// If nil, will use the default bucket attached to the block transaction.
+func (c *Cursor) SetBlockStore(store StoreOps) {
+	if c != nil {
+		c.store = store
+	}
+}
+
+// CloneBlock tries to clone the contained block.
+//
+// returns ErrUnexpectedType or ErrNotClonable if the block was not clonable.
+func (c *Cursor) CloneBlock() (any, error) {
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	return CloneBlock(c.pos.blk)
+}
+
+// Detach clones the cursor position.
+//
+// If keepRefs is set, adds the new location as a parent of all previously
+// referenced blocks.
+//
+// Note: does not copy/clone the Block object.
+func (c *Cursor) Detach(keepRefs bool) *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	// clone the cursor
+	nc := &Cursor{store: c.store, t: c.t}
+	nc.pos = c.pos.Clone()
+	nc.pos.blkPreWrite = nil
+	nc.pos.isSubBlock = false
+
+	if c.t != nil {
+		nc.pos.Node = c.t.blockGraph.NewNode()
+		c.t.blockGraph.AddNode(nc.pos)
+
+		if keepRefs {
+			prevRefs := c.pos.refHandles
+			for _, ref := range prevRefs {
+				if ref.target == nil || ref.src != c.pos {
+					continue
+				}
+				tc := newCursor(nc.t, ref.target, nc.store)
+				_ = tc.addParent(nc, ref.id)
+			}
+		}
+	}
+
+	return nc
+}
+
+// DetachTransaction creates a new ephemeral transaction rooted at the cursor.
+func (c *Cursor) DetachTransaction() *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	// clone the cursor
+	nc := &Cursor{store: c.store, t: c.t}
+	nc.pos = c.pos.Clone()
+	nc.pos.blkPreWrite = nil
+	nc.pos.isSubBlock = false
+	nc.t = c.t.cloneDetached(nc.pos)
+	return nc
+}
+
+// CopyToRecursive copies the cursor and referenced positions to another cursor.
+// The cursor can use a different block transaction.
+// Note: the same block refs will be reused (underlying data is not copied).
+// If target tx == nil: is equivalent to DetachRecursive(false, cloneBlocks)
+// If markDirty is set, marks all target positions as dirty.
+func (c *Cursor) CopyToRecursive(targetPos *Cursor, cloneBlocks, markDirty bool) {
+	if c == nil {
+		// copy from nil cursor: assume empty
+		if targetPos != nil {
+			targetPos.SetRefAtCursor(nil, true)
+			targetPos.ClearAllRefs()
+		}
+		return
+	}
+	if targetPos == nil {
+		return
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	targetTx := targetPos.t
+	if targetTx != nil {
+		targetTx.mtx.Lock()
+		defer targetTx.mtx.Unlock()
+	}
+
+	// overwrite target fields (except for isSubBlock, parents, Node)
+	cpos := c.pos
+	nroot := targetPos.pos
+	nroot.blk = nil
+	nroot.blkPreWrite = cpos.blkPreWrite
+	nroot.ref = cpos.ref.Clone()
+	if cpos.dirty && !nroot.dirty {
+		targetPos.markDirty()
+	}
+	targetPos.clearRefHandles()
+
+	// copy recursively
+	c.copyToRecursive(targetPos, cloneBlocks, markDirty)
+	if c.pos.dirty || len(targetPos.pos.parents) != 0 {
+		targetPos.markDirty()
+	}
+}
+
+// DetachRecursive clones the cursor position and all referenced positions.
+//
+// Note: if !cloneBlocks, does not copy/clone the Block objects.
+func (c *Cursor) DetachRecursive(detachTx, cloneBlocks, markDirty bool) *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	oldTx := c.t
+	nroot := c.pos.Clone()
+	nroot.isSubBlock = false
+	nc := &Cursor{store: c.store, pos: nroot, t: oldTx}
+	if detachTx && c.t != nil {
+		// detach the transaction
+		nc.t = c.t.cloneDetached(nroot)
+	}
+
+	c.copyToRecursive(nc, cloneBlocks, markDirty)
+	return nc
+}
+
+// Parents returns new cursors pointing to the parent blocks.
+// Note: the parent list is completely dependent on the order the graph was traversed.
+// Note: returns nil if the cursor is ephemeral (with Detach call).
+func (c *Cursor) Parents() []*Cursor {
+	if c == nil || c.t == nil || c.pos == nil {
+		return nil
+	}
+
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	out := make([]*Cursor, len(c.pos.parents))
+	for i, p := range c.pos.parents {
+		out[i] = newCursor(c.t, p.src, c.store)
+	}
+	return out
+}
+
+// GetBlock returns the current loaded block at the position.
+// May be nil if Fetch or Unmarshal or SetBlock have not been called.
+// Returns isSubBlock.
+func (c *Cursor) GetBlock() (any, bool) {
+	if c == nil {
+		return nil, false
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	return c.pos.blk, c.pos.isSubBlock
+}
+
+// SetRefAtCursor sets the reference at the cursor location.
+// If ref is not equal to the existing ref, and clearBlock is set, blk is set to nil.
+func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
+	if c == nil {
+		return
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	if ref != nil {
+		if c.pos.ref != nil {
+			if c.pos.ref.EqualsRef(ref) {
+				return
+			}
+		}
+	}
+
+	dirty := c.pos.ref != ref
+	c.pos.ref = ref
+	if dirty {
+		if clearBlock {
+			c.pos.blk = nil
+			c.pos.blkPreWrite = nil
+		}
+		c.markDirty()
+	}
+}
+
+// SetRef sets a block reference to the handle at the cursor.
+// Adds c to the list of parents for cursor.
+// The cursors must be from the same transaction.
+// Note: this should only be used if refID and cursor are not sub-blocks.
+func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
+	if c == nil {
+		return
+	}
+	if cursor == nil {
+		c.ClearRef(refID)
+		return
+	}
+	if cursor == c || cursor.pos == c.pos {
+		return
+	}
+	if cursor.t != c.t {
+		// cannot set across transactions
+		return
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	} else {
+		// clear old destination parent relation
+		if r, ok := c.pos.refHandles[refID]; ok {
+			// value is changed below, clear old parent ref
+			if tgt := r.target; tgt != nil {
+				tgtCs := newCursor(c.t, tgt, c.store)
+				_ = tgtCs.removeParent(c)
+			}
+		}
+	}
+
+	// if cursor is a sub-block: make it into a regular block
+	if cursor.pos.isSubBlock {
+		cursor.pos.isSubBlock = false
+		cursor.pos.parents = nil
+	}
+
+	// add parent relation
+	np := cursor.addParent(c, refID)
+	if np != nil {
+		cursor.markDirty()
+	} else {
+		// failed to add parent, delete the ref
+		delete(c.pos.refHandles, refID)
+	}
+}
+
+// MarkDirty marks the cursor location dirty, so that it will be re-written.
+//
+// Note: if cursor is ephemeral (no transaction) this is no-op.
+func (c *Cursor) MarkDirty() {
+	if c == nil || c.t == nil {
+		return
+	}
+
+	c.t.mtx.Lock()
+	c.markDirty()
+	c.t.mtx.Unlock()
+}
+
+// FollowRef follows a block reference, returning a cursor pointing to the next
+// block and enqueuing the block for fetching. Does not wait for the block to be
+// fetched to return. If the reference is empty, will create a new block.
+func (c *Cursor) FollowRef(
+	refID uint32,
+	blkRef *BlockRef,
+) *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	return c.followRef(refID, blkRef)
+}
+
+// followRef implements followRef assuming the mutex is locked
+func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	}
+	ref := c.pos.refHandles[refID]
+	if ref != nil {
+		return newCursor(c.t, ref.target, c.store)
+	}
+	blkHandle := &handle{ref: blkRef}
+	if c.t != nil {
+		blkHandle.Node = c.t.blockGraph.NewNode()
+	}
+	ref = &refHandle{
+		id:     refID,
+		src:    c.pos,
+		target: blkHandle,
+	}
+	outCursor := newCursor(c.t, blkHandle, c.store)
+	_ = outCursor.addParent(c, refID)
+	return outCursor
+}
+
+// FollowSubBlock follows a sub-block reference, returning a cursor pointing to
+// the same block but at a sub-block inside a field. The block is constructed or
+// retrieved using the BlockWithSubBlocks interface.
+//
+// Once FollowSubBlock has been called, the field will be overwritten if dirty.
+// If ClearRef is called on the parent then this relation is removed.
+//
+// Note: there may already be a reference with the same ID, which would be returned.
+// The cursor must have the block decoded or set with SetBlock.
+// The cursor block blk must be a BlockWithSubBlocks.
+// If these conditions are not met, returns nil
+func (c *Cursor) FollowSubBlock(refID uint32) *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	return c.followSubBlock(refID)
+}
+
+// followSubBlock implements followSubBlock
+// The cursor must have the block decoded or set with SetBlock.
+func (c *Cursor) followSubBlock(refID uint32) *Cursor {
+	if c == nil {
+		return nil
+	}
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	}
+	ref := c.pos.refHandles[refID]
+	if ref != nil {
+		return newCursor(c.t, ref.target, c.store)
+	}
+
+	cblk := c.pos.blk
+	sbBlock, _ := cblk.(BlockWithSubBlocks)
+	if sbBlock == nil {
+		return nil
+	}
+	sbCtor := sbBlock.GetSubBlockCtor(refID)
+	if sbCtor == nil {
+		return nil
+	}
+	sbBlk := sbCtor(true)
+	if sbBlk == nil || sbBlk.IsNil() {
+		return nil
+	}
+	blkHandle := &handle{
+		isSubBlock: true,
+		blk:        sbBlk,
+	}
+	if c.t != nil {
+		blkHandle.Node = c.t.blockGraph.NewNode()
+	}
+	outCursor := newCursor(c.t, blkHandle, c.store)
+	_ = outCursor.addParent(c, refID)
+	return outCursor
+}
+
+// SetAsSubBlock sets the cursor position as a sub-block of another block.
+//
+// Clears any existing parent references.
+// Immediately calls ApplySubBlock on the parent block.
+//
+// May return ErrNotSubBlock or ErrUnexpectedType if the parent is not a block
+// with sub-blocks.
+func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
+	if c == nil || parent == nil {
+		return ErrNilCursor
+	}
+	if c.t != parent.t {
+		return errors.New("cursors must share same block transaction")
+	}
+	if c == parent {
+		return errors.New("cannot set cursor as sub-block of itself")
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	if c.pos == nil || c.pos.blk == nil ||
+		parent.pos == nil || parent.pos.blk == nil {
+		return ErrNilBlock
+	}
+
+	parentBlkWithSubBlocks, ok := parent.pos.blk.(BlockWithSubBlocks)
+	if !ok {
+		return ErrNotBlockWithSubBlocks
+	}
+	subBlk, ok := c.pos.blk.(SubBlock)
+	if !ok {
+		return ErrNotSubBlock
+	}
+
+	// check if we need to clear the old ref
+	prevRef := parent.pos.refHandles[refID]
+	if prevRef != nil {
+		if c.pos == prevRef.target && c.pos.isSubBlock {
+			// no changes: already set
+			return nil
+		}
+	}
+
+	// remove all parents
+	// sub-block cannot have multiple parents
+	_ = c.removeParent(nil)
+
+	// mark as sub-block and add parent
+	c.pos.isSubBlock = true
+	_ = c.addParent(parent, refID)
+
+	// apply sub-block
+	err := parentBlkWithSubBlocks.ApplySubBlock(refID, subBlk)
+	if err != nil {
+		return err
+	}
+
+	// we changed the parent, so mark it dirty
+	parent.markDirty()
+	return nil
+}
+
+// ClearRef removes the reference handle to the given ref ID.
+// Noop if FollowRef has not been previously called with refID.
+// Cursors that were generated by Follow() will be detached.
+//
+// Note: does not clear sub-blocks from the parent object.
+// Note; does not clear the BlockRef from the parent object.
+func (c *Cursor) ClearRef(refID uint32) {
+	if c == nil {
+		return
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	c.clearRef(refID)
+}
+
+// clearRef clears a reference removing the parent edge if necessary.
+// expects caller to lock c.t.mtx
+func (c *Cursor) clearRef(refID uint32) {
+	if c.pos.refHandles == nil {
+		return
+	}
+	r, ok := c.pos.refHandles[refID]
+	if !ok {
+		return
+	}
+	// clear parent relation
+	if tgt := r.target; tgt != nil {
+		tgtCursor := newCursor(c.t, tgt, c.store)
+		tgtCursor.removeParent(c)
+	}
+	// clear ref handle
+	delete(c.pos.refHandles, refID)
+}
+
+// ClearAllRefs clears all references.
+// Cursors that were generated by Follow() will be detached.
+//
+// Note: does not clear sub-blocks from the parent object.
+// Note; does not clear the BlockRef from the parent object.
+func (c *Cursor) ClearAllRefs() {
+	if c == nil {
+		return
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	c.clearRefHandles()
+}
+
+// Fetch fetches the block data into memory.
+// Fetching is performed using a block lookup.
+// Returns the transformed decoded version of the data.
+// Returns data, dataIsSet, err.
+// Returns nil, false, ErrBlockStoreUnavailable if the block store is unset.
+// Returns nil, false, nil if the reference is empty.
+// Returns nil, false, ErrNotFound if not found (block unavailable).
+func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/fetch")
+	defer task.End()
+
+	if c == nil {
+		return nil, false, nil
+	}
+	if c.pos.ref.GetEmpty() {
+		return nil, false, nil
+	}
+
+	bkt, _ := c.GetBlockStore()
+	if bkt == nil {
+		return nil, false, ErrBlockStoreUnavailable
+	}
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/fetch/store-get")
+	data, found, err := bkt.GetBlock(taskCtx, c.pos.ref)
+	subtask.End()
+	if err != nil || !found {
+		if err == nil {
+			err = ErrNotFound
+		}
+		return nil, false, err
+	}
+	if c.t.xfrm != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/fetch/decode")
+		data, err = c.t.xfrm.DecodeBlock(data)
+		subtask.End()
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	return data, true, nil
+}
+
+// Unmarshal fetches and unmarshals the data to a block.
+// If already unmarshaled, returns existing data.
+// If a sub-block, the sub-block must implement Block.
+// If a sub-block, will return the sub-block value or nil.
+// ctor is ignored if the cursor is a sub-block.
+// Returns nil, nil if ctor is nil and the block is nil.
+// Returns nil, nil if the cursor is nil.
+// Returns value from ctor() without calling Unmarshal if empty.
+// Returns nil, block.ErrNotFound if not found.
+func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/unmarshal")
+	defer task.End()
+
+	if c == nil {
+		return nil, nil
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+	}
+	blk := c.pos.blk
+	isSubBlock := c.pos.isSubBlock
+	if c.t != nil {
+		c.t.mtx.Unlock()
+	}
+
+	b, err := CastToBlock(blk)
+	if err != nil {
+		return nil, err
+	}
+
+	if b != nil || ctor == nil || isSubBlock {
+		return b, nil
+	}
+
+	// returns nil, false, nil if reference was empty.
+	// returns nil, false, ErrNotFound if reference was not found.
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/unmarshal/fetch")
+	dat, datFound, err := c.Fetch(taskCtx)
+	subtask.End()
+	if err != nil {
+		return nil, err
+	}
+
+	// note: we call fetch before ctor to catch any storage errors.
+	// (if ctor == nil Unmarshal will assert value exists in storage)
+	b = ctor()
+	if b == nil {
+		return nil, nil
+	}
+
+	if datFound {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/cursor/unmarshal/decode-block")
+		err := b.UnmarshalBlock(dat)
+		subtask.End()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if c.t != nil {
+		c.t.mtx.Lock()
+	}
+	if c.pos.blk != nil {
+		// fixes race condition of two Unmarshal calls happen simultaneously.
+		b, err = CastToBlock(c.pos.blk)
+	} else {
+		c.pos.blk = b
+	}
+	if c.t != nil {
+		c.t.mtx.Unlock()
+	}
+
+	return b, err
+}
+
+// GetRef returns the current cursor reference.
+func (c *Cursor) GetRef() *BlockRef {
+	if c == nil || c.pos == nil {
+		return nil
+	}
+	return c.pos.ref
+}
+
+// GetExistingRef checks if the reference has been traversed already.
+// Returns nil if no handle exists for that ref.
+func (c *Cursor) GetExistingRef(refID uint32) *Cursor {
+	if c == nil || c.pos == nil {
+		return nil
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	ref := c.pos.refHandles[refID]
+	if ref == nil {
+		return nil
+	}
+	return newCursor(c.t, ref.target, c.store)
+}
+
+// SetPreWriteHook sets a hook for final transforms to the block.
+//
+// Note: this should not call any cursor functions that will be locked during
+// the Write process.
+//
+// Also valid for sub-blocks.
+func (c *Cursor) SetPreWriteHook(h func(b any) error) {
+	if c != nil {
+		c.pos.blkPreWrite = h
+	}
+}
+
+// SetBlock sets a block at the location, and marks the block as dirty.
+// If the location is a Block, b should implement Block interface.
+// If it is a SubBlock, b should implement the SubBlock interface.
+// If dirty is set, sets the block as dirty.
+//
+// Clears BlockPreWrite.
+func (c *Cursor) SetBlock(b any, dirty bool) {
+	if c == nil {
+		return
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	c.pos.blk = b
+	c.pos.blkPreWrite = nil
+	if b == nil {
+		c.pos.ref = nil
+	}
+	if dirty {
+		c.markDirty()
+	}
+}
+
+// GetBlockRefs returns cursors to all references.
+//
+// If existingOnly, only returns references that have already been traversed.
+// If !existingOnly uses GetSubBlocks and/or GetBlockRefs to list all references.
+// If the position blk is empty, returns an empty map.
+func (c *Cursor) GetAllRefs(existingOnly bool) (map[uint32]*Cursor, error) {
+	m := map[uint32]*Cursor{}
+	if c == nil {
+		return m, nil
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+
+	if c.pos.blk == nil {
+		return m, nil
+	}
+	for refID, refHandle := range c.pos.refHandles {
+		if refHandle == nil || refHandle.target == nil {
+			continue
+		}
+		m[refID] = newCursor(c.t, refHandle.target, c.store)
+	}
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	}
+	posWithRefs, posWithRefsOk := c.pos.blk.(BlockWithRefs)
+	if posWithRefsOk {
+		blockRefs, err := posWithRefs.GetBlockRefs()
+		if err != nil {
+			return nil, err
+		}
+		// load all block refs to ref handles
+		for refID, bref := range blockRefs {
+			if bref == nil || bref.GetEmpty() {
+				continue
+			}
+			if _, ok := m[refID]; ok {
+				continue
+			}
+			m[refID] = c.followRef(refID, bref)
+		}
+	}
+	posWithSubBlocks, posWithSubBlocksOk := c.pos.blk.(BlockWithSubBlocks)
+	if posWithSubBlocksOk {
+		subBlocks := posWithSubBlocks.GetSubBlocks()
+		// load all non-nil sub blocks to ref handles
+		for refID, blk := range subBlocks {
+			if blk == nil {
+				continue
+			}
+			if _, ok := m[refID]; ok {
+				continue
+			}
+			m[refID] = c.followSubBlock(refID)
+		}
+	}
+	return m, nil
+}
+
+// markDirty assumes c.t.mtx is locked
+func (c *Cursor) markDirty() {
+	if c == nil || c.t == nil {
+		return
+	}
+	c.t.dirty = true
+	if c.pos != nil {
+		stk := []*handle{c.pos}
+		for len(stk) != 0 {
+			v := stk[len(stk)-1]
+			stk = stk[:len(stk)-1]
+			if !v.dirty {
+				v.dirty = true
+				for _, ref := range v.parents {
+					stk = append(stk, ref.src)
+				}
+			}
+		}
+	}
+}
+
+// addParent adds the given cursor as a parent of the location.
+// assumes c.t.mtx is locked
+func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
+	if parent == nil || parent.pos == nil || c == nil || c.pos == nil {
+		return nil
+	}
+	if parent.pos == c.pos || parent.pos.ID() == c.pos.ID() {
+		// self edge: not allowed
+		return nil
+	}
+	removedEdges := make([]*refHandle, 0, 4)
+	if parent.pos.refHandles == nil {
+		parent.pos.refHandles = make(map[uint32]*refHandle)
+	} else {
+		oldEdge := parent.pos.refHandles[refID]
+		if oldEdge != nil && oldEdge.target != nil {
+			removedEdges = append(
+				removedEdges,
+				oldEdge.target.removeParent(oldEdge.src)...,
+			)
+		}
+	}
+	nedge := &refHandle{
+		id:     refID,
+		src:    parent.pos,
+		target: c.pos,
+	}
+	removedEdges = append(removedEdges, c.pos.addParent(nedge)...)
+	if c.t != nil && c.t.blockGraph != nil {
+		for _, ref := range removedEdges {
+			c.t.blockGraph.RemoveEdge(ref.src.ID(), ref.target.ID())
+		}
+		c.t.blockGraph.SetEdge(nedge)
+	}
+	parent.pos.refHandles[refID] = nedge
+	if c.pos.dirty && !parent.pos.dirty {
+		// mark parent dirty if necessary
+		parent.markDirty()
+	}
+	return nedge
+}
+
+// removeParent removes the given cursor location as a parent.
+// if parent == nil, removes all parents
+//
+// returns the old removed refhandles
+func (c *Cursor) removeParent(parent *Cursor) []*refHandle {
+	if c == nil || c.pos == nil {
+		return nil
+	}
+	var removed []*refHandle
+	if parent == nil || parent.pos == nil {
+		// remove all parents
+		removed = c.pos.parents
+		c.pos.parents = nil
+	} else {
+		removed = c.pos.removeParent(parent.pos)
+	}
+	if c.t != nil && c.t.blockGraph != nil {
+		for _, ref := range removed {
+			c.t.blockGraph.RemoveEdge(ref.src.ID(), ref.target.ID())
+		}
+	}
+	for _, ref := range removed {
+		if ref.src.refHandles[ref.id] == ref {
+			delete(ref.src.refHandles, ref.id)
+		}
+	}
+	return removed
+}
+
+// clearRefHandles clears all ref handles.
+// expects tx mtx to be locked
+func (c *Cursor) clearRefHandles() {
+	if c.pos.refHandles == nil {
+		return
+	}
+	for refID, r := range c.pos.refHandles {
+		if tgt := r.target; tgt != nil && c.t != nil {
+			tgtCursor := newCursor(c.t, tgt, c.store)
+			tgtCursor.removeParent(c)
+		}
+		delete(c.pos.refHandles, refID)
+	}
+}
+
+// copyToRecursive detaches and/or copies to a new tx.
+// caller must lock mtxs as needed
+func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) {
+	// clone cursors down the tree
+	remap := make(map[*handle]*handle, len(c.pos.refHandles)+1)
+
+	updParents := func(prevPos, nextPos *handle) {
+		prevParents := prevPos.parents
+		nextPos.parents = make([]*refHandle, 0, len(prevParents))
+		for _, parent := range prevParents {
+			rstk, ok := remap[parent.src]
+			if !ok {
+				continue
+			}
+
+			var nrh *refHandle
+			if parent.src == rstk && parent.target == nextPos {
+				nrh = parent
+			} else {
+				nrh = &refHandle{
+					id:     parent.id,
+					src:    rstk,
+					target: nextPos,
+				}
+				if targetCs.t != nil {
+					targetCs.t.blockGraph.SetEdge(nrh)
+				}
+			}
+
+			nextPos.parents = append(nextPos.parents, nrh)
+			if rstk.refHandles == nil {
+				rstk.refHandles = make(map[uint32]*refHandle)
+			}
+			rstk.refHandles[nrh.id] = nrh
+			// note: sub-block is not updated here.
+			if !nextPos.isSubBlock {
+				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
+					// note: ignoring error here
+					_ = rblk.ApplyBlockRef(nrh.id, nextPos.ref)
+				}
+			}
+		}
+	}
+
+	prevRoot, nextRoot := c.pos, targetCs.pos
+	stk := []*handle{prevRoot}
+	for len(stk) != 0 {
+		nstk := stk[len(stk)-1]
+		stk = stk[:len(stk)-1]
+
+		if _, ok := remap[nstk]; ok {
+			// ensure all parents are updated
+			updParents(nstk, nstk)
+			continue
+		}
+
+		rstk := nstk
+		if rstk == prevRoot {
+			// reuse target root *handle
+			rstk = nextRoot
+		} else {
+			rstk = nstk.Clone()
+		}
+
+		if rstk.Node == nil && targetCs.t != nil {
+			rstk.Node = targetCs.t.blockGraph.NewNode()
+			targetCs.t.blockGraph.AddNode(rstk.Node)
+		}
+
+		// update parents
+		updParents(nstk, rstk)
+
+		// clone block or clear if unable
+		if cloneBlocks {
+			rstk.blk = nil
+			if nstk.isSubBlock && len(rstk.parents) != 0 {
+				// attempt to re-get the already cloned sub-block
+				pref := rstk.parents[0]
+				psub, ok := pref.src.blk.(BlockWithSubBlocks)
+				if ok {
+					ctor := psub.GetSubBlockCtor(pref.id)
+					if ctor != nil {
+						rstk.blk = ctor(true)
+					}
+				}
+			}
+
+			if !nstk.isSubBlock || (rstk.blk == nil && nstk.blk != nil) {
+				// may return nil, ignore errors
+				rstk.blk, _ = CloneBlock(nstk.blk)
+
+				// update sub-blocks if necessary
+				if nstk.isSubBlock && rstk.blk != nil {
+					for _, pref := range rstk.parents {
+						psub, ok := pref.src.blk.(BlockWithSubBlocks)
+						if ok {
+							subBlk, ok := rstk.blk.(SubBlock)
+							if ok {
+								_ = psub.ApplySubBlock(pref.id, subBlk)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if markDirty {
+			rstk.dirty = true
+		}
+
+		// traverse child nodes
+		for _, ref := range nstk.refHandles {
+			stk = append(stk, ref.target)
+		}
+
+		remap[nstk] = rstk
+	}
+}

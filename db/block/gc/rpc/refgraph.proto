@@ -1,0 +1,124 @@
+syntax = "proto3";
+package block.gc.rpc;
+
+// RefGraph wraps a GC RefGraph with a RPC service.
+service RefGraph {
+  // AddRef adds a gc/ref edge from subject to object. Idempotent.
+  rpc AddRef(AddRefRequest) returns (AddRefResponse);
+
+  // RemoveRef removes a single gc/ref edge from subject to object.
+  rpc RemoveRef(RemoveRefRequest) returns (RemoveRefResponse);
+
+  // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
+  rpc RemoveNodeRefs(RemoveNodeRefsRequest) returns (RemoveNodeRefsResponse);
+
+  // HasIncomingRefs checks if a node has any incoming gc/ref edges.
+  rpc HasIncomingRefs(HasIncomingRefsRequest) returns (HasIncomingRefsResponse);
+
+  // GetOutgoingRefs returns all targets of gc/ref edges from a node.
+  rpc GetOutgoingRefs(GetOutgoingRefsRequest) returns (GetOutgoingRefsResponse);
+
+  // GetIncomingRefs returns all sources with gc/ref edges to a node.
+  rpc GetIncomingRefs(GetIncomingRefsRequest) returns (GetIncomingRefsResponse);
+
+  // GetUnreferencedNodes returns all nodes linked from "unreferenced".
+  rpc GetUnreferencedNodes(GetUnreferencedNodesRequest) returns (GetUnreferencedNodesResponse);
+}
+
+// AddRefRequest is a request to add a gc/ref edge.
+message AddRefRequest {
+  // Subject is the source node IRI.
+  string subject = 1;
+  // Object is the target node IRI.
+  string object = 2;
+}
+
+// AddRefResponse is the response to adding a gc/ref edge.
+message AddRefResponse {
+  // Error is any error adding the ref.
+  string error = 1;
+}
+
+// RemoveRefRequest is a request to remove a gc/ref edge.
+message RemoveRefRequest {
+  // Subject is the source node IRI.
+  string subject = 1;
+  // Object is the target node IRI.
+  string object = 2;
+}
+
+// RemoveRefResponse is the response to removing a gc/ref edge.
+message RemoveRefResponse {
+  // Error is any error removing the ref.
+  string error = 1;
+}
+
+// RemoveNodeRefsRequest is a request to remove all outgoing refs for a node.
+message RemoveNodeRefsRequest {
+  // Node is the node IRI.
+  string node = 1;
+  // MarkOrphaned controls whether targets with no remaining incoming
+  // refs get an unreferenced edge.
+  bool mark_orphaned = 2;
+}
+
+// RemoveNodeRefsResponse is the response to removing all outgoing refs.
+message RemoveNodeRefsResponse {
+  // Targets is the list of target IRIs that had edges removed.
+  repeated string targets = 1;
+  // Error is any error removing the refs.
+  string error = 2;
+}
+
+// HasIncomingRefsRequest is a request to check for incoming refs.
+message HasIncomingRefsRequest {
+  // Node is the node IRI to check.
+  string node = 1;
+}
+
+// HasIncomingRefsResponse is the response to checking for incoming refs.
+message HasIncomingRefsResponse {
+  // HasRefs indicates if the node has incoming gc/ref edges.
+  bool has_refs = 1;
+  // Error is any error checking refs.
+  string error = 2;
+}
+
+// GetOutgoingRefsRequest is a request to get outgoing refs.
+message GetOutgoingRefsRequest {
+  // Node is the node IRI.
+  string node = 1;
+}
+
+// GetOutgoingRefsResponse is the response to getting outgoing refs.
+message GetOutgoingRefsResponse {
+  // Targets is the list of target IRIs.
+  repeated string targets = 1;
+  // Error is any error getting refs.
+  string error = 2;
+}
+
+// GetIncomingRefsRequest is a request to get incoming refs.
+message GetIncomingRefsRequest {
+  // Node is the node IRI.
+  string node = 1;
+}
+
+// GetIncomingRefsResponse is the response to getting incoming refs.
+message GetIncomingRefsResponse {
+  // Sources is the list of source IRIs.
+  repeated string sources = 1;
+  // Error is any error getting refs.
+  string error = 2;
+}
+
+// GetUnreferencedNodesRequest is a request to get unreferenced nodes.
+message GetUnreferencedNodesRequest {}
+
+// GetUnreferencedNodesResponse is the response to getting unreferenced nodes.
+message GetUnreferencedNodesResponse {
+  // Nodes is the list of unreferenced node IRIs.
+  repeated string nodes = 1;
+  // Error is any error getting unreferenced nodes.
+  string error = 2;
+}

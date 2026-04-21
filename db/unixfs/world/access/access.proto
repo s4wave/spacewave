@@ -1,0 +1,26 @@
+syntax = "proto3";
+package unixfs.world.access;
+
+import "github.com/s4wave/spacewave/db/unixfs/world/unixfs.proto";
+import "google/protobuf/timestamp.proto";
+
+// Config configures the world-backed UnixFS access controller.
+// Resolves AccessUnixFS requests with a Hydra World UnixFS.
+message Config {
+  // FsId is the filesystem ID to expose on the bus.
+  string fs_id = 1;
+  // EngineId is the world engine ID to access.
+  string engine_id = 2;
+  // PeerId is the peer id to use for transactions.
+  // If unset, the filesystem will be read-only.
+  string peer_id = 3;
+  // FsRef is the reference to the filesystem.
+  .unixfs.world.UnixfsRef fs_ref = 4;
+  // MkdirPath creates the path within the FS if it doesn't exist.
+  bool mkdir_path = 5;
+  // DisableWatchChanges disables watching for changes in the FS.
+  bool disable_watch_changes = 6;
+	// Timestamp sets a constant timestamp for write operations.
+  // If unset, uses time.Now()
+  google.protobuf.Timestamp timestamp = 7;
+}

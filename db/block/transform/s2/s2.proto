@@ -1,0 +1,12 @@
+syntax = "proto3";
+package transform.s2;
+
+// Config configures the s2 transform.
+message Config {
+  // Better uses the "better" s2 mode.
+  // This is slightly slower.
+  bool better = 1;
+  // Best uses the "best" s2 mode.
+  // This is very much slower than better.
+  bool best = 2;
+}

@@ -1,0 +1,12 @@
+syntax = "proto3";
+package dex;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// LookupBlockFromNetworkRequest requests that Data-Exchange (DEX) find data.
+message LookupBlockFromNetworkRequest {
+  // BucketId is the associated bucket ID with the lookup.
+  string bucket_id = 1;
+  // Ref is the reference.
+  .block.BlockRef ref = 2;
+}

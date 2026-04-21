@@ -1,0 +1,22 @@
+syntax = "proto3";
+package block.mock;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// Root is the root of the mock structure.
+message Root {
+  // ExampleSubBlock is a sub-block.
+  SubBlock example_sub_block = 1;
+}
+
+// SubBlock is a example sub-block of Root.
+message SubBlock {
+  // ExamplePtr is an example reference.
+  .block.BlockRef example_ptr = 1;
+}
+
+// Example is the value pointed to by ExamplePtr.
+message Example {
+  // Msg is a message.
+  string msg = 1;
+}

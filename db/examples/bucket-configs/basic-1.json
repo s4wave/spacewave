@@ -1,0 +1,14 @@
+{
+    "id": "bucket-basic-1",
+    "version": 1,
+    "reconcilers": [
+        {
+            "id": "test-reconciler-1",
+            "controller": {
+                "rev": 2,
+                "id": "hydra/reconciler/example",
+                "config": {}
+            }
+        }
+    ]
+}

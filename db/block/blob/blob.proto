@@ -1,0 +1,128 @@
+syntax = "proto3";
+package blob;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// BlobType defines the types of blobs.
+enum BlobType {
+  // BlobType_RAW indicates the blob contains the data inline.
+  // Default value: readers should check the value is actually zero.
+  // This value being zero will save some encoding space.
+  BlobType_RAW = 0;
+  // BlobType_CHUNKED indicates the chunked blob format.
+  // Stores data in sequential chunks of data, selected in a deterministic way.
+  BlobType_CHUNKED = 1;
+}
+
+// Blob defines multiple patterns for storing large blobs of data.
+// All behaviors are deterministic with change validation routines.
+// The Blob object contains metadata and might contain links to sub-objects.
+message Blob {
+  // BlobType is the blob type.
+  BlobType blob_type = 1;
+  // TotalSize is the total size of the blob.
+  uint64 total_size = 2;
+
+  // RawData contains in-line data for the raw blob type.
+  // index=0 size=total_size if BlobType_RAW
+  bytes raw_data = 3;
+  // ChunkIndex contains the information for CHUNKED type.
+  ChunkIndex chunk_index = 4;
+}
+
+// BuildBlobOpts are options to control the BuildBlob process.
+message BuildBlobOpts {
+	// RawHighWaterMark is the limit for a raw block size.
+	// Defaults to 512KB if unset.
+  uint64 raw_high_water_mark = 1;
+  // ChunkerArgs configures the chunker to use.
+  ChunkerArgs chunker_args = 2;
+}
+
+// ChunkIndex is the root of the chunked blob type.
+message ChunkIndex {
+  // Chunks contains the in-line list of chunks.
+  // Sequential.
+  repeated Chunk chunks = 1;
+
+  // ChunkerArgs are optional arguments for the chunker.
+  ChunkerArgs chunker_args = 2;
+}
+
+// ChunkerArgs configures the chunking algorithm.
+message ChunkerArgs {
+  // ChunkerType is the chunking algorithm used.
+  // Defaults to ChunkerType_JC if not set.
+  ChunkerType chunker_type = 1;
+
+  // RabinArgs are arguments for the rabin chunker.
+  // ChunkerType_RABIN
+  RabinArgs rabin_args = 2;
+
+  // JcArgs are arguments for the jc chunker.
+  // ChunkerType_JC
+  JcArgs jc_args = 3;
+}
+
+// ChunkerType is the set of known chunker types.
+enum ChunkerType {
+  // ChunkerType_DEFAULT builds/appends using the default chunker (JC).
+  ChunkerType_DEFAULT = 0;
+  // ChunkerType_RABIN uses rabin fingerprinting to chunk.
+  ChunkerType_RABIN = 1;
+  // ChunkerType_JC uses JC content defined chunk algorithm.
+  ChunkerType_JC = 2;
+}
+
+// RabinArgs are arguments for the rabin chunker.
+//
+// The default polynomial is 0x2df7f4e3b27061
+//
+// ChunkerType_RABIN
+message RabinArgs {
+  // Rabin polynomial.
+  // Optional.
+  uint64 pol = 1;
+  // RandomPol enables randomizing pol instead of using the default.
+  // This is not recommended.
+  // If pol != 0 this field is ignored.
+  bool random_pol = 4;
+
+  // ChunkingMinSize is the minimum size for a chunk.
+  // Defaults to 256000 bytes.
+  uint64 chunking_min_size = 2;
+  // ChunkingMaxSize is the maxmium size for a chunk.
+  // Defaults to 786432 bytes.
+  uint64 chunking_max_size = 3;
+}
+
+// JcArgs are arguments for the jc chunker.
+//
+// ChunkerType_JC
+message JcArgs {
+  // Key is the key for the chunker.
+  // Optional.
+  bytes key = 1;
+
+  // ChunkingMinSize is the minimum size for a chunk.
+  // Defaults to 256000 bytes.
+  uint64 chunking_min_size = 2;
+  // ChunkingTargetSize is the target size for a chunk.
+  // Defaults to 512000 bytes.
+  uint64 chunking_target_size = 3;
+  // ChunkingMaxSize is the maximum size for a chunk.
+  // Defaults to 786432 bytes.
+  uint64 chunking_max_size = 4;
+}
+
+// Chunk contains in-line information about a data chunk.
+message Chunk {
+  // DataRef is the reference to the data.
+  // If empty, indicates a range of zeros.
+  .block.BlockRef data_ref = 1;
+  // Size is the size of the chunk.
+  uint64 size = 2;
+  // Start is the start position of the chunk.
+  // Must be equal to the sum of all previous chunks sizes.
+  uint64 start = 3;
+}

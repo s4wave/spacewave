@@ -1,0 +1,34 @@
+syntax = "proto3";
+package kvtx.block.iavl;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/blob/blob.proto";
+
+// Node is a node in the tree.
+message Node {
+  // Height contains the item's height.
+  // Height is distance from the leaf.
+  uint32 height = 1;
+  // Size contains the node's size.
+  uint64 size = 2;
+  // Key contains the node's key.
+  bytes key = 3;
+
+  // ValueRef contains a reference to the item's value.
+  // Set only if height == 0.
+  // Empty if ValueBlob is set.
+  .block.BlockRef value_ref = 7;
+  // ValueBlob contains the value in-line as a Blob.
+  // ValueRefBlob indicates that the ValueRef is a Blob.
+  // If false, Get() will return the raw data of the block.
+  .blob.Blob value_blob = 8;
+
+  // LeftChildRef contains the left child ref.
+  // Set only if height != 0.
+  .block.BlockRef left_child_ref = 5;
+  // RightChildRef contains the right child ref.
+  // Set only if height != 0.
+  .block.BlockRef right_child_ref = 6;
+
+  // reserved: 4
+}

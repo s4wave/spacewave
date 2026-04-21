@@ -1,0 +1,29 @@
+syntax = "proto3";
+package object.peer;
+
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+
+// Config configures the object store peer controller.
+// The controller stores a peer private key in an ObjectStore.
+//
+// It can optionally apply the provided transform config to the key data.
+message Config {
+  // ObjectStoreId is the hydra object store to open to store the private key.
+  // Required.
+  string object_store_id = 1;
+  // VolumeId is the volume id to use for the object store.
+  // Can be empty to select any.
+  string volume_id = 2;
+  // ObjectStoreKey is the key to use in the object store for the private key.
+  //
+  // Defaults to "priv"
+  string object_store_key = 3;
+  // TransformConf transforms the private key before storing it in storage.
+  .block.transform.Config transform_conf = 4;
+}
+
+// StoredValue is the value for the ObjectStore containing the private key.
+message StoredValue {
+  // PrivKeyPem is the private key value in pem format.
+  string priv_key_pem = 1;
+}

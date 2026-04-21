@@ -1,0 +1,39 @@
+syntax = "proto3";
+package volume.indexeddb;
+
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the JavaScript IndexedDB volume controller config.
+// Flag Dir is the only mandatory flag.
+message Config {
+  // DatabaseName is the database name to pass to indexeddb.open.
+  // Required.
+  string database_name = 1;
+  // StoreName is the database store name to pass to indexeddb.open.
+  // Optional, defaults to "hydra".
+  // NOTE: after changing this we must increment the schema version!
+  // This option is not exposed currently, so do not change this once set for a db name.
+  string store_name = 2;
+
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 3;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is not already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, returns an error.
+  bool no_generate_key = 4;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 5;
+  // Verbose enables verbose logging.
+  bool verbose = 6;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 7;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 8;
+}

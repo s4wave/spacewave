@@ -1,0 +1,106 @@
+syntax = "proto3";
+package mysql;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/msgpack/msgpack.proto";
+import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
+
+// Root is the root object of the mysql database.
+message Root {
+  // Databases contains the root set of databases, sorted by name.
+  repeated RootDb databases = 1;
+}
+
+// RootDb contains the root definition of a database.
+message RootDb {
+  // Name is the unique name of the database.
+  string name = 1;
+  // Ref is the block reference to the database root.
+  // If empty, the database is empty.
+  // Type: DatabaseRoot.
+  .block.BlockRef ref = 2;
+}
+
+// DatabaseRoot is the root object of the database.
+message DatabaseRoot {
+  // Tables contains the table list sorted by name.
+  repeated DatabaseRootTable tables = 1;
+}
+
+// DatabaseRootTable contains the reference to the TableRoot.
+message DatabaseRootTable {
+  // Name is the unique name of the table.
+  string name = 1;
+  // Ref is the block reference to the table root.
+  // Type: TableRoot.
+  .block.BlockRef ref = 2;
+}
+
+// TableRoot is the root object of the table.
+message TableRoot {
+  // TableSchema is the table schema.
+  TableSchema table_schema = 1;
+  // PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema.
+  repeated int32 primary_key_ordinals = 5;
+  // TablePartitions contains the set of table partitions.
+  repeated TablePartitionRoot table_partitions = 2;
+  // RowNonce is the row identifier nonce, incremented when a row is inserted.
+  uint64 row_nonce = 3;
+  // AutoIncrVal is the auto increment value, if necessary.
+  // Typically contains an integer or float.
+  // Empty if auto_incr_index is zero.
+  TableColumn auto_incr_val = 4;
+  // CollationId is the method ID of the method used to control sorting.
+  uint32 collation_id = 6;
+  // Comment is an additional comment on the table.
+  string comment = 7;
+}
+
+// TablePartitionRoot contains the root of a table partition.
+message TablePartitionRoot {
+  // RowKeyValue is the key/value tree of objects.
+  // Key: row_nonce uint64 encoded with big endian
+  // Value: cid.BlockRef -> Object
+  .kvtx.block.KeyValueStore row_key_value = 1;
+}
+
+// TableRow is a row in a table.
+message TableRow {
+  // Columns contains the set of columns.
+  repeated TableColumn columns = 1;
+}
+
+// TableColumn is an entry in a table row.
+message TableColumn {
+  // MsgpackBlob contains the data encoded with msgpack.
+  // Data may be sharded into multiple blocks if necessary.
+  .msgpack.MsgpackBlob msgpack_blob = 1;
+}
+
+// TableSchema is the schema for a table.
+message TableSchema {
+  // Columns is the list of columns in the table, sorted by name.
+  repeated TableSchemaColumn columns = 1;
+}
+
+// TableSchemaColumn is the definition of a column for a table schema.
+message TableSchemaColumn {
+  // Name is the name of the column.
+  string name = 1;
+  // ColumnType is the data type of the column.
+  string column_type = 2;
+  // DefaultValueExpr is the default value expression, encoded to a string.
+  string default_value_expr = 3;
+  // AutoIncrement is true if the column auto-increments.
+  bool auto_increment = 4;
+  // Nullable is true if the column can contain NULL values, or false otherwise.
+  bool nullable = 5;
+  // Source is the name of the table this column came from.
+  string source = 6;
+  // PrimaryKey is true if the column is part of the primary key for its table.
+  bool primary_key = 7;
+  // Comment contains the string comment for this column.
+  string comment = 8;
+  // Extra contains any additional information to put in the `extra` column under `information_schema.columns`.
+  string extra = 9;
+}

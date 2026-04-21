@@ -1,0 +1,130 @@
+syntax = "proto3";
+package git.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/git/block/git.proto";
+import "github.com/s4wave/spacewave/db/unixfs/world/unixfs.proto";
+import "google/protobuf/timestamp.proto";
+
+// GitInitOp is an operation to create a repo with a root ref or empty.
+// If applied as an object op, skips checkout step.
+message GitInitOp {
+  // ObjectKey is the object key to create as a Repo.
+  string object_key = 1;
+  // RepoRef contains the object ref to the Repo.
+  // If empty, will create a new blank Repo.
+  .bucket.ObjectRef repo_ref = 2;
+  // DisableCheckout disables creating a worktree.
+  bool disable_checkout = 3;
+  // CreateWorktree configures creating the worktree.
+  // If unset, uses object_key + "/worktree"
+  // If disable_checkout is set, worktree is not created.
+  // Applying as an object op implies disable_checkout.
+  GitCreateWorktreeOp create_worktree = 4;
+  // Timestamp is the modification time for the workdir ops.
+  // Used when creating a default worktree.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// Worktree refers to a location where a repo is checked out.
+// Contains an index and an attached working directory.
+message Worktree {
+  // GitIndex is the git index for the worktree.
+  .git.block.Index git_index = 1;
+  // HeadRefStore contains the HEAD reference for a worktree and submodules.
+  HeadRefStore head_ref_store = 2;
+}
+
+// HeadRefStore contains the HEAD reference for a worktree and submodules.
+message HeadRefStore {
+  // SubmoduleName is the name of the submodule if this is a submodule.
+  string submodule_name = 1;
+  // HeadRef is the reference to the HEAD checked out in the worktree.
+  // If unset, uses the store HEAD ref.
+  .git.block.Reference head_ref = 2;
+  // Submodules contains the references for the submodules.
+  // sorted by name
+  repeated HeadRefStore submodules = 3;
+}
+
+// GitCreateWorktreeOp creates a Git worktree attached to a Repo.
+// Note: cannot be run as a Object-specific op.
+message GitCreateWorktreeOp {
+  // ObjectKey is the object key to create as a Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // WorkdirRef is a unixfs reference to the workdir.
+  .unixfs.world.UnixfsRef workdir_ref = 3;
+  // CreateWorkdir indicates to create the workdir if it doesn't exist.
+  bool create_workdir = 4;
+  // CheckoutOpts are options to use when checking out the data.
+  .git.block.CheckoutOpts checkout_opts = 5;
+  // DisableCheckout disables checking out the data to the workdir.
+  bool disable_checkout = 6;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+// GitFetchOp is an operation to fetch updates into an existing repo.
+message GitFetchOp {
+  // ObjectKey is the object key of the existing Repo to fetch into.
+  string object_key = 1;
+  // FetchOpts contains the fetch options.
+  .git.block.FetchOpts fetch_opts = 2;
+}
+
+// GitCloneOp is an operation to clone a git repo into the world.
+// Clones objects from a remote, then runs GitInitOp to register the repo.
+message GitCloneOp {
+  // ObjectKey is the object key to create as a Repo.
+  string object_key = 1;
+  // CloneOpts contains the clone options (URL, ref, etc).
+  .git.block.CloneOpts clone_opts = 2;
+  // DisableCheckout disables creating a worktree after clone.
+  bool disable_checkout = 3;
+  // CreateWorktree configures creating the worktree.
+  // If unset, uses object_key + "/worktree"
+  // If disable_checkout is set, worktree is not created.
+  GitCreateWorktreeOp create_worktree = 4;
+  // Timestamp is the modification time for the workdir ops.
+  // Passed to GitInitOp when creating the repo.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// GitWorktreeCheckoutOp checks out a git revision in a worktree.
+// Note: cannot be run as a Object-specific op.
+message GitWorktreeCheckoutOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // CheckoutOpts are options to use when checking out the data.
+  .git.block.CheckoutOpts checkout_opts = 3;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// GitStageOp stages files in a worktree's git index.
+message GitStageOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // Paths is the list of file paths to stage.
+  repeated string paths = 3;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// GitUnstageOp unstages files from a worktree's git index.
+message GitUnstageOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // Paths is the list of file paths to unstage.
+  repeated string paths = 3;
+  // Timestamp is the modification time for the workdir ops.
+  google.protobuf.Timestamp timestamp = 4;
+}

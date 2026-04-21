@@ -1,0 +1,101 @@
+syntax = "proto3";
+package volume.badger;
+
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the badger volume controller config.
+// Flag Dir is the only mandatory flag.
+message Config {
+  // Dir is the directory to store the data in.
+  // Should exist and be writable.
+  string dir = 1;
+  // ValueDir is the directory to store the value log in.
+  // Can be the same as dir.
+  // Should exist and be writable.
+  // If empty, defaults to Dir.
+  string value_dir = 2;
+  // KvKeyOpts are key/value options.
+  .store.kvkey.Config kv_key_opts = 3;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is not already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, returns an error.
+  bool no_generate_key = 4;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 25;
+  // Verbose indicates we should log every operation.
+  bool verbose = 21;
+  // BadgerDebug indicates to enable badger debug log messages.
+  bool badger_debug = 24;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 22;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 23;
+
+  // Frequently modified flags
+  // reserved: 5, 6, 8, 11, 19, 15
+
+  // NumVersionsToKeep indicates how many versions to keep per key.
+  // Defaults to 1.
+  uint32 num_versions_to_keep = 7;
+
+  // Flags that user might want to review
+
+  // BaseTableSize is the base size for tables.
+  // Defaults to 2 << 20.
+  uint64 base_table_size = 26;
+  // LevelSizeMultiplier is SizeOf(Li+1)/SizeOf(Li).
+  // Defaults to 10.
+  uint32 level_size_multiplier = 9;
+  // MaxLevels is the maximum number of levels of compaction.
+  // Defaults to 7
+  uint32 max_levels = 10;
+  // ValueThreshold if value size >= threshold, only store offsets in tree.
+  // Defaults to 1 << 20, 1MB
+  uint64 value_threshold = 27;
+  // NumMemtables is the Maximum number of tables to keep in memory, before
+  // stalling.
+  // Defaults to 5.
+  uint32 num_memtables = 12;
+  // NumLevelZeroTables affects how LSM tree L0 is handled.
+  // Maximum number of Level 0 tables before we start compacting.
+  // Defaults to 5.
+  uint32 num_level_zero_tables = 13;
+
+  // NumLevelZeroTablesStall is the number of level 0 tables to stall at until
+  // l0 is compacted.
+  // Defaults to 10.
+  uint32 num_level_zero_tables_stall = 14;
+
+  // BaseLevelSize is the base size for levels.
+  // Defaults to 10 << 20.
+  uint64 base_level_size = 28;
+
+  // ValueLogFileSize is the size of single value log file.
+  // (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
+  // -1 so 2*ValueLogFileSize won't overflow on 32-bit systems.
+  // Defaults to 1<<30 - 1
+  uint64 value_log_file_size = 16;
+
+  // ValueLogMaxEntries is the max number of entries a value log file can hold
+  // (approximately). A value log file would be determined by the smaller of its
+  // file size and max entries.
+  // Defaults to 1000000
+  uint32 value_log_max_entries = 17;
+
+  // NumCompactors is the number of compaction workers to run concurrently.
+  // Defaults to 3.
+  uint32 num_compactors = 18;
+
+  // NoSyncWrites indicates all writes should not require disk sync before
+  // returning. If set, writes will return before the filesystem has confirmed
+  // the write is complete. Setting this to false will increase performance but
+  // introduces risk of data loss.
+  bool no_sync_writes = 20;
+}

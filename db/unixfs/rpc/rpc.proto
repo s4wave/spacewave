@@ -1,0 +1,521 @@
+syntax = "proto3";
+package unixfs.rpc;
+
+import "github.com/s4wave/spacewave/db/unixfs/block/fstree.proto";
+import "github.com/s4wave/spacewave/db/unixfs/errors/errors.proto";
+import "google/protobuf/timestamp.proto";
+
+// GetProxyCursorRequest is the request body for GetProxyCursor.
+message GetProxyCursorRequest {
+  // CursorHandleId is the handle identifier for the cursor.
+  uint64 cursor_handle_id = 1;
+  // ClientHandleId is the handle identifier for the client.
+  // Call FSCursorClient to get a client handle ID.
+  uint64 client_handle_id = 2;
+}
+
+// GetProxyCursorResponse is the response body for GetProxyCursor.
+message GetProxyCursorResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // CursorHandleId is the handle identifier returned by get proxy cursor.
+  // if zero, the FSCursor returned is nil (no proxy cursor needed).
+  uint64 cursor_handle_id = 2;
+}
+
+// FSCursorChange represents the FSCursorChange struct from unixfs.
+message FSCursorChange {
+  // CursorHandleId is the handle identifier for the cursor.
+  uint64 cursor_handle_id = 1;
+  // Released indicates the cursor was released.
+  bool released = 2;
+  // Offset is the location to flush from.
+  uint64 offset = 3;
+  // Size is the amount of data to flush.
+  uint64 size = 4;
+}
+
+// FSCursorDirent represents the FSCursorDirent interface from unixfs.
+message FSCursorDirent {
+  // Name is the name of the directory entry.
+  string name = 1;
+  // NodeType is the type of node at the dirent.
+  .unixfs.block.NodeType node_type = 2;
+}
+
+// FSCursorClientRequest is the request body for FSCursorClient.
+message FSCursorClientRequest {}
+
+// FSCursorClientResponse contains an event for an FSCursor change.
+message FSCursorClientResponse {
+  // Body is the body of the event.
+  oneof body {
+    // FSClientInit contains the initialization message for FSCursorClient.
+    FSClientInit init = 1;
+    // CursorChange contains a FSCursorChange event.
+    FSCursorChange cursor_change = 2;
+    // UnixfsError contains the error returned by the call, if any.
+    // If sent, this will be the last message in the rpc stream.
+    .unixfs.errors.UnixFSError unixfs_error = 3;
+  }
+}
+
+// FSClientInit is the initialization response to FSCursorClient.
+message FSClientInit {
+  // ClientHandleId is the handle identifier for the client.
+  // The client should use this ID going forward for requests.
+  uint64 client_handle_id = 1;
+  // CursorHandleId is the handle identifier for the root cursor.
+  // Usually ID #1.
+  uint64 cursor_handle_id = 2;
+}
+
+// GetCursorOpsRequest requests that we resolve the FSCursorOps for an FSCursor.
+message GetCursorOpsRequest {
+  // CursorHandleId is the handle identifier for the cursor.
+  uint64 cursor_handle_id = 1;
+}
+
+// GetCursorOpsResponse is the response body for GetCursorOps.
+message GetCursorOpsResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // OpsHandleId is the handle identifier for the ops.
+  // If zero, the FSCursorOps will be nil.
+  uint64 ops_handle_id = 2;
+  // Name is the name of the inode at the ops (if applicable).
+  // Empty if ops_handle_id is zero.
+  string name = 3;
+  // NodeType is the type of node at the ops object.
+  .unixfs.block.NodeType node_type = 4;
+}
+
+// ReleaseFSCursorRequest is the body of the ReleaseFSCursor RPC request.
+message ReleaseFSCursorRequest {
+  // CursorHandleId is the handle identifier for the cursor.
+  uint64 cursor_handle_id = 1;
+  // ClientHandleId is the handle identifier for the client.
+  // Call FSCursorClient to get a client handle ID.
+  uint64 client_handle_id = 2;
+}
+
+// ReleaseFSCursorResponse is the body of the ReleaseFSCursor RPC response.
+message ReleaseFSCursorResponse {}
+
+// OpsGetPermissionsRequest is the body of the ops GetPermissions request.
+message OpsGetPermissionsRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+}
+
+// OpsGetPermissionsResponse is the body of the ops GetPermissions response.
+message OpsGetPermissionsResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // FileMode corresponds to fs.FileMode containing the permissions bits.
+  uint32 file_mode = 2;
+}
+
+// OpsSetPermissionsRequest is the body of the ops SetPermissions request.
+message OpsSetPermissionsRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // FileMode corresponds to fs.FileMode containing the permissions bits.
+  uint32 file_mode = 2;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// OpsSetPermissionsResponse is the body of the ops SetPermissions response.
+message OpsSetPermissionsResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsGetSizeRequest is the body of the ops GetSize request.
+message OpsGetSizeRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+}
+
+// OpsGetSizeResponse is the body of the ops GetSize response.
+message OpsGetSizeResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Size contains the size of the inode in bytes.
+  uint64 size = 2;
+}
+
+// OpsGetModTimestampRequest is the body of the ops GetModTimestamp request.
+message OpsGetModTimestampRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+}
+
+// OpsGetModTimestampResponse is the body of the ops GetModTimestamp response.
+message OpsGetModTimestampResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // ModTimestamp contains the modification timestamp.
+  google.protobuf.Timestamp mod_timestamp = 2;
+}
+
+// OpsSetModTimestampRequest is the body of the ops SetModTimestamp request.
+message OpsSetModTimestampRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // ModTimestamp is the desired modification timestamp to set.
+  google.protobuf.Timestamp mod_timestamp = 2;
+}
+
+// OpsSetModTimestampResponse is the body of the ops SetModTimestamp response.
+message OpsSetModTimestampResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsReadAtRequest is the body of the ops ReadAt request.
+message OpsReadAtRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Offset is the location in the file from which to read.
+  int64 offset = 2;
+  // Size is the size of data to read (buffer max size).
+  // This will automatically be capped by the hardcoded limit of 256e7 (256MB).
+  int64 size = 3;
+}
+
+// OpsReadAtResponse is the body of the ops ReadAt response.
+message OpsReadAtResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Data contains the data read, if any.
+  bytes data = 2;
+}
+
+// OpsGetOptimalWriteSizeRequest is the body of the ops GetOptimalWriteSize request.
+message OpsGetOptimalWriteSizeRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+}
+
+// OpsGetOptimalWriteSizeResponse is the body of the ops GetOptimalWriteSize response.
+message OpsGetOptimalWriteSizeResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // OptimalWriteSize contains the optimal write size in bytes.
+  int64 optimal_write_size = 2;
+}
+
+// OpsWriteAtRequest is the body of the ops WriteAt request.
+message OpsWriteAtRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Offset is the location in the file at which to write.
+  int64 offset = 2;
+  // Data is the chunk of data to write.
+  bytes data = 3;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// OpsWriteAtResponse is the body of the ops WriteAt response.
+message OpsWriteAtResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsTruncateRequest is the body of the ops Truncate request.
+message OpsTruncateRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // NewSize is the desired new size for the file.
+  uint64 nsize = 2;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// OpsTruncateResponse is the body of the ops Truncate response.
+message OpsTruncateResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsLookupRequest is the body of the ops Lookup request.
+message OpsLookupRequest {
+  // CursorHandleId is the identifier for the cursor at the parent location.
+  // Must match ops_handle_id or ErrReleased will be returned.
+  uint64 cursor_handle_id = 1;
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 2;
+  // ClientHandleId is the handle identifier for the client.
+  // Call FSCursorClient to get a client handle ID.
+  uint64 client_handle_id = 3;
+  // Name is the name of the child entry to look up.
+  string name = 4;
+}
+
+// OpsLookupResponse is the body of the ops Lookup response.
+message OpsLookupResponse {
+  // CursorHandleId is the identifier for the cursor at the new location.
+  uint64 cursor_handle_id = 1;
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 2;
+}
+
+// OpsReaddirAllRequest is the body of the ops ReaddirAll request.
+message OpsReaddirAllRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Skip is the number of directory entries to skip.
+  uint64 skip = 2;
+}
+
+// OpsReaddirAllResponse is the body of the ops ReaddirAll response.
+message OpsReaddirAllResponse {
+  oneof body {
+    // UnixfsError contains the error returned by the call, if any.
+    .unixfs.errors.UnixFSError unixfs_error = 1;
+    // Done indicates there are no more entries.
+    bool done = 2;
+    // Dirent is the directory entry in the stream.
+    FSCursorDirent dirent = 3;
+  }
+}
+
+// OpsMknodRequest is the body of the ops Mknod request.
+message OpsMknodRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // CheckExist indicates if the existence of the node should be checked.
+  bool check_exist = 2;
+  // Names contains the names of the nodes to be created.
+  repeated string names = 3;
+  // NodeType is the type of node to create.
+  .unixfs.block.NodeType node_type = 4;
+  // Permissions corresponds to fs.FileMode containing the permissions bits.
+  uint32 permissions = 5;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// OpsMknodResponse is the body of the ops Mknod response.
+message OpsMknodResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsSymlinkRequest is the body of the ops Symlink request.
+message OpsSymlinkRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // CheckExist indicates if the existence of the node should be checked.
+  bool check_exist = 2;
+  // Name is the name of the link to be created.
+  string name = 3;
+  // Symlink is the symlink to create.
+  .unixfs.block.FSSymlink symlink = 4;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// OpsSymlinkResponse is the body of the ops Symlink response.
+message OpsSymlinkResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// OpsReadlinkRequest is the body of the ops Readlink request.
+message OpsReadlinkRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Name is the name of the symbolic link to be read.
+  string name = 2;
+}
+
+// OpsReadlinkResponse is the body of the ops Readlink response.
+message OpsReadlinkResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Symlink contains the read symlink.
+  .unixfs.block.FSSymlink symlink = 2;
+}
+
+// OpsCopyToRequest is the body of the ops CopyTo request.
+message OpsCopyToRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // TargetDirOpsHandleId is the target directory FSCursorOps handle ID for the copy operation.
+  uint64 target_dir_ops_handle_id = 2;
+  // Target name of the inode for the copy operation.
+  string target_name = 3;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// OpsCopyToResponse is the body of the ops CopyTo response.
+message OpsCopyToResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Done indicates whether the copy operation is complete.
+  bool done = 2;
+}
+
+// OpsCopyFromRequest is the body of the ops CopyFrom request.
+message OpsCopyFromRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Name of the inode for the copy operation.
+  string name = 2;
+  // SrcCursorOpsHandleId is the handle identifier for the source cursor ops object for the copy operation.
+  uint64 src_cursor_ops_handle_id = 3;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// OpsCopyFromResponse is the body of the ops CopyFrom response.
+message OpsCopyFromResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Done indicates whether the copy operation is complete.
+  bool done = 2;
+}
+
+// OpsMoveToRequest is the body of the ops MoveTo request.
+message OpsMoveToRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // TargetDirOpsHandleId is the handle id for the FSCursorOps for the directory for the move operation.
+  uint64 target_dir_ops_handle_id =  2;
+  // Target name of the inode for the move operation.
+  string target_name = 3;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// OpsMoveToResponse is the body of the ops MoveTo response.
+message OpsMoveToResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Done indicates whether the move operation is complete.
+  bool done = 2;
+}
+
+// OpsMoveFromRequest is the body of the ops MoveFrom request.
+message OpsMoveFromRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Name of the inode for the move operation.
+  string name = 2;
+  // SrcOpsHandleId is the handle id for the FSCursorOps for the source of the move operation.
+  uint64 src_ops_handle_id = 3;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// OpsMoveFromResponse is the body of the ops MoveFrom response.
+message OpsMoveFromResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+  // Done indicates whether the move operation is complete.
+  bool done = 2;
+}
+
+// OpsRemoveRequest is the body of the ops Remove request.
+message OpsRemoveRequest {
+  // OpsHandleId uniquely identifies the open ops handle.
+  uint64 ops_handle_id = 1;
+  // Names is the list of entry names to be removed.
+  repeated string names = 2;
+  // Timestamp is the desired timestamp for the operation.
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// OpsRemoveResponse is the body of the ops Remove response.
+message OpsRemoveResponse {
+  // UnixfsError contains the error returned by the call, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
+// FSCursorService exposes an FSCursor and FSCursorOps tree via RPC.
+//
+// The server and client track FSCursor and FSCursorOps handles via integer IDs.
+// The handle IDs start at 1, a zero ID indicates nil (empty).
+// This service expects to have a single client access it at a time (calling FSCursorClient).
+// Wrap the service in FSAccessService to construct one cursor service per client session.
+service FSCursorService {
+  // FSCursorClient starts an instance of a client for the FSCursorService,
+  // yielding a new client ID. The client can use that ID for future RPCs
+  // accessing the FSCursor tree. When the streaming RPC ends, references to
+  // cursors opened by the client will be released. The server will send
+  // FSCursorChange for any cursors the client has subscribed to.
+  rpc FSCursorClient(FSCursorClientRequest) returns (stream FSCursorClientResponse) {};
+
+  // GetProxyCursor returns an FSCursor to replace an existing one, if necessary.
+  rpc GetProxyCursor(GetProxyCursorRequest) returns (GetProxyCursorResponse) {};
+
+  // GetCursorOps resolves the FSCursorOps handle.
+  rpc GetCursorOps(GetCursorOpsRequest) returns (GetCursorOpsResponse) {};
+
+  // ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
+  // This is a Fire and Forget RPC which will return instantly.
+  rpc ReleaseFSCursor(ReleaseFSCursorRequest) returns (ReleaseFSCursorResponse) {};
+
+	// OpsGetPermissions returns the permissions bits of the file mode.
+	// The file mode portion of the value is ignored.
+  rpc OpsGetPermissions(OpsGetPermissionsRequest) returns (OpsGetPermissionsResponse) {};
+
+  // OpsSetPermissions updates the permissions bits of the file mode.
+  rpc OpsSetPermissions(OpsSetPermissionsRequest) returns (OpsSetPermissionsResponse) {};
+
+  // OpsGetSize returns the size of the inode (in bytes).
+  rpc OpsGetSize(OpsGetSizeRequest) returns (OpsGetSizeResponse) {};
+
+  // OpsGetModTimestamp returns the modification timestamp.
+  rpc OpsGetModTimestamp(OpsGetModTimestampRequest) returns (OpsGetModTimestampResponse) {};
+
+  // OpsSetModTimestamp updates the modification timestamp of the node.
+  rpc OpsSetModTimestamp(OpsSetModTimestampRequest) returns (OpsSetModTimestampResponse) {};
+
+  // OpsReadAt reads from a location in a File node.
+  rpc OpsReadAt(OpsReadAtRequest) returns (OpsReadAtResponse) {};
+
+  // OpsGetOptimalWriteSize returns the best write size to use for the Write call.
+  rpc OpsGetOptimalWriteSize(OpsGetOptimalWriteSizeRequest) returns (OpsGetOptimalWriteSizeResponse) {};
+
+  // OpsWriteAt writes to a location within a File node synchronously.
+  rpc OpsWriteAt(OpsWriteAtRequest) returns (OpsWriteAtResponse) {};
+
+  // OpsTruncate shrinks or extends a file to the specified size.
+  rpc OpsTruncate(OpsTruncateRequest) returns (OpsTruncateResponse) {};
+
+  // OpsLookup looks up a child entry in a directory.
+  rpc OpsLookup(OpsLookupRequest) returns (OpsLookupResponse) {};
+
+  // OpsReaddirAll reads all directory entries.
+  rpc OpsReaddirAll(OpsReaddirAllRequest) returns (stream OpsReaddirAllResponse) {};
+
+  // OpsMknod creates child entries in a directory.
+  rpc OpsMknod(OpsMknodRequest) returns (OpsMknodResponse) {};
+
+  // OpsSymlink creates a symbolic link from a location to a path.
+  rpc OpsSymlink(OpsSymlinkRequest) returns (OpsSymlinkResponse) {};
+
+  // OpsReadlink reads a symbolic link contents.
+  rpc OpsReadlink(OpsReadlinkRequest) returns (OpsReadlinkResponse) {};
+
+  // OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+  rpc OpsCopyTo(OpsCopyToRequest) returns (OpsCopyToResponse) {};
+
+  // OpsCopyFrom performs an optimized copy from another inode.
+  rpc OpsCopyFrom(OpsCopyFromRequest) returns (OpsCopyFromResponse) {};
+
+  // OpsMoveTo performs an atomic and optimized move to another inode.
+  rpc OpsMoveTo(OpsMoveToRequest) returns (OpsMoveToResponse) {};
+
+  // OpsMoveFrom performs an atomic and optimized move from another inode.
+  rpc OpsMoveFrom(OpsMoveFromRequest) returns (OpsMoveFromResponse) {};
+
+  // OpsRemove deletes entries from a directory.
+  rpc OpsRemove(OpsRemoveRequest) returns (OpsRemoveResponse) {};
+}

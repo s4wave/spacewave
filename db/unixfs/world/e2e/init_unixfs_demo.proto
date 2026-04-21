@@ -1,0 +1,12 @@
+syntax = "proto3";
+package unixfs.world.e2e;
+
+import "google/protobuf/timestamp.proto";
+
+// InitUnixFSDemoOp initializes a UnixFS filesystem with demo content.
+message InitUnixFSDemoOp {
+  // ObjectKey is the object key for the UnixFS filesystem.
+  string object_key = 1;
+  // Timestamp is the timestamp to use for operations.
+  .google.protobuf.Timestamp timestamp = 2;
+}

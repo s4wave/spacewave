@@ -1,0 +1,21 @@
+syntax = "proto3";
+package block.store.http.server;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Config configures the block store http server.
+//
+// Handles LookupHTTPHandler with the block store endpoints.
+message Config {
+  // BlockStoreId is the block store id to lookup on the bus.
+  string block_store_id = 1;
+  // Write enables the write api endpoints (put, delete).
+  bool write = 2;
+  // PathPrefix is the path prefix to use for requests.
+  // [path_prefix]/{get,put,exists,rm}
+  // Can be empty.
+  string path_prefix = 3;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type the underlying bucket accepts.
+  .hash.HashType force_hash_type = 4;
+}

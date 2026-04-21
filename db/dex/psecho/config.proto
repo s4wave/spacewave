@@ -1,0 +1,30 @@
+syntax = "proto3";
+package psecho;
+
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures the pub-sub DEX controller.
+message Config {
+  // BucketId is the bucket to exchange blocks for.
+  string bucket_id = 1;
+  // PubsubChannelId is the pub-sub channel for want-list gossip.
+  string pubsub_channel_id = 2;
+  // PeerId is the local peer ID for pub-sub subscription.
+  string peer_id = 3;
+  // TransportId constrains which transport to use.
+  uint64 transport_id = 4;
+  // MaxConcurrentStreams is the max outgoing streams per peer.
+  // Default: 4.
+  uint32 max_concurrent_streams = 5;
+  // PublishDebounceMs is the debounce window for want-list
+  // publishing in milliseconds. Default: 100.
+  uint32 publish_debounce_ms = 6;
+  // MaxBlockSize is the maximum accepted block size in bytes.
+  // Default: 10485760 (10MB).
+  uint64 max_block_size = 7;
+  // ChunkSize is the chunk size in bytes for block transfer.
+  // Default: 1024 (1KB).
+  uint32 chunk_size = 8;
+  // SyncBackoff configures retry backoff for failed peer streams.
+  .backoff.Backoff sync_backoff = 9;
+}

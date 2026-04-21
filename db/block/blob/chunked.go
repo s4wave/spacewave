@@ -1,0 +1,120 @@
+package blob
+
+import (
+	"context"
+	"io"
+	"math"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/pkg/errors"
+)
+
+// BuildChunkIndex constructs a chunk index.
+// Blocks will be written to the block transaction.
+// If bcs already contains a ChunkIndex, it will be reused.
+// If poly is zero, the default constant polynomial will be used.
+func BuildChunkIndex(
+	ctx context.Context,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	chunkerArgs *ChunkerArgs,
+) (*ChunkIndex, uint64, error) {
+	ci, err := UnmarshalChunkIndex(ctx, bcs)
+	if err != nil {
+		if err != block.ErrUnexpectedType {
+			return nil, 0, err
+		}
+	}
+	if ci == nil {
+		ci = &ChunkIndex{}
+	}
+	if ci.ChunkerArgs == nil {
+		ci.ChunkerArgs = &ChunkerArgs{}
+	}
+	ci.ChunkerArgs.ApplyArgs(chunkerArgs)
+
+	// TODO: support other chunk types
+	chunkerType := chunkerArgs.GetChunkerType()
+	var totalSize uint64
+	switch chunkerType {
+	case ChunkerType_ChunkerType_JC, ChunkerType_ChunkerType_DEFAULT:
+		totalSize, err = buildChunkIndexJC(ctx, rdr, bcs, ci)
+	case ChunkerType_ChunkerType_RABIN:
+		totalSize, err = buildChunkIndexRabin(ctx, rdr, bcs, ci)
+	default:
+		err = errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
+	}
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return ci, totalSize, err
+}
+
+// AppendChunk appends a chunk with the given data.
+func (r *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start uint64, data []byte) {
+	r.Chunks = append(r.Chunks, &Chunk{
+		Size:  size,
+		Start: start,
+	})
+	_, chkBcs := chkSet.Get(idx)
+	dataBcs := chkBcs.FollowRef(1, nil)
+	dataBcs.SetBlock(byteslice.NewByteSlice(&data), true)
+}
+
+// ReadFromChunks reads up to len(buf) data from the chunks, starting at byte index start.
+// Attempts to start reading from chunkIdx, but will search for the chunk containing start.
+// If the chunk at chunkIdx does not contain start, will binary-search for the appropriate chunk.
+// The value of outChunkIdx should be saved and passed again when stepping through the chunks sequentially.
+// Returns io.EOF if start is past the last chunk.
+func ReadFromChunks(
+	ctx context.Context,
+	chunkSet *sbset.SubBlockSet,
+	buf []byte,
+	start, chunkIdx int,
+) (n int, outChunkIdx int, err error) {
+	chunkLen := chunkSet.Len()
+	if chunkIdx >= chunkLen {
+		chunkIdx = chunkLen - 1
+	}
+
+	// NOTE: this could be faster with a binary search.
+	for {
+		// check if chunkIdx is within range
+		currChunkBlk, currChunkBcs := chunkSet.Get(chunkIdx)
+		if currChunkBcs == nil {
+			err = io.EOF
+			return n, outChunkIdx, err
+		}
+		currChunk, ok := currChunkBlk.(*Chunk)
+		if !ok {
+			return n, outChunkIdx, block.ErrUnexpectedType
+		}
+		currChunkStart, currChunkSize := currChunk.GetStart(), currChunk.GetSize()
+		currChunkEnd := currChunkStart + currChunkSize
+		if currChunkStart > math.MaxInt || currChunkEnd > math.MaxInt || currChunkSize > math.MaxInt {
+			return n, outChunkIdx, errors.New("chunk bounds exceed maximum")
+		}
+		if int(currChunkStart) > start {
+			chunkIdx--
+			continue
+		}
+		if int(currChunkEnd) <= start {
+			chunkIdx++
+			continue
+		}
+		readStartPos := start - int(currChunkStart)
+		readEndPos := min(readStartPos+len(buf), int(currChunkSize))
+
+		data, err := currChunk.FetchData(ctx, currChunkBcs, false)
+		if err != nil {
+			return n, outChunkIdx, err
+		}
+		copy(buf, data[readStartPos:readEndPos])
+		n = readEndPos - readStartPos
+		outChunkIdx = chunkIdx
+		return n, outChunkIdx, nil
+	}
+}

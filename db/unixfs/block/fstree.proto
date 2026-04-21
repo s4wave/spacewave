@@ -1,0 +1,149 @@
+syntax = "proto3";
+package unixfs.block;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/file/file.proto";
+import "google/protobuf/timestamp.proto";
+
+// NodeType indicates the type of node.
+enum NodeType {
+  // NodeType_UNKNOWN is the unknown node type.
+  NodeType_UNKNOWN = 0;
+  // NodeType_DIRECTORY is a directory node.
+  NodeType_DIRECTORY = 1;
+  // NodeType_FILE is a file node.
+  NodeType_FILE = 2;
+  // NodeType_SYMLINK is a symbolic link.
+  NodeType_SYMLINK = 3;
+}
+
+// FSNode is a node in the tree.
+// Roughly translates to an inode.
+message FSNode {
+  // NodeType marks the type of the node.
+  NodeType node_type = 1;
+  // ModTime is the modification timestamp.
+  google.protobuf.Timestamp mod_time = 2;
+  // Permissions are the unixfs permissions bitset.
+  // Note: the mode portion of this field must be zero.
+  uint32 permissions = 3;
+
+  // File contains a file if the node is of type FILE.
+  //
+  // sub-block ID 4
+  .file.File file = 4;
+
+  // DirectoryEntry contains a sorted list of directory entries (dirents).
+  //
+  // *DirentSlice sub-block ID 5
+  repeated Dirent directory_entry = 5;
+
+  // Symlink contains the symlink data if the node is of type SYMLINK.
+  FSSymlink symlink = 6;
+
+  // Xattrs stores extended attributes for this node.
+  // Only set when the node has xattrs. Empty on most nodes.
+  // Required for macOS code signature preservation during .app sync.
+  repeated FSXattr xattrs = 7;
+}
+
+// FSXattr stores a single extended attribute.
+message FSXattr {
+  // Name is the xattr key (e.g. "com.apple.cs.CodeDirectory").
+  string name = 1;
+  // Value is the xattr value bytes.
+  bytes value = 2;
+}
+
+// Dirent contains a directory entry.
+message Dirent {
+  // Name is the name of the directory entry.
+  string name = 1;
+  // NodeRef is the reference of the child FSNode.
+  // may be empty.
+  //
+  // reference id 2
+  .block.BlockRef node_ref = 2;
+  // NodeType is the node type of the child FSNode.
+  NodeType node_type = 3;
+}
+
+// FSSymlink contains symbolic link data.
+message FSSymlink {
+  // TargetPath is the destination of the symbolic link.
+  FSPath target_path = 1;
+}
+
+// FSObject is the root of a FSNode which may have edges to other dirents.
+message FSObject {
+  // Config is the filesystem configuration.
+  FSConfig config = 1;
+  // FsNode is the root filesystem node.
+  FSNode fs_node = 2;
+  // LastChange is the current head of the changelog linked list.
+  // If seqno == 0, this field is empty.
+  // Seqno is incremented on change, even if disable_changelog is set.
+  FSChange last_change = 3;
+}
+
+// FSHostVolume is a volume provided by the host environment.
+message FSHostVolume {
+  // VolumeId is the host volume ID.
+  // For example: the docker volume id.
+  string volume_id = 1;
+}
+
+// FSConfig are optional configuration flags.
+message FSConfig {
+  // DisableChangelog indicates the changelog is not in use.
+  // Watchers will perform a full cache flush on every block change.
+  bool disable_changelog = 1;
+}
+
+// FSChangeType is a type of change to the filesystem.
+enum FSChangeType {
+  FSChangeType_INVALID = 0;
+  // FSChangeType_MKNOD creates one or more directory entries.
+  FSChangeType_MKNOD = 1;
+  // FSChangeType_FILE_WRITE writes a blob to a file node at an offset.
+  FSChangeType_FILE_WRITE = 2;
+  // FSChangeType_REMOVE removes one or more nodes.
+  FSChangeType_FILE_REMOVE = 3;
+}
+
+// FSPath is a path in the filesystem.
+message FSPath {
+  // Nodes are the node names in the path.
+  repeated string nodes = 1;
+  // Absolute indicates the path is an absolute path (starting at /).
+  bool absolute = 2;
+}
+
+// FSChange is an entry in the changelog.
+// A transaction may convert into multiple changes.
+message FSChange {
+  // Seqno is the sequence number of this change.
+  uint64 seqno = 1;
+  // PrevRef is the reference to the previous change.
+  .block.BlockRef prev_ref = 2;
+
+  // ChangeType is the type of change this is.
+  FSChangeType change_type = 3;
+  // TransactionRef is the reference to the associated transaction.
+  // This is transparent to the core registry code.
+  .block.BlockRef transaction_ref = 4;
+
+  // Paths are the associated paths.
+  // Mknod: the nodes that will be created.
+  // Write: the file node to write to.
+  // Remove: the nodes to remove.
+  repeated FSPath paths = 5;
+  // NodeType is the transaction node type.
+  // Mknod: the type of node to create.
+  NodeType node_type = 6;
+
+  // ValueRef are the reference(s) to the updated value.
+  // Mknod: the references to the new inodes.
+  // Write: this is the reference to the updated file inode.
+  repeated .block.BlockRef value_ref = 8;
+}

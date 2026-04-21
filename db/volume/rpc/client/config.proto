@@ -1,0 +1,44 @@
+syntax = "proto3";
+package volume.rpc.client;
+
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures the rpc volume client.
+// Accesses the AccessVolumes RPC service.
+message Config {
+  // ServiceId is the service id to use.
+  // Must resolve to the AccessVolumes service.
+  // Usually: rpc.volume.AccessVolumes
+  // Cannot be empty.
+  string service_id = 1;
+  // VolumeIdRe is a regex string to match volume IDs.
+  // Matched volume IDs are forwarded to the RPC service.
+  // Matched volume IDs may not necessarily exist on the remote.
+  // Set to empty or '.*' to match all volumes.
+  // If volume_id_list is set, it can override this value.
+  string volume_id_re = 2;
+	// VolumeIdList returns a specific list of volumes to match.
+	// If empty, uses the VolumeIDRe field instead.
+  repeated string volume_id_list = 3;
+  // LoadOnStartup loads the volume_id_list on startup.
+  bool load_on_startup = 8;
+  // ClientId is the client id to use.
+  // May be empty.
+  string client_id = 4;
+  // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+  // If empty string, defaults to 1s (1 second).
+  string release_delay = 5;
+  // VolumeAliases contains aliases to assign to proxied volumes.
+  // Key = the destination volume ID.
+  // Value = contains source volume IDs to match.
+  // Volume IDs listed here will be proxied regardless of the regex or list set above.
+  map<string, VolumeAliases> volume_aliases = 6;
+  // Backoff controls retry backoff for the volume rpc client.
+  .backoff.Backoff backoff = 7;
+}
+
+// VolumeAliases is a list of volume aliases.
+message VolumeAliases {
+  // From is a list of volume IDs to alias.
+  repeated string from = 1;
+}

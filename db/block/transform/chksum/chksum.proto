@@ -1,0 +1,16 @@
+syntax = "proto3";
+package transform.chksum;
+
+// ChksumType is the checksum type enum.
+enum ChksumType {
+  // ChksumType_UNKNOWN defaults to CRC64.
+  ChksumType_UNKNOWN = 0;
+  // ChksumType_CRC32 performs a appended 4 byte crc32 against the data.
+  ChksumType_CRC32 = 1;
+}
+
+// Config configures the snappy transform.
+message Config {
+  // ChksumType is the type of chksum to use.
+  ChksumType chksum_type = 1;
+}

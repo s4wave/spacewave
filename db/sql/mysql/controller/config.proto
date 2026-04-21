@@ -1,0 +1,42 @@
+syntax = "proto3";
+package mysql.controller;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+
+// Config configures a object store backed sql db controller.
+message Config {
+  // SqlDbId is the identifier used to look up the sql db on the bus.
+  // If empty, LookupSqlDB will not be processed.
+  string sql_db_id = 1;
+  // BucketId is the bucket id to attach to for reading/writing state.
+  // If set, overrides the bucket id from init_head_ref and the state.
+  // If unset, the bucket id is determined from head_ref.
+  string bucket_id = 2;
+  // VolumeId is the volume id to attach to for writing DB state.
+  // If unset, init_head_ref must be set, and the db will be read-only.
+  string volume_id = 3;
+  // ObjectStoreId is the hydra object store to open to store the HEAD ref.
+  // If unset, init_head_ref must be set, and the db will be read-only.
+  string object_store_id = 4;
+  // ObjectStorePrefix is the prefix to use for all object store ops.
+  string object_store_prefix = 5;
+  // ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
+  //
+  // Defaults to "sql-head"
+  string object_store_head_key = 6;
+  // InitHeadRef is the reference to the initial HEAD state of the database.
+  // If the object store is empty, uses this reference to initialize it.
+  // BucketId is overridden by BucketId field if it is set.
+  .bucket.ObjectRef init_head_ref = 7;
+  // StateTransformConf transforms the HEAD ref before storing it in storage.
+  .block.transform.Config state_transform_conf = 8;
+  // CreateDbs is a list of database names to create (if they don't exist).
+  repeated string create_dbs = 9;
+}
+
+// HeadState contains the head state in the object storage.
+message HeadState {
+  // HeadRef is the reference to the current HEAD state of the database.
+  .bucket.ObjectRef head_ref = 1;
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bitset;
+
+// BitSet is a block-backed BitSet representation.
+message BitSet {
+  // Set is the set of uint64 representing the bitset.
+  repeated uint64 set = 1;
+  // Len is the length of the bitset.
+  uint32 len = 2;
+}

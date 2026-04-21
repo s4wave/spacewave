@@ -1,0 +1,25 @@
+syntax = "proto3";
+package hydra.api.controller;
+
+import "github.com/s4wave/spacewave/net/daemon/api/api.proto";
+import "github.com/aperturerobotics/controllerbus/bus/api/api.proto";
+import "github.com/s4wave/spacewave/db/daemon/api/api.proto";
+
+// Config configures the RPC API.
+message Config {
+  // ListenAddr is the address to listen on for connections.
+  string listen_addr = 1;
+
+  // DisableBifrostApi disables the bifrost api.
+  bool disable_bifrost_api = 2;
+  // BifrostApiConfig are bifrost api config options.
+  .bifrost.api.Config bifrost_api_config = 3;
+
+  // DisableBusApi disables the bus api.
+  bool disable_bus_api = 4;
+  // BusApiConfig are controller-bus bus api config options.
+  .bus.api.Config bus_api_config = 5;
+
+  // HydraApiConfig is hydra api configuration.
+  .hydra.api.Config hydra_api_config = 6;
+}

@@ -1,0 +1,20 @@
+syntax = "proto3";
+package block.transform;
+
+// Config configures block transformation.
+message Config {
+  // Steps contains the transformation steps.
+  // Index 0 is applied first when encoding and vise-versa.
+  repeated StepConfig steps = 1;
+}
+
+// StepConfig configures a transformation step.
+//
+//protobuf-go-lite:disable-json
+message StepConfig {
+  // Id contains the configuration ID.
+  string id = 1;
+  // Config contains configuration data.
+  // May be formatted with proto or json.
+  bytes config = 2;
+}

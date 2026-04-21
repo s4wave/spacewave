@@ -1,0 +1,46 @@
+syntax = "proto3";
+package file;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/blob/blob.proto";
+
+// File defines a pattern for storing a block-addressed file.
+// Changes are transactional and deterministic.
+// File write ranges and write mode are considered.
+// Concurrent O_APPEND is implemented.
+// Blobs are addressed as they are added, and periodically compacted.
+// Some operations partially overwrite old blobs without rewriting them.
+// The File object contains metadata and might contain links to sub-objects.
+// Rabin fingerprinting is used to select deterministic chunk sizes.
+message File {
+  // TotalSize is the total size of the file.
+  uint64 total_size = 1;
+
+  // RootBlob, if set, contains the entire file in a blob.
+  // Used when there is a single Range of data starting at index 0.
+  // If unset and len(ranges) == 0, the file is empty (all zeros).
+  .blob.Blob root_blob = 2;
+
+  // RangeNonce is the next range nonce id to use.
+  uint64 range_nonce = 3;
+  // Ranges contains file data ranges.
+  // Files are sparse when created.
+  // Ranges may overlap.
+  repeated Range ranges = 4;
+}
+
+// Range contains a chunk of a file.
+// Ranges are sorted by start, then nonce (ascending).
+message Range {
+  // Nonce is the incrementing nonce of the range.
+  // Ranges with a higher nonce overwrite lower nonce.
+  uint64 nonce = 1;
+  // Start contains the starting index of the range.
+  uint64 start = 2;
+  // Length contains the len of data in the range.
+  // Start + length = end index + 1.
+  uint64 length = 3;
+  // Ref contains the blob ref.
+  // If the ref is empty, the range represents a hole (zeros).
+  .block.BlockRef ref = 4;
+}

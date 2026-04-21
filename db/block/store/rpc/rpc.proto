@@ -1,0 +1,36 @@
+syntax = "proto3";
+package block.store.rpc;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Config configures the block store rpc controller.
+// Executes a LookupRpcClient directive to build the rpc client.
+// Resolves LookupBlockStore directives.
+message Config {
+  // BlockStoreId is the block store id to match on the bus.
+  // Combined with block_store_ids if also set.
+  string block_store_id = 1;
+  // BlockStoreIds is a list of the block store id to use on the bus.
+  // Combined with block_store_id if also set.
+  repeated string block_store_ids = 2;
+  // ServiceId is the service id to lookup with LookupRpcClient.
+  // Cannot be empty.
+  string service_id = 3;
+  // ClientId is the client id to use with LookupRpcClient.
+  // Can be empty.
+  string client_id = 4;
+  // ReadOnly disables writing to the rpc store.
+  bool read_only = 5;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 6;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 7;
+  // LookupOnStart creates the LookupRpcClient directive on startup.
+  // If false, waits until at least one directive references it.
+  bool lookup_on_start = 8;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 9;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 10;
+}

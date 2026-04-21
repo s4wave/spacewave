@@ -1,0 +1,40 @@
+package blob
+
+import (
+	"bytes"
+	"context"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/aperturerobotics/util/prng"
+)
+
+// buildMockRawBlob builds a new mock raw blob.
+func buildMockRawBlob() *Blob {
+	testBuf := []byte("test-raw-blob")
+	return &Blob{
+		BlobType:  BlobType_BlobType_RAW,
+		TotalSize: uint64(len(testBuf)),
+		RawData:   testBuf,
+	}
+}
+
+// buildMockChunkedBlob builds a new mock chunked blob with the specified chunker args
+func buildMockChunkedBlob(bcs *block.Cursor, chunkerArgs *ChunkerArgs) (*Blob, error) {
+	// generate 100Mb of data
+	rd := prng.BuildSeededReader([]byte("test-chunk-blob"))
+	data := make([]byte, 100e6)
+	_, err := rd.Read(data)
+	if err != nil {
+		return nil, err
+	}
+	return BuildBlob(
+		context.Background(),
+		int64(len(data)),
+		bytes.NewReader(data),
+		bcs,
+		&BuildBlobOpts{
+			RawHighWaterMark: 1,
+			ChunkerArgs:      chunkerArgs,
+		},
+	)
+}

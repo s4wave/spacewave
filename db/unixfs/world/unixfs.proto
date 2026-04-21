@@ -1,0 +1,269 @@
+syntax = "proto3";
+package unixfs.world;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/unixfs/block/fstree.proto";
+import "google/protobuf/timestamp.proto";
+
+// FSType indicates the type of unixfs reference.
+enum FSType {
+  // FSType_UNKNOWN is the zero type.
+  // Defaults depending on the context.
+  FSType_UNKNOWN = 0;
+  // FSType_FS_NODE is a raw fstree FSNode block (without changelog).
+  FSType_FS_NODE = 1;
+  // FSType_FS_OBJECT is a FSObject tree (with changelog).
+  FSType_FS_OBJECT = 2;
+  // FSType_FS_HOST_VOLUME is a FSHostVolume object.
+  FSType_FS_HOST_VOLUME = 3;
+}
+
+// UnixfsRef is a reference to a UnixFS object in a World.
+message UnixfsRef {
+  // ObjectKey is the object key to open as a UnixFS.
+  string object_key = 1;
+  // FsType sets the expected filesystem object type at object_key.
+  // If unset (0) reads the type from the graph.
+  // Defaults to FS_NODE if nothing else set.
+  FSType fs_type = 2;
+  // Path is the location within the FS.
+  // If empty, defaults to / (the root).
+  .unixfs.block.FSPath path = 3;
+}
+
+// FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
+// Can be applied as either an object op or a world op.
+message FsInitOp {
+  // ObjectKey is the object key to create as a UnixFS.
+  string object_key = 1;
+  // FsType sets the filesystem object type to create.
+  FSType fs_type = 2;
+
+  // FsRef contains a initial object ref to use the root of the UnixFS.
+  // Must match fs_type if set.
+  // If empty, will create a new blank fs.
+  .bucket.ObjectRef fs_ref = 3;
+  // FsOverwrite indicates to overwrite any existing object.
+  bool fs_overwrite = 5;
+  // Timestamp is the modification time for the fs root.
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// FsMknodOp is an operation to create one or more inodes at paths.
+// Can be applied as either an object op or a world op.
+message FsMknodOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Paths are the paths to the new inodes.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Permissions is the permissions bitset.
+  // If zero uses defaults.
+  uint32 permissions = 4;
+  // NodeType is the node type to create.
+  .unixfs.block.NodeType node_type = 5;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// FsSymlinkOp is an operation to create a symbolic link.
+// Can be applied as either an object op or a world op.
+message FsSymlinkOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Path is the paths to the symbolic link source.
+  .unixfs.block.FSPath path = 3;
+  // Symlink is the contents of the symlink.
+  .unixfs.block.FSSymlink symlink = 4;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// FsSetPermissionsOp is an operation to set the permissions at the paths.
+// The file mode portion of the permissions bitset will be ignored.
+// Can be applied as either an object op or a world op.
+message FsSetPermissionsOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Paths are the paths to update permissions for.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Permissions is the permissions bitset.
+  uint32 permissions = 4;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
+// Can be applied as either an object op or a world op.
+message FsSetModTimestampOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Paths are the paths to update the timestamp for.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// FsWriteAtOp is an operation to write some data to a file.
+// Can be applied as either an object op or a world op.
+message FsWriteAtOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Path is the path to write to.
+  .unixfs.block.FSPath path = 3;
+  // Offset is the location to write the data to.
+  int64 offset = 4;
+  // BlobRef is the reference to the Blob to write.
+  .block.BlockRef blob_ref = 5;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// FsTruncateOp shrinks or extends a file to the specified size.
+// The extended part will be a sparse range (hole) reading as zeros.
+// Can be applied as either an object op or a world op.
+message FsTruncateOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Path is the path to write to.
+  .unixfs.block.FSPath path = 3;
+  // FileSize is the new size to truncate to.
+  int64 file_size = 4;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// FsCopyOp recursively copies a source path to a destination, overwriting destination.
+// Note: this does not allow cross-FS copy.
+// Can be applied as either an object op or a world op.
+message FsCopyOp {
+  // ObjectKey is the object key to copy from.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // SrcPath is the path to copy from.
+  .unixfs.block.FSPath src_path = 3;
+  // DestPath is the path to copy to.
+  .unixfs.block.FSPath dest_path = 4;
+
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// FsRenameOp recursively moves a source path to a destination, overwriting destination.
+// This applies a FsCopyOp followed by a Remove in the same operation.
+// Note: this does not allow cross-FS rename.
+// Can be applied as either an object op or a world op.
+message FsRenameOp {
+  // ObjectKey is the object key to copy from.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // SrcPath is the path to move from.
+  .unixfs.block.FSPath src_path = 3;
+  // DestPath is the path to move to.
+  .unixfs.block.FSPath dest_path = 4;
+
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// FsMknodWithContentOp creates a file and writes content atomically.
+// The blob must be pre-built in an isolated object before applying this op.
+// The op creates the file entry and writes the blob content in a single commit.
+// Can be applied as either an object op or a world op.
+message FsMknodWithContentOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Path is the path to the new file.
+  .unixfs.block.FSPath path = 3;
+  // Permissions is the permissions bitset.
+  // If zero uses defaults.
+  uint32 permissions = 4;
+  // NodeType is the node type to create.
+  .unixfs.block.NodeType node_type = 5;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 6;
+  // BlobRef is the reference to the pre-built Blob containing the file content.
+  .block.BlockRef blob_ref = 7;
+}
+
+// FsRemoveOp is an operation to delete inodes from the tree.
+// Can be applied as either an object op or a world op.
+message FsRemoveOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // Paths are the paths to delete.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Timestamp is the modification time.
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// MountValue is the contents of the quad value field for a mount.
+// inode -> unixfs/mount -> inode <value=mount-value>
+message MountValue {
+  // Mountpoint is the path inside the inode to mount at.
+  // If empty assumes /
+  string mountpoint = 1;
+  // Prefix is the path inside the target inode to link to.
+  // If empty assumes /
+  string prefix = 2;
+}
+
+// RefValue is the contents of the quad value field for a ref.
+// i.e.: somewhere git/workdir -> inode <ref-value>
+message RefValue {
+  // FsType sets the expected filesystem object type at the target.
+  // If unset (0) reads the type from the graph.
+  // Defaults to FS_NODE if nothing else set.
+  FSType fs_type = 1;
+  // Path is the location within the FS.
+  // If empty, defaults to / (the root).
+  .unixfs.block.FSPath path = 2;
+}

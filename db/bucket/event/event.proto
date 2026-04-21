@@ -1,0 +1,60 @@
+syntax = "proto3";
+package bucket.event;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// EventType is the type of bucket reconciler event.
+enum EventType {
+  // EventType_UNKNOWN is the unknown type.
+  EventType_UNKNOWN = 0;
+  // EventType_PUT_BLOCK is the put block event.
+  EventType_PUT_BLOCK = 1;
+  // EventType_RM_BLOCK is the delete block event.
+  EventType_RM_BLOCK = 3;
+
+  // reserved: 2
+}
+
+// Event is the container for the event data.
+message Event {
+  // EventType is the event type.
+  EventType event_type = 1;
+
+  // PutBlock is the put event data.
+  PutBlock put_block = 2;
+  // RmBlock is the rm event data.
+  RmBlock rm_block = 4;
+
+  // reserved: 3
+}
+
+// BlockCommon are common block properties.
+message BlockCommon {
+  // BucketId is the bucket id.
+  // May be unset.
+  // Used for: PutBlock, RmBlock
+  string bucket_id = 1;
+  // VolumeId is the volume id.
+  // May be unset.
+  // Used for: PutBlock, RmBlock
+  string volume_id = 2;
+  // BucketConfRev is the bucket config rev.
+  // May be unset.
+  // Used for: PutBlock, RmBlock
+  uint32 bucket_conf_rev = 3;
+  // BlockRef is the block reference.
+  // Used for: PutBlock, RmBlock
+  block.BlockRef block_ref = 4;
+}
+
+// PutBlock is the put block event.
+message PutBlock {
+  // BlockCommon contains the common block event params.
+  BlockCommon block_common = 1;
+}
+
+// RmBlock is the remoe block event.
+message RmBlock {
+  // BlockCommon contains the common block event params.
+  BlockCommon block_common = 1;
+}

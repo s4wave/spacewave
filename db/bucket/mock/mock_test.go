@@ -1,0 +1,202 @@
+package bucket_mock
+
+import (
+	"context"
+	"encoding/hex"
+	"testing"
+
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
+	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/util/blockenc"
+	"github.com/sirupsen/logrus"
+)
+
+// TestCursor tests the basic object cursor mechanics.
+func TestCursor(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	vol := tb.Volume
+	volID := vol.GetID()
+	t.Log(volID)
+
+	// construct a basic transform config.
+	tconf, err := block_transform.NewConfig([]config.Config{
+		&transform_chksum.Config{},
+		&transform_s2.Config{},
+		&transform_chksum.Config{},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// test building with empty tconf
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		volID,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc.Release()
+
+	// test with actual tconf
+	oc, _, err = bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		volID,
+		tconf,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	txc, tcc := oc.BuildTransaction(nil)
+	tcc.SetBlock(&block_mock.Root{}, true)
+	tsb1 := tcc.FollowSubBlock(1)
+	tcc2 := tsb1.FollowRef(1, nil)
+	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"}, true)
+	nrb, _, err := txc.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc.SetRootRef(nrb)
+	txc, tcc = oc.BuildTransaction(nil)
+	tcc.SetBlock(&Root{ExamplePtr: oc.GetRef()}, true)
+
+	nrb, _, err = txc.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	t.Logf("root block: %s", nrb.MarshalString())
+	oc.SetRootRef(nrb)
+
+	// fetch the root out again building a whole new cursor
+	ocr := oc.GetRef()
+	// oct := oc.GetTransformConf()
+	oc.Release()
+	oc, err = bucket_lookup.BuildCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		volID,
+		ocr,
+		// oct,
+		nil, // NOTE: The transform conf is in the reference.
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	rbi, err := oc.Unmarshal(ctx, func() block.Block { return &Root{} })
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rb := rbi.(*Root)
+	t.Logf(
+		"example pointer -> %s",
+		rb.GetExamplePtr().GetRootRef().MarshalString(),
+	)
+
+	occ, err := oc.FollowRef(ctx, rb.GetExamplePtr())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer occ.Release()
+	_, tcc = occ.BuildTransaction(nil)
+	bmr, err := tcc.Unmarshal(ctx, func() block.Block { return &block_mock.Root{} })
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bm := bmr.(*block_mock.Root)
+
+	sbcr := tcc.FollowSubBlock(1)
+	tcc = sbcr.FollowRef(1, bm.GetExampleSubBlock().GetExamplePtr())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bmr, err = tcc.Unmarshal(ctx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	msg := bmr.(*block_mock.Example).GetMsg()
+	if len(msg) == 0 {
+		t.Fail()
+	}
+	t.Logf("got message from block: %s", msg)
+
+	// in-line transform config
+	encKey, _ := hex.DecodeString("9e4cd7bfb3a166e0b3aa89c5bd7dca29731d83272e52ddad011c047e41b77440")
+	tconf, err = block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      encKey,
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	nc, err := oc.FollowRef(ctx, &bucket.ObjectRef{
+		TransformConf: tconf,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	btx, bcs := nc.BuildTransaction(nil)
+	testStr := "testing"
+	bcs.SetBlock(block_mock.NewExample(testStr), true)
+	nrootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !nc.GetTransformConf().EqualVT(tconf) {
+		t.FailNow()
+	}
+	nc.Release()
+
+	nc, err = oc.FollowRefWithOpArgs(ctx, &bucket.ObjectRef{
+		RootRef:       nrootRef,
+		TransformConf: tconf,
+	}, &bucket.BucketOpArgs{VolumeId: "", BucketId: tb.BucketId})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, bcs = nc.BuildTransaction(nil)
+	ex, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if msg := ex.GetMsg(); msg != testStr {
+		t.Fatalf("expected %s but got %s", testStr, msg)
+	}
+}

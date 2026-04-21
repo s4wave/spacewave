@@ -1,0 +1,40 @@
+package bucket_mock
+
+import (
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
+)
+
+// mockBucket is a mock in-memory bucket.
+type mockBucket struct {
+	block.StoreOps
+	conf *bucket.Config
+}
+
+// NewMockBucket constructs a new mock bucket for testing.
+func NewMockBucket(id string, conf *bucket.Config) bucket.Bucket {
+	if conf == nil {
+		conf = NewMockBucketConfig(id, 1)
+	}
+	return &mockBucket{
+		conf:     conf,
+		StoreOps: block_mock.NewMockStore(conf.GetPutOpts().GetHashType()),
+	}
+}
+
+// NewMockBucketConfig constructs a new mock bucket config.
+func NewMockBucketConfig(id string, rev uint32) *bucket.Config {
+	return &bucket.Config{
+		Id:  id,
+		Rev: rev,
+	}
+}
+
+// GetBucketConfig returns a copy of the bucket configuration.
+func (b *mockBucket) GetBucketConfig() *bucket.Config {
+	return b.conf
+}
+
+// _ is a type assertion
+var _ bucket.Bucket = ((*mockBucket)(nil))

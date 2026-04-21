@@ -1,0 +1,23 @@
+// Package store_kvkey provides common key patterns for key/value stores.
+package store_kvkey
+
+// DefaultConfig returns the default configuration.
+func DefaultConfig() *Config {
+	return &Config{
+		Prefix:             []byte("h/"), // short for "hydra"
+		BucketConfigPrefix: []byte("bkt/c/"),
+		PeerPrivKey:        []byte("priv"),
+		BlockPrefix:        []byte("b/"), // short for "blocks"
+		ObjectStorePrefix:  []byte("objs/"),
+		MqueuePrefix:       []byte("mq/q/"),
+		MqueueMetaPrefix:   []byte("mq/m/"),
+		BucketMqueuePrefix: []byte("bkt/"),
+	}
+}
+
+// Validate performs cursory validation.
+func (c *Config) Validate() error {
+	// XXX: no checks here, but are any checks necessary?
+	// note: c == nil is valid
+	return nil
+}

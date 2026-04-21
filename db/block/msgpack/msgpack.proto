@@ -1,0 +1,19 @@
+syntax = "proto3";
+package msgpack;
+
+import "github.com/s4wave/spacewave/db/block/blob/blob.proto";
+
+// MsgpackBlock encodes an interface{} directly to a block.
+// It doesn't use protobuf, so it's not shown here.
+// message MsgpackBlock { data inline }
+
+// MsgpackBlob is a block containing data packed with msgpack.
+//
+// API: BuildMsgpackBlob(object interface{}) -> pack into MsgpackBlob.
+// Decode: blob.UnmarshalMsgpack() -> object interface{}
+message MsgpackBlob {
+  // Blob contains the encoded data in a blob.
+  //
+  // If small enough, the blob will be stored in-line.
+  .blob.Blob blob = 1;
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package bloom;
+
+import "github.com/s4wave/spacewave/db/block/bitset/bitset.proto";
+
+// BloomFilter contains a bloom filter in a Block.
+// uses FNV64 hash function
+// m factor is determined by len(bit_set)*64
+message BloomFilter {
+  // K is the number of hash functions.
+  // Max: 10.
+  // Min: 1.
+  uint32 k = 1;
+  // M is the length (capacity) of the bloom filter.
+  uint32 m = 2;
+  // BitSet is the underlying bitset.
+  .bitset.BitSet bit_set = 3;
+}

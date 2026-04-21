@@ -1,0 +1,12 @@
+syntax = "proto3";
+package transform.blockenc;
+
+import "github.com/s4wave/spacewave/db/util/blockenc/blockenc.proto";
+
+// Config configures the block encrypt transform.
+message Config {
+  // BlockEnc is the block encrypt method to use.
+  .blockenc.BlockEnc block_enc = 1;
+  // Key is the key to use.
+  bytes key = 2;
+}

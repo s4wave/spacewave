@@ -1,0 +1,32 @@
+syntax = "proto3";
+package block.store.overlay;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// Config configures the overlay block store controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+
+  // LowerBlockStoreId is the identifier of the "lower" block store.
+  string lower_block_store_id = 2;
+  // UpperBlockStoreId is the identifier of the "upper" block store.
+  string upper_block_store_id = 3;
+
+  // OverlayMode indicates the mode to use for the block store.
+  .block.OverlayMode overlay_mode = 4;
+  // WritebackTimeoutDur is the timeout for writing back blocks.
+  // If overlay_mode does not enable writeback, this is N/A.
+  // Example: 30s
+  string writeback_timeout_dur = 5;
+  // WritebackPutOpts are the base put options for writing back blocks.
+  // If overlay_mode does not enable writeback, this is N/A.
+  .block.PutOpts writeback_put_opts = 6;
+
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 7;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 8;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 9;
+}

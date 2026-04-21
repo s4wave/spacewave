@@ -1,0 +1,21 @@
+syntax = "proto3";
+package blockenc;
+
+// BlockEnc is the block encryption method to use.
+// Most methods use 32 byte keys.
+enum BlockEnc {
+  // BlockEnc_UNKNOWN defaults to BlockEnc_XCHACHA20_POLY1305.
+  BlockEnc_UNKNOWN = 0;
+  // BlockEnc_NONE is unencrypted.
+  BlockEnc_NONE = 1;
+  // BlockEnc_XCHACHA20_POLY1305 uses extended chacha encryption.
+  // Key size of 32 bytes.
+  // Derives the nonce with blake3 key derivation.
+  // Stores the nonce in the first 24 bytes of the ciphertext.
+  BlockEnc_XCHACHA20_POLY1305 = 2;
+  // BlockCrypt_SECRET_BOX uses nacl secret box encryption.
+  // Key size of 32 bytes.
+  // Derives the nonce with blake3 key derivation.
+  // Stores the nonce in the first 24 bytes of the ciphertext.
+  BlockEnc_SECRET_BOX = 3;
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+package unixfs.mount.fuse;
+
+// Config configures the FUSE mount controller.
+// The FUSE mount controller mounts directly with immediate writeback mode.
+message Config {
+  // MountPath is the destination mount path.
+  string mount_path = 1;
+  // Verbose enables verbose logging.
+  // Volume attribute: verbose=true
+  bool verbose = 2;
+  // AllowOther enables other users than the mounter to access the mount.
+  // Volume attribute: allow_other=true
+  bool allow_other = 3;
+  // AllowDev enables device objects to exist on the FS.
+  bool allow_dev = 4;
+  // AllowSuid allows set-user-identifier or set-group-identifier bits to take effect.
+  bool allow_suid = 5;
+}

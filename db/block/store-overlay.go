@@ -1,0 +1,520 @@
+package block
+
+import (
+	"context"
+	"time"
+
+	"github.com/s4wave/spacewave/net/hash"
+)
+
+// StoreOverlay layers an upper block store over a lower store.
+//
+// ctx is used for writeback requests
+type StoreOverlay struct {
+	ctx              context.Context
+	lower, upper     StoreOps
+	mode             OverlayMode
+	writebackTimeout time.Duration
+	writebackPutOpts *PutOpts
+}
+
+// NewOverlay constructs a new overlay store.
+//
+// ctx is used for writeback requests
+func NewOverlay(
+	ctx context.Context,
+	lower,
+	upper StoreOps,
+	mode OverlayMode,
+	writebackTimeout time.Duration,
+	writebackPutOpts *PutOpts,
+) *StoreOverlay {
+	return &StoreOverlay{
+		ctx:   ctx,
+		lower: lower,
+		upper: upper,
+		mode:  mode,
+
+		writebackTimeout: writebackTimeout,
+		writebackPutOpts: writebackPutOpts,
+	}
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (o *StoreOverlay) GetHashType() hash.HashType {
+	if v := o.upper.GetHashType(); v != 0 {
+		return v
+	}
+	return o.lower.GetHashType()
+}
+
+// GetBlock gets a block with the given reference.
+// The ref should not be modified or retained by GetBlock.
+// Returns data, found, error.
+// Returns nil, false, nil if not found.
+// Note: the block may not be in the specified bucket.
+func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	cacheMode := func(s1, s2 StoreOps, writeBack StoreOps) ([]byte, bool, error) {
+		// Try to get the block from the first store (s1)
+		data, found, err := s1.GetBlock(ctx, ref)
+		if err != nil || found {
+			return data, found, err
+		}
+
+		// If not found in s1, try to get it from the second store (s2)
+		data, found, err = s2.GetBlock(ctx, ref)
+		if err != nil || !found {
+			return data, found, err
+		}
+
+		// If found in s2 and writeback is enabled, write the block back to s1
+		if writeBack != nil && o.ctx.Err() == nil {
+			var writebackCtx context.Context
+			var writebackCtxCancel context.CancelFunc
+			if o.writebackTimeout > 0 {
+				writebackCtx, writebackCtxCancel = context.WithTimeout(o.ctx, o.writebackTimeout)
+			} else {
+				writebackCtx, writebackCtxCancel = context.WithCancel(o.ctx)
+			}
+
+			go func() {
+				// Prepare writeback options
+				putOpts := o.writebackPutOpts.CloneVT()
+				if putOpts == nil {
+					putOpts = &PutOpts{}
+				}
+				putOpts.ForceBlockRef = ref.Clone()
+
+				// Perform writeback asynchronously
+				_, _, _ = writeBack.PutBlock(writebackCtx, data, putOpts)
+				writebackCtxCancel()
+			}()
+		}
+		return data, true, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		// reads go to the upper store only.
+		return o.upper.GetBlock(ctx, ref)
+	case OverlayMode_LOWER_ONLY:
+		// reads go to the lower store only.
+		return o.lower.GetBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are written back to upper.
+		return cacheMode(o.upper, o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are written back to lower.
+		return cacheMode(o.lower, o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are not written back to upper.
+		return cacheMode(o.upper, o.lower, nil)
+	case OverlayMode_LOWER_READ_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are not written back to lower.
+		return cacheMode(o.lower, o.upper, nil)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are not written back to upper.
+		return cacheMode(o.upper, o.lower, nil)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are not written back to lower.
+		return cacheMode(o.lower, o.upper, nil)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are written back to upper.
+		return cacheMode(o.upper, o.lower, o.upper)
+	}
+}
+
+// GetBlockExists checks if a block exists with a cid reference.
+// The ref should not be modified or retained by GetBlock.
+// Note: the block may not be in the specified bucket.
+func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
+	cacheMode := func(primary, secondary StoreOps) (bool, error) {
+		found, err := primary.GetBlockExists(ctx, ref)
+		if err != nil || found {
+			return found, err
+		}
+		return secondary.GetBlockExists(ctx, ref)
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		// reads go to the upper store only.
+		return o.upper.GetBlockExists(ctx, ref)
+	case OverlayMode_LOWER_ONLY:
+		// reads go to the lower store only.
+		return o.lower.GetBlockExists(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
+	}
+}
+
+// StatBlock returns metadata about a block without reading its data.
+// Returns nil, nil if the block does not exist.
+func (o *StoreOverlay) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error) {
+	cacheMode := func(primary, secondary StoreOps) (*BlockStat, error) {
+		stat, err := primary.StatBlock(ctx, ref)
+		if err != nil || stat != nil {
+			return stat, err
+		}
+		return secondary.StatBlock(ctx, ref)
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return o.upper.StatBlock(ctx, ref)
+	case OverlayMode_LOWER_ONLY:
+		return o.lower.StatBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return cacheMode(o.upper, o.lower)
+	}
+}
+
+// PutBlock puts a block into the store.
+// The ref should not be modified after return.
+// The second return value can optionally indicate if the block already existed.
+// If the hash type is unset, use the type from GetHashType().
+func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	cacheMode := func(s1, s2 StoreOps) (*BlockRef, bool, error) {
+		ref, existed, err := s1.PutBlock(ctx, data, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		lowerOpts := opts.CloneVT()
+		lowerOpts.ForceBlockRef = ref
+		_, lowerExisted, err := s2.PutBlock(ctx, data, lowerOpts)
+		if err != nil {
+			return nil, false, err
+		}
+		return ref, existed && lowerExisted, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_ONLY:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_CACHE:
+		// writes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		// writes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_READ_CACHE:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// writes go to the upper store only (lower is read-only).
+		return o.upper.PutBlock(ctx, data, opts)
+	}
+}
+
+// PutBlockBatch writes a batch of blocks using the same target-store policy as
+// PutBlock.
+func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+	cacheMode := func(s1, s2 StoreOps) error {
+		if err := putBatchEntries(ctx, s1, entries); err != nil {
+			return err
+		}
+		return putBatchEntries(ctx, s2, entries)
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_LOWER_ONLY:
+		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_LOWER_READ_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return putBatchEntries(ctx, o.lower, entries)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return putBatchEntries(ctx, o.upper, entries)
+	}
+}
+
+// PutBlockBackground writes a block in the background using the same target-store
+// policy as PutBlock.
+func (o *StoreOverlay) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	cacheMode := func(s1, s2 StoreOps) (*BlockRef, bool, error) {
+		ref, existed, err := putBlockBackground(ctx, s1, data, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		lowerOpts := opts.CloneVT()
+		lowerOpts.ForceBlockRef = ref
+		_, lowerExisted, err := putBlockBackground(ctx, s2, data, lowerOpts)
+		if err != nil {
+			return nil, false, err
+		}
+		return ref, existed && lowerExisted, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_LOWER_ONLY:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_LOWER_READ_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return putBlockBackground(ctx, o.lower, data, opts)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return putBlockBackground(ctx, o.upper, data, opts)
+	}
+}
+
+// GetBlockExistsBatch checks block existence using the same read policy as GetBlockExists.
+func (o *StoreOverlay) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	cacheMode := func(primary, secondary StoreOps) ([]bool, error) {
+		out, err := getBlockExistsBatch(ctx, primary, refs)
+		if err != nil {
+			return nil, err
+		}
+
+		var missing []*BlockRef
+		var missingIdx []int
+		for i, found := range out {
+			if found {
+				continue
+			}
+			missing = append(missing, refs[i])
+			missingIdx = append(missingIdx, i)
+		}
+		if len(missing) == 0 {
+			return out, nil
+		}
+
+		secondaryOut, err := getBlockExistsBatch(ctx, secondary, missing)
+		if err != nil {
+			return nil, err
+		}
+		for i, found := range secondaryOut {
+			out[missingIdx[i]] = found
+		}
+		return out, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return getBlockExistsBatch(ctx, o.upper, refs)
+	case OverlayMode_LOWER_ONLY:
+		return getBlockExistsBatch(ctx, o.lower, refs)
+	case OverlayMode_UPPER_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		return cacheMode(o.upper, o.lower)
+	}
+}
+
+// RmBlock deletes a block from the bucket.
+// Does not return an error if the block was not present.
+// In some cases, will return before confirming delete.
+func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
+	cacheMode := func(primary, secondary StoreOps) error {
+		uerr := primary.RmBlock(ctx, ref)
+		lerr := secondary.RmBlock(ctx, ref)
+		if uerr != nil {
+			return uerr
+		}
+		return lerr
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		// removes go to the upper store only.
+		return o.upper.RmBlock(ctx, ref)
+	case OverlayMode_LOWER_ONLY:
+		// removes go to the lower store only.
+		return o.lower.RmBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_READ_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// removes go to the upper (write) store only.
+		return o.upper.RmBlock(ctx, ref)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READBACK_CACHE:
+		// removes go to the upper store only; lower lifecycle is external.
+		return o.upper.RmBlock(ctx, ref)
+	}
+}
+
+// BeginDeferFlush forwards to upper and lower stores that support deferred flushing.
+func (o *StoreOverlay) BeginDeferFlush() {
+	if df, ok := o.upper.(DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+	if df, ok := o.lower.(DeferFlushable); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush forwards to upper and lower stores that support deferred flushing.
+func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
+	var err error
+	if df, ok := o.upper.(DeferFlushable); ok {
+		err = df.EndDeferFlush(ctx)
+	}
+	if df, ok := o.lower.(DeferFlushable); ok {
+		if lerr := df.EndDeferFlush(ctx); lerr != nil && err == nil {
+			err = lerr
+		}
+	}
+	return err
+}
+
+func putBatchEntries(ctx context.Context, store StoreOps, entries []*PutBatchEntry) error {
+	if batcher, ok := store.(BatchPutStore); ok {
+		return batcher.PutBlockBatch(ctx, entries)
+	}
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := store.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, _, err := store.PutBlock(ctx, entry.Data, &PutOpts{
+			ForceBlockRef: entry.Ref.Clone(),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func putBlockBackground(ctx context.Context, store StoreOps, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	if bg, ok := store.(BackgroundPutStore); ok {
+		return bg.PutBlockBackground(ctx, data, opts)
+	}
+	return store.PutBlock(ctx, data, opts)
+}
+
+func getBlockExistsBatch(ctx context.Context, store StoreOps, refs []*BlockRef) ([]bool, error) {
+	if batcher, ok := store.(BatchExistsStore); ok {
+		return batcher.GetBlockExistsBatch(ctx, refs)
+	}
+
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := store.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
+// _ is a type assertion
+var (
+	_ StoreOps           = ((*StoreOverlay)(nil))
+	_ BatchExistsStore   = ((*StoreOverlay)(nil))
+	_ BatchPutStore      = ((*StoreOverlay)(nil))
+	_ BackgroundPutStore = ((*StoreOverlay)(nil))
+	_ DeferFlushable     = ((*StoreOverlay)(nil))
+)

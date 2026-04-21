@@ -1,0 +1,22 @@
+syntax = "proto3";
+package block.store.bucket;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// Config configures the block-store backed bucket controller.
+//
+// Exposes a statically configured bucket against a block store by id.
+message Config {
+  // BlockStoreId configures the block store to use for blocks.
+  // uses LookupBlockStore to lookup the block store on the bus.
+  string block_store_id = 1;
+  // BucketConfig is the bucket config to expose on the bus and back with the block store.
+  .bucket.Config bucket_config = 2;
+
+  // BucketStoreId configures the store id to use when filtering BuildBucketAPI directives.
+  // If unset, defaults to the block_store_id.
+  string bucket_store_id = 3;
+  // NotFoundIfIdle returns a not found error if the block store was not found.
+  // If unset, waits until the block store is available.
+  bool not_found_if_idle = 4;
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bucket.mock;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// Root is the root of the mock structure.
+message Root {
+  // ExamplePtr is an example reference to a block mock Root.
+  .bucket.ObjectRef example_ptr = 1;
+}

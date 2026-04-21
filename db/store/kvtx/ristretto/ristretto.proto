@@ -1,0 +1,38 @@
+syntax = "proto3";
+package store.kvtx.ristretto;
+
+// Config configures the ristretto cache.
+message Config {
+  // NumCounters is the number of 4-bit access counters to keep for admission and eviction.
+  //
+  // This should be 10x the number of items you expect to keep in the cache when full.
+  //
+  // For example, if you expect each item to have a cost of 1 and MaxCost is
+  // 100, set NumCounters to 1,000. Or, if you use variable cost values but
+  // expect the cache to hold around 10,000 items when full, set NumCounters to
+  // 100,000. The important thing is the number of unique items in the full
+  // cache, not necessarily the MaxCost value.
+  //
+  // If unset (zero) defaults to 100,000.
+  uint64 num_counters = 1;
+  // MaxCost is the maximum storage size in bytes of the cache.
+  //
+  // For example, if MaxCost is 1,000,000 (1MB) and the cache is full with 1,000
+  // 1KB items, a new item (that's accepted) would cause 5 1KB items to be
+  // evicted.
+  //
+  // If unset (zero) defaults to 1GB (1e9).
+  uint64 max_cost = 2;
+  // BufferItems is the size of the Get buffers.
+  //
+  // If for some reason you see Get performance decreasing with lots of
+  // contention, try increasing this value in increments of 64. This is a
+  // fine-tuning mechanism and you probably won't have to touch this.
+  //
+  // If unset (zero) defaults to 64.
+  uint32 buffer_items = 3;
+  // TtlDur is the time to live duration.
+  // If empty or zero has no ttl.
+  // Example: 1m
+  string ttl_dur = 4;
+}

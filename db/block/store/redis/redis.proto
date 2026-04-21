@@ -1,0 +1,32 @@
+syntax = "proto3";
+package block.store.redis;
+
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+import "github.com/s4wave/spacewave/db/store/kvtx/redis/redis.proto";
+
+// Config configures the Redis block store controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Client configures the redis client.
+  .store.kvtx.redis.ClientConfig client = 2;
+  // KvKeyOpts are key/value key constants.
+  // Optional.
+  .store.kvkey.Config kv_key_opts = 3;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 4;
+  // DisableHashGet disables hashing values for Get requests.
+  // This improves performance if the underlying store is trusted & consistent.
+  //
+  // If the store may return invalid data or mismatch the requested block ref,
+  // do not enable this option. It is important to hash the data for each read.
+  bool disable_hash_get = 8;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 5;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 6;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 7;
+}

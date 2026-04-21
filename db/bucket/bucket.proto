@@ -1,0 +1,96 @@
+syntax = "proto3";
+package bucket;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+import "google/protobuf/timestamp.proto";
+
+// Config is a bucket configuration object.
+message Config {
+  // Id is the bucket identifier.
+  string id = 1;
+  // Rev is the configuration rev.
+  // increment by 1 on modification
+  uint32 rev = 2;
+  // Reconcilers contains the list of bucket reconcilers.
+  repeated ReconcilerConfig reconcilers = 3;
+  // PutOpts are the default put options for the bucket.
+  .block.PutOpts put_opts = 4;
+  // Lookup controls the lookup confiuration.
+  LookupConfig lookup = 5;
+  // TODO: block size limit?
+}
+
+// BucketInfo is general information about a bucket.
+message BucketInfo {
+  // Config contains the current latest bucket configuration.
+  Config config = 1;
+}
+
+// ReconcilerConfig configures a reconciler.
+message ReconcilerConfig {
+  // Id contains the reconciler id.
+  string id = 1;
+  // Controller contains the controller configuration.
+  .configset.proto.ControllerConfig controller = 2;
+  // FilterPut disables receiving put events.
+  bool filter_put = 3;
+}
+
+// LookupConfig configures the bucket behavior across multiple volumes.
+message LookupConfig {
+  // Disble indicates we should not service cross-volume calls against this
+  // bucket.
+  bool disable = 1;
+  // Controller contains the lookup controller configuration.
+  // If unset, will default to the node-default lookup controller.
+  // If disabled, this field will be ignored.
+  .configset.proto.ControllerConfig controller = 2;
+}
+
+// ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.
+message ApplyBucketConfigResult {
+  // VolumeId is the volume ID for this apply event.
+  string volume_id = 1;
+	// BucketId returns the bucket ID for this apply event.
+	string bucket_id = 2;
+	// BucketConf returns the bucket configuration applied.
+	Config bucket_conf = 3;
+	// OldBucketConf returns the previous bucket configuration.
+	Config old_bucket_conf = 4;
+	// Timestamp returns the timestamp of the event.
+  google.protobuf.Timestamp timestamp = 5;
+  // Updated indicates if the value was updated.
+  bool updated = 6;
+  // Error contains any error applying the value.
+  // Note: all other values might be empty if this is set.
+  string error = 7;
+}
+
+// ObjectRef is a reference that may contain a transformation config reference
+// and/or a bucket ID change.
+//
+//protobuf-go-lite:disable-json
+message ObjectRef {
+  // RootRef is the root block ref.
+  .block.BlockRef root_ref = 1;
+  // BucketId is the bucket id, if switching buckets.
+  // May be empty to indicate same bucket.
+  string bucket_id = 2;
+  // TransformConfRef is the transformation configuration block ref.
+  // Must be encoded with the same transformation config as the parent.
+  // May be empty to indicate same conf as parent.
+  .block.BlockRef transform_conf_ref = 3;
+  // TransformConf is an in-line transform configuration.
+  .block.transform.Config transform_conf = 4;
+}
+
+// BucketOpArgs are common arguments for a bucket operation.
+message BucketOpArgs {
+  // BucketId is the bucket ID to operate on.
+  string bucket_id = 1;
+  // VolumeId is the volume ID to operate on.
+  // If empty, will use the lookup controller.
+  string volume_id = 2;
+}

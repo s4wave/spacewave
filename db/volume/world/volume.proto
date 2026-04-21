@@ -1,0 +1,53 @@
+syntax = "proto3";
+package volume.world;
+
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the World Object block-graph backed hydra volume config.
+message Config {
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 1;
+  // Verbose will log all operations to the logger for debugging.
+  bool verbose = 2;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 3;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 4;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is not already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, returns an error.
+  bool no_generate_key = 5;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 11;
+
+  // InitHeadRef is the reference to the initial HEAD state of the volume.
+  // If the object does not exist, uses this reference to initialize it.
+  .bucket.ObjectRef init_head_ref = 6;
+
+  // EngineId is the world engine to attach to for reading/writing state.
+  string engine_id = 7;
+  // ObjectKey is the BlockVolume object to attach to.
+  // If not exists, waits for it to exist.
+  string object_key = 8;
+  // BucketId is the bucket id to attach to for reading/writing state.
+  // If set, overrides the bucket id from init_head_ref and the state.
+  // If unset, the bucket id is determined from head_ref.
+  string bucket_id = 9;
+  // VolumeId is the volume id to attach to for reading/writing data.
+  // If unset, init_head_ref must be set, and the volume will be read-only.
+  string volume_id = 10;
+
+  // TODO BlockPassthrough enables reading/writing blocks and buckets directly
+  // to the underlying Volume specified by volume_id. At startup, all bucket
+  // configs are synchronized with the parent volume: upon bucket ID collision,
+  // the config with the higher revision ID is kept.
+}

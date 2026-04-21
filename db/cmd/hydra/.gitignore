@@ -1,0 +1,6 @@
+hydra
+data/
+*.pem
+hydra.exe
+data.boltdb
+__debug_bin

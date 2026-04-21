@@ -1,0 +1,20 @@
+syntax = "proto3";
+package block.store.rpc.lookup;
+
+// Config configures the rpc block lookup controller.
+// Serves LookupBlockFromNetwork directives by calling a rpc api.
+// Executes a LookupRpcClient directive to build the rpc client.
+message Config {
+  // BucketId is the bucket id to serve lookups for.
+  string bucket_id = 1;
+  // ServiceId is the service id to lookup with LookupRpcClient.
+  // Cannot be empty.
+  string service_id = 2;
+  // ClientId is the client id to use with LookupRpcClient.
+  // Can be empty.
+  string client_id = 3;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 4;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 5;
+}

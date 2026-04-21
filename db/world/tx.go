@@ -1,0 +1,13 @@
+package world
+
+import "github.com/s4wave/spacewave/db/tx"
+
+// Tx implements the world state transaction interfaces.
+//
+// Concurrent calls to WorldState functions should be supported.
+type Tx interface {
+	// WorldState contains the world read/write ops.
+	WorldState
+	// Tx contains the transaction Commit/Discard ops.
+	tx.Tx
+}

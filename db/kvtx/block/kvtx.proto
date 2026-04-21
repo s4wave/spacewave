@@ -1,0 +1,23 @@
+syntax = "proto3";
+package kvtx.block;
+
+import "github.com/s4wave/spacewave/db/kvtx/block/iavl/iavl.proto";
+
+// KeyValueStore is the root of a Key-Value Transaction store.
+// Allows for multiple options of underlying block structures.
+message KeyValueStore {
+  // ImplType is the key value implementation type.
+  KVImplType impl_type = 1;
+
+  // IavlRoot is the root node for the iavl tree.
+  // KV_IMPL_TYPE_IAVL
+  .kvtx.block.iavl.Node iavl_root = 2;
+}
+
+// KVImplType is the key/value store implementation enum.
+enum KVImplType {
+  // KEY_VALUE_IMPL_UNKNOWN is the zero value.
+  KV_IMPL_TYPE_UNKNOWN = 0;
+  // KEY_VALUE_IMPL_IAVL is the immutable avl tree value.
+  KV_IMPL_TYPE_IAVL = 1;
+}

@@ -1,0 +1,49 @@
+cli-bolt-volume-0:
+  id: hydra/volume/bolt
+  config:
+    path: ./data.boltdb
+    volumeConfig:
+      volumeIdAlias:
+      - default
+dex:
+  id: hydra/dex/psecho
+  config:
+    bucketId: example-bucket-1
+    pubsubChannel: example-psecho-1-ch
+pubsub:
+  id: bifrost/floodsub
+  config: {}
+udp:
+  id: bifrost/udp
+  config:
+    dialers: {}
+    listenAddr: :5112
+example-bucket:
+  id: hydra/bucket/setup
+  config:
+    applyBucketConfigs:
+    - config:
+        id: example
+      # volumeIdRe: .*
+      volumeIdList: ["default"]
+example-world:
+  id: hydra/world/block/engine
+  config:
+    engineId: example
+    bucketId: example
+    volumeId: default
+    objectStoreId: example
+    # disableChangelog: true
+    verbose: true
+    initHeadRef:
+      transformConf:
+        steps:
+        # s2 compression
+        - id: hydra/transform/s2
+        # encryption
+        - id: hydra/transform/blockenc
+          config:
+            blockEnc: BlockEnc_XCHACHA20_POLY1305
+            # generate with: bifrost util generate-crypto-key
+            # note: do not re-use this key: it's an example only!
+            key: O95dmfL2ERfqumuWNXycpucs2E/RxCR3QeWi20lotaU=

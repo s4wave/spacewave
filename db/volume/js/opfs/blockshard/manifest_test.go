@@ -1,0 +1,187 @@
+package blockshard
+
+import (
+	"encoding/binary"
+	"hash/crc32"
+	"testing"
+)
+
+func TestManifestRoundTrip(t *testing.T) {
+	m := &Manifest{
+		Generation: 42,
+		Segments: []SegmentMeta{
+			{
+				Filename:   "seg-000001.sst",
+				EntryCount: 100,
+				Size:       4096,
+				Level:      0,
+				MinKey:     []byte("aaa"),
+				MaxKey:     []byte("mmm"),
+			},
+			{
+				Filename:   "seg-000002.sst",
+				EntryCount: 200,
+				Size:       8192,
+				Level:      1,
+				MinKey:     []byte("nnn"),
+				MaxKey:     []byte("zzz"),
+			},
+		},
+		PendingDelete: []RetiredSegmentMeta{
+			{
+				SegmentMeta: SegmentMeta{
+					Filename:   "seg-000000.sst",
+					EntryCount: 50,
+					Size:       2048,
+					Level:      0,
+					MinKey:     []byte("aa0"),
+					MaxKey:     []byte("aaz"),
+				},
+				RetireGeneration:     41,
+				DeleteAfterUnixMilli: 123456789,
+			},
+		},
+	}
+
+	data := m.Encode()
+	m2, err := DecodeManifest(data)
+	if err != nil {
+		t.Fatalf("DecodeManifest: %v", err)
+	}
+
+	if m2.Generation != 42 {
+		t.Errorf("generation: got %d, want 42", m2.Generation)
+	}
+	if len(m2.Segments) != 2 {
+		t.Fatalf("segments: got %d, want 2", len(m2.Segments))
+	}
+
+	s := m2.Segments[0]
+	if s.Filename != "seg-000001.sst" {
+		t.Errorf("seg 0 filename: %q", s.Filename)
+	}
+	if s.EntryCount != 100 || s.Size != 4096 || s.Level != 0 {
+		t.Errorf("seg 0 meta: count=%d size=%d level=%d", s.EntryCount, s.Size, s.Level)
+	}
+	if string(s.MinKey) != "aaa" || string(s.MaxKey) != "mmm" {
+		t.Errorf("seg 0 keys: min=%q max=%q", s.MinKey, s.MaxKey)
+	}
+
+	s = m2.Segments[1]
+	if s.Filename != "seg-000002.sst" || s.Level != 1 {
+		t.Errorf("seg 1: filename=%q level=%d", s.Filename, s.Level)
+	}
+
+	if len(m2.PendingDelete) != 1 {
+		t.Fatalf("pending delete: got %d, want 1", len(m2.PendingDelete))
+	}
+	retired := m2.PendingDelete[0]
+	if retired.Filename != "seg-000000.sst" {
+		t.Errorf("retired filename: %q", retired.Filename)
+	}
+	if retired.RetireGeneration != 41 {
+		t.Errorf("retired generation: got %d, want 41", retired.RetireGeneration)
+	}
+	if retired.DeleteAfterUnixMilli != 123456789 {
+		t.Errorf("delete-after: got %d, want 123456789", retired.DeleteAfterUnixMilli)
+	}
+}
+
+func TestManifestEmpty(t *testing.T) {
+	m := &Manifest{Generation: 1}
+	data := m.Encode()
+	m2, err := DecodeManifest(data)
+	if err != nil {
+		t.Fatalf("DecodeManifest: %v", err)
+	}
+	if m2.Generation != 1 || len(m2.Segments) != 0 {
+		t.Errorf("got gen=%d segs=%d", m2.Generation, len(m2.Segments))
+	}
+	if len(m2.PendingDelete) != 0 {
+		t.Errorf("got pending=%d, want 0", len(m2.PendingDelete))
+	}
+}
+
+func TestManifestCRCCorruption(t *testing.T) {
+	m := &Manifest{
+		Generation: 1,
+		Segments:   []SegmentMeta{{Filename: "x.sst", EntryCount: 1, Size: 10}},
+	}
+	data := m.Encode()
+	data[ManifestHeaderSize+2] ^= 0xFF // corrupt filename
+	_, err := DecodeManifest(data)
+	if err == nil {
+		t.Fatal("expected CRC error")
+	}
+}
+
+func TestPickManifest(t *testing.T) {
+	a := &Manifest{Generation: 5, Segments: []SegmentMeta{{Filename: "a.sst"}}}
+	b := &Manifest{Generation: 10, Segments: []SegmentMeta{{Filename: "b.sst"}}}
+
+	result := PickManifest(a.Encode(), b.Encode())
+	if result == nil {
+		t.Fatal("PickManifest returned nil")
+	}
+	if result.Generation != 10 {
+		t.Errorf("got gen %d, want 10", result.Generation)
+	}
+
+	// One corrupt: pick the valid one.
+	corrupt := []byte("garbage")
+	result = PickManifest(corrupt, b.Encode())
+	if result == nil || result.Generation != 10 {
+		t.Fatal("should pick b when a is corrupt")
+	}
+
+	result = PickManifest(a.Encode(), corrupt)
+	if result == nil || result.Generation != 5 {
+		t.Fatal("should pick a when b is corrupt")
+	}
+
+	// Both corrupt.
+	result = PickManifest(corrupt, corrupt)
+	if result != nil {
+		t.Fatal("should return nil when both corrupt")
+	}
+}
+
+func TestDecodeManifestVersion1(t *testing.T) {
+	m := &Manifest{Generation: 7, Segments: []SegmentMeta{{Filename: "x.sst", EntryCount: 1}}}
+	data := m.Encode()
+	binary.BigEndian.PutUint16(data[4:6], manifestVersion1)
+	data = append(data[:ManifestHeaderSize+4], data[ManifestHeaderSize+8:]...)
+	crc := crc32.ChecksumIEEE(data[:len(data)-4])
+	binary.BigEndian.PutUint32(data[len(data)-4:], crc)
+	m2, err := DecodeManifest(data)
+	if err != nil {
+		t.Fatalf("DecodeManifest(version1): %v", err)
+	}
+	if m2.Generation != 7 || len(m2.Segments) != 1 {
+		t.Fatalf("decoded wrong manifest: gen=%d segs=%d", m2.Generation, len(m2.Segments))
+	}
+	if len(m2.PendingDelete) != 0 {
+		t.Fatalf("pending delete: got %d, want 0", len(m2.PendingDelete))
+	}
+}
+
+func TestManifestReferencedFilesIncludesPendingDelete(t *testing.T) {
+	m := &Manifest{
+		Segments: []SegmentMeta{
+			{Filename: "live.sst"},
+		},
+		PendingDelete: []RetiredSegmentMeta{
+			{SegmentMeta: SegmentMeta{Filename: "retired.sst"}},
+		},
+	}
+	refs := m.ReferencedFiles()
+	if _, ok := refs["live.sst"]; !ok {
+		t.Fatal("missing active segment reference")
+	}
+	if _, ok := refs["retired.sst"]; !ok {
+		t.Fatal("missing pending-delete reference")
+	}
+	if len(refs) != 2 {
+		t.Fatalf("ref count: got %d want 2", len(refs))
+	}
+}

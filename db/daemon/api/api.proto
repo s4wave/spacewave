@@ -1,0 +1,147 @@
+syntax = "proto3";
+package hydra.api;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/bucket/event/event.proto";
+import "github.com/s4wave/spacewave/db/volume/volume.proto";
+
+// Config is hydra api configuration.
+message Config {
+}
+
+// ListVolumesRequest looks up volumes.
+message ListVolumesRequest {
+}
+
+// ListVolumesResponse returns volumes.
+message ListVolumesResponse {
+  // Volumes is the list of volumes returned from the request.
+  repeated .volume.VolumeInfo volumes = 1;
+}
+
+// ListBucketsResponse returns buckets.
+message ListBucketsResponse {
+  // Buckets is the list of buckets returned from the request.
+  repeated .volume.VolumeBucketInfo buckets = 1;
+}
+
+// ApplyBucketConfigRequest requests to apply a bucket config to volumes.
+message ApplyBucketConfigRequest {
+  // Config is the bucket config.
+  .bucket.Config config = 1;
+  // VolumeIdRe is a regex string to match volume IDs.
+  // Set to '.*' to match all volumes.
+  // If empty, will update volumes that already have the config only.
+	// If VolumeIDList is set, it will override this field.
+	// Cannot be specified if VolumeIDList is set.
+  string volume_id_re = 2;
+  // VolumeIdList is a list of volume IDs to match.
+	// Cannot be specified if VolumeIDRe is set.
+  repeated string volume_id_list = 3;
+}
+
+// ApplyBucketConfigResponse returns results of the request.
+message ApplyBucketConfigResponse {
+  // ApplyConfResult is a result value for the application.
+  .bucket.ApplyBucketConfigResult apply_conf_result = 1;
+}
+
+// BucketOp is a bucket operation.
+enum BucketOp {
+  BucketOp_UNKNOWN = 0;
+  BucketOp_BLOCK_GET = 1;
+  BucketOp_BLOCK_PUT = 2;
+  BucketOp_BLOCK_RM  = 3;
+}
+
+message BucketOpRequest {
+  // Op is the operation to perform against the bucket.
+  BucketOp op = 1;
+  // BucketOpArgs are common bucket operation arguments.
+  .bucket.BucketOpArgs bucket_op_args = 2;
+
+  // BlockRef is the block ref to lookup.
+  // Used when op == BLOCK_GET || op == BLOCK_RM
+  .block.BlockRef block_ref = 3;
+
+  // PutOpts are overriding put options.
+  // Defaults are specified by the bucket.
+  // Used when op == BLOCK_PUT
+  .block.PutOpts put_opts = 4;
+  // Data is the data to put in the block.
+  // May be constrained by the bucket block size limit.
+  // Used when op == BLOCK_PUT
+  bytes data = 5;
+}
+
+// BucketOpResponse is the response type for BucketOp.
+message BucketOpResponse {
+  // Event is the bucket event, if any.
+  // Used when op == BLOCK_PUT
+  .bucket.event.Event event = 1;
+  // Data is the returned data, if any.
+  // Used when op == BLOCK_GET
+  bytes data = 2;
+  // Found indicates if the data field is filled.
+  // Used when op == BLOCK_GET
+  bool found = 3;
+}
+
+// ObjectStoreOp is a object store operation.
+enum ObjectStoreOp {
+  ObjectStoreOp_UNKNOWN = 0;
+  // ObjectStoreOp_GET_KEY gets a key.
+  ObjectStoreOp_GET_KEY = 1;
+  // ObjectStoreOp_PUT_KEY sets a key.
+  ObjectStoreOp_PUT_KEY = 2;
+  // ObjectStoreOp_LIST_KEYS lists keys by a prefix.
+  ObjectStoreOp_LIST_KEYS = 3;
+  // ObjectStoreOp_DELETE_KEY deletes a key.
+  ObjectStoreOp_DELETE_KEY = 4;
+}
+
+
+// ObjectStoreOpRequest is the object store operation request.
+message ObjectStoreOpRequest {
+  // Op is the operation to perform against the bucket.
+  ObjectStoreOp op = 1;
+  // VolumeId is the volume id.
+  string volume_id = 2;
+  // StoreName is the object store name.
+  string store_name = 3;
+  // Key is the key to get, put, or delete.
+  // Field is the prefix if a list request.
+  string key = 4;
+  // Data is the data to put.
+  // May be constrained by a size limit.
+  // Used when op == PUT_KEY
+  bytes data = 5;
+}
+
+// ObjectStoreOpResponse is the response type for ObjectStoreOp.
+message ObjectStoreOpResponse {
+  // Data is the returned data, if any.
+  // Used when op == BLOCK_GET
+  bytes data = 1;
+  // Found indicates if the data field is filled.
+  // Used when op == BLOCK_GET
+  bool found = 2;
+  // Keys are the output keys from the list call.
+  repeated bytes keys = 3;
+}
+
+
+// HydraDaemonService is the control service for a daemon, contacted by the CLI.
+service HydraDaemonService {
+  // ListVolumes lists volumes by the daemon.
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
+  // ListBuckets lists buckets by the daemon.
+  rpc ListBuckets(.volume.ListBucketsRequest) returns (ListBucketsResponse) {}
+  // ApplyBucketConfig applies a bucket config to volumes.
+  rpc ApplyBucketConfig(ApplyBucketConfigRequest) returns (stream ApplyBucketConfigResponse) {}
+  // BucketOp performs a bucket operation.
+  rpc BucketOp(BucketOpRequest) returns (BucketOpResponse) {}
+  // ObjectStoreOp performs an object store operation.
+  rpc ObjectStoreOp(ObjectStoreOpRequest) returns (ObjectStoreOpResponse) {}
+}

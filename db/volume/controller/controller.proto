@@ -1,0 +1,40 @@
+syntax = "proto3";
+package volume.controller;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// Config configures the generic volume controller.
+message Config {
+  // DisableEventBlockRm disables the block removed event.
+  //
+  // Optimization: skips exists() and mqueue write() on delete.
+  bool disable_event_block_rm = 1;
+  // VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids.
+  repeated string volume_id_alias = 2;
+  // DisableReconcilerQueues disables waking filled reconciler queues.
+  bool disable_reconciler_queues = 3;
+  // DisablePeer disables loading the peer controller from the volume.
+  bool disable_peer = 4;
+  // DisableLookupBlockStore disables resolving LookupBlockStore when using the
+  // volume ID for the store_id field.
+  bool disable_lookup_block_store = 7;
+
+  // BlockStoreId configures using a separate block store for blocks.
+  // uses LookupBlockStore to lookup the block store on the bus.
+  string block_store_id = 5;
+  // BlockStoreOverlayMode indicates the mode to use for the block store.
+  // The volume is the lower store, the block store is the upper store.
+  // Does nothing if block_store_id is empty.
+  .block.OverlayMode block_store_overlay_mode = 6;
+  // BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.
+  // If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+  // Example: 30s
+  string block_store_writeback_timeout_dur = 8;
+  // BlockStoreWritebackPutOpts are the base put options for writing back blocks.
+  // If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+  .block.PutOpts block_store_writeback_put_opts = 9;
+  // GcIntervalDur is the interval between GC sweeps.
+  // Default: 1m. Set to 0s to disable periodic GC.
+  // Example: 1m
+  string gc_interval_dur = 10;
+}

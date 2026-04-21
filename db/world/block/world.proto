@@ -1,0 +1,135 @@
+syntax = "proto3";
+package world.block;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/bloom/bloom.proto";
+import "github.com/s4wave/spacewave/db/block/filters/filters.proto";
+import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
+import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "google/protobuf/timestamp.proto";
+
+// World contains a key/value Object store, and a graph database with quads
+// <subject, predicate, object, value>. Optionally a 2D changelog is used for
+// efficient change detection without needing to download every change.
+message World {
+  // ObjectKeyValue is the key/value tree of objects.
+  // Key: string
+  // Value: cid.BlockRef -> Object
+  .kvtx.block.KeyValueStore object_key_value = 1;
+  // GraphKeyValue is the key/value tree storing the graph.
+  // k/v structure managed by cayley graph kvtx implementation
+  // Value: cid.BlockRef -> Quad
+  .kvtx.block.KeyValueStore graph_key_value = 2;
+  // LastChange is the current head of the changelog linked list.
+  // If seqno == 0, this field is empty.
+  ChangeLogLL last_change = 3;
+  // LastChangeDisable indicates the changelog is disabled for this world.
+  // If set, last_change will be empty, except for the seqno field.
+  // NOTE: the seqno field will not be empty on LastChange.
+  bool last_change_disable = 4;
+  // GcGraph is the gc reference graph key/value store.
+  // Stores gc/ref quads for garbage collection of unreferenced blocks.
+  .kvtx.block.KeyValueStore gc_graph = 5;
+  // GcJournal is the deferred GC journal key/value store.
+  // Stores pending ref edge batches that are reconciled into gc_graph later.
+  .kvtx.block.KeyValueStore gc_journal = 6;
+}
+
+// Object is an atomic unit for a object in a World graph.
+message Object {
+  // Key is the unique Object key.
+  string key = 1;
+  // RootRef is the block ref to the root of the object structure.
+  // Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
+  .bucket.ObjectRef root_ref = 2;
+  // Rev is the revision nonce of the object.
+  // Incremented when a transaction is applied to the object.
+  // Incremented when root_ref is changed (SetRootRef).
+  // Incremented when adding or removing a graph quad referencing Object.
+  uint64 rev = 3;
+}
+
+// WorldChange is an entry in the changelog.
+// A transaction may convert into multiple changes.
+message WorldChange {
+  // ChangeType is the type of change this is.
+  WorldChangeType change_type = 1;
+  // Key is the associated key of the change.
+  // May be a key prefix, depending on change type.
+  // If a Graph transaction, this will be empty.
+  string key = 2;
+  // Quad is the associated graph quad of the change.
+  // If a Object transaction, this will be empty.
+  .quad.Quad quad = 3;
+
+  // TransactionRef is the reference to the associated transaction.
+  // This is transparent to the core World code.
+  .block.BlockRef transaction_ref = 4;
+  // ObjectRef is the reference to the associated Object block.
+  // Empty for graph operations.
+  .block.BlockRef object_ref = 5;
+  // PrevObjectRef is the reference to the associated previous Object block.
+  // If set, this will be the old object.
+  // If deleted, this will be the object just before deletion.
+  // Empty for graph operations.
+  .block.BlockRef prev_object_ref = 6;
+  // ObjectRev is the updated revision of the Object.
+  // If a Graph transaction, this will be empty.
+  uint64 object_rev = 7;
+}
+
+// WorldChangeType is the list of possible change types for the world.
+enum WorldChangeType {
+  WorldChange_INVALID = 0;
+
+  WorldChange_OBJECT_SET = 1;
+  WorldChange_OBJECT_INC_REV = 2;
+  WorldChange_OBJECT_DELETE = 3;
+
+  // WorldChange_GRAPH_SET is fired when setting a graph quad.
+  WorldChange_GRAPH_SET = 5;
+  // WorldChange_GRAPH_DELETE is fired when deleting a graph quad.
+  WorldChange_GRAPH_DELETE = 6;
+}
+
+// WorldChangeLL is a linked-list of world change batches.
+message WorldChangeLL {
+  // Height is the index in the batch linked-list.
+  // The first change in the set is at height=0.
+  uint32 height = 1;
+  // PrevRef is the reference to the previous WorldChangeLL in the linked list.
+  // If height == 0, this field must be empty.
+  .block.BlockRef prev_ref = 2;
+  // TotalSize is len(changes) + total_size of prev node in list.
+  uint32 total_size = 3;
+  // Changes is the set of changes in the world change batch.
+  // Changes are added until the batch reaches the target batch size.
+  repeated WorldChange changes = 4;
+}
+
+// ChangeLogLL is a world change log linked-list entry.
+// The size of a ChangeLogLL entry is capped to 1MiB, targeting 512KiB.
+message ChangeLogLL {
+  // Seqno is the world sequence number after this changeset is applied.
+  uint64 seqno = 1;
+  // PrevRef is the reference to the previous change.
+  // If seqno <= 1, this must be empty.
+  .block.BlockRef prev_ref = 2;
+  // ChangeBatch is the world change batch linked-list first node.
+  // Linked-list is used to reduce the size of changelog entries.
+  // The HEAD of the ChangeLogLL is limited to 5 embedded changes.
+  // The nodes of the ChangeLogLL are limited to 2048 entries (~512KiB).
+  WorldChangeLL change_batch = 3;
+  // ChangeType is the type of change applied.
+  // If there are multiple changes, they will all be of this type.
+  WorldChangeType change_type = 4;
+  // KeyFilters contains filters to quickly check if a key was affected.
+  // Bloom capacity is the object key count before changes are applied.
+  // Bloom capacity: min 64 (38bytes), max 500k (300KiB).
+  // Bloom false-negative rate 0%, false-positive rate ~10%.
+  // Key prefix false-negative rate depends on common prefix of ops.
+  // Should be used as a changelog filter for watchers.
+  // If change_batch.prev_ref is empty, this field will also be empty.
+  .filters.KeyFilters key_filters = 5;
+}

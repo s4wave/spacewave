@@ -1,0 +1,53 @@
+syntax = "proto3";
+package volume;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+import "github.com/aperturerobotics/controllerbus/controller/controller.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// VolumeInfo contains basic information about a volume.
+message VolumeInfo {
+  // VolumeId is the volume ID as determined by the controller.
+  string volume_id = 1;
+  // PeerId is the peer ID of the volume.
+  string peer_id = 2;
+  // PeerPub is the pem public key of the volume.
+  string peer_pub = 3;
+  // ControllerInfo is information about the volume controller.
+  // Note: may be empty.
+  .controller.Info controller_info = 4;
+  // HashType is the default block hash type to use for blocks.
+  // If unset (0 value) will use default for Hydra (BLAKE3).
+  .hash.HashType hash_type = 5;
+}
+
+// StorageStats contains storage usage statistics for a volume.
+message StorageStats {
+  // TotalBytes is the total storage size in bytes.
+  uint64 total_bytes = 1;
+  // BlockCount is the number of blocks stored.
+  uint64 block_count = 2;
+}
+
+// VolumeBucketInfo is information about a bucket in a volume.
+message VolumeBucketInfo {
+  // BucketInfo is the bucket information.
+  bucket.BucketInfo bucket_info = 1;
+  // VolumeInfo is the volume containing the bucket instance.
+  VolumeInfo volume_info = 2;
+}
+
+// ListBucketsRequest is a list buckets directive in proto form.
+message ListBucketsRequest {
+  // BucketId limits information to a specific bucket.
+  // Can be empty.
+  string bucket_id = 1;
+  // VolumeIdRe limits to specific volumes by regex.
+	// Can be empty.
+	// Cannot be specified if VolumeIDList is set.
+  string volume_id_re = 2;
+	// VolumeIdList returns a specific list of volumes to list.
+	// If empty, uses the VolumeIDRe field instead.
+	// Cannot be specified if VolumeIDRe is set.
+  repeated string volume_id_list = 3;
+}

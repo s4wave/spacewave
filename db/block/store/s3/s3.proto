@@ -1,0 +1,54 @@
+syntax = "proto3";
+package block.store.s3;
+
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// Config configures the s3 block store controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Client configures the s3 client.
+  ClientConfig client = 2;
+  // BucketName is the s3 bucket name to use.
+  string bucket_name = 3;
+  // ObjectPrefix is the prefix to use for object names.
+  // Object name: {objectPrefix}{blockRefB58}
+  string object_prefix = 4;
+  // ReadOnly disables writing to the s3 store.
+  bool read_only = 5;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 6;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 7;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 8;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 9;
+}
+
+// ClientConfig configures the s3 client.
+// Supports any s3-compatible object store.
+message ClientConfig {
+  // Endpoint is the endpoint to access the s3 api.
+  string endpoint = 1;
+  // Credentials contains the authentication creds.
+  Credentials credentials = 2;
+  // DisableSsl disables using SSL to access the api.
+  // If false, uses ssl.
+  bool disable_ssl = 3;
+  // Region is the name of the region to use.
+  // Can be empty.
+  string region = 4;
+}
+
+// Credentials are credentials for a s3-compatible api.
+message Credentials {
+  // AccessKeyId is the authentication access key id.
+  string access_key_id = 1;
+  // SecretAccessKey is the secret access key corresponding to the access key id.
+  string secret_access_key = 2;
+  // Token is the token to use.
+  // Usually empty.
+  string token = 3;
+}

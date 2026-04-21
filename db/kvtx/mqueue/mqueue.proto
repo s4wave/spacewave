@@ -1,0 +1,32 @@
+syntax = "proto3";
+package kvtx.mqueue;
+
+import "google/protobuf/timestamp.proto";
+
+// Config is additional optional configuration for the kv mqueue.
+message Config {
+  // PollDur is the duration between polling checks.
+  //
+  // Default: don't poll, assume we are the only writer.
+  // Wait will wait until Push is called on the same instance.
+  // A Peek() check while waiting can be triggered by code.
+  string poll_dur = 1;
+}
+
+// MQQueueMeta is queue metadata.
+message MQQueueMeta {
+  // Head is the head position.
+  uint64 head = 1;
+  // Tail is the tail position.
+  uint64 tail = 2;
+  // Meta is any extra key/value metadata.
+  map<string, string> meta = 3;
+}
+
+// MQMessageWrapper is the message wrapper used to store data.
+message MQMessageWrapper {
+  // Timestamp is the message timestamp.
+  google.protobuf.Timestamp timestamp = 1;
+  // Data is the message data.
+  bytes data = 2;
+}
