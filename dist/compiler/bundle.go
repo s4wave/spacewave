@@ -412,10 +412,11 @@ func BuildDistBundle(
 			wasmManifestPath += ".gz"
 		}
 		manifest := &entrypoint_browser_bundle.BuildManifest{
-			Entrypoint:   bundleResult.EntrypointPath,
-			SharedWorker: bundleResult.SharedWorkerFilename,
-			Wasm:         wasmManifestPath,
-			CSS:          bundleResult.CSSPaths,
+			Entrypoint:    bundleResult.EntrypointPath,
+			ServiceWorker: bundleResult.ServiceWorkerFilename,
+			SharedWorker:  bundleResult.SharedWorkerFilename,
+			Wasm:          wasmManifestPath,
+			CSS:           bundleResult.CSSPaths,
 		}
 		if err := entrypoint_browser_bundle.WriteBuildManifest(outputPath, manifest); err != nil {
 			return err

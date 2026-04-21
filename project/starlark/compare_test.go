@@ -48,12 +48,14 @@ func TestAlphaStarCompleteness(t *testing.T) {
 
 	// Verify all expected builds exist.
 	expectedBuilds := map[string]int{
-		"app":             5,
-		"web":             5,
-		"release":         7,
-		"release-web":     7,
-		"release-desktop": 7,
-		"cli":             1,
+		"app":                                 5,
+		"web":                                 5,
+		"release-web":                         7,
+		"cli":                                 1,
+		"plugin-release-browser":              4,
+		"release-desktop-darwin-arm64":        7,
+		"plugin-release-desktop-darwin-arm64": 1,
+		"release-remote-js":                   2,
 	}
 	for id, wantManifests := range expectedBuilds {
 		bc := conf.GetBuild()[id]

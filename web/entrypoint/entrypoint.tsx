@@ -7,6 +7,8 @@ import {
 } from '@aptre/bldr-react'
 import { WebDocumentOptions } from '@aptre/bldr'
 
+import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
+
 const webDocumentOpts: WebDocumentOptions = {}
 
 // Extract webDocumentId from URL query parameters (for Electron)
@@ -42,6 +44,8 @@ if (typeof BLDR_FORCE_DEDICATED_WORKERS === 'boolean' && BLDR_FORCE_DEDICATED_WO
 }
 
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }
+
+initBrowserReleaseAutoReload()
 
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
 declare const BLDR_STARTUP_JS: string | undefined

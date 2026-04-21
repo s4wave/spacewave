@@ -301,7 +301,7 @@ For builder `bldr/dist/compiler`.
 dist_compiler_config(
     embedManifests=[
         {"manifestId": "core", "platformId": "desktop/darwin/arm64"},
-        {"manifestId": "web",  "platformId": "js"},
+        {"manifestId": "web",  "platformId": "web/js/wasm"},
         {"manifestId": "app",  "platformId": "js"},
     ],
     loadPlugins=["core", "web", "app"],
