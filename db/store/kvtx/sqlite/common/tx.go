@@ -3,7 +3,6 @@ package common
 import (
 	"context"
 	"database/sql"
-	"slices"
 	"strings"
 	"sync"
 
@@ -287,9 +286,9 @@ func CreateUpperBound(prefix []byte) []byte {
 	copy(upperBound, prefix)
 
 	// Find the rightmost byte that can be incremented
-	for i, v := range slices.Backward(upperBound) {
-		if v < 255 {
-			v++
+	for i := len(upperBound) - 1; i >= 0; i-- {
+		if upperBound[i] < 255 {
+			upperBound[i]++
 			return upperBound[:i+1]
 		}
 	}
