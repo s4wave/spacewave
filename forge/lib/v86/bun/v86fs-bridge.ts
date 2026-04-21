@@ -9,7 +9,6 @@
 
 import { pushable } from 'it-pushable'
 import type { V86fsMessage as V86fsMessageType } from '@go/github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs.pb.js'
-import { V86fsMessage } from '@go/github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs.pb.js'
 import { V86fsServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs_srpc.pb.js'
 import type { ProtoRpc } from 'starpc'
 
@@ -26,7 +25,7 @@ type ReplyHandler = (msg: V86fsMessageType) => void
  * @returns adapter compatible with V86 constructor's virtio_v86fs_adapter option.
  */
 export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
-  adapter: any
+  adapter: unknown
   close: () => void
 } {
   const client = new V86fsServiceClient(rpc)
@@ -38,7 +37,7 @@ export function createV86fsSrpcAdapter(rpc: ProtoRpc): {
   const responses = client.RelayV86fs(outgoing)
 
   // Read responses in background, dispatch by tag.
-  const readerDone = (async () => {
+  void (async () => {
     for await (const msg of responses) {
       const tag = msg.tag ?? 0
       if (tag === 0) {

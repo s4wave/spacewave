@@ -11,6 +11,23 @@ import type {
   PeerConnectionSnapshot,
 } from '../runtime/wasm/webrtc-bridge.js'
 
+type IceCandidateStats = RTCStats & {
+  address?: string
+  port?: number
+  protocol?: string
+  candidateType?: string
+}
+
+function isIceCandidateStats(
+  stat: RTCStats,
+): stat is IceCandidateStats {
+  return stat.type === 'local-candidate' || stat.type === 'remote-candidate'
+}
+
+function toTransferable(dc: RTCDataChannel): Transferable {
+  return dc as unknown as Transferable
+}
+
 // WebRTCBridgeEndpoint handles a single bridge MessagePort connection from
 // a worker. It manages real RTCPeerConnection instances on the main thread
 // and forwards events and DC transfers back to the worker.
@@ -47,16 +64,18 @@ export class WebRTCBridgeEndpoint {
   private async logIceFailureStats(pc: RTCPeerConnection, pcId: string) {
     try {
       const report = await pc.getStats()
-      const local = new Map<string, any>()
-      const remote = new Map<string, any>()
+      const local = new Map<string, IceCandidateStats>()
+      const remote = new Map<string, IceCandidateStats>()
       const pairs: string[] = []
 
       report.forEach((stat) => {
-        if (stat.type === 'local-candidate') {
-          local.set(stat.id, stat as any)
-        }
-        if (stat.type === 'remote-candidate') {
-          remote.set(stat.id, stat as any)
+        if (isIceCandidateStats(stat)) {
+          if (stat.type === 'local-candidate') {
+            local.set(stat.id, stat)
+          }
+          if (stat.type === 'remote-candidate') {
+            remote.set(stat.id, stat)
+          }
         }
       })
 
@@ -128,16 +147,14 @@ export class WebRTCBridgeEndpoint {
       const remotes: string[] = []
       const pairs: string[] = []
       report.forEach((stat) => {
-        if (stat.type === 'local-candidate') {
-          const c = stat as any
+        if (isIceCandidateStats(stat) && stat.type === 'local-candidate') {
           locals.push(
-            `${c.candidateType} ${c.protocol ?? '?'}://${c.address}:${c.port}`,
+            `${stat.candidateType} ${stat.protocol ?? '?'}://${stat.address}:${stat.port}`,
           )
         }
-        if (stat.type === 'remote-candidate') {
-          const c = stat as any
+        if (isIceCandidateStats(stat) && stat.type === 'remote-candidate') {
           remotes.push(
-            `${c.candidateType} ${c.protocol ?? '?'}://${c.address}:${c.port}`,
+            `${stat.candidateType} ${stat.protocol ?? '?'}://${stat.address}:${stat.port}`,
           )
         }
         if (stat.type === 'candidate-pair') {
@@ -252,11 +269,11 @@ export class WebRTCBridgeEndpoint {
       const event: BridgeEvent = {
         type: 'event:datachannel',
         pcId,
-        dc: dc as any,
+        dc,
         label: dc.label,
         snapshot: this.getSnapshot(pc),
       }
-      this.port.postMessage(event, [dc as any])
+      this.port.postMessage(event, [toTransferable(dc)])
     }
   }
 
@@ -299,7 +316,9 @@ export class WebRTCBridgeEndpoint {
 
       switch (cmd.type) {
         case 'createOffer': {
-          const offer = await pc!.createOffer(cmd.options as any)
+          const offer = await pc!.createOffer(
+            cmd.options as RTCOfferOptions | undefined,
+          )
           response = {
             type: 'createOffer',
             cmdId: cmd.cmdId,
@@ -310,7 +329,9 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'createAnswer': {
-          const answer = await pc!.createAnswer(cmd.options as any)
+          const answer = await pc!.createAnswer(
+            cmd.options as RTCAnswerOptions | undefined,
+          )
           response = {
             type: 'createAnswer',
             cmdId: cmd.cmdId,
@@ -351,16 +372,19 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'createDataChannel': {
-          const dc = pc!.createDataChannel(cmd.label!, cmd.options)
+          const dc = pc!.createDataChannel(
+            cmd.label!,
+            cmd.options as RTCDataChannelInit | undefined,
+          )
           response = {
             type: 'createDataChannel',
             cmdId: cmd.cmdId,
             pcId: cmd.pcId,
-            dc: dc as any,
+            dc,
             snapshot: this.getSnapshot(pc!),
           }
           // Transfer the DC to the worker before signaling/open
-          this.port.postMessage(response, [dc as any])
+          this.port.postMessage(response, [toTransferable(dc)])
           return // skip normal postMessage below
         }
         case 'close': {

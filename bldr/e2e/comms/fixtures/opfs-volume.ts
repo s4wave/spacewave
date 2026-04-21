@@ -19,6 +19,10 @@ declare global {
   }
 }
 
+function isNotFoundError(err: unknown): err is DOMException {
+  return err instanceof DOMException && err.name === 'NotFoundError'
+}
+
 function hexEncode(data: Uint8Array): string {
   return Array.from(data)
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -137,8 +141,9 @@ async function run() {
           errors.push(`persistence mismatch for key ${hex}`)
           persistOk = false
         }
-      } catch (e: any) {
-        errors.push(`persistence error for key ${hex}: ${e.message}`)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        errors.push(`persistence error for key ${hex}: ${message}`)
         persistOk = false
       }
     }
@@ -216,8 +221,8 @@ async function run() {
     let deleteOk = false
     try {
       await opfsRoot.getDirectoryHandle(volId, { create: false })
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') deleteOk = true
+    } catch (err) {
+      if (isNotFoundError(err)) deleteOk = true
     }
     results.deleteVolume = deleteOk
 

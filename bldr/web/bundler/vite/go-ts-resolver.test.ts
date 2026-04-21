@@ -6,9 +6,6 @@ import { goTsResolver } from './go-ts-resolver.js'
 
 describe('goTsResolver', () => {
   let tmpDir: string
-  const vendorTsFile = 'github.com/example/pkg/types.ts'
-  const vendorJsFile = 'github.com/example/pkg/hasjs.js'
-  const vendorJsTsFile = 'github.com/example/pkg/hasjs.ts'
   const localPbTsFile = 'db/volume/volume.pb.ts'
 
   beforeAll(async () => {

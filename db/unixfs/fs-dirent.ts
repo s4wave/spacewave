@@ -1,4 +1,4 @@
-import type { FSCursorDirent, FSCursorNodeType } from './fs-cursor.js'
+import type { FSCursorDirent } from './fs-cursor.js'
 import type { FileInfo } from './file-info.js'
 import { nodeTypeToMode } from './fs-node-type.js'
 

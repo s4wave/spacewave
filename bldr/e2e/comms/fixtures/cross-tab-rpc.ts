@@ -20,9 +20,7 @@ import {
   EchoerServer,
 } from 'starpc/echo'
 import type { ChannelStreamOpts } from 'starpc'
-import {
-  isCrossTabMessage,
-} from '../../../web/bldr/cross-tab-broker.js'
+import type { CrossTabBrokerMessage } from '../../../web/bldr/cross-tab-broker.js'
 
 declare global {
   interface Window {
@@ -33,6 +31,7 @@ declare global {
       peerCount: number
       echoBody: string
     }
+    __peers: Map<string, MessagePort>
     // callEcho is called from the Go test to initiate a cross-tab RPC.
     callEcho: (peerId: string, body: string) => Promise<string>
   }
@@ -45,7 +44,16 @@ const streamOpts: ChannelStreamOpts = {
 
 // Expose peers map on window for Go test to read peer IDs.
 const peers = new Map<string, MessagePort>()
-;(window as any).__peers = peers
+window.__peers = peers
+
+function isCrossTabBrokerMessage(data: unknown): data is CrossTabBrokerMessage {
+  if (typeof data !== 'object' || data === null) return false
+  const msg = data as Record<string, unknown>
+  return (
+    (msg.crossTab === 'direct-port' || msg.crossTab === 'peer-gone') &&
+    typeof msg.peerId === 'string'
+  )
+}
 
 // Set up StarPC echo server for incoming relay connections.
 const mux = createMux()
@@ -116,7 +124,7 @@ async function run() {
   // Set up SW message listener before registration.
   navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
     const data = ev.data
-    if (typeof data !== 'object' || !data.crossTab) return
+    if (!isCrossTabBrokerMessage(data)) return
 
     if (data.crossTab === 'direct-port') {
       const port = ev.ports[0]

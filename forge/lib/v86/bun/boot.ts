@@ -16,7 +16,6 @@
  *        [--bzimage <path>] [--cmd <command>]...
  */
 
-import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
 import fs from 'node:fs'
@@ -28,10 +27,46 @@ import { createV86fsSrpcAdapter } from './v86fs-bridge.js'
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
+interface V86Emulator {
+  add_listener(
+    event: 'serial0-output-byte',
+    handler: (byte: number) => void,
+  ): void
+  remove_listener(
+    event: 'serial0-output-byte',
+    handler: (byte: number) => void,
+  ): void
+  serial0_send(data: string): void
+  stop(): void
+  destroy(): void
+}
+
+interface V86Ctor {
+  new (config: Record<string, unknown>): V86Emulator
+}
+
+interface Handle9pModule {
+  createHandle9p(fsJsonUrl: string, flatUrl: string): unknown
+}
+
+interface V86fsBridge {
+  adapter: unknown
+  close: () => void
+}
+
+function getFetchUrl(input: string | URL | Request): string {
+  if (typeof input === 'string') return input
+  if (input instanceof URL) return input.href
+  return input.url
+}
+
 // Patch fetch to support file:// URLs and local paths in bun/node
 const _origFetch = globalThis.fetch
-globalThis.fetch = async (input: any, init?: any) => {
-  const u = typeof input === 'string' ? input : input.url
+globalThis.fetch = async (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => {
+  const u = getFetchUrl(input)
   if (u.startsWith('file://')) {
     const filePath = url.fileURLToPath(u)
     const data = fs.readFileSync(filePath)
@@ -112,7 +147,7 @@ function stripAnsi(s: string): string {
 
 // Wait for a marker string in serial output
 function waitForSerial(
-  emulator: any,
+  emulator: V86Emulator,
   marker: string,
   timeoutMs = 120_000,
 ): Promise<string> {
@@ -140,7 +175,7 @@ function waitForSerial(
 
 // Send a command via serial and wait for shell prompt
 async function runCommand(
-  emulator: any,
+  emulator: V86Emulator,
   cmd: string,
   prompt = ':/#',
   timeoutMs = 30_000,
@@ -162,11 +197,11 @@ async function runCommand(
 }
 
 // Load handle9p from a v86fs directory (fs.json + flat/).
-async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<any> {
+async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<unknown> {
   const serverPath = path.join(v86fsDir, 'handle9p-server.mjs')
   const fallback = path.join(v86Dir, 'tests/v86fs/handle9p-server.mjs')
   const modPath = fs.existsSync(serverPath) ? serverPath : fallback
-  const mod = await import(modPath)
+  const mod = (await import(modPath)) as Handle9pModule
   const fsJsonUrl = url.pathToFileURL(path.join(v86fsDir, 'fs.json')).href
   const flatUrl = url.pathToFileURL(path.join(v86fsDir, 'flat')).href + '/'
   return mod.createHandle9p(fsJsonUrl, flatUrl)
@@ -175,7 +210,7 @@ async function loadHandle9p(v86Dir: string, v86fsDir: string): Promise<any> {
 // Connect to SRPC unix socket and create v86fs adapter.
 async function connectV86fsSrpc(
   socketPath: string,
-): Promise<{ adapter: any; close: () => void }> {
+): Promise<V86fsBridge> {
   const streamConn = new StreamConn(undefined, { direction: 'outbound' })
   const client = streamConn.buildClient()
 
@@ -220,10 +255,12 @@ async function main() {
   }
 
   // Import V86 from source (same as v86 repo's own tests)
-  const { V86 } = await import(path.join(v86Dir, 'src/main.js'))
+  const { V86 } = (await import(path.join(v86Dir, 'src/main.js'))) as {
+    V86: V86Ctor
+  }
 
   // Connect to v86fs SRPC server if socket provided.
-  let v86fsBridge: { adapter: any; close: () => void } | undefined
+  let v86fsBridge: V86fsBridge | undefined
   if (useV86fs) {
     console.error(`[forge-v86] connecting to v86fs SRPC: ${opts.socket}`)
     v86fsBridge = await connectV86fsSrpc(opts.socket)
@@ -234,7 +271,7 @@ async function main() {
   // - v86fs root: kernel mounts v86fs as root (requires v86fs-capable kernel)
   // - 9p root: load rootfs from local fs.json + flat/ (fallback)
   const useV86fsRoot = useV86fs && !v86fsDir
-  let handle9p: any
+  let handle9p: unknown
   let cmdline: string
 
   if (useV86fsRoot) {

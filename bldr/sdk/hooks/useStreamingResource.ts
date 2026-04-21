@@ -88,7 +88,7 @@ export function useStreamingResource<P, T>(
     })()
 
     return () => abort.abort()
-  }, [parent.loading, parentValueChangeCount, retryCount, stableFactory])
+  }, [parent.loading, parent.value, parentValueChangeCount, retryCount, stableFactory])
 
   const retry = useCallback(() => {
     setRetryCount((c) => c + 1)

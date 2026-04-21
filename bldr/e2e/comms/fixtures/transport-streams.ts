@@ -5,13 +5,10 @@
 // Verifies openBusStream unavailable on WebKit (Config A/F).
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
-import {
-  createTransportFactory,
-  type PluginTransportFactory,
-} from '../../../web/bldr/plugin-transport.js'
+import { type PacketStream } from 'starpc'
+import { createTransportFactory } from '../../../web/bldr/plugin-transport.js'
 import {
   SabBusEndpoint,
-  SabBusStream,
   createBusSab,
 } from '../../../web/bldr/sab-bus.js'
 
@@ -95,7 +92,8 @@ async function run() {
 
       // Close streams.
       if (stream.close) {
-        ;(stream as any).close()
+        const closeable = stream as PacketStream & { close?: () => void }
+        closeable.close?.()
       }
       await writePromise.catch(() => {})
     } else {

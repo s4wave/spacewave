@@ -1,13 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { FSHandle, FsInode } from './fs-handle.js'
 import type {
   FSCursor,
   FSCursorChangeCb,
   FSCursorOps,
-  FSCursorDirent,
-  FSCursorNodeType,
 } from './fs-cursor.js'
-import { NodeType } from './block/fstree.pb.js'
 
 // MockFSCursorOps implements FSCursorOps backed by in-memory state.
 class MockFSCursorOps implements FSCursorOps {
@@ -68,8 +65,8 @@ class MockFSCursorOps implements FSCursorOps {
   }
   async setModTimestamp(): Promise<void> {}
   async readAt(
-    offset: bigint,
-    size: bigint,
+    _offset: bigint,
+    _size: bigint,
   ): Promise<{ data: Uint8Array; n: bigint }> {
     return { data: this.readDataVal, n: BigInt(this.readDataVal.length) }
   }

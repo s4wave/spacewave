@@ -14,7 +14,7 @@ export interface BridgeCommand {
   sdp?: RTCSessionDescriptionInit
   candidate?: RTCIceCandidateInit
   label?: string
-  options?: RTCDataChannelInit
+  options?: RTCDataChannelInit | RTCOfferOptions | RTCAnswerOptions
 }
 
 // Bridge response sent from main thread to worker.
@@ -53,6 +53,24 @@ export interface PeerConnectionSnapshot {
 }
 
 type BridgeMessage = BridgeResponse | BridgeEvent
+type IceCandidateLike = RTCIceCandidateInit & Record<string, unknown>
+
+function sendRtcDataChannelPayload(
+  dc: RTCDataChannel,
+  data: string | ArrayBuffer | ArrayBufferView,
+) {
+  if (typeof data === 'string') {
+    dc.send(data)
+    return
+  }
+  if (data instanceof ArrayBuffer) {
+    dc.send(data)
+    return
+  }
+  const copy = new Uint8Array(data.byteLength)
+  copy.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))
+  dc.send(copy)
+}
 
 // DataChannelWrapper is a synchronous stub that looks like an RTCDataChannel.
 // Returned by createDataChannel before the real DC arrives from the main
@@ -113,7 +131,9 @@ export class DataChannelWrapper {
   }
   set onerror(v: ((ev: Event) => void) | null) {
     this._onerror = v
-    if (this._realDC) this._realDC.onerror = v as any
+    if (this._realDC) {
+      this._realDC.onerror = v ? (event) => v(event) : null
+    }
   }
   get onbufferedamountlow() {
     return this._realDC ? this._realDC.onbufferedamountlow : this._onbufferedamountlow
@@ -168,7 +188,7 @@ export class DataChannelWrapper {
 
   send(data: string | ArrayBuffer | ArrayBufferView): void {
     if (this._realDC) {
-      this._realDC.send(data as any)
+      sendRtcDataChannelPayload(this._realDC, data)
       return
     }
     if (this._closed) return
@@ -211,13 +231,13 @@ export class DataChannelWrapper {
     if (this._onopen) dc.onopen = this._onopen
     if (this._onmessage) dc.onmessage = this._onmessage
     if (this._onclose) dc.onclose = this._onclose
-    if (this._onerror) dc.onerror = this._onerror as any
+    if (this._onerror) dc.onerror = (event) => this._onerror?.(event)
     if (this._onbufferedamountlow)
       dc.onbufferedamountlow = this._onbufferedamountlow
 
     // Replay queued sends
     for (const data of this.sendQueue) {
-      dc.send(data as any)
+      sendRtcDataChannelPayload(dc, data)
     }
     this.sendQueue.length = 0
     this._bufferedAmount = 0
@@ -406,6 +426,12 @@ class BridgeDispatcher {
 // Multiple instances share a single BridgeDispatcher (and thus a single
 // bridge MessagePort). Command IDs are globally unique to avoid collisions.
 export class ProxyRTCPeerConnection {
+  static async generateCertificate(
+    _keygenAlgorithm: AlgorithmIdentifier,
+  ): Promise<RTCCertificate> {
+    throw new Error('RTCPeerConnection.generateCertificate is unavailable')
+  }
+
   private dispatcher: BridgeDispatcher
   private pcId: string | null = null
   private pcIdPromise: Promise<string>
@@ -415,7 +441,7 @@ export class ProxyRTCPeerConnection {
   private pendingDCs = new Map<number, DataChannelWrapper>()
 
   // Event handlers
-  onicecandidate: ((ev: { candidate: RTCIceCandidate | null }) => void) | null =
+  onicecandidate: ((ev: { candidate: IceCandidateLike | null }) => void) | null =
     null
   ondatachannel: ((ev: { channel: RTCDataChannel }) => void) | null = null
   onsignalingstatechange: (() => void) | null = null
@@ -496,7 +522,7 @@ export class ProxyRTCPeerConnection {
           // complete). Workers don't have RTCIceCandidate constructor,
           // but pion-webrtc only reads properties via .Get().
           this.onicecandidate({
-            candidate: event.candidate ? (event.candidate as any) : null,
+            candidate: event.candidate ?? null,
           })
         }
         break
@@ -529,7 +555,7 @@ export class ProxyRTCPeerConnection {
     options?: RTCOfferOptions,
   ): Promise<RTCSessionDescriptionInit> {
     const r = await this.sendCommand('createOffer', {
-      options: options as any,
+      options,
     })
     return r.sdp!
   }
@@ -538,7 +564,7 @@ export class ProxyRTCPeerConnection {
     options?: RTCAnswerOptions,
   ): Promise<RTCSessionDescriptionInit> {
     const r = await this.sendCommand('createAnswer', {
-      options: options as any,
+      options,
     })
     return r.sdp!
   }
@@ -624,11 +650,21 @@ export class ProxyRTCPeerConnection {
   // only reads properties via syscall/js .Get("type") and .Get("sdp").
 
   get localDescription(): { type: string; sdp: string } | null {
-    return this._snapshot.localDescription as any
+    return this._snapshot.localDescription
+      ? {
+          type: this._snapshot.localDescription.type,
+          sdp: this._snapshot.localDescription.sdp ?? '',
+        }
+      : null
   }
 
   get remoteDescription(): { type: string; sdp: string } | null {
-    return this._snapshot.remoteDescription as any
+    return this._snapshot.remoteDescription
+      ? {
+          type: this._snapshot.remoteDescription.type,
+          sdp: this._snapshot.remoteDescription.sdp ?? '',
+        }
+      : null
   }
 
   get currentLocalDescription(): { type: string; sdp: string } | null {
@@ -742,10 +778,16 @@ function getDispatcher(): BridgeDispatcher | null {
 // installWebRTCShim installs ProxyRTCPeerConnection as the global
 // RTCPeerConnection. Call after setBridgePort.
 export function installWebRTCShim() {
-  const globals = globalThis as any
+  const shim = ProxyRTCPeerConnection as unknown as typeof RTCPeerConnection
+  const globals = getWebRtcBridgeGlobals() as typeof globalThis &
+    WebRtcBridgeGlobals & {
+      window?: typeof globalThis
+      RTCPeerConnection?: typeof RTCPeerConnection
+    }
+  const windowObject = globals.window ?? globalThis
   if (!globals.window) {
-    globals.window = globalThis
+    globals.window = windowObject
   }
-  globals.window.RTCPeerConnection = ProxyRTCPeerConnection
-  globals.RTCPeerConnection = ProxyRTCPeerConnection
+  windowObject.RTCPeerConnection = shim
+  globals.RTCPeerConnection = shim
 }

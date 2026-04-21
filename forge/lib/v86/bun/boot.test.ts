@@ -5,6 +5,34 @@ import fs from 'node:fs'
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
+interface V86Emulator {
+  add_listener(
+    event: 'serial0-output-byte',
+    handler: (byte: number) => void,
+  ): void
+  remove_listener(
+    event: 'serial0-output-byte',
+    handler: (byte: number) => void,
+  ): void
+  serial0_send(data: string): void
+  stop(): void
+  destroy(): void
+}
+
+interface V86Ctor {
+  new (config: Record<string, unknown>): V86Emulator
+}
+
+interface Handle9pModule {
+  createHandle9p(fsJsonUrl: string, flatUrl: string): unknown
+}
+
+function getFetchUrl(input: string | URL | Request): string {
+  if (typeof input === 'string') return input
+  if (input instanceof URL) return input.href
+  return input.url
+}
+
 // V86_DIR: directory containing build/v86-debug.wasm, bios/, src/main.js.
 // Set via env var or defaults to the v86 repo checkout for local dev.
 const V86_DIR = path.resolve(
@@ -27,19 +55,18 @@ const HAS_ROOTFS =
 const HAS_ASSETS = HAS_WASM && HAS_ROOTFS
 
 // Import V86 from the v86 source (same as v86 repo's own tests).
-const { V86 } = HAS_ASSETS
-  ? await import(path.join(V86_DIR, 'src/main.js'))
-  : ({ V86: undefined } as any)
-
-// Import V86FSAdapter types for v86fs tests.
-const v86fsModule = HAS_ASSETS
-  ? await import(path.join(V86_DIR, 'src/virtio_v86fs.js'))
-  : ({} as any)
+const v86Module = HAS_ASSETS
+  ? ((await import(path.join(V86_DIR, 'src/main.js'))) as { V86: V86Ctor })
+  : null
+const V86 = v86Module?.V86
 
 // Patch fetch to support file:// URLs and local paths for bun/node.
 const _origFetch = globalThis.fetch
-globalThis.fetch = async (input: any, init?: any) => {
-  const u = typeof input === 'string' ? input : input.url
+globalThis.fetch = async (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => {
+  const u = getFetchUrl(input)
   if (u.startsWith('file://')) {
     const filePath = url.fileURLToPath(u)
     const data = fs.readFileSync(filePath)
@@ -61,7 +88,7 @@ function stripAnsi(s: string): string {
 
 // Wait for a marker string in serial output.
 function waitForSerial(
-  emulator: any,
+  emulator: V86Emulator,
   marker: string,
   timeoutMs = 120_000,
 ): Promise<string> {
@@ -89,7 +116,7 @@ function waitForSerial(
 
 // Send a command via serial and wait for shell prompt.
 async function runCommand(
-  emulator: any,
+  emulator: V86Emulator,
   cmd: string,
   prompt = ':/#',
   timeoutMs = 30_000,
@@ -111,25 +138,25 @@ async function runCommand(
 }
 
 // Load handle9p from the V86FS_DIR (fs.json + flat/).
-async function loadHandle9p(): Promise<any> {
+async function loadHandle9p(): Promise<unknown> {
   const serverPath = path.join(V86FS_DIR, 'handle9p-server.mjs')
   if (!fs.existsSync(serverPath)) {
     // Fall back to v86 repo's test helper.
     const fallback = path.join(V86_DIR, 'tests/v86fs/handle9p-server.mjs')
-    const mod = await import(fallback)
+    const mod = (await import(fallback)) as Handle9pModule
     const fsJsonUrl = url.pathToFileURL(path.join(V86FS_DIR, 'fs.json')).href
     const flatUrl =
       url.pathToFileURL(path.join(V86FS_DIR, 'flat')).href + '/'
     return mod.createHandle9p(fsJsonUrl, flatUrl)
   }
-  const mod = await import(serverPath)
+  const mod = (await import(serverPath)) as Handle9pModule
   const fsJsonUrl = url.pathToFileURL(path.join(V86FS_DIR, 'fs.json')).href
   const flatUrl = url.pathToFileURL(path.join(V86FS_DIR, 'flat')).href + '/'
   return mod.createHandle9p(fsJsonUrl, flatUrl)
 }
 
 // Log serial output to stderr.
-function addSerialLogger(emulator: any): void {
+function addSerialLogger(emulator: V86Emulator): void {
   let lineBuf = ''
   emulator.add_listener('serial0-output-byte', (byte: number) => {
     const ch = String.fromCharCode(byte)
@@ -143,7 +170,10 @@ function addSerialLogger(emulator: any): void {
 }
 
 // Create emulator with 9p rootfs only.
-async function createEmulator9p(): Promise<any> {
+async function createEmulator9p(): Promise<V86Emulator> {
+  if (!V86) {
+    throw new Error('missing V86 assets')
+  }
   const handle9p = await loadHandle9p()
   const emulator = new V86({
     wasm_path: path.join(V86_DIR, 'build/v86-debug.wasm'),
@@ -168,7 +198,22 @@ const DT_DIR = 4
 const DT_REG = 8
 
 // Create a simple in-memory V86FSAdapter for testing.
-function createMapAdapter(): any {
+function createMapAdapter(): {
+  adapter: unknown
+  inodeMap: Map<
+    number,
+    {
+      name: string
+      mode: number
+      size: number
+      dt_type: number
+      mtime_sec: number
+      mtime_nsec: number
+      content?: Uint8Array
+    }
+  >
+  dirEntries: Map<number, number[]>
+} {
   const inodeMap = new Map<
     number,
     {
@@ -458,7 +503,10 @@ function createMapAdapter(): any {
 }
 
 // Create emulator with 9p rootfs + v86fs device.
-async function createEmulatorV86fs(v86fsAdapter: any): Promise<any> {
+async function createEmulatorV86fs(v86fsAdapter: unknown): Promise<V86Emulator> {
+  if (!V86) {
+    throw new Error('missing V86 assets')
+  }
   const handle9p = await loadHandle9p()
   const emulator = new V86({
     wasm_path: path.join(V86_DIR, 'build/v86-debug.wasm'),

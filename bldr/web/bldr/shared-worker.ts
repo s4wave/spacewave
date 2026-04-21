@@ -21,7 +21,6 @@ import {
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
-import type { WorkerCommsDetectResult } from './worker-comms-detect.js'
 import { SabBusEndpoint } from './sab-bus.js'
 
 declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope

@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMux } from 'starpc'
-import type { Mux } from 'starpc'
 import { RemoteResourceClient } from './tracked-client.js'
-import { ResourceServer, getCurrentResourceClient } from './server.js'
+import { ResourceServer } from './server.js'
 import { constructChildResource } from './construct.js'
 import { newResourceMux } from './mux.js'
 import type {

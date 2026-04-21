@@ -23,6 +23,21 @@ declare global {
   }
 }
 
+interface FileSystemDirectoryHandleWithEntries
+  extends FileSystemDirectoryHandle {
+  entries(): AsyncIterable<[string, FileSystemHandle]>
+}
+
+function getEntries(
+  dir: FileSystemDirectoryHandle,
+): AsyncIterable<[string, FileSystemHandle]> {
+  return (dir as FileSystemDirectoryHandleWithEntries).entries()
+}
+
+function isNotFoundError(err: unknown): err is DOMException {
+  return err instanceof DOMException && err.name === 'NotFoundError'
+}
+
 async function run() {
   const log = document.getElementById('log')!
   const errors: string[] = []
@@ -59,7 +74,7 @@ async function run() {
     // Nested directory tree
     const a = await testDir.getDirectoryHandle('a', { create: true })
     const b = await a.getDirectoryHandle('b', { create: true })
-    const c = await b.getDirectoryHandle('c', { create: true })
+    await b.getDirectoryHandle('c', { create: true })
     // Verify we can re-open the nested path
     const aAgain = await testDir.getDirectoryHandle('a', { create: false })
     const bAgain = await aAgain.getDirectoryHandle('b', { create: false })
@@ -127,8 +142,8 @@ async function run() {
     let deletedGone = false
     try {
       await fileDir.getFileHandle('test.bin')
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') {
+    } catch (err) {
+      if (isNotFoundError(err)) {
         deletedGone = true
       }
     }
@@ -152,7 +167,7 @@ async function run() {
     await listDir.getDirectoryHandle('delta-dir', { create: true })
 
     const entries: string[] = []
-    for await (const [name] of (listDir as any).entries()) {
+    for await (const [name] of getEntries(listDir)) {
       entries.push(name)
     }
 
@@ -175,11 +190,11 @@ async function run() {
     let notFoundFile = false
     try {
       await fileDir.getFileHandle('nonexistent.bin')
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') {
+    } catch (err) {
+      if (isNotFoundError(err)) {
         notFoundFile = true
       } else {
-        errors.push(`missing file error name: ${e.name}`)
+        errors.push(`missing file error name: ${String(err)}`)
       }
     }
     results.notFoundFile = notFoundFile
@@ -188,11 +203,11 @@ async function run() {
     let notFoundDir = false
     try {
       await testDir.getDirectoryHandle('nonexistent-dir', { create: false })
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') {
+    } catch (err) {
+      if (isNotFoundError(err)) {
         notFoundDir = true
       } else {
-        errors.push(`missing dir error name: ${e.name}`)
+        errors.push(`missing dir error name: ${String(err)}`)
       }
     }
     results.notFoundDir = notFoundDir
@@ -201,11 +216,11 @@ async function run() {
     let deleteNotFound = false
     try {
       await fileDir.removeEntry('nonexistent.bin')
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') {
+    } catch (err) {
+      if (isNotFoundError(err)) {
         deleteNotFound = true
       } else {
-        errors.push(`delete missing error name: ${e.name}`)
+        errors.push(`delete missing error name: ${String(err)}`)
       }
     }
     results.deleteNotFound = deleteNotFound

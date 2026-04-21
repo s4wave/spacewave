@@ -2,6 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import sqlite3Init from '@sqlite.org/sqlite-wasm'
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm'
 import { SqliteBridgeServer } from './server.js'
+import type { QueryResponse } from './sqlite-bridge.pb.js'
+
+interface SqliteBridgeServerInternals {
+  databasesByPath: Map<string, { refCount: number }>
+  handles: Map<number, unknown>
+}
 
 describe('SqliteBridgeServer', () => {
   let sqlite3: Sqlite3Static
@@ -61,7 +67,7 @@ describe('SqliteBridgeServer', () => {
       params: [],
     })
 
-    const messages = []
+    const messages: QueryResponse[] = []
     for await (const msg of stream) {
       messages.push(msg)
     }
@@ -111,7 +117,7 @@ describe('SqliteBridgeServer', () => {
       sql: 'SELECT id, name, score FROM nums',
     })
 
-    const messages = []
+    const messages: QueryResponse[] = []
     for await (const msg of stream) {
       messages.push(msg)
     }
@@ -155,7 +161,7 @@ describe('SqliteBridgeServer', () => {
       params: [{ value: { case: 'intValue', value: 1n } }],
     })
 
-    const messages = []
+    const messages: QueryResponse[] = []
     for await (const msg of stream) {
       messages.push(msg)
     }
@@ -188,7 +194,7 @@ describe('SqliteBridgeServer', () => {
       dbId,
       sql: 'SELECT COUNT(*) as cnt FROM txtest',
     })
-    const messages = []
+    const messages: QueryResponse[] = []
     for await (const msg of stream) {
       messages.push(msg)
     }
@@ -202,9 +208,10 @@ describe('SqliteBridgeServer', () => {
     const open2 = await server.OpenDb({ path: '/shared.db' })
     const dbId1 = open1.dbId!
     const dbId2 = open2.dbId!
+    const internals = server as unknown as SqliteBridgeServerInternals
 
-    expect((server as any).databasesByPath.size).toBe(1)
-    const shared = (server as any).databasesByPath.get('/shared.db')
+    expect(internals.databasesByPath.size).toBe(1)
+    const shared = internals.databasesByPath.get('/shared.db')
     expect(shared).toBeTruthy()
     expect(shared.refCount).toBe(2)
 
@@ -217,13 +224,16 @@ describe('SqliteBridgeServer', () => {
       sql: 'SELECT v FROM t ORDER BY rowid',
     })) {
       if (msg.row?.length) {
-        rows.push(msg.row[0]!.value!.value as string)
+        const value = msg.row[0]?.value
+        if (value?.case === 'strValue') {
+          rows.push(value.value)
+        }
       }
     }
     expect(rows).toEqual(['x'])
 
     await server.CloseDb({ dbId: dbId1 })
-    expect((server as any).databasesByPath.get('/shared.db').refCount).toBe(1)
+    expect(internals.databasesByPath.get('/shared.db')?.refCount).toBe(1)
 
     await server.Exec({ dbId: dbId2, sql: "INSERT INTO t(v) VALUES ('y')" })
 
@@ -233,13 +243,16 @@ describe('SqliteBridgeServer', () => {
       sql: 'SELECT v FROM t ORDER BY rowid',
     })) {
       if (msg.row?.length) {
-        rowsAfterClose.push(msg.row[0]!.value!.value as string)
+        const value = msg.row[0]?.value
+        if (value?.case === 'strValue') {
+          rowsAfterClose.push(value.value)
+        }
       }
     }
     expect(rowsAfterClose).toEqual(['x', 'y'])
 
     await server.CloseDb({ dbId: dbId2 })
-    expect((server as any).databasesByPath.size).toBe(0)
-    expect((server as any).handles.size).toBe(0)
+    expect(internals.databasesByPath.size).toBe(0)
+    expect(internals.handles.size).toBe(0)
   })
 })

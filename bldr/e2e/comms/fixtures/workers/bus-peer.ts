@@ -4,7 +4,7 @@
 // Registers on bus, sends payload to targetId, then reads one message
 // and posts it back to main thread.
 
-import { SabBusEndpoint, BROADCAST_ID } from '../../../../web/bldr/sab-bus.js'
+import { SabBusEndpoint } from '../../../../web/bldr/sab-bus.js'
 
 declare const self: DedicatedWorkerGlobalScope
 

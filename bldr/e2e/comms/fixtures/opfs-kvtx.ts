@@ -21,6 +21,11 @@ declare global {
   }
 }
 
+interface FileSystemDirectoryHandleWithEntries
+  extends FileSystemDirectoryHandle {
+  entries(): AsyncIterable<[string, FileSystemHandle]>
+}
+
 // Hex encode/decode matching the Go implementation.
 function hexEncode(data: Uint8Array): string {
   return Array.from(data)
@@ -28,12 +33,14 @@ function hexEncode(data: Uint8Array): string {
     .join('')
 }
 
-function hexDecode(s: string): Uint8Array {
-  const bytes = new Uint8Array(s.length / 2)
-  for (let i = 0; i < s.length; i += 2) {
-    bytes[i / 2] = parseInt(s.substring(i, i + 2), 16)
-  }
-  return bytes
+function getEntries(
+  dir: FileSystemDirectoryHandle,
+): AsyncIterable<[string, FileSystemHandle]> {
+  return (dir as FileSystemDirectoryHandleWithEntries).entries()
+}
+
+function isNotFoundError(err: unknown): err is DOMException {
+  return err instanceof DOMException && err.name === 'NotFoundError'
 }
 
 function shardPrefix(encoded: string): string {
@@ -68,9 +75,9 @@ async function readEntry(
     const file = await fh.getFile()
     const ab = await file.arrayBuffer()
     return new Uint8Array(ab)
-  } catch (e: any) {
-    if (e.name === 'NotFoundError') return null
-    throw e
+  } catch (err) {
+    if (isNotFoundError(err)) return null
+    throw err
   }
 }
 
@@ -83,9 +90,9 @@ async function deleteEntry(
   try {
     const shardDir = await root.getDirectoryHandle(shard, { create: false })
     await shardDir.removeEntry(encoded)
-  } catch (e: any) {
-    if (e.name === 'NotFoundError') return
-    throw e
+  } catch (err) {
+    if (isNotFoundError(err)) return
+    throw err
   }
 }
 
@@ -93,10 +100,10 @@ async function listAllKeys(
   root: FileSystemDirectoryHandle,
 ): Promise<string[]> {
   const keys: string[] = []
-  for await (const [name, handle] of (root as any).entries()) {
+  for await (const [name, handle] of getEntries(root)) {
     if (handle.kind !== 'directory' || name.length !== 2) continue
     const shardDir = await root.getDirectoryHandle(name)
-    for await (const [fname] of (shardDir as any).entries()) {
+    for await (const [fname] of getEntries(shardDir)) {
       keys.push(fname)
     }
   }
@@ -288,8 +295,8 @@ async function run() {
     let markerGone = false
     try {
       await crashDir.getFileHandle('.pending')
-    } catch (e: any) {
-      if (e.name === 'NotFoundError') markerGone = true
+    } catch (err) {
+      if (isNotFoundError(err)) markerGone = true
     }
 
     // Verify the partial data is still readable

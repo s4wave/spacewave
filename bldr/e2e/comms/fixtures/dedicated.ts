@@ -23,21 +23,25 @@ declare global {
   }
 }
 
+type WorkerMessage = { type: string } & Record<string, unknown>
+
 function waitWorkerMsg(
   worker: Worker,
   type: string,
   timeoutMs: number,
-): Promise<any> {
+): Promise<WorkerMessage> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error(`timeout waiting for ${type}`)),
       timeoutMs,
     )
-    const handler = (ev: MessageEvent) => {
-      if (ev.data.type === type) {
+    const handler = (ev: MessageEvent<unknown>) => {
+      if (typeof ev.data !== 'object' || ev.data === null) return
+      const msg = ev.data as WorkerMessage
+      if (msg.type === type) {
         clearTimeout(timer)
         worker.removeEventListener('message', handler)
-        resolve(ev.data)
+        resolve(msg)
       }
     }
     worker.addEventListener('message', handler)

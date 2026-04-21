@@ -1,7 +1,6 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useSyncExternalStore,
   ReactNode,

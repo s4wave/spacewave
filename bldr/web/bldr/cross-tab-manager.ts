@@ -5,7 +5,6 @@
 // as starpc ChannelStream for RPC compatibility.
 
 import { ChannelStream, type PacketStream, type ChannelStreamOpts } from 'starpc'
-import type { CrossTabBrokerMessage } from './cross-tab-broker.js'
 
 // CrossTabChannelStreamOpts configures ChannelStreams for cross-tab channels.
 // Cross-tab peers already have explicit broker lifecycle messages; leave idle
