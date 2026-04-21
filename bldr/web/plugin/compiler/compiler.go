@@ -565,6 +565,7 @@ func addWebPluginStartupInputs(
 	}
 	sourcePath := builderConf.GetSourcePath()
 	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "package.json")
+	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "bun.lock")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/dist/deps")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/electron")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/entrypoint")

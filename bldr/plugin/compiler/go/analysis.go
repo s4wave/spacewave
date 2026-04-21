@@ -64,7 +64,7 @@ func AnalyzePackages(
 	baseGoModPath := filepath.Join(workDir, "go.mod")
 	baseGoModData, err := os.ReadFile(baseGoModPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "read base go.mod at %s", baseGoModPath)
 	}
 	baseModFile, err := modfile.Parse(baseGoModPath, baseGoModData, nil)
 	if err != nil {

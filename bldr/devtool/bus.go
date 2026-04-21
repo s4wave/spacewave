@@ -75,6 +75,8 @@ type DevtoolBus struct {
 	engineObjectStoreID string
 	// pluginHostObjectKey is the object key used for the PluginHost
 	pluginHostObjectKey string
+	// repoRoot is the project root containing the live module files.
+	repoRoot string
 	// stateRoot is the .bldr state root dir.
 	stateRoot string
 	// distSrcRoot is the path to the web entrypoint sources.
@@ -101,7 +103,12 @@ type DevtoolBus struct {
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
 // Returns a set of functions to call to release the controllers.
-func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch bool) (*DevtoolBus, error) {
+func BuildDevtoolBus(
+	rctx context.Context,
+	le *logrus.Entry,
+	repoRoot, stateRoot string,
+	watch bool,
+) (*DevtoolBus, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	rel := func() {
@@ -330,6 +337,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
 		pluginHostObjectKey: pluginHostObjectKey,
+		repoRoot:            repoRoot,
 		stateRoot:           stateRoot,
 		distSrcRoot:         distSrcDir,
 		pluginsDistRoot:     pluginsDistRoot,
@@ -380,13 +388,15 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		return goVendorCmd.Run()
 	}
 
-	// Read go.mod from embedded DistSources (not disk).
+	// Read the live repo-root module files. In the monorepo layout, go.mod and
+	// go.sum live at the project root rather than under the embedded bldr tree.
 	bldrGoModPath := filepath.Join(d.distSrcRoot, "go.mod")
-	bldrGoModData, err := bldr.DistSources.ReadFile("go.mod")
+	sourceGoModPath := filepath.Join(d.repoRoot, "go.mod")
+	bldrGoModData, err := os.ReadFile(sourceGoModPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "read repo go.mod at %s", sourceGoModPath)
 	}
-	bldrModFile, err := modfile.Parse("go.mod", bldrGoModData, nil)
+	bldrModFile, err := modfile.Parse(sourceGoModPath, bldrGoModData, nil)
 	if err != nil {
 		return err
 	}
@@ -436,12 +446,13 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		return err
 	}
 
-	// Write the embedded go.sum as a base. It contains checksums for all of
-	// bldr's transitive dependencies which bldr-dist also needs.
+	// Write the repo-root go.sum as a base. It contains checksums for the
+	// current workspace dependencies which bldr-dist also needs.
 	bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
-	bldrGoSumData, err := bldr.DistSources.ReadFile("go.sum")
+	sourceGoSumPath := filepath.Join(d.repoRoot, "go.sum")
+	bldrGoSumData, err := os.ReadFile(sourceGoSumPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "read repo go.sum at %s", sourceGoSumPath)
 	}
 	if err := os.WriteFile(bldrGoSumPath, bldrGoSumData, 0o644); err != nil {
 		return err

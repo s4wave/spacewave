@@ -43,7 +43,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 
 	// initialize the storage + bus
 	buildType := bldr_manifest.BuildType(a.BuildType)
-	d, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	d, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}

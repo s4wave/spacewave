@@ -41,7 +41,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	d, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	d, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}

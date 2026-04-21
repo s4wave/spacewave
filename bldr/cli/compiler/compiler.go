@@ -13,6 +13,7 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -108,7 +109,7 @@ func (c *Controller) BuildManifest(
 	goModPath := filepath.Join(sourcePath, "go.mod")
 	goModData, err := os.ReadFile(goModPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "read source go.mod at %s", goModPath)
 	}
 	rootModule := modfile.ModulePath(goModData)
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -194,7 +195,7 @@ func validateStartupFiles(sourcePath string, inputManifest *bldr_manifest_builde
 		if fileIdentity == nil {
 			return errors.Errorf("startup file %q is missing cached identity", inputFile.GetPath())
 		}
-		filePath := filepath.Join(sourcePath, inputFile.GetPath())
+		filePath := resolveStartupInputPath(sourcePath, inputFile.GetPath())
 		currentIdentity, err := captureFileIdentity(filePath)
 		if err != nil {
 			return errors.Wrapf(err, "validate startup file %q", inputFile.GetPath())
@@ -249,13 +250,45 @@ func validateStartupInputs(
 // captureFileIdentities captures file identities on all input manifest files.
 func captureFileIdentities(sourcePath string, inputManifest *bldr_manifest_builder.InputManifest) error {
 	for _, inputFile := range inputManifest.GetFiles() {
-		fileIdentity, err := captureFileIdentity(filepath.Join(sourcePath, inputFile.GetPath()))
+		fileIdentity, err := captureFileIdentity(resolveStartupInputPath(sourcePath, inputFile.GetPath()))
 		if err != nil {
 			return errors.Wrapf(err, "capture startup identity for %q", inputFile.GetPath())
 		}
 		inputFile.Identity = fileIdentity
 	}
 	return nil
+}
+
+// resolveStartupInputPath resolves manifest file paths under the source tree.
+// Some bundlers emit relative paths that unnecessarily escape the source root
+// before re-entering it (for example "../../node_modules/..."). For startup
+// validation we resolve those back to the matching file under sourcePath.
+func resolveStartupInputPath(sourcePath, inputPath string) string {
+	cleanPath := filepath.Clean(inputPath)
+	filePath := filepath.Join(sourcePath, cleanPath)
+	if !strings.HasPrefix(cleanPath, "..") {
+		return filePath
+	}
+
+	pathParts := strings.FieldsFunc(cleanPath, func(r rune) bool {
+		return r == '/' || r == '\\'
+	})
+	for i, part := range pathParts {
+		if part == ".." {
+			continue
+		}
+		candidate := filepath.Join(pathParts[i:]...)
+		for _, basePath := range []string{sourcePath, filepath.Join(sourcePath, ".bldr")} {
+			candidatePath := filepath.Join(basePath, candidate)
+			fileInfo, err := os.Stat(candidatePath)
+			if err != nil || fileInfo.IsDir() {
+				continue
+			}
+			return candidatePath
+		}
+	}
+
+	return filePath
 }
 
 // captureFileIdentity captures the file identity for one path.

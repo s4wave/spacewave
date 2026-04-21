@@ -150,6 +150,65 @@ func TestValidateStartupFilesHashFallback(t *testing.T) {
 	}
 }
 
+func TestValidateStartupFilesEscapedRelativePath(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(
+		tmpDir,
+		"node_modules",
+		"@aptre",
+		"it-ws",
+		"dist",
+		"src",
+		"duplex.js",
+	)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte("export const duplex = true;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(
+		[]string{"../../../../../../../../node_modules/@aptre/it-ws/dist/src/duplex.js"},
+		nil,
+	)
+	if err := captureFileIdentities(tmpDir, inputManifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateStartupFiles(tmpDir, inputManifest); err != nil {
+		t.Fatalf("validate escaped path: %v", err)
+	}
+}
+
+func TestValidateStartupFilesEscapedBldrDistPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(
+		tmpDir,
+		".bldr",
+		"src",
+		"web",
+		"bldr-react",
+		"DebugInfo.tsx",
+	)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte("export function DebugInfo() { return null }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(
+		[]string{"../../../../../../../src/web/bldr-react/DebugInfo.tsx"},
+		nil,
+	)
+	if err := captureFileIdentities(tmpDir, inputManifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateStartupFiles(tmpDir, inputManifest); err != nil {
+		t.Fatalf("validate escaped .bldr path: %v", err)
+	}
+}
+
 func TestValidateStartupInputs(t *testing.T) {
 	t.Setenv("BLDR_TEST_ENV", "expected")
 	controllerConfig := &configset_proto.ControllerConfig{}

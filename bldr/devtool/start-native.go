@@ -38,7 +38,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	}
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	b, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}

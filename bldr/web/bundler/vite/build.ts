@@ -163,10 +163,35 @@ function normalizeModuleId(id: string, rootDir: string): string | null {
   if (withoutQuery.startsWith('__vite-browser-external')) {
     return null
   }
-  if (!path.isAbsolute(withoutQuery)) {
-    return path.normalize(withoutQuery)
+
+  let relPath = withoutQuery
+  if (path.isAbsolute(withoutQuery)) {
+    relPath = path.relative(rootDir, withoutQuery)
   }
-  return path.normalize(path.relative(rootDir, withoutQuery))
+
+  relPath = path.normalize(relPath)
+  if (!relPath.startsWith('..')) {
+    return relPath
+  }
+
+  return resolveEscapedModuleId(relPath, rootDir) ?? relPath
+}
+
+function resolveEscapedModuleId(
+  relPath: string,
+  rootDir: string,
+): string | null {
+  const parts = relPath.split(/[\\/]+/).filter((part) => part && part !== '.')
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i] === '..') {
+      continue
+    }
+    const candidate = path.join(...parts.slice(i))
+    if (existsSync(path.join(rootDir, candidate))) {
+      return path.normalize(candidate)
+    }
+  }
+  return null
 }
 
 /**

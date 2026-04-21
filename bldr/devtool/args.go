@@ -337,7 +337,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 					Usage:       "web renderer to use (electron, saucer)",
 					EnvVars:     []string{"BLDR_WEB_RENDERER"},
 					Destination: &a.WebRenderer,
-					Value:       "saucer",
+					Value:       "electron",
 				},
 			},
 			Action: func(c *cli.Context) error {

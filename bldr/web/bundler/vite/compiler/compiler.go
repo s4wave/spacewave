@@ -467,7 +467,7 @@ func (c *Controller) buildInputManifest(
 
 		srcPathsCopy := make([]string, len(srcPaths))
 		copy(srcPathsCopy, srcPaths)
-		err = fsutil.ConvertPathsToRelative(sourcePath, srcPathsCopy)
+		srcPathsCopy, err = filterSourceRelativePaths(sourcePath, srcPathsCopy)
 		if err != nil {
 			return nil, err
 		}
@@ -604,7 +604,8 @@ func (c *Controller) tryFastRebuild(
 	// Add the updated vite files to the list
 	viteSrcFilesCopy := make([]string, len(viteBuildResult.viteSrcFiles))
 	copy(viteSrcFilesCopy, viteBuildResult.viteSrcFiles)
-	if err := fsutil.ConvertPathsToRelative(sourcePath, viteSrcFilesCopy); err != nil {
+	viteSrcFilesCopy, err = filterSourceRelativePaths(sourcePath, viteSrcFilesCopy)
+	if err != nil {
 		return nil, err
 	}
 	viteFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_VITE}
@@ -629,6 +630,29 @@ func (c *Controller) tryFastRebuild(
 
 	le.Debug("fast rebuild complete")
 	return updatedInputManifest, nil
+}
+
+// filterSourceRelativePaths normalizes input paths relative to sourcePath and
+// drops inputs that escape the source tree.
+func filterSourceRelativePaths(sourcePath string, srcPaths []string) ([]string, error) {
+	relPaths := make([]string, 0, len(srcPaths))
+	for _, srcPath := range srcPaths {
+		if filepath.IsAbs(srcPath) {
+			relPath, err := filepath.Rel(sourcePath, srcPath)
+			if err != nil {
+				return nil, err
+			}
+			srcPath = relPath
+		}
+
+		srcPath = filepath.Clean(srcPath)
+		if strings.HasPrefix(srcPath, "..") {
+			continue
+		}
+		relPaths = append(relPaths, srcPath)
+	}
+
+	return slices.Compact(relPaths), nil
 }
 
 // performFullRebuild performs a complete rebuild including web packages.

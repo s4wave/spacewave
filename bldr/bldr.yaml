@@ -85,7 +85,7 @@ manifests:
         # delveAddr: wait
         webPluginId: web
         goPkgs:
-          - ./example
+          - ./bldr/example
 
         # webPkgs externalizes packages
         webPkgs:
@@ -116,9 +116,9 @@ manifests:
       id: bldr/cli/compiler
       config:
         goPkgs:
-          - ./example
+          - ./bldr/example
         cliPkgs:
-          - ./example/cli
+          - ./bldr/example/cli
         configSet:
           demo-1:
             id: bldr/example/demo
@@ -138,6 +138,6 @@ manifests:
           - { manifestId: bldr-demo, platformId: desktop/darwin/arm64 }
         loadPlugins:
           - bldr-demo
-        loadWebStartup: example/startup.tsx
+        loadWebStartup: bldr/example/startup.tsx
         # enableCompression: ENABLE
         # enableTinygo: ENABLE
