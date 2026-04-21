@@ -65,11 +65,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace lib
 }  // namespace forge
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::lib::git::clone::Config, _impl_._has_bits_),
@@ -91,40 +91,40 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::lib::git::clone::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n<github.com/s4wave/spacewave/forge/lib/"
     "git/clone/config.proto\022\023forge.lib.git.cl"
-    "one\0325github.com/s4wave/spacewave/db/g"
-    "it/block/git.proto\0325github.com/aperturer"
-    "obotics/hydra/git/world/git.proto\"\245\001\n\006Co"
-    "nfig\022\022\n\nobject_key\030\001 \001(\t\022(\n\nclone_opts\030\002"
-    " \001(\0132\024.git.block.CloneOpts\022&\n\tauth_opts\030"
-    "\003 \001(\0132\023.git.block.AuthOpts\0225\n\rworktree_o"
-    "pts\030\004 \001(\0132\036.git.world.GitCreateWorktreeO"
-    "pb\006proto3"
+    "one\0322github.com/s4wave/spacewave/db/git/"
+    "block/git.proto\0322github.com/s4wave/space"
+    "wave/db/git/world/git.proto\"\245\001\n\006Config\022\022"
+    "\n\nobject_key\030\001 \001(\t\022(\n\nclone_opts\030\002 \001(\0132\024"
+    ".git.block.CloneOpts\022&\n\tauth_opts\030\003 \001(\0132"
+    "\023.git.block.AuthOpts\0225\n\rworktree_opts\030\004 "
+    "\001(\0132\036.git.world.GitCreateWorktreeOpb\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fworld_2fgit_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fworld_2fgit_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto = {
     false,
     false,
-    369,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
+    363,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
     "github.com/s4wave/spacewave/forge/lib/git/clone/config.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto_deps,
     2,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
 };
 namespace forge {
 namespace lib {
@@ -261,7 +261,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -560,6 +560,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fgit_2fclone_2fconfig_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

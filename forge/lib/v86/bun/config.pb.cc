@@ -96,11 +96,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace lib
 }  // namespace forge
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::lib::v86::bun::Config_MountsEntry_DoNotUse, _impl_._has_bits_),
@@ -141,40 +141,40 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::lib::v86::bun::_Config_MountsEntry_DoNotUse_default_instance_._instance,
     &::forge::lib::v86::bun::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n:github.com/s4wave/spacewave/forge/lib/"
     "v86/bun/config.proto\022\021forge.lib.v86.bun\032"
-    "3github.com/s4wave/spacewave/db/block"
-    "/block.proto\"\243\002\n\006Config\022%\n\014bz_image_ref\030"
-    "\001 \001(\0132\017.block.BlockRef\0225\n\006mounts\030\002 \003(\0132%"
-    ".forge.lib.v86.bun.Config.MountsEntry\022\020\n"
-    "\010commands\030\003 \003(\t\022\022\n\noutput_dir\030\004 \001(\t\022\021\n\tm"
-    "emory_mb\030\005 \001(\r\022\023\n\013bun_version\030\006 \001(\t\022\021\n\ts"
-    "tate_dir\030\007 \001(\t\022\022\n\nscript_dir\030\010 \001(\t\022\027\n\017ro"
-    "otfs_tar_path\030\t \001(\t\032-\n\013MountsEntry\022\013\n\003ke"
-    "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001b\006proto3"
+    "0github.com/s4wave/spacewave/db/block/bl"
+    "ock.proto\"\243\002\n\006Config\022%\n\014bz_image_ref\030\001 \001"
+    "(\0132\017.block.BlockRef\0225\n\006mounts\030\002 \003(\0132%.fo"
+    "rge.lib.v86.bun.Config.MountsEntry\022\020\n\010co"
+    "mmands\030\003 \003(\t\022\022\n\noutput_dir\030\004 \001(\t\022\021\n\tmemo"
+    "ry_mb\030\005 \001(\r\022\023\n\013bun_version\030\006 \001(\t\022\021\n\tstat"
+    "e_dir\030\007 \001(\t\022\022\n\nscript_dir\030\010 \001(\t\022\027\n\017rootf"
+    "s_tar_path\030\t \001(\t\032-\n\013MountsEntry\022\013\n\003key\030\001"
+    " \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto = {
     false,
     false,
-    434,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
+    431,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
     "github.com/s4wave/spacewave/forge/lib/v86/bun/config.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto_deps,
     1,
     2,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
 };
 namespace forge {
 namespace lib {
@@ -219,7 +219,7 @@ constexpr auto Config_MountsEntry_DoNotUse::InternalGenerateClassData_() {
           false,
       },
       &Config_MountsEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -422,7 +422,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -937,6 +937,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fv86_2fbun_2fconfig_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

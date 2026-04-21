@@ -162,15 +162,13 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
+	r.BzImageRef = m.BzImageRef.CloneVT()
 	r.OutputDir = m.OutputDir
 	r.MemoryMb = m.MemoryMb
 	r.BunVersion = m.BunVersion
 	r.StateDir = m.StateDir
 	r.ScriptDir = m.ScriptDir
 	r.RootfsTarPath = m.RootfsTarPath
-	if rhs := m.BzImageRef; rhs != nil {
-		r.BzImageRef = rhs.CloneVT()
-	}
 	if rhs := m.Mounts; rhs != nil {
 		r.Mounts = maps.Clone(rhs)
 	}

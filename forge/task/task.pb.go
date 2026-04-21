@@ -209,11 +209,9 @@ func (m *Task) CloneVT() *Task {
 	r.PeerId = m.PeerId
 	r.Replicas = m.Replicas
 	r.PassNonce = m.PassNonce
+	r.TargetRef = m.TargetRef.CloneVT()
 	r.ValueSet = m.ValueSet.CloneVT()
 	r.Result = m.Result.CloneVT()
-	if rhs := m.TargetRef; rhs != nil {
-		r.TargetRef = rhs.CloneVT()
-	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}

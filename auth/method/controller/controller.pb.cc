@@ -33,35 +33,35 @@ namespace controller {
 }  // namespace method
 }  // namespace auth
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = nullptr;
-const ::uint32_t TableStruct_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto::offsets[1] = {};
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = nullptr;
+const ::uint32_t TableStruct_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto::offsets[1] = {};
 static constexpr ::_pbi::MigrationSchema* PROTOBUF_NULLABLE schemas = nullptr;
 static constexpr ::_pb::Message* PROTOBUF_NONNULL const* PROTOBUF_NULLABLE
     file_default_instances = nullptr;
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nCgithub.com/s4wave/spacewave/auth/metho"
     "d/controller/controller.proto\022\026auth.meth"
     "od.controllerb\006proto3"
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto = {
     false,
     false,
     101,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
     "github.com/s4wave/spacewave/auth/method/controller/controller.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto_once,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto_once,
     nullptr,
     0,
     0,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto,
 };
 namespace auth {
 namespace method {
@@ -77,6 +77,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fauth_2fmethod_2fcontroller_2fcontroller_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

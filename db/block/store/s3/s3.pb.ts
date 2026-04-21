@@ -4,8 +4,8 @@
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
-import type { HashType } from '../../../../net/hash/hash.pb.js'
-import { HashType_Enum } from '../../../../net/hash/hash.pb.js'
+import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 
 export const protobufPackage = 'block.store.s3'
 

@@ -143,7 +143,9 @@ export interface PluginHostResourceService {
 export const PluginHostResourceServiceServiceName =
   PluginHostResourceServiceDefinition.typeName
 
-export class PluginHostResourceServiceClient implements PluginHostResourceService {
+export class PluginHostResourceServiceClient
+  implements PluginHostResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

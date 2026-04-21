@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/forge/cluster/cluster.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -36,7 +36,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto
 
 namespace google {
 namespace protobuf {
@@ -48,11 +48,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 }  // extern "C"
 namespace forge {
 namespace cluster {
@@ -309,7 +309,7 @@ class ClusterStartJobOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterStartJobOp_class_data_;
@@ -538,7 +538,7 @@ class ClusterCreateOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterCreateOp_class_data_;
@@ -750,7 +750,7 @@ class ClusterCompleteJobOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterCompleteJobOp_class_data_;
@@ -962,7 +962,7 @@ class ClusterAssignWorkerOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterAssignWorkerOp_class_data_;
@@ -1191,7 +1191,7 @@ class ClusterAssignTaskOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterAssignTaskOp_class_data_;
@@ -1403,7 +1403,7 @@ class ClusterAssignPeerOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterAssignPeerOp_class_data_;
@@ -1615,7 +1615,7 @@ class ClusterAssignJobOp final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ClusterAssignJobOp_class_data_;
@@ -1827,7 +1827,7 @@ class Cluster final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Cluster_class_data_;
@@ -3059,4 +3059,4 @@ inline void ClusterCompleteJobOp::set_allocated_job_key(::std::string* PROTOBUF_
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fforge_2fcluster_2fcluster_2eproto_2epb_2eh

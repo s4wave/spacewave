@@ -231,17 +231,11 @@ func (m *Execution) CloneVT() *Execution {
 	r := new(Execution)
 	r.ExecutionState = m.ExecutionState
 	r.PeerId = m.PeerId
+	r.ValueSet = m.ValueSet.CloneVT()
+	r.TargetRef = m.TargetRef.CloneVT()
+	r.Result = m.Result.CloneVT()
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
-	}
-	if rhs := m.ValueSet; rhs != nil {
-		r.ValueSet = rhs.CloneVT()
-	}
-	if rhs := m.TargetRef; rhs != nil {
-		r.TargetRef = rhs.CloneVT()
-	}
-	if rhs := m.Result; rhs != nil {
-		r.Result = rhs.CloneVT()
 	}
 	if rhs := m.LogEntries; rhs != nil {
 		r.LogEntries = make([]*LogEntry, len(rhs))
@@ -285,12 +279,8 @@ func (m *Spec) CloneVT() *Spec {
 	}
 	r := new(Spec)
 	r.PeerId = m.PeerId
-	if rhs := m.ValueSet; rhs != nil {
-		r.ValueSet = rhs.CloneVT()
-	}
-	if rhs := m.TargetRef; rhs != nil {
-		r.TargetRef = rhs.CloneVT()
-	}
+	r.ValueSet = m.ValueSet.CloneVT()
+	r.TargetRef = m.TargetRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

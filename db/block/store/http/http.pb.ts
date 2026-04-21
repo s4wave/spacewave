@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/db/block/store/http/http.proto (package block.store.http, syntax proto3)
 /* eslint-disable */
 
-import type { HashType } from '../../../../net/hash/hash.pb.js'
-import { HashType_Enum } from '../../../../net/hash/hash.pb.js'
+import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef, PutOpts } from '../../block.pb.js'

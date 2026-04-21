@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/identity/world/world.proto (package identity.world, syntax proto3)
 /* eslint-disable */
 
-import { ObjectRef } from '../../db/bucket/bucket.pb.js'
+import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType } from '@aptre/protobuf-es-lite'
 

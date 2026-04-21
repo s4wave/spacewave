@@ -289,9 +289,7 @@ func (m *TxComplete) CloneVT() *TxComplete {
 		return (*TxComplete)(nil)
 	}
 	r := new(TxComplete)
-	if rhs := m.Result; rhs != nil {
-		r.Result = rhs.CloneVT()
-	}
+	r.Result = m.Result.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

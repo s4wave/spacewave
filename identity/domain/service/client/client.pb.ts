@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { DomainInfo } from '../../domain.pb.js'
-import { Config as Config$1 } from '../../../../net/stream/srpc/client/client.pb.js'
+import { Config as Config$1 } from '@go/github.com/s4wave/spacewave/net/stream/srpc/client/client.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 

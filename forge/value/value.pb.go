@@ -231,13 +231,9 @@ func (m *Value) CloneVT() *Value {
 	r := new(Value)
 	r.Name = m.Name
 	r.ValueType = m.ValueType
+	r.BlockRef = m.BlockRef.CloneVT()
+	r.BucketRef = m.BucketRef.CloneVT()
 	r.WorldObjectSnapshot = m.WorldObjectSnapshot.CloneVT()
-	if rhs := m.BlockRef; rhs != nil {
-		r.BlockRef = rhs.CloneVT()
-	}
-	if rhs := m.BucketRef; rhs != nil {
-		r.BucketRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -272,12 +268,10 @@ func (m *WorldObjectSnapshot) CloneVT() *WorldObjectSnapshot {
 	}
 	r := new(WorldObjectSnapshot)
 	r.Key = m.Key
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
 	r.ObjectType = m.ObjectType
 	r.ObjectParent = m.ObjectParent
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

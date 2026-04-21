@@ -78,15 +78,9 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.CloneOpts; rhs != nil {
-		r.CloneOpts = rhs.CloneVT()
-	}
-	if rhs := m.AuthOpts; rhs != nil {
-		r.AuthOpts = rhs.CloneVT()
-	}
-	if rhs := m.WorktreeOpts; rhs != nil {
-		r.WorktreeOpts = rhs.CloneVT()
-	}
+	r.CloneOpts = m.CloneOpts.CloneVT()
+	r.AuthOpts = m.AuthOpts.CloneVT()
+	r.WorktreeOpts = m.WorktreeOpts.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

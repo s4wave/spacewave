@@ -24,7 +24,7 @@ require (
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 
 require (
-	github.com/aperturerobotics/common v0.32.3 // latest
+	github.com/aperturerobotics/common v0.32.5 // latest
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
 )

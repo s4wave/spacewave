@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/identity/domain/service/server/server.proto (package identity.domain.server, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '../../../../net/stream/srpc/server/server.pb.js'
+import { Config as Config$1 } from '@go/github.com/s4wave/spacewave/net/stream/srpc/server/server.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 

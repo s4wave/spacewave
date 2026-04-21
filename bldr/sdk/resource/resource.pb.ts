@@ -1,1 +1,1 @@
-export * from '../../resource/resource.pb.js'
+export * from '@go/github.com/s4wave/spacewave/bldr/resource/resource.pb.js'

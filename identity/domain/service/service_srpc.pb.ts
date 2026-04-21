@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/identity/domain/service/service.proto (package identity.domain.service, syntax proto3)
 /* eslint-disable */
 
-import { SignedMsg } from '../../../net/peer/peer.pb.js'
+import { SignedMsg } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
 import { LookupEntityResp } from './service.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'

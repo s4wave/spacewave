@@ -68,11 +68,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace task
 }  // namespace forge
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::task::Task, _impl_._has_bits_),
@@ -104,56 +104,56 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::task::_Task_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n1github.com/s4wave/spacewave/forge/task"
-    "/task.proto\022\nforge.task\0323github.com/aper"
-    "turerobotics/hydra/block/block.proto\0325gi"
-    "thub.com/aperturerobotics/forge/target/t"
-    "arget.proto\0323github.com/aperturerobotics"
-    "/forge/value/value.proto\032\037google/protobu"
-    "f/timestamp.proto\"\226\002\n\004Task\022%\n\ntask_state"
-    "\030\001 \001(\0162\021.forge.task.State\022\014\n\004name\030\002 \001(\t\022"
-    "\017\n\007peer_id\030\003 \001(\t\022\020\n\010replicas\030\005 \001(\r\022\022\n\npa"
-    "ss_nonce\030\006 \001(\004\022#\n\ntarget_ref\030\007 \001(\0132\017.blo"
-    "ck.BlockRef\022)\n\tvalue_set\030\010 \001(\0132\026.forge.t"
-    "arget.ValueSet\022#\n\006result\030\t \001(\0132\023.forge.v"
-    "alue.Result\022-\n\ttimestamp\030\n \001(\0132\032.google."
-    "protobuf.Timestamp*\221\001\n\005State\022\025\n\021TaskStat"
-    "e_UNKNOWN\020\000\022\025\n\021TaskState_PENDING\020\001\022\025\n\021Ta"
-    "skState_RUNNING\020\002\022\026\n\022TaskState_CHECKING\020"
-    "\003\022\026\n\022TaskState_COMPLETE\020\004\022\023\n\017TaskState_R"
-    "ETRY\020\005b\006proto3"
+    "/task.proto\022\nforge.task\0320github.com/s4wa"
+    "ve/spacewave/db/block/block.proto\0325githu"
+    "b.com/s4wave/spacewave/forge/target/targ"
+    "et.proto\0323github.com/s4wave/spacewave/fo"
+    "rge/value/value.proto\032\037google/protobuf/t"
+    "imestamp.proto\"\226\002\n\004Task\022%\n\ntask_state\030\001 "
+    "\001(\0162\021.forge.task.State\022\014\n\004name\030\002 \001(\t\022\017\n\007"
+    "peer_id\030\003 \001(\t\022\020\n\010replicas\030\005 \001(\r\022\022\n\npass_"
+    "nonce\030\006 \001(\004\022#\n\ntarget_ref\030\007 \001(\0132\017.block."
+    "BlockRef\022)\n\tvalue_set\030\010 \001(\0132\026.forge.targ"
+    "et.ValueSet\022#\n\006result\030\t \001(\0132\023.forge.valu"
+    "e.Result\022-\n\ttimestamp\030\n \001(\0132\032.google.pro"
+    "tobuf.Timestamp*\221\001\n\005State\022\025\n\021TaskState_U"
+    "NKNOWN\020\000\022\025\n\021TaskState_PENDING\020\001\022\025\n\021TaskS"
+    "tate_RUNNING\020\002\022\026\n\022TaskState_CHECKING\020\003\022\026"
+    "\n\022TaskState_COMPLETE\020\004\022\023\n\017TaskState_RETR"
+    "Y\020\005b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftarget_2ftarget_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fvalue_2fvalue_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto_deps[4] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftarget_2ftarget_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto = {
     false,
     false,
-    694,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto,
+    691,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto,
     "github.com/s4wave/spacewave/forge/task/task.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto_deps,
     4,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto,
 };
 namespace forge {
 namespace task {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL State_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t State_internal_data_[] = {
     393216u, 0u, };
@@ -308,7 +308,7 @@ constexpr auto Task::InternalGenerateClassData_() {
           false,
       },
       &Task::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto,
       nullptr,  // tracker
   };
 }
@@ -769,6 +769,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2ftask_2ftask_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftask_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

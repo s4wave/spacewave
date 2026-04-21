@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/bldr/plugin/host/storage/volume/config.proto (package bldr.plugin.host.storage.volume, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '../../../../../db/volume/controller/controller.pb.js'
+import { Config as Config$1 } from '@go/github.com/s4wave/spacewave/db/volume/controller/controller.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 

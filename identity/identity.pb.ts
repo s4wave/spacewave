@@ -8,7 +8,7 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
-import { Signature } from '../net/peer/peer.pb.js'
+import { Signature } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
 
 export const protobufPackage = 'identity'
 

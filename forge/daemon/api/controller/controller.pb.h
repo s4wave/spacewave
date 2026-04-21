@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/forge/daemon/api/controller/controller.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -31,16 +31,16 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/s4wave/spacewave/net/daemon/api/api.pb.h"
+#include "../../../../net/daemon/api/api.pb.h"
 #include "github.com/aperturerobotics/controllerbus/bus/api/api.pb.h"
-#include "github.com/s4wave/spacewave/db/daemon/api/api.pb.h"
+#include "../../../../db/daemon/api/api.pb.h"
 #include "../api.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto
 
 namespace google {
 namespace protobuf {
@@ -52,11 +52,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto;
 }  // extern "C"
 namespace forge {
 namespace api {
@@ -387,7 +387,7 @@ class Config final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
@@ -959,4 +959,4 @@ inline void Config::set_allocated_forge_api_config(::forge::api::Config* PROTOBU
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_2epb_2eh

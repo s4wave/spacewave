@@ -129,11 +129,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace lib
 }  // namespace forge
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::lib::kvtx::Config, _impl_._has_bits_),
@@ -181,11 +181,11 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::lib::kvtx::_ConfigInput_default_instance_._instance,
     &::forge::lib::kvtx::_Op_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n7github.com/s4wave/spacewave/forge/lib/"
     "kvtx/config.proto\022\016forge.lib.kvtx\0323githu"
-    "b.com/aperturerobotics/forge/value/value"
+    "b.com/s4wave/spacewave/forge/value/value"
     ".proto\"V\n\006Config\022\037\n\003ops\030\001 \003(\0132\022.forge.li"
     "b.kvtx.Op\022\024\n\014config_input\030\002 \001(\t\022\025\n\rignor"
     "e_errors\030\003 \001(\010\".\n\013ConfigInput\022\037\n\003ops\030\001 \003"
@@ -203,32 +203,32 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fl
     "ELETE\020\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto_deps[1] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fvalue_2fvalue_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto = {
     false,
     false,
     695,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
     "github.com/s4wave/spacewave/forge/lib/kvtx/config.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto_deps,
     1,
     3,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
 };
 namespace forge {
 namespace lib {
 namespace kvtx {
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OpType_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t OpType_internal_data_[] = {
     655360u, 0u, };
@@ -342,7 +342,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -700,7 +700,7 @@ constexpr auto ConfigInput::InternalGenerateClassData_() {
           false,
       },
       &ConfigInput::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1017,7 +1017,7 @@ constexpr auto Op::InternalGenerateClassData_() {
           false,
       },
       &Op::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1473,6 +1473,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2flib_2fkvtx_2fconfig_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2flib_2fkvtx_2fconfig_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

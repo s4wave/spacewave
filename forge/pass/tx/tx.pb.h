@@ -5,8 +5,8 @@
 // source: github.com/s4wave/spacewave/forge/pass/tx/tx.proto
 // Protobuf C++ Version: 6.33.4
 
-#ifndef github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh
-#define github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh
+#ifndef github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh
+#define github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh
 
 #include <limits>
 #include <string>
@@ -40,7 +40,7 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
-#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto
 
 namespace google {
 namespace protobuf {
@@ -52,11 +52,11 @@ template <typename T>
 }  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto {
+struct TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto {
   static const ::uint32_t offsets[];
 };
 extern "C" {
-extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+extern const ::google::protobuf::internal::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 }  // extern "C"
 namespace pass {
 namespace tx {
@@ -271,7 +271,7 @@ class TxUpdateExecStates final : public ::google::protobuf::internal::ZeroFields
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxUpdateExecStates_class_data_;
@@ -466,7 +466,7 @@ class ExecSpec final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ExecSpec_class_data_;
@@ -675,7 +675,7 @@ class TxCreateExecSpecs final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxCreateExecSpecs_class_data_;
@@ -870,7 +870,7 @@ class TxStart final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxStart_class_data_;
@@ -1082,7 +1082,7 @@ class TxComplete final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxComplete_class_data_;
@@ -1357,7 +1357,7 @@ class Tx final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Tx_class_data_;
@@ -2341,4 +2341,4 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::pass::tx::TxTy
 
 #include "google/protobuf/port_undef.inc"
 
-#endif  // github_2ecom_2faperturerobotics_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh
+#endif  // github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2ftx_2ftx_2eproto_2epb_2eh

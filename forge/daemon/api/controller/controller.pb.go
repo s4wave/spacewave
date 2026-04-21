@@ -118,18 +118,14 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.ListenAddr = m.ListenAddr
 	r.DisableBifrostApi = m.DisableBifrostApi
+	r.BifrostApiConfig = m.BifrostApiConfig.CloneVT()
 	r.DisableBusApi = m.DisableBusApi
 	r.DisableHydraApi = m.DisableHydraApi
+	r.HydraApiConfig = m.HydraApiConfig.CloneVT()
 	r.DisableForgeApi = m.DisableForgeApi
 	r.ForgeApiConfig = m.ForgeApiConfig.CloneVT()
-	if rhs := m.BifrostApiConfig; rhs != nil {
-		r.BifrostApiConfig = rhs.CloneVT()
-	}
 	if rhs := m.BusApiConfig; rhs != nil {
 		r.BusApiConfig = rhs.CloneVT()
-	}
-	if rhs := m.HydraApiConfig; rhs != nil {
-		r.HydraApiConfig = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

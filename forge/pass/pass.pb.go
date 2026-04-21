@@ -272,13 +272,11 @@ func (m *Pass) CloneVT() *Pass {
 	r := new(Pass)
 	r.PassState = m.PassState
 	r.PeerId = m.PeerId
+	r.TargetRef = m.TargetRef.CloneVT()
 	r.ValueSet = m.ValueSet.CloneVT()
 	r.Result = m.Result.CloneVT()
 	r.Replicas = m.Replicas
 	r.PassNonce = m.PassNonce
-	if rhs := m.TargetRef; rhs != nil {
-		r.TargetRef = rhs.CloneVT()
-	}
 	if rhs := m.ExecStates; rhs != nil {
 		r.ExecStates = make([]*ExecState, len(rhs))
 		for k, v := range rhs {

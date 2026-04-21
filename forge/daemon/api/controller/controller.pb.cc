@@ -68,11 +68,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace api
 }  // namespace forge
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::forge::api::controller::Config, _impl_._has_bits_),
@@ -104,49 +104,49 @@ static const ::_pbi::MigrationSchema
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::forge::api::controller::_Config_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nHgithub.com/s4wave/spacewave/forge/daem"
     "on/api/controller/controller.proto\022\024forg"
-    "e.api.controller\0328github.com/aperturerob"
-    "otics/bifrost/daemon/api/api.proto\032;gith"
-    "ub.com/aperturerobotics/controllerbus/bu"
-    "s/api/api.proto\0326github.com/aperturerobo"
-    "tics/hydra/daemon/api/api.proto\0326github."
-    "com/aperturerobotics/forge/daemon/api/ap"
-    "i.proto\"\275\002\n\006Config\022\023\n\013listen_addr\030\001 \001(\t\022"
-    "\033\n\023disable_bifrost_api\030\002 \001(\010\022/\n\022bifrost_"
-    "api_config\030\003 \001(\0132\023.bifrost.api.Config\022\027\n"
-    "\017disable_bus_api\030\004 \001(\010\022\'\n\016bus_api_config"
-    "\030\005 \001(\0132\017.bus.api.Config\022\031\n\021disable_hydra"
-    "_api\030\007 \001(\010\022+\n\020hydra_api_config\030\006 \001(\0132\021.h"
-    "ydra.api.Config\022\031\n\021disable_forge_api\030\010 \001"
-    "(\010\022+\n\020forge_api_config\030\t \001(\0132\021.forge.api"
-    ".Configb\006proto3"
+    "e.api.controller\0324github.com/s4wave/spac"
+    "ewave/net/daemon/api/api.proto\032;github.c"
+    "om/aperturerobotics/controllerbus/bus/ap"
+    "i/api.proto\0323github.com/s4wave/spacewave"
+    "/db/daemon/api/api.proto\0326github.com/s4w"
+    "ave/spacewave/forge/daemon/api/api.proto"
+    "\"\275\002\n\006Config\022\023\n\013listen_addr\030\001 \001(\t\022\033\n\023disa"
+    "ble_bifrost_api\030\002 \001(\010\022/\n\022bifrost_api_con"
+    "fig\030\003 \001(\0132\023.bifrost.api.Config\022\027\n\017disabl"
+    "e_bus_api\030\004 \001(\010\022\'\n\016bus_api_config\030\005 \001(\0132"
+    "\017.bus.api.Config\022\031\n\021disable_hydra_api\030\007 "
+    "\001(\010\022+\n\020hydra_api_config\030\006 \001(\0132\021.hydra.ap"
+    "i.Config\022\031\n\021disable_forge_api\030\010 \001(\010\022+\n\020f"
+    "orge_api_config\030\t \001(\0132\021.forge.api.Config"
+    "b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_deps[4] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbifrost_2fdaemon_2fapi_2fapi_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_deps[4] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fbus_2fapi_2fapi_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fapi_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fdaemon_2fapi_2fapi_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fdaemon_2fapi_2fapi_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fapi_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fnet_2fdaemon_2fapi_2fapi_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto = {
     false,
     false,
-    655,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
+    648,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
     "github.com/s4wave/spacewave/forge/daemon/api/controller/controller.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto_deps,
     4,
     1,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
 };
 namespace forge {
 namespace api {
@@ -299,7 +299,7 @@ constexpr auto Config::InternalGenerateClassData_() {
           false,
       },
       &Config::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto,
       nullptr,  // tracker
   };
 }
@@ -745,6 +745,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fdaemon_2fapi_2fcontroller_2fcontroller_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"
