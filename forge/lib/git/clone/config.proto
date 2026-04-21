@@ -1,0 +1,24 @@
+syntax = "proto3";
+package forge.lib.git.clone;
+
+import "github.com/s4wave/spacewave/db/git/block/git.proto";
+import "github.com/s4wave/spacewave/db/git/world/git.proto";
+
+// Config is the configuration for cloning Git repositories to a world.
+// If the target object already exists, skips the step.
+//
+// Inputs:
+//  - world: the target World engine or state.
+// Outputs:
+//  - repo: snapshot of the Repository object.
+message Config {
+  // ObjectKey is the object key to create as a Repo.
+  string object_key = 1;
+  // CloneOpts are the args for the clone operation.
+  .git.block.CloneOpts clone_opts = 2;
+  // AuthOpts applies authentication to the operations.
+  .git.block.AuthOpts auth_opts = 3;
+  // WorktreeOpts are options for creating the worktree.
+  // If cloneOpts.DisableCheckout is set, disables this step.
+  .git.world.GitCreateWorktreeOp worktree_opts = 4;
+}

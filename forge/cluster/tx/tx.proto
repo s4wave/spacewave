@@ -1,0 +1,18 @@
+syntax = "proto3";
+package cluster.tx;
+
+// Tx is the on-the-wire representation of a transaction.
+message Tx {
+  // TxType is the kind of transaction this is.
+  TxType tx_type = 1;
+  // ClusterObjectKey is the Cluster object ID this is associated with.
+  // The Cluster object must already exist.
+  string cluster_object_key = 2;
+
+  // TODO
+}
+
+// TxType indicates the kind of transaction.
+enum TxType {
+  TxType_INVALID = 0;
+}

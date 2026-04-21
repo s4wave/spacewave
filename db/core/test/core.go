@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
-	egc "github.com/aperturerobotics/entitygraph/controller"
 	nctr "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
@@ -23,6 +22,5 @@ func NewTestingBus(
 	}
 
 	sr.AddFactory(nctr.NewFactory(b))
-	sr.AddFactory(egc.NewFactory(b))
 	return b, sr, nil
 }

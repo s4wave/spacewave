@@ -1,0 +1,68 @@
+syntax = "proto3";
+package forge.execution;
+
+import "github.com/s4wave/spacewave/forge/target/target.proto";
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "google/protobuf/timestamp.proto";
+
+// World graph links:
+//  - <parent> -> usually a Pass which created the Execution
+message Execution {
+  // ExecutionState is the current state of the execution.
+  State execution_state = 1;
+  // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
+  string peer_id = 2;
+  // Timestamp is the time the parent object (usually Pass) was created.
+  // Used as a reference timestamp to make all ops deterministic.
+  // Must be set & is not updated.
+  google.protobuf.Timestamp timestamp = 3;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  // Outputs are updated while the execution is in RUNNING state.
+  .forge.target.ValueSet value_set = 4;
+  // TargetRef is the block ref to the Target block.
+  .block.BlockRef target_ref = 5;
+  // Result is information about the outcome of a completed execution.
+  .forge.value.Result result = 6;
+  // LogEntries contains log output from the execution.
+  // Appended while the execution is in RUNNING state.
+  repeated LogEntry log_entries = 7;
+}
+
+// LogEntry is a single log line from an execution.
+message LogEntry {
+  // Timestamp is when the log entry was created.
+  google.protobuf.Timestamp timestamp = 1;
+  // Level is the log level (e.g. "info", "warn", "error", "debug").
+  string level = 2;
+  // Message is the log message text.
+  string message = 3;
+}
+
+// Spec contains information specified when creating a Execution.
+message Spec {
+  // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
+  string peer_id = 1;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  // Specified output values are used as initial values, and can be overridden.
+  .forge.target.ValueSet value_set = 2;
+  // TargetRef is the target to run in the Execution.
+  // Overrides "target" field if set.
+  .block.BlockRef target_ref = 3;
+}
+
+// State contains the possible execution states.
+enum State {
+  // ExecutionState_UNKNOWN is the unknown type.
+  ExecutionState_UNKNOWN = 0;
+  // ExecutionState_PENDING is the state before the execution starts.
+  // Transitions to RUNNING when the assigned peer acks exec start.
+  ExecutionState_PENDING = 1;
+  // ExecutionState_RUNNING is the state when the execution is running.
+  ExecutionState_RUNNING = 2;
+  // ExecutionState_COMPLETE is the terminal state of the execution.
+  // This includes both success and failure termination states.
+  ExecutionState_COMPLETE = 3;
+}

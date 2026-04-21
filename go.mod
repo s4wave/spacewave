@@ -82,7 +82,6 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/controllerbus v0.53.1 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
-	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/fastjson v0.1.1
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1
@@ -117,6 +116,7 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/whilp/git-urls v1.0.0
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.50.0
 	golang.org/x/sys v0.43.1-0.20260414013634-54fe89f84115

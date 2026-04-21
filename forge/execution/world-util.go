@@ -1,0 +1,60 @@
+package forge_execution
+
+import (
+	"context"
+	"errors"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
+	world_control "github.com/s4wave/spacewave/db/world/control"
+	"github.com/sirupsen/logrus"
+)
+
+// LookupExecution looks up an execution in the world.
+func LookupExecution(ctx context.Context, ws world.WorldState, objKey string) (*Execution, world.ObjectState, error) {
+	return world.LookupObject[*Execution](ctx, ws, objKey, NewExecutionBlock)
+}
+
+// WaitExecutionComplete waits until the execution is in the COMPLETE state.
+func WaitExecutionComplete(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	executionObjectKey string,
+) (*Execution, error) {
+	// wait for execution to complete
+	var finalState *Execution
+	var lastState State
+	loop := world_control.NewWatchLoop(
+		le,
+		executionObjectKey,
+		world_control.NewWaitForStateHandler(
+			func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
+				if obj == nil {
+					return true, nil
+				}
+				exec, err := UnmarshalExecution(ctx, rootCs)
+				if err != nil {
+					return false, err
+				}
+				nextState := exec.GetExecutionState()
+				if nextState != lastState {
+					lastState = nextState
+					le.Debugf("execution is in state: %s", nextState.String())
+					if ferr := exec.GetResult().GetFailError(); ferr != "" {
+						le.WithError(errors.New(ferr)).Warn("execution failed")
+					}
+				}
+				complete := exec.IsComplete()
+				if complete {
+					finalState = exec
+				}
+				return !complete, nil
+			},
+		),
+	)
+	if err := loop.Execute(ctx, ws); err != nil {
+		return nil, err
+	}
+	return finalState, nil
+}

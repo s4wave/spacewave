@@ -5,11 +5,7 @@ package store_kvtx_sqlite
 import (
 	"context"
 	"os"
-	"runtime"
-	"strconv"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -19,10 +15,6 @@ import (
 
 func newTempDBPath(t *testing.T, pattern string) string {
 	t.Helper()
-
-	if runtime.GOOS == "js" {
-		return strings.Replace(pattern, "*", strconv.FormatInt(time.Now().UnixNano(), 10), 1)
-	}
 
 	file, err := os.CreateTemp("", pattern)
 	if err != nil {

@@ -3,7 +3,6 @@ package core_all
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	egc "github.com/aperturerobotics/entitygraph/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_http "github.com/s4wave/spacewave/db/block/store/http"
 	http_lookup "github.com/s4wave/spacewave/db/block/store/http/lookup"
@@ -15,7 +14,6 @@ import (
 	block_store_s3_lookup "github.com/s4wave/spacewave/db/block/store/s3/lookup"
 	"github.com/s4wave/spacewave/db/core"
 	api_controller "github.com/s4wave/spacewave/db/daemon/api/controller"
-	hydraeg "github.com/s4wave/spacewave/db/entitygraph"
 	mysql_controller "github.com/s4wave/spacewave/db/sql/mysql/controller"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
 	unixfs_world_access "github.com/s4wave/spacewave/db/unixfs/world/access"
@@ -39,9 +37,6 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 
 	sr.AddFactory(mysql_controller.NewFactory(b))
-
-	sr.AddFactory(egc.NewFactory(b))
-	sr.AddFactory(hydraeg.NewFactory(b))
 
 	sr.AddFactory(http_lookup.NewFactory(b))
 	sr.AddFactory(http_server.NewFactory(b))

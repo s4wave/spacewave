@@ -11,7 +11,6 @@ import (
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	entitygraph_logger "github.com/aperturerobotics/entitygraph/logger"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
@@ -23,7 +22,6 @@ import (
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/testbed"
 	bifrost_core "github.com/s4wave/spacewave/net/core"
-	egctr "github.com/s4wave/spacewave/net/entitygraph"
 	link_holdopen_controller "github.com/s4wave/spacewave/net/link/hold-open"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
@@ -176,7 +174,6 @@ func TestMultiNodeDEX(
 			&floodsub_controller.Config{},
 			&node_controller.Config{},
 			&link_holdopen_controller.Config{},
-			&egctr.Config{},
 		}
 		if prepareTestbedCb != nil {
 			ac, err := prepareTestbedCb(tb, bc)
@@ -185,7 +182,6 @@ func TestMultiNodeDEX(
 			}
 			addlControllers = append(addlControllers, ac...)
 		}
-		tb.StaticResolver.AddFactory(egctr.NewFactory(tb.Bus))
 		for _, c := range addlControllers {
 			_, _, dvRef, err := bus.ExecOneOff(
 				ctx,
@@ -198,11 +194,6 @@ func TestMultiNodeDEX(
 				t.Fatal(err.Error())
 			}
 			defer dvRef.Release()
-		}
-
-		_, err := entitygraph_logger.AttachBasicLogger(tb.Bus, le)
-		if err != nil {
-			t.Fatalf("start entitygraph logger: %v", err)
 		}
 	}
 

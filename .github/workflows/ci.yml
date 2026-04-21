@@ -24,6 +24,13 @@ jobs:
             lint_js_script: lint:js:auth
             test_go_script: test:go:auth
             test_js_script: test:js:auth
+          - name: forge
+            build_script: ''
+            check_script: ''
+            lint_go_script: lint:go:forge
+            lint_js_script: lint:js:forge
+            test_go_script: test:go:forge
+            test_js_script: test:js:forge
           - name: net
             build_script: build:net
             check_script: ''

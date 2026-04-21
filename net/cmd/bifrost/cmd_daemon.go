@@ -13,15 +13,12 @@ import (
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	egc "github.com/aperturerobotics/entitygraph/controller"
-	entitygraph_logger "github.com/aperturerobotics/entitygraph/logger"
 	"github.com/pkg/errors"
 	bcli "github.com/s4wave/spacewave/net/cli"
 	"github.com/s4wave/spacewave/net/daemon"
 	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 	api_controller "github.com/s4wave/spacewave/net/daemon/api/controller"
 	daemon_prof "github.com/s4wave/spacewave/net/daemon/prof"
-	egctr "github.com/s4wave/spacewave/net/entitygraph"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
 	"github.com/sirupsen/logrus"
 )
@@ -172,36 +169,6 @@ func runDaemon(c *cli.Context) error {
 	// Load config sets and factories
 	if err := daemonFlags.ApplyToConfigSet(confSet, true); err != nil {
 		return err
-	}
-
-	// Entity graph controller.
-	{
-		_, egRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfig(&egc.Config{}),
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "start entity graph controller")
-		}
-		defer egRef.Release()
-		le.Info("entity graph controller running")
-	}
-
-	// Entity graph reporter for bifrost
-	{
-		_, _, err = b.AddDirective(
-			resolver.NewLoadControllerWithConfig(&egctr.Config{}),
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "start entitygraph bifrost reporter")
-		}
-		le.Info("entitygraph bifrost reporter running")
-	}
-
-	_, err = entitygraph_logger.AttachBasicLogger(b, le)
-	if err != nil {
-		return errors.Wrap(err, "start entitygraph logger")
 	}
 
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {

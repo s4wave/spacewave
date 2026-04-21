@@ -50,7 +50,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	// Construct the EntityGraph controller.
+	// Construct the floodsub controller.
 	return pubsub_controller.NewController(
 		le,
 		t.bus,

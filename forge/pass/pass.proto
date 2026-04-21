@@ -1,0 +1,99 @@
+syntax = "proto3";
+package forge.pass;
+
+import "github.com/s4wave/spacewave/forge/execution/execution.proto";
+import "github.com/s4wave/spacewave/forge/target/target.proto";
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "google/protobuf/timestamp.proto";
+
+// Pass contains state for a Task pass.
+// Contains a pointer to the Target used for the pass.
+// Contains snapshots of the execution instance states.
+// Execution instances can be added / removed.
+//
+// The Pass is complete when len(exec_states) == replicas and all exec states
+// are in the completed (terminal) state, or when a fatal error occurs.
+//
+// If the Target object changes (in the world) or inputs change, a new Pass
+// should be created (these fields are immutable).
+//
+// World graph links:
+//  - parent: usually a Task which created the Pass
+//  - forge/pass-execution: all active execution instances for the pass
+// Incoming graph links:
+//  - parent: from the Execution for the pass.
+message Pass {
+  // PassState is the current state of the pass.
+  State pass_state = 1;
+  // PeerId is the Pass controller peer ID.
+  // Usually the peer ID of the Cluster controller managing this Pass.
+  // Can be empty.
+  string peer_id = 2;
+  // TargetRef is the block reference to the Target for the pass.
+  .block.BlockRef target_ref = 3;
+  // ValueSet is the set of inputs and outputs used in the pass.
+  // The input set is resolved before creating the Pass object.
+  // The inputs are copied to the Pass objects.
+  // The output set is updated when transitioning from CHECKING -> COMPLETE.
+  .forge.target.ValueSet value_set = 4;
+  // Result is information about the outcome of a completed Pass.
+  .forge.value.Result result = 5;
+  // Replicas is the configured number of executions for the Pass.
+  //
+  // len(replicas) must match len(exec_states) to complete
+  uint32 replicas = 6;
+  // PassNonce is the nonce of the pass set by the pass creator.
+  uint64 pass_nonce = 7;
+  // ExecStates contains the most recent snapshot of the execution states.
+  // Updated when:
+  //  - PENDING to RUNNING: contains initial execution states (PENDING)
+  //  - RUNNING: can add and remove execution states as needed.
+  //  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
+  //  - Any to PENDING: cleared (set to len=0).
+  repeated ExecState exec_states = 8;
+  // Timestamp is the time the Pass was created.
+  // Used as a reference timestamp to make all ops deterministic.
+  // For example: all unixfs timestamps will be set to this value.
+  // Must be set.
+  google.protobuf.Timestamp timestamp = 9;
+}
+
+// ExecState contains the previous snapshot of an execution state.
+message ExecState {
+  // ObjectKey is the object key of the execution instance.
+  // Must exist before adding to Pass state.
+  // Graph quad also exists: <pass> <pass/execution> <object_key>
+  string object_key = 1;
+  // ExecutionState is the current state of the execution.
+  .forge.execution.State execution_state = 2;
+  // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
+  string peer_id = 3;
+  // Timestamp is the time the parent object (usually Pass) was created.
+  google.protobuf.Timestamp timestamp = 4;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  // Outputs are updated when the execution reaches COMPLETE state.
+  .forge.target.ValueSet value_set = 5;
+  // Result is information about the outcome of the execution.
+  .forge.value.Result result = 6;
+}
+
+// State contains the possible Pass states.
+enum State {
+  // PassState_UNKNOWN is the unknown type.
+  PassState_UNKNOWN = 0;
+  // PassState_PENDING is the state when the pass is not yet running.
+  // Transitions to RUNNING when the pass is promoted to running.
+  PassState_PENDING = 1;
+  // PassState_RUNNING is the state when the executions are running.
+  // ExecStates can be added, removed, updated during this state as needed.
+  PassState_RUNNING = 2;
+  // PassState_CHECKING is the state when all exec states are completed.
+  // If multiple executions were scheduled, they are checked for agreement.
+  // Transition to COMPLETE state on failure (disageement) or success (validation).
+  PassState_CHECKING = 3;
+  // PassState_COMPLETE is the normal terminal state of the pass.
+  // This includes both success and failure termination states.
+  PassState_COMPLETE = 4;
+}

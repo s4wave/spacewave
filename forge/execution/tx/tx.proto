@@ -1,0 +1,76 @@
+syntax = "proto3";
+package execution.tx;
+
+import "github.com/s4wave/spacewave/forge/execution/execution.proto";
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+
+// Tx is the on-the-wire representation of a transaction.
+message Tx {
+  // TxType is the kind of transaction this is.
+  TxType tx_type = 1;
+
+  // TxStart contains the start transaction tx.
+  // TxType_INVALID
+  TxStart tx_start = 2;
+  // TxSetOutputs contains the set outputs tx.
+  // TxType_SET_OUTPUTS
+  TxSetOutputs tx_set_outputs = 3;
+  // TxComplete contains the complete tx.
+  // TxType_COMPLETE
+  TxComplete tx_complete = 4;
+  // TxAppendLog contains the append log tx.
+  // TxType_APPEND_LOG
+  TxAppendLog tx_append_log = 5;
+}
+
+// TxType indicates the kind of transaction.
+enum TxType {
+  TxType_INVALID = 0;
+  // TxType_START starts execution of the transaction.
+  TxType_START = 1;
+  // TxType_SET_OUTPUTS changes the value of an output.
+  TxType_SET_OUTPUTS = 2;
+  // TxType_COMPLETE sets the result of the execution.
+  TxType_COMPLETE = 3;
+  // TxType_APPEND_LOG appends log entries to the execution.
+  TxType_APPEND_LOG = 4;
+}
+
+// TxStart starts the execution with a peer id.
+// Execution must be in the PENDING state.
+// TxType: TxType_START
+message TxStart {
+  // PeerId is the peer identifier to set as the executor.
+  // Must be the same as the sender of the transaction.
+  // Must match peer_id on the Execution if it's not empty.
+  string peer_id = 1;
+}
+
+// TxSetOutputs updates the value of one or more execution outputs.
+// Execution must be in the RUNNING state.
+// Sender must be the peer_id specified on the Execution.
+// TxType: TxType_SET_OUTPUTS
+message TxSetOutputs {
+  // Outputs is the set of values to set.
+  repeated .forge.value.Value outputs = 1;
+  // ClearOld indicates to clear all old output values before setting.
+  bool clear_old = 2;
+}
+
+// TxComplete completes the execution by setting the result.
+// Execution must be in the RUNNING state.
+// Sender must be the peer_id specified on the Execution.
+// TxType: TxType_COMPLETE
+message TxComplete {
+  // Result is information about the outcome of a completed execution.
+  .forge.value.Result result = 1;
+}
+
+// TxAppendLog appends log entries to the execution.
+// Execution must be in the RUNNING state.
+// Sender must be the peer_id specified on the Execution.
+// TxType: TxType_APPEND_LOG
+message TxAppendLog {
+  // Entries is the set of log entries to append.
+  repeated .forge.execution.LogEntry entries = 1;
+}

@@ -1,0 +1,131 @@
+syntax = "proto3";
+package forge.target;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+
+// Target contains a desired Task target configuration.
+message Target {
+  // Inputs is the mapping of inputs.
+  // Not necessarily sorted or unique, later values override earlier.
+  repeated Input inputs = 1;
+  // Outputs is the mapping of outputs.
+  // Not necessarily sorted or unique, later values override earlier.
+  repeated Output outputs = 2;
+  // Exec is the execution pass configuration.
+  Exec exec = 3;
+}
+
+// Input contains configuration for a Task target input.
+message Input {
+  // Name is the unique name of the input.
+  string name = 1;
+  // InputType is the type of input.
+  // If UNKNOWN and Alias is set, assumes ALIAS.
+  InputType input_type = 2;
+  // Alias is the name of the target aliased Input.
+  string alias = 3;
+  // WatchChanges will restart the Task if the Value changes.
+  bool watch_changes = 7;
+
+  // Value is the in-line data for the value input type.
+  // InputType_VALUE
+  .forge.value.Value value = 4;
+
+  // World contains the args for the world input type.
+  // InputType_WORLD
+  InputWorld world = 5;
+
+  // WorldObject contains the args for the world object input type.
+  // Can be used for change detection: re-run Target when object changes.
+  // InputType_WORLD_OBJECT
+  InputWorldObject world_object = 6;
+}
+
+// InputType is the list of possible input types.
+enum InputType {
+  // InputType_UNKNOWN is the zero output type.
+  InputType_UNKNOWN = 0;
+  // InputType_VALUE is an in-line value input.
+  InputType_VALUE = 1;
+  // InputType_ALIAS aliases the input to another named input.
+  InputType_ALIAS = 2;
+
+  // InputType_WORLD passes a handle to a Hydra World as an input.
+  InputType_WORLD = 3;
+  // InputType_WORLD_OBJECT passes a Value with the latest Object ref and a
+  // world object handle attached to a WORLD input.
+  InputType_WORLD_OBJECT = 4;
+}
+
+// InputWorld are args for the world input type.
+// InputType_WORLD
+message InputWorld {
+  // EngineId is the world engine ID to lookup.
+  string engine_id = 1;
+  // LookupImmediate indicates the execution controller should lookup and wait
+  // for the world engine to be ready before starting execution. If false, the
+  // execution controller will pass a BusEngine handle which will lookup the
+  // engine lazily (on first request).
+  bool lookup_immediate = 2;
+}
+
+// InputWorldObject are args for the world object input type.
+// InputType_WORLD_OBJECT
+message InputWorldObject {
+  // World is the name of the world input to lookup on.
+  // If unset, defaults to the Forge Job world.
+  string world = 1;
+  // ObjectKey is the object key to lookup.
+  string object_key = 2;
+  // ObjectRev is the minimum object rev to wait for.
+  // If set, waits for the object to exist.
+  // If object_rev == 0, does not wait for the object to exist.
+  uint64 object_rev = 3;
+}
+
+// Output contains configuration of a target task output.
+// This specifies where to get the Output value from.
+message Output {
+  // Name is the unique name of the output.
+  string name = 1;
+  // OutputType is the type of output.
+  OutputType output_type = 2;
+
+  // ExecOutput is the name of the exec output to mount.
+  // OutputType_EXEC
+  string exec_output = 3;
+  // Value is an in-line output value.
+  // OutputType_VALUE
+  .forge.value.Value value = 4;
+}
+
+// OutputType is the list of possible output types.
+enum OutputType {
+  // OutputType_UNKNOWN is the zero output type.
+  OutputType_UNKNOWN = 0;
+  // OutputType_EXEC is an output value mounted from an exec instance.
+  OutputType_EXEC = 1;
+  // OutputType_VALUE is an in-line output value (specified in the target).
+  OutputType_VALUE = 2;
+}
+
+// Exec contains target execution configuration.
+message Exec {
+  // Disable is a flag to ignore the below contents and inhibit the exec step.
+  bool disable = 1;
+  // Controller indicates to run a controllerbus controller.
+  .configset.proto.ControllerConfig controller = 2;
+}
+
+// ValueSet is the set of values satisfying inputs/outputs of a target.
+message ValueSet {
+  // Inputs is the set of inputs.
+  // Unique by the "name" field.
+  // Sorted by name.
+  repeated .forge.value.Value inputs = 1;
+  // Outputs is the set of outputs.
+  // Unique by the "name" field.
+  // Sorted by name.
+  repeated .forge.value.Value outputs = 2;
+}

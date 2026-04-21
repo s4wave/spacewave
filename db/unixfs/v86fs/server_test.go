@@ -305,7 +305,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 	if writeReply == nil || writeReply.GetStatus() != 0 {
 		t.Fatalf("write failed: %v", reply.GetBody())
 	}
-	if writeReply.GetBytesWritten() != uint32(len(fileData)) {
+	if int(writeReply.GetBytesWritten()) != len(fileData) {
 		t.Fatalf("expected %d bytes written, got %d", len(fileData), writeReply.GetBytesWritten())
 	}
 
@@ -358,7 +358,7 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 		t.Fatalf("read-back mismatch: got %q", reply.GetReadReply().GetData())
 	}
 
-	reply = sendRecv(t, strm, &V86FsMessage{
+	sendRecv(t, strm, &V86FsMessage{
 		Tag:  nextTag(),
 		Body: &V86FsMessage_CloseRequest{CloseRequest: &V86FsCloseRequest{HandleId: handleID}},
 	})

@@ -1,0 +1,119 @@
+package worker_controller
+
+import (
+	"context"
+
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
+	world_control "github.com/s4wave/spacewave/db/world/control"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	forge_world "github.com/s4wave/spacewave/forge/world"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
+)
+
+// ProcessState implements the state reconciliation loop.
+func (c *Controller) ProcessState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState, // may be nil if not found
+	rootRef *bucket.ObjectRef, rev uint64,
+) (waitForChanges bool, err error) {
+	objKey := c.objKey
+	if obj == nil {
+		le.Debug("object does not exist, waiting")
+		return true, nil
+	}
+
+	// unmarshal Worker state + build read cursor
+	var workerState *forge_worker.Worker
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
+		var berr error
+		workerState, berr = forge_worker.UnmarshalWorker(ctx, bcs)
+		if berr != nil {
+			return berr
+		}
+		return berr
+	})
+	if err != nil {
+		return true, err
+	}
+
+	if err := workerState.Validate(); err != nil {
+		le.WithError(err).Warn("object is invalid, waiting")
+		return true, nil
+	}
+
+	// peerID may be empty here
+	workerName, peerID := workerState.GetName(), c.peerID
+	_ = workerName
+	_ = peerID
+
+	// lookup all keypair associated with the Worker.
+	workerKeypairs, workerKeypairKeys, err := forge_worker.CollectWorkerKeypairs(ctx, ws, objKey)
+	if err != nil {
+		return true, err
+	}
+
+	// parse keypair peer ids
+	workerPeerIDs := make([]peer.ID, len(workerKeypairs))
+	for i, kp := range workerKeypairs {
+		workerPeerIDs[i], err = kp.ParsePeerID()
+		if err != nil {
+			return true, errors.Wrapf(err, "keypairs[%d]", i)
+		}
+	}
+
+	// if peer id is set, check that it matches any of the worker keypairs
+	var peerIDString string
+	if len(peerID) != 0 {
+		peerIDString = peerID.String()
+
+		matched := -1
+		for i, wPeerID := range workerPeerIDs {
+			wPeerIDString := wPeerID.String()
+			if peerIDString == wPeerIDString {
+				matched = i
+				break
+			}
+		}
+		if matched < 0 {
+			le.Warnf(
+				"worker %q: configured peer id does not match any of %d keypairs: %s",
+				workerName,
+				len(workerPeerIDs),
+				peerIDString,
+			)
+			return true, nil
+		}
+
+		// override the list of peer ids with the configured
+		// workerPeerIDs = []peer.ID{peerID}
+		// workerKeypairs = []*identity.Keypair{workerKeypairs[matched]}
+		workerKeypairKeys = []string{workerKeypairKeys[matched]}
+	}
+
+	// sync the list of keypairs
+	c.keypairTrackers.SyncKeys(workerKeypairKeys, true)
+
+	// lookup all object assigned to the keypairs
+	assignedObjs, err := forge_world.ListKeypairObjects(ctx, ws, workerKeypairKeys...)
+	if err != nil {
+		return true, err
+	}
+	c.le.Infof(
+		"matched %d objects for %d keypairs to worker: %v",
+		len(assignedObjs),
+		len(workerKeypairKeys),
+		assignedObjs,
+	)
+
+	c.objectTrackers.SyncKeys(assignedObjs, true)
+	return true, nil
+}
+
+// _ is a type assertion
+var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState

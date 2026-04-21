@@ -1,0 +1,31 @@
+inputs:
+  - name: testValue
+    inputType: InputType_WORLD_OBJECT
+    worldObject:
+      objectKey: "testValue"
+outputs:
+  - name: store
+    outputType: OutputType_EXEC
+    execOutput: "store"
+exec:
+  controller:
+    # rev: 0 -> defaults to 1
+    id: forge/lib/kvtx
+    config:
+      ops:
+      - opType: OpType_CHECK_NOT_EXISTS
+        key: "does-not-exist"
+      - opType: OpType_SET
+        ops:
+        - key: "test-1"
+          valueString: "Hello World"
+        - key: "test-2"
+          valueString: "Testing 123"
+      - key: "test-2"
+        opType: OpType_GET
+        output: "setTestValue2"
+      - key: "test-2"
+        opType: OpType_CHECK
+        valueString: "Testing 123"
+      - opType: OpType_DELETE
+        key: "test-2"

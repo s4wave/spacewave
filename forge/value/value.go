@@ -1,0 +1,261 @@
+package forge_value
+
+import (
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/s4wave/spacewave/db/bucket"
+)
+
+// NewValue constructs a new empty Value.
+func NewValue(name string) *Value {
+	return &Value{
+		Name: name,
+	}
+}
+
+// NewValueWithBlockRef constructs a new value with a block ref.
+func NewValueWithBlockRef(name string, br *block.BlockRef) *Value {
+	return &Value{
+		Name:      name,
+		ValueType: ValueType_ValueType_BLOCK_REF,
+		BlockRef:  br,
+	}
+}
+
+// NewValueWithBucketRef constructs a new value with a object ref.
+func NewValueWithBucketRef(name string, br *bucket.ObjectRef) *Value {
+	return &Value{
+		Name:      name,
+		ValueType: ValueType_ValueType_BUCKET_REF,
+		BucketRef: br,
+	}
+}
+
+// NewValueWithWorldObjectSnapshot constructs a new value with a WorldObjectSnapshot.
+func NewValueWithWorldObjectSnapshot(name string, snapshot *WorldObjectSnapshot) *Value {
+	return &Value{
+		Name:                name,
+		ValueType:           ValueType_ValueType_WORLD_OBJECT_SNAPSHOT,
+		WorldObjectSnapshot: snapshot,
+	}
+}
+
+// Validate checks the value type is in range.
+func (v ValueType) Validate() error {
+	switch v {
+	case ValueType_ValueType_BLOCK_REF:
+	case ValueType_ValueType_BUCKET_REF:
+	default:
+		return errors.Wrap(ErrUnknownValueType, v.String())
+	}
+	return nil
+}
+
+// Validate performs cursory validation of the value.
+func (v *Value) Validate(allowEmptyName bool) error {
+	if len(v.GetName()) == 0 && !allowEmptyName {
+		return ErrEmptyValueName
+	}
+	vt := v.GetValueType()
+	if err := vt.Validate(); err != nil {
+		return nil
+	}
+
+	if vt == ValueType_ValueType_BLOCK_REF {
+		// allow empty ref
+		if err := v.GetBlockRef().Validate(true); err != nil {
+			return err
+		}
+	} else {
+		if !v.GetBlockRef().GetEmpty() {
+			return errors.Errorf(
+				"expect empty block_ref field for non-block-ref value type %s",
+				vt.String(),
+			)
+		}
+	}
+
+	if vt == ValueType_ValueType_BUCKET_REF {
+		if err := v.GetBucketRef().Validate(); err != nil {
+			return err
+		}
+	} else {
+		if !v.GetBucketRef().GetEmpty() {
+			return errors.Errorf(
+				"expect empty bucket_ref field for non-bucket-ref value type %s",
+				vt.String(),
+			)
+		}
+	}
+	return nil
+}
+
+// IsEmpty checks if the configuration is empty.
+func (v *Value) IsEmpty() bool {
+	valueType := v.GetValueType()
+	switch valueType {
+	case ValueType_ValueType_UNKNOWN:
+		return true
+	case ValueType_ValueType_BLOCK_REF:
+		return v.GetBlockRef().GetEmpty()
+	case ValueType_ValueType_BUCKET_REF:
+		return v.GetBucketRef().GetEmpty()
+	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
+		return v.GetWorldObjectSnapshot().GetEmpty()
+	default:
+		return true
+	}
+}
+
+// Clone deep copies the Value.
+func (v *Value) Clone() *Value {
+	if v == nil {
+		return nil
+	}
+	return v.CloneVT()
+}
+
+// IsNil checks if the object is nil.
+func (v *Value) IsNil() bool {
+	return v == nil
+}
+
+// Equals compares the two values.
+func (v *Value) Equals(ot block.ComparableNamedSubBlock) bool {
+	ov, ok := ot.(*Value)
+	if !ok {
+		return false
+	}
+	return v.EqualVT(ov)
+}
+
+// ToBucketRef converts any value type into an ObjectRef.
+// Returns nil if the block ref or bucket ref was empty.
+func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {
+	vt := v.GetValueType()
+	switch vt {
+	case ValueType_ValueType_UNKNOWN:
+		return nil, nil
+	case ValueType_ValueType_BUCKET_REF:
+		return v.GetBucketRef(), nil
+	case ValueType_ValueType_BLOCK_REF:
+		blockRef := v.GetBlockRef()
+		if blockRef == nil {
+			return nil, nil
+		}
+		return &bucket.ObjectRef{RootRef: v.GetBlockRef()}, nil
+	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
+		return v.GetWorldObjectSnapshot().ToBucketRef()
+	default:
+		return nil, errors.Wrap(ErrUnknownValueType, vt.String())
+	}
+}
+
+// MarshalBlock marshals the block to binary.
+// This is the initial step of marshaling, before transformations.
+func (v *Value) MarshalBlock() ([]byte, error) {
+	return v.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the block to the object.
+// This is the final step of decoding, after transformations.
+func (v *Value) UnmarshalBlock(data []byte) error {
+	return v.UnmarshalVT(data)
+}
+
+// ApplyBlockRef applies a ref change with a field id.
+// The reference may be nil if the child block is nil.
+func (v *Value) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+	switch id {
+	case 3:
+		v.BlockRef = ptr
+	}
+	return nil
+}
+
+// GetBlockRefs returns all block references by ID.
+// May return nil, and values may also be nil.
+// Note: this does not include pending references (in a cursor)
+func (v *Value) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	m := make(map[uint32]*block.BlockRef)
+	m[3] = v.GetBlockRef()
+	return m, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID or unknown.
+func (v *Value) GetBlockRefCtor(id uint32) block.Ctor {
+	return nil
+}
+
+// ApplySubBlock applies a sub-block change with a field id.
+func (v *Value) ApplySubBlock(id uint32, next block.SubBlock) error {
+	switch id {
+	case 4:
+		if next == nil {
+			v.BucketRef = nil
+			return nil
+		}
+		sb, ok := next.(*bucket.ObjectRef)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		v.BucketRef = sb
+	case 5:
+		if next == nil {
+			v.WorldObjectSnapshot = nil
+			return nil
+		}
+		sb, ok := next.(*WorldObjectSnapshot)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		v.WorldObjectSnapshot = sb
+	}
+	return nil
+}
+
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (v *Value) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	m[4] = v.GetBucketRef()
+	m[5] = v.GetWorldObjectSnapshot()
+	return m
+}
+
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (v *Value) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 4:
+		return func(create bool) block.SubBlock {
+			n := v.GetBucketRef()
+			if n == nil && create {
+				n = &bucket.ObjectRef{}
+				v.BucketRef = n
+			}
+			return n
+		}
+	case 5:
+		return func(create bool) block.SubBlock {
+			n := v.GetWorldObjectSnapshot()
+			if n == nil && create {
+				n = &WorldObjectSnapshot{}
+				v.WorldObjectSnapshot = n
+			}
+			return n
+		}
+	}
+	return nil
+}
+
+// _ is a type assertion
+var (
+	_ block.Block              = ((*Value)(nil))
+	_ block.SubBlock           = ((*Value)(nil))
+	_ block.BlockWithRefs      = ((*Value)(nil))
+	_ block.BlockWithSubBlocks = ((*Value)(nil))
+	_ sbset.NamedSubBlock      = ((*Value)(nil))
+)

@@ -1,0 +1,106 @@
+package task_controller
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
+	world_control "github.com/s4wave/spacewave/db/world/control"
+	forge_pass "github.com/s4wave/spacewave/forge/pass"
+	"github.com/sirupsen/logrus"
+)
+
+// passTracker tracks the latest Pass of the Task.
+type passTracker struct {
+	// c is the controller
+	c *Controller
+	// objKey is the object key
+	objKey string
+	// objLoop tracks the object changes
+	objLoop *world_control.WatchLoop
+	// prevState is the previous pass state
+	prevState *forge_pass.Pass
+}
+
+// newPassTracker constructs a new pass tracker routine.
+func (c *Controller) newPassTracker(key string) (keyed.Routine, *passTracker) {
+	tr := &passTracker{
+		c:      c,
+		objKey: key,
+	}
+	tr.objLoop = world_control.NewWatchLoop(
+		c.le.WithField("object-loop", "pass-tracker"),
+		key,
+		tr.processState,
+	)
+	return tr.execute, tr
+}
+
+// execute executes the pass tracker.
+func (t *passTracker) execute(ctx context.Context) error {
+	objKey, le := t.objKey, t.c.le
+
+	le.Debugf("starting pass tracker: %s", objKey)
+	return world_control.ExecuteBusWatchLoop(
+		ctx,
+		t.c.bus,
+		t.c.conf.GetEngineId(),
+		true,
+		t.objLoop,
+	)
+}
+
+// processState processes the state for the pass.
+func (t *passTracker) processState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState, // may be nil if not found
+	rootRef *bucket.ObjectRef, rev uint64,
+) (waitForChanges bool, err error) {
+	objKey := t.objKey
+
+	if obj == nil {
+		le.Debugf("pass object not found: %s", objKey)
+		return true, nil
+	}
+
+	// check the <type> of the object
+	if err := forge_pass.CheckPassType(ctx, ws, objKey); err != nil {
+		return true, err
+	}
+
+	passObj, _, err := forge_pass.LookupPass(ctx, ws, t.objKey)
+	if err != nil {
+		if err == context.Canceled {
+			return true, nil
+		}
+		return true, errors.Wrap(err, "lookup pass")
+	}
+
+	if passObj.EqualVT(t.prevState) {
+		// no changes
+		return true, nil
+	}
+
+	t.prevState = passObj
+	switch passObj.GetPassState() {
+	case forge_pass.State_PassState_COMPLETE:
+	case forge_pass.State_PassState_UNKNOWN:
+	default:
+		return true, nil
+	}
+
+	// submit a transaction to update the Task with any changes to the Pass
+	// this only can be submitted while the Task is RUNNING
+	if err := t.c.updateWithPassState(ctx); err != nil {
+		return true, err
+	}
+
+	return true, nil
+}
+
+// _ is a type assertion
+var _ world_control.WatchLoopHandler = ((*passTracker)(nil)).processState

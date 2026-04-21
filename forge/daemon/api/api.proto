@@ -1,0 +1,9 @@
+syntax = "proto3";
+package forge.api;
+
+// Config is forge api configuration.
+message Config {
+}
+
+// ForgeDaemonService is the control service for a daemon, contacted by the CLI.
+service ForgeDaemonService {}

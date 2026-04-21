@@ -7,21 +7,15 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/cli"
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/entitygraph"
-	egc "github.com/aperturerobotics/entitygraph/controller"
-	"github.com/aperturerobotics/entitygraph/entity"
 	"github.com/pkg/errors"
 	hcli "github.com/s4wave/spacewave/db/cli"
 	"github.com/s4wave/spacewave/db/daemon"
 	api_controller "github.com/s4wave/spacewave/db/daemon/api/controller"
 	"github.com/s4wave/spacewave/db/daemon/prof"
-	egctr "github.com/s4wave/spacewave/db/entitygraph"
 	reconciler_example "github.com/s4wave/spacewave/db/reconciler/example"
 	bcli "github.com/s4wave/spacewave/net/cli"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
@@ -114,51 +108,7 @@ func runDaemon(c *cli.Context) error {
 
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
-	sr.AddFactory(egctr.NewFactory(b))
 	sr.AddFactory(reconciler_example.NewFactory(b))
-
-	// Entity graph controller.
-	{
-		_, egRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfig(&egc.Config{}),
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "start entity graph controller")
-		}
-		defer egRef.Release()
-	}
-
-	// Entity graph reporter for bifrost
-	{
-		_, _, err = b.AddDirective(
-			resolver.NewLoadControllerWithConfig(&egctr.Config{}),
-			bus.NewCallbackHandler(func(val directive.AttachedValue) {
-				le.Info("entitygraph bifrost reporter running")
-			}, nil, nil),
-		)
-		if err != nil {
-			return errors.Wrap(err, "start entitygraph bifrost reporter")
-		}
-	}
-
-	// TODO: something better than this logger
-	{
-		le.Debug("constructing entitygraph logger")
-		_, _, err = b.AddDirective(
-			entitygraph.NewObserveEntityGraph(),
-			bus.NewCallbackHandler(func(val directive.AttachedValue) {
-				ent := val.GetValue().(entity.Entity)
-				le.Infof("EntityGraph: value added: %s: %s", ent.GetEntityTypeName(), ent.GetEntityID())
-			}, func(val directive.AttachedValue) {
-				ent := val.GetValue().(entity.Entity)
-				le.Infof("EntityGraph: value removed: %s: %s", ent.GetEntityTypeName(), ent.GetEntityID())
-			}, nil),
-		)
-		if err != nil {
-			return errors.Wrap(err, "start entitygraph logger")
-		}
-	}
 
 	// ConfigSet controller
 	_, csRef, err := b.AddDirective(

@@ -1,6 +1,0 @@
-syntax = "proto3";
-package bifrost.entitygraph;
-
-// Config is the config object for the entitygraph repoter.
-message Config {
-}

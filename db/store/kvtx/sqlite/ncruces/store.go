@@ -12,7 +12,6 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	sqlite "github.com/ncruces/go-sqlite3"
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -32,10 +31,6 @@ func (c SqliteWasmConfig) DriverName() string {
 
 // OpenDSN returns the DSN to use with sql.Open().
 func (c SqliteWasmConfig) OpenDSN(path string) string {
-	if runtime.GOOS == "js" {
-		return "file:" + filepath.ToSlash(path) +
-			"?vfs=memdb&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"
-	}
 	return "file:" + filepath.ToSlash(path) +
 		"?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"
 }
@@ -78,9 +73,6 @@ func Open(ctx context.Context, path string, table string) (*Store, error) {
 
 // OpenWithMode opens a SQLite database store with file mode.
 func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*Store, error) {
-	if runtime.GOOS == "js" {
-		return common.Open(ctx, path, table, SqliteWasmConfig{})
-	}
 	return common.OpenWithMode(ctx, path, mode, table, SqliteWasmConfig{})
 }
 

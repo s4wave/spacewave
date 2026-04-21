@@ -6,8 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
-	egc "github.com/aperturerobotics/entitygraph/controller"
-	bifrosteg "github.com/s4wave/spacewave/net/entitygraph"
 	http_listener "github.com/s4wave/spacewave/net/http/listener"
 	link_establish_controller "github.com/s4wave/spacewave/net/link/establish"
 	link_holdopen_controller "github.com/s4wave/spacewave/net/link/hold-open"
@@ -75,10 +73,6 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// pubsub
 	sr.AddFactory(pubsub_relay.NewFactory(b))
 	sr.AddFactory(floodsub_controller.NewFactory(b))
-
-	// entity graph
-	sr.AddFactory(egc.NewFactory(b))
-	sr.AddFactory(bifrosteg.NewFactory(b))
 
 	// tptaddr
 	sr.AddFactory(tptaddr_controller.NewFactory(b))

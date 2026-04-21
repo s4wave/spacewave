@@ -1,0 +1,44 @@
+syntax = "proto3";
+package forge.job;
+
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "google/protobuf/timestamp.proto";
+
+// Job contains state for running a set of Tasks.
+//
+// The Job is complete when all Task are in the completed (terminal) state, or
+// when a fatal error occurs.
+// 
+// World graph links:
+//  - parent: usually the Cluster which created the Job.
+//  - forge/job-task: all active Task instances for the Job.
+// Incoming links:
+//  - parent: any Tasks created specifically for the Job
+message Job {
+  // JobState is the current state of the job.
+  State job_state = 1;
+  // Result is information about the outcome of a completed Job.
+  .forge.value.Result result = 2;
+  // Timestamp is the time the Job was created.
+  // Used as a reference timestamp to make all ops deterministic.
+  // For example: all unixfs timestamps will be set to this value.
+  // Must be set.
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// State contains the possible Job states.
+enum State {
+  // JobState_UNKNOWN is the unknown type.
+  JobState_UNKNOWN = 0;
+  // JobState_PENDING indicates the job is queued for execution.
+  // Transitions to RUNNING state when the scheduler starts the job.
+  JobState_PENDING = 1;
+  // JobState_RUNNING is the state when the job is underway.
+  //
+  // If the job is returned to PENDING, all ongoing Pass are canceled, and
+  // replaced with new Pass in PENDING state.
+  JobState_RUNNING = 2;
+  // JobState_COMPLETE is the normal terminal state of the job.
+  // This includes both success and failure termination states.
+  JobState_COMPLETE = 3;
+}

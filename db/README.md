@@ -61,9 +61,6 @@ The following high-level data structures are implemented:
 
 For more details, see the [design overview](./doc/design.md).
 
-An EntityGraph controller is provided, exposing the internal state of Hydra and
-other systems to visualizers via a graph-based entity model.
-
 ## Volumes
 
 Hydra assigns a persistent public/private keypair and peer ID to volumes.
@@ -231,9 +228,7 @@ For a daemon status output, use `hydra client cbus bus-info`:
 Controllers:
         controllerbus/loader 0.0.1
         controllerbus/resolver/static 0.0.1
-        hydra/entitygraph/reporter 0.0.1
         controllerbus/configset 0.0.1
-        entitygraph/collector 0.0.1
         hydra/daemon/api 0.0.1
         bifrost/transport/udp 0.0.1
         hydra/volume/bolt 0.0.1

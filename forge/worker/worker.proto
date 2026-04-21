@@ -1,0 +1,33 @@
+syntax = "proto3";
+package forge.worker;
+
+import "github.com/s4wave/spacewave/identity/identity.proto";
+import "google/protobuf/timestamp.proto";
+
+// Worker associates a set of keypairs with a worker name.
+// The name is used for API calls and command-line / UI tools.
+// The keypairs are load-balance assigned tasks to run by the scheduler.
+// Worker automatically starts controllers for all assigned objects.
+//
+// Graph links:
+// - identity/keypair-link: links to Keypairs representing the Worker.
+// Incoming links:
+// - forge/cluster-worker: links from Cluster to Worker.
+message Worker {
+  // Name is the human readable worker name.
+  // Example: "my-worker-1"
+  // Must be a valid DNS label as defined in RFC 1123.
+  string name = 1;
+}
+
+// WorkerCreateOp creates a Worker.
+message WorkerCreateOp {
+  // ObjectKey is the object key to create the Worker.
+  string object_key = 1;
+  // Name is the worker name to create.
+  string name = 2;
+  // Keypairs is the list of keypairs to add and/or link to the worker.
+  // Must not have duplicates.
+  // Optional.
+  repeated .identity.Keypair keypairs = 3;
+}

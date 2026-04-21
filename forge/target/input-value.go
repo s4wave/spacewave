@@ -1,0 +1,155 @@
+package forge_target
+
+import (
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/world"
+	forge_value "github.com/s4wave/spacewave/forge/value"
+)
+
+// InputValue is the parsed and processed value of an Input.
+type InputValue interface {
+	// GetInputType returns the input type of this value.
+	GetInputType() InputType
+	// Validate checks the input value.
+	Validate() error
+	// IsEmpty checks if the value is "empty."
+	IsEmpty() bool
+}
+
+// InputValueInline is the interface expected for a InputValue of type VALUE.
+type InputValueInline interface {
+	// InputValue indicates this is an InputValue.
+	InputValue
+	// GetValue returns the value.
+	GetValue() *forge_value.Value
+}
+
+// InputValueWorld is the interface expected for a InputValue of type WORLD.
+type InputValueWorld interface {
+	// InputValue indicates this is an InputValue.
+	InputValue
+	// GetWorldEngine returns the world engine, if available.
+	// May return nil if unavailable.
+	GetWorldEngine() world.Engine
+	// GetWorldState returns the world state.
+	// Should not return nil.
+	GetWorldState() world.WorldState
+}
+
+// InputValueWorldObject is the interface expected for a InputValue of type WORLD_OBJECT.
+type InputValueWorldObject interface {
+	// InputValue indicates this is an InputValue.
+	InputValue
+	// InputValueInline is the latest object state value.
+	InputValueInline
+	// InputValueWorld is the value for the world the object was retrieved from.
+	InputValueWorld
+	// GetWorldObject returns the world object state handle.
+	GetWorldObject() world.ObjectState
+}
+
+// InputValueToValue resolves an inline InputValue to a Value.
+// Returns nil, nil if the value is empty or nil.
+func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
+	if iv == nil {
+		return nil, nil
+	}
+	inputType := iv.GetInputType()
+	if err := inputType.Validate(true); err != nil {
+		return nil, err
+	}
+
+	switch inputType {
+	case InputType_InputType_ALIAS:
+		// unable to resolve alias with a value
+		return nil, nil
+	case InputType_InputType_VALUE:
+		return InlineValueToValue(iv)
+	case InputType_InputType_WORLD:
+		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
+	case InputType_InputType_WORLD_OBJECT:
+		return InlineValueToValue(iv)
+	case InputType_InputType_UNKNOWN:
+		return nil, nil
+	default:
+		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
+	}
+}
+
+// InputValueToWorld resolves an InputValue to a InputValueWorld.
+func InputValueToWorld(iv InputValue) (InputValueWorld, error) {
+	if iv == nil || iv.IsEmpty() {
+		return nil, nil
+	}
+
+	vw, ok := iv.(InputValueWorld)
+	if !ok {
+		inputType := iv.GetInputType()
+		if inputType != InputType_InputType_WORLD && inputType != InputType_InputType_WORLD_OBJECT {
+			return nil, errors.Errorf("input type %s cannot be used as a world", inputType.String())
+		}
+
+		return nil, ErrUnexpectedInputValueType
+	}
+
+	return vw, nil
+}
+
+// InputValueToWorldState resolves an InputValue to a WorldState.
+// Returns nil, nil if the value is empty or nil.
+func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
+	vw, err := InputValueToWorld(iv)
+	if err != nil || vw == nil {
+		return nil, nil
+	}
+
+	if err := iv.Validate(); err != nil {
+		return nil, err
+	}
+
+	return vw.GetWorldState(), nil
+}
+
+// InputValueToWorldObject resolves an InputValue to a WorldObject.
+// Returns nil, nil if the value is empty or nil.
+func InputValueToWorldObject(iv InputValue) (InputValueWorldObject, error) {
+	wo, ok := iv.(InputValueWorldObject)
+	if !ok {
+		inputType := iv.GetInputType()
+		if inputType != InputType_InputType_WORLD_OBJECT {
+			return nil, errors.Errorf("input type %s cannot be used as a world", inputType.String())
+		}
+
+		return nil, ErrUnexpectedInputValueType
+	}
+
+	if err := iv.Validate(); err != nil {
+		return nil, err
+	}
+
+	return wo, nil
+}
+
+// InlineValueToValue resolves an inline InputValue to a Value.
+// Does not attempt to resolve dynamic values.
+// Returns nil, nil if the value is empty or nil.
+func InlineValueToValue(iv InputValue) (*forge_value.Value, error) {
+	if iv == nil {
+		return nil, nil
+	}
+
+	vw, ok := iv.(InputValueInline)
+	if !ok {
+		if vw.IsEmpty() {
+			return nil, nil
+		}
+		inputType := iv.GetInputType()
+		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
+	}
+
+	if err := iv.Validate(); err != nil {
+		return nil, err
+	}
+
+	return vw.GetValue(), nil
+}

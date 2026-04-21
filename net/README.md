@@ -57,11 +57,6 @@ an implementation of attaching and looking up http clients on the bus.
 
 [http]: ./http
 
-[EntityGraph] exposes the internal state representation of Bifrost to
-visualizers and instrumentation via a graph-based inter-connected entity model.
-
-[EntityGraph]: https://github.com/aperturerobotics/entitygraph
-
 Configuring each component as an independent controller makes it easy to adapt
 application code to different operating environments and protocols.
 

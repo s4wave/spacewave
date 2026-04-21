@@ -1,0 +1,104 @@
+package forge_cluster
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/cayley/quad"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/identity"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
+)
+
+const (
+	// ClusterTypeID is the type identifier for a Cluster.
+	ClusterTypeID = "forge/cluster"
+
+	// PredClusterToJob is the predicate linking Cluster to a Job.
+	PredClusterToJob = quad.IRI("forge/cluster-job")
+	// PredClusterToWorker is the predicate linking Cluster to a Worker.
+	PredClusterToWorker = quad.IRI("forge/cluster-worker")
+)
+
+// NewClusterBlock constructs a new Cluster block.
+func NewClusterBlock() block.Block {
+	return &Cluster{}
+}
+
+// NewClusterToJobQuad creates a quad linking a Cluster to a Job.
+func NewClusterToJobQuad(clusterObjKey, jobObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		clusterObjKey,
+		PredClusterToJob.String(),
+		jobObjKey,
+		"",
+	)
+}
+
+// NewClusterToWorkerQuad creates a quad linking a Cluster to a Worker.
+func NewClusterToWorkerQuad(clusterObjKey, workerObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		clusterObjKey,
+		PredClusterToWorker.String(),
+		workerObjKey,
+		"",
+	)
+}
+
+// LookupClusterOp performs the lookup operation for the Cluster op types.
+func LookupClusterOp(ctx context.Context, opTypeID string) (world.Operation, error) {
+	switch opTypeID {
+	case ClusterCreateOpId:
+		return &ClusterCreateOp{}, nil
+	case ClusterAssignJobOpId:
+		return &ClusterAssignJobOp{}, nil
+	case ClusterAssignWorkerOpId:
+		return &ClusterAssignWorkerOp{}, nil
+	case ClusterAssignTaskOpId:
+		return &ClusterAssignTaskOp{}, nil
+	case ClusterAssignPeerOpId:
+		return &ClusterAssignPeerOp{}, nil
+	}
+	return nil, nil
+}
+
+// UnmarshalCluster unmarshals a worker block from the cursor.
+func UnmarshalCluster(ctx context.Context, bcs *block.Cursor) (*Cluster, error) {
+	return block.UnmarshalBlock[*Cluster](ctx, bcs, NewClusterBlock)
+}
+
+// Validate performs cursory checks of the Cluster object.
+func (e *Cluster) Validate() error {
+	if err := identity.ValidateEntityID(e.GetName()); err != nil {
+		return err
+	}
+	pid, err := e.ParsePeerID()
+	if err != nil {
+		return err
+	}
+	if pid == "" {
+		return peer.ErrEmptyPeerID
+	}
+	return nil
+}
+
+// ParsePeerID parses the peer ID field.
+func (e *Cluster) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(e.GetPeerId())
+}
+
+// MarshalBlock marshals the block to binary.
+// This is the initial step of marshaling, before transformations.
+func (e *Cluster) MarshalBlock() ([]byte, error) {
+	return e.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the block to the object.
+// This is the final step of decoding, after transformations.
+func (e *Cluster) UnmarshalBlock(data []byte) error {
+	return e.UnmarshalVT(data)
+}
+
+// _ is a type assertion
+var _ block.Block = ((*Cluster)(nil))

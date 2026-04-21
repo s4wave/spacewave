@@ -1,0 +1,10 @@
+syntax = "proto3";
+package forge.lib.util.wait;
+
+// Config configures the controller to wait for Inputs & execute.
+//
+// Inputs:
+//  - {name}: an input to wait for.
+// Outputs:
+//  - {name}: snapshots of all InputValue converted to *Value.
+message Config {}

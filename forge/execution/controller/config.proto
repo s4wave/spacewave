@@ -1,0 +1,36 @@
+syntax = "proto3";
+package execution.controller;
+
+import "github.com/s4wave/spacewave/forge/execution/execution.proto";
+import "github.com/s4wave/spacewave/forge/target/target.proto";
+
+// Config is the execution controller configuration.
+message Config {
+  // EngineId is the world engine id for the forge state.
+  string engine_id = 1;
+  // ObjectKey is the Execution state object to attach to.
+  // If not exists, waits for it to exist.
+  string object_key = 2;
+  // PeerId is the peer ID to use for the execution controller.
+  // If the Execution already has a peer_id set, must match it.
+  // If not set, will look up the peer id from the state.
+  string peer_id = 3;
+
+  // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
+  string resolve_controller_config_timeout = 4;
+  // AllowNonExecController allows exec.controller to not implement ExecController.
+  bool allow_non_exec_controller = 5;
+
+  // InputWorld is the default value for the "world" input.
+  .forge.target.InputWorld input_world = 6;
+}
+
+// ExecConfig is a configuration for the execution routine.
+message ExecConfig {
+  // Execution is the current state of the execution.
+  // NOTE: value_set and result are set to nil.
+  .forge.execution.Execution execution = 1;
+  // Target is the current target to execute.
+  // This is the value of the TargetRef in execution.
+  .forge.target.Target target = 2;
+}

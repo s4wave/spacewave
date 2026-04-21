@@ -1,0 +1,82 @@
+syntax = "proto3";
+package forge.task;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/forge/target/target.proto";
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "google/protobuf/timestamp.proto";
+
+// Task contains state for running a Target.
+//
+// World graph links:
+//  - parent: usually the Job that created the Target.
+//  - forge/task-pass: all Pass for the Task
+//  - forge/task-target: current active Target of the Task, max 1
+// Incoming graph links:
+//  - parent: from the Pass.
+message Task {
+  // TaskState is the current state of the task.
+  State task_state = 1;
+  // Name is the human readable Task name.
+  // Example: "my-task-1"
+  // Must be a valid DNS label as defined in RFC 1123.
+  string name = 2;
+  // PeerId is the Task controller peer ID.
+  // Usually the peer ID of the Cluster controller managing this Task.
+  // Can be empty.
+  string peer_id = 3;
+
+  // Replicas is the configured number of replicas for the created Pass.
+  // Cannot be zero.
+  // Task transitions to PENDING if different from latest Pass.
+  uint32 replicas = 5;
+  // PassNonce is the most recent pass index.
+  // Incremented when a new pass is added.
+  // Can be initially zero when no Pass exists.
+  // Task transitions to PENDING if different from latest Pass.
+  uint64 pass_nonce = 6;
+  // TargetRef is the block reference to the Target for the Task.
+  // Can be initially empty.
+  // Task transitions to PENDING when changed.
+  .block.BlockRef target_ref = 7;
+  // ValueSet is the set of inputs and outputs for the Task.
+  // The output set is updated when transitioning from CHECKING -> COMPLETE.
+  // Can be initially empty.
+  // Task transitions to PENDING when inputs are changed.
+  .forge.target.ValueSet value_set = 8;
+
+  // Result is information about the outcome of a completed Pass.
+  .forge.value.Result result = 9;
+  // Timestamp is the time the Task was created.
+  // Used as a reference timestamp to make all ops deterministic.
+  // For example: all unixfs timestamps will be set to this value.
+  // Must be set.
+  google.protobuf.Timestamp timestamp = 10;
+}
+
+// State contains the possible Task states.
+enum State {
+  // TaskState_UNKNOWN is the unknown type.
+  TaskState_UNKNOWN = 0;
+  // TaskState_PENDING is the state when waiting for target & inputs to be resolved.
+  // If the <task/target> link or other inputs are not set, remains in PENDING state.
+  // Transitions to RUNNING state when inputs are resolved and Pass is created.
+  // Transitions to PENDING when the target or input values are updated.
+  TaskState_PENDING = 1;
+  // TaskState_RUNNING is the state when a Pass is assigned and currently executing.
+  // If the linked Target does not match the linked pass, cancel the pass.
+  // If the inputs do not match the linked Pass inputs, cancel the pass.
+  // If the pass becomes canceled, return to PENDING state.
+  TaskState_RUNNING = 2;
+  // TaskState_CHECKING is the state when the Pass has completed.
+  // The Task controller will then check the Pass results.
+  // Transition to COMPLETE state on failure (invalid) or success (validation).
+  TaskState_CHECKING = 3;
+  // TaskState_COMPLETE is the terminal state of the task.
+  // This includes both success and failure termination states.
+  TaskState_COMPLETE = 4;
+  // TaskState_RETRY wait for a change in Inputs before retrying with a new Pass.
+  // When the assigned Pass is deleted or Inputs are different from latest resolved,
+  // remove the <task/pass> graph link and transition to PENDING.
+  TaskState_RETRY = 5;
+}
