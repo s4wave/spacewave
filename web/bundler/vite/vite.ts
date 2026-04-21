@@ -450,6 +450,7 @@ async function buildWebPkg(
       // Vite defaults NODE_ENV to "production" for build commands
       // regardless of the mode setting.
       define: {
+        BLDR_DEBUG: JSON.stringify(!isRelease),
         'process.env.NODE_ENV': JSON.stringify(isRelease ? 'production' : 'development'),
       },
 
