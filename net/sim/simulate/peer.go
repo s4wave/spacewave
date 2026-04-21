@@ -57,7 +57,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	}
 
 	var ctxCancel func()
-	np.ctx, ctxCancel = context.WithCancel(ctx)
+	np.ctx, ctxCancel = context.WithCancel(ctx) //nolint:gosec // cancel stored in rels and released by Close
 	rels = append(rels, ctxCancel)
 
 	var err error

@@ -59,6 +59,7 @@ linters:
       - legacy
       - std-error-handling
     paths:
+      - (^|/)node_modules(/|$)
       - third_party$
       - builtin$
       - examples$
@@ -73,6 +74,7 @@ formatters:
   exclusions:
     generated: lax
     paths:
+      - (^|/)node_modules(/|$)
       - third_party$
       - builtin$
       - examples$

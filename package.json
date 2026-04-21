@@ -35,7 +35,7 @@
     "go:aptre": "go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
     "lint": "bun run lint:js && bun run lint:go",
     "lint:go": "bun run go:aptre -- lint",
-    "lint:js": "eslint ./",
+    "lint:js": "eslint . --ext .js,.mjs,.ts,.tsx",
     "lint:js:fix": "bun run lint:js -- --fix",
     "precommit": "bun run format",
     "prepare": "go mod vendor && rimraf ./.tools",

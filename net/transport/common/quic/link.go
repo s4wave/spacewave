@@ -63,7 +63,7 @@ func NewLink(
 	}
 
 	remoteAddr := sess.RemoteAddr()
-	nctx, nctxCancel := context.WithCancel(ctx)
+	nctx, nctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on Link and called by Close
 	uuid := NewLinkUUID(localAddr, remoteAddr, remotePeerID)
 	remoteTransportUUID := NewTransportUUID(remoteAddr.String(), remotePeerID)
 	return &Link{

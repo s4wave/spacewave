@@ -39,7 +39,7 @@ func NewConn(
 	laddr, raddr net.Addr,
 	bufferPacketN int,
 ) *Conn {
-	ctx, ctxCancel := context.WithCancel(ctx)
+	ctx, ctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on Conn and called by Close
 	if bufferPacketN <= 0 {
 		bufferPacketN = 10
 	}
@@ -172,6 +172,7 @@ func (p *Conn) SetWriteDeadline(t time.Time) error {
 // Close closes the connection.
 // Any blocked ReadFrom or WriteTo operations will be unblocked and return errors.
 func (p *Conn) Close() error {
+	p.ctxCancel()
 	return p.rwc.Close()
 }
 

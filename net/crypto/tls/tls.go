@@ -97,7 +97,7 @@ func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, err
 			InsecureSkipVerify: true, //nolint:gosec // Not insecure: we verify the cert chain ourselves.
 			ClientAuth:         tls.RequireAnyClientCert,
 			Certificates:       []tls.Certificate{*cert},
-			VerifyPeerCertificate: func(_ [][]byte, _ [][]*x509.Certificate) error {
+			VerifyConnection: func(_ tls.ConnectionState) error {
 				panic("tls config not specialized for peer")
 			},
 			SessionTicketsDisabled: true,
@@ -112,7 +112,7 @@ func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, err
 func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.PubKey) {
 	keyCh := make(chan crypto.PubKey, 1)
 	conf := i.config.Clone()
-	conf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) (err error) {
+	conf.VerifyConnection = func(cs tls.ConnectionState) (err error) {
 		defer func() {
 			if rerr := recover(); rerr != nil {
 				err = errors.Errorf("panic processing peer certificate: %s", rerr)
@@ -120,16 +120,11 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 		}()
 		defer close(keyCh)
 
-		chain := make([]*x509.Certificate, len(rawCerts))
-		for idx := range rawCerts {
-			cert, err := x509.ParseCertificate(rawCerts[idx])
-			if err != nil {
-				return err
-			}
-			chain[idx] = cert
+		if len(cs.PeerCertificates) == 0 {
+			return errors.New("expected peer certificate")
 		}
 
-		pubKey, err := PubKeyFromCertChain(chain)
+		pubKey, err := PubKeyFromCertChain(cs.PeerCertificates)
 		if err != nil {
 			return err
 		}

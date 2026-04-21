@@ -41,7 +41,7 @@ func NewDialer(
 		addr:    addr,
 		result:  promise.NewPromise[*Link](),
 	}
-	d.ctx, d.ctxCancel = context.WithCancel(rctx)
+	d.ctx, d.ctxCancel = context.WithCancel(rctx) //nolint:gosec // cancel stored on Dialer and called by Execute
 	return d, nil
 }
 

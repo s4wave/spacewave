@@ -2,12 +2,12 @@ package cli
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"io"
 	"math"
 	"os"
 
 	"github.com/aperturerobotics/cli"
+	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/envelope"
@@ -222,17 +222,7 @@ func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
 	}
 
 	if c.Bool("info") {
-		info := map[string]any{
-			"success":          result.GetSuccess(),
-			"shares_available": result.GetSharesAvailable(),
-			"shares_needed":    result.GetSharesNeeded(),
-			"unlocked_grants":  result.GetUnlockedGrantIndexes(),
-			"total_grants":     len(env.GetGrants()),
-			"total_keypairs":   len(env.GetKeypairs()),
-			"threshold":        env.GetThreshold(),
-			"envelope_id":      env.GetEnvelopeId(),
-		}
-		dat, err := json.MarshalIndent(info, "", "  ")
+		dat, err := marshalEnvelopeInfoJSON(env, result)
 		if err != nil {
 			return err
 		}
@@ -249,4 +239,48 @@ func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
 	}
 
 	return a.writeOutput(payload)
+}
+
+// marshalEnvelopeInfoJSON marshals envelope unlock info as JSON.
+func marshalEnvelopeInfoJSON(
+	env *envelope.Envelope,
+	result *envelope.EnvelopeUnlockResult,
+) ([]byte, error) {
+	s := jsoniter.NewStream(nil, 256, 2)
+	s.WriteObjectStart()
+	s.WriteObjectField("success")
+	s.WriteBool(result.GetSuccess())
+	s.WriteMore()
+	s.WriteObjectField("shares_available")
+	s.WriteUint32(result.GetSharesAvailable())
+	s.WriteMore()
+	s.WriteObjectField("shares_needed")
+	s.WriteUint32(result.GetSharesNeeded())
+	s.WriteMore()
+	s.WriteObjectField("unlocked_grants")
+	s.WriteArrayStart()
+	for i, idx := range result.GetUnlockedGrantIndexes() {
+		if i != 0 {
+			s.WriteMore()
+		}
+		s.WriteUint32(idx)
+	}
+	s.WriteArrayEnd()
+	s.WriteMore()
+	s.WriteObjectField("total_grants")
+	s.WriteInt(len(env.GetGrants()))
+	s.WriteMore()
+	s.WriteObjectField("total_keypairs")
+	s.WriteInt(len(env.GetKeypairs()))
+	s.WriteMore()
+	s.WriteObjectField("threshold")
+	s.WriteUint32(env.GetThreshold())
+	s.WriteMore()
+	s.WriteObjectField("envelope_id")
+	s.WriteString(env.GetEnvelopeId())
+	s.WriteObjectEnd()
+	if s.Error != nil {
+		return nil, s.Error
+	}
+	return s.Buffer(), nil
 }

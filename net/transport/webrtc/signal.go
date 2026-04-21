@@ -1,8 +1,7 @@
 package webrtc
 
 import (
-	"encoding/json"
-
+	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
@@ -122,7 +121,7 @@ func (s *WebRtcIce) Validate() error {
 
 // NewWebRtcIce constructs a new WebRtcIce from a ICECandidateInit.
 func NewWebRtcIce(candidate *webrtc.ICECandidateInit) (*WebRtcIce, error) {
-	data, err := json.Marshal(candidate)
+	data, err := marshalICECandidateInit(candidate)
 	if err != nil {
 		return nil, err
 	}
@@ -131,9 +130,85 @@ func NewWebRtcIce(candidate *webrtc.ICECandidateInit) (*WebRtcIce, error) {
 
 // ParseICECandidateInit parses the ICECandidate from the JSON encoded body.
 func (s *WebRtcIce) ParseICECandidateInit() (*webrtc.ICECandidateInit, error) {
-	msg := &webrtc.ICECandidateInit{}
-	if err := json.Unmarshal([]byte(s.GetCandidate()), msg); err != nil {
+	msg, err := unmarshalICECandidateInit([]byte(s.GetCandidate()))
+	if err != nil {
 		return nil, errors.Wrap(err, "invalid ice candidate json")
+	}
+	return msg, nil
+}
+
+func marshalICECandidateInit(candidate *webrtc.ICECandidateInit) ([]byte, error) {
+	s := jsoniter.NewStream(nil, 128, 0)
+	if candidate == nil {
+		s.WriteNil()
+		return s.Buffer(), nil
+	}
+
+	s.WriteObjectStart()
+	s.WriteObjectField("candidate")
+	s.WriteString(candidate.Candidate)
+	s.WriteMore()
+	s.WriteObjectField("sdpMid")
+	if candidate.SDPMid == nil {
+		s.WriteNil()
+	} else {
+		s.WriteString(*candidate.SDPMid)
+	}
+	s.WriteMore()
+	s.WriteObjectField("sdpMLineIndex")
+	if candidate.SDPMLineIndex == nil {
+		s.WriteNil()
+	} else {
+		s.WriteUint32(uint32(*candidate.SDPMLineIndex))
+	}
+	s.WriteMore()
+	s.WriteObjectField("usernameFragment")
+	if candidate.UsernameFragment == nil {
+		s.WriteNil()
+	} else {
+		s.WriteString(*candidate.UsernameFragment)
+	}
+	s.WriteObjectEnd()
+	if s.Error != nil {
+		return nil, s.Error
+	}
+	return s.Buffer(), nil
+}
+
+func unmarshalICECandidateInit(data []byte) (*webrtc.ICECandidateInit, error) {
+	it := jsoniter.ParseBytes(data)
+	msg := &webrtc.ICECandidateInit{}
+	for key := it.ReadObject(); key != ""; key = it.ReadObject() {
+		switch key {
+		case "candidate":
+			msg.Candidate = it.ReadString()
+		case "sdpMid":
+			if it.ReadNil() {
+				msg.SDPMid = nil
+				continue
+			}
+			v := it.ReadString()
+			msg.SDPMid = &v
+		case "sdpMLineIndex":
+			if it.ReadNil() {
+				msg.SDPMLineIndex = nil
+				continue
+			}
+			v := it.ReadUint16()
+			msg.SDPMLineIndex = &v
+		case "usernameFragment":
+			if it.ReadNil() {
+				msg.UsernameFragment = nil
+				continue
+			}
+			v := it.ReadString()
+			msg.UsernameFragment = &v
+		default:
+			it.Skip()
+		}
+	}
+	if err := it.Error; err != nil {
+		return nil, err
 	}
 	return msg, nil
 }

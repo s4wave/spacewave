@@ -45,7 +45,7 @@ func NewPacketConn(
 	maxPacketSize uint32,
 	bufferPacketN int,
 ) *PacketConn {
-	ctx, ctxCancel := context.WithCancel(ctx)
+	ctx, ctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on PacketConn and called by Close
 	if bufferPacketN <= 0 {
 		bufferPacketN = 10
 	}
@@ -205,6 +205,7 @@ func (p *PacketConn) SetWriteDeadline(t time.Time) error {
 // Close closes the connection.
 // Any blocked ReadFrom or WriteTo operations will be unblocked and return errors.
 func (p *PacketConn) Close() error {
+	p.ctxCancel()
 	return p.rwc.Close()
 }
 
