@@ -1,10 +1,10 @@
 package storage_inmem
 
 import (
-	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/s4wave/spacewave/bldr/storage"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 )

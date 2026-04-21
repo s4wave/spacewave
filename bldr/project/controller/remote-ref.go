@@ -3,10 +3,10 @@
 package bldr_project_controller
 
 import (
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // RemoteRef is a reference to a remote.

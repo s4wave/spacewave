@@ -1,0 +1,17 @@
+syntax = "proto3";
+package identity.domain.server;
+
+import "github.com/s4wave/spacewave/net/stream/srpc/server/server.proto";
+
+// Config configures the identity server.
+// Forwards incoming requests to directives.
+message Config {
+  // Server configures the peer ids and protocol ids to listen on.
+  // If the protocol IDs list is empty, uses the default protocol id.
+  .stream.srpc.server.Config server = 1;
+  // DomainIds is the list of domain IDs to service.
+  // If empty, allows any domain ID.
+  repeated string domain_ids = 2;
+  // RequestTimeout limits the amount of time a request can take.
+  string request_timeout = 3;
+}

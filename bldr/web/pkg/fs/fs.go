@@ -4,11 +4,11 @@ import (
 	"context"
 	"io/fs"
 
+	"github.com/pkg/errors"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_static "github.com/s4wave/spacewave/bldr/web/pkg/static"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
-	"github.com/pkg/errors"
 )
 
 // GetWebPkg wraps an io/fs to provide a WebPkgGetter.

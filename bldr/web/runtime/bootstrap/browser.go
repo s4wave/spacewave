@@ -5,14 +5,14 @@ package web_runtime_bootstrap
 import (
 	"context"
 
-	browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
-	bldr_web_plugin_browser_controller "github.com/s4wave/spacewave/bldr/web/plugin/browser/controller"
-	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/pkg/errors"
+	browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
+	bldr_web_plugin_browser_controller "github.com/s4wave/spacewave/bldr/web/plugin/browser/controller"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,11 +4,11 @@ import (
 	"context"
 	"regexp"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/sirupsen/logrus"
 )
 

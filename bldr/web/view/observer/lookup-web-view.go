@@ -3,8 +3,8 @@ package bldr_web_view_observer
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/directive"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
 // resolveLookupWebView resolves looking up the web view.

@@ -3,8 +3,8 @@ package manifest_fetch_rpc
 import (
 	"context"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/aperturerobotics/controllerbus/directive"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
 // resolveFetchManifest resolves a FetchManifest directive.

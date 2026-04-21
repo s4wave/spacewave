@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/s4wave/spacewave/bldr/web/plugin/saucer"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/web/plugin/saucer"
 )
 
 const maxWalkDepth = 10

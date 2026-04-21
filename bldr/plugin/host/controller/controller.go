@@ -4,10 +4,10 @@ import (
 	"context"
 	"slices"
 
-	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/sirupsen/logrus"
 )
 

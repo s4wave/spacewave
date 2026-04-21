@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
-	host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
+	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/sirupsen/logrus"
 )
 

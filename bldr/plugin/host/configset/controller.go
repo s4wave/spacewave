@@ -3,13 +3,13 @@ package plugin_host_configset
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/blang/semver/v4"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // ControllerID is the controller ID.

@@ -3,13 +3,13 @@ package bldr_manifest_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v6"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/go-git/go-billy/v6"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

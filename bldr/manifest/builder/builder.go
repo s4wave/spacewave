@@ -7,10 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/promise"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
 // ControllerConfig is a configuration for a manifest Builder controller.

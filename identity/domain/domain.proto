@@ -1,0 +1,13 @@
+syntax = "proto3";
+package identity.domain;
+
+// DomainInfo contains information about the domain to show the user.
+message DomainInfo {
+  // DomainId is the domain identifier.
+  // (not human readable)
+  string domain_id = 1;
+  // Name is the domain name to render (title).
+  string name = 2;
+  // Description is the short description to show.
+  string description = 3;
+}

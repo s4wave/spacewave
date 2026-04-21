@@ -5,11 +5,11 @@ package bldr_manifest_builder_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/promise"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
-	"github.com/aperturerobotics/util/promise"
-	"github.com/pkg/errors"
 )
 
 // buildManifestHost is passed to a BuildManifest request to allow requesting additional resources. implements the BuildManifestHost interface.

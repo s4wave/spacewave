@@ -3,10 +3,10 @@ package web_pkg_rpc_server
 import (
 	"context"
 
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
 // webPkgTracker tracks a LookupWebPkg directive and service.

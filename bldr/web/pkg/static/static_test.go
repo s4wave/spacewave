@@ -5,15 +5,15 @@ import (
 	"io"
 	"testing"
 
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/core"
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	iofs_mock "github.com/s4wave/spacewave/db/unixfs/iofs/mock"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

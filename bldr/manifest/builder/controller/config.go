@@ -3,10 +3,10 @@
 package bldr_manifest_builder_controller
 
 import (
-	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	backoff "github.com/aperturerobotics/util/backoff"
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 )
 
 // ConfigID is the identifier for the config type.

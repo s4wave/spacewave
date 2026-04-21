@@ -5,13 +5,13 @@ package plugin_host_default
 import (
 	"context"
 
-	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
-	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
-	plugin_host_web_wasivm "github.com/s4wave/spacewave/bldr/plugin/host/web-wasivm"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
+	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
+	plugin_host_web_wasivm "github.com/s4wave/spacewave/bldr/plugin/host/web-wasivm"
 )
 
 // PluginHostControllerFactories construct the plugin host controller factory.

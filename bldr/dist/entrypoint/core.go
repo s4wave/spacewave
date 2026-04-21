@@ -3,6 +3,9 @@ package dist_entrypoint
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	cbc "github.com/aperturerobotics/controllerbus/core"
 	manifest_fetch_viaplugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
 	manifest_fetch_viaworld "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	handle_rpc_viaplugin "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
@@ -11,9 +14,6 @@ import (
 	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
 	storage_default "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	cbc "github.com/aperturerobotics/controllerbus/core"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"

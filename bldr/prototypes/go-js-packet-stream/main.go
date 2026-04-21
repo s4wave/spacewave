@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"syscall/js"
 
-	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	"github.com/aperturerobotics/starpc/srpc"
+	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 )
 
 func main() {

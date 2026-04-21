@@ -3,14 +3,14 @@ package bldr_web_bundler_esbuild_compiler
 import (
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
-	"github.com/aperturerobotics/controllerbus/config"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.

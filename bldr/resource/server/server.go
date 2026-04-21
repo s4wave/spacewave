@@ -4,11 +4,11 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/s4wave/spacewave/bldr/resource"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/resource"
 )
 
 // ResourceServer provides the Resources RPC API.

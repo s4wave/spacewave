@@ -3,9 +3,9 @@ package bldr_manifest_builder
 import (
 	"path"
 
+	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // NewBuilderResult builds the result object.

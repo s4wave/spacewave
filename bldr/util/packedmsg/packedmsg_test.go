@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/aperturerobotics/util/prng"
+	"github.com/s4wave/spacewave/net/util/randstring"
 )
 
 var testMessage = []byte("Science isn't about WHY, it's about WHY NOT!")

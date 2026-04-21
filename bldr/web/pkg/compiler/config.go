@@ -1,12 +1,12 @@
 package bldr_web_pkg_compiler
 
 import (
-	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
 // ConfigID is the config identifier.

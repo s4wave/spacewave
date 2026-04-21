@@ -5,15 +5,16 @@ package cli_entrypoint
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
-	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
+	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
@@ -25,7 +26,6 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

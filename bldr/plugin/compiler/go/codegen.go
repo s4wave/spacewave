@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	bldr_plugin_vardef_ast "github.com/s4wave/spacewave/bldr/plugin/vardef/ast"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

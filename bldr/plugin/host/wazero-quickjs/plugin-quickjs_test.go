@@ -4,10 +4,6 @@ import (
 	"context"
 	"testing"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
-	"github.com/s4wave/spacewave/bldr/testbed"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
@@ -16,6 +12,10 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
+	"github.com/s4wave/spacewave/bldr/testbed"
 	"github.com/sirupsen/logrus"
 )
 

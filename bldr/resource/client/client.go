@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/s4wave/spacewave/bldr/resource"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/resource"
 )
 
 // ResourceRef is a reference to a remote resource.

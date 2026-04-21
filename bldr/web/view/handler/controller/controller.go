@@ -3,11 +3,11 @@ package web_view_handler_controller
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
-	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	"github.com/sirupsen/logrus"
 )
 

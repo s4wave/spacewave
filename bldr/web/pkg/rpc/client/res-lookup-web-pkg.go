@@ -3,10 +3,10 @@ package web_pkg_rpc_client
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	"github.com/aperturerobotics/controllerbus/directive"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
-	"github.com/aperturerobotics/controllerbus/directive"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // resolveLookupWebPkg resolves LookupWebPkg.

@@ -9,12 +9,12 @@ import (
 	"syscall/js"
 	"time"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	"github.com/aperturerobotics/starpc/srpc"
 	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,8 +3,8 @@ package web_pkg_controller
 import (
 	"slices"
 
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/directive"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
 // resolveLookupWebPkg returns a resolver for looking up a volume.

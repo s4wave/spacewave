@@ -3,9 +3,9 @@ package storage_controller
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/bldr/storage"
 )
 
 // StorageController is the bldr storage controller.

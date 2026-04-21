@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	"github.com/sirupsen/logrus"
 )
 

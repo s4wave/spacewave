@@ -4,9 +4,9 @@ import (
 	"context"
 	"embed"
 
+	util_iofs "github.com/s4wave/spacewave/bldr/util/iofs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
-	util_iofs "github.com/s4wave/spacewave/bldr/util/iofs"
 	"github.com/sirupsen/logrus"
 )
 

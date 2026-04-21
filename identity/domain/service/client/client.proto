@@ -1,0 +1,19 @@
+syntax = "proto3";
+package identity.domain.client;
+
+import "github.com/s4wave/spacewave/net/stream/srpc/client/client.proto";
+import "github.com/s4wave/spacewave/identity/domain/domain.proto";
+
+// Config configures the identity client domain controller.
+message Config {
+  // DomainInfo is the identity domain information object.
+  .identity.domain.DomainInfo domain_info = 1;
+  // ClientOpts are options passed to the client.
+  .stream.srpc.client.Config client_opts = 2;
+  // PeerId is the peer id to use to sign requests.
+  // Private key must be available.
+  string peer_id = 3;
+  // ResolveSelectIdentityDomain indicates this domain should resolve any
+  // SelectIdentityDomain directive with its own domain info.
+  bool resolve_select_identity_domain = 4;
+}

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"syscall/js"
 
-	message_port "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/message-port"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	message_port "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/message-port"
 )
 
 const (

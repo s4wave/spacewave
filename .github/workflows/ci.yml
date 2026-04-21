@@ -38,6 +38,13 @@ jobs:
             lint_js_script: lint:js:db
             test_go_script: test:go:db
             test_js_script: test:js:db
+          - name: identity
+            build_script: ''
+            check_script: ''
+            lint_go_script: lint:go:identity
+            lint_js_script: lint:js:identity
+            test_go_script: test:go:identity
+            test_js_script: test:js:identity
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

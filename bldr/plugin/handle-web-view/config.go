@@ -3,9 +3,9 @@ package bldr_plugin_handle_web_view
 import (
 	"regexp"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the config identifier.

@@ -7,12 +7,12 @@ import (
 	"os"
 	oexec "os/exec"
 
-	random_id "github.com/s4wave/spacewave/net/util/randstring"
 	bldr_saucer "github.com/aperturerobotics/bldr-saucer"
-	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/pipesock"
+	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
+	random_id "github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
 )
 

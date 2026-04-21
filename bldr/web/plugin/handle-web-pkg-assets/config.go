@@ -1,10 +1,10 @@
 package bldr_web_plugin_handle_web_pkg_assets
 
 import (
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 )
 
 // ConfigID is the config identifier.

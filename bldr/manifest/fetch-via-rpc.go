@@ -3,10 +3,10 @@ package bldr_manifest
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	"github.com/s4wave/spacewave/bldr/util/valuelist"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/bldr/util/valuelist"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

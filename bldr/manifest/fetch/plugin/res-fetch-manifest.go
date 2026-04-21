@@ -3,10 +3,10 @@ package manifest_fetch_plugin
 import (
 	"context"
 
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
-	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // resolveFetchManifest resolves a FetchManifest directive.

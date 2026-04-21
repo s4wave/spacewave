@@ -5,13 +5,13 @@ package bldr_project_controller
 import (
 	"context"
 
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // remoteTracker tracks a running Remote config.

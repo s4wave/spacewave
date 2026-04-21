@@ -1,12 +1,12 @@
 package bldr_dist
 
 import (
-	"github.com/s4wave/spacewave/net/util/labels"
-	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // NewDistMeta constructs a new DistMeta.

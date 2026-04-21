@@ -3,10 +3,10 @@ package manifest_fetch_rpc
 import (
 	"regexp"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
-	manifest_fetch "github.com/s4wave/spacewave/bldr/manifest/fetch"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/starpc/srpc"
+	manifest_fetch "github.com/s4wave/spacewave/bldr/manifest/fetch"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the config identifier.

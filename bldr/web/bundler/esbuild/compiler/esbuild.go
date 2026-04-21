@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strings"
 
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/s4wave/spacewave/bldr/web/bundler/esbuild"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_esbuild "github.com/s4wave/spacewave/bldr/web/pkg/esbuild"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

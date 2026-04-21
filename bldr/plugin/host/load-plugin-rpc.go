@@ -3,10 +3,10 @@ package plugin_host
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // HandleLoadPluginRpc handles an incoming LoadPlugin RPC request.

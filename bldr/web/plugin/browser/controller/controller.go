@@ -3,16 +3,16 @@ package bldr_web_plugin_browser_controller
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	bldr_web_plugin_browser "github.com/s4wave/spacewave/bldr/web/plugin/browser"
-	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_web_plugin_browser "github.com/s4wave/spacewave/bldr/web/plugin/browser"
+	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

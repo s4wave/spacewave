@@ -83,9 +83,14 @@ require (
 	github.com/aperturerobotics/controllerbus v0.53.1 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
+	github.com/aperturerobotics/fastjson v0.1.1
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
+	github.com/aperturerobotics/go-brotli-decoder v0.1.1
 	github.com/aperturerobotics/go-multiaddr v0.17.0
+	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
+	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.3 // latest
@@ -94,9 +99,6 @@ require (
 
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
-	github.com/aperturerobotics/go-brotli-decoder v0.1.1
-	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
-	github.com/aperturerobotics/hydra v0.0.0-20260411115926-9e3e44b7cb25
 	github.com/dolthub/go-mysql-server v0.18.1
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
 	github.com/go-sql-driver/mysql v1.9.3
@@ -109,6 +111,7 @@ require (
 	github.com/playwright-community/playwright-go v0.5700.1
 	github.com/quic-go/quic-go v0.59.0
 	github.com/sasha-s/go-deadlock v0.3.9
+	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.5-0.20260309202648-9f0600962f75
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
@@ -121,7 +124,6 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e // indirect
@@ -153,8 +155,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
-	github.com/aperturerobotics/fastjson v0.1.1
-	github.com/aperturerobotics/fsnotify v1.9.1-0.20260329111252-827e5e9feeab
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.3
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect

@@ -1,8 +1,8 @@
 package bldr_plugin
 
 import (
-	"github.com/s4wave/spacewave/net/util/labels"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // ValidatePluginID validates a plugin ID.

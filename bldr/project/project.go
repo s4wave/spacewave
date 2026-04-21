@@ -7,15 +7,15 @@ import (
 	"slices"
 	"strings"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/ghodss/yaml"
+	"github.com/pkg/errors"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/s4wave/spacewave/net/util/labels"
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/s4wave/spacewave/db/world"
-	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 )
 
 // UnmarshalProjectConfig unmarshals a project config from json or yaml.

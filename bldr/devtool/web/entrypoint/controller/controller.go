@@ -5,13 +5,15 @@ package devtool_web_entrypoint_controller
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/link"
-	link_establish_controller "github.com/s4wave/spacewave/net/link/establish"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
-	stream_srpc_client_controller "github.com/s4wave/spacewave/net/stream/srpc/client/controller"
-	"github.com/s4wave/spacewave/net/transport/common/dialer"
-	"github.com/s4wave/spacewave/net/transport/websocket"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_fetch_rpc "github.com/s4wave/spacewave/bldr/manifest/fetch/rpc"
@@ -23,20 +25,18 @@ import (
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	web_runtime_bootstrap "github.com/s4wave/spacewave/bldr/web/runtime/bootstrap"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/bucket"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/backoff"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/link"
+	link_establish_controller "github.com/s4wave/spacewave/net/link/establish"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
+	stream_srpc_client_controller "github.com/s4wave/spacewave/net/stream/srpc/client/controller"
+	"github.com/s4wave/spacewave/net/transport/common/dialer"
+	"github.com/s4wave/spacewave/net/transport/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -312,7 +312,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// run the web browser plugin loader implementation (for "web/js/wasm" platform)
 	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
-		WebRuntimeId:        c.initm.GetWebRuntimeId(),
+		WebRuntimeId:          c.initm.GetWebRuntimeId(),
 		ForceDedicatedWorkers: devtoolInfo.GetForceDedicatedWorkers(),
 	})
 	if err != nil {
@@ -332,7 +332,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// run the QuickJS web browser plugin host (for "js" platform)
 	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{
-		WebRuntimeId:        c.initm.GetWebRuntimeId(),
+		WebRuntimeId:          c.initm.GetWebRuntimeId(),
 		ForceDedicatedWorkers: devtoolInfo.GetForceDedicatedWorkers(),
 	})
 	if err != nil {

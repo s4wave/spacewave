@@ -6,10 +6,10 @@ import (
 	"slices"
 	"testing"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	js_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,10 +3,10 @@ package bldr_manifest
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/sbset"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/sbset"
 )
 
 // NewManifestBundle constructs a new ManifestBundle.

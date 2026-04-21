@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/db/object"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/db/object"
 )
 
 // ObjectStoreStateAtom implements StateAtomStore using an ObjectStore.

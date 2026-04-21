@@ -3,9 +3,9 @@ package cli_entrypoint
 import (
 	"context"
 
-	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
+	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"

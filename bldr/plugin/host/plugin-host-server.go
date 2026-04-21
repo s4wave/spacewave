@@ -3,16 +3,16 @@ package plugin_host
 import (
 	"context"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // LookupRpcClientHandler handles callbacks for LookupRpcClientResolver.

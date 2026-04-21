@@ -1,8 +1,8 @@
 package plugin_host_web
 
 import (
-	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 )
 
 // ConfigID is the config identifier.

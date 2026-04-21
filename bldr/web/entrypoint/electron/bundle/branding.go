@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

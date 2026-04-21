@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/pkg/errors"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

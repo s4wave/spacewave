@@ -3,11 +3,11 @@ package bldr_manifest_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/peer"
+	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

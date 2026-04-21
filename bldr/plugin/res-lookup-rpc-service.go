@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

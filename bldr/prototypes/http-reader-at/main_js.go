@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/go-kvfile"
-	buffered_reader_at "github.com/s4wave/spacewave/db/util/buffered-reader-at"
-	fetch_range "github.com/s4wave/spacewave/db/util/http-range/fetch"
 	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
+	buffered_reader_at "github.com/s4wave/spacewave/db/util/buffered-reader-at"
+	fetch_range "github.com/s4wave/spacewave/db/util/http-range/fetch"
 	"github.com/sirupsen/logrus"
 )
 

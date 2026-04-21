@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/storage"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
-	"github.com/pkg/errors"
 )
 
 const SqliteDBExt = ".db"

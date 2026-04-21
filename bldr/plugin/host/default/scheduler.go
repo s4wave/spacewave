@@ -3,10 +3,10 @@ package plugin_host_default
 import (
 	"context"
 
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 )
 
 // StartPluginScheduler starts the plugin host scheduler on the controller bus.

@@ -6,16 +6,16 @@ import (
 	"context"
 	"strings"
 
-	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
-	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
-	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	bldr_web_plugin_handle_web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/blang/semver/v4"
+	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
+	bldr_web_plugin_handle_web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-rpc"
 )
 
 // ControllerID is the controller ID.

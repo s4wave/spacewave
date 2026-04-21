@@ -6,13 +6,13 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/pkg/errors"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/util/merge"
-	"github.com/aperturerobotics/controllerbus/config"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.

@@ -1,8 +1,8 @@
 package web_document
 
 import (
-	"github.com/s4wave/spacewave/net/util/labels"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // ValidateWebDocumentId validates a document identifier.

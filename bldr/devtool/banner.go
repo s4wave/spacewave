@@ -3,8 +3,8 @@ package devtool
 import (
 	"os"
 
-	"github.com/s4wave/spacewave/bldr/banner"
 	fcolor "github.com/fatih/color"
+	"github.com/s4wave/spacewave/bldr/banner"
 )
 
 // writeBanner writes the banner in red to os.stderr.

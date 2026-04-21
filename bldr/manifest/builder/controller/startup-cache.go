@@ -10,16 +10,16 @@ import (
 	"os"
 	"path/filepath"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

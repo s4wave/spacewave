@@ -3,8 +3,8 @@ package plugin_host
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // LoadPluginResolver resolves LoadPlugin with the controller.

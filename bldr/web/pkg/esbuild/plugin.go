@@ -6,10 +6,10 @@ import (
 	"slices"
 	"strings"
 
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
+	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/sirupsen/logrus"
 )
 

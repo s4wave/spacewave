@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/s4wave/spacewave/net/peer"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	"github.com/s4wave/spacewave/db/world"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 

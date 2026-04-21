@@ -5,9 +5,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/go-kvfile"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -15,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

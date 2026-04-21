@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/sirupsen/logrus"
 )
 

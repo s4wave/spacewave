@@ -8,6 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	starpc_mock "github.com/aperturerobotics/starpc/mock"
+	"github.com/aperturerobotics/util/promise"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
@@ -17,12 +23,6 @@ import (
 	"github.com/s4wave/spacewave/bldr/testbed"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	starpc_mock "github.com/aperturerobotics/starpc/mock"
-	"github.com/aperturerobotics/util/promise"
 	"github.com/sirupsen/logrus"
 )
 

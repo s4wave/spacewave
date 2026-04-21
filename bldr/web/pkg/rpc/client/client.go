@@ -3,12 +3,12 @@ package web_pkg_rpc_client
 import (
 	"context"
 
+	"github.com/aperturerobotics/starpc/rpcstream"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_client "github.com/s4wave/spacewave/db/unixfs/rpc/client"
-	"github.com/aperturerobotics/starpc/rpcstream"
 )
 
 // RemoteWebPkg implements web/pkg.WebPkg backed by web/pkg/rpc.

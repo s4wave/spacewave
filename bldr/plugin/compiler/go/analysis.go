@@ -14,9 +14,9 @@ import (
 	"go/types"
 	"slices"
 
+	"github.com/pkg/errors"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"

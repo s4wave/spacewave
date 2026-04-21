@@ -8,7 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	random_id "github.com/s4wave/spacewave/net/util/randstring"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/util/fsutil"
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -23,15 +30,8 @@ import (
 	electron "github.com/s4wave/spacewave/bldr/web/plugin/electron"
 	saucer "github.com/s4wave/spacewave/bldr/web/plugin/saucer"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
+	random_id "github.com/s4wave/spacewave/net/util/randstring"
 )
 
 // ControllerID is the controller ID.

@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

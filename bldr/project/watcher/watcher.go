@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
-	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
-	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -20,6 +17,9 @@ import (
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
+	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 )
 
 // Version is the version of the controller implementation.

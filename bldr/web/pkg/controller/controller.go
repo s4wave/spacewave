@@ -5,9 +5,9 @@ import (
 	"maps"
 	"slices"
 
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/sirupsen/logrus"
 )
 

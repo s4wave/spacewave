@@ -5,8 +5,8 @@ import (
 	"go/token"
 	"strconv"
 
-	bldr_plugin_vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	"github.com/pkg/errors"
+	bldr_plugin_vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 )
 
 // ToGoDevInfoRefAst builds the Go ast for referencing the value on the dev info object.

@@ -7,8 +7,8 @@ import (
 	"math"
 	"net/http"
 
-	web_fetch "github.com/s4wave/spacewave/bldr/web/fetch"
 	"github.com/aperturerobotics/starpc/srpc"
+	web_fetch "github.com/s4wave/spacewave/bldr/web/fetch"
 	"github.com/sirupsen/logrus"
 )
 

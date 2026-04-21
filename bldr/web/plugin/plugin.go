@@ -1,9 +1,9 @@
 package bldr_web_plugin
 
 import (
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	"github.com/pkg/errors"
 )
 
 // Validate validates the HandleWebViewViaPluginRequest configuration.

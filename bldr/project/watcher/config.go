@@ -1,8 +1,8 @@
 package bldr_project_watcher
 
 import (
-	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	"github.com/aperturerobotics/controllerbus/config"
+	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 )
 
 // ConfigID is the identifier for the config type.

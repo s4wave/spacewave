@@ -8,9 +8,9 @@ package example_cli
 import (
 	"os"
 
-	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
 
 // NewCliCommands builds the example CLI commands.

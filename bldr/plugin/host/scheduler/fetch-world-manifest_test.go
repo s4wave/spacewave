@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/routine"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/sirupsen/logrus"
 )
 

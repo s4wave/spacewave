@@ -3,10 +3,10 @@ package manifest_fetch_plugin
 import (
 	"regexp"
 
-	"github.com/s4wave/spacewave/net/util/confparse"
+	"github.com/aperturerobotics/controllerbus/config"
 	manifest_fetch "github.com/s4wave/spacewave/bldr/manifest/fetch"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the config identifier.

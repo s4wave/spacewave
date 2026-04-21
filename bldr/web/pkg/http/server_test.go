@@ -10,12 +10,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/s4wave/spacewave/bldr/core"
-	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
-	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
 	"github.com/aperturerobotics/controllerbus/controller"
 	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/blang/semver/v4"
+	"github.com/s4wave/spacewave/bldr/core"
+	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
+	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
 	"github.com/sirupsen/logrus"
 )
 

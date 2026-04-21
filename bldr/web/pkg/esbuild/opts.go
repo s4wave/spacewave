@@ -3,8 +3,8 @@
 package web_pkg_esbuild
 
 import (
-	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
 

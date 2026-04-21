@@ -3,11 +3,11 @@ package plugin_entrypoint_controller
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/retry"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // resolveLoadPlugin resolves a LoadPlugin directive.

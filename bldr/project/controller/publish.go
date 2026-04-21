@@ -7,14 +7,14 @@ import (
 	"slices"
 	"strings"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

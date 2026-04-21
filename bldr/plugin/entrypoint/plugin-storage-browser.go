@@ -3,10 +3,10 @@
 package plugin_entrypoint
 
 import (
-	"github.com/s4wave/spacewave/bldr/storage"
-	browser_storage "github.com/s4wave/spacewave/bldr/storage/browser"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/s4wave/spacewave/bldr/storage"
+	browser_storage "github.com/s4wave/spacewave/bldr/storage/browser"
 )
 
 // buildPluginStorages builds the storage backends for the plugin.

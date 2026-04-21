@@ -3,9 +3,9 @@ package bldr_manifest
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/pkg/errors"
 )
 
 // NewManifestRef constructs a new ManifestRef.

@@ -3,6 +3,8 @@
 package bldr_core_devtool
 
 import (
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
 	bldr_plugin_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
@@ -16,8 +18,6 @@ import (
 	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	web_plugin_electron "github.com/s4wave/spacewave/bldr/web/plugin/electron"
 	web_plugin_saucer "github.com/s4wave/spacewave/bldr/web/plugin/saucer"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
 )

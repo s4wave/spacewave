@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"testing"
 
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
 )

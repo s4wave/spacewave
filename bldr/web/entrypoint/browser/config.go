@@ -5,8 +5,8 @@ package web_entrypoint_browser
 import (
 	"errors"
 
-	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 )
 
 // ConfigID is the string used to identify this config object.

@@ -103,8 +103,6 @@ github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d h1:UcBuYL2R88/b0AQRdXEisWTyZLrj4Z+GMEv7Mi4k/0A=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d/go.mod h1:EkJEy0eZ9hdcUbSxh6kBf2YC3V97ziyr9EWY7kCnB5A=
-github.com/aperturerobotics/hydra v0.0.0-20260411115926-9e3e44b7cb25 h1:D221N+CIg5Y23UMD50cmhtJV4V5+eYRDsXyjKT40ehc=
-github.com/aperturerobotics/hydra v0.0.0-20260411115926-9e3e44b7cb25/go.mod h1:C4GwMgFQ2Gbt+rhVapdXpVJ9IfIGL9SZ08rsJmyK7B8=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
@@ -560,6 +558,8 @@ github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
+github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
+github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
 github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=

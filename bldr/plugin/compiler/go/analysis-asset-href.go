@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

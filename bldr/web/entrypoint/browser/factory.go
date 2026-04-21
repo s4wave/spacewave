@@ -6,13 +6,13 @@ import (
 	"context"
 	"syscall/js"
 
-	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
-	rc "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
+	rc "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	"github.com/sirupsen/logrus"
 )
 

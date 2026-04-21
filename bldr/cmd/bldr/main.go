@@ -6,8 +6,8 @@ import (
 
 	"github.com/aperturerobotics/cli"
 
-	_ "github.com/s4wave/spacewave/bldr/values"
 	_ "github.com/aperturerobotics/controllerbus/example/boilerplate"
+	_ "github.com/s4wave/spacewave/bldr/values"
 )
 
 // Commands are the CLI commands

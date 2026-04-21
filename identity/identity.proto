@@ -1,0 +1,135 @@
+syntax = "proto3";
+package identity;
+
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
+
+// Entity is an individual user or system with a persistent identity.
+//
+// The root Entity object is not considered to be sensitive information.
+// For an Entity to be valid, all Keypairs must have valid signatures.
+message Entity {
+  // EntityId is the user-specified entity identifier, akin to a username.
+  // The entity id is not necessarily unique in all domains.
+  // Must be a valid DNS label name as defined in RFC 1123.
+  // Must be lowercase.
+  string entity_id = 1;
+  // EntityUuid is a domain-unique unique identifier, generated at account
+  // registration time.
+  //
+  // Usually: UUIDv5(domain_uuid, entity_id)
+  string entity_uuid = 2;
+  // DomainId is the domain identifier (typically the domain name).
+  // This domain controller controls this entity.
+  // Must be a valid DNS subdomain name as defined in RFC 1123.
+  // Must be lowercase.
+  string domain_id = 3;
+  // Epoch is the change epoch for the entity, incremented when changes are made.
+  uint64 epoch = 4;
+  // EntityKeypairSet contains marshalled EntityKeypair aliases of the Entity.
+  EntityKeypairSet entity_keypair_set = 5;
+}
+
+// EntityKeypairSet is a signed set of EntityKeypair.
+message EntityKeypairSet {
+  // EntityKeypairs contains marshalled EntityKeypair objects.
+  repeated bytes entity_keypairs = 1;
+  // EntityKeypairSignatures contains the signatures for each Keypair.
+  // The signature pub_key must match the peer_id of the Keypair.
+  // len(entity_keypair_signatures) must match len(entity_keypairs)
+  repeated .peer.Signature entity_keypair_signatures = 2;
+}
+
+// EntityKeypair contains a binding between a Keypair and an Entity.
+message EntityKeypair {
+  // EntityId is the entity_id field of the Entity.
+  // Must match the entity_id specified in the Entity object.
+  // If this is a Domain, this field will be empty.
+  string entity_id = 1;
+  // DomainId is the domain_id field of the Entity.
+  // Must match the domain_id specified in the Entity object.
+  string domain_id = 2;
+  // Keypair is the keypair to associate with the entity.
+  Keypair keypair = 3;
+}
+
+// EntityRef is a reference to a entity on a domain.
+message EntityRef {
+  // EntityId is the entity_id field of the Entity.
+  // Must match the entity_id specified in the Entity object.
+  string entity_id = 1;
+  // DomainId is the domain_id field of the Entity.
+  // Must match the domain_id specified in the Entity object.
+  string domain_id = 2;
+}
+
+// Keypair contains a peer ID (public key) and information to derive the key.
+message Keypair {
+  // PeerId is the peer id of the keypair (derived from pubkey).
+  // Must match the pub_key field.
+  string peer_id = 1;
+  // PubKey is the PEM-encoded public key with Bifrost keypem.
+  // Must match the pub_key of the keypair signature on the Entity.
+  string pub_key = 2;
+  // AuthMethodId is the authentication method to derive this key.
+  // This is a black-box value: it is used to derive the key again later.
+  string auth_method_id = 3;
+  // AuthMethodParams is the encoded params object for the method.
+  //
+  // Params might include the CTAP2 records for binding, attestation.
+  bytes auth_method_params = 4;
+}
+
+// EntityChangeType is an entity change transaction type.
+enum EntityChangeType {
+  EntityChangeType_UNKNOWN = 0;
+  EntityChangeType_REGISTER_KEYPAIR = 1;
+  EntityChangeType_REMOVE_KEYPAIR = 2;
+}
+
+// PendingEntityChange is a ongoing change to a entity credential list.
+//
+// An additional transaction system will manage adding/removing/updating these
+// records, which exist to represent ongoing transactions to update an entity
+// record, for example, adding a new security key via a handshake with hardware.
+//
+// Specific change transaction types (Create, Update, Dismiss) are implemented
+// by the auth method (not in this system).
+message PendingEntityChange {
+  // ChangePeerId is the peer id of the transactor submitting the change.
+  //
+  // This peer ID should be checked against incoming transactions. It should be
+  // authenticated to be an ID with authority to change the record: usually
+  // either a existing associated identity or a domain authority.
+  string change_peer_id = 1;
+  // Epoch is the change epoch, incremented when changes are made.
+  uint64 epoch = 2;
+  // DomainIdentifier is the identifier of the related entity.
+  string domain_identifier = 3;
+  // EntityChangeType is the type of this entity change.
+  EntityChangeType entity_change_type = 4;
+  // EntityChangeData is the inner data for the entity change.
+  string entity_change_data = 5;
+}
+
+// RegisterKeypair is used when adding a new keypair to a entity.
+//
+// EntityChangeType_REGISTER_KEYPAIR
+message RegisterKeypair {
+  // The public key is derivable from the peer ID.
+  // Only one Keypair with this public key / peer ID can be used.
+  string register_peer_id = 1;
+  // AuthMethodId is the authentication method to use.
+  string auth_method_id = 2;
+  // AuthMethodState is the encoded change state object for the method.
+  //
+  // State might include the CTAP2 challenge, for example.
+  bytes auth_method_state = 3;
+}
+
+// RemoveKeypair is used to remove a keypair by peer ID from the entity.
+//
+// EntityChangeType_REMOVE_KEYPAIR
+message RemoveKeypair {
+  // PeerId is the peer ID to remove from the existing keypairs.
+  string peer_id = 1;
+}

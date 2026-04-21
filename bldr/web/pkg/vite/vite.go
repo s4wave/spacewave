@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/pkg/errors"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	determine_cjs_exports "github.com/s4wave/spacewave/bldr/web/pkg/esbuild/determine-cjs-exports"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

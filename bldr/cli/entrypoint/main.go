@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
 

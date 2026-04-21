@@ -1,10 +1,10 @@
 package bldr_plugin
 
 import (
-	"github.com/s4wave/spacewave/net/util/labels"
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // NewPluginMeta constructs a new PluginMeta.

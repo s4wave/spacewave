@@ -8,17 +8,17 @@ import (
 	"testing"
 	"time"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	"github.com/s4wave/spacewave/bldr/testbed"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	"github.com/s4wave/spacewave/bldr/testbed"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
 

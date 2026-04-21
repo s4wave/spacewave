@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	web_document "github.com/s4wave/spacewave/bldr/web/document"
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
+	web_document "github.com/s4wave/spacewave/bldr/web/document"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/sirupsen/logrus"
 )
 

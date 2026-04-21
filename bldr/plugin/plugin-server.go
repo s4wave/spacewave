@@ -3,12 +3,12 @@ package bldr_plugin
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
 )
 
 // PluginServer implements the plugin rpc server.

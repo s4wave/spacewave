@@ -4,14 +4,14 @@ import (
 	"context"
 	"sync"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
 

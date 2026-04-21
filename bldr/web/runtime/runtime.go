@@ -3,12 +3,12 @@ package web_runtime
 import (
 	"context"
 
-	web_document "github.com/s4wave/spacewave/bldr/web/document"
-	sw "github.com/s4wave/spacewave/bldr/web/runtime/sw"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	web_document "github.com/s4wave/spacewave/bldr/web/document"
+	sw "github.com/s4wave/spacewave/bldr/web/runtime/sw"
 	"github.com/sirupsen/logrus"
 )
 

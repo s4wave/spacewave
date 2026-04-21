@@ -4,8 +4,8 @@ import (
 	"context"
 	"embed"
 
-	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	"github.com/sirupsen/logrus"
 )
 

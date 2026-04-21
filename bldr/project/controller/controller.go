@@ -7,16 +7,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 

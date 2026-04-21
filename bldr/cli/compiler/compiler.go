@@ -8,16 +8,16 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/util/fsutil"
+	"github.com/blang/semver/v4"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver/v4"
 	"golang.org/x/mod/modfile"
 )
 

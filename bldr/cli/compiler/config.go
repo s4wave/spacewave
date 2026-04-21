@@ -3,11 +3,11 @@ package bldr_cli_compiler
 import (
 	"strings"
 
-	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"golang.org/x/mod/module"
 )
 

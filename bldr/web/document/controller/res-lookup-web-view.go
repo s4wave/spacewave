@@ -3,8 +3,8 @@ package web_document_controller
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/directive"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
 // resolveLookupWebView resolves a LookupWebView directive.

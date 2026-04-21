@@ -3,12 +3,12 @@ package bldr_web_view_observer
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/blang/semver/v4"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
 // ControllerID is the controller id.

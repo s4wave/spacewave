@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/pipesock"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/sirupsen/logrus"
 )
 

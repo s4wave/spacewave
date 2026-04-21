@@ -1,8 +1,8 @@
 package web_runtime
 
 import (
-	"github.com/s4wave/spacewave/net/util/labels"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // ValidateRuntimeId validates a runtime identifier.

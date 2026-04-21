@@ -3,8 +3,8 @@ package bldr_plugin
 import (
 	"encoding/base64"
 
-	"github.com/s4wave/spacewave/net/util/labels"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // NewPluginStartInfo constructs a new PluginStartInfo.

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"sync/atomic"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/sirupsen/logrus"
 )
 

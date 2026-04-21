@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/tools/imports"
 )

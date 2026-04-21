@@ -1,10 +1,10 @@
 package devtool_web
 
 import (
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/util/confparse"
-	"github.com/pkg/errors"
 )
 
 // HostServiceIDPrefix is the prefix used for the devtool RPC services. This

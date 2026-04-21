@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/s4wave/spacewave/bldr/util/framedstream"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/util/framedstream"
 )
 
 // AcceptServiceWorkerRpcStreams accepts streams from a muxed connection and handles

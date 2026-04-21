@@ -1,8 +1,8 @@
 package plugin_assets_http
 
 import (
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // ConfigID is the config identifier.

@@ -4,6 +4,9 @@ import (
 	"context"
 	"path/filepath"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/util/fsutil"
+	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -11,11 +14,8 @@ import (
 	bldr_web_bundler_esbuild "github.com/s4wave/spacewave/bldr/web/bundler/esbuild"
 	bldr_web_bundler_esbuild_compiler "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/fsutil"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

@@ -6,8 +6,8 @@ import (
 	"bytes"
 	"testing"
 
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
 func TestApplyBuilderConfigOverride_Replace(t *testing.T) {

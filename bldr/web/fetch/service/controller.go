@@ -4,14 +4,14 @@ import (
 	"context"
 	"net/http"
 
-	bifrost_http "github.com/s4wave/spacewave/net/http"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	web_fetch "github.com/s4wave/spacewave/bldr/web/fetch"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	web_fetch "github.com/s4wave/spacewave/bldr/web/fetch"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

@@ -6,9 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -17,6 +14,9 @@ import (
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

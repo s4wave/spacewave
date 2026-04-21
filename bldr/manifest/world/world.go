@@ -6,16 +6,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/s4wave/spacewave/net/peer"
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/quad"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 const (

@@ -8,9 +8,9 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/pkg/errors"
 	buffered_reader_at "github.com/s4wave/spacewave/db/util/buffered-reader-at"
 	http_range "github.com/s4wave/spacewave/db/util/http-range"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

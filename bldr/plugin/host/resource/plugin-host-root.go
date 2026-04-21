@@ -3,15 +3,15 @@ package plugin_host_resource
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 

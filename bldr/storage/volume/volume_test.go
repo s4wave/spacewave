@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_test "github.com/s4wave/spacewave/db/volume/test"

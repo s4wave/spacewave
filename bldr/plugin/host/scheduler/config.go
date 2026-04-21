@@ -1,13 +1,13 @@
 package plugin_host_scheduler
 
 import (
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/volume"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // ConfigID is the config identifier.

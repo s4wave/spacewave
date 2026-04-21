@@ -3,10 +3,10 @@ package plugin_host_scheduler
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	block_copy "github.com/s4wave/spacewave/db/block/copy"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/pkg/errors"
 )
 
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.

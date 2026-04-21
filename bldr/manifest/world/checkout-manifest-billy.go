@@ -3,6 +3,7 @@ package bldr_manifest_world
 import (
 	"context"
 
+	"github.com/go-git/go-billy/v6"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -10,7 +11,6 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/go-git/go-billy/v6"
 	"github.com/sirupsen/logrus"
 )
 

@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/s4wave/spacewave/bldr/banner"
-	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
-	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/refcount"
 	fcolor "github.com/fatih/color"
+	"github.com/s4wave/spacewave/bldr/banner"
+	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
 

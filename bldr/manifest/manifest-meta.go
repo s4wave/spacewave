@@ -1,8 +1,8 @@
 package bldr_manifest
 
 import (
-	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	b58 "github.com/mr-tron/base58/base58"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/sirupsen/logrus"
 )
 

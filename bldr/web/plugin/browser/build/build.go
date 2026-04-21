@@ -7,9 +7,9 @@ import (
 	"path"
 	"path/filepath"
 
+	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 

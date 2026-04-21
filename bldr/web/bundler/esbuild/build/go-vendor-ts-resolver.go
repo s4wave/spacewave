@@ -13,8 +13,8 @@ import (
 const localModulePrefix = "github.com/s4wave/spacewave/"
 
 func resolveGoImportPath(projectRoot, importPath string) string {
-	if strings.HasPrefix(importPath, localModulePrefix) {
-		return filepath.Join(projectRoot, strings.TrimPrefix(importPath, localModulePrefix))
+	if after, ok := strings.CutPrefix(importPath, localModulePrefix); ok {
+		return filepath.Join(projectRoot, after)
 	}
 
 	return filepath.Join(projectRoot, "vendor", importPath)

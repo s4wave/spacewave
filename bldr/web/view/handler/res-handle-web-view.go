@@ -3,9 +3,9 @@ package web_view_handler
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/backoff"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/sirupsen/logrus"
 )
 

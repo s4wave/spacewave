@@ -5,13 +5,13 @@ package bldr_web_plugin_compiler
 import (
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/pkg/errors"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
-	"github.com/aperturerobotics/controllerbus/config"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.

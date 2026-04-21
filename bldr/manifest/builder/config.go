@@ -6,17 +6,17 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/s4wave/spacewave/net/peer"
-	"github.com/s4wave/spacewave/net/util/confparse"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-billy/v6/osfs"
+	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/go-git/go-billy/v6"
-	"github.com/go-git/go-billy/v6/osfs"
-	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,8 +3,8 @@ package bldr_platform_go
 import (
 	"strconv"
 
-	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/pkg/errors"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 )
 
 var (

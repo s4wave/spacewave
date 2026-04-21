@@ -1,6 +1,6 @@
 # Config file version V2 has been introduced, read more in lintersdb.
 # Visit https://golangci-lint.run/usage/configuration/#config-file
-version: "2"
+version: '2'
 
 # Settings for the `run` command.
 run:
@@ -29,11 +29,11 @@ linters:
           deny:
             - pkg: io/ioutil
               desc: The io/ioutil package has been deprecated, see https://go.dev/doc/go1.16#ioutil
-            - pkg: "github.com/stretchr/testify/assert"
+            - pkg: 'github.com/stretchr/testify/assert'
               desc: Use "gotest.tools/v3/assert" instead
-            - pkg: "github.com/stretchr/testify/require"
+            - pkg: 'github.com/stretchr/testify/require'
               desc: Use "gotest.tools/v3/assert" instead
-            - pkg: "github.com/stretchr/testify/suite"
+            - pkg: 'github.com/stretchr/testify/suite'
               desc: Do not use
     gosec:
       excludes:
@@ -65,6 +65,7 @@ linters:
       - std-error-handling # Excludes some common stdlib error patterns
     # Exclude specific paths using regex.
     paths:
+      - node_modules$
       - third_party$
       - builtin$
       - examples$
@@ -85,6 +86,7 @@ formatters:
     generated: lax
     # Exclude specific paths from formatting using regex.
     paths:
+      - node_modules$
       - third_party$
       - builtin$
       - examples$

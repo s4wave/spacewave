@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/fastjson"
+	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
@@ -17,9 +20,6 @@ import (
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/aperturerobotics/fastjson"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

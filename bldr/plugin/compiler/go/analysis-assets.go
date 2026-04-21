@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	plugin "github.com/s4wave/spacewave/bldr/plugin"
-	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	cf "github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	"github.com/sirupsen/logrus"
 )
 

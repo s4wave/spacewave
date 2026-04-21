@@ -3,12 +3,12 @@ package bldr_web_bundler_vite_compiler
 import (
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.

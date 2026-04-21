@@ -1,10 +1,10 @@
 package web_pkg_fs_controller
 
 import (
-	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/config"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/pkg/errors"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 // ConfigID is the config identifier.

@@ -1,14 +1,14 @@
 package bldr_core_devtool
 
 import (
-	"github.com/s4wave/spacewave/net/transport/websocket"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	manifest_fetch_plugin "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	"github.com/s4wave/spacewave/net/transport/websocket"
 )
 
 // addCommonFactories adds the factories common to all arches.

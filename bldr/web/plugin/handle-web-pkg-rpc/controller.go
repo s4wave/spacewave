@@ -4,13 +4,13 @@ import (
 	"context"
 	fmt "fmt"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	"github.com/sirupsen/logrus"
 )
 

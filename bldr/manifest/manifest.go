@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/s4wave/spacewave/net/util/labels"
-	"github.com/s4wave/spacewave/db/block"
-	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 // ValidateManifestID validates a manifest ID.

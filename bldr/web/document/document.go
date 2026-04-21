@@ -3,11 +3,11 @@ package web_document
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
-	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
 	"github.com/sirupsen/logrus"
 )
 

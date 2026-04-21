@@ -3,10 +3,10 @@ package bldr_project_controller
 import (
 	"path/filepath"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
 // ConfigID is the identifier for the config type.

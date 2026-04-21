@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/unixfs"
-	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // ErrPluginUninitialized is returned if the plugin was not initialized.

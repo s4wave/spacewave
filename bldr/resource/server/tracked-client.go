@@ -3,8 +3,8 @@ package resource_server
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/bldr/resource"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/resource"
 )
 
 // RemoteResourceClient holds state for an attached client.

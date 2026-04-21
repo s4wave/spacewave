@@ -1,10 +1,10 @@
 package storage_default
 
 import (
-	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver/v4"
+	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 )
 
 // StorageID is the storage id usually used for the default storage.

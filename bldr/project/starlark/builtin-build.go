@@ -3,9 +3,9 @@
 package bldr_project_starlark
 
 import (
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"go.starlark.net/starlark"
 )
 

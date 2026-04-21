@@ -1,8 +1,8 @@
 package browser_storage
 
 import (
-	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/s4wave/spacewave/bldr/storage"
 )
 
 // storageMethodCtor constructs a storage method.

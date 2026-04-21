@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"strings"
 
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/util/fsutil"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/aperturerobotics/util/fsutil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -361,4 +361,3 @@ func GetElectronBinName(plat bldr_platform.Platform) string {
 		return "electron"
 	}
 }
-

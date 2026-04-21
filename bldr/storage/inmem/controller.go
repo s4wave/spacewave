@@ -1,10 +1,10 @@
 package storage_inmem
 
 import (
-	"github.com/s4wave/spacewave/bldr/storage"
-	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver/v4"
+	"github.com/s4wave/spacewave/bldr/storage"
+	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 )
 
 // ControllerID is the controller identifier.

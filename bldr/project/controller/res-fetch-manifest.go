@@ -5,8 +5,8 @@ package bldr_project_controller
 import (
 	"context"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
 // resolveFetchManifest resolves a FetchManifest directive.

@@ -3,14 +3,13 @@ package core
 import (
 	"context"
 
-	stream_srpc_server_lookup "github.com/s4wave/spacewave/net/stream/srpc/server/lookup"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	cbc "github.com/aperturerobotics/controllerbus/core"
 	handle_rpc_viaplugin "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	handle_webview_viaplugin "github.com/s4wave/spacewave/bldr/plugin/handle-web-view"
 	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	cbc "github.com/aperturerobotics/controllerbus/core"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
@@ -21,6 +20,7 @@ import (
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
+	stream_srpc_server_lookup "github.com/s4wave/spacewave/net/stream/srpc/server/lookup"
 	"github.com/sirupsen/logrus"
 )
 

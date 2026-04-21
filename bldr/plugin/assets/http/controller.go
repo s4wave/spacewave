@@ -4,11 +4,11 @@ import (
 	"path"
 	"strings"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
 	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
 )
 
 // ControllerID is the controller ID for the plugin assets HTTP fetcher.

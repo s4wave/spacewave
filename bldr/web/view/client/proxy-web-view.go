@@ -3,9 +3,9 @@ package web_view_client
 import (
 	"context"
 
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
 // ProxyWebView is a WebView which proxies requests to the RPC client.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/s4wave/spacewave/bldr/resource"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/resource"
 )
 
 // mockSRPCClient implements srpc.Client for testing.

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/sirupsen/logrus"
 )
 

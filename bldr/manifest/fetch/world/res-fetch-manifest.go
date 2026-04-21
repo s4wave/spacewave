@@ -3,9 +3,9 @@ package manifest_fetch_world
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"

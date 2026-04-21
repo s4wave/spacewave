@@ -4,9 +4,9 @@ import (
 	"context"
 	"io/fs"
 
-	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	"github.com/sirupsen/logrus"
 )
 

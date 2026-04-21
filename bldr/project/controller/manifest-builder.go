@@ -10,11 +10,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
-	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -22,6 +17,11 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/sirupsen/logrus"
 )
 

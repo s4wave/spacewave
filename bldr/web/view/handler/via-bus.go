@@ -3,13 +3,13 @@ package web_view_handler
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
-	web_view_client "github.com/s4wave/spacewave/bldr/web/view/client"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	web_view_client "github.com/s4wave/spacewave/bldr/web/view/client"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 

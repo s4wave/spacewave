@@ -9,6 +9,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/fsutil"
+	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -19,12 +24,7 @@ import (
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

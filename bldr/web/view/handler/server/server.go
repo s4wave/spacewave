@@ -4,16 +4,16 @@ import (
 	"context"
 	"strings"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	web_view "github.com/s4wave/spacewave/bldr/web/view"
-	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // ControllerID is the controller id.

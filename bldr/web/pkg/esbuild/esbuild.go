@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 )
 
 // jsExtensions is the set of file extensions that map to .mjs in output.

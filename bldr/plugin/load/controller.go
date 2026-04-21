@@ -3,10 +3,10 @@ package bldr_plugin_load
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/sirupsen/logrus"
 )
 

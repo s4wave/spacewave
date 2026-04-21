@@ -3,10 +3,10 @@ package web_document
 import (
 	"context"
 
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	"github.com/aperturerobotics/starpc/srpc"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_view_client "github.com/s4wave/spacewave/bldr/web/view/client"
-	"github.com/aperturerobotics/starpc/srpc"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
 // remoteWebView contains remote web view information.

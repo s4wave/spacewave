@@ -1,11 +1,11 @@
 package bldr_web_plugin_handle_rpc
 
 import (
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	handle_rpc_viaplugin "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.

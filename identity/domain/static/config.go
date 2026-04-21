@@ -1,0 +1,40 @@
+package identity_domain_static
+
+import (
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
+)
+
+// ConfigID is the string used to identify this config object.
+const ConfigID = ControllerID
+
+// Validate validates the configuration.
+// This is a cursory validation to see if the values "look correct."
+func (c *Config) Validate() error {
+	if c.GetDomainInfo().GetDomainId() == "" {
+		return errors.New("domain_id cannot be empty")
+	}
+	if err := c.GetDomainInfo().Validate(); err != nil {
+		return errors.Wrap(err, "domain_info")
+	}
+	for ei, ent := range c.GetEntities() {
+		if err := ent.Validate(); err != nil {
+			return errors.Wrapf(err, "entities[%d]", ei)
+		}
+	}
+	return nil
+}
+
+// GetConfigID returns the unique string for this configuration type.
+// This string is stored with the encoded config.
+func (c *Config) GetConfigID() string {
+	return ConfigID
+}
+
+// EqualsConfig checks if the other config is equal.
+func (c *Config) EqualsConfig(other config.Config) bool {
+	return config.EqualsConfig(c, other)
+}
+
+// _ is a type assertion
+var _ config.Config = ((*Config)(nil))

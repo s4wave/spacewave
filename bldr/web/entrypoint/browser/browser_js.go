@@ -7,11 +7,11 @@ import (
 	"errors"
 	"syscall/js"
 
-	message_port "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/message-port"
-	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	message_port "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/message-port"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/sirupsen/logrus"
 )
 

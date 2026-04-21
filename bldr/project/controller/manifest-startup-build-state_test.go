@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/s4wave/spacewave/db/bucket"
 )
 

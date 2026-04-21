@@ -7,10 +7,10 @@ import (
 	"slices"
 	"strings"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 )
 
 // BuildManifests compiles the given manifest IDs for the native platform.

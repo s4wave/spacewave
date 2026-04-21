@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/s4wave/spacewave/bldr/util/wazerofs"
 	quickjswasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
+	"github.com/s4wave/spacewave/bldr/util/wazerofs"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/tetratelabs/wazero/sys"

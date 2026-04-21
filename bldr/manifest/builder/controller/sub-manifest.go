@@ -9,15 +9,15 @@ import (
 	"strings"
 	"sync"
 
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
 // subManifestBuilderTracker tracks a running sub-manifest build controller.

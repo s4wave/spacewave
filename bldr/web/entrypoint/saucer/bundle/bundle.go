@@ -9,6 +9,9 @@ import (
 	"slices"
 	"strconv"
 
+	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/util/fsutil"
+	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
@@ -16,9 +19,6 @@ import (
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/aperturerobotics/util/fsutil"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

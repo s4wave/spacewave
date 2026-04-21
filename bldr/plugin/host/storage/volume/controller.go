@@ -3,9 +3,6 @@ package bldr_plugin_host_storage_volume
 import (
 	"context"
 
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
-	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -13,14 +10,17 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/promise"
+	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
+	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
-	"github.com/aperturerobotics/util/promise"
-	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller id.

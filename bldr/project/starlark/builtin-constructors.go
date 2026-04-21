@@ -3,8 +3,8 @@
 package bldr_project_starlark
 
 import (
-	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/pkg/errors"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"go.starlark.net/starlark"
 )
 
