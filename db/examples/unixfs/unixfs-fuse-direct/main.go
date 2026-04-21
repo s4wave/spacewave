@@ -93,7 +93,7 @@ func execute(rctx context.Context) error {
 		go prof.ListenProf(le, profListen)
 	}
 
-	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume(nil)
+	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume("", nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
 		le,
@@ -139,7 +139,7 @@ func execute(rctx context.Context) error {
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(
 			ctx,
-			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, 0, true, time.Now()),
+			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, true, time.Now()),
 			sender,
 		)
 		if err != nil {
