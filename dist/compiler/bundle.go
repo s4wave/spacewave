@@ -367,7 +367,7 @@ func BuildDistBundle(
 		bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 			ctx,
 			le,
-			"", // stateDir - use system PATH for bun
+			workingPath,
 			srcPath,
 			distSrcPath,
 			outputPath,
