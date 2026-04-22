@@ -25,7 +25,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
