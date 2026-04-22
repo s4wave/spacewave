@@ -74,10 +74,16 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 	if uid < 0 {
 		return errors.New("negative uid")
 	}
+	if uint64(uid) > uint64(^uint32(0)) {
+		return errors.New("uid exceeds uint32")
+	}
 	out.Uid = uint32(uid)
 	gid := os.Getgid()
 	if gid < 0 {
 		return errors.New("negative gid")
+	}
+	if uint64(gid) > uint64(^uint32(0)) {
+		return errors.New("gid exceeds uint32")
 	}
 	out.Gid = uint32(gid)
 

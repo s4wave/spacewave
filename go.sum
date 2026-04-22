@@ -65,8 +65,8 @@ github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b h1:jJDg
 github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b/go.mod h1:xXbInCGpchuUbS9x3vg/AImXyIqEc/u4pV2/m5XzP9Q=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
-github.com/aperturerobotics/common v0.32.5 h1:MrlFib8MLl1D+27bpSyX16QvZZ/Tm6tbyQ6XklmsKt8=
-github.com/aperturerobotics/common v0.32.5/go.mod h1:4UEUFoWR6wQD76dpfJtI/D+q/dbCkOh5yWx1bZHvMZk=
+github.com/aperturerobotics/common v0.32.6 h1:PweIrzJCpl0NBDwPzOFGLYugrC6ftOM7bgR1eo8WGF4=
+github.com/aperturerobotics/common v0.32.6/go.mod h1:2ShBlwKiYj6LbKUQCEHvMBt70wJ5v+Wkwtoe4hCRsnA=
 github.com/aperturerobotics/controllerbus v0.53.1 h1:uxcr1kWvZrDcMOBHq3WuxzzlU59REX2/C3mGRLekmAE=
 github.com/aperturerobotics/controllerbus v0.53.1/go.mod h1:65n90+94u3SUCTqLk+NugpHtwRZoGHxIQKTKsG5JkBU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
@@ -105,12 +105,12 @@ github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
-github.com/aperturerobotics/protobuf-go-lite v0.12.2 h1:ujwTKgpIYAVsv8VljB6PPMY5SI8i8m/NlIHAkkuxQcU=
-github.com/aperturerobotics/protobuf-go-lite v0.12.2/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
+github.com/aperturerobotics/protobuf-go-lite v0.13.0 h1:jEvCJhHaJEikDY/va2AUnS0DOb/0n82aISLAqxSh4Sk=
+github.com/aperturerobotics/protobuf-go-lite v0.13.0/go.mod h1:lGH3s5ArCTXKI4wJdlNpaybUtwSjfAG0vdWjxOfMcF8=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.49.3 h1:CDpPuzMajokuiTa3g2vRPDUAXnA3hCwoOfsX7IeEX8A=
-github.com/aperturerobotics/starpc v0.49.3/go.mod h1:pq1TmEYUUQvmbhRpnjxcmLHdcKi3e1DGcmxsvMAW23Q=
+github.com/aperturerobotics/starpc v0.49.5 h1:qT9Ge+5+UBn3wh8gmKktrajCrxNDkt8vqDwAn/p+0NA=
+github.com/aperturerobotics/starpc v0.49.5/go.mod h1:pEkxSf4JTRcVGBJVz1qTEelG/fxS8PF65bJ939ydphw=
 github.com/aperturerobotics/util v1.33.1 h1:V/xhxNOGLmCsfH2th52pwDyDNwOQGRukrL9leille/w=
 github.com/aperturerobotics/util v1.33.1/go.mod h1:nMtLh9k0mGQrqFrlECZIxLurJT/QZiTh/F3KcLqpAEU=
 github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe h1:hbfgpCHsmTzgr1mH+m/rqxxrei+jKSE3w6KbGbBJVJc=

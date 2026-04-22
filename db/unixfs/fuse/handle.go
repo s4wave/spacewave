@@ -313,7 +313,7 @@ func (h *Handle) Write(
 		maxInt := int(^uint(0) >> 1)
 		writeBufCap := maxInt
 		if optimalWriteSize <= uint64(maxInt) {
-			writeBufCap = int(optimalWriteSize)
+			writeBufCap = int(optimalWriteSize) //nolint:gosec // bounded by the maxInt guard above
 		}
 		extendWb := writeBufCap - len(h.writeBuf.buf)
 		if extendWb > 0 {
