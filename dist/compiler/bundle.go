@@ -63,6 +63,7 @@ func BuildDistBundle(
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
+	cliImports map[string]string,
 	enableCgoOpt enabled.Enabled,
 	enableTinygoOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
@@ -429,7 +430,7 @@ func BuildDistBundle(
 
 	// Format and write the main.go file.
 	le.Debug("compiling dist entrypoint")
-	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS)
+	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, !isWebPlatform)
 	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
 	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644); err != nil {
 		return err

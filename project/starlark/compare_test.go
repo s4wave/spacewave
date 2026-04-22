@@ -51,7 +51,7 @@ func TestAlphaStarCompleteness(t *testing.T) {
 		"app":                                 5,
 		"web":                                 5,
 		"release-web":                         7,
-		"cli":                                 1,
+		"cli":                                 2,
 		"plugin-release-browser":              4,
 		"release-desktop-darwin-arm64":        7,
 		"plugin-release-desktop-darwin-arm64": 1,

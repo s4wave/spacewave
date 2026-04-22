@@ -1,9 +1,10 @@
 //go:build !js
 
-package cli_entrypoint
+package dist_entrypoint
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -11,31 +12,36 @@ import (
 	"sync"
 	"time"
 
+	cli_entrypoint "github.com/aperturerobotics/bldr/cli/entrypoint"
+	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	"github.com/aperturerobotics/bldr/util/logfile"
 	"github.com/aperturerobotics/cli"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/directive"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// Main boots the CliBus and runs the CLI application.
-func Main(
-	appName string,
-	projectID string,
-	factories []AddFactoryFunc,
-	configSets []BuildConfigSetFunc,
-	commandBuilders []BuildCommandsFunc,
-) {
+// runCliMain runs the native dist CLI surface.
+func runCliMain(
+	distMeta *bldr_dist.DistMeta,
+	logLevel logrus.Level,
+	assetsFS fs.FS,
+	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	var dtBus *CliBusImpl
+	projectID := distMeta.GetProjectId()
+	appName := projectID
+	defaultStatePath := cli_entrypoint.DefaultStatePath(projectID)
+	statePathEnvVars := cli_entrypoint.StatePathEnvVars(projectID)
+	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
+
+	var dtBus *DistBus
 	var statePath string
-	var logLevel string
+	var logLevelName string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
-	var configSetRefs []directive.Reference
 	var busInitErr error
 	var busInitOnce sync.Once
 	var le *logrus.Entry
@@ -56,55 +62,38 @@ func Main(
 				return
 			}
 
-			b, err := BuildCliBus(ctx, le, root)
-			if err != nil {
+			configSetData, err := fs.ReadFile(assetsFS, "config-set.bin")
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				busInitErr = err
 				return
 			}
-			dtBus = b
 
-			for _, fn := range factories {
-				if fn == nil {
-					continue
-				}
-				for _, factory := range fn(b.GetBus()) {
-					b.GetStaticResolver().AddFactory(factory)
-				}
-			}
-
-			if len(configSets) == 0 {
+			configSetProto := &configset_proto.ConfigSet{}
+			if err := configSetProto.UnmarshalVT(configSetData); err != nil {
+				busInitErr = err
 				return
 			}
-			var merged []configset.ConfigSet
-			for _, fn := range configSets {
-				cs, err := fn(ctx, b.GetBus(), le)
-				if err != nil {
-					dtBus.Release()
-					dtBus = nil
-					busInitErr = err
-					return
-				}
-				merged = append(merged, cs...)
-			}
-			if len(merged) == 0 {
-				return
-			}
-			set := configset.MergeConfigSets(merged...)
-			_, ref, err := b.GetBus().AddDirective(
-				configset.NewApplyConfigSet(set),
+
+			distBus, err := BuildDistBus(
+				ctx,
+				le,
+				distMeta,
+				root,
+				"",
+				configSetProto,
+				newStaticBlockStoreReaderBuilder(le, assetsFS, false),
 				nil,
 			)
 			if err != nil {
-				dtBus.Release()
-				dtBus = nil
 				busInitErr = err
 				return
 			}
-			configSetRefs = append(configSetRefs, ref)
+			dtBus = distBus
 		})
 		return busInitErr
 	}
-	getBus := func() CliBus {
+
+	getBus := func() cli_entrypoint.CliBus {
 		if err := ensureBus(); err != nil {
 			return nil
 		}
@@ -115,9 +104,6 @@ func Main(
 	app.Name = appName
 	app.HideVersion = true
 	app.Usage = appName + " CLI"
-	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
-	defaultStatePath := DefaultStatePath(projectID)
-	statePathEnvVars := StatePathEnvVars(projectID)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "state-path",
@@ -131,8 +117,8 @@ func Main(
 			Name:        "log-level",
 			Usage:       "log level (debug, info, warn, error)",
 			EnvVars:     []string{"BLDR_LOG_LEVEL"},
-			Value:       "info",
-			Destination: &logLevel,
+			Value:       logLevel.String(),
+			Destination: &logLevelName,
 		},
 		logfile.BuildLogFileFlag(&logFiles),
 		&cli.StringFlag{
@@ -156,14 +142,13 @@ func Main(
 			DisableColors:    false,
 			DisableTimestamp: false,
 		})
-		lvl, err := logrus.ParseLevel(logLevel)
+		lvl, err := logrus.ParseLevel(logLevelName)
 		if err != nil {
 			return err
 		}
 		log.SetLevel(lvl)
 		le = logrus.NewEntry(log)
 
-		// Attach log file hooks if configured.
 		if raw := logFiles.Value(); len(raw) != 0 {
 			specs, err := logfile.ParseLogFileSpecs(raw, time.Now())
 			if err != nil {
@@ -177,15 +162,10 @@ func Main(
 				logFileCleanup = cleanup
 			}
 		}
-
 		return nil
 	}
 
 	app.After = func(c *cli.Context) error {
-		for _, ref := range configSetRefs {
-			ref.Release()
-		}
-		configSetRefs = nil
 		if dtBus != nil {
 			dtBus.Release()
 			dtBus = nil
@@ -197,22 +177,6 @@ func Main(
 		return nil
 	}
 
-	app.Commands = append(app.Commands, &cli.Command{
-		Name:  "start",
-		Usage: "start the daemon and block until interrupted",
-		Action: func(c *cli.Context) error {
-			if err := ensureBus(); err != nil {
-				return err
-			}
-			if dtBus == nil {
-				return errors.New("bus not initialized")
-			}
-			dtBus.GetLogger().Info("started, press ctrl+c to stop")
-			<-dtBus.GetContext().Done()
-			return nil
-		},
-	})
-
 	for _, builder := range commandBuilders {
 		if builder == nil {
 			continue
@@ -220,8 +184,5 @@ func Main(
 		app.Commands = append(app.Commands, builder(getBus)...)
 	}
 
-	if err := app.RunContext(ctx, os.Args); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
-		os.Exit(1)
-	}
+	return app.RunContext(ctx, os.Args)
 }

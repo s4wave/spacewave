@@ -434,6 +434,7 @@ export interface WebDocumentOptions {
 type WebDocumentEvents = {
   visibilitychange: (hidden: boolean) => void
   webdocumentstatuschange: (snapshot: WebDocumentStatus) => void
+  runtimeconnected: () => void
 }
 
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
@@ -540,6 +541,28 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // isHidden checks if the web document is hidden
   public get isHidden(): boolean {
     return this.hidden
+  }
+
+  // waitConn waits for the WebRuntime connection to become ready.
+  public async waitConn(): Promise<void> {
+    try {
+      await this.webRuntimeClient.waitConn()
+      return
+    } catch {
+      // fall through and wait for the runtimeconnected event below
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const onConnected = () => {
+        this.removeListener('runtimeconnected', onConnected)
+        resolve()
+      }
+      this.once('runtimeconnected', onConnected)
+      if (this.closed) {
+        this.removeListener('runtimeconnected', onConnected)
+        reject(new Error('web document is closed'))
+      }
+    })
   }
 
   constructor(opts?: WebDocumentOptions) {
@@ -1462,6 +1485,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         if (this.closed) return
         console.warn('WebDocument: failed to connect to WebRuntime', err)
         setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
+      }).then(() => {
+        if (this.closed) {
+          return
+        }
+        this.emit('runtimeconnected')
       })
     })
   }

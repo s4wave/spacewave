@@ -304,6 +304,7 @@ dist_compiler_config(
         {"manifestId": "web",  "platformId": "web/js/wasm"},
         {"manifestId": "app",  "platformId": "js"},
     ],
+    cliPkgs=["./cmd/mycli/cli"],
     loadPlugins=["core", "web", "app"],
     loadWebStartup="app/startup.tsx",
 )
@@ -318,6 +319,7 @@ different source platforms.
 | Field | Type |
 |---|---|
 | `embedManifests` | list[dict{manifestId, platformId}] |
+| `cliPkgs` | list[string] |
 | `loadPlugins` | list[string] |
 | `loadWebStartup` | string |
 | `hostConfigSet` | dict[string, config_entry] |

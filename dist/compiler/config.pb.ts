@@ -129,6 +129,13 @@ export interface Config {
    * @generated from field: enabled.Enabled enable_compression = 7;
    */
   enableCompression?: Enabled
+  /**
+   * CliPkgs is a list of Go packages providing native CLI commands.
+   * Native dist builds may expose these commands when launched with arguments.
+   *
+   * @generated from field: repeated string cli_pkgs = 9;
+   */
+  cliPkgs?: string[]
 }
 
 // Config contains the message type declaration for Config.
@@ -161,6 +168,13 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 5, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
     { no: 6, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
     { no: 7, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
+    {
+      no: 9,
+      name: 'cli_pkgs',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

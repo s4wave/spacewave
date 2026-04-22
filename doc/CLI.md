@@ -62,7 +62,7 @@ manifests:
 | `goPkgs`    | Go packages to scan for `NewFactory(b bus.Bus) controller.Factory` functions. Relative paths (starting with `./`) are resolved against the project's Go module. |
 | `cliPkgs`   | Go packages providing CLI commands. Each must export `NewCliCommands(getBus func() CliBus) []*cli.Command`.                                                     |
 | `configSet` | A ConfigSet to embed in the binary and apply on startup.                                                                                                        |
-| `projectId` | Override the project ID (used as the binary's app name). Defaults to the manifest ID.                                                                           |
+| `projectId` | Override the project ID used for CLI state-root defaults and environment variables. Empty keeps the generic `.bldr` defaults.                                  |
 
 ## Writing CLI Commands
 
@@ -99,8 +99,8 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 ```
 
 The `getBus()` function returns a `CliBus` interface providing access to the
-ControllerBus, logger, volume, and world engine. The bus is initialized before
-any command runs (via the app's `Before` hook) and released after (via `After`).
+ControllerBus, logger, volume, and world engine. The bus is initialized on
+first access and released after the command exits (via the app's `After` hook).
 
 ### CliBus Interface
 

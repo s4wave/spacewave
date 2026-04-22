@@ -106,6 +106,8 @@ func cliCompilerConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, arg
 var validDistCompilerFields = map[string]bool{
 	"embedManifests":     true,
 	"embed_manifests":    true,
+	"cliPkgs":            true,
+	"cli_pkgs":           true,
 	"loadPlugins":        true,
 	"load_plugins":       true,
 	"loadWebStartup":     true,

@@ -43,7 +43,7 @@
       ]
     },
     "github.com/aperturerobotics/bldr/dist/compiler": {
-      "hash": "bdd14eb5260469ce20dbd945cf86cb0de3a8c02407abe872dd6fbfb09b978b8d",
+      "hash": "0724bb04f6cd96c00502a7c38efaf1f40f4410d071fb0e63aeaf6b24f8d605a4",
       "generatedFiles": [
         "dist/compiler/config.pb.cc",
         "dist/compiler/config.pb.go",

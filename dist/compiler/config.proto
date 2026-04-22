@@ -72,6 +72,10 @@ message Config {
   // The default is ENABLE for release-mode only.
   // Only applicable for the web platform (WebAssembly) (currently).
   .enabled.Enabled enable_compression = 7;
+
+  // CliPkgs is a list of Go packages providing native CLI commands.
+  // Native dist builds may expose these commands when launched with arguments.
+  repeated string cli_pkgs = 9;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

@@ -159,14 +159,12 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
-	// determine app name
+	// determine app name and storage project id
 	appName := manifestID
-	if projID := conf.GetProjectId(); projID != "" {
-		appName = projID
-	}
+	projectID := conf.GetProjectId()
 
 	// generate entrypoint main.go
-	entrypointSrc, err := FormatCliEntrypoint(appName, factoryImports, cliImports)
+	entrypointSrc, err := FormatCliEntrypoint(appName, projectID, factoryImports, cliImports)
 	if err != nil {
 		return nil, err
 	}

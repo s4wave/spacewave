@@ -491,6 +491,7 @@ class Config final : public ::google::protobuf::Message
   enum : int {
     kEmbedManifestsFieldNumber = 1,
     kLoadPluginsFieldNumber = 2,
+    kCliPkgsFieldNumber = 9,
     kProjectIdFieldNumber = 4,
     kLoadWebStartupFieldNumber = 8,
     kEnableCgoFieldNumber = 5,
@@ -535,6 +536,28 @@ class Config final : public ::google::protobuf::Message
   private:
   const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_load_plugins() const;
   ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_load_plugins();
+
+  public:
+  // repeated string cli_pkgs = 9;
+  int cli_pkgs_size() const;
+  private:
+  int _internal_cli_pkgs_size() const;
+
+  public:
+  void clear_cli_pkgs() ;
+  const ::std::string& cli_pkgs(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_cli_pkgs(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_cli_pkgs(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_cli_pkgs();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_cli_pkgs(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& cli_pkgs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_cli_pkgs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_cli_pkgs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_cli_pkgs();
 
   public:
   // string project_id = 4;
@@ -616,8 +639,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   3, 95,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   3, 103,
                                    2>
       _table_;
 
@@ -640,6 +663,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::bldr::dist::compiler::EmbedManifest > embed_manifests_;
     ::google::protobuf::RepeatedPtrField<::std::string> load_plugins_;
+    ::google::protobuf::RepeatedPtrField<::std::string> cli_pkgs_;
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr load_web_startup_;
     int enable_cgo_;
@@ -1137,7 +1161,7 @@ inline void Config::clear_load_web_startup() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.load_web_startup_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::std::string& Config::load_web_startup() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1147,13 +1171,13 @@ inline const ::std::string& Config::load_web_startup() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_load_web_startup(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.load_web_startup_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.load_web_startup)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_load_web_startup()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_load_web_startup();
   // @@protoc_insertion_point(field_mutable:bldr.dist.compiler.Config.load_web_startup)
   return _s;
@@ -1173,10 +1197,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_load_web_startu
 inline ::std::string* PROTOBUF_NULLABLE Config::release_load_web_startup() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.dist.compiler.Config.load_web_startup)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   auto* released = _impl_.load_web_startup_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.load_web_startup_.Set("", GetArena());
@@ -1186,9 +1210,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_load_web_startup() {
 inline void Config::set_allocated_load_web_startup(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   _impl_.load_web_startup_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.load_web_startup_.IsDefault()) {
@@ -1218,7 +1242,7 @@ inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConf
 }
 inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL Config::mutable_host_config_set()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_mutable_map:bldr.dist.compiler.Config.host_config_set)
   return _internal_mutable_host_config_set();
 }
@@ -1228,7 +1252,7 @@ inline void Config::clear_project_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.project_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& Config::project_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1238,13 +1262,13 @@ inline const ::std::string& Config::project_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_project_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.project_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.project_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_project_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_project_id();
   // @@protoc_insertion_point(field_mutable:bldr.dist.compiler.Config.project_id)
   return _s;
@@ -1264,10 +1288,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_project_id() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_project_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.dist.compiler.Config.project_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.project_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.project_id_.Set("", GetArena());
@@ -1277,9 +1301,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_project_id() {
 inline void Config::set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.project_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.project_id_.IsDefault()) {
@@ -1293,7 +1317,7 @@ inline void Config::clear_enable_cgo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_cgo_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline ::enabled::Enabled Config::enable_cgo() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_cgo)
@@ -1301,7 +1325,7 @@ inline ::enabled::Enabled Config::enable_cgo() const {
 }
 inline void Config::set_enable_cgo(::enabled::Enabled value) {
   _internal_set_enable_cgo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_cgo)
 }
 inline ::enabled::Enabled Config::_internal_enable_cgo() const {
@@ -1318,7 +1342,7 @@ inline void Config::clear_enable_tinygo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_tinygo_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::enabled::Enabled Config::enable_tinygo() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_tinygo)
@@ -1326,7 +1350,7 @@ inline ::enabled::Enabled Config::enable_tinygo() const {
 }
 inline void Config::set_enable_tinygo(::enabled::Enabled value) {
   _internal_set_enable_tinygo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_tinygo)
 }
 inline ::enabled::Enabled Config::_internal_enable_tinygo() const {
@@ -1343,7 +1367,7 @@ inline void Config::clear_enable_compression() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_compression_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::enabled::Enabled Config::enable_compression() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_compression)
@@ -1351,7 +1375,7 @@ inline ::enabled::Enabled Config::enable_compression() const {
 }
 inline void Config::set_enable_compression(::enabled::Enabled value) {
   _internal_set_enable_compression(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_compression)
 }
 inline ::enabled::Enabled Config::_internal_enable_compression() const {
@@ -1361,6 +1385,78 @@ inline ::enabled::Enabled Config::_internal_enable_compression() const {
 inline void Config::_internal_set_enable_compression(::enabled::Enabled value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_compression_ = value;
+}
+
+// repeated string cli_pkgs = 9;
+inline int Config::_internal_cli_pkgs_size() const {
+  return _internal_cli_pkgs().size();
+}
+inline int Config::cli_pkgs_size() const {
+  return _internal_cli_pkgs_size();
+}
+inline void Config::clear_cli_pkgs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cli_pkgs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::add_cli_pkgs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_cli_pkgs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.dist.compiler.Config.cli_pkgs)
+  return _s;
+}
+inline const ::std::string& Config::cli_pkgs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.cli_pkgs)
+  return _internal_cli_pkgs().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_cli_pkgs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.dist.compiler.Config.cli_pkgs)
+  return _internal_mutable_cli_pkgs()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void Config::set_cli_pkgs(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_cli_pkgs()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.cli_pkgs)
+}
+template <typename Arg_, typename... Args_>
+inline void Config::add_cli_pkgs(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_cli_pkgs(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.dist.compiler.Config.cli_pkgs)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& Config::cli_pkgs()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.dist.compiler.Config.cli_pkgs)
+  return _internal_cli_pkgs();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::mutable_cli_pkgs() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.dist.compiler.Config.cli_pkgs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_cli_pkgs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+Config::_internal_cli_pkgs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cli_pkgs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::_internal_mutable_cli_pkgs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.cli_pkgs_;
 }
 
 // -------------------------------------------------------------------

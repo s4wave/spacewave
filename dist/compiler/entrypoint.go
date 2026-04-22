@@ -2,6 +2,7 @@ package bldr_dist_compiler
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -13,7 +14,7 @@ const distEntrypointFmt = `package main
 import (
 	"embed"
 
-	dist_entrypoint "github.com/aperturerobotics/bldr/dist/entrypoint"
+%s	dist_entrypoint "github.com/aperturerobotics/bldr/dist/entrypoint"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,8 +30,9 @@ var LogLevel = logrus.DebugLevel
 //%s
 var AssetsFS embed.FS
 
+%s
 func main() {
-	dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)
+	%s
 }
 `
 
@@ -38,6 +40,8 @@ func main() {
 func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
 	embedAssetsFS []string,
+	cliImports map[string]string,
+	nativeBuild bool,
 ) string {
 	var goEmbedLine string
 	if len(embedAssetsFS) != 0 {
@@ -46,11 +50,54 @@ func FormatDistEntrypoint(
 		goEmbedLine = " [empty]"
 	}
 
+	var importLines strings.Builder
+	var cliCommandsDecl string
+	if nativeBuild {
+		importLines.WriteString("\tcli_entrypoint \"github.com/aperturerobotics/bldr/cli/entrypoint\"\n")
+	}
+	if len(cliImports) != 0 {
+		importPkgs := make([]string, 0, len(cliImports))
+		for pkg := range cliImports {
+			importPkgs = append(importPkgs, pkg)
+		}
+		slices.Sort(importPkgs)
+		for _, pkg := range importPkgs {
+			importLines.WriteString("\t")
+			importLines.WriteString(cliImports[pkg])
+			importLines.WriteString(" ")
+			importLines.WriteString(fmt.Sprintf("%q", pkg))
+			importLines.WriteString("\n")
+		}
+
+		aliases := make([]string, 0, len(cliImports))
+		for _, alias := range cliImports {
+			aliases = append(aliases, alias)
+		}
+		slices.Sort(aliases)
+		builders := make([]string, 0, len(aliases))
+		for _, alias := range aliases {
+			builders = append(builders, alias+".NewCliCommands")
+		}
+		cliCommandsDecl = "// cliCommands are the native CLI command builders.\n" +
+			"var cliCommands = []cli_entrypoint.BuildCommandsFunc{" +
+			strings.Join(builders, ", ") + "}\n"
+	}
+	if nativeBuild && len(cliImports) == 0 {
+		cliCommandsDecl = "// cliCommands are the native CLI command builders.\n" +
+			"var cliCommands []cli_entrypoint.BuildCommandsFunc\n"
+	}
+
+	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)"
+	if nativeBuild {
+		mainCall = "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)"
+	}
+
 	return fmt.Sprintf(
 		distEntrypointFmt,
-		// DistMeta
+		importLines.String(),
 		meta.MarshalB58(),
-		// AssetsFS contents for go:embed
 		goEmbedLine,
+		cliCommandsDecl,
+		mainCall,
 	)
 }

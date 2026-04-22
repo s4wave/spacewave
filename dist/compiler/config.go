@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	"golang.org/x/mod/module"
 )
 
 // ConfigID is the config identifier.
@@ -53,6 +54,12 @@ func (c *Config) Validate() error {
 		}
 		if _, err := bldr_platform.ParsePlatform(em.GetPlatformId()); err != nil {
 			return errors.Wrapf(err, "embed_manifests[%d]: platform_id", i)
+		}
+	}
+	for i, impPath := range c.GetCliPkgs() {
+		impPath = strings.TrimPrefix(impPath, "./")
+		if err := module.CheckImportPath(impPath); err != nil {
+			return errors.Wrapf(err, "cli_pkgs[%d]: invalid import path", i)
 		}
 	}
 	return nil
@@ -122,6 +129,9 @@ func (c *Config) Merge(o *Config) {
 	// merge LoadPlugins
 	merge.MergeAndSortSlices(&c.LoadPlugins, o.GetLoadPlugins())
 
+	// merge CliPkgs
+	merge.MergeAndSortSlices(&c.CliPkgs, o.GetCliPkgs())
+
 	// merge config sets
 	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
 
@@ -146,6 +156,9 @@ func (c *Config) Normalize() {
 
 	slices.Sort(c.LoadPlugins)
 	c.LoadPlugins = slices.Compact(c.LoadPlugins)
+
+	slices.Sort(c.CliPkgs)
+	c.CliPkgs = slices.Compact(c.CliPkgs)
 }
 
 // compareEmbedManifest orders EmbedManifest entries by (manifest_id, platform_id).

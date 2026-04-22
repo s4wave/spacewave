@@ -1,13 +1,21 @@
 import React, { Suspense, useMemo } from 'react'
-import { createRoot, hydrateRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import {
   BldrRoot,
   IBldrRootProps,
   WebViewErrorBoundary,
 } from '@aptre/bldr-react'
-import { WebDocumentOptions } from '@aptre/bldr'
+import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
+
+declare global {
+  var __swDeferBoot: boolean | undefined
+  var __swBoot: ((hash: string) => void) | undefined
+  var __swPrerenderRoot: Root | undefined
+  var __swPrerenderContainer: HTMLElement | undefined
+  var __swReadyResolve: (() => void) | undefined
+}
 
 const webDocumentOpts: WebDocumentOptions = {}
 
@@ -79,9 +87,61 @@ if (typeof BLDR_STARTUP_JS === 'string') {
   bldrRootProps.children = <BldrWebStartupContainer />
 }
 
+function resolveDeferredBootReady() {
+  const resolve = globalThis.__swReadyResolve
+  if (!resolve) {
+    return
+  }
+  globalThis.__swReadyResolve = undefined
+  resolve()
+}
+
+function waitForWebRuntime(webDocument: BldrWebDocument) {
+  void webDocument.waitConn().then(() => {
+    resolveDeferredBootReady()
+  })
+}
+
 // initialize react and Bldr
 const container = document.getElementById('bldr-root')
-if (container?.hasAttribute('data-prerendered')) {
+const deferBoot =
+  !!container?.hasAttribute('data-prerendered') && !!globalThis.__swDeferBoot
+
+if (container && deferBoot) {
+  const webDocument = new BldrWebDocument(webDocumentOpts)
+  let root: ReturnType<typeof createRoot> | null = null
+
+  const renderBootedRoot = () => {
+    container.removeAttribute('data-prerendered')
+
+    if (
+      globalThis.__swPrerenderRoot &&
+      globalThis.__swPrerenderContainer === container
+    ) {
+      globalThis.__swPrerenderRoot.render(
+        <BldrRoot {...bldrRootProps} webDocument={webDocument} />,
+      )
+      globalThis.__swPrerenderRoot = undefined
+      globalThis.__swPrerenderContainer = undefined
+      return
+    }
+
+    globalThis.__swPrerenderRoot?.unmount()
+    globalThis.__swPrerenderRoot = undefined
+    globalThis.__swPrerenderContainer = undefined
+
+    if (!root) {
+      root = createRoot(container)
+    }
+    root.render(<BldrRoot {...bldrRootProps} webDocument={webDocument} />)
+  }
+
+  globalThis.__swBoot = (hash: string) => {
+    window.location.hash = hash
+    renderBootedRoot()
+  }
+  waitForWebRuntime(webDocument)
+} else if (container?.hasAttribute('data-prerendered')) {
   container.removeAttribute('data-prerendered')
   hydrateRoot(container, <BldrRoot {...bldrRootProps} />)
 } else {

@@ -16,6 +16,7 @@ import (
 // FormatCliEntrypoint formats the generated CLI entrypoint code.
 func FormatCliEntrypoint(
 	appName string,
+	projectID string,
 	factoryImports map[string]string,
 	cliImports map[string]string,
 ) ([]byte, error) {
@@ -268,6 +269,10 @@ func FormatCliEntrypoint(
 						&gast.BasicLit{
 							Kind:  token.STRING,
 							Value: strconv.Quote(appName),
+						},
+						&gast.BasicLit{
+							Kind:  token.STRING,
+							Value: strconv.Quote(projectID),
 						},
 						gast.NewIdent("factories"),
 						gast.NewIdent("configSets"),
