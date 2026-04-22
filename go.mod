@@ -47,17 +47,14 @@ require (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 // aperture
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe // aperture
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20260422093823-a12cae9f99d4 // aperture-4
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260422092953-fd5ed8d98886 // aperture-4
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 )
 
 // aperture: use compatibility forks
-replace (
-	// https://github.com/dgraph-io/badger/pull/2048
-	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
-	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
-)
+// https://github.com/dgraph-io/badger/pull/2048
+replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
@@ -97,7 +94,7 @@ require (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/dolthub/go-mysql-server v0.18.1
-	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
+	github.com/dolthub/vitess v0.0.0-20260422060906-f6f5b5573b7b
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/goccy/go-json v0.10.3
 	github.com/klauspost/compress v1.18.5
@@ -128,10 +125,9 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
-	github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e // indirect
+	github.com/dolthub/go-icu-regex v0.0.0-20260412212219-49724d547866 // indirect
 	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -145,10 +141,10 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	go.opentelemetry.io/otel v1.38.0 // indirect
-	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.opentelemetry.io/otel v1.39.0 // indirect
+	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c // indirect
 	golang.org/x/text v0.36.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
