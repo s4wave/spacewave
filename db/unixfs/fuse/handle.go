@@ -310,12 +310,12 @@ func (h *Handle) Write(
 		}
 
 		// copy data to writeBuf until it is at most optimalWriteSize
-			maxInt := int(^uint(0) >> 1)
-			writeBufCap := maxInt
-			if optimalWriteSize <= uint64(maxInt) {
-				writeBufCap = int(optimalWriteSize)
-			}
-			extendWb := writeBufCap - len(h.writeBuf.buf)
+		maxInt := int(^uint(0) >> 1)
+		writeBufCap := maxInt
+		if optimalWriteSize <= uint64(maxInt) {
+			writeBufCap = int(optimalWriteSize)
+		}
+		extendWb := writeBufCap - len(h.writeBuf.buf)
 		if extendWb > 0 {
 			if extendWb > len(data) {
 				extendWb = len(data)

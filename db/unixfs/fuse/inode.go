@@ -375,13 +375,13 @@ func (i *Inode) Setattr(
 		useMtime = req.Mtime
 	}
 
-		if req.Valid.Size() {
-			oldSize := info.Size()
-			setSize := req.Size
-			if oldSize < 0 || uint64(oldSize) != setSize {
-				err = i.h.Truncate(ctx, setSize, useMtime)
-				if err != nil {
-					i.rfs.logFilesystemError(err)
+	if req.Valid.Size() {
+		oldSize := info.Size()
+		setSize := req.Size
+		if oldSize < 0 || uint64(oldSize) != setSize {
+			err = i.h.Truncate(ctx, setSize, useMtime)
+			if err != nil {
+				i.rfs.logFilesystemError(err)
 				return UnixfsErrorToSyscall(err)
 			}
 		}

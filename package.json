@@ -20,7 +20,14 @@
   },
   "type": "module",
   "aptre": {
-    "tsImportBoundaries": ["auth", "bldr", "db", "forge", "identity", "net"]
+    "tsImportBoundaries": [
+      "auth",
+      "bldr",
+      "db",
+      "forge",
+      "identity",
+      "net"
+    ]
   },
   "scripts": {
     "check": "bun run typecheck && bun run lint",
