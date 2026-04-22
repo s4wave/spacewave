@@ -65,8 +65,8 @@ github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b h1:jJDg
 github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b/go.mod h1:xXbInCGpchuUbS9x3vg/AImXyIqEc/u4pV2/m5XzP9Q=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
-github.com/aperturerobotics/common v0.32.6 h1:PweIrzJCpl0NBDwPzOFGLYugrC6ftOM7bgR1eo8WGF4=
-github.com/aperturerobotics/common v0.32.6/go.mod h1:2ShBlwKiYj6LbKUQCEHvMBt70wJ5v+Wkwtoe4hCRsnA=
+github.com/aperturerobotics/common v0.32.7 h1:gmiFtqEpJm9kMMj3ZaWcu/JJtbLL4z9vInnp1mY4QVo=
+github.com/aperturerobotics/common v0.32.7/go.mod h1:2ShBlwKiYj6LbKUQCEHvMBt70wJ5v+Wkwtoe4hCRsnA=
 github.com/aperturerobotics/controllerbus v0.53.1 h1:uxcr1kWvZrDcMOBHq3WuxzzlU59REX2/C3mGRLekmAE=
 github.com/aperturerobotics/controllerbus v0.53.1/go.mod h1:65n90+94u3SUCTqLk+NugpHtwRZoGHxIQKTKsG5JkBU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
