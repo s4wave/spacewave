@@ -63,7 +63,7 @@ func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := i.schema.CheckRow(sqlRow); err != nil {
+	if err := i.schema.CheckRow(sql.NewContext(i.ctx), sqlRow); err != nil {
 		return nil, err
 	}
 

@@ -83,9 +83,9 @@ func (r *TableRoot) FetchAutoIncrVal(
 ) (any, sql.ConvertInRange, error) {
 	autoIncrVal, err := r.GetAutoIncrVal().FetchSqlColumn(ctx, bcs.FollowSubBlock(4))
 	if err != nil {
-		return nil, false, err
+		return nil, sql.InRange, err
 	}
-	return expectedType.Convert(autoIncrVal)
+	return expectedType.Convert(sql.NewContext(ctx), autoIncrVal)
 }
 
 // StoreAutoIncrVal stores the auto-increment value

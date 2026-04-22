@@ -1,6 +1,6 @@
 //go:build tinygo
 
-package dist_entrypoint
+package storagepath
 
 import (
 	"errors"
@@ -10,11 +10,8 @@ import (
 )
 
 // DetermineConfigDir determines the root config and storage dir.
-func DetermineConfigDir() (string, error) {
+func DetermineConfigDir(projectID string) (string, error) {
 	switch runtime.GOOS {
-	// Darwin has a limit on Unix socket names of 108 characters.
-	// Reduce the length of the path by using ~/.aperture
-	// Use this for linux as well for consistency.
 	case "linux":
 		fallthrough
 	case "darwin":
@@ -22,10 +19,10 @@ func DetermineConfigDir() (string, error) {
 		if dir == "" {
 			return "", errors.New("$HOME is not defined")
 		}
-		return filepath.Join(dir, ".aperture"), nil
+		return filepath.Join(dir, "."+projectID), nil
 	case "js":
-		fallthrough
+		return projectID, nil
 	default:
-		return "./.aperture", nil
+		return "./" + projectID, nil
 	}
 }

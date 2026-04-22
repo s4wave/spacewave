@@ -2,7 +2,19 @@ import { castToError } from 'starpc'
 import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
-import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
+import { BLDR_URI_PREFIXES } from './constants.js'
+import {
+  type BrowserReleaseDescriptor,
+  type BrowserReleaseState,
+  BROWSER_RELEASE_STATE_SCHEMA_VERSION,
+  buildOfflineNavigationFallbacks,
+  buildReleaseCachePaths,
+  createEmptyBrowserReleaseState,
+  normalizeReleasePath,
+  promoteBrowserRelease,
+  retainedGenerationIds,
+  sameBrowserRelease,
+} from './browser-release-state.js'
 import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { randomId } from './random-id.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
@@ -22,10 +34,324 @@ const serviceWorkerId = `${serviceWorkerLogicalId}-${randomId()}`
 // baseURL is the base URL to use for paths.
 const baseURL = new URL(self.location.toString())
 
-// CACHES is the list of caches.
-const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
+const controlCacheName = 'bldr-control'
+const browserReleasePath = '/browser-release.json'
+const bootAssetPath = '/boot.mjs'
+const browserReleaseStatePath = '/__bldr/browser-release-state.json'
+
+// CACHES is the list of fixed caches.
+const CACHES: Record<string, Cache | undefined> = { [controlCacheName]: undefined }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
+
+function buildCacheRequest(path: string): Request {
+  return new Request(new URL(path, baseURL).toString())
+}
+
+function buildGenerationCacheName(generationId: string): string {
+  return `bldr-generation-${generationId}`
+}
+
+async function notifyPromotedGenerationReload(
+  previousGenerationId: string,
+  promotedGenerationId: string,
+): Promise<void> {
+  if (previousGenerationId === promotedGenerationId) {
+    return
+  }
+  const currClients = await self.clients.matchAll({ type: 'window' })
+  for (const client of currClients) {
+    client.postMessage({
+      bldrPromotedGenerationId: promotedGenerationId,
+    })
+  }
+}
+
+async function getControlCache(): Promise<Cache> {
+  const cached = CACHES[controlCacheName]
+  if (cached) {
+    return cached
+  }
+  const cache = await caches.open(controlCacheName)
+  CACHES[controlCacheName] = cache
+  return cache
+}
+
+function buildJsonResponse(method: string, value: unknown): Response {
+  const response = new Response(
+    method === 'HEAD' ? null : JSON.stringify(value),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+    },
+  )
+  return response
+}
+
+function buildHeadResponse(response: Response): Response {
+  return new Response(null, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  })
+}
+
+function responseForMethod(request: Request, response: Response): Response {
+  if (request.method === 'HEAD') {
+    return buildHeadResponse(response)
+  }
+  return response
+}
+
+async function readCachedJson<T>(path: string): Promise<T | null> {
+  const cache = await getControlCache()
+  const response = await cache.match(buildCacheRequest(path))
+  if (!response) {
+    return null
+  }
+  return (await response.json()) as T
+}
+
+async function writeCachedJson(path: string, value: unknown): Promise<void> {
+  const cache = await getControlCache()
+  await cache.put(buildCacheRequest(path), buildJsonResponse('GET', value))
+}
+
+async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
+  const state = await readCachedJson<BrowserReleaseState>(browserReleaseStatePath)
+  if (!state) {
+    return createEmptyBrowserReleaseState()
+  }
+  if (state.schemaVersion !== BROWSER_RELEASE_STATE_SCHEMA_VERSION) {
+    return createEmptyBrowserReleaseState()
+  }
+  return state
+}
+
+async function saveBrowserReleaseState(state: BrowserReleaseState): Promise<void> {
+  await writeCachedJson(browserReleaseStatePath, state)
+}
+
+async function cacheStableBootAsset(): Promise<void> {
+  let response: Response
+  try {
+    response = await fetch(new Request(new URL(bootAssetPath, baseURL).toString(), {
+      cache: 'reload',
+    }))
+  } catch (error) {
+    console.warn(
+      'ServiceWorker: %s: unable to refresh stable boot asset: %s',
+      serviceWorkerId,
+      castToError(error, 'unknown error').message,
+    )
+    return
+  }
+  if (!response.ok) {
+    console.warn(
+      'ServiceWorker: %s: stable boot asset fetch failed: %d',
+      serviceWorkerId,
+      response.status,
+    )
+    return
+  }
+  const cache = await getControlCache()
+  await cache.put(buildCacheRequest(bootAssetPath), response.clone())
+}
+
+async function fetchLatestBrowserRelease(): Promise<BrowserReleaseDescriptor | null> {
+  let response: Response
+  try {
+    response = await fetch(
+      new Request(new URL(browserReleasePath, baseURL).toString(), {
+        cache: 'no-cache',
+      }),
+    )
+  } catch (error) {
+    console.warn(
+      'ServiceWorker: %s: unable to fetch browser release manifest: %s',
+      serviceWorkerId,
+      castToError(error, 'unknown error').message,
+    )
+    return null
+  }
+  if (!response.ok) {
+    console.warn(
+      'ServiceWorker: %s: browser release manifest fetch failed: %d',
+      serviceWorkerId,
+      response.status,
+    )
+    return null
+  }
+  return (await response.json()) as BrowserReleaseDescriptor
+}
+
+async function stageBrowserRelease(
+  release: BrowserReleaseDescriptor,
+): Promise<boolean> {
+  const cache = await caches.open(buildGenerationCacheName(release.generationId))
+  for (const path of buildReleaseCachePaths(release)) {
+    const request = buildCacheRequest(path)
+    let response: Response
+    try {
+      response = await fetch(new Request(request.url, { cache: 'reload' }))
+    } catch (error) {
+      console.warn(
+        'ServiceWorker: %s: failed to stage %s for %s: %s',
+        serviceWorkerId,
+        path,
+        release.generationId,
+        castToError(error, 'unknown error').message,
+      )
+      return false
+    }
+    if (!response.ok) {
+      console.warn(
+        'ServiceWorker: %s: refusing to stage %s for %s, status=%d',
+        serviceWorkerId,
+        path,
+        release.generationId,
+        response.status,
+      )
+      return false
+    }
+    await cache.put(request, response.clone())
+  }
+  for (const path of buildReleaseCachePaths(release)) {
+    const cached = await cache.match(buildCacheRequest(path))
+    if (!cached) {
+      console.warn(
+        'ServiceWorker: %s: staged cache missing %s for %s',
+        serviceWorkerId,
+        path,
+        release.generationId,
+      )
+      return false
+    }
+  }
+  return true
+}
+
+async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
+  const retainedCaches = new Set<string>([controlCacheName])
+  for (const generationId of retainedGenerationIds(state)) {
+    retainedCaches.add(buildGenerationCacheName(generationId))
+  }
+  const cacheNames = await caches.keys()
+  for (const cacheName of cacheNames) {
+    if (!retainedCaches.has(cacheName)) {
+      await caches.delete(cacheName)
+    }
+  }
+}
+
+async function syncLatestBrowserRelease(
+  discoveredRelease?: BrowserReleaseDescriptor | null,
+): Promise<BrowserReleaseState> {
+  await cacheStableBootAsset()
+
+  let state = await loadBrowserReleaseState()
+  const previousPromotedRelease = state.promotedCurrent
+  const release = discoveredRelease ?? (await fetchLatestBrowserRelease())
+  if (!release) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+
+  if (
+    sameBrowserRelease(state.discovered, release) &&
+    sameBrowserRelease(state.staged, release) &&
+    sameBrowserRelease(state.promotedCurrent, release)
+  ) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+
+  state = { ...state, discovered: release }
+  await saveBrowserReleaseState(state)
+
+  if (!(await stageBrowserRelease(release))) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+
+  state = promoteBrowserRelease(state, release)
+  await saveBrowserReleaseState(state)
+  await pruneReleaseCaches(state)
+  if (
+    previousPromotedRelease &&
+    state.promotedCurrent &&
+    !sameBrowserRelease(previousPromotedRelease, state.promotedCurrent)
+  ) {
+    await notifyPromotedGenerationReload(
+      previousPromotedRelease.generationId,
+      state.promotedCurrent.generationId,
+    )
+  }
+  return state
+}
+
+async function matchStableBootAsset(request: Request): Promise<Response | null> {
+  const cache = await getControlCache()
+  const response = await cache.match(buildCacheRequest(bootAssetPath))
+  if (!response) {
+    return null
+  }
+  return responseForMethod(request, response)
+}
+
+async function matchPromotedGenerationResponse(
+  request: Request,
+): Promise<Response | null> {
+  const pathname = normalizeReleasePath(new URL(request.url).pathname)
+  const accept = request.headers.get('Accept') ?? ''
+  const isNavigation =
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    accept.includes('text/html')
+  const state = await loadBrowserReleaseState()
+
+  for (const release of [state.promotedCurrent, state.promotedPrevious]) {
+    if (!release) {
+      continue
+    }
+    const cache = await caches.open(buildGenerationCacheName(release.generationId))
+    const candidates =
+      isNavigation ?
+        buildOfflineNavigationFallbacks(pathname, release)
+      : [pathname]
+    for (const candidate of candidates) {
+      const response = await cache.match(buildCacheRequest(candidate))
+      if (response) {
+        return responseForMethod(request, response)
+      }
+    }
+  }
+
+  return null
+}
+
+async function handleBrowserReleaseRequest(ev: FetchEvent): Promise<Response> {
+  const request = ev.request
+  const state = await loadBrowserReleaseState()
+  if (state.promotedCurrent) {
+    ev.waitUntil(syncLatestBrowserRelease())
+    return buildJsonResponse(request.method, state.promotedCurrent)
+  }
+
+  const latestRelease = await fetchLatestBrowserRelease()
+  if (!latestRelease) {
+    const fallback = state.promotedPrevious
+    if (fallback) {
+      return buildJsonResponse(request.method, fallback)
+    }
+    throw new Error('browser release manifest unavailable')
+  }
+
+  ev.waitUntil(syncLatestBrowserRelease(latestRelease))
+  return buildJsonResponse(request.method, latestRelease)
+}
 
 // onWebDocumentsExhausted notifies all web documents we need a new connection.
 const onWebDocumentsExhausted = async () => {
@@ -75,51 +401,10 @@ async function swInstall() {
 
 // swActivate is called when the service worker becomes active.
 async function swActivate() {
-  // Delete all caches that aren't named in CACHES.
-  const expectedCacheNames = Object.keys(CACHES)
-  const cacheNames = await caches.keys()
-  for (const cacheName of cacheNames) {
-    if (expectedCacheNames.indexOf(cacheName) === -1) {
-      // If this cache name isn't present in the array of "expected" cache names, then delete it.
-      console.log(
-        'ServiceWorker: %s: deleting unrecognized cache: %s',
-        serviceWorkerId,
-        cacheName,
-      )
-      await caches.delete(cacheName)
-    }
-  }
-  for (const cacheName of expectedCacheNames) {
-    if (!CACHES[cacheName]) {
-      CACHES[cacheName] = await caches.open(cacheName)
-    }
-  }
-
   // Claim all clients.
   await self.clients.claim()
-
-  // Fetch index.html to the cache
-  const bldrCache = CACHES['bldr']
-  if (bldrCache) {
-    for (const cachePath of BLDR_CACHE_PATHS) {
-      const fullURL = new URL(cachePath, baseURL)
-      console.log(
-        'ServiceWorker: %s: caching path: %s',
-        serviceWorkerId,
-        cachePath,
-      )
-      bldrCache
-        .add(fullURL)
-        .catch((error) =>
-          console.warn(
-            'ServiceWorker: %s: unable to cache path %s: %s',
-            serviceWorkerId,
-            cachePath,
-            error,
-          ),
-        )
-    }
-  }
+  await getControlCache()
+  await syncLatestBrowserRelease()
 }
 
 // isSwOrigin checks if the given origin matches the local origin.
@@ -136,6 +421,10 @@ async function swFetch(
   const requestURL = new URL(request.url)
   const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
+
+  if (isSwOrigin(requestOrigin) && requestPath === browserReleasePath) {
+    return handleBrowserReleaseRequest(ev)
+  }
 
   // TODO: Browsers do not cancel request.signal when the request is canceled.
   // This is a long-standing browser bug and is not yet fixed.
@@ -183,7 +472,7 @@ async function swFetch(
       )
     }
 
-    let response: Response | null
+    let response: Response | null = null
     let responseErr: unknown | null = null
     try {
       response = await fetch(ev.request)
@@ -200,13 +489,16 @@ async function swFetch(
 
     // request failed, attempt to fall back to cache.
     if (!response || response.status < 200 || response.status >= 300) {
-      // Check the cache (for e.x. index.html)
-      const bldrCache = CACHES['bldr']
-      if (bldrCache) {
-        const cacheResp = await bldrCache.match(request)
-        if (cacheResp) {
-          return cacheResp
+      if (requestPath === bootAssetPath) {
+        const bootResponse = await matchStableBootAsset(request)
+        if (bootResponse) {
+          return bootResponse
         }
+      }
+
+      const cacheResp = await matchPromotedGenerationResponse(request)
+      if (cacheResp) {
+        return cacheResp
       }
     }
 

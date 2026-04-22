@@ -96,9 +96,13 @@ func BuildWebPkgsVite(
 
 		// Collect source files, making paths relative to codeRootPath.
 		for _, srcFile := range resp.GetSourceFiles() {
-			relPath, relErr := filepath.Rel(codeRootPath, srcFile)
-			if relErr != nil {
-				continue
+			relPath := srcFile
+			if filepath.IsAbs(srcFile) {
+				var relErr error
+				relPath, relErr = filepath.Rel(codeRootPath, srcFile)
+				if relErr != nil {
+					continue
+				}
 			}
 			sourceFilesList = append(sourceFilesList, relPath)
 		}

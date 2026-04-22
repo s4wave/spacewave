@@ -72,6 +72,10 @@ pub struct Config {
     /// Only applicable for the web platform (WebAssembly) (currently).
     #[prost(enumeration="super::super::super::enabled::Enabled", tag="7")]
     pub enable_compression: i32,
+    /// CliPkgs is a list of Go packages providing native CLI commands.
+    /// Native dist builds may expose these commands when launched with arguments.
+    #[prost(string, repeated, tag="9")]
+    pub cli_pkgs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// PreBuildHookResult is the output of a pre-build hook.
 #[derive(Clone, PartialEq, ::prost::Message)]

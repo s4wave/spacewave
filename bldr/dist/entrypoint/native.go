@@ -15,13 +15,33 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	fcolor "github.com/fatih/color"
 	"github.com/s4wave/spacewave/bldr/banner"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
 )
 
 // Main runs the default main entrypoint for a native program.
-func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
+func Main(
+	distMetaB58 string,
+	logLevel logrus.Level,
+	assetsFS fs.FS,
+	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+) {
+	if len(commandBuilders) != 0 && len(os.Args) > 1 {
+		if err := func() error {
+			distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
+			if err != nil {
+				return err
+			}
+			return runCliMain(distMeta, logLevel, assetsFS, commandBuilders)
+		}(); err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+			os.Exit(1)
+		}
+		return
+	}
+
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    false,

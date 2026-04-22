@@ -101,6 +101,9 @@ type Config struct {
 	// The default is ENABLE for release-mode only.
 	// Only applicable for the web platform (WebAssembly) (currently).
 	EnableCompression enabled.Enabled `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enableCompression,omitempty"`
+	// CliPkgs is a list of Go packages providing native CLI commands.
+	// Native dist builds may expose these commands when launched with arguments.
+	CliPkgs []string `protobuf:"bytes,9,rep,name=cli_pkgs,json=cliPkgs,proto3" json:"cliPkgs,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -163,6 +166,13 @@ func (x *Config) GetEnableCompression() enabled.Enabled {
 		return x.EnableCompression
 	}
 	return enabled.Enabled(0)
+}
+
+func (x *Config) GetCliPkgs() []string {
+	if x != nil {
+		return x.CliPkgs
+	}
+	return nil
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -253,6 +263,9 @@ func (m *Config) CloneVT() *Config {
 		for k, v := range rhs {
 			r.HostConfigSet[k] = v.CloneVT()
 		}
+	}
+	if rhs := m.CliPkgs; rhs != nil {
+		r.CliPkgs = slices.Clone(rhs)
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -369,6 +382,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.LoadWebStartup != that.LoadWebStartup {
 		return false
+	}
+	if len(this.CliPkgs) != len(that.CliPkgs) {
+		return false
+	}
+	for i, vx := range this.CliPkgs {
+		vy := that.CliPkgs[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -566,6 +588,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("loadWebStartup")
 		s.WriteString(x.LoadWebStartup)
 	}
+	if len(x.CliPkgs) > 0 || s.HasField("cliPkgs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cliPkgs")
+		s.WriteStringArray(x.CliPkgs)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -635,6 +662,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "load_web_startup", "loadWebStartup":
 			s.AddField("load_web_startup")
 			x.LoadWebStartup = s.ReadString()
+		case "cli_pkgs", "cliPkgs":
+			s.AddField("cli_pkgs")
+			if s.ReadNil() {
+				x.CliPkgs = nil
+				return
+			}
+			x.CliPkgs = s.ReadStringArray()
 		}
 	})
 }
@@ -766,6 +800,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CliPkgs) > 0 {
+		for iNdEx := len(m.CliPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CliPkgs[iNdEx])
+			copy(dAtA[i:], m.CliPkgs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CliPkgs[iNdEx])))
+			i--
+			dAtA[i] = 0x4a
+		}
 	}
 	if len(m.LoadWebStartup) > 0 {
 		i -= len(m.LoadWebStartup)
@@ -951,6 +994,12 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.CliPkgs) > 0 {
+		for _, s := range m.CliPkgs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1102,6 +1151,19 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("load_web_startup: ")
 		sb.WriteString(strconv.Quote(x.LoadWebStartup))
+	}
+	if len(x.CliPkgs) > 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cli_pkgs: [")
+		for i, v := range x.CliPkgs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1453,6 +1515,28 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.LoadWebStartup = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CliPkgs", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CliPkgs = append(m.CliPkgs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

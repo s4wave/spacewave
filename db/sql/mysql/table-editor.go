@@ -77,13 +77,13 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 			return errors.Errorf("auto increment index out of range: %d > %d", autoIncIdx, len(schemaCols)-1)
 		}
 		autoIncCol := schemaCols[autoIncIdx]
-		cmp, err := autoIncCol.Type.Compare(row[autoIncIdx], autoIncVal)
+		cmp, err := autoIncCol.Type.Compare(sqlCtx, row[autoIncIdx], autoIncVal)
 		if err != nil {
 			return errors.Wrap(err, "auto increment type mismatch")
 		}
 		if cmp > 0 {
 			// Provided value larger than autoIncVal, set autoIncVal to that value
-			v, _, err := types.Uint64.Convert(row[autoIncIdx])
+			v, _, err := types.Uint64.Convert(sqlCtx, row[autoIncIdx])
 			if err != nil {
 				return errors.Wrap(err, "auto increment type mismatch")
 			}

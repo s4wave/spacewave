@@ -13,11 +13,11 @@ const expectedCodegenWithImports = `package main
 
 import (
 	"embed"
-	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	example_cli "github.com/example/cli-cmds"
 	example_factory "github.com/example/factory"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
 
 // configSetFS contains the embedded configset.
@@ -37,20 +37,20 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{example_cli.NewCliCommands}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("my-app", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("my-app", "", factories, configSets, cliCommands) }
 `
 
 const expectedCodegenMultiple = `package main
 
 import (
 	"embed"
-	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	alpha_cli "github.com/example/alpha/cli"
 	alpha_factory "github.com/example/alpha/factory"
 	beta_cli "github.com/example/beta/cli"
 	beta_factory "github.com/example/beta/factory"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
 
 // configSetFS contains the embedded configset.
@@ -72,16 +72,16 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{alpha_cli.NewCliCommands, beta_cli.NewCliCommands}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("multi-app", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("multi-app", "", factories, configSets, cliCommands) }
 `
 
 const expectedCodegenEmpty = `package main
 
 import (
 	"embed"
-	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
 
 // configSetFS contains the embedded configset.
@@ -99,21 +99,23 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("test-empty", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("test-empty", "", factories, configSets, cliCommands) }
 `
 
 func TestFormatCliEntrypoint(t *testing.T) {
 	type testcase struct {
 		name           string
 		appName        string
+		projectID      string
 		factoryImports map[string]string
 		cliImports     map[string]string
 		expected       string
 	}
 	tests := []*testcase{
 		{
-			name:    "with imports",
-			appName: "my-app",
+			name:      "with imports",
+			appName:   "my-app",
+			projectID: "",
 			factoryImports: map[string]string{
 				"github.com/example/factory": "example_factory",
 			},
@@ -123,8 +125,9 @@ func TestFormatCliEntrypoint(t *testing.T) {
 			expected: expectedCodegenWithImports,
 		},
 		{
-			name:    "multiple",
-			appName: "multi-app",
+			name:      "multiple",
+			appName:   "multi-app",
+			projectID: "",
 			factoryImports: map[string]string{
 				"github.com/example/beta/factory":  "beta_factory",
 				"github.com/example/alpha/factory": "alpha_factory",
@@ -138,6 +141,7 @@ func TestFormatCliEntrypoint(t *testing.T) {
 		{
 			name:           "empty",
 			appName:        "test-empty",
+			projectID:      "",
 			factoryImports: map[string]string{},
 			cliImports:     map[string]string{},
 			expected:       expectedCodegenEmpty,
@@ -145,7 +149,7 @@ func TestFormatCliEntrypoint(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			dat, err := FormatCliEntrypoint(tc.appName, tc.factoryImports, tc.cliImports)
+			dat, err := FormatCliEntrypoint(tc.appName, tc.projectID, tc.factoryImports, tc.cliImports)
 			if err != nil {
 				t.Fatal(err.Error())
 			}

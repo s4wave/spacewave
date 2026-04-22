@@ -172,12 +172,12 @@ func (t *Table) String() string {
 }
 
 // Schema returns the table's SQL schema.
-func (t *Table) Schema() sql.Schema {
+func (t *Table) Schema(*sql.Context) sql.Schema {
 	return t.schema.Schema
 }
 
 // PrimaryKeySchema returns this table's PrimaryKeySchema
-func (t *Table) PrimaryKeySchema() sql.PrimaryKeySchema {
+func (t *Table) PrimaryKeySchema(*sql.Context) sql.PrimaryKeySchema {
 	return t.schema
 }
 
@@ -255,13 +255,13 @@ func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal any) (u
 		}
 	*/
 
-	cmp, err := types.Uint64.Compare(insertVal, t.autoIncVal)
+	cmp, err := types.Uint64.Compare(sqlCtx, insertVal, t.autoIncVal)
 	if err != nil {
 		return 0, err
 	}
 
 	if cmp > 0 && insertVal != nil {
-		v, _, err := types.Uint64.Convert(insertVal)
+		v, _, err := types.Uint64.Convert(sqlCtx, insertVal)
 		if err != nil {
 			return 0, err
 		}

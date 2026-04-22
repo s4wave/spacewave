@@ -235,7 +235,11 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 	}
 
 	// Render index.html with the import map from the web pkg build.
-	if err := entrypoint_browser_bundle.BuildRendererIndex(buildDir, "", webPkgImportMap); err != nil {
+	if err := entrypoint_browser_bundle.BuildRendererIndex(
+		buildDir,
+		"./entrypoint/entrypoint.mjs",
+		webPkgImportMap,
+	); err != nil {
 		return err
 	}
 

@@ -38,17 +38,21 @@ type BrowserBundleResult struct {
 // BuildManifest is the manifest.json structure written alongside index.html.
 // The prerender build script reads this to discover asset URLs.
 type BuildManifest struct {
-	Entrypoint   string   `json:"entrypoint"`
-	SharedWorker string   `json:"sharedWorker"`
-	Wasm         string   `json:"wasm"`
-	CSS          []string `json:"css"`
+	Entrypoint    string   `json:"entrypoint"`
+	ServiceWorker string   `json:"serviceWorker"`
+	SharedWorker  string   `json:"sharedWorker"`
+	Wasm          string   `json:"wasm"`
+	CSS           []string `json:"css"`
 }
+
+const stableBootFilename = "boot.mjs"
 
 // WriteBuildManifest writes a manifest.json to the given directory.
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
+	obj.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
 	obj.Set("sharedWorker", a.NewString(manifest.SharedWorker))
 	obj.Set("wasm", a.NewString(manifest.Wasm))
 	css := a.NewArray()
@@ -58,6 +62,81 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	obj.Set("css", css)
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
+}
+
+// WriteStableBootAsset writes the stable browser boot asset at the build root.
+func WriteStableBootAsset(dir string) error {
+	const bootAsset = `const releasePath='/browser-release.json';
+const g=globalThis;
+let releasePromise;
+let primePromise;
+function absPath(path){
+  if(!path)return'';
+  return path.startsWith('/')?path:'/'+path;
+}
+function loadRelease(){
+  if(releasePromise)return releasePromise;
+  releasePromise=fetch(releasePath,{cache:'no-cache'}).then(async function(resp){
+    if(!resp.ok)throw new Error('failed to load browser release manifest: '+resp.status);
+    const release=await resp.json();
+    const shellAssets=release.shellAssets||{};
+    const entrypoint=absPath(shellAssets.entrypoint);
+    const wasm=absPath(shellAssets.wasm);
+    if(!entrypoint)throw new Error('browser release manifest missing shellAssets.entrypoint');
+    if(!wasm)throw new Error('browser release manifest missing shellAssets.wasm');
+    g.__swEntry=entrypoint;
+    g.__swGenerationId=release.generationId||'';
+    return {entrypoint,wasm};
+  });
+  return releasePromise;
+}
+function primeRelease(){
+  if(primePromise)return primePromise;
+  primePromise=loadRelease().then(function(release){
+    fetch(release.wasm);
+    return release;
+  });
+  return primePromise;
+}
+(function(){
+  let readyResolve;
+  g.__swReady=new Promise(function(resolve){readyResolve=resolve});
+  g.__swReadyResolve=readyResolve;
+  g.__swDeferBoot=true;
+  let imported=false;
+  function doImport(){
+    if(imported)return;
+    imported=true;
+    void primeRelease()
+      .then(function(release){return import(release.entrypoint)})
+      .catch(function(err){console.error('boot.mjs: failed to import entrypoint',err)});
+  }
+  void primeRelease()
+    .then(function(release){
+      if(window.location.hash.length>1||localStorage.getItem('spacewave-has-session')){
+        const landing=document.getElementById('sw-landing');
+        const loading=document.getElementById('sw-loading');
+        if(landing)landing.style.display='none';
+        if(loading)loading.style.display='';
+        doImport();
+        return;
+      }
+      fetch(release.entrypoint);
+      function onInteract(){
+        doImport();
+        document.removeEventListener('click',onInteract);
+        document.removeEventListener('scroll',onInteract);
+        document.removeEventListener('keydown',onInteract);
+      }
+      document.addEventListener('click',onInteract);
+      document.addEventListener('scroll',onInteract,{passive:true});
+      document.addEventListener('keydown',onInteract);
+      window.addEventListener('load',function(){setTimeout(doImport,1000)});
+    })
+    .catch(function(err){console.error('boot.mjs: failed to load release manifest',err)});
+})();`
+
+	return os.WriteFile(filepath.Join(dir, stableBootFilename), []byte(bootAsset), 0o644)
 }
 
 // EsbuildLogLevel is the log level when bundling the bundle.
@@ -231,18 +310,11 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 // BuildRendererIndex builds the web renderer index.html.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
-func BuildRendererIndex(buildDir, entrypointHash string, importMap web_entrypoint_index.ImportMap) error {
-	// entrypoint import path
-	entrypointImportPath := "./entrypoint"
-	if entrypointHash != "" {
-		entrypointImportPath += "/" + entrypointHash
-	}
-	entrypointImportPath += "/entrypoint.mjs"
-
+func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap) error {
 	// render index.html
 	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
 		ImportMap:      importMap,
-		EntrypointPath: entrypointImportPath,
+		EntrypointPath: entrypointPath,
 	})
 	if err != nil {
 		return err
@@ -274,7 +346,7 @@ func BuildRendererBundle(
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
 
-	if err := BuildRendererIndex(buildDir, entrypointHash, webPkgImportMap); err != nil {
+	if err := BuildRendererIndex(buildDir, "./"+stableBootFilename, webPkgImportMap); err != nil {
 		return nil, err
 	}
 
@@ -418,6 +490,9 @@ func BuildBrowserBundle(
 	// renderer bundle
 	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, forceDedicatedWorkers, devMode, webPkgImportMap)
 	if err != nil {
+		return nil, err
+	}
+	if err := WriteStableBootAsset(buildDir); err != nil {
 		return nil, err
 	}
 

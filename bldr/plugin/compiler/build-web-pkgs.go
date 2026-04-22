@@ -50,7 +50,7 @@ func BuildDirectWebPkgs(
 		_, builtSrcFiles, entries, buildErr := web_pkg_vite.BuildWebPkgsVite(
 			ctx,
 			le,
-			buildPkgsDir,
+			sourcePath,
 			refs,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,

@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/aperturerobotics/fastjson"
+	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 )
 
 func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
@@ -66,5 +68,79 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 	}
 	if !strings.Contains(string(out), "hello") {
 		t.Fatalf("output does not contain expected string: %s", out)
+	}
+}
+
+func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
+	dir := t.TempDir()
+	manifest := &BuildManifest{
+		Entrypoint:    "entrypoint/abc123/entrypoint.mjs",
+		ServiceWorker: "sw-deadbeef.mjs",
+		SharedWorker:  "shw-beadfeed.mjs",
+		Wasm:          "entrypoint/abc123/runtime.wasm",
+		CSS:           []string{"static/app.css"},
+	}
+	if err := WriteBuildManifest(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(v.GetStringBytes("serviceWorker")); got != manifest.ServiceWorker {
+		t.Fatalf("unexpected serviceWorker: %q", got)
+	}
+	if got := string(v.GetStringBytes("entrypoint")); got != manifest.Entrypoint {
+		t.Fatalf("unexpected entrypoint: %q", got)
+	}
+}
+
+func TestWriteStableBootAsset(t *testing.T) {
+	dir := t.TempDir()
+	if err := WriteStableBootAsset(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, stableBootFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	if !strings.Contains(script, "/browser-release.json") {
+		t.Fatalf("boot asset missing stable release manifest path: %s", script)
+	}
+	if !strings.Contains(script, "__swGenerationId") {
+		t.Fatalf("boot asset missing generation exposure: %s", script)
+	}
+}
+
+func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
+	dir := t.TempDir()
+	importMap := web_entrypoint_index.ImportMap{
+		Imports: map[string]string{
+			"react": "/entrypoint/react/index.mjs",
+		},
+	}
+	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(data)
+	if !strings.Contains(html, `<script type="module" src="./entrypoint/entrypoint.mjs"></script>`) {
+		t.Fatalf("renderer index missing explicit entrypoint path: %s", html)
+	}
+	if strings.Contains(html, "./boot.mjs") {
+		t.Fatalf("renderer index unexpectedly referenced boot.mjs: %s", html)
 	}
 }

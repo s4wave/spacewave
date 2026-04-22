@@ -20,7 +20,7 @@ import (
 	"github.com/aperturerobotics/util/enabled"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave"
+	spacewave "github.com/s4wave/spacewave"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	dist_compiler_bundle "github.com/s4wave/spacewave/bldr/dist/compiler/bundle"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -63,6 +63,7 @@ func BuildDistBundle(
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
+	cliImports map[string]string,
 	enableCgoOpt enabled.Enabled,
 	enableTinygoOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
@@ -83,7 +84,7 @@ func BuildDistBundle(
 
 	// Write the bldr license file.
 	bldrLicense := spacewave.GetLicense()
-	if err := os.WriteFile(filepath.Join(outputPath, "LICENSE.s4wave"), []byte(bldrLicense), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outputPath, "LICENSE.bldr"), []byte(bldrLicense), 0o644); err != nil {
 		return err
 	}
 
@@ -412,10 +413,11 @@ func BuildDistBundle(
 			wasmManifestPath += ".gz"
 		}
 		manifest := &entrypoint_browser_bundle.BuildManifest{
-			Entrypoint:   bundleResult.EntrypointPath,
-			SharedWorker: bundleResult.SharedWorkerFilename,
-			Wasm:         wasmManifestPath,
-			CSS:          bundleResult.CSSPaths,
+			Entrypoint:    bundleResult.EntrypointPath,
+			ServiceWorker: bundleResult.ServiceWorkerFilename,
+			SharedWorker:  bundleResult.SharedWorkerFilename,
+			Wasm:          wasmManifestPath,
+			CSS:           bundleResult.CSSPaths,
 		}
 		if err := entrypoint_browser_bundle.WriteBuildManifest(outputPath, manifest); err != nil {
 			return err
@@ -428,7 +430,7 @@ func BuildDistBundle(
 
 	// Format and write the main.go file.
 	le.Debug("compiling dist entrypoint")
-	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS)
+	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, !isWebPlatform)
 	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
 	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644); err != nil {
 		return err

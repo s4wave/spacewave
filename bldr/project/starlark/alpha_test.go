@@ -50,7 +50,16 @@ func TestEvaluateAlpha(t *testing.T) {
 	}
 
 	// Verify builds
-	expectedBuilds := []string{"app", "web", "release", "release-web", "release-desktop", "cli"}
+	expectedBuilds := []string{
+		"app",
+		"web",
+		"release-web",
+		"cli",
+		"plugin-release-browser",
+		"release-desktop-darwin-arm64",
+		"plugin-release-desktop-darwin-arm64",
+		"release-remote-js",
+	}
 	for _, id := range expectedBuilds {
 		if result.Config.GetBuild()[id] == nil {
 			t.Errorf("missing build target %q", id)
@@ -65,7 +74,7 @@ func TestEvaluateAlpha(t *testing.T) {
 	if core.GetBuilder().GetId() != "bldr/plugin/compiler/go" {
 		t.Fatalf("unexpected builder: %q", core.GetBuilder().GetId())
 	}
-	if core.GetBuilder().GetRev() != 13 {
+	if core.GetBuilder().GetRev() != 11 {
 		t.Fatalf("unexpected builder rev: %d", core.GetBuilder().GetRev())
 	}
 	configData := core.GetBuilder().GetConfig()

@@ -5,6 +5,8 @@ package bldr_dist_compiler
 import (
 	"context"
 	"errors"
+	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -22,11 +24,13 @@ import (
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 )
 
 // ControllerID is the compiler controller ID.
@@ -141,6 +145,14 @@ func (c *Controller) BuildManifest(
 
 	// working path
 	workingPath := builderConf.GetWorkingPath()
+	sourcePath := builderConf.GetSourcePath()
+
+	goModPath := filepath.Join(sourcePath, "go.mod")
+	goModData, err := os.ReadFile(goModPath)
+	if err != nil {
+		return nil, err
+	}
+	rootModule := modfile.ModulePath(goModData)
 
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
@@ -372,10 +384,24 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	var cliImports map[string]string
+	if !bldr_platform.IsWebPlatform(buildPlatform) {
+		cliPkgs, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths(
+			conf.GetCliPkgs(),
+			rootModule,
+		)
+		if len(cliPkgs) != 0 {
+			cliImports = make(map[string]string, len(cliPkgs))
+			for _, pkg := range cliPkgs {
+				cliImports[pkg] = path.Base(pkg)
+			}
+		}
+	}
+
 	err = BuildDistBundle(
 		ctx,
 		le,
-		builderConf.GetSourcePath(),
+		sourcePath,
 		builderConf.GetDistSourcePath(),
 		webStartupSrcPath,
 		workingPath,
@@ -386,6 +412,7 @@ func (c *Controller) BuildManifest(
 		buildPlatform,
 		hostConfigSet,
 		initEmbeddedWorld,
+		cliImports,
 		conf.GetEnableCgo(),
 		conf.GetEnableTinygo(),
 		conf.GetEnableCompression(),

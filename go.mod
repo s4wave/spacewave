@@ -47,8 +47,8 @@ require (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20260422093823-a12cae9f99d4 // aperture-4
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260422092953-fd5ed8d98886 // aperture-4
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260422233706-e1850c2f41f0 // aperture-5
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260422234131-9045b4bf3daa // aperture
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 )
 

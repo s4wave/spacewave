@@ -13,7 +13,6 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
-	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -109,7 +108,7 @@ func (c *Controller) BuildManifest(
 	goModPath := filepath.Join(sourcePath, "go.mod")
 	goModData, err := os.ReadFile(goModPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "read source go.mod at %s", goModPath)
+		return nil, err
 	}
 	rootModule := modfile.ModulePath(goModData)
 
@@ -160,14 +159,12 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
-	// determine app name
+	// determine app name and storage project id
 	appName := manifestID
-	if projID := conf.GetProjectId(); projID != "" {
-		appName = projID
-	}
+	projectID := conf.GetProjectId()
 
 	// generate entrypoint main.go
-	entrypointSrc, err := FormatCliEntrypoint(appName, factoryImports, cliImports)
+	entrypointSrc, err := FormatCliEntrypoint(appName, projectID, factoryImports, cliImports)
 	if err != nil {
 		return nil, err
 	}
