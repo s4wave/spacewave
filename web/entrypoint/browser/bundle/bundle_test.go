@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 )
@@ -117,5 +118,29 @@ func TestWriteStableBootAsset(t *testing.T) {
 	}
 	if !strings.Contains(script, "__swGenerationId") {
 		t.Fatalf("boot asset missing generation exposure: %s", script)
+	}
+}
+
+func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
+	dir := t.TempDir()
+	importMap := web_entrypoint_index.ImportMap{
+		Imports: map[string]string{
+			"react": "/entrypoint/react/index.mjs",
+		},
+	}
+	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(data)
+	if !strings.Contains(html, `<script type="module" src="./entrypoint/entrypoint.mjs"></script>`) {
+		t.Fatalf("renderer index missing explicit entrypoint path: %s", html)
+	}
+	if strings.Contains(html, "./boot.mjs") {
+		t.Fatalf("renderer index unexpectedly referenced boot.mjs: %s", html)
 	}
 }

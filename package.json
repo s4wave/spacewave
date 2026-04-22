@@ -95,7 +95,6 @@
     "lucide-react": "^1.7.0",
     "playwright": "^1.59.1",
     "prettier": "^3.8.1",
-    "pumpify": "^2.0.1",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0",

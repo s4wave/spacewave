@@ -310,11 +310,11 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 // BuildRendererIndex builds the web renderer index.html.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
-func BuildRendererIndex(buildDir, _ string, importMap web_entrypoint_index.ImportMap) error {
+func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap) error {
 	// render index.html
 	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
 		ImportMap:      importMap,
-		EntrypointPath: "./" + stableBootFilename,
+		EntrypointPath: entrypointPath,
 	})
 	if err != nil {
 		return err
@@ -346,7 +346,7 @@ func BuildRendererBundle(
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
 
-	if err := BuildRendererIndex(buildDir, entrypointHash, webPkgImportMap); err != nil {
+	if err := BuildRendererIndex(buildDir, "./"+stableBootFilename, webPkgImportMap); err != nil {
 		return nil, err
 	}
 
