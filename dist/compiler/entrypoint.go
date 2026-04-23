@@ -3,6 +3,7 @@ package bldr_dist_compiler
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -65,7 +66,7 @@ func FormatDistEntrypoint(
 			importLines.WriteString("\t")
 			importLines.WriteString(cliImports[pkg])
 			importLines.WriteString(" ")
-			importLines.WriteString(fmt.Sprintf("%q", pkg))
+			importLines.WriteString(strconv.Quote(pkg))
 			importLines.WriteString("\n")
 		}
 
