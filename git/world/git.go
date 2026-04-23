@@ -273,6 +273,9 @@ func AccessWorldObjectRepoWithWorktree(
 			}
 			return nil
 		})
+		if updateWorld && err == nil {
+			bcs.SetBlock(wt, true)
+		}
 		return err
 	})
 	return err
