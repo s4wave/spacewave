@@ -17,7 +17,7 @@ require (
 	github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.4.4 // master
 	github.com/aperturerobotics/cli v1.1.0
-	github.com/aperturerobotics/common v0.32.2 // latest
+	github.com/aperturerobotics/common v0.32.7 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d // master
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/hydra v0.0.0-20260411115926-9e3e44b7cb25 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.12.2 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
 )
 
@@ -35,7 +35,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.11.0
-	golang.org/x/mod v0.34.0 // latest
+	golang.org/x/mod v0.35.0 // latest
 	golang.org/x/tools v0.43.0 // latest
 )
 
@@ -82,8 +82,8 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.53.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.49.3 // latest
-	github.com/aperturerobotics/util v1.33.1 // latest
+	github.com/aperturerobotics/starpc v0.49.6 // latest
+	github.com/aperturerobotics/util v1.34.3 // latest
 )
 
 require (
