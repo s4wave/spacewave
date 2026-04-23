@@ -40,10 +40,12 @@ type Controller struct {
 	// controllerInfo contains the controller info
 	controllerInfo *controller.Info
 
-	// mtx guards below fields
-	mtx sync.Mutex
-	// reconcilers contains running reconciler instances.
-	reconcilers map[bucket_store.BucketReconcilerPair]*runningReconciler
+	// reconcilerMtx guards the desired reconciler key set.
+	reconcilerMtx sync.Mutex
+	// reconcilerKeys contains the desired running reconciler keys.
+	reconcilerKeys map[bucket_store.BucketReconcilerPair]struct{}
+	// reconcilers contains running reconciler routines keyed by bucket/reconciler pair.
+	reconcilers *keyed.Keyed[bucket_store.BucketReconcilerPair, *runningReconciler]
 	// bucketHandles contains open bucket handles
 	// key: bucket id
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
@@ -74,9 +76,10 @@ func NewController(
 		controllerInfo: info,
 		ctor:           ctor,
 
-		volume:      ccontainer.NewCContainer[*volumeCtxPair](nil),
-		reconcilers: make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
+		volume:         ccontainer.NewCContainer[*volumeCtxPair](nil),
+		reconcilerKeys: make(map[bucket_store.BucketReconcilerPair]struct{}),
 	}
+	ctrl.reconcilers = keyed.NewKeyed(ctrl.newRunningReconciler)
 	ctrl.bucketHandles = keyed.NewKeyedRefCount(ctrl.newBucketHandleTracker)
 	return ctrl
 }
@@ -180,6 +183,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx: volCtx,
 		vol: v,
 	})
+	c.reconcilers.SetContext(ctx, true)
 	c.bucketHandles.SetContext(ctx, true)
 
 	// Start GC sweep goroutine.
@@ -195,6 +199,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	case err = <-errCh:
 	}
 
+	c.reconcilerMtx.Lock()
+	c.reconcilerKeys = make(map[bucket_store.BucketReconcilerPair]struct{})
+	c.reconcilerMtx.Unlock()
+	c.reconcilers.SetContext(nil, false)
+	c.reconcilers.SyncKeys(nil, false)
 	c.bucketHandles.SetContext(nil, false)
 	return err
 }

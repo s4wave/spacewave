@@ -3,6 +3,7 @@ package volume_controller
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -18,59 +19,90 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var errBucketHandleChanged = errors.New("bucket handle changed")
+
 // runningReconciler is a running reconciler instance.
 type runningReconciler struct {
-	le        *logrus.Entry
-	ctx       context.Context
-	cancel    context.CancelFunc
-	bucketRef *keyed.KeyedRef[string, *bucketHandleTracker]
-	bucketTrk *bucketHandleTracker
-	pair      bucket_store.BucketReconcilerPair
-	v         volume.Volume
-	b         bus.Bus
-	reqQueue  mqueue.Queue
+	c       *Controller
+	le      *logrus.Entry
+	pair    bucket_store.BucketReconcilerPair
+	running atomic.Bool
 }
 
 // newRunningReconciler builds a new running reconciler.
-func newRunningReconciler(
-	ctx context.Context,
-	le *logrus.Entry,
-	bucketRef *keyed.KeyedRef[string, *bucketHandleTracker],
-	bucketTrk *bucketHandleTracker,
-	b bus.Bus,
+func (c *Controller) newRunningReconciler(
 	pair bucket_store.BucketReconcilerPair,
-	v volume.Volume,
-	reqQueue mqueue.Queue,
-) *runningReconciler {
+) (keyed.Routine, *runningReconciler) {
 	rec := &runningReconciler{
-		v:         v,
-		b:         b,
-		le:        le,
-		bucketRef: bucketRef,
-		bucketTrk: bucketTrk,
-		pair:      pair,
-		reqQueue:  reqQueue,
+		c:    c,
+		le:   bucketLogger(c.le, pair.BucketID),
+		pair: pair,
 	}
-	rec.ctx, rec.cancel = context.WithCancel(ctx)
-	return rec
+	return rec.execute, rec
 }
 
 // executeReconciler executes the reconciler instance.
-func (r *runningReconciler) executeReconciler() error {
-	// wait for the bucket handle
-	ctx := r.ctx
-	bucketHandle, err := r.bucketTrk.handleCtr.WaitValue(ctx, nil)
+func (r *runningReconciler) execute(ctx context.Context) error {
+	r.running.Store(true)
+	defer r.running.Store(false)
+
+	return r.executeReconciler(ctx)
+}
+
+// IsRunning indicates if the reconciler routine is currently active.
+func (r *runningReconciler) IsRunning() bool {
+	return r.running.Load()
+}
+
+// executeReconciler executes the reconciler instance.
+func (r *runningReconciler) executeReconciler(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	vol, err := r.c.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
-	// get the bucket config
+	reqQueue, err := vol.GetReconcilerEventQueue(ctx, r.pair)
+	if err != nil {
+		return errors.Wrap(err, "get reconciler event queue")
+	}
+
+	bucketRef, bucketTrk, _ := r.c.bucketHandles.AddKeyRef(r.pair.BucketID)
+	defer bucketRef.Release()
+
+	var bucketHandle *bucketHandle
+	for {
+		bucketHandle, err = bucketTrk.handleCtr.WaitValueChange(ctx, bucketHandle, nil)
+		if err != nil {
+			return err
+		}
+		if bucketHandle == nil {
+			continue
+		}
+		err = r.executeBucketHandle(ctx, cancel, vol, reqQueue, bucketTrk, bucketHandle)
+		if err == nil {
+			return nil
+		}
+		if err == errBucketHandleChanged {
+			continue
+		}
+		return err
+	}
+}
+
+// executeBucketHandle executes one reconciler binding for a specific bucket handle snapshot.
+func (r *runningReconciler) executeBucketHandle(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	vol volume.Volume,
+	reqQueue mqueue.Queue,
+	bucketTrk *bucketHandleTracker,
+	bucketHandle *bucketHandle,
+) error {
 	if !bucketHandle.GetExists() {
-		// bucket does not exist
-		r.le.
-			WithField("reconciler-id", r.pair.ReconcilerID).
-			Debug("bucket not found")
-		return nil
+		return r.cleanupMissingReconcilerState(ctx, vol, "bucket not found")
 	}
 
 	bc := bucketHandle.GetBucketConfig()
@@ -83,13 +115,19 @@ func (r *runningReconciler) executeReconciler() error {
 		}
 	}
 	if bucketRec == nil {
-		r.le.
-			WithField("reconciler-id", r.pair.ReconcilerID).
-			Debugf("bucket reconciler config not found, purging event queue")
-		return r.v.DeleteReconcilerEventQueue(ctx, r.pair)
+		return r.cleanupMissingReconcilerState(
+			ctx,
+			vol,
+			"bucket reconciler config not found, purging event queue",
+		)
 	}
 
-	bucketRecCc, err := bucketRec.GetController().Resolve(r.ctx, r.b)
+	errCh := make(chan error, 1)
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
+	go r.watchBucketHandleChange(watchCtx, bucketTrk, bucketHandle, errCh)
+
+	bucketRecCc, err := bucketRec.GetController().Resolve(ctx, r.c.bus)
 	if err != nil {
 		if err != context.Canceled {
 			r.le.WithError(err).Warn("unable to resolve controller config")
@@ -97,7 +135,6 @@ func (r *runningReconciler) executeReconciler() error {
 		return err
 	}
 
-	// Ensure the config is a reconciler config.
 	recConf, recConfOk := bucketRecCc.GetConfig().(reconciler.Config)
 	if !recConfOk {
 		err = errors.Errorf(
@@ -110,11 +147,9 @@ func (r *runningReconciler) executeReconciler() error {
 
 	recConf.SetBucketId(r.pair.BucketID)
 	recConf.SetReconcilerId(r.pair.ReconcilerID)
-	recConf.SetBlockStoreId(r.v.GetID())
+	recConf.SetBlockStoreId(vol.GetID())
 
-	// Issue a configset fragment.
 	csf := configset.ConfigSet{}
-	// Controller uuid is hydra/bucket/{bucket-id}/reconciler/{reconciler-id}
 	uuid := strings.Join([]string{
 		"hydra",
 		"bucket",
@@ -125,7 +160,7 @@ func (r *runningReconciler) executeReconciler() error {
 	csf[uuid] = bucketRecCc
 
 	recControllerCtr := ccontainer.NewCContainer[*reconciler.Controller](nil)
-	_, dirRef, err := r.b.AddDirective(
+	_, dirRef, err := r.c.bus.AddDirective(
 		configset.NewApplyConfigSet(csf),
 		bus.NewCallbackHandler(
 			func(val directive.AttachedValue) {
@@ -157,7 +192,7 @@ func (r *runningReconciler) executeReconciler() error {
 				})
 			}, func() {
 				recControllerCtr.SetValue(nil)
-				r.release()
+				cancel()
 			}),
 	)
 	if err != nil {
@@ -165,30 +200,63 @@ func (r *runningReconciler) executeReconciler() error {
 	}
 	defer dirRef.Release()
 
-	// TODO: handle if bucketHandle is purged
-	var handle reconciler.Handle = newReconcilerHandle(
+	handle := reconciler.Handle(newReconcilerHandle(
 		r.pair,
 		bucketHandle,
-		r.v,
-		r.reqQueue,
-	)
+		vol,
+		reqQueue,
+	))
 
 	var reconcilerCtrl *reconciler.Controller
 	for {
-		reconcilerCtrl, err = recControllerCtr.WaitValueChange(ctx, reconcilerCtrl, nil)
+		reconcilerCtrl, err = recControllerCtr.WaitValueChange(ctx, reconcilerCtrl, errCh)
 		if err != nil {
 			return err
 		}
 		if reconcilerCtrl == nil {
 			continue
 		}
-		con := (*reconcilerCtrl)
-		con.PushReconcilerHandle(handle)
+		(*reconcilerCtrl).PushReconcilerHandle(handle)
 	}
 }
 
-// release releases the running reconciler.
-func (r *runningReconciler) release() {
-	r.cancel()
-	r.bucketRef.Release()
+// cleanupMissingReconcilerState purges the queue and removes the desired key when
+// the bucket or reconciler config no longer exists.
+func (r *runningReconciler) cleanupMissingReconcilerState(
+	ctx context.Context,
+	vol volume.Volume,
+	msg string,
+) error {
+	r.le.
+		WithField("reconciler-id", r.pair.ReconcilerID).
+		Debug(msg)
+	if err := vol.DeleteReconcilerEventQueue(ctx, r.pair); err != nil {
+		return err
+	}
+	r.c.removeReconcilerKey(r.pair)
+	return nil
+}
+
+// watchBucketHandleChange reports when the bucket handle snapshot changes.
+func (r *runningReconciler) watchBucketHandleChange(
+	ctx context.Context,
+	bucketTrk *bucketHandleTracker,
+	bucketHandle *bucketHandle,
+	errCh chan<- error,
+) {
+	_, err := bucketTrk.handleCtr.WaitValueChange(ctx, bucketHandle, nil)
+	if err != nil {
+		if ctx.Err() != nil {
+			return
+		}
+		select {
+		case errCh <- err:
+		default:
+		}
+		return
+	}
+	select {
+	case errCh <- errBucketHandleChanged:
+	default:
+	}
 }
