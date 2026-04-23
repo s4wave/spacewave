@@ -6,6 +6,7 @@ import (
 	"io"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -571,8 +572,8 @@ func TestDotGitFSCursorWritableCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ops.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != ErrDotGitWriteNotImplemented {
-		t.Fatalf("expected writable WriteAt to reach semantic-write placeholder, got %v", err)
+	if err := ops.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != unixfs_errors.ErrNotFile {
+		t.Fatalf("expected writable directory WriteAt to return ErrNotFile, got %v", err)
 	}
 
 	headCursor, err := ops.Lookup(ctx, "HEAD")
@@ -584,8 +585,8 @@ func TestDotGitFSCursorWritableCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := headOps.Truncate(ctx, 0, time.Time{}); err != ErrDotGitWriteNotImplemented {
-		t.Fatalf("expected child cursor to inherit writable capability, got %v", err)
+	if err := headOps.SetPermissions(ctx, 0o600, time.Time{}); err != ErrDotGitWriteNotImplemented {
+		t.Fatalf("expected unsupported child write to inherit writable capability, got %v", err)
 	}
 
 	readOnlyCursor := newTestDotGitCursor(t, memory.NewStorage())
@@ -596,6 +597,346 @@ func TestDotGitFSCursorWritableCapability(t *testing.T) {
 	}
 	if err := readOnlyOps.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("expected read-only cursor to stay read-only, got %v", err)
+	}
+}
+
+func TestDotGitFSCursorReferenceWrites(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	mainHash := plumbing.NewHash("1111111111111111111111111111111111111111")
+	featureHash := plumbing.NewHash("2222222222222222222222222222222222222222")
+	if err := store.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), mainHash)); err != nil {
+		t.Fatal(err)
+	}
+
+	cursor := newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	refs, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsCursor, err := refs.Lookup(ctx, "refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsRootOps, err := headsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsCursor2, err := headsRootOps.Lookup(ctx, "heads")
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsOps, err := headsCursor2.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lockContent := []byte(featureHash.String() + "\n")
+	if err := headsOps.MknodWithContent(ctx, "feature.lock", unixfs.NewFSCursorNodeType_File(), int64(len(lockContent)), bytes.NewReader(lockContent), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	if names := readCursorNames(t, ctx, headsOps); !reflect.DeepEqual(names, []string{"feature.lock", "main"}) {
+		t.Fatalf("unexpected staged heads entries %v", names)
+	}
+	lockCursor, err := headsOps.Lookup(ctx, "feature.lock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lockOps, err := lockCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changeCh := make(chan *unixfs.FSCursorChange, 1)
+	headsCursor2.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
+		changeCh <- ch.Clone()
+		return false
+	})
+	done, err := headsOps.MoveFrom(ctx, "feature", lockOps, time.Time{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !done {
+		t.Fatal("expected lock rename to complete reference write")
+	}
+	ref, err := store.Reference(plumbing.NewBranchReferenceName("feature"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref.Hash() != featureHash {
+		t.Fatalf("unexpected feature ref %s", ref.Hash().String())
+	}
+	if !headsCursor2.CheckReleased() {
+		t.Fatal("expected committing cursor to release after ref write")
+	}
+	select {
+	case ch := <-changeCh:
+		if !ch.Released {
+			t.Fatal("expected released change after ref write")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for ref write change callback")
+	}
+
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refsCursor, err := rootOps.Lookup(ctx, "refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refsOps, err := refsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsCursor, err = refsOps.Lookup(ctx, "heads")
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsOps, err = headsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := headsOps.Remove(ctx, []string{"feature"}, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Reference(plumbing.NewBranchReferenceName("feature")); err != plumbing.ErrReferenceNotFound {
+		t.Fatalf("expected feature ref removed, got %v", err)
+	}
+}
+
+func TestDotGitFSCursorMetadataWrites(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	mainName := plumbing.NewBranchReferenceName("main")
+
+	cursor := newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headContent := []byte("ref: " + mainName.String() + "\n")
+	if err := rootOps.MknodWithContent(ctx, "HEAD", unixfs.NewFSCursorNodeType_File(), int64(len(headContent)), bytes.NewReader(headContent), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	head, err := store.Reference(plumbing.HEAD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head.Target() != mainName {
+		t.Fatalf("unexpected HEAD target %q", head.Target().String())
+	}
+
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err = cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configContent := []byte("[core]\n\tbare = true\n")
+	if err := rootOps.MknodWithContent(ctx, "config", unixfs.NewFSCursorNodeType_File(), int64(len(configContent)), bytes.NewReader(configContent), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := store.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Core.IsBare {
+		t.Fatal("expected config core.bare to be true")
+	}
+
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err = cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shallowHash := plumbing.NewHash("3333333333333333333333333333333333333333")
+	shallowContent := []byte(shallowHash.String() + "\n")
+	if err := rootOps.MknodWithContent(ctx, "shallow", unixfs.NewFSCursorNodeType_File(), int64(len(shallowContent)), bytes.NewReader(shallowContent), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	shallows, err := store.Shallow()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(shallows, []plumbing.Hash{shallowHash}) {
+		t.Fatalf("unexpected shallow hashes %v", shallows)
+	}
+
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err = cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagHash := plumbing.NewHash("4444444444444444444444444444444444444444")
+	packedContent := []byte("# pack-refs with: peeled fully-peeled sorted \n" + tagHash.String() + " refs/tags/v1\n")
+	if err := rootOps.MknodWithContent(ctx, "packed-refs", unixfs.NewFSCursorNodeType_File(), int64(len(packedContent)), bytes.NewReader(packedContent), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	tagRef, err := store.Reference(plumbing.NewTagReferenceName("v1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tagRef.Hash() != tagHash {
+		t.Fatalf("unexpected packed ref hash %s", tagRef.Hash().String())
+	}
+}
+
+func TestDotGitFSCursorLooseObjectWrites(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	hash, content := makeLooseObjectContent(t, plumbing.BlobObject, []byte("written loose object\n"))
+	prefix := hash.String()[:2]
+	suffix := hash.String()[2:]
+
+	cursor := newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsCursor, err := rootOps.Lookup(ctx, "objects")
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsOps, err := objectsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := objectsOps.Mknod(ctx, true, []string{prefix}, unixfs.NewFSCursorNodeType_Dir(), 0o755, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	prefixCursor, err := objectsOps.Lookup(ctx, prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefixOps, err := prefixCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := prefixOps.MknodWithContent(ctx, "tmp_obj_test", unixfs.NewFSCursorNodeType_File(), int64(len(content)), bytes.NewReader(content), 0o644, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	if names := readCursorNames(t, ctx, prefixOps); !reflect.DeepEqual(names, []string{"tmp_obj_test"}) {
+		t.Fatalf("unexpected staged object entries %v", names)
+	}
+	tmpCursor, err := prefixOps.Lookup(ctx, "tmp_obj_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpOps, err := tmpCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, err := prefixOps.MoveFrom(ctx, suffix, tmpOps, time.Time{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !done {
+		t.Fatal("expected temp object rename to complete")
+	}
+	if err := store.HasEncodedObject(hash); err != nil {
+		t.Fatal(err)
+	}
+	if !prefixCursor.CheckReleased() {
+		t.Fatal("expected object commit to release committing cursor")
+	}
+}
+
+func TestDotGitFSCursorInvalidWritesLeaveStoreUnchanged(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	mainHash := plumbing.NewHash("1111111111111111111111111111111111111111")
+	if err := store.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), mainHash)); err != nil {
+		t.Fatal(err)
+	}
+
+	cursor := newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refsCursor, err := rootOps.Lookup(ctx, "refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refsOps, err := refsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsCursor, err := refsOps.Lookup(ctx, "heads")
+	if err != nil {
+		t.Fatal(err)
+	}
+	headsOps, err := headsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := headsOps.MknodWithContent(ctx, "main", unixfs.NewFSCursorNodeType_File(), 4, bytes.NewReader([]byte("bad\n")), 0o644, time.Time{}); err == nil {
+		t.Fatal("expected malformed ref write to fail")
+	}
+	ref, err := store.Reference(plumbing.NewBranchReferenceName("main"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref.Hash() != mainHash {
+		t.Fatalf("unexpected main ref after invalid write %s", ref.Hash().String())
+	}
+
+	hash, content := makeLooseObjectContent(t, plumbing.BlobObject, []byte("wrong path object\n"))
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err = cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsCursor, err := rootOps.Lookup(ctx, "objects")
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsOps, err := objectsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := objectsOps.Mknod(ctx, true, []string{"00"}, unixfs.NewFSCursorNodeType_Dir(), 0o755, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	prefixCursor, err := objectsOps.Lookup(ctx, "00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefixOps, err := prefixCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := prefixOps.MknodWithContent(ctx, strings.Repeat("0", 38), unixfs.NewFSCursorNodeType_File(), int64(len(content)), bytes.NewReader(content), 0o644, time.Time{}); err == nil {
+		t.Fatal("expected mismatched object path write to fail")
+	}
+	if err := store.HasEncodedObject(hash); err != plumbing.ErrObjectNotFound {
+		t.Fatalf("expected object store unchanged after mismatch, got %v", err)
+	}
+
+	cursor = newTestDotGitCursor(t, store, WithDotGitWritable(true))
+	rootOps, err = cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsCursor, err = rootOps.Lookup(ctx, "objects")
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectsOps, err = objectsCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	packCursor, err := objectsOps.Lookup(ctx, "pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	packOps, err := packCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := packOps.MknodWithContent(ctx, "pack-test.pack", unixfs.NewFSCursorNodeType_File(), int64(len(content)), bytes.NewReader(content), 0o644, time.Time{}); err != ErrDotGitWriteNotImplemented {
+		t.Fatalf("expected pack writes to be explicitly unsupported, got %v", err)
 	}
 }
 
@@ -674,6 +1015,48 @@ func readHandleNames(t *testing.T, ctx context.Context, handle *unixfs.FSHandle)
 		t.Fatal(err)
 	}
 	return names
+}
+
+func readCursorNames(t *testing.T, ctx context.Context, ops unixfs.FSCursorOps) []string {
+	t.Helper()
+	var names []string
+	err := ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		names = append(names, ent.GetName())
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return names
+}
+
+func makeLooseObjectContent(t *testing.T, typ plumbing.ObjectType, data []byte) (plumbing.Hash, []byte) {
+	t.Helper()
+	obj := plumbing.NewMemoryObject(nil)
+	obj.SetType(typ)
+	obj.SetSize(int64(len(data)))
+	writer, err := obj.Writer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	ow := objfile.NewWriter(&buf)
+	if err := ow.WriteHeader(typ, int64(len(data))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ow.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := ow.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return obj.Hash(), buf.Bytes()
 }
 
 type dotGitTestTx struct {

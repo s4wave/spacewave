@@ -17,6 +17,7 @@ type DotGitFSCursor struct {
 	node         *dotGitNode
 	writable     bool
 	changeSource DotGitFSCursorChangeSource
+	writeState   *dotGitWriteState
 
 	mtx             sync.Mutex
 	cbs             unixfs.FSCursorChangeCbSlice
@@ -55,6 +56,9 @@ func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFS
 		changeSource: conf.changeSource,
 		releaseFn:    releaseFn,
 	}
+	if c.writable {
+		c.writeState = newDotGitWriteState()
+	}
 	c.attachChangeSource()
 	return c
 }
@@ -65,6 +69,7 @@ func newDotGitFSCursorFromNode(
 	writable bool,
 	changeSource DotGitFSCursorChangeSource,
 	releaseFn func(),
+	writeState *dotGitWriteState,
 ) *DotGitFSCursor {
 	c := &DotGitFSCursor{
 		tx:           tx,
@@ -72,6 +77,7 @@ func newDotGitFSCursorFromNode(
 		writable:     writable,
 		changeSource: changeSource,
 		releaseFn:    releaseFn,
+		writeState:   writeState,
 	}
 	c.attachChangeSource()
 	return c
