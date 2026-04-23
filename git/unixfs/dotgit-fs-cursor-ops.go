@@ -1,6 +1,7 @@
 package unixfs_git
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
@@ -14,6 +15,7 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/format/objfile"
 	go_git_storer "github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
 )
@@ -169,6 +171,12 @@ func (o *DotGitFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSC
 	if !o.GetIsDirectory() {
 		return nil, unixfs_errors.ErrNotDirectory
 	}
+	if child, ok, err := o.lookupObject(name); ok || err != nil {
+		if err != nil {
+			return nil, err
+		}
+		return newDotGitFSCursorFromNode(o.cursor.storer, child), nil
+	}
 	if child, ok, err := o.lookupRef(name); ok || err != nil {
 		if err != nil {
 			return nil, err
@@ -189,6 +197,17 @@ func (o *DotGitFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func
 	}
 	if !o.GetIsDirectory() {
 		return unixfs_errors.ErrNotDirectory
+	}
+	if ents, ok, err := o.readObjectsDir(); ok || err != nil {
+		if err != nil {
+			return err
+		}
+		for i := int(skip); i < len(ents); i++ { //nolint:gosec
+			if err := cb(ents[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	if ents, ok, err := o.readRefsDir(); ok || err != nil {
 		if err != nil {
@@ -276,16 +295,69 @@ func (o *DotGitFSCursorOps) MknodWithContent(ctx context.Context, name string, n
 }
 
 func (o *DotGitFSCursorOps) content(ctx context.Context) ([]byte, error) {
-	switch o.node.name {
-	case "HEAD":
+	if o.node.hash != plumbing.ZeroHash {
+		return dotGitObjectContent(o.cursor.storer, o.node.hash)
+	}
+	switch {
+	case slices.Equal(o.node.path, []string{"HEAD"}):
 		return dotGitHeadContent(o.cursor.storer)
-	case "config":
+	case slices.Equal(o.node.path, []string{"config"}):
 		return dotGitConfigContent(o.cursor.storer)
-	case "description":
+	case slices.Equal(o.node.path, []string{"description"}):
 		return []byte(dotGitDefaultDescription), nil
+	case slices.Equal(o.node.path, []string{"objects", "info", "packs"}):
+		return dotGitObjectsInfoPacksContent(o.cursor.storer)
+	case slices.Equal(o.node.path, []string{"packed-refs"}):
+		return dotGitPackedRefsContent(o.cursor.storer)
+	case slices.Equal(o.node.path, []string{"shallow"}):
+		return dotGitShallowContent(o.cursor.storer)
 	default:
 		return o.node.content, nil
 	}
+}
+
+func (o *DotGitFSCursorOps) lookupObject(name string) (*dotGitNode, bool, error) {
+	if slices.Equal(o.node.path, []string{"objects"}) {
+		hashes, err := dotGitObjectHashes(o.cursor.storer)
+		if err != nil {
+			return nil, true, err
+		}
+		for _, hash := range hashes {
+			if hash.String()[:2] == name {
+				return newDotGitDirNode(name, []string{"objects", name}), true, nil
+			}
+		}
+		return nil, false, nil
+	}
+	if len(o.node.path) != 2 || !slices.Equal(o.node.path[:1], []string{"objects"}) {
+		return nil, false, nil
+	}
+	hash := o.node.path[1] + name
+	if !plumbing.IsHash(hash) {
+		return nil, false, nil
+	}
+	objHash := plumbing.NewHash(hash)
+	if err := o.cursor.storer.HasEncodedObject(objHash); err != nil {
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return nil, false, nil
+		}
+		return nil, true, err
+	}
+	return newDotGitObjectFileNode(objHash), true, nil
+}
+
+func (o *DotGitFSCursorOps) readObjectsDir() ([]unixfs.FSCursorDirent, bool, error) {
+	if !slices.Equal(o.node.path, []string{"objects"}) && (len(o.node.path) != 2 || !slices.Equal(o.node.path[:1], []string{"objects"}) || !dotGitIsLooseObjectPrefix(o.node.path[1])) {
+		return nil, false, nil
+	}
+	hashes, err := dotGitObjectHashes(o.cursor.storer)
+	if err != nil {
+		return nil, true, err
+	}
+	if slices.Equal(o.node.path, []string{"objects"}) {
+		return dotGitObjectPrefixDirents(o.node.children, hashes), true, nil
+	}
+	return dotGitObjectSuffixDirents(o.node.path[1], hashes), true, nil
 }
 
 func (o *DotGitFSCursorOps) lookupRef(name string) (*dotGitNode, bool, error) {
@@ -387,6 +459,120 @@ func (o *DotGitFSCursorOps) readRefKindDir() ([]unixfs.FSCursorDirent, error) {
 	return ents, nil
 }
 
+func dotGitObjectHashes(storer go_git_storer.EncodedObjectStorer) ([]plumbing.Hash, error) {
+	iter, err := storer.IterEncodedObjects(plumbing.AnyObject)
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+	var hashes []plumbing.Hash
+	err = iter.ForEach(func(obj plumbing.EncodedObject) error {
+		hashes = append(hashes, obj.Hash())
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	plumbing.HashesSort(hashes)
+	return hashes, nil
+}
+
+func dotGitObjectPrefixDirents(children []*dotGitNode, hashes []plumbing.Hash) []unixfs.FSCursorDirent {
+	seen := make(map[string]struct{})
+	var names []string
+	for _, child := range children {
+		seen[child.name] = struct{}{}
+		names = append(names, child.name)
+	}
+	for _, hash := range hashes {
+		name := hash.String()[:2]
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	ents := make([]unixfs.FSCursorDirent, 0, len(names))
+	for _, name := range names {
+		ents = append(ents, &gitDirent{name: name, isDir: true})
+	}
+	return ents
+}
+
+func dotGitIsLooseObjectPrefix(prefix string) bool {
+	if len(prefix) != 2 {
+		return false
+	}
+	for _, ch := range prefix {
+		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+func dotGitObjectSuffixDirents(prefix string, hashes []plumbing.Hash) []unixfs.FSCursorDirent {
+	var names []string
+	for _, hash := range hashes {
+		hashStr := hash.String()
+		if strings.HasPrefix(hashStr, prefix) {
+			names = append(names, hashStr[2:])
+		}
+	}
+	sort.Strings(names)
+	ents := make([]unixfs.FSCursorDirent, 0, len(names))
+	for _, name := range names {
+		ents = append(ents, &gitDirent{name: name, isFile: true})
+	}
+	return ents
+}
+
+func dotGitObjectContent(storer go_git_storer.EncodedObjectStorer, hash plumbing.Hash) ([]byte, error) {
+	obj, err := storer.EncodedObject(plumbing.AnyObject, hash)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := obj.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	var buf bytes.Buffer
+	writer := objfile.NewWriter(&buf)
+	if err := writer.WriteHeader(obj.Type(), obj.Size()); err != nil {
+		return nil, err
+	}
+	if _, err := io.Copy(writer, reader); err != nil {
+		_ = writer.Close()
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func dotGitObjectsInfoPacksContent(storer any) ([]byte, error) {
+	packed, ok := storer.(go_git_storer.PackedObjectStorer)
+	if !ok {
+		return []byte("\n"), nil
+	}
+	packs, err := packed.ObjectPacks()
+	if err != nil {
+		return nil, err
+	}
+	plumbing.HashesSort(packs)
+	var buf bytes.Buffer
+	for _, pack := range packs {
+		buf.WriteString("P pack-")
+		buf.WriteString(pack.String())
+		buf.WriteString(".pack\n")
+	}
+	buf.WriteByte('\n')
+	return buf.Bytes(), nil
+}
+
 func dotGitHeadContent(storer interface {
 	Reference(plumbing.ReferenceName) (*plumbing.Reference, error)
 }) ([]byte, error) {
@@ -421,6 +607,56 @@ func dotGitConfigContent(storer interface {
 func dotGitReferenceFileContent(ref *plumbing.Reference) string {
 	parts := ref.Strings()
 	return parts[1] + "\n"
+}
+
+func dotGitPackedRefsContent(refStorer interface {
+	IterReferences() (go_git_storer.ReferenceIter, error)
+}) ([]byte, error) {
+	if refStorer == nil {
+		return nil, nil
+	}
+	iter, err := refStorer.IterReferences()
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+	var lines []string
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Type() != plumbing.HashReference || !strings.HasPrefix(ref.Name().String(), "refs/") {
+			return nil
+		}
+		lines = append(lines, ref.Hash().String()+" "+ref.Name().String()+"\n")
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(lines)
+	var buf bytes.Buffer
+	buf.WriteString("# pack-refs with: peeled fully-peeled sorted \n")
+	for _, line := range lines {
+		buf.WriteString(line)
+	}
+	return buf.Bytes(), nil
+}
+
+func dotGitShallowContent(storer interface {
+	Shallow() ([]plumbing.Hash, error)
+}) ([]byte, error) {
+	if storer == nil {
+		return nil, nil
+	}
+	hashes, err := storer.Shallow()
+	if err != nil {
+		return nil, err
+	}
+	plumbing.HashesSort(hashes)
+	var buf bytes.Buffer
+	for _, hash := range hashes {
+		buf.WriteString(hash.String())
+		buf.WriteByte('\n')
+	}
+	return buf.Bytes(), nil
 }
 
 func dotGitRefsPathKind(path []string) string {

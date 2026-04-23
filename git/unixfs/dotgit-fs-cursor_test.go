@@ -1,8 +1,11 @@
 package unixfs_git
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/format/objfile"
 	"github.com/go-git/go-git/v6/storage/memory"
 )
 
@@ -38,7 +42,7 @@ func TestDotGitFSCursorRootShape(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"HEAD", "config", "description", "hooks", "info", "objects", "refs"}
+	expected := []string{"HEAD", "config", "description", "hooks", "info", "logs", "modules", "objects", "packed-refs", "refs", "shallow"}
 	if !reflect.DeepEqual(names, expected) {
 		t.Fatalf("expected entries %v, got %v", expected, names)
 	}
@@ -62,7 +66,7 @@ func TestDotGitFSCursorFSHandleRootShape(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"HEAD", "config", "description", "hooks", "info", "objects", "refs"}
+	expected := []string{"HEAD", "config", "description", "hooks", "info", "logs", "modules", "objects", "packed-refs", "refs", "shallow"}
 	if !reflect.DeepEqual(names, expected) {
 		t.Fatalf("expected entries %v, got %v", expected, names)
 	}
@@ -259,6 +263,255 @@ func TestDotGitFSCursorRefs(t *testing.T) {
 	}
 }
 
+func TestDotGitFSCursorLooseObjects(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	hash := storeBlob(t, store, "hello loose object\n")
+	prefix := hash.String()[:2]
+	suffix := hash.String()[2:]
+
+	cursor := NewDotGitFSCursor(store, "")
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Release()
+
+	objectsHandle, _, err := handle.LookupPath(ctx, "objects")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer objectsHandle.Release()
+	expectedObjectNames := []string{prefix, "info", "pack"}
+	sort.Strings(expectedObjectNames)
+	if names := readHandleNames(t, ctx, objectsHandle); !reflect.DeepEqual(names, expectedObjectNames) {
+		t.Fatalf("unexpected object prefix entries %v", names)
+	}
+
+	prefixHandle, _, err := handle.LookupPath(ctx, "objects/"+prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer prefixHandle.Release()
+	if names := readHandleNames(t, ctx, prefixHandle); !reflect.DeepEqual(names, []string{suffix}) {
+		t.Fatalf("unexpected object suffix entries %v", names)
+	}
+
+	objectHandle, _, err := handle.LookupPath(ctx, "objects/"+prefix+"/"+suffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer objectHandle.Release()
+	content := readHandleContent(t, ctx, objectHandle)
+	reader, err := objfile.NewReader(bytes.NewReader(content))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	typ, size, err := reader.Header()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if typ != plumbing.BlobObject || size != int64(len("hello loose object\n")) {
+		t.Fatalf("unexpected loose object header type=%v size=%d", typ, size)
+	}
+	plain, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(plain) != "hello loose object\n" {
+		t.Fatalf("unexpected loose object body %q", string(plain))
+	}
+	if got := reader.Hash(); got != hash {
+		t.Fatalf("unexpected loose object hash %s, expected %s", got, hash)
+	}
+}
+
+func TestDotGitFSCursorGeneratedPlaceholders(t *testing.T) {
+	ctx := context.Background()
+	store := memory.NewStorage()
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), plumbing.NewHash("1111111111111111111111111111111111111111"))
+	if err := store.SetReference(ref); err != nil {
+		t.Fatal(err)
+	}
+	shallowHash := plumbing.NewHash("2222222222222222222222222222222222222222")
+	if err := store.SetShallow([]plumbing.Hash{shallowHash}); err != nil {
+		t.Fatal(err)
+	}
+
+	cursor := NewDotGitFSCursor(store, "")
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Release()
+
+	infoPacksHandle, _, err := handle.LookupPath(ctx, "objects/info/packs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer infoPacksHandle.Release()
+	if content := readHandleContent(t, ctx, infoPacksHandle); string(content) != "\n" {
+		t.Fatalf("unexpected objects/info/packs content %q", string(content))
+	}
+
+	packHandle, _, err := handle.LookupPath(ctx, "objects/pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer packHandle.Release()
+	if names := readHandleNames(t, ctx, packHandle); len(names) != 0 {
+		t.Fatalf("unexpected objects/pack entries %v", names)
+	}
+
+	packedRefsHandle, _, err := handle.LookupPath(ctx, "packed-refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer packedRefsHandle.Release()
+	expectedRefs := "# pack-refs with: peeled fully-peeled sorted \n" + ref.Hash().String() + " " + ref.Name().String() + "\n"
+	if content := readHandleContent(t, ctx, packedRefsHandle); string(content) != expectedRefs {
+		t.Fatalf("unexpected packed-refs content %q", string(content))
+	}
+
+	shallowHandle, _, err := handle.LookupPath(ctx, "shallow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer shallowHandle.Release()
+	if content := readHandleContent(t, ctx, shallowHandle); string(content) != shallowHash.String()+"\n" {
+		t.Fatalf("unexpected shallow content %q", string(content))
+	}
+
+	for _, path := range []string{"hooks", "logs", "modules"} {
+		dir, _, err := handle.LookupPath(ctx, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if names := readHandleNames(t, ctx, dir); len(names) != 0 {
+			t.Fatalf("unexpected %s entries %v", path, names)
+		}
+		dir.Release()
+	}
+}
+
+func TestDotGitFSCursorEmptyRepository(t *testing.T) {
+	ctx := context.Background()
+	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Release()
+
+	headHandle, _, err := handle.LookupPath(ctx, "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer headHandle.Release()
+	if content := readHandleContent(t, ctx, headHandle); string(content) != "ref: refs/heads/master\n" {
+		t.Fatalf("unexpected empty repository HEAD %q", string(content))
+	}
+
+	objectsHandle, _, err := handle.LookupPath(ctx, "objects")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer objectsHandle.Release()
+	if names := readHandleNames(t, ctx, objectsHandle); !reflect.DeepEqual(names, []string{"info", "pack"}) {
+		t.Fatalf("unexpected empty repository objects entries %v", names)
+	}
+
+	headsHandle, _, err := handle.LookupPath(ctx, "refs/heads")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer headsHandle.Release()
+	if names := readHandleNames(t, ctx, headsHandle); len(names) != 0 {
+		t.Fatalf("unexpected empty repository heads entries %v", names)
+	}
+
+	tagsHandle, _, err := handle.LookupPath(ctx, "refs/tags")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tagsHandle.Release()
+	if names := readHandleNames(t, ctx, tagsHandle); len(names) != 0 {
+		t.Fatalf("unexpected empty repository tags entries %v", names)
+	}
+
+	packedRefsHandle, _, err := handle.LookupPath(ctx, "packed-refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer packedRefsHandle.Release()
+	if content := readHandleContent(t, ctx, packedRefsHandle); string(content) != "# pack-refs with: peeled fully-peeled sorted \n" {
+		t.Fatalf("unexpected empty repository packed-refs content %q", string(content))
+	}
+
+	shallowHandle, _, err := handle.LookupPath(ctx, "shallow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer shallowHandle.Release()
+	if content := readHandleContent(t, ctx, shallowHandle); len(content) != 0 {
+		t.Fatalf("unexpected empty repository shallow content %q", string(content))
+	}
+}
+
+func TestDotGitFSCursorReleaseRepeatedLookupListingAndOffsetRead(t *testing.T) {
+	ctx := context.Background()
+	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Release()
+
+	var skipped []string
+	err = handle.ReaddirAll(ctx, 1, func(ent unixfs.FSCursorDirent) error {
+		skipped = append(skipped, ent.GetName())
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedSkipped := []string{"config", "description", "hooks", "info", "logs", "modules", "objects", "packed-refs", "refs", "shallow"}
+	if !reflect.DeepEqual(skipped, expectedSkipped) {
+		t.Fatalf("unexpected skipped entries %v", skipped)
+	}
+
+	for range 2 {
+		headHandle, _, err := handle.LookupPath(ctx, "HEAD")
+		if err != nil {
+			t.Fatal(err)
+		}
+		buf := make([]byte, 4)
+		n, err := headHandle.ReadAt(ctx, 5, buf)
+		if n != 4 || err != nil {
+			t.Fatalf("expected offset read, n=%d err=%v", n, err)
+		}
+		if string(buf) != "refs" {
+			t.Fatalf("unexpected offset read %q", string(buf))
+		}
+		tail := make([]byte, 8)
+		n, err = headHandle.ReadAt(ctx, int64(len("ref: refs/heads/master\n")-3), tail)
+		if n != 3 || err != io.EOF {
+			t.Fatalf("expected tail EOF read, n=%d err=%v", n, err)
+		}
+		headHandle.Release()
+	}
+
+	ops, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cursor.Release()
+	if _, err := ops.GetSize(ctx); err != unixfs_errors.ErrReleased {
+		t.Fatalf("expected released GetSize error, got %v", err)
+	}
+}
+
 func TestDotGitFSCursorMissingAndReadOnly(t *testing.T) {
 	ctx := context.Background()
 	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
@@ -274,8 +527,32 @@ func TestDotGitFSCursorMissingAndReadOnly(t *testing.T) {
 	if err := ops.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("expected WriteAt ErrReadOnly, got %v", err)
 	}
+	if _, err := ops.GetOptimalWriteSize(ctx); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected GetOptimalWriteSize ErrReadOnly, got %v", err)
+	}
+	if err := ops.SetPermissions(ctx, 0o755, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected SetPermissions ErrReadOnly, got %v", err)
+	}
+	if err := ops.SetModTimestamp(ctx, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected SetModTimestamp ErrReadOnly, got %v", err)
+	}
+	if err := ops.Truncate(ctx, 0, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected Truncate ErrReadOnly, got %v", err)
+	}
 	if err := ops.Mknod(ctx, true, []string{"x"}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("expected Mknod ErrReadOnly, got %v", err)
+	}
+	if err := ops.MknodWithContent(ctx, "x", unixfs.NewFSCursorNodeType_File(), 1, bytes.NewReader([]byte("x")), 0o644, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected MknodWithContent ErrReadOnly, got %v", err)
+	}
+	if err := ops.Symlink(ctx, true, "x", []string{"HEAD"}, false, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected Symlink ErrReadOnly, got %v", err)
+	}
+	if _, err := ops.MoveTo(ctx, ops, "x", time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected MoveTo ErrReadOnly, got %v", err)
+	}
+	if _, err := ops.MoveFrom(ctx, "x", ops, time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected MoveFrom ErrReadOnly, got %v", err)
 	}
 	if err := ops.Remove(ctx, []string{"HEAD"}, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("expected Remove ErrReadOnly, got %v", err)
@@ -287,6 +564,9 @@ func readHandleContent(t *testing.T, ctx context.Context, handle *unixfs.FSHandl
 	size, err := handle.GetSize(ctx)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if size == 0 {
+		return nil
 	}
 	buf := make([]byte, size)
 	n, err := handle.ReadAt(ctx, 0, buf)

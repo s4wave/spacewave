@@ -27,7 +27,7 @@ replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5 // master
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/aperturerobotics/bbolt v0.0.0-20260421170858-c0bbf9016fe5 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260423083728-862fe4bfd1e7 // master
 	github.com/bits-and-blooms/bitset v1.14.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
