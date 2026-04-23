@@ -14,7 +14,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260406055906-b891d4d9bf33 // indirect
+	github.com/aperturerobotics/bbolt v0.0.0-20260421170858-c0bbf9016fe5 // indirect
 	github.com/aperturerobotics/bldr-saucer v0.4.4 // master
 	github.com/aperturerobotics/cli v1.1.0
 	github.com/aperturerobotics/common v0.32.7 // latest
@@ -23,7 +23,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.16.2-0.20260312224838-f595884c2621 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260411115926-9e3e44b7cb25 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260423054642-219ed1db39c0 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
@@ -42,8 +42,8 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.47.5-0.20260403154807-c0d3b5eca6ff // master
-	github.com/aperturerobotics/cayley v0.11.2-0.20260302000642-365880f3ce20 // latest
+	github.com/aperturerobotics/bifrost v0.47.5 // master
+	github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.0 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
@@ -91,7 +91,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/klauspost/compress v1.18.4
 	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
-	github.com/mr-tron/base58 v1.2.0
+	github.com/mr-tron/base58 v1.3.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
 	github.com/pion/sdp/v3 v3.0.18 // indirect
@@ -123,6 +123,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/gomodule/redigo v1.9.3 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
