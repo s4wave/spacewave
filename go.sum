@@ -54,8 +54,8 @@ github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419023811-62a6b1330891 h1:5/x9ii5SXRCmQrqmnqw9vwPliqXMYfjAMBwvJwhjFV4=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419023811-62a6b1330891/go.mod h1:EkJEy0eZ9hdcUbSxh6kBf2YC3V97ziyr9EWY7kCnB5A=
-github.com/aperturerobotics/hydra v0.0.0-20260423054642-219ed1db39c0 h1:Xa08n2BhFYWXZHd7QrjAEQ4Hm76HEiXD7aRDb4yinZ4=
-github.com/aperturerobotics/hydra v0.0.0-20260423054642-219ed1db39c0/go.mod h1:vxSyQqaSRrBx1rrBHr7J559EswpjikYjhX/xci5VRqY=
+github.com/aperturerobotics/hydra v0.0.0-20260423082918-3aef19f10ac8 h1:h3JGanWazisBKmHziAtF477VzC6UBP2wz7ZHpsPKyD0=
+github.com/aperturerobotics/hydra v0.0.0-20260423082918-3aef19f10ac8/go.mod h1:dyCSA/Mcqb5cnTVltSL/aA9pbc8R58XxAvjaRNVwwLA=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 h1:+VPAJqEQnB01ATOMzo/QYfHK7hyFeVJRmxEP3YD98Fs=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
