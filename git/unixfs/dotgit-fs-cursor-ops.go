@@ -200,25 +200,25 @@ func (o *DotGitFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSC
 		return nil, unixfs_errors.ErrNotDirectory
 	}
 	if child, ok := o.cursor.writeState.lookup(o.node.path, name); ok {
-		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn, o.cursor.writeState), nil
+		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.writeState), nil
 	}
 	if child, ok, err := o.lookupObject(name); ok || err != nil {
 		if err != nil {
 			return nil, err
 		}
-		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn, o.cursor.writeState), nil
+		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.writeState), nil
 	}
 	if child, ok, err := o.lookupRef(name); ok || err != nil {
 		if err != nil {
 			return nil, err
 		}
-		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn, o.cursor.writeState), nil
+		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.writeState), nil
 	}
 	child := o.node.child(name)
 	if child == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
-	return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn, o.cursor.writeState), nil
+	return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.writeState), nil
 }
 
 // ReaddirAll reads all directory entries.

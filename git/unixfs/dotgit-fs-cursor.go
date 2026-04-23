@@ -68,7 +68,6 @@ func newDotGitFSCursorFromNode(
 	node *dotGitNode,
 	writable bool,
 	changeSource DotGitFSCursorChangeSource,
-	releaseFn func(),
 	writeState *dotGitWriteState,
 ) *DotGitFSCursor {
 	c := &DotGitFSCursor{
@@ -76,7 +75,6 @@ func newDotGitFSCursorFromNode(
 		node:         node,
 		writable:     writable,
 		changeSource: changeSource,
-		releaseFn:    releaseFn,
 		writeState:   writeState,
 	}
 	c.attachChangeSource()

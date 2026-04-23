@@ -987,6 +987,40 @@ func TestDotGitFSCursorChangeSourceRelease(t *testing.T) {
 	}
 }
 
+func TestDotGitFSCursorChildReleaseDoesNotReleaseRootOwner(t *testing.T) {
+	ctx := context.Background()
+	var released atomic.Int32
+	cursor := newTestDotGitCursor(
+		t,
+		memory.NewStorage(),
+		WithDotGitReleaseFn(func() {
+			released.Add(1)
+		}),
+	)
+
+	ops, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child, err := ops.Lookup(ctx, "refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	child.Release()
+
+	if released.Load() != 0 {
+		t.Fatal("expected child release to leave root owner alive")
+	}
+	if cursor.CheckReleased() {
+		t.Fatal("expected root cursor to remain alive after child release")
+	}
+
+	cursor.Release()
+	if released.Load() != 1 {
+		t.Fatal("expected root release to release owner exactly once")
+	}
+}
+
 func readHandleContent(t *testing.T, ctx context.Context, handle *unixfs.FSHandle) []byte {
 	t.Helper()
 	size, err := handle.GetSize(ctx)
