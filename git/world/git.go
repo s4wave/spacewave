@@ -247,7 +247,8 @@ func AccessWorldObjectRepoWithWorktree(
 	}
 
 	// open the workdir fs
-	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, false, ts)
+	writeWorkdir := updateWorld && sender != ""
+	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, writeWorkdir, ts)
 	if err != nil {
 		return err
 	}
