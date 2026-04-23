@@ -24,11 +24,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	bldr_example "github.com/s4wave/spacewave/bldr/example"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	bldr_values "github.com/s4wave/spacewave/bldr/values"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,7 +49,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
@@ -75,11 +76,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	bldr_example "github.com/s4wave/spacewave/bldr/example"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	bldr_values "github.com/s4wave/spacewave/bldr/values"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -99,7 +101,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
@@ -135,7 +137,7 @@ func TestCodegen(t *testing.T) {
 	}
 
 	workDir, _ := os.Getwd()
-	workDir = filepath.Join(workDir, "../../..")
+	workDir = filepath.Join(workDir, "../../../..")
 	an, err := AnalyzePackages(ctx, le, workDir, packagePaths, []string{"build_type_dev"})
 	if err != nil {
 		t.Fatal(err.Error())

@@ -4,6 +4,7 @@ import {
   buildOfflineNavigationFallbacks,
   buildReleaseCachePaths,
   createEmptyBrowserReleaseState,
+  isBrowserCacheSupportedURL,
   promoteBrowserRelease,
   retainedGenerationIds,
 } from './browser-release-state.js'
@@ -53,6 +54,16 @@ describe('browser release state helpers', () => {
     expect(buildOfflineNavigationFallbacks('/session/1', release)).toEqual([
       '/',
     ])
+  })
+
+  it('detects URLs supported by the browser Cache API', () => {
+    expect(isBrowserCacheSupportedURL('https://example.com/boot.mjs')).toBe(
+      true,
+    )
+    expect(isBrowserCacheSupportedURL('http://localhost:8080/boot.mjs')).toBe(
+      true,
+    )
+    expect(isBrowserCacheSupportedURL('app://index.html/boot.mjs')).toBe(false)
   })
 
   it('promotes generations without dropping the previous promoted release', () => {

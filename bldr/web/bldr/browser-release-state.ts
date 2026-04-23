@@ -28,6 +28,12 @@ export interface BrowserReleaseState {
 // BROWSER_RELEASE_STATE_SCHEMA_VERSION is the cache-state schema version.
 export const BROWSER_RELEASE_STATE_SCHEMA_VERSION = 1
 
+// isBrowserCacheSupportedURL checks if the Cache API accepts requests for a URL.
+export function isBrowserCacheSupportedURL(url: string | URL): boolean {
+  const parsed = typeof url === 'string' ? new URL(url) : url
+  return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+}
+
 // createEmptyBrowserReleaseState builds the empty ServiceWorker release state.
 export function createEmptyBrowserReleaseState(): BrowserReleaseState {
   return {

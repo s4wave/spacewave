@@ -10,6 +10,7 @@ import {
   buildOfflineNavigationFallbacks,
   buildReleaseCachePaths,
   createEmptyBrowserReleaseState,
+  isBrowserCacheSupportedURL,
   normalizeReleasePath,
   promoteBrowserRelease,
   retainedGenerationIds,
@@ -40,12 +41,22 @@ const bootAssetPath = '/boot.mjs'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
 
 // CACHES is the list of fixed caches.
-const CACHES: Record<string, Cache | undefined> = { [controlCacheName]: undefined }
+const CACHES: Record<string, Cache | undefined> = {
+  [controlCacheName]: undefined,
+}
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const proxyFetchHeaderTimeoutMs = 30_000
 
 function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
+}
+
+function canCacheRequest(request: Request): boolean {
+  return isBrowserCacheSupportedURL(request.url)
+}
+
+function canCacheBrowserReleaseRequests(): boolean {
+  return isBrowserCacheSupportedURL(new URL(bootAssetPath, baseURL))
 }
 
 function buildGenerationCacheName(generationId: string): string {
@@ -106,8 +117,12 @@ function responseForMethod(request: Request, response: Response): Response {
 }
 
 async function readCachedJson<T>(path: string): Promise<T | null> {
+  const request = buildCacheRequest(path)
+  if (!canCacheRequest(request)) {
+    return null
+  }
   const cache = await getControlCache()
-  const response = await cache.match(buildCacheRequest(path))
+  const response = await cache.match(request)
   if (!response) {
     return null
   }
@@ -115,12 +130,18 @@ async function readCachedJson<T>(path: string): Promise<T | null> {
 }
 
 async function writeCachedJson(path: string, value: unknown): Promise<void> {
+  const request = buildCacheRequest(path)
+  if (!canCacheRequest(request)) {
+    return
+  }
   const cache = await getControlCache()
-  await cache.put(buildCacheRequest(path), buildJsonResponse('GET', value))
+  await cache.put(request, buildJsonResponse('GET', value))
 }
 
 async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
-  const state = await readCachedJson<BrowserReleaseState>(browserReleaseStatePath)
+  const state = await readCachedJson<BrowserReleaseState>(
+    browserReleaseStatePath,
+  )
   if (!state) {
     return createEmptyBrowserReleaseState()
   }
@@ -130,16 +151,25 @@ async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
   return state
 }
 
-async function saveBrowserReleaseState(state: BrowserReleaseState): Promise<void> {
+async function saveBrowserReleaseState(
+  state: BrowserReleaseState,
+): Promise<void> {
   await writeCachedJson(browserReleaseStatePath, state)
 }
 
 async function cacheStableBootAsset(): Promise<void> {
+  const request = buildCacheRequest(bootAssetPath)
+  if (!canCacheRequest(request)) {
+    return
+  }
+
   let response: Response
   try {
-    response = await fetch(new Request(new URL(bootAssetPath, baseURL).toString(), {
-      cache: 'reload',
-    }))
+    response = await fetch(
+      new Request(request.url, {
+        cache: 'reload',
+      }),
+    )
   } catch (error) {
     console.warn(
       'ServiceWorker: %s: unable to refresh stable boot asset: %s',
@@ -157,7 +187,7 @@ async function cacheStableBootAsset(): Promise<void> {
     return
   }
   const cache = await getControlCache()
-  await cache.put(buildCacheRequest(bootAssetPath), response.clone())
+  await cache.put(request, response.clone())
 }
 
 async function fetchLatestBrowserRelease(): Promise<BrowserReleaseDescriptor | null> {
@@ -190,9 +220,20 @@ async function fetchLatestBrowserRelease(): Promise<BrowserReleaseDescriptor | n
 async function stageBrowserRelease(
   release: BrowserReleaseDescriptor,
 ): Promise<boolean> {
-  const cache = await caches.open(buildGenerationCacheName(release.generationId))
+  const cache = await caches.open(
+    buildGenerationCacheName(release.generationId),
+  )
   for (const path of buildReleaseCachePaths(release)) {
     const request = buildCacheRequest(path)
+    if (!canCacheRequest(request)) {
+      console.warn(
+        'ServiceWorker: %s: refusing to stage %s for %s, cache scheme unsupported',
+        serviceWorkerId,
+        path,
+        release.generationId,
+      )
+      return false
+    }
     let response: Response
     try {
       response = await fetch(new Request(request.url, { cache: 'reload' }))
@@ -249,6 +290,10 @@ async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
 async function syncLatestBrowserRelease(
   discoveredRelease?: BrowserReleaseDescriptor | null,
 ): Promise<BrowserReleaseState> {
+  if (!canCacheBrowserReleaseRequests()) {
+    return createEmptyBrowserReleaseState()
+  }
+
   await cacheStableBootAsset()
 
   let state = await loadBrowserReleaseState()
@@ -292,9 +337,15 @@ async function syncLatestBrowserRelease(
   return state
 }
 
-async function matchStableBootAsset(request: Request): Promise<Response | null> {
+async function matchStableBootAsset(
+  request: Request,
+): Promise<Response | null> {
+  const cacheRequest = buildCacheRequest(bootAssetPath)
+  if (!canCacheRequest(cacheRequest)) {
+    return null
+  }
   const cache = await getControlCache()
-  const response = await cache.match(buildCacheRequest(bootAssetPath))
+  const response = await cache.match(cacheRequest)
   if (!response) {
     return null
   }
@@ -304,6 +355,10 @@ async function matchStableBootAsset(request: Request): Promise<Response | null> 
 async function matchPromotedGenerationResponse(
   request: Request,
 ): Promise<Response | null> {
+  if (!canCacheBrowserReleaseRequests()) {
+    return null
+  }
+
   const pathname = normalizeReleasePath(new URL(request.url).pathname)
   const accept = request.headers.get('Accept') ?? ''
   const isNavigation =
@@ -316,7 +371,9 @@ async function matchPromotedGenerationResponse(
     if (!release) {
       continue
     }
-    const cache = await caches.open(buildGenerationCacheName(release.generationId))
+    const cache = await caches.open(
+      buildGenerationCacheName(release.generationId),
+    )
     const candidates =
       isNavigation ?
         buildOfflineNavigationFallbacks(pathname, release)
