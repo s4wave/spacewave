@@ -2,8 +2,10 @@ package volume_controller
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	volume "github.com/aperturerobotics/hydra/volume"
 )
@@ -70,6 +72,9 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
+			}
+			if errors.Is(err, bbolt_errors.ErrLockFileChanged) {
+				return err
 			}
 			c.le.WithError(err).Warn("gc sweep failed")
 			continue
