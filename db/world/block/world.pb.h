@@ -103,6 +103,7 @@ enum WorldChangeType : int {
   WorldChange_OBJECT_SET = 1,
   WorldChange_OBJECT_INC_REV = 2,
   WorldChange_OBJECT_DELETE = 3,
+  WorldChange_OBJECT_RENAME = 4,
   WorldChange_GRAPH_SET = 5,
   WorldChange_GRAPH_DELETE = 6,
   WorldChangeType_INT_MIN_SENTINEL_DO_NOT_USE_ =
@@ -117,7 +118,7 @@ inline constexpr WorldChangeType WorldChangeType_MIN =
 inline constexpr WorldChangeType WorldChangeType_MAX =
     static_cast<WorldChangeType>(6);
 inline bool WorldChangeType_IsValid(int value) {
-  return 0 <= value && value <= 6 && ((111u >> value) & 1) != 0;
+  return 0 <= value && value <= 6;
 }
 inline constexpr int WorldChangeType_ARRAYSIZE = 6 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WorldChangeType_descriptor();
@@ -287,6 +288,7 @@ class WorldChange final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kKeyFieldNumber = 2,
+    kNewKeyFieldNumber = 8,
     kQuadFieldNumber = 3,
     kTransactionRefFieldNumber = 4,
     kObjectRefFieldNumber = 5,
@@ -307,6 +309,21 @@ class WorldChange final : public ::google::protobuf::Message
   const ::std::string& _internal_key() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_key(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // string new_key = 8;
+  void clear_new_key() ;
+  const ::std::string& new_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_new_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_new_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_new_key();
+  void set_allocated_new_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_new_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_new_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_new_key();
 
   public:
   // .quad.Quad quad = 3;
@@ -393,8 +410,8 @@ class WorldChange final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   4, 35,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   4, 50,
                                    2>
       _table_;
 
@@ -416,6 +433,7 @@ class WorldChange final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr key_;
+    ::google::protobuf::internal::ArenaStringPtr new_key_;
     ::quad::Quad* PROTOBUF_NULLABLE quad_;
     ::block::BlockRef* PROTOBUF_NULLABLE transaction_ref_;
     ::block::BlockRef* PROTOBUF_NULLABLE object_ref_;
@@ -2128,7 +2146,7 @@ inline void WorldChange::clear_change_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.change_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::world::block::WorldChangeType WorldChange::change_type() const {
   // @@protoc_insertion_point(field_get:world.block.WorldChange.change_type)
@@ -2136,7 +2154,7 @@ inline ::world::block::WorldChangeType WorldChange::change_type() const {
 }
 inline void WorldChange::set_change_type(::world::block::WorldChangeType value) {
   _internal_set_change_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:world.block.WorldChange.change_type)
 }
 inline ::world::block::WorldChangeType WorldChange::_internal_change_type() const {
@@ -2215,7 +2233,7 @@ inline void WorldChange::set_allocated_key(::std::string* PROTOBUF_NULLABLE valu
 
 // .quad.Quad quad = 3;
 inline bool WorldChange::has_quad() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.quad_ != nullptr);
   return value;
 }
@@ -2236,16 +2254,16 @@ inline void WorldChange::unsafe_arena_set_allocated_quad(
   }
   _impl_.quad_ = reinterpret_cast<::quad::Quad*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:world.block.WorldChange.quad)
 }
 inline ::quad::Quad* PROTOBUF_NULLABLE WorldChange::release_quad() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::quad::Quad* released = _impl_.quad_;
   _impl_.quad_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2265,7 +2283,7 @@ inline ::quad::Quad* PROTOBUF_NULLABLE WorldChange::unsafe_arena_release_quad() 
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:world.block.WorldChange.quad)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::quad::Quad* temp = _impl_.quad_;
   _impl_.quad_ = nullptr;
   return temp;
@@ -2280,7 +2298,7 @@ inline ::quad::Quad* PROTOBUF_NONNULL WorldChange::_internal_mutable_quad() {
 }
 inline ::quad::Quad* PROTOBUF_NONNULL WorldChange::mutable_quad()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::quad::Quad* _msg = _internal_mutable_quad();
   // @@protoc_insertion_point(field_mutable:world.block.WorldChange.quad)
   return _msg;
@@ -2297,9 +2315,9 @@ inline void WorldChange::set_allocated_quad(::quad::Quad* PROTOBUF_NULLABLE valu
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.quad_ = reinterpret_cast<::quad::Quad*>(value);
@@ -2308,7 +2326,7 @@ inline void WorldChange::set_allocated_quad(::quad::Quad* PROTOBUF_NULLABLE valu
 
 // .block.BlockRef transaction_ref = 4;
 inline bool WorldChange::has_transaction_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
   PROTOBUF_ASSUME(!value || _impl_.transaction_ref_ != nullptr);
   return value;
 }
@@ -2329,16 +2347,16 @@ inline void WorldChange::unsafe_arena_set_allocated_transaction_ref(
   }
   _impl_.transaction_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:world.block.WorldChange.transaction_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::release_transaction_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::block::BlockRef* released = _impl_.transaction_ref_;
   _impl_.transaction_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2358,7 +2376,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::unsafe_arena_release_tr
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:world.block.WorldChange.transaction_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::block::BlockRef* temp = _impl_.transaction_ref_;
   _impl_.transaction_ref_ = nullptr;
   return temp;
@@ -2373,7 +2391,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::_internal_mutable_transa
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::mutable_transaction_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::block::BlockRef* _msg = _internal_mutable_transaction_ref();
   // @@protoc_insertion_point(field_mutable:world.block.WorldChange.transaction_ref)
   return _msg;
@@ -2390,9 +2408,9 @@ inline void WorldChange::set_allocated_transaction_ref(::block::BlockRef* PROTOB
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
 
   _impl_.transaction_ref_ = reinterpret_cast<::block::BlockRef*>(value);
@@ -2401,7 +2419,7 @@ inline void WorldChange::set_allocated_transaction_ref(::block::BlockRef* PROTOB
 
 // .block.BlockRef object_ref = 5;
 inline bool WorldChange::has_object_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.object_ref_ != nullptr);
   return value;
 }
@@ -2422,16 +2440,16 @@ inline void WorldChange::unsafe_arena_set_allocated_object_ref(
   }
   _impl_.object_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:world.block.WorldChange.object_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::release_object_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* released = _impl_.object_ref_;
   _impl_.object_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2451,7 +2469,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::unsafe_arena_release_ob
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:world.block.WorldChange.object_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* temp = _impl_.object_ref_;
   _impl_.object_ref_ = nullptr;
   return temp;
@@ -2466,7 +2484,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::_internal_mutable_object
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::mutable_object_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::block::BlockRef* _msg = _internal_mutable_object_ref();
   // @@protoc_insertion_point(field_mutable:world.block.WorldChange.object_ref)
   return _msg;
@@ -2483,9 +2501,9 @@ inline void WorldChange::set_allocated_object_ref(::block::BlockRef* PROTOBUF_NU
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.object_ref_ = reinterpret_cast<::block::BlockRef*>(value);
@@ -2494,7 +2512,7 @@ inline void WorldChange::set_allocated_object_ref(::block::BlockRef* PROTOBUF_NU
 
 // .block.BlockRef prev_object_ref = 6;
 inline bool WorldChange::has_prev_object_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.prev_object_ref_ != nullptr);
   return value;
 }
@@ -2515,16 +2533,16 @@ inline void WorldChange::unsafe_arena_set_allocated_prev_object_ref(
   }
   _impl_.prev_object_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:world.block.WorldChange.prev_object_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::release_prev_object_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::block::BlockRef* released = _impl_.prev_object_ref_;
   _impl_.prev_object_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2544,7 +2562,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE WorldChange::unsafe_arena_release_pr
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:world.block.WorldChange.prev_object_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::block::BlockRef* temp = _impl_.prev_object_ref_;
   _impl_.prev_object_ref_ = nullptr;
   return temp;
@@ -2559,7 +2577,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::_internal_mutable_prev_o
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL WorldChange::mutable_prev_object_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::block::BlockRef* _msg = _internal_mutable_prev_object_ref();
   // @@protoc_insertion_point(field_mutable:world.block.WorldChange.prev_object_ref)
   return _msg;
@@ -2576,9 +2594,9 @@ inline void WorldChange::set_allocated_prev_object_ref(::block::BlockRef* PROTOB
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
   _impl_.prev_object_ref_ = reinterpret_cast<::block::BlockRef*>(value);
@@ -2590,7 +2608,7 @@ inline void WorldChange::clear_object_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::uint64_t WorldChange::object_rev() const {
   // @@protoc_insertion_point(field_get:world.block.WorldChange.object_rev)
@@ -2598,7 +2616,7 @@ inline ::uint64_t WorldChange::object_rev() const {
 }
 inline void WorldChange::set_object_rev(::uint64_t value) {
   _internal_set_object_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:world.block.WorldChange.object_rev)
 }
 inline ::uint64_t WorldChange::_internal_object_rev() const {
@@ -2608,6 +2626,71 @@ inline ::uint64_t WorldChange::_internal_object_rev() const {
 inline void WorldChange::_internal_set_object_rev(::uint64_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_rev_ = value;
+}
+
+// string new_key = 8;
+inline void WorldChange::clear_new_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.new_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& WorldChange::new_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:world.block.WorldChange.new_key)
+  return _internal_new_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WorldChange::set_new_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.new_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:world.block.WorldChange.new_key)
+}
+inline ::std::string* PROTOBUF_NONNULL WorldChange::mutable_new_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_new_key();
+  // @@protoc_insertion_point(field_mutable:world.block.WorldChange.new_key)
+  return _s;
+}
+inline const ::std::string& WorldChange::_internal_new_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.new_key_.Get();
+}
+inline void WorldChange::_internal_set_new_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.new_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WorldChange::_internal_mutable_new_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.new_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WorldChange::release_new_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:world.block.WorldChange.new_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.new_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.new_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WorldChange::set_allocated_new_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.new_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.new_key_.IsDefault()) {
+    _impl_.new_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:world.block.WorldChange.new_key)
 }
 
 // -------------------------------------------------------------------

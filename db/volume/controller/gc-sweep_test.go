@@ -4,17 +4,22 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
-	"github.com/aperturerobotics/util/ccontainer"
+	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	volume "github.com/s4wave/spacewave/db/volume"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 
-type stubCollectorGraph struct{}
+type stubCollectorGraph struct {
+	unreferencedErr error
+}
 
 func (stubCollectorGraph) AddRef(context.Context, string, string) error { return nil }
 func (stubCollectorGraph) RemoveRef(context.Context, string, string) error {
@@ -45,7 +50,10 @@ func (stubCollectorGraph) GetIncomingRefs(context.Context, string) ([]string, er
 	return nil, nil
 }
 
-func (stubCollectorGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
+func (g stubCollectorGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
+	if g.unreferencedErr != nil {
+		return nil, g.unreferencedErr
+	}
 	return nil, nil
 }
 
@@ -127,7 +135,57 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 }
 
-var _ interface {
-	SetGCManagerHooks(block_gc.ManagerHooks)
-	GetGCManagerHooks() (block_gc.ManagerHooks, bool)
-} = (*common_kvtx.Volume)(nil)
+func TestRunGCSweepReturnsLockFileChanged(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	vol, err := common_kvtx.NewVolume(
+		ctx,
+		"test-volume",
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		nil,
+		false,
+		false,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+
+	wrapped := &gcSweepTestVolume{
+		Volume: vol,
+		rg:     stubCollectorGraph{unreferencedErr: bbolt_errors.ErrLockFileChanged},
+	}
+	c := &Controller{
+		le:     logrus.NewEntry(logrus.New()),
+		config: &Config{GcIntervalDur: "1ms"},
+		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
+	}
+	c.volume.SetValue(&volumeCtxPair{vol: wrapped, ctx: ctx})
+
+	err = c.runGCSweep(ctx)
+	if !errors.Is(err, bbolt_errors.ErrLockFileChanged) {
+		t.Fatalf("runGCSweep error = %v, want %v", err, bbolt_errors.ErrLockFileChanged)
+	}
+}
+
+type gcSweepTestVolume struct {
+	*common_kvtx.Volume
+	rg block_gc.RefGraphOps
+}
+
+func (v *gcSweepTestVolume) GetRefGraph() block_gc.RefGraphOps {
+	return v.rg
+}
+
+// _ is a type assertion
+var (
+	_ interface {
+		SetGCManagerHooks(block_gc.ManagerHooks)
+		GetGCManagerHooks() (block_gc.ManagerHooks, bool)
+	} = (*common_kvtx.Volume)(nil)
+	_ volume.Volume = (*gcSweepTestVolume)(nil)
+)

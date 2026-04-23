@@ -67,6 +67,23 @@ func NewCursor(
 	opArgs *bucket.BucketOpArgs,
 	transformConf *block_transform.Config,
 ) *Cursor {
+	return NewCursorWithRelease(ctx, b, le, sfs, bkt, xfrm, ref, opArgs, transformConf, nil)
+}
+
+// NewCursorWithRelease constructs a new Cursor with the provided parameters and
+// release callback.
+func NewCursorWithRelease(
+	ctx context.Context,
+	b bus.Bus,
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	bkt bucket.BucketOps,
+	xfrm block.Transformer,
+	ref *bucket.ObjectRef,
+	opArgs *bucket.BucketOpArgs,
+	transformConf *block_transform.Config,
+	rel func(),
+) *Cursor {
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
@@ -82,6 +99,7 @@ func NewCursor(
 		ref:           ref,
 		opArgs:        opArgs,
 		transformConf: transformConf,
+		rel:           rel,
 	}
 }
 

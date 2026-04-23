@@ -124,6 +124,33 @@ func (w *WorldState) ApplyWorldOp(
 	return seqno, sysErr, err
 }
 
+// GetObject looks up an object by key.
+// Returns nil, false if not found.
+func (w *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, false, tx.ErrDiscarded
+	}
+
+	objs, objsFound, err := w.world.GetObject(ctx, key)
+	if err != nil || !objsFound {
+		return nil, false, err
+	}
+	return NewObjectState(w, key, objs), true, nil
+}
+
+// IterateObjects returns an iterator with the given object key prefix.
+// The prefix is NOT clipped from the output keys.
+// Keys are returned in sorted order.
+// Must call Next() or Seek() before valid.
+// Call Close when done with the iterator.
+// Any init errors will be available via the iterator's Err() method.
+func (w *WorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	return NewObjectIterator(w, ctx, prefix, reversed)
+}
+
 // CreateObject creates a object with a key and initial root ref.
 func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	if !w.write {
@@ -151,21 +178,31 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	return NewObjectState(w, key, obj), nil
 }
 
-// GetObject looks up an object by key.
-// Returns nil, false if not found.
-func (w *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+// RenameObject renames an object key and updates associated graph quads.
+func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	if !w.write {
+		return nil, tx.ErrNotWrite
+	}
+
+	t, err := NewTxRenameObject(oldKey, newKey)
+	if err != nil {
+		return nil, err
+	}
+
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
 	if w.discarded {
-		return nil, false, tx.ErrDiscarded
+		return nil, tx.ErrDiscarded
 	}
 
-	objs, objsFound, err := w.world.GetObject(ctx, key)
-	if err != nil || !objsFound {
-		return nil, false, err
+	obj, err := w.world.RenameObject(ctx, oldKey, newKey)
+	if err != nil {
+		return nil, err
 	}
-	return NewObjectState(w, key, objs), true, nil
+
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	return NewObjectState(w, newKey, obj), nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
@@ -289,16 +326,6 @@ func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) error 
 	}
 
 	return w.world.DeleteGraphObject(ctx, value)
-}
-
-// IterateObjects returns an iterator with the given object key prefix.
-// The prefix is NOT clipped from the output keys.
-// Keys are returned in sorted order.
-// Must call Next() or Seek() before valid.
-// Call Close when done with the iterator.
-// Any init errors will be available via the iterator's Err() method.
-func (w *WorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	return NewObjectIterator(w, ctx, prefix, reversed)
 }
 
 // GetTxBatch returns the transaction batch.

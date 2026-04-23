@@ -22,14 +22,104 @@ type Store struct {
 	// rmtx guards below fields
 	rmtx sync.RWMutex
 	// txs is the list of ongoing transaction ops.
-	txs map[string]srpc.Mux
+	txs map[string]*txHandle
+}
+
+type txHandle struct {
+	// mux is the ops service mux for the transaction.
+	mux srpc.Mux
+
+	// mtx guards below fields.
+	mtx sync.Mutex
+	// closing indicates commit/discard has started.
+	closing bool
+	// active tracks active ops streams by id.
+	active map[uint64]func()
+	// next is the next active stream id.
+	next uint64
+	// idle closes when closing is set and active is empty.
+	idle chan struct{}
 }
 
 // NewStore constructs a new Store.
 func NewStore(store kvtx.Store) *Store {
 	return &Store{
 		store: store,
-		txs:   make(map[string]srpc.Mux),
+		txs:   make(map[string]*txHandle),
+	}
+}
+
+func newTxHandle(tx kvtx.Tx) (*txHandle, error) {
+	mux := srpc.NewMux()
+	if err := kvtx_rpc.SRPCRegisterKvtxOps(mux, NewOps(tx)); err != nil {
+		return nil, err
+	}
+	return &txHandle{
+		mux:    mux,
+		active: make(map[uint64]func()),
+		idle:   make(chan struct{}),
+	}, nil
+}
+
+func (h *txHandle) acquire(released func()) (srpc.Invoker, func(), error) {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+
+	if h.closing {
+		return nil, nil, kvtx.ErrDiscarded
+	}
+
+	id := h.next
+	h.next++
+	h.active[id] = released
+
+	return h.mux, func() {
+		h.release(id)
+	}, nil
+}
+
+func (h *txHandle) release(id uint64) {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+
+	delete(h.active, id)
+	if h.closing && len(h.active) == 0 && h.idle != nil {
+		close(h.idle)
+		h.idle = nil
+	}
+}
+
+func (h *txHandle) closeOps() {
+	h.mtx.Lock()
+	if h.closing {
+		idle := h.idle
+		h.mtx.Unlock()
+		if idle != nil {
+			<-idle
+		}
+		return
+	}
+
+	h.closing = true
+	releases := make([]func(), 0, len(h.active))
+	for _, release := range h.active {
+		if release != nil {
+			releases = append(releases, release)
+		}
+	}
+	idle := h.idle
+	if len(h.active) == 0 && h.idle != nil {
+		close(h.idle)
+		h.idle = nil
+		idle = nil
+	}
+	h.mtx.Unlock()
+
+	for _, release := range releases {
+		release()
+	}
+	if idle != nil {
+		<-idle
 	}
 }
 
@@ -49,26 +139,31 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 		txIDNumeric := s.idCounter.Add(1) - 1
 		txID = "tx/" + strconv.Itoa(int(txIDNumeric))
 
-		mux := srpc.NewMux()
-		if err := kvtx_rpc.SRPCRegisterKvtxOps(mux, NewOps(tx)); err != nil {
+		handle, hErr := newTxHandle(tx)
+		if hErr != nil {
 			tx.Discard()
-			return err
+			return hErr
 		}
 
 		s.rmtx.Lock()
-		s.txs[txID] = mux
+		s.txs[txID] = handle
 		s.rmtx.Unlock()
 	}
 
 	// ensure tx is discarded and removed on return
 	defer func() {
-		if tx != nil {
-			tx.Discard()
-		}
+		var handle *txHandle
 		if txID != "" {
 			s.rmtx.Lock()
+			handle = s.txs[txID]
 			delete(s.txs, txID)
 			s.rmtx.Unlock()
+		}
+		if handle != nil {
+			handle.closeOps()
+		}
+		if tx != nil {
+			tx.Discard()
 		}
 	}()
 
@@ -95,6 +190,15 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	}
 	var commitErrStr string
 	var commitErr error
+	if txID != "" {
+		s.rmtx.Lock()
+		handle := s.txs[txID]
+		delete(s.txs, txID)
+		s.rmtx.Unlock()
+		if handle != nil {
+			handle.closeOps()
+		}
+	}
 	if doCommit {
 		commitErr = tx.Commit(strm.Context())
 		if commitErr != nil {
@@ -121,14 +225,14 @@ func (s *Store) KvtxTransactionRpc(strm kvtx_rpc.SRPCKvtx_KvtxTransactionRpcStre
 }
 
 // GetKvtxOpsMux returns the KvtxOpsServer mux for the given transaction id.
-func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string, _ func()) (srpc.Invoker, func(), error) {
+func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string, released func()) (srpc.Invoker, func(), error) {
 	s.rmtx.RLock()
-	mux, ok := s.txs[txID]
+	handle, ok := s.txs[txID]
 	s.rmtx.RUnlock()
 	if !ok {
 		return nil, nil, kvtx.ErrDiscarded
 	}
-	return mux, nil, nil
+	return handle.acquire(released)
 }
 
 // _ is a type assertion

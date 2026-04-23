@@ -35,6 +35,8 @@ const (
 	TxType_TxType_OBJECT_INC_REV TxType = 5
 	// TxType_DELETE_OBJECT deletes a object with a key.
 	TxType_TxType_DELETE_OBJECT TxType = 6
+	// TxType_RENAME_OBJECT renames an object key.
+	TxType_TxType_RENAME_OBJECT TxType = 11
 	// TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
 	TxType_TxType_SET_GRAPH_QUAD TxType = 7
 	// TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
@@ -55,6 +57,7 @@ var (
 		4:  "TxType_OBJECT_SET",
 		5:  "TxType_OBJECT_INC_REV",
 		6:  "TxType_DELETE_OBJECT",
+		11: "TxType_RENAME_OBJECT",
 		7:  "TxType_SET_GRAPH_QUAD",
 		8:  "TxType_DELETE_GRAPH_QUAD",
 		9:  "TxType_BATCH",
@@ -68,6 +71,7 @@ var (
 		"TxType_OBJECT_SET":        4,
 		"TxType_OBJECT_INC_REV":    5,
 		"TxType_DELETE_OBJECT":     6,
+		"TxType_RENAME_OBJECT":     11,
 		"TxType_SET_GRAPH_QUAD":    7,
 		"TxType_DELETE_GRAPH_QUAD": 8,
 		"TxType_BATCH":             9,
@@ -112,6 +116,9 @@ type Tx struct {
 	// TxDeleteObject to delete a object.
 	// TxType_DELETE_OBJECT
 	TxDeleteObject *TxDeleteObject `protobuf:"bytes,7,opt,name=tx_delete_object,json=txDeleteObject,proto3" json:"txDeleteObject,omitempty"`
+	// TxRenameObject renames an object key.
+	// TxType_RENAME_OBJECT
+	TxRenameObject *TxRenameObject `protobuf:"bytes,12,opt,name=tx_rename_object,json=txRenameObject,proto3" json:"txRenameObject,omitempty"`
 	// TxSetGraphQuad sets a graph quad.
 	TxSetGraphQuad *TxSetGraphQuad `protobuf:"bytes,8,opt,name=tx_set_graph_quad,json=txSetGraphQuad,proto3" json:"txSetGraphQuad,omitempty"`
 	// TxDeleteGraphQuad deletes a graph quad.
@@ -174,6 +181,13 @@ func (x *Tx) GetTxObjectIncRev() *TxObjectIncRev {
 func (x *Tx) GetTxDeleteObject() *TxDeleteObject {
 	if x != nil {
 		return x.TxDeleteObject
+	}
+	return nil
+}
+
+func (x *Tx) GetTxRenameObject() *TxRenameObject {
+	if x != nil {
+		return x.TxRenameObject
 	}
 	return nil
 }
@@ -406,6 +420,36 @@ func (x *TxDeleteObject) GetFailIfNotFound() bool {
 	return false
 }
 
+// TxRenameObject renames an object key.
+// TxType: TxType_RENAME_OBJECT
+type TxRenameObject struct {
+	unknownFields []byte
+	// OldObjectKey is the object key to rename.
+	OldObjectKey string `protobuf:"bytes,1,opt,name=old_object_key,json=oldObjectKey,proto3" json:"oldObjectKey,omitempty"`
+	// NewObjectKey is the new object key.
+	NewObjectKey string `protobuf:"bytes,2,opt,name=new_object_key,json=newObjectKey,proto3" json:"newObjectKey,omitempty"`
+}
+
+func (x *TxRenameObject) Reset() {
+	*x = TxRenameObject{}
+}
+
+func (*TxRenameObject) ProtoMessage() {}
+
+func (x *TxRenameObject) GetOldObjectKey() string {
+	if x != nil {
+		return x.OldObjectKey
+	}
+	return ""
+}
+
+func (x *TxRenameObject) GetNewObjectKey() string {
+	if x != nil {
+		return x.NewObjectKey
+	}
+	return ""
+}
+
 // TxSetGraphQuad sets a graph quad.
 // TxType: TxType_SET_GRAPH_QUAD
 type TxSetGraphQuad struct {
@@ -472,6 +516,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxObjectSet = m.TxObjectSet.CloneVT()
 	r.TxObjectIncRev = m.TxObjectIncRev.CloneVT()
 	r.TxDeleteObject = m.TxDeleteObject.CloneVT()
+	r.TxRenameObject = m.TxRenameObject.CloneVT()
 	r.TxSetGraphQuad = m.TxSetGraphQuad.CloneVT()
 	r.TxDeleteGraphQuad = m.TxDeleteGraphQuad.CloneVT()
 	r.TxBatch = m.TxBatch.CloneVT()
@@ -613,6 +658,23 @@ func (m *TxDeleteObject) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *TxRenameObject) CloneVT() *TxRenameObject {
+	if m == nil {
+		return (*TxRenameObject)(nil)
+	}
+	r := new(TxRenameObject)
+	r.OldObjectKey = m.OldObjectKey
+	r.NewObjectKey = m.NewObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxRenameObject) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *TxSetGraphQuad) CloneVT() *TxSetGraphQuad {
 	if m == nil {
 		return (*TxSetGraphQuad)(nil)
@@ -697,6 +759,9 @@ func (this *Tx) EqualVT(that *Tx) bool {
 		return false
 	}
 	if !this.TxGcSweep.EqualVT(that.TxGcSweep) {
+		return false
+	}
+	if !this.TxRenameObject.EqualVT(that.TxRenameObject) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -882,6 +947,29 @@ func (this *TxDeleteObject) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TxRenameObject) EqualVT(that *TxRenameObject) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OldObjectKey != that.OldObjectKey {
+		return false
+	}
+	if this.NewObjectKey != that.NewObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxRenameObject) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxRenameObject)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *TxSetGraphQuad) EqualVT(that *TxSetGraphQuad) bool {
 	if this == that {
 		return true
@@ -1042,6 +1130,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txGcSweep")
 		x.TxGcSweep.MarshalProtoJSON(s.WithField("txGcSweep"))
 	}
+	if x.TxRenameObject != nil || s.HasField("txRenameObject") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txRenameObject")
+		x.TxRenameObject.MarshalProtoJSON(s.WithField("txRenameObject"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1132,6 +1225,13 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxGcSweep = &TxGCSweep{}
 			x.TxGcSweep.UnmarshalProtoJSON(s.WithField("tx_gc_sweep", true))
+		case "tx_rename_object", "txRenameObject":
+			if s.ReadNil() {
+				x.TxRenameObject = nil
+				return
+			}
+			x.TxRenameObject = &TxRenameObject{}
+			x.TxRenameObject.UnmarshalProtoJSON(s.WithField("tx_rename_object", true))
 		}
 	})
 }
@@ -1512,6 +1612,56 @@ func (x *TxDeleteObject) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TxRenameObject message to JSON.
+func (x *TxRenameObject) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OldObjectKey != "" || s.HasField("oldObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("oldObjectKey")
+		s.WriteString(x.OldObjectKey)
+	}
+	if x.NewObjectKey != "" || s.HasField("newObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("newObjectKey")
+		s.WriteString(x.NewObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxRenameObject to JSON.
+func (x *TxRenameObject) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxRenameObject message from JSON.
+func (x *TxRenameObject) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "old_object_key", "oldObjectKey":
+			s.AddField("old_object_key")
+			x.OldObjectKey = s.ReadString()
+		case "new_object_key", "newObjectKey":
+			s.AddField("new_object_key")
+			x.NewObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxRenameObject from JSON.
+func (x *TxRenameObject) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the TxSetGraphQuad message to JSON.
 func (x *TxSetGraphQuad) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1663,6 +1813,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.TxRenameObject != nil {
+		size, err := m.TxRenameObject.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
 	}
 	if m.TxGcSweep != nil {
 		size, err := m.TxGcSweep.MarshalToSizedBufferVT(dAtA[:i])
@@ -2108,6 +2268,53 @@ func (m *TxDeleteObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TxRenameObject) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxRenameObject) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxRenameObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.NewObjectKey) > 0 {
+		i -= len(m.NewObjectKey)
+		copy(dAtA[i:], m.NewObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.NewObjectKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OldObjectKey) > 0 {
+		i -= len(m.OldObjectKey)
+		copy(dAtA[i:], m.OldObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OldObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TxSetGraphQuad) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2276,6 +2483,10 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxGcSweep.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.TxRenameObject != nil {
+		l = m.TxRenameObject.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2398,6 +2609,24 @@ func (m *TxDeleteObject) SizeVT() (n int) {
 	}
 	if m.FailIfNotFound {
 		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TxRenameObject) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OldObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.NewObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2526,6 +2755,13 @@ func (x *Tx) MarshalProtoText() string {
 		}
 		sb.WriteString("tx_gc_sweep: ")
 		sb.WriteString(x.TxGcSweep.MarshalProtoText())
+	}
+	if x.TxRenameObject != nil {
+		if sb.Len() > 4 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tx_rename_object: ")
+		sb.WriteString(x.TxRenameObject.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2710,6 +2946,31 @@ func (x *TxDeleteObject) MarshalProtoText() string {
 }
 
 func (x *TxDeleteObject) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxRenameObject) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TxRenameObject {")
+	if x.OldObjectKey != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("old_object_key: ")
+		sb.WriteString(strconv.Quote(x.OldObjectKey))
+	}
+	if x.NewObjectKey != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("new_object_key: ")
+		sb.WriteString(strconv.Quote(x.NewObjectKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TxRenameObject) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3068,6 +3329,34 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				m.TxGcSweep = &TxGCSweep{}
 			}
 			if err := m.TxGcSweep.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxRenameObject", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TxRenameObject == nil {
+				m.TxRenameObject = &TxRenameObject{}
+			}
+			if err := m.TxRenameObject.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3672,6 +3961,93 @@ func (m *TxDeleteObject) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.FailIfNotFound = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxRenameObject) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxRenameObject: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxRenameObject: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OldObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OldObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NewObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NewObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

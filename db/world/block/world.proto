@@ -57,6 +57,7 @@ message WorldChange {
   WorldChangeType change_type = 1;
   // Key is the associated key of the change.
   // May be a key prefix, depending on change type.
+  // If a rename transaction, this is the old key.
   // If a Graph transaction, this will be empty.
   string key = 2;
   // Quad is the associated graph quad of the change.
@@ -77,6 +78,8 @@ message WorldChange {
   // ObjectRev is the updated revision of the Object.
   // If a Graph transaction, this will be empty.
   uint64 object_rev = 7;
+  // NewKey is the new key for a rename transaction.
+  string new_key = 8;
 }
 
 // WorldChangeType is the list of possible change types for the world.
@@ -86,6 +89,7 @@ enum WorldChangeType {
   WorldChange_OBJECT_SET = 1;
   WorldChange_OBJECT_INC_REV = 2;
   WorldChange_OBJECT_DELETE = 3;
+  WorldChange_OBJECT_RENAME = 4;
 
   // WorldChange_GRAPH_SET is fired when setting a graph quad.
   WorldChange_GRAPH_SET = 5;

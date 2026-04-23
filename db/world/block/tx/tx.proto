@@ -29,6 +29,9 @@ message Tx {
   // TxDeleteObject to delete a object.
   // TxType_DELETE_OBJECT
   TxDeleteObject tx_delete_object = 7;
+  // TxRenameObject renames an object key.
+  // TxType_RENAME_OBJECT
+  TxRenameObject tx_rename_object = 12;
 
   // TxSetGraphQuad sets a graph quad.
   TxSetGraphQuad tx_set_graph_quad = 8;
@@ -60,6 +63,8 @@ enum TxType {
   TxType_OBJECT_INC_REV = 5;
   // TxType_DELETE_OBJECT deletes a object with a key.
   TxType_DELETE_OBJECT = 6;
+  // TxType_RENAME_OBJECT renames an object key.
+  TxType_RENAME_OBJECT = 11;
 
   // TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
   TxType_SET_GRAPH_QUAD = 7;
@@ -131,6 +136,15 @@ message TxDeleteObject {
   string object_key = 1;
   // FailIfNotFound indicates to error if not found.
   bool fail_if_not_found = 2;
+}
+
+// TxRenameObject renames an object key.
+// TxType: TxType_RENAME_OBJECT
+message TxRenameObject {
+  // OldObjectKey is the object key to rename.
+  string old_object_key = 1;
+  // NewObjectKey is the new object key.
+  string new_object_key = 2;
 }
 
 // TxSetGraphQuad sets a graph quad.

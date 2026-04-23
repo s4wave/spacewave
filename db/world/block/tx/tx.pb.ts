@@ -67,6 +67,13 @@ export enum TxType {
   TxType_DELETE_OBJECT = 6,
 
   /**
+   * TxType_RENAME_OBJECT renames an object key.
+   *
+   * @generated from enum value: TxType_RENAME_OBJECT = 11;
+   */
+  TxType_RENAME_OBJECT = 11,
+
+  /**
    * TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
    *
    * @generated from enum value: TxType_SET_GRAPH_QUAD = 7;
@@ -104,6 +111,7 @@ export const TxType_Enum = createEnumType('world.block.tx.TxType', [
   { no: 4, name: 'TxType_OBJECT_SET' },
   { no: 5, name: 'TxType_OBJECT_INC_REV' },
   { no: 6, name: 'TxType_DELETE_OBJECT' },
+  { no: 11, name: 'TxType_RENAME_OBJECT' },
   { no: 7, name: 'TxType_SET_GRAPH_QUAD' },
   { no: 8, name: 'TxType_DELETE_GRAPH_QUAD' },
   { no: 9, name: 'TxType_BATCH' },
@@ -297,6 +305,37 @@ export const TxDeleteObject: MessageType<TxDeleteObject> = createMessageType({
 })
 
 /**
+ * TxRenameObject renames an object key.
+ * TxType: TxType_RENAME_OBJECT
+ *
+ * @generated from message world.block.tx.TxRenameObject
+ */
+export interface TxRenameObject {
+  /**
+   * OldObjectKey is the object key to rename.
+   *
+   * @generated from field: string old_object_key = 1;
+   */
+  oldObjectKey?: string
+  /**
+   * NewObjectKey is the new object key.
+   *
+   * @generated from field: string new_object_key = 2;
+   */
+  newObjectKey?: string
+}
+
+// TxRenameObject contains the message type declaration for TxRenameObject.
+export const TxRenameObject: MessageType<TxRenameObject> = createMessageType({
+  typeName: 'world.block.tx.TxRenameObject',
+  fields: [
+    { no: 1, name: 'old_object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * TxSetGraphQuad sets a graph quad.
  * TxType: TxType_SET_GRAPH_QUAD
  *
@@ -438,6 +477,13 @@ export interface Tx {
    */
   txDeleteObject?: TxDeleteObject
   /**
+   * TxRenameObject renames an object key.
+   * TxType_RENAME_OBJECT
+   *
+   * @generated from field: world.block.tx.TxRenameObject tx_rename_object = 12;
+   */
+  txRenameObject?: TxRenameObject
+  /**
    * TxSetGraphQuad sets a graph quad.
    *
    * @generated from field: world.block.tx.TxSetGraphQuad tx_set_graph_quad = 8;
@@ -499,6 +545,12 @@ export const Tx: MessageType<Tx> = createMessageType({
       name: 'tx_delete_object',
       kind: 'message',
       T: () => TxDeleteObject,
+    },
+    {
+      no: 12,
+      name: 'tx_rename_object',
+      kind: 'message',
+      T: () => TxRenameObject,
     },
     {
       no: 8,

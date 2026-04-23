@@ -25,13 +25,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 		return err
 	}
 
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	for _, q := range filledQueues {
-		_, _ = c.wakeReconcilerQueueLocked(ctx, v, q, nil)
-	}
-
+	c.syncReconcilerKeys(filledQueues, true)
 	return nil
 }
 
@@ -40,9 +34,8 @@ func bucketLogger(le *logrus.Entry, id string) *logrus.Entry {
 	return le.WithField("bucket-id", id)
 }
 
-// wakeReconcilerQueue attempts to start the process of waking a reconciler
-// expects mtx to be locked by the caller.
-func (c *Controller) wakeReconcilerQueueLocked(
+// wakeReconcilerQueue attempts to start the process of waking a reconciler.
+func (c *Controller) wakeReconcilerQueue(
 	ctx context.Context,
 	v volume.Volume,
 	pair bucket_store.BucketReconcilerPair,
@@ -62,17 +55,6 @@ func (c *Controller) wakeReconcilerQueueLocked(
 		}
 	}()
 
-	// reconciler instance already exists
-	if exist, ok := c.reconcilers[pair]; ok {
-		if len(event) != 0 {
-			_, err := exist.reqQueue.Push(ctx, event)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return exist.reqQueue, nil
-	}
-
 	eq, err := v.GetReconcilerEventQueue(ctx, pair)
 	if err != nil {
 		return nil, errors.Wrap(err, "get reconciler event queue")
@@ -85,47 +67,47 @@ func (c *Controller) wakeReconcilerQueueLocked(
 		}
 	}
 
-	ref, nbh, _ := c.bucketHandles.AddKeyRef(pair.BucketID)
-	rr := newRunningReconciler(ctx, le, ref, nbh, c.bus, pair, v, eq)
-	c.execRunningReconcilerLocked(le, pair, rr)
+	c.syncReconcilerKeys([]bucket_store.BucketReconcilerPair{pair}, false)
 	return eq, nil
 }
 
-// execRunningReconcilerLocked executes a running reconciler
-// expects mtx to be locked by the caller.
-func (c *Controller) execRunningReconcilerLocked(
-	le *logrus.Entry,
-	pair bucket_store.BucketReconcilerPair,
-	rr *runningReconciler,
+// syncReconcilerKeys merges or replaces the desired reconciler key set, then
+// synchronizes the keyed reconciler lifecycle to that set.
+func (c *Controller) syncReconcilerKeys(
+	keys []bucket_store.BucketReconcilerPair,
+	replace bool,
 ) {
-	var e *runningReconciler
-	var ok bool
-	e, ok = c.reconcilers[pair]
-	if ok && e != nil {
-		if e == rr {
-			return
-		}
-		e.release()
+	c.reconcilerMtx.Lock()
+	if replace {
+		c.reconcilerKeys = make(map[bucket_store.BucketReconcilerPair]struct{}, len(keys))
 	}
-	c.reconcilers[pair] = rr
-	go func() {
-		if err := rr.executeReconciler(); err != nil && err != context.Canceled {
-			le.
-				WithError(err).
-				Warn("reconciler exited with error")
+	for _, key := range keys {
+		c.reconcilerKeys[key] = struct{}{}
+	}
+	syncKeys := make([]bucket_store.BucketReconcilerPair, 0, len(c.reconcilerKeys))
+	for key := range c.reconcilerKeys {
+		syncKeys = append(syncKeys, key)
+	}
+	c.reconcilerMtx.Unlock()
+
+	c.reconcilers.SyncKeys(syncKeys, false)
+	for _, key := range keys {
+		if rr, ok := c.reconcilers.GetKey(key); ok && !rr.IsRunning() {
+			_, _ = c.reconcilers.ResetRoutine(key)
 		}
-		rr.release()
-		c.mtx.Lock()
-		if v, ok := c.reconcilers[pair]; ok && v == rr {
-			delete(c.reconcilers, pair)
-		}
-		c.mtx.Unlock()
-	}()
+	}
+}
+
+// removeReconcilerKey removes a reconciler key from the desired set and the keyed runtime.
+func (c *Controller) removeReconcilerKey(key bucket_store.BucketReconcilerPair) {
+	c.reconcilerMtx.Lock()
+	delete(c.reconcilerKeys, key)
+	c.reconcilerMtx.Unlock()
+	c.reconcilers.RemoveKey(key)
 }
 
 // pushEventToReconcilers pushes an event to all running reconcilers.
-// wakes reconcilers
-// expects mtx to NOT BE LOCKED by the caller.
+// Wakes reconcilers.
 func (c *Controller) pushEventToReconcilers(
 	ctx context.Context,
 	vol volume.Volume,
@@ -145,9 +127,7 @@ func (c *Controller) pushEventToReconcilers(
 		if err != nil {
 			return err
 		}
-		c.mtx.Lock()
-		_, err = c.wakeReconcilerQueueLocked(ctx, vol, pair, ed)
-		c.mtx.Unlock()
+		_, err = c.wakeReconcilerQueue(ctx, vol, pair, ed)
 		if err != nil {
 			c.le.
 				WithError(err).

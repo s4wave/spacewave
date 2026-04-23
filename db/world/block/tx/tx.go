@@ -41,6 +41,7 @@ func (t TxType) Validate() error {
 	case TxType_TxType_OBJECT_SET:
 	case TxType_TxType_OBJECT_INC_REV:
 	case TxType_TxType_DELETE_OBJECT:
+	case TxType_TxType_RENAME_OBJECT:
 	case TxType_TxType_SET_GRAPH_QUAD:
 	case TxType_TxType_DELETE_GRAPH_QUAD:
 	case TxType_TxType_BATCH:
@@ -101,6 +102,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxObjectIncRev(), nil
 	case TxType_TxType_DELETE_OBJECT:
 		return t.GetTxDeleteObject(), nil
+	case TxType_TxType_RENAME_OBJECT:
+		return t.GetTxRenameObject(), nil
 	case TxType_TxType_SET_GRAPH_QUAD:
 		return t.GetTxSetGraphQuad(), nil
 	case TxType_TxType_DELETE_GRAPH_QUAD:
@@ -141,6 +144,8 @@ func (t *Tx) ApplySubBlock(id uint32, next block.SubBlock) error {
 		return block.ApplySubBlock(&t.TxObjectIncRev, next)
 	case 7:
 		return block.ApplySubBlock(&t.TxDeleteObject, next)
+	case 12:
+		return block.ApplySubBlock(&t.TxRenameObject, next)
 	case 8:
 		return block.ApplySubBlock(&t.TxSetGraphQuad, next)
 	case 9:
@@ -169,6 +174,8 @@ func (t *Tx) GetSubBlocks() map[uint32]block.SubBlock {
 		m[6] = t.GetTxObjectIncRev()
 	case TxType_TxType_DELETE_OBJECT:
 		m[7] = t.GetTxDeleteObject()
+	case TxType_TxType_RENAME_OBJECT:
+		m[12] = t.GetTxRenameObject()
 	case TxType_TxType_SET_GRAPH_QUAD:
 		m[8] = t.GetTxSetGraphQuad()
 	case TxType_TxType_DELETE_GRAPH_QUAD:
@@ -197,6 +204,8 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return block.NewSubBlockCtor(&t.TxObjectIncRev, func() *TxObjectIncRev { return &TxObjectIncRev{} })
 	case 7:
 		return block.NewSubBlockCtor(&t.TxDeleteObject, func() *TxDeleteObject { return &TxDeleteObject{} })
+	case 12:
+		return block.NewSubBlockCtor(&t.TxRenameObject, func() *TxRenameObject { return &TxRenameObject{} })
 	case 8:
 		return block.NewSubBlockCtor(&t.TxSetGraphQuad, func() *TxSetGraphQuad { return &TxSetGraphQuad{} })
 	case 9:

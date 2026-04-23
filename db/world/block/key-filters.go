@@ -7,6 +7,9 @@ func ApplyWorldChangeToKeyFilters(b *filters.KeyFiltersBuilder, ch *WorldChange)
 	if k := ch.GetKey(); len(k) != 0 {
 		b.ApplyObjectKey(k)
 	}
+	if k := ch.GetNewKey(); len(k) != 0 {
+		b.ApplyObjectKey(k)
+	}
 	if gq := ch.GetQuad(); !gq.IsEmpty() {
 		b.ApplyQuad(gq)
 	}

@@ -83,6 +83,45 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 	return rootNode, nil
 }
 
+func (r *Store) bulkObjectEntries() ([]bulkEntry, error) {
+	entries := make([]bulkEntry, 0, len(r.objKeys))
+	entryIdx := make(map[string]int)
+	if r.objTree != nil {
+		it := r.objTree.BlockIterate(r.ctx, nil, false, false)
+		defer it.Close()
+		for it.Next() {
+			valueCursor := it.ValueCursor()
+			if valueCursor == nil || valueCursor.GetRef() == nil {
+				return nil, block.ErrUnexpectedType
+			}
+			key := append([]byte(nil), it.Key()...)
+			entryIdx[string(key)] = len(entries)
+			entries = append(entries, bulkEntry{
+				key: key,
+				ref: valueCursor.GetRef().Clone(),
+			})
+		}
+		if err := it.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, entry := range r.objKeys {
+		key := append([]byte(nil), entry.key...)
+		next := bulkEntry{
+			key: key,
+			ref: entry.ref.Clone(),
+		}
+		if idx, ok := entryIdx[string(key)]; ok {
+			entries[idx] = next
+			continue
+		}
+		entryIdx[string(key)] = len(entries)
+		entries = append(entries, next)
+	}
+	return entries, nil
+}
+
 // bulkCommit builds IAVL trees from accumulated entries and updates the Repo block.
 func (r *Store) bulkCommit() error {
 	// Commit sub-stores first (they update their Repo cursors in btx).
@@ -92,10 +131,16 @@ func (r *Store) bulkCommit() error {
 		}
 	}
 
-	// Build object IAVL tree from accumulated entries.
-	objRoot, err := r.bulkBuildTree(r.objKeys)
-	if err != nil {
-		return err
+	var objRoot *kvtx_block_iavl.Node
+	if len(r.objKeys) != 0 {
+		entries, err := r.bulkObjectEntries()
+		if err != nil {
+			return err
+		}
+		objRoot, err = r.bulkBuildTree(entries)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Update the IAVL root cursor in btx with the new tree root.

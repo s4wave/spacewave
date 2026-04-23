@@ -109,6 +109,20 @@ func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	return deleted, err
 }
 
+// RenameObject renames an object key and updates associated graph quads.
+func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	var obj world.ObjectState
+	if err := e.performOp(func(tx *Tx) error {
+		var err error
+		obj, err = tx.RenameObject(ctx, oldKey, newKey)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+
+	return newEngineTxObjectState(e, newKey, obj), nil
+}
+
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
