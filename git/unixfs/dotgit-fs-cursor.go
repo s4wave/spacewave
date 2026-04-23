@@ -2,35 +2,88 @@ package unixfs_git
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
+	hydra_git "github.com/aperturerobotics/hydra/git"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/go-git/go-git/v6/storage"
 )
 
 // DotGitFSCursor implements unixfs.FSCursor for a materialized .git directory.
 type DotGitFSCursor struct {
-	isReleased atomic.Bool
-	storer     storage.Storer
-	node       *dotGitNode
+	isReleased   atomic.Bool
+	tx           hydra_git.Tx
+	node         *dotGitNode
+	writable     bool
+	changeSource DotGitFSCursorChangeSource
+
+	mtx             sync.Mutex
+	cbs             unixfs.FSCursorChangeCbSlice
+	changeSourceRel func()
+	releaseFn       func()
 }
 
 // NewDotGitFSCursor creates a new read-only .git directory cursor.
-func NewDotGitFSCursor(storer storage.Storer, name string) *DotGitFSCursor {
-	root := newDotGitRootNode()
-	root.name = name
-	return &DotGitFSCursor{
-		storer: storer,
-		node:   root,
-	}
+func NewDotGitFSCursor(tx hydra_git.Tx, name string) *DotGitFSCursor {
+	return NewDotGitFSCursorWithOptions(tx, name)
 }
 
-func newDotGitFSCursorFromNode(storer storage.Storer, node *dotGitNode) *DotGitFSCursor {
-	return &DotGitFSCursor{
-		storer: storer,
-		node:   node,
+// NewDotGitFSCursorWithOptions creates a new .git directory cursor.
+func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFSCursorOption) *DotGitFSCursor {
+	root := newDotGitRootNode()
+	root.name = name
+	conf := dotGitFSCursorOptions{}
+	for _, opt := range opts {
+		opt(&conf)
 	}
+	if tx != nil && tx.GetReadOnly() {
+		conf.writable = false
+	}
+	releaseFn := conf.releaseFn
+	if releaseFn != nil {
+		var once sync.Once
+		baseReleaseFn := releaseFn
+		releaseFn = func() {
+			once.Do(baseReleaseFn)
+		}
+	}
+	c := &DotGitFSCursor{
+		tx:           tx,
+		node:         root,
+		writable:     conf.writable,
+		changeSource: conf.changeSource,
+		releaseFn:    releaseFn,
+	}
+	c.attachChangeSource()
+	return c
+}
+
+func newDotGitFSCursorFromNode(
+	tx hydra_git.Tx,
+	node *dotGitNode,
+	writable bool,
+	changeSource DotGitFSCursorChangeSource,
+	releaseFn func(),
+) *DotGitFSCursor {
+	c := &DotGitFSCursor{
+		tx:           tx,
+		node:         node,
+		writable:     writable,
+		changeSource: changeSource,
+		releaseFn:    releaseFn,
+	}
+	c.attachChangeSource()
+	return c
+}
+
+func (c *DotGitFSCursor) attachChangeSource() {
+	if c == nil || c.changeSource == nil {
+		return
+	}
+	c.changeSourceRel = c.changeSource.AddDotGitChangeCb(func() {
+		c.Release()
+	})
 }
 
 // CheckReleased checks if the cursor is released.
@@ -48,7 +101,20 @@ func (c *DotGitFSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, e
 
 // AddChangeCb is a no-op for the initial read-only cursor.
 func (c *DotGitFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
-	// noop
+	if cb == nil {
+		return
+	}
+
+	var added bool
+	c.mtx.Lock()
+	if !c.CheckReleased() {
+		c.cbs = append(c.cbs, cb)
+		added = true
+	}
+	c.mtx.Unlock()
+	if !added {
+		_ = cb(&unixfs.FSCursorChange{Cursor: c, Released: true})
+	}
 }
 
 // GetCursorOps returns the FSCursorOps for this cursor.
@@ -61,7 +127,32 @@ func (c *DotGitFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 
 // Release releases the cursor.
 func (c *DotGitFSCursor) Release() {
-	c.isReleased.Store(true)
+	var (
+		cbs             unixfs.FSCursorChangeCbSlice
+		changeSourceRel func()
+		releaseFn       func()
+	)
+
+	c.mtx.Lock()
+	if c.isReleased.Swap(true) {
+		c.mtx.Unlock()
+		return
+	}
+	cbs = c.cbs
+	c.cbs = nil
+	changeSourceRel = c.changeSourceRel
+	c.changeSourceRel = nil
+	releaseFn = c.releaseFn
+	c.releaseFn = nil
+	c.mtx.Unlock()
+
+	if changeSourceRel != nil {
+		changeSourceRel()
+	}
+	if releaseFn != nil {
+		releaseFn()
+	}
+	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: c, Released: true})
 }
 
 // _ is a type assertion

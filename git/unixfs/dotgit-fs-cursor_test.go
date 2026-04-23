@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"sort"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,12 +16,13 @@ import (
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/format/objfile"
+	"github.com/go-git/go-git/v6/storage"
 	"github.com/go-git/go-git/v6/storage/memory"
 )
 
 func TestDotGitFSCursorRootShape(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	defer cursor.Release()
 
 	ops, err := cursor.GetCursorOps(ctx)
@@ -50,7 +53,7 @@ func TestDotGitFSCursorRootShape(t *testing.T) {
 
 func TestDotGitFSCursorFSHandleRootShape(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +91,7 @@ func TestDotGitFSCursorFSHandleRootShape(t *testing.T) {
 
 func TestDotGitFSCursorRootLookup(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	defer cursor.Release()
 
 	ops, err := cursor.GetCursorOps(ctx)
@@ -156,7 +159,7 @@ func TestDotGitFSCursorMetadataFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cursor := NewDotGitFSCursor(store, "")
+	cursor := newTestDotGitCursor(t, store)
 	defer cursor.Release()
 
 	handle, err := unixfs.NewFSHandle(cursor)
@@ -210,7 +213,7 @@ func TestDotGitFSCursorRefs(t *testing.T) {
 		}
 	}
 
-	cursor := NewDotGitFSCursor(store, "")
+	cursor := newTestDotGitCursor(t, store)
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -270,7 +273,7 @@ func TestDotGitFSCursorLooseObjects(t *testing.T) {
 	prefix := hash.String()[:2]
 	suffix := hash.String()[2:]
 
-	cursor := NewDotGitFSCursor(store, "")
+	cursor := newTestDotGitCursor(t, store)
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -339,7 +342,7 @@ func TestDotGitFSCursorGeneratedPlaceholders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cursor := NewDotGitFSCursor(store, "")
+	cursor := newTestDotGitCursor(t, store)
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -397,7 +400,7 @@ func TestDotGitFSCursorGeneratedPlaceholders(t *testing.T) {
 
 func TestDotGitFSCursorEmptyRepository(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -461,7 +464,7 @@ func TestDotGitFSCursorEmptyRepository(t *testing.T) {
 
 func TestDotGitFSCursorReleaseRepeatedLookupListingAndOffsetRead(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {
 		t.Fatal(err)
@@ -514,7 +517,7 @@ func TestDotGitFSCursorReleaseRepeatedLookupListingAndOffsetRead(t *testing.T) {
 
 func TestDotGitFSCursorMissingAndReadOnly(t *testing.T) {
 	ctx := context.Background()
-	cursor := NewDotGitFSCursor(memory.NewStorage(), "")
+	cursor := newTestDotGitCursor(t, memory.NewStorage())
 	defer cursor.Release()
 
 	ops, err := cursor.GetCursorOps(ctx)
@@ -559,6 +562,90 @@ func TestDotGitFSCursorMissingAndReadOnly(t *testing.T) {
 	}
 }
 
+func TestDotGitFSCursorWritableCapability(t *testing.T) {
+	ctx := context.Background()
+	cursor := newTestDotGitCursor(t, memory.NewStorage(), WithDotGitWritable(true))
+	defer cursor.Release()
+
+	ops, err := cursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ops.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != ErrDotGitWriteNotImplemented {
+		t.Fatalf("expected writable WriteAt to reach semantic-write placeholder, got %v", err)
+	}
+
+	headCursor, err := ops.Lookup(ctx, "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer headCursor.Release()
+	headOps, err := headCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := headOps.Truncate(ctx, 0, time.Time{}); err != ErrDotGitWriteNotImplemented {
+		t.Fatalf("expected child cursor to inherit writable capability, got %v", err)
+	}
+
+	readOnlyCursor := newTestDotGitCursor(t, memory.NewStorage())
+	defer readOnlyCursor.Release()
+	readOnlyOps, err := readOnlyCursor.GetCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := readOnlyOps.WriteAt(ctx, 0, []byte("x"), time.Time{}); err != unixfs_errors.ErrReadOnly {
+		t.Fatalf("expected read-only cursor to stay read-only, got %v", err)
+	}
+}
+
+func TestDotGitFSCursorChangeSourceRelease(t *testing.T) {
+	ctx := context.Background()
+	var released atomic.Int32
+	changeSource := newDotGitTestChangeSource()
+	cursor := newTestDotGitCursor(
+		t,
+		memory.NewStorage(),
+		WithDotGitChangeSource(changeSource),
+		WithDotGitReleaseFn(func() {
+			released.Add(1)
+		}),
+	)
+
+	changeCh := make(chan *unixfs.FSCursorChange, 1)
+	cursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
+		changeCh <- ch.Clone()
+		return false
+	})
+
+	changeSource.Trigger()
+
+	if !cursor.CheckReleased() {
+		t.Fatal("expected cursor to release after repo change")
+	}
+	if released.Load() != 1 {
+		t.Fatal("expected release callback to run exactly once")
+	}
+
+	select {
+	case ch := <-changeCh:
+		if !ch.Released {
+			t.Fatal("expected released cursor change")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for cursor release callback")
+	}
+
+	if _, err := cursor.GetCursorOps(ctx); err != unixfs_errors.ErrReleased {
+		t.Fatalf("expected released cursor ops error, got %v", err)
+	}
+
+	changeSource.Trigger()
+	if released.Load() != 1 {
+		t.Fatal("expected repeated invalidation to stay idempotent")
+	}
+}
+
 func readHandleContent(t *testing.T, ctx context.Context, handle *unixfs.FSHandle) []byte {
 	t.Helper()
 	size, err := handle.GetSize(ctx)
@@ -587,4 +674,57 @@ func readHandleNames(t *testing.T, ctx context.Context, handle *unixfs.FSHandle)
 		t.Fatal(err)
 	}
 	return names
+}
+
+type dotGitTestTx struct {
+	storage.Storer
+	readOnly bool
+}
+
+func (t *dotGitTestTx) Commit(ctx context.Context) error { return nil }
+
+func (t *dotGitTestTx) Discard() {}
+
+func (t *dotGitTestTx) GetReadOnly() bool { return t.readOnly }
+
+func newTestDotGitCursor(t *testing.T, storer storage.Storer, opts ...DotGitFSCursorOption) *DotGitFSCursor {
+	t.Helper()
+	return NewDotGitFSCursorWithOptions(&dotGitTestTx{Storer: storer}, "", opts...)
+}
+
+type dotGitTestChangeSource struct {
+	mtx    sync.Mutex
+	nextID int
+	cbs    map[int]func()
+}
+
+func newDotGitTestChangeSource() *dotGitTestChangeSource {
+	return &dotGitTestChangeSource{
+		cbs: make(map[int]func()),
+	}
+}
+
+func (s *dotGitTestChangeSource) AddDotGitChangeCb(cb func()) func() {
+	s.mtx.Lock()
+	id := s.nextID
+	s.nextID++
+	s.cbs[id] = cb
+	s.mtx.Unlock()
+	return func() {
+		s.mtx.Lock()
+		delete(s.cbs, id)
+		s.mtx.Unlock()
+	}
+}
+
+func (s *dotGitTestChangeSource) Trigger() {
+	s.mtx.Lock()
+	cbs := make([]func(), 0, len(s.cbs))
+	for _, cb := range s.cbs {
+		cbs = append(cbs, cb)
+	}
+	s.mtx.Unlock()
+	for _, cb := range cbs {
+		cb()
+	}
 }

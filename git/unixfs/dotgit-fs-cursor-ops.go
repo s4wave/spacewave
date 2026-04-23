@@ -75,12 +75,9 @@ func (o *DotGitFSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, er
 	return 0o644, nil
 }
 
-// SetPermissions returns ErrReadOnly.
+// SetPermissions rejects or stages a permission change.
 func (o *DotGitFSCursorOps) SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
 // GetSize returns the node size in bytes.
@@ -106,12 +103,9 @@ func (o *DotGitFSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, err
 	return time.Time{}, nil
 }
 
-// SetModTimestamp returns ErrReadOnly.
+// SetModTimestamp rejects or stages a timestamp change.
 func (o *DotGitFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
 // ReadAt reads file content from the node.
@@ -139,28 +133,19 @@ func (o *DotGitFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byt
 	return int64(n), nil
 }
 
-// GetOptimalWriteSize returns 0, ErrReadOnly.
+// GetOptimalWriteSize returns the preferred write size.
 func (o *DotGitFSCursorOps) GetOptimalWriteSize(ctx context.Context) (int64, error) {
-	if o.CheckReleased() {
-		return 0, unixfs_errors.ErrReleased
-	}
-	return 0, unixfs_errors.ErrReadOnly
+	return 0, o.writeError()
 }
 
-// WriteAt returns ErrReadOnly.
+// WriteAt rejects or stages file content bytes.
 func (o *DotGitFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
-// Truncate returns ErrReadOnly.
+// Truncate rejects or stages file truncation.
 func (o *DotGitFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
 // Lookup looks up a child entry in a directory.
@@ -175,19 +160,19 @@ func (o *DotGitFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSC
 		if err != nil {
 			return nil, err
 		}
-		return newDotGitFSCursorFromNode(o.cursor.storer, child), nil
+		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn), nil
 	}
 	if child, ok, err := o.lookupRef(name); ok || err != nil {
 		if err != nil {
 			return nil, err
 		}
-		return newDotGitFSCursorFromNode(o.cursor.storer, child), nil
+		return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn), nil
 	}
 	child := o.node.child(name)
 	if child == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
-	return newDotGitFSCursorFromNode(o.cursor.storer, child), nil
+	return newDotGitFSCursorFromNode(o.cursor.tx, child, o.cursor.writable, o.cursor.changeSource, o.cursor.releaseFn), nil
 }
 
 // ReaddirAll reads all directory entries.
@@ -234,20 +219,14 @@ func (o *DotGitFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func
 	return nil
 }
 
-// Mknod returns ErrReadOnly.
+// Mknod rejects or stages node creation.
 func (o *DotGitFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []string, nodeType unixfs.FSCursorNodeType, permissions fs.FileMode, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
-// Symlink returns ErrReadOnly.
+// Symlink rejects or stages symlink creation.
 func (o *DotGitFSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, tgtIsAbsolute bool, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
 // Readlink returns ErrNotSymlink.
@@ -268,57 +247,61 @@ func (o *DotGitFSCursorOps) CopyFrom(ctx context.Context, name string, srcCursor
 	return false, nil
 }
 
-// MoveTo returns false, ErrReadOnly.
+// MoveTo rejects or stages a move into another directory.
 func (o *DotGitFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (bool, error) {
-	return false, unixfs_errors.ErrReadOnly
+	return false, o.writeError()
 }
 
-// MoveFrom returns false, ErrReadOnly.
+// MoveFrom rejects or stages a move from another cursor.
 func (o *DotGitFSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorOps unixfs.FSCursorOps, ts time.Time) (bool, error) {
-	return false, unixfs_errors.ErrReadOnly
+	return false, o.writeError()
 }
 
-// Remove returns ErrReadOnly.
+// Remove rejects or stages entry removal.
 func (o *DotGitFSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
-// MknodWithContent returns ErrReadOnly.
+// MknodWithContent rejects or stages file creation with content.
 func (o *DotGitFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
-	if o.CheckReleased() {
-		return unixfs_errors.ErrReleased
-	}
-	return unixfs_errors.ErrReadOnly
+	return o.writeError()
 }
 
 func (o *DotGitFSCursorOps) content(ctx context.Context) ([]byte, error) {
 	if o.node.hash != plumbing.ZeroHash {
-		return dotGitObjectContent(o.cursor.storer, o.node.hash)
+		return dotGitObjectContent(o.cursor.tx, o.node.hash)
 	}
 	switch {
 	case slices.Equal(o.node.path, []string{"HEAD"}):
-		return dotGitHeadContent(o.cursor.storer)
+		return dotGitHeadContent(o.cursor.tx)
 	case slices.Equal(o.node.path, []string{"config"}):
-		return dotGitConfigContent(o.cursor.storer)
+		return dotGitConfigContent(o.cursor.tx)
 	case slices.Equal(o.node.path, []string{"description"}):
 		return []byte(dotGitDefaultDescription), nil
 	case slices.Equal(o.node.path, []string{"objects", "info", "packs"}):
-		return dotGitObjectsInfoPacksContent(o.cursor.storer)
+		return dotGitObjectsInfoPacksContent(o.cursor.tx)
 	case slices.Equal(o.node.path, []string{"packed-refs"}):
-		return dotGitPackedRefsContent(o.cursor.storer)
+		return dotGitPackedRefsContent(o.cursor.tx)
 	case slices.Equal(o.node.path, []string{"shallow"}):
-		return dotGitShallowContent(o.cursor.storer)
+		return dotGitShallowContent(o.cursor.tx)
 	default:
 		return o.node.content, nil
 	}
 }
 
+func (o *DotGitFSCursorOps) writeError() error {
+	if o.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	if !o.cursor.writable {
+		return unixfs_errors.ErrReadOnly
+	}
+	return ErrDotGitWriteNotImplemented
+}
+
 func (o *DotGitFSCursorOps) lookupObject(name string) (*dotGitNode, bool, error) {
 	if slices.Equal(o.node.path, []string{"objects"}) {
-		hashes, err := dotGitObjectHashes(o.cursor.storer)
+		hashes, err := dotGitObjectHashes(o.cursor.tx)
 		if err != nil {
 			return nil, true, err
 		}
@@ -337,7 +320,7 @@ func (o *DotGitFSCursorOps) lookupObject(name string) (*dotGitNode, bool, error)
 		return nil, false, nil
 	}
 	objHash := plumbing.NewHash(hash)
-	if err := o.cursor.storer.HasEncodedObject(objHash); err != nil {
+	if err := o.cursor.tx.HasEncodedObject(objHash); err != nil {
 		if errors.Is(err, plumbing.ErrObjectNotFound) {
 			return nil, false, nil
 		}
@@ -350,7 +333,7 @@ func (o *DotGitFSCursorOps) readObjectsDir() ([]unixfs.FSCursorDirent, bool, err
 	if !slices.Equal(o.node.path, []string{"objects"}) && (len(o.node.path) != 2 || !slices.Equal(o.node.path[:1], []string{"objects"}) || !dotGitIsLooseObjectPrefix(o.node.path[1])) {
 		return nil, false, nil
 	}
-	hashes, err := dotGitObjectHashes(o.cursor.storer)
+	hashes, err := dotGitObjectHashes(o.cursor.tx)
 	if err != nil {
 		return nil, true, err
 	}
@@ -381,7 +364,7 @@ func (o *DotGitFSCursorOps) lookupRef(name string) (*dotGitNode, bool, error) {
 func (o *DotGitFSCursorOps) lookupRefBelowKind(name string) (*dotGitNode, bool, error) {
 	kind := dotGitRefsPathKind(o.node.path)
 	prefix := o.node.path[2:]
-	refs, err := dotGitCollectRefs(o.cursor.storer, kind, prefix)
+	refs, err := dotGitCollectRefs(o.cursor.tx, kind, prefix)
 	if err != nil {
 		return nil, true, err
 	}
@@ -422,7 +405,7 @@ func (o *DotGitFSCursorOps) readRefsDir() ([]unixfs.FSCursorDirent, bool, error)
 func (o *DotGitFSCursorOps) readRefKindDir() ([]unixfs.FSCursorDirent, error) {
 	kind := dotGitRefsPathKind(o.node.path)
 	prefix := o.node.path[2:]
-	refs, err := dotGitCollectRefs(o.cursor.storer, kind, prefix)
+	refs, err := dotGitCollectRefs(o.cursor.tx, kind, prefix)
 	if err != nil {
 		return nil, err
 	}
