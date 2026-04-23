@@ -30,6 +30,7 @@ const (
 	WorldChangeType_WorldChange_OBJECT_SET     WorldChangeType = 1
 	WorldChangeType_WorldChange_OBJECT_INC_REV WorldChangeType = 2
 	WorldChangeType_WorldChange_OBJECT_DELETE  WorldChangeType = 3
+	WorldChangeType_WorldChange_OBJECT_RENAME  WorldChangeType = 4
 	// WorldChange_GRAPH_SET is fired when setting a graph quad.
 	WorldChangeType_WorldChange_GRAPH_SET WorldChangeType = 5
 	// WorldChange_GRAPH_DELETE is fired when deleting a graph quad.
@@ -43,6 +44,7 @@ var (
 		1: "WorldChange_OBJECT_SET",
 		2: "WorldChange_OBJECT_INC_REV",
 		3: "WorldChange_OBJECT_DELETE",
+		4: "WorldChange_OBJECT_RENAME",
 		5: "WorldChange_GRAPH_SET",
 		6: "WorldChange_GRAPH_DELETE",
 	}
@@ -51,6 +53,7 @@ var (
 		"WorldChange_OBJECT_SET":     1,
 		"WorldChange_OBJECT_INC_REV": 2,
 		"WorldChange_OBJECT_DELETE":  3,
+		"WorldChange_OBJECT_RENAME":  4,
 		"WorldChange_GRAPH_SET":      5,
 		"WorldChange_GRAPH_DELETE":   6,
 	}
@@ -196,6 +199,7 @@ type WorldChange struct {
 	ChangeType WorldChangeType `protobuf:"varint,1,opt,name=change_type,json=changeType,proto3" json:"changeType,omitempty"`
 	// Key is the associated key of the change.
 	// May be a key prefix, depending on change type.
+	// If a rename transaction, this is the old key.
 	// If a Graph transaction, this will be empty.
 	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// Quad is the associated graph quad of the change.
@@ -215,6 +219,8 @@ type WorldChange struct {
 	// ObjectRev is the updated revision of the Object.
 	// If a Graph transaction, this will be empty.
 	ObjectRev uint64 `protobuf:"varint,7,opt,name=object_rev,json=objectRev,proto3" json:"objectRev,omitempty"`
+	// NewKey is the new key for a rename transaction.
+	NewKey string `protobuf:"bytes,8,opt,name=new_key,json=newKey,proto3" json:"newKey,omitempty"`
 }
 
 func (x *WorldChange) Reset() {
@@ -270,6 +276,13 @@ func (x *WorldChange) GetObjectRev() uint64 {
 		return x.ObjectRev
 	}
 	return 0
+}
+
+func (x *WorldChange) GetNewKey() string {
+	if x != nil {
+		return x.NewKey
+	}
+	return ""
 }
 
 // WorldChangeLL is a linked-list of world change batches.
@@ -447,6 +460,7 @@ func (m *WorldChange) CloneVT() *WorldChange {
 	r.ChangeType = m.ChangeType
 	r.Key = m.Key
 	r.ObjectRev = m.ObjectRev
+	r.NewKey = m.NewKey
 	if rhs := m.Quad; rhs != nil {
 		r.Quad = rhs.CloneVT()
 	}
@@ -605,6 +619,9 @@ func (this *WorldChange) EqualVT(that *WorldChange) bool {
 		return false
 	}
 	if this.ObjectRev != that.ObjectRev {
+		return false
+	}
+	if this.NewKey != that.NewKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -940,6 +957,11 @@ func (x *WorldChange) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectRev")
 		s.WriteUint64(x.ObjectRev)
 	}
+	if x.NewKey != "" || s.HasField("newKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("newKey")
+		s.WriteString(x.NewKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -994,6 +1016,9 @@ func (x *WorldChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_rev", "objectRev":
 			s.AddField("object_rev")
 			x.ObjectRev = s.ReadUint64()
+		case "new_key", "newKey":
+			s.AddField("new_key")
+			x.NewKey = s.ReadString()
 		}
 	})
 }
@@ -1358,6 +1383,13 @@ func (m *WorldChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.NewKey) > 0 {
+		i -= len(m.NewKey)
+		copy(dAtA[i:], m.NewKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.NewKey)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.ObjectRev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ObjectRev))
 		i--
@@ -1642,6 +1674,10 @@ func (m *WorldChange) SizeVT() (n int) {
 	if m.ObjectRev != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ObjectRev))
 	}
+	l = len(m.NewKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1842,6 +1878,13 @@ func (x *WorldChange) MarshalProtoText() string {
 		}
 		sb.WriteString("object_rev: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.ObjectRev), 10))
+	}
+	if x.NewKey != "" {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("new_key: ")
+		sb.WriteString(strconv.Quote(x.NewKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2415,6 +2458,28 @@ func (m *WorldChange) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NewKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NewKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

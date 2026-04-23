@@ -43,6 +43,11 @@ export enum WorldChangeType {
   WorldChange_OBJECT_DELETE = 3,
 
   /**
+   * @generated from enum value: WorldChange_OBJECT_RENAME = 4;
+   */
+  WorldChange_OBJECT_RENAME = 4,
+
+  /**
    * WorldChange_GRAPH_SET is fired when setting a graph quad.
    *
    * @generated from enum value: WorldChange_GRAPH_SET = 5;
@@ -65,6 +70,7 @@ export const WorldChangeType_Enum = createEnumType(
     { no: 1, name: 'WorldChange_OBJECT_SET' },
     { no: 2, name: 'WorldChange_OBJECT_INC_REV' },
     { no: 3, name: 'WorldChange_OBJECT_DELETE' },
+    { no: 4, name: 'WorldChange_OBJECT_RENAME' },
     { no: 5, name: 'WorldChange_GRAPH_SET' },
     { no: 6, name: 'WorldChange_GRAPH_DELETE' },
   ],
@@ -86,6 +92,7 @@ export interface WorldChange {
   /**
    * Key is the associated key of the change.
    * May be a key prefix, depending on change type.
+   * If a rename transaction, this is the old key.
    * If a Graph transaction, this will be empty.
    *
    * @generated from field: string key = 2;
@@ -128,6 +135,12 @@ export interface WorldChange {
    * @generated from field: uint64 object_rev = 7;
    */
   objectRev?: bigint
+  /**
+   * NewKey is the new key for a rename transaction.
+   *
+   * @generated from field: string new_key = 8;
+   */
+  newKey?: string
 }
 
 // WorldChange contains the message type declaration for WorldChange.
@@ -141,6 +154,7 @@ export const WorldChange: MessageType<WorldChange> = createMessageType({
     { no: 5, name: 'object_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'prev_object_ref', kind: 'message', T: () => BlockRef },
     { no: 7, name: 'object_rev', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 8, name: 'new_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -1301,7 +1301,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/world/block": {
-      "hash": "75870731472b93ee81d1947f57d8cc12bdbf5b5ad06f6c73d98a3ac574aa1999",
+      "hash": "9a8284c541c4a34cf158da61d88773ab4b220bce66999d367cadfadba543efd8",
       "generatedFiles": [
         "world/block/world.pb.cc",
         "world/block/world.pb.go",
@@ -1327,7 +1327,7 @@
       ]
     },
     "github.com/aperturerobotics/hydra/world/block/tx": {
-      "hash": "e64fdfbae161cc8778aae7e8024114109520472f5be1e8c22d4dcc64808436a6",
+      "hash": "a56b5dbd54329137171b76f97bc2b4c8be1ab2e85a31edaed6e949aa8db40a1d",
       "generatedFiles": [
         "world/block/tx/tx.pb.cc",
         "world/block/tx/tx.pb.go",

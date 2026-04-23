@@ -30,6 +30,36 @@ namespace world {
 namespace block {
 namespace tx {
 
+inline constexpr TxRenameObject::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        old_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        new_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TxRenameObject::TxRenameObject(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TxRenameObject_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TxRenameObjectDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TxRenameObjectDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TxRenameObjectDefaultTypeInternal() {}
+  union {
+    TxRenameObject _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxRenameObjectDefaultTypeInternal _TxRenameObject_default_instance_;
+
 inline constexpr TxObjectIncRev::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -285,6 +315,7 @@ inline constexpr Tx::Impl_::Impl_(
         tx_delete_graph_quad_{nullptr},
         tx_batch_{nullptr},
         tx_gc_sweep_{nullptr},
+        tx_rename_object_{nullptr},
         tx_type_{static_cast< ::world::block::tx::TxType >(0)} {}
 
 template <typename>
@@ -343,7 +374,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_._has_bits_),
-        14, // hasbit index offset
+        15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_type_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_apply_world_op_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_apply_object_op_),
@@ -351,17 +382,19 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_object_set_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_object_inc_rev_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_delete_object_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_rename_object_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_set_graph_quad_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_delete_graph_quad_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_batch_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::Tx, _impl_.tx_gc_sweep_),
-        10,
+        11,
         0,
         1,
         2,
         3,
         4,
         5,
+        10,
         6,
         7,
         8,
@@ -414,6 +447,13 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxRenameObject, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxRenameObject, _impl_.old_object_key_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxRenameObject, _impl_.new_object_key_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxSetGraphQuad, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxSetGraphQuad, _impl_.quad_),
@@ -429,16 +469,17 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::world::block::tx::Tx)},
-        {25, sizeof(::world::block::tx::TxBatch)},
-        {30, sizeof(::world::block::tx::TxApplyWorldOp)},
-        {37, sizeof(::world::block::tx::TxApplyObjectOp)},
-        {46, sizeof(::world::block::tx::TxCreateObject)},
-        {53, sizeof(::world::block::tx::TxObjectSet)},
-        {60, sizeof(::world::block::tx::TxObjectIncRev)},
-        {65, sizeof(::world::block::tx::TxDeleteObject)},
-        {72, sizeof(::world::block::tx::TxSetGraphQuad)},
-        {77, sizeof(::world::block::tx::TxDeleteGraphQuad)},
-        {82, sizeof(::world::block::tx::TxGCSweep)},
+        {27, sizeof(::world::block::tx::TxBatch)},
+        {32, sizeof(::world::block::tx::TxApplyWorldOp)},
+        {39, sizeof(::world::block::tx::TxApplyObjectOp)},
+        {48, sizeof(::world::block::tx::TxCreateObject)},
+        {55, sizeof(::world::block::tx::TxObjectSet)},
+        {62, sizeof(::world::block::tx::TxObjectIncRev)},
+        {67, sizeof(::world::block::tx::TxDeleteObject)},
+        {74, sizeof(::world::block::tx::TxRenameObject)},
+        {81, sizeof(::world::block::tx::TxSetGraphQuad)},
+        {86, sizeof(::world::block::tx::TxDeleteGraphQuad)},
+        {91, sizeof(::world::block::tx::TxGCSweep)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_Tx_default_instance_._instance,
@@ -449,6 +490,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_TxObjectSet_default_instance_._instance,
     &::world::block::tx::_TxObjectIncRev_default_instance_._instance,
     &::world::block::tx::_TxDeleteObject_default_instance_._instance,
+    &::world::block::tx::_TxRenameObject_default_instance_._instance,
     &::world::block::tx::_TxSetGraphQuad_default_instance_._instance,
     &::world::block::tx::_TxDeleteGraphQuad_default_instance_._instance,
     &::world::block::tx::_TxGCSweep_default_instance_._instance,
@@ -459,7 +501,7 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "d/block/tx/tx.proto\022\016world.block.tx\0325git"
     "hub.com/aperturerobotics/hydra/bucket/bu"
     "cket.proto\0327github.com/aperturerobotics/"
-    "hydra/block/quad/quad.proto\"\337\004\n\002Tx\022\'\n\007tx"
+    "hydra/block/quad/quad.proto\"\231\005\n\002Tx\022\'\n\007tx"
     "_type\030\001 \001(\0162\026.world.block.tx.TxType\0229\n\021t"
     "x_apply_world_op\030\002 \001(\0132\036.world.block.tx."
     "TxApplyWorldOp\022;\n\022tx_apply_object_op\030\003 \001"
@@ -469,34 +511,37 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "orld.block.tx.TxObjectSet\0229\n\021tx_object_i"
     "nc_rev\030\006 \001(\0132\036.world.block.tx.TxObjectIn"
     "cRev\0228\n\020tx_delete_object\030\007 \001(\0132\036.world.b"
-    "lock.tx.TxDeleteObject\0229\n\021tx_set_graph_q"
-    "uad\030\010 \001(\0132\036.world.block.tx.TxSetGraphQua"
-    "d\022\?\n\024tx_delete_graph_quad\030\t \001(\0132!.world."
-    "block.tx.TxDeleteGraphQuad\022)\n\010tx_batch\030\n"
-    " \001(\0132\027.world.block.tx.TxBatch\022.\n\013tx_gc_s"
-    "weep\030\013 \001(\0132\031.world.block.tx.TxGCSweep\"*\n"
-    "\007TxBatch\022\037\n\003txs\030\001 \003(\0132\022.world.block.tx.T"
-    "x\"C\n\016TxApplyWorldOp\022\031\n\021operation_type_id"
-    "\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\"X\n\017TxAppl"
-    "yObjectOp\022\031\n\021operation_type_id\030\001 \001(\t\022\026\n\016"
-    "operation_body\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t"
-    "\"I\n\016TxCreateObject\022\022\n\nobject_key\030\001 \001(\t\022#"
-    "\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\"F\n\013T"
-    "xObjectSet\022\022\n\nobject_key\030\001 \001(\t\022#\n\010root_r"
-    "ef\030\002 \001(\0132\021.bucket.ObjectRef\"$\n\016TxObjectI"
-    "ncRev\022\022\n\nobject_key\030\001 \001(\t\"\?\n\016TxDeleteObj"
-    "ect\022\022\n\nobject_key\030\001 \001(\t\022\031\n\021fail_if_not_f"
-    "ound\030\002 \001(\010\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001"
-    "(\0132\n.quad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004q"
-    "uad\030\001 \001(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\231\002\n\006T"
-    "xType\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPL"
-    "Y_WORLD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002"
-    "\022\030\n\024TxType_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJ"
-    "ECT_SET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024"
-    "TxType_DELETE_OBJECT\020\006\022\031\n\025TxType_SET_GRA"
-    "PH_QUAD\020\007\022\034\n\030TxType_DELETE_GRAPH_QUAD\020\010\022"
-    "\020\n\014TxType_BATCH\020\t\022\023\n\017TxType_GC_SWEEP\020\nb\006"
-    "proto3"
+    "lock.tx.TxDeleteObject\0228\n\020tx_rename_obje"
+    "ct\030\014 \001(\0132\036.world.block.tx.TxRenameObject"
+    "\0229\n\021tx_set_graph_quad\030\010 \001(\0132\036.world.bloc"
+    "k.tx.TxSetGraphQuad\022\?\n\024tx_delete_graph_q"
+    "uad\030\t \001(\0132!.world.block.tx.TxDeleteGraph"
+    "Quad\022)\n\010tx_batch\030\n \001(\0132\027.world.block.tx."
+    "TxBatch\022.\n\013tx_gc_sweep\030\013 \001(\0132\031.world.blo"
+    "ck.tx.TxGCSweep\"*\n\007TxBatch\022\037\n\003txs\030\001 \003(\0132"
+    "\022.world.block.tx.Tx\"C\n\016TxApplyWorldOp\022\031\n"
+    "\021operation_type_id\030\001 \001(\t\022\026\n\016operation_bo"
+    "dy\030\002 \001(\014\"X\n\017TxApplyObjectOp\022\031\n\021operation"
+    "_type_id\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\022\022"
+    "\n\nobject_key\030\003 \001(\t\"I\n\016TxCreateObject\022\022\n\n"
+    "object_key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.buc"
+    "ket.ObjectRef\"F\n\013TxObjectSet\022\022\n\nobject_k"
+    "ey\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.Obje"
+    "ctRef\"$\n\016TxObjectIncRev\022\022\n\nobject_key\030\001 "
+    "\001(\t\"\?\n\016TxDeleteObject\022\022\n\nobject_key\030\001 \001("
+    "\t\022\031\n\021fail_if_not_found\030\002 \001(\010\"@\n\016TxRename"
+    "Object\022\026\n\016old_object_key\030\001 \001(\t\022\026\n\016new_ob"
+    "ject_key\030\002 \001(\t\"*\n\016TxSetGraphQuad\022\030\n\004quad"
+    "\030\001 \001(\0132\n.quad.Quad\"-\n\021TxDeleteGraphQuad\022"
+    "\030\n\004quad\030\001 \001(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\263"
+    "\002\n\006TxType\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_"
+    "APPLY_WORLD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_"
+    "OP\020\002\022\030\n\024TxType_CREATE_OBJECT\020\003\022\025\n\021TxType"
+    "_OBJECT_SET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005"
+    "\022\030\n\024TxType_DELETE_OBJECT\020\006\022\030\n\024TxType_REN"
+    "AME_OBJECT\020\013\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022"
+    "\034\n\030TxType_DELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_"
+    "BATCH\020\t\022\023\n\017TxType_GC_SWEEP\020\nb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
@@ -507,13 +552,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto = {
     false,
     false,
-    1646,
+    1796,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
     "github.com/aperturerobotics/hydra/world/block/tx/tx.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto_deps,
     2,
-    11,
+    12,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto::offsets,
@@ -528,7 +573,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor() {
   return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t TxType_internal_data_[] = {
-    720896u, 0u, };
+    786432u, 0u, };
 // ===================================================================
 
 class Tx::_Internal {
@@ -599,6 +644,9 @@ Tx::Tx(
   _impl_.tx_gc_sweep_ = (CheckHasBit(cached_has_bits, 0x00000200U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_gc_sweep_)
                 : nullptr;
+  _impl_.tx_rename_object_ = (CheckHasBit(cached_has_bits, 0x00000400U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_rename_object_)
+                : nullptr;
   _impl_.tx_type_ = from._impl_.tx_type_;
 
   // @@protoc_insertion_point(copy_constructor:world.block.tx.Tx)
@@ -638,6 +686,7 @@ inline void Tx::SharedDtor(MessageLite& self) {
   delete this_._impl_.tx_delete_graph_quad_;
   delete this_._impl_.tx_batch_;
   delete this_._impl_.tx_gc_sweep_;
+  delete this_._impl_.tx_rename_object_;
   this_._impl_.~Impl_();
 }
 
@@ -684,17 +733,17 @@ Tx::GetClassData() const {
   return Tx_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 11, 10, 0, 2>
+const ::_pbi::TcParseTable<4, 12, 11, 0, 2>
 Tx::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Tx, _impl_._has_bits_),
     0, // no _extensions_
-    11, 120,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294965248,  // skipmap
+    4294963200,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    11,  // num_field_entries
-    10,  // num_aux_entries
+    12,  // num_field_entries
+    11,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Tx_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -705,8 +754,8 @@ Tx::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .world.block.tx.TxType tx_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 10>(),
-     {8, 10, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 11>(),
+     {8, 11, 0,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_)}},
     // .world.block.tx.TxApplyWorldOp tx_apply_world_op = 2;
     {::_pbi::TcParser::FastMtS1,
@@ -748,7 +797,10 @@ Tx::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {90, 9, 9,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_gc_sweep_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .world.block.tx.TxRenameObject tx_rename_object = 12;
+    {::_pbi::TcParser::FastMtS1,
+     {98, 10, 10,
+      PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_rename_object_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -756,7 +808,7 @@ Tx::_table_ = {
     65535, 65535
   }}, {{
     // .world.block.tx.TxType tx_type = 1;
-    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .world.block.tx.TxApplyWorldOp tx_apply_world_op = 2;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_apply_world_op_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .world.block.tx.TxApplyObjectOp tx_apply_object_op = 3;
@@ -777,6 +829,8 @@ Tx::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_batch_), _Internal::kHasBitsOffset + 8, 8, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .world.block.tx.TxGCSweep tx_gc_sweep = 11;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_gc_sweep_), _Internal::kHasBitsOffset + 9, 9, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .world.block.tx.TxRenameObject tx_rename_object = 12;
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_rename_object_), _Internal::kHasBitsOffset + 10, 10, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::world::block::tx::TxApplyWorldOp>()},
@@ -789,6 +843,7 @@ Tx::_table_ = {
       {::_pbi::TcParser::GetTable<::world::block::tx::TxDeleteGraphQuad>()},
       {::_pbi::TcParser::GetTable<::world::block::tx::TxBatch>()},
       {::_pbi::TcParser::GetTable<::world::block::tx::TxGCSweep>()},
+      {::_pbi::TcParser::GetTable<::world::block::tx::TxRenameObject>()},
   }},
   {{
   }},
@@ -835,7 +890,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
       _impl_.tx_delete_graph_quad_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       ABSL_DCHECK(_impl_.tx_batch_ != nullptr);
       _impl_.tx_batch_->Clear();
@@ -843,6 +898,10 @@ PROTOBUF_NOINLINE void Tx::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       ABSL_DCHECK(_impl_.tx_gc_sweep_ != nullptr);
       _impl_.tx_gc_sweep_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(_impl_.tx_rename_object_ != nullptr);
+      _impl_.tx_rename_object_->Clear();
     }
   }
   _impl_.tx_type_ = 0;
@@ -870,7 +929,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .world.block.tx.TxType tx_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_tx_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -948,6 +1007,13 @@ PROTOBUF_NOINLINE void Tx::Clear() {
         stream);
   }
 
+  // .world.block.tx.TxRenameObject tx_rename_object = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        12, *this_._impl_.tx_rename_object_, this_._impl_.tx_rename_object_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1015,7 +1081,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_delete_graph_quad_);
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     // .world.block.tx.TxBatch tx_batch = 10;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += 1 +
@@ -1026,8 +1092,13 @@ PROTOBUF_NOINLINE void Tx::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_gc_sweep_);
     }
-    // .world.block.tx.TxType tx_type = 1;
+    // .world.block.tx.TxRenameObject tx_rename_object = 12;
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_rename_object_);
+    }
+    // .world.block.tx.TxType tx_type = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_tx_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_tx_type());
@@ -1119,7 +1190,7 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       ABSL_DCHECK(from._impl_.tx_batch_ != nullptr);
       if (_this->_impl_.tx_batch_ == nullptr) {
@@ -1137,6 +1208,14 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(from._impl_.tx_rename_object_ != nullptr);
+      if (_this->_impl_.tx_rename_object_ == nullptr) {
+        _this->_impl_.tx_rename_object_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_rename_object_);
+      } else {
+        _this->_impl_.tx_rename_object_->MergeFrom(*from._impl_.tx_rename_object_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_tx_type() != 0) {
         _this->_impl_.tx_type_ = from._impl_.tx_type_;
       }
@@ -3362,6 +3441,326 @@ void TxDeleteObject::InternalSwap(TxDeleteObject* PROTOBUF_RESTRICT PROTOBUF_NON
 }
 
 ::google::protobuf::Metadata TxDeleteObject::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TxRenameObject::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TxRenameObject>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_._has_bits_);
+};
+
+TxRenameObject::TxRenameObject(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TxRenameObject_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:world.block.tx.TxRenameObject)
+}
+PROTOBUF_NDEBUG_INLINE TxRenameObject::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::world::block::tx::TxRenameObject& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        old_object_key_(arena, from.old_object_key_),
+        new_object_key_(arena, from.new_object_key_) {}
+
+TxRenameObject::TxRenameObject(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TxRenameObject& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TxRenameObject_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TxRenameObject* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:world.block.tx.TxRenameObject)
+}
+PROTOBUF_NDEBUG_INLINE TxRenameObject::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        old_object_key_(arena),
+        new_object_key_(arena) {}
+
+inline void TxRenameObject::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+TxRenameObject::~TxRenameObject() {
+  // @@protoc_insertion_point(destructor:world.block.tx.TxRenameObject)
+  SharedDtor(*this);
+}
+inline void TxRenameObject::SharedDtor(MessageLite& self) {
+  TxRenameObject& this_ = static_cast<TxRenameObject&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.old_object_key_.Destroy();
+  this_._impl_.new_object_key_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TxRenameObject::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TxRenameObject(arena);
+}
+constexpr auto TxRenameObject::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TxRenameObject),
+                                            alignof(TxRenameObject));
+}
+constexpr auto TxRenameObject::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TxRenameObject_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TxRenameObject::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TxRenameObject>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TxRenameObject::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TxRenameObject>(), &TxRenameObject::ByteSizeLong,
+              &TxRenameObject::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_._cached_size_),
+          false,
+      },
+      &TxRenameObject::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TxRenameObject_class_data_ =
+        TxRenameObject::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TxRenameObject::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TxRenameObject_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TxRenameObject_class_data_.tc_table);
+  return TxRenameObject_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 66, 2>
+TxRenameObject::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TxRenameObject_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::world::block::tx::TxRenameObject>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string new_object_key = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_.new_object_key_)}},
+    // string old_object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_.old_object_key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string old_object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_.old_object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string new_object_key = 2;
+    {PROTOBUF_FIELD_OFFSET(TxRenameObject, _impl_.new_object_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\35\16\16\0\0\0\0\0"
+    "world.block.tx.TxRenameObject"
+    "old_object_key"
+    "new_object_key"
+  }},
+};
+PROTOBUF_NOINLINE void TxRenameObject::Clear() {
+// @@protoc_insertion_point(message_clear_start:world.block.tx.TxRenameObject)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.old_object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.new_object_key_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TxRenameObject::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TxRenameObject& this_ = static_cast<const TxRenameObject&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TxRenameObject::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TxRenameObject& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:world.block.tx.TxRenameObject)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string old_object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_old_object_key().empty()) {
+      const ::std::string& _s = this_._internal_old_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "world.block.tx.TxRenameObject.old_object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string new_object_key = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_new_object_key().empty()) {
+      const ::std::string& _s = this_._internal_new_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "world.block.tx.TxRenameObject.new_object_key");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:world.block.tx.TxRenameObject)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TxRenameObject::ByteSizeLong(const MessageLite& base) {
+  const TxRenameObject& this_ = static_cast<const TxRenameObject&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TxRenameObject::ByteSizeLong() const {
+  const TxRenameObject& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:world.block.tx.TxRenameObject)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string old_object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_old_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_old_object_key());
+      }
+    }
+    // string new_object_key = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_new_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_new_object_key());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TxRenameObject::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TxRenameObject*>(&to_msg);
+  auto& from = static_cast<const TxRenameObject&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:world.block.tx.TxRenameObject)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_old_object_key().empty()) {
+        _this->_internal_set_old_object_key(from._internal_old_object_key());
+      } else {
+        if (_this->_impl_.old_object_key_.IsDefault()) {
+          _this->_internal_set_old_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_new_object_key().empty()) {
+        _this->_internal_set_new_object_key(from._internal_new_object_key());
+      } else {
+        if (_this->_impl_.new_object_key_.IsDefault()) {
+          _this->_internal_set_new_object_key("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TxRenameObject::CopyFrom(const TxRenameObject& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:world.block.tx.TxRenameObject)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TxRenameObject::InternalSwap(TxRenameObject* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.old_object_key_, &other->_impl_.old_object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.new_object_key_, &other->_impl_.new_object_key_, arena);
+}
+
+::google::protobuf::Metadata TxRenameObject::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

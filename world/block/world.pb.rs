@@ -59,6 +59,7 @@ pub struct WorldChange {
     pub change_type: i32,
     /// Key is the associated key of the change.
     /// May be a key prefix, depending on change type.
+    /// If a rename transaction, this is the old key.
     /// If a Graph transaction, this will be empty.
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
@@ -84,6 +85,9 @@ pub struct WorldChange {
     /// If a Graph transaction, this will be empty.
     #[prost(uint64, tag="7")]
     pub object_rev: u64,
+    /// NewKey is the new key for a rename transaction.
+    #[prost(string, tag="8")]
+    pub new_key: ::prost::alloc::string::String,
 }
 /// WorldChangeLL is a linked-list of world change batches.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -143,6 +147,7 @@ pub enum WorldChangeType {
     WorldChangeObjectSet = 1,
     WorldChangeObjectIncRev = 2,
     WorldChangeObjectDelete = 3,
+    WorldChangeObjectRename = 4,
     /// WorldChange_GRAPH_SET is fired when setting a graph quad.
     WorldChangeGraphSet = 5,
     /// WorldChange_GRAPH_DELETE is fired when deleting a graph quad.
@@ -159,6 +164,7 @@ impl WorldChangeType {
             Self::WorldChangeObjectSet => "WorldChange_OBJECT_SET",
             Self::WorldChangeObjectIncRev => "WorldChange_OBJECT_INC_REV",
             Self::WorldChangeObjectDelete => "WorldChange_OBJECT_DELETE",
+            Self::WorldChangeObjectRename => "WorldChange_OBJECT_RENAME",
             Self::WorldChangeGraphSet => "WorldChange_GRAPH_SET",
             Self::WorldChangeGraphDelete => "WorldChange_GRAPH_DELETE",
         }
@@ -170,6 +176,7 @@ impl WorldChangeType {
             "WorldChange_OBJECT_SET" => Some(Self::WorldChangeObjectSet),
             "WorldChange_OBJECT_INC_REV" => Some(Self::WorldChangeObjectIncRev),
             "WorldChange_OBJECT_DELETE" => Some(Self::WorldChangeObjectDelete),
+            "WorldChange_OBJECT_RENAME" => Some(Self::WorldChangeObjectRename),
             "WorldChange_GRAPH_SET" => Some(Self::WorldChangeGraphSet),
             "WorldChange_GRAPH_DELETE" => Some(Self::WorldChangeGraphDelete),
             _ => None,

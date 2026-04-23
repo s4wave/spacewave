@@ -8,22 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// CreateObject creates a object with a key and initial root ref.
-// Returns ErrObjectExists if the object already exists.
-func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	cobj, err := t.state.CreateObject(ctx, key, rootRef)
-	if err != nil || cobj == nil {
-		return nil, err
-	}
-	return NewTxObjectState(t, key, cobj), nil
-}
-
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
@@ -58,6 +42,37 @@ func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) w
 	}
 
 	return newTxObjectIterator(t, ctx, prefix, reversed)
+}
+
+// CreateObject creates a object with a key and initial root ref.
+// Returns ErrObjectExists if the object already exists.
+func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	cobj, err := t.state.CreateObject(ctx, key, rootRef)
+	if err != nil || cobj == nil {
+		return nil, err
+	}
+	return NewTxObjectState(t, key, cobj), nil
+}
+
+// RenameObject renames an object key and updates associated graph quads.
+func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	cobj, err := t.state.RenameObject(ctx, oldKey, newKey)
+	if err != nil || cobj == nil {
+		return nil, err
+	}
+	return NewTxObjectState(t, newKey, cobj), nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

@@ -96,11 +96,6 @@ type WorldStateOp interface {
 
 // WorldStateObject contains the object APIs on WorldState.
 type WorldStateObject interface {
-	// CreateObject creates a object with a key and initial root ref.
-	// Returns ErrObjectExists if the object already exists.
-	// Appends a OBJECT_SET change to the changelog.
-	CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error)
-
 	// GetObject looks up an object by key.
 	// Returns nil, false if not found.
 	GetObject(ctx context.Context, key string) (ObjectState, bool, error)
@@ -112,6 +107,16 @@ type WorldStateObject interface {
 	// Call Close when done with the iterator.
 	// Any init errors will be available via the iterator's Err() method.
 	IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator
+
+	// CreateObject creates a object with a key and initial root ref.
+	// Returns ErrObjectExists if the object already exists.
+	// Appends a OBJECT_SET change to the changelog.
+	CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error)
+
+	// RenameObject renames an object key and updates associated graph quads.
+	// Returns ErrObjectNotFound if the old object key does not exist.
+	// Returns ErrObjectExists if the new object key already exists.
+	RenameObject(ctx context.Context, oldKey, newKey string) (ObjectState, error)
 
 	// DeleteObject deletes an object and associated graph quads by ID.
 	// Calls DeleteGraphObject internally.

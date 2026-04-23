@@ -30,6 +30,10 @@ pub struct Tx {
     /// TxType_DELETE_OBJECT
     #[prost(message, optional, tag="7")]
     pub tx_delete_object: ::core::option::Option<TxDeleteObject>,
+    /// TxRenameObject renames an object key.
+    /// TxType_RENAME_OBJECT
+    #[prost(message, optional, tag="12")]
+    pub tx_rename_object: ::core::option::Option<TxRenameObject>,
     /// TxSetGraphQuad sets a graph quad.
     #[prost(message, optional, tag="8")]
     pub tx_set_graph_quad: ::core::option::Option<TxSetGraphQuad>,
@@ -117,6 +121,17 @@ pub struct TxDeleteObject {
     #[prost(bool, tag="2")]
     pub fail_if_not_found: bool,
 }
+/// TxRenameObject renames an object key.
+/// TxType: TxType_RENAME_OBJECT
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxRenameObject {
+    /// OldObjectKey is the object key to rename.
+    #[prost(string, tag="1")]
+    pub old_object_key: ::prost::alloc::string::String,
+    /// NewObjectKey is the new object key.
+    #[prost(string, tag="2")]
+    pub new_object_key: ::prost::alloc::string::String,
+}
 /// TxSetGraphQuad sets a graph quad.
 /// TxType: TxType_SET_GRAPH_QUAD
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -155,6 +170,8 @@ pub enum TxType {
     ObjectIncRev = 5,
     /// TxType_DELETE_OBJECT deletes a object with a key.
     DeleteObject = 6,
+    /// TxType_RENAME_OBJECT renames an object key.
+    RenameObject = 11,
     /// TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
     SetGraphQuad = 7,
     /// TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
@@ -178,6 +195,7 @@ impl TxType {
             Self::ObjectSet => "TxType_OBJECT_SET",
             Self::ObjectIncRev => "TxType_OBJECT_INC_REV",
             Self::DeleteObject => "TxType_DELETE_OBJECT",
+            Self::RenameObject => "TxType_RENAME_OBJECT",
             Self::SetGraphQuad => "TxType_SET_GRAPH_QUAD",
             Self::DeleteGraphQuad => "TxType_DELETE_GRAPH_QUAD",
             Self::Batch => "TxType_BATCH",
@@ -194,6 +212,7 @@ impl TxType {
             "TxType_OBJECT_SET" => Some(Self::ObjectSet),
             "TxType_OBJECT_INC_REV" => Some(Self::ObjectIncRev),
             "TxType_DELETE_OBJECT" => Some(Self::DeleteObject),
+            "TxType_RENAME_OBJECT" => Some(Self::RenameObject),
             "TxType_SET_GRAPH_QUAD" => Some(Self::SetGraphQuad),
             "TxType_DELETE_GRAPH_QUAD" => Some(Self::DeleteGraphQuad),
             "TxType_BATCH" => Some(Self::Batch),
