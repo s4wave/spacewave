@@ -61,14 +61,14 @@ func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.Objec
 }
 
 // RenameObject renames an object key and updates associated graph quads.
-func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
-	cobj, err := t.state.RenameObject(ctx, oldKey, newKey)
+	cobj, err := t.state.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil || cobj == nil {
 		return nil, err
 	}

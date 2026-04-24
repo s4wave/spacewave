@@ -47,7 +47,7 @@ var (
 	// ErrEmptyQuadPred is returned if the predicate field was empty.
 	ErrEmptyQuadPred = errors.New("quad predicate cannot be empty")
 	// ErrEmptyQuadObject is returned if the object field was empty.
-	ErrEmptyQuadObject = errors.New("quad predicate cannot be empty")
+	ErrEmptyQuadObject = errors.New("quad object cannot be empty")
 	// ErrQuadSubjectNotIRI indicates a quad subject must be an IRI.
 	ErrQuadSubjectNotIRI = errors.New("quad subject must be an iri")
 	// ErrQuadObjectNotIRI indicates a quad object must be an IRI.

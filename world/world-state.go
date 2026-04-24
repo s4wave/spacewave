@@ -114,9 +114,11 @@ type WorldStateObject interface {
 	CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error)
 
 	// RenameObject renames an object key and updates associated graph quads.
+	// If descendants is true, all objects under oldKey + "/" are renamed
+	// to the matching newKey + "/" prefix in the same operation.
 	// Returns ErrObjectNotFound if the old object key does not exist.
 	// Returns ErrObjectExists if the new object key already exists.
-	RenameObject(ctx context.Context, oldKey, newKey string) (ObjectState, error)
+	RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (ObjectState, error)
 
 	// DeleteObject deletes an object and associated graph quads by ID.
 	// Calls DeleteGraphObject internally.
