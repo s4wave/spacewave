@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block/filters"
 	block_gc "github.com/aperturerobotics/hydra/block/gc"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
@@ -240,6 +242,69 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	}
 
 	t.Log("DeleteObject test successful")
+}
+
+// TestWorldState_DeleteObjectWithMalformedGraphQuad verifies object deletion can clean up legacy graph quads.
+func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "delete-malformed-obj"
+	otherKey := "delete-malformed-other"
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	if _, err := ws.CreateObject(ctx, objKey, oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, otherKey, oref); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	err = ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
+		w, ok := h.(graph.QuadWriter)
+		if !ok {
+			return errors.New("expected writable graph handle")
+		}
+		return w.AddQuad(ctx, quad.Quad{
+			Subject: world.KeyToGraphValue(objKey),
+			Object:  world.KeyToGraphValue(otherKey),
+		})
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	deleted, err := ws.DeleteObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatalf("expected %q to be deleted", objKey)
+	}
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objKey, "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 0 {
+		t.Fatalf("expected malformed graph quad to be deleted, got %d", len(quads))
+	}
 }
 
 // TestWorldEngine_Fork tests forking the block-backed world state.
