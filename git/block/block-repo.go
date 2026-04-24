@@ -16,7 +16,8 @@ func NewRepo() *Repo {
 			KvtxRoot: block_kvtx.NewKeyValueStore(0),
 		},
 		EncodedObjectStore: &EncodedObjectStore{
-			KvtxRoot: block_kvtx.NewKeyValueStore(0),
+			KvtxRoot:         block_kvtx.NewKeyValueStore(0),
+			PackfileKvtxRoot: block_kvtx.NewKeyValueStore(0),
 		},
 		ModuleReferencesStore: &ModuleReferencesStore{
 			KvtxRoot: block_kvtx.NewKeyValueStore(0),

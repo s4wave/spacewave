@@ -220,6 +220,8 @@ type EncodedObjectStore struct {
 	KvtxRoot *block1.KeyValueStore `protobuf:"bytes,1,opt,name=kvtx_root,json=kvtxRoot,proto3" json:"kvtxRoot,omitempty"`
 	// ChunkerArgs are arguments passed to ensure consistent chunking.
 	ChunkerArgs *blob.ChunkerArgs `protobuf:"bytes,2,opt,name=chunker_args,json=chunkerArgs,proto3" json:"chunkerArgs,omitempty"`
+	// PackfileKvtxRoot is the root of the packfile metadata tree.
+	PackfileKvtxRoot *block1.KeyValueStore `protobuf:"bytes,3,opt,name=packfile_kvtx_root,json=packfileKvtxRoot,proto3" json:"packfileKvtxRoot,omitempty"`
 }
 
 func (x *EncodedObjectStore) Reset() {
@@ -240,6 +242,79 @@ func (x *EncodedObjectStore) GetChunkerArgs() *blob.ChunkerArgs {
 		return x.ChunkerArgs
 	}
 	return nil
+}
+
+func (x *EncodedObjectStore) GetPackfileKvtxRoot() *block1.KeyValueStore {
+	if x != nil {
+		return x.PackfileKvtxRoot
+	}
+	return nil
+}
+
+// Packfile contains a Git packfile and its index.
+type Packfile struct {
+	unknownFields []byte
+	// PackHash contains the packfile checksum.
+	// Note: currently, this is enforced to hash type SHA1.
+	PackHash *hash.Hash `protobuf:"bytes,1,opt,name=pack_hash,json=packHash,proto3" json:"packHash,omitempty"`
+	// PackBlob contains the raw Git packfile bytes.
+	PackBlob *blob.Blob `protobuf:"bytes,2,opt,name=pack_blob,json=packBlob,proto3" json:"packBlob,omitempty"`
+	// IdxBlob contains the Git pack index bytes.
+	IdxBlob *blob.Blob `protobuf:"bytes,3,opt,name=idx_blob,json=idxBlob,proto3" json:"idxBlob,omitempty"`
+	// ObjectCount is the number of objects in the pack index.
+	ObjectCount uint64 `protobuf:"varint,4,opt,name=object_count,json=objectCount,proto3" json:"objectCount,omitempty"`
+	// PackSize is the byte size of the packfile.
+	PackSize uint64 `protobuf:"varint,5,opt,name=pack_size,json=packSize,proto3" json:"packSize,omitempty"`
+	// IdxSize is the byte size of the index file.
+	IdxSize uint64 `protobuf:"varint,6,opt,name=idx_size,json=idxSize,proto3" json:"idxSize,omitempty"`
+}
+
+func (x *Packfile) Reset() {
+	*x = Packfile{}
+}
+
+func (*Packfile) ProtoMessage() {}
+
+func (x *Packfile) GetPackHash() *hash.Hash {
+	if x != nil {
+		return x.PackHash
+	}
+	return nil
+}
+
+func (x *Packfile) GetPackBlob() *blob.Blob {
+	if x != nil {
+		return x.PackBlob
+	}
+	return nil
+}
+
+func (x *Packfile) GetIdxBlob() *blob.Blob {
+	if x != nil {
+		return x.IdxBlob
+	}
+	return nil
+}
+
+func (x *Packfile) GetObjectCount() uint64 {
+	if x != nil {
+		return x.ObjectCount
+	}
+	return 0
+}
+
+func (x *Packfile) GetPackSize() uint64 {
+	if x != nil {
+		return x.PackSize
+	}
+	return 0
+}
+
+func (x *Packfile) GetIdxSize() uint64 {
+	if x != nil {
+		return x.IdxSize
+	}
+	return 0
 }
 
 // ReferencesStore maps between ReferenceName and Reference.
@@ -1094,8 +1169,10 @@ func (m *Repo) CloneVT() *Repo {
 	r.ReferencesStore = m.ReferencesStore.CloneVT()
 	r.ModuleReferencesStore = m.ModuleReferencesStore.CloneVT()
 	r.EncodedObjectStore = m.EncodedObjectStore.CloneVT()
-	r.ShallowRefsStoreRef = m.ShallowRefsStoreRef.CloneVT()
 	r.GitConfig = m.GitConfig
+	if rhs := m.ShallowRefsStoreRef; rhs != nil {
+		r.ShallowRefsStoreRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1111,8 +1188,15 @@ func (m *EncodedObjectStore) CloneVT() *EncodedObjectStore {
 		return (*EncodedObjectStore)(nil)
 	}
 	r := new(EncodedObjectStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
-	r.ChunkerArgs = m.ChunkerArgs.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
+	if rhs := m.ChunkerArgs; rhs != nil {
+		r.ChunkerArgs = rhs.CloneVT()
+	}
+	if rhs := m.PackfileKvtxRoot; rhs != nil {
+		r.PackfileKvtxRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1123,12 +1207,41 @@ func (m *EncodedObjectStore) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *Packfile) CloneVT() *Packfile {
+	if m == nil {
+		return (*Packfile)(nil)
+	}
+	r := new(Packfile)
+	r.ObjectCount = m.ObjectCount
+	r.PackSize = m.PackSize
+	r.IdxSize = m.IdxSize
+	if rhs := m.PackHash; rhs != nil {
+		r.PackHash = rhs.CloneVT()
+	}
+	if rhs := m.PackBlob; rhs != nil {
+		r.PackBlob = rhs.CloneVT()
+	}
+	if rhs := m.IdxBlob; rhs != nil {
+		r.IdxBlob = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Packfile) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ReferencesStore) CloneVT() *ReferencesStore {
 	if m == nil {
 		return (*ReferencesStore)(nil)
 	}
 	r := new(ReferencesStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1144,7 +1257,9 @@ func (m *ModuleReferencesStore) CloneVT() *ModuleReferencesStore {
 		return (*ModuleReferencesStore)(nil)
 	}
 	r := new(ModuleReferencesStore)
-	r.KvtxRoot = m.KvtxRoot.CloneVT()
+	if rhs := m.KvtxRoot; rhs != nil {
+		r.KvtxRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1182,7 +1297,9 @@ func (m *Submodule) CloneVT() *Submodule {
 	}
 	r := new(Submodule)
 	r.Name = m.Name
-	r.RepoRef = m.RepoRef.CloneVT()
+	if rhs := m.RepoRef; rhs != nil {
+		r.RepoRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1219,8 +1336,10 @@ func (m *EncodedObject) CloneVT() *EncodedObject {
 		return (*EncodedObject)(nil)
 	}
 	r := new(EncodedObject)
-	r.DataBlob = m.DataBlob.CloneVT()
 	r.EncodedObjectType = m.EncodedObjectType
+	if rhs := m.DataBlob; rhs != nil {
+		r.DataBlob = rhs.CloneVT()
+	}
 	if rhs := m.DataHash; rhs != nil {
 		r.DataHash = rhs.CloneVT()
 	}
@@ -1532,11 +1651,49 @@ func (this *EncodedObjectStore) EqualVT(that *EncodedObjectStore) bool {
 	if !this.ChunkerArgs.EqualVT(that.ChunkerArgs) {
 		return false
 	}
+	if !this.PackfileKvtxRoot.EqualVT(that.PackfileKvtxRoot) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *EncodedObjectStore) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*EncodedObjectStore)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Packfile) EqualVT(that *Packfile) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.PackHash.EqualVT(that.PackHash) {
+		return false
+	}
+	if !this.PackBlob.EqualVT(that.PackBlob) {
+		return false
+	}
+	if !this.IdxBlob.EqualVT(that.IdxBlob) {
+		return false
+	}
+	if this.ObjectCount != that.ObjectCount {
+		return false
+	}
+	if this.PackSize != that.PackSize {
+		return false
+	}
+	if this.IdxSize != that.IdxSize {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Packfile) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Packfile)
 	if !ok {
 		return false
 	}
@@ -2340,6 +2497,11 @@ func (x *EncodedObjectStore) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("chunkerArgs")
 		x.ChunkerArgs.MarshalProtoJSON(s.WithField("chunkerArgs"))
 	}
+	if x.PackfileKvtxRoot != nil || s.HasField("packfileKvtxRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packfileKvtxRoot")
+		x.PackfileKvtxRoot.MarshalProtoJSON(s.WithField("packfileKvtxRoot"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2371,12 +2533,113 @@ func (x *EncodedObjectStore) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ChunkerArgs = &blob.ChunkerArgs{}
 			x.ChunkerArgs.UnmarshalProtoJSON(s.WithField("chunker_args", true))
+		case "packfile_kvtx_root", "packfileKvtxRoot":
+			if s.ReadNil() {
+				x.PackfileKvtxRoot = nil
+				return
+			}
+			x.PackfileKvtxRoot = &block1.KeyValueStore{}
+			x.PackfileKvtxRoot.UnmarshalProtoJSON(s.WithField("packfile_kvtx_root", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the EncodedObjectStore from JSON.
 func (x *EncodedObjectStore) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Packfile message to JSON.
+func (x *Packfile) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackHash != nil || s.HasField("packHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packHash")
+		x.PackHash.MarshalProtoJSON(s.WithField("packHash"))
+	}
+	if x.PackBlob != nil || s.HasField("packBlob") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packBlob")
+		x.PackBlob.MarshalProtoJSON(s.WithField("packBlob"))
+	}
+	if x.IdxBlob != nil || s.HasField("idxBlob") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("idxBlob")
+		x.IdxBlob.MarshalProtoJSON(s.WithField("idxBlob"))
+	}
+	if x.ObjectCount != 0 || s.HasField("objectCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectCount")
+		s.WriteUint64(x.ObjectCount)
+	}
+	if x.PackSize != 0 || s.HasField("packSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packSize")
+		s.WriteUint64(x.PackSize)
+	}
+	if x.IdxSize != 0 || s.HasField("idxSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("idxSize")
+		s.WriteUint64(x.IdxSize)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Packfile to JSON.
+func (x *Packfile) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Packfile message from JSON.
+func (x *Packfile) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_hash", "packHash":
+			if s.ReadNil() {
+				x.PackHash = nil
+				return
+			}
+			x.PackHash = &hash.Hash{}
+			x.PackHash.UnmarshalProtoJSON(s.WithField("pack_hash", true))
+		case "pack_blob", "packBlob":
+			if s.ReadNil() {
+				x.PackBlob = nil
+				return
+			}
+			x.PackBlob = &blob.Blob{}
+			x.PackBlob.UnmarshalProtoJSON(s.WithField("pack_blob", true))
+		case "idx_blob", "idxBlob":
+			if s.ReadNil() {
+				x.IdxBlob = nil
+				return
+			}
+			x.IdxBlob = &blob.Blob{}
+			x.IdxBlob.UnmarshalProtoJSON(s.WithField("idx_blob", true))
+		case "object_count", "objectCount":
+			s.AddField("object_count")
+			x.ObjectCount = s.ReadUint64()
+		case "pack_size", "packSize":
+			s.AddField("pack_size")
+			x.PackSize = s.ReadUint64()
+		case "idx_size", "idxSize":
+			s.AddField("idx_size")
+			x.IdxSize = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Packfile from JSON.
+func (x *Packfile) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3822,6 +4085,16 @@ func (m *EncodedObjectStore) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.PackfileKvtxRoot != nil {
+		size, err := m.PackfileKvtxRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.ChunkerArgs != nil {
 		size, err := m.ChunkerArgs.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3834,6 +4107,84 @@ func (m *EncodedObjectStore) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.KvtxRoot != nil {
 		size, err := m.KvtxRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Packfile) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Packfile) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Packfile) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IdxSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IdxSize))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.PackSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackSize))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.ObjectCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ObjectCount))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.IdxBlob != nil {
+		size, err := m.IdxBlob.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.PackBlob != nil {
+		size, err := m.PackBlob.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.PackHash != nil {
+		size, err := m.PackHash.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -4999,6 +5350,41 @@ func (m *EncodedObjectStore) SizeVT() (n int) {
 		l = m.ChunkerArgs.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.PackfileKvtxRoot != nil {
+		l = m.PackfileKvtxRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Packfile) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PackHash != nil {
+		l = m.PackHash.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.PackBlob != nil {
+		l = m.PackBlob.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.IdxBlob != nil {
+		l = m.IdxBlob.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ObjectCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ObjectCount))
+	}
+	if m.PackSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PackSize))
+	}
+	if m.IdxSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.IdxSize))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5505,11 +5891,71 @@ func (x *EncodedObjectStore) MarshalProtoText() string {
 		sb.WriteString("chunker_args: ")
 		sb.WriteString(x.ChunkerArgs.MarshalProtoText())
 	}
+	if x.PackfileKvtxRoot != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("packfile_kvtx_root: ")
+		sb.WriteString(x.PackfileKvtxRoot.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *EncodedObjectStore) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Packfile) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("Packfile {")
+	if x.PackHash != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("pack_hash: ")
+		sb.WriteString(x.PackHash.MarshalProtoText())
+	}
+	if x.PackBlob != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("pack_blob: ")
+		sb.WriteString(x.PackBlob.MarshalProtoText())
+	}
+	if x.IdxBlob != nil {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("idx_blob: ")
+		sb.WriteString(x.IdxBlob.MarshalProtoText())
+	}
+	if x.ObjectCount != 0 {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ObjectCount), 10))
+	}
+	if x.PackSize != 0 {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("pack_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.PackSize), 10))
+	}
+	if x.IdxSize != 0 {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("idx_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.IdxSize), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *Packfile) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6492,6 +6938,188 @@ func (m *EncodedObjectStore) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackfileKvtxRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PackfileKvtxRoot == nil {
+				m.PackfileKvtxRoot = &block1.KeyValueStore{}
+			}
+			if err := m.PackfileKvtxRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Packfile) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Packfile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Packfile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackHash", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PackHash == nil {
+				m.PackHash = &hash.Hash{}
+			}
+			if err := m.PackHash.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackBlob", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PackBlob == nil {
+				m.PackBlob = &blob.Blob{}
+			}
+			if err := m.PackBlob.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IdxBlob", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.IdxBlob == nil {
+				m.IdxBlob = &blob.Blob{}
+			}
+			if err := m.IdxBlob.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectCount", wireType)
+			}
+			m.ObjectCount = 0
+			m.ObjectCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackSize", wireType)
+			}
+			m.PackSize = 0
+			m.PackSize, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IdxSize", wireType)
+			}
+			m.IdxSize = 0
+			m.IdxSize, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

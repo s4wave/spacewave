@@ -477,6 +477,36 @@ struct IndexDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 IndexDefaultTypeInternal _Index_default_instance_;
 
+inline constexpr Packfile::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        pack_hash_{nullptr},
+        pack_blob_{nullptr},
+        idx_blob_{nullptr},
+        object_count_{::uint64_t{0u}},
+        pack_size_{::uint64_t{0u}},
+        idx_size_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR Packfile::Packfile(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(Packfile_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct PackfileDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PackfileDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PackfileDefaultTypeInternal() {}
+  union {
+    Packfile _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PackfileDefaultTypeInternal _Packfile_default_instance_;
+
 inline constexpr EncodedObject::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -558,7 +588,8 @@ inline constexpr EncodedObjectStore::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         kvtx_root_{nullptr},
-        chunker_args_{nullptr} {}
+        chunker_args_{nullptr},
+        packfile_kvtx_root_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR EncodedObjectStore::EncodedObjectStore(::_pbi::ConstantInitialized)
@@ -634,11 +665,28 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::block::EncodedObjectStore, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::git::block::EncodedObjectStore, _impl_.kvtx_root_),
         PROTOBUF_FIELD_OFFSET(::git::block::EncodedObjectStore, _impl_.chunker_args_),
+        PROTOBUF_FIELD_OFFSET(::git::block::EncodedObjectStore, _impl_.packfile_kvtx_root_),
         0,
         1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.pack_hash_),
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.pack_blob_),
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.idx_blob_),
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.object_count_),
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.pack_size_),
+        PROTOBUF_FIELD_OFFSET(::git::block::Packfile, _impl_.idx_size_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::git::block::ReferencesStore, _impl_._has_bits_),
         4, // hasbit index offset
@@ -837,28 +885,30 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::git::block::Repo)},
         {13, sizeof(::git::block::EncodedObjectStore)},
-        {20, sizeof(::git::block::ReferencesStore)},
-        {25, sizeof(::git::block::ModuleReferencesStore)},
-        {30, sizeof(::git::block::ShallowRefsStore)},
-        {35, sizeof(::git::block::Submodule)},
-        {42, sizeof(::git::block::Reference)},
-        {53, sizeof(::git::block::EncodedObject)},
-        {62, sizeof(::git::block::Index)},
-        {75, sizeof(::git::block::Tree)},
-        {80, sizeof(::git::block::TreeEntry)},
-        {91, sizeof(::git::block::ResolveUndo)},
-        {96, sizeof(::git::block::ResolveUndoEntry_StagesEntry_DoNotUse)},
-        {103, sizeof(::git::block::ResolveUndoEntry)},
-        {110, sizeof(::git::block::EndOfIndexEntry)},
-        {117, sizeof(::git::block::IndexEntry)},
-        {146, sizeof(::git::block::AuthOpts)},
-        {153, sizeof(::git::block::CloneOpts)},
-        {178, sizeof(::git::block::FetchOpts)},
-        {199, sizeof(::git::block::CheckoutOpts)},
+        {22, sizeof(::git::block::Packfile)},
+        {37, sizeof(::git::block::ReferencesStore)},
+        {42, sizeof(::git::block::ModuleReferencesStore)},
+        {47, sizeof(::git::block::ShallowRefsStore)},
+        {52, sizeof(::git::block::Submodule)},
+        {59, sizeof(::git::block::Reference)},
+        {70, sizeof(::git::block::EncodedObject)},
+        {79, sizeof(::git::block::Index)},
+        {92, sizeof(::git::block::Tree)},
+        {97, sizeof(::git::block::TreeEntry)},
+        {108, sizeof(::git::block::ResolveUndo)},
+        {113, sizeof(::git::block::ResolveUndoEntry_StagesEntry_DoNotUse)},
+        {120, sizeof(::git::block::ResolveUndoEntry)},
+        {127, sizeof(::git::block::EndOfIndexEntry)},
+        {134, sizeof(::git::block::IndexEntry)},
+        {163, sizeof(::git::block::AuthOpts)},
+        {170, sizeof(::git::block::CloneOpts)},
+        {195, sizeof(::git::block::FetchOpts)},
+        {216, sizeof(::git::block::CheckoutOpts)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::git::block::_Repo_default_instance_._instance,
     &::git::block::_EncodedObjectStore_default_instance_._instance,
+    &::git::block::_Packfile_default_instance_._instance,
     &::git::block::_ReferencesStore_default_instance_._instance,
     &::git::block::_ModuleReferencesStore_default_instance_._instance,
     &::git::block::_ShallowRefsStore_default_instance_._instance,
@@ -894,71 +944,77 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fg
     "ncesStore\022;\n\024encoded_object_store\030\003 \001(\0132"
     "\035.git.block.EncodedObjectStore\022/\n\026shallo"
     "w_refs_store_ref\030\004 \001(\0132\017.block.BlockRef\022"
-    "\022\n\ngit_config\030\005 \001(\t\"k\n\022EncodedObjectStor"
-    "e\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block.KeyVal"
-    "ueStore\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.Chu"
-    "nkerArgs\"\?\n\017ReferencesStore\022,\n\tkvtx_root"
-    "\030\001 \001(\0132\031.kvtx.block.KeyValueStore\"E\n\025Mod"
-    "uleReferencesStore\022,\n\tkvtx_root\030\001 \001(\0132\031."
-    "kvtx.block.KeyValueStore\"4\n\020ShallowRefsS"
-    "tore\022 \n\014shallow_refs\030\001 \003(\0132\n.hash.Hash\"<"
-    "\n\tSubmodule\022\014\n\004name\030\001 \001(\t\022!\n\010repo_ref\030\002 "
-    "\001(\0132\017.block.BlockRef\"\204\001\n\tReference\022\014\n\004na"
-    "me\030\001 \001(\t\0220\n\016reference_type\030\002 \001(\0162\030.git.b"
-    "lock.ReferenceType\022\030\n\004hash\030\003 \001(\0132\n.hash."
-    "Hash\022\035\n\025target_reference_name\030\004 \001(\t\"\210\001\n\r"
-    "EncodedObject\022\035\n\tdata_blob\030\001 \001(\0132\n.blob."
-    "Blob\022\035\n\tdata_hash\030\002 \001(\0132\n.hash.Hash\0229\n\023e"
-    "ncoded_object_type\030\003 \001(\0162\034.git.block.Enc"
-    "odedObjectType\"\306\001\n\005Index\022\017\n\007version\030\001 \001("
-    "\r\022&\n\007entries\030\002 \003(\0132\025.git.block.IndexEntr"
-    "y\022\036\n\005cache\030\003 \001(\0132\017.git.block.Tree\022,\n\014res"
-    "olve_undo\030\004 \001(\0132\026.git.block.ResolveUndo\022"
-    "6\n\022end_of_index_entry\030\005 \001(\0132\032.git.block."
-    "EndOfIndexEntry\"-\n\004Tree\022%\n\007entries\030\001 \003(\013"
-    "2\024.git.block.TreeEntry\"S\n\tTreeEntry\022\014\n\004p"
-    "ath\030\001 \001(\t\022\017\n\007entries\030\002 \001(\005\022\r\n\005trees\030\003 \001("
-    "\005\022\030\n\004hash\030\004 \001(\0132\n.hash.Hash\";\n\013ResolveUn"
-    "do\022,\n\007entries\030\001 \003(\0132\033.git.block.ResolveU"
-    "ndoEntry\"\224\001\n\020ResolveUndoEntry\022\014\n\004path\030\001 "
-    "\001(\t\0227\n\006stages\030\002 \003(\0132\'.git.block.ResolveU"
-    "ndoEntry.StagesEntry\0329\n\013StagesEntry\022\013\n\003k"
-    "ey\030\001 \001(\r\022\031\n\005value\030\002 \001(\0132\n.hash.Hash:\0028\001\""
-    ";\n\017EndOfIndexEntry\022\016\n\006offset\030\001 \001(\r\022\030\n\004ha"
-    "sh\030\002 \001(\0132\n.hash.Hash\"\256\002\n\nIndexEntry\022\035\n\td"
-    "ata_hash\030\001 \001(\0132\n.hash.Hash\022\014\n\004name\030\002 \001(\t"
-    "\022.\n\ncreated_at\030\003 \001(\0132\032.google.protobuf.T"
-    "imestamp\022/\n\013modified_at\030\004 \001(\0132\032.google.p"
-    "rotobuf.Timestamp\022\013\n\003dev\030\005 \001(\r\022\r\n\005inode\030"
-    "\006 \001(\r\022\021\n\tfile_mode\030\007 \001(\r\022\013\n\003uid\030\010 \001(\r\022\013\n"
-    "\003gid\030\t \001(\r\022\014\n\004size\030\n \001(\r\022\r\n\005stage\030\013 \001(\r\022"
-    "\025\n\rskip_worktree\030\014 \001(\010\022\025\n\rintent_to_add\030"
-    "\r \001(\010\"-\n\010AuthOpts\022\020\n\010username\030\001 \001(\t\022\017\n\007p"
-    "eer_id\030\002 \001(\t\"\361\001\n\tCloneOpts\022\013\n\003url\030\001 \001(\t\022"
-    "\023\n\013remote_name\030\002 \001(\t\022\013\n\003ref\030\003 \001(\t\022\025\n\rsin"
-    "gle_branch\030\004 \001(\010\022\030\n\020disable_checkout\030\005 \001"
-    "(\010\022\r\n\005depth\030\006 \001(\r\022\021\n\trecursive\030\007 \001(\010\022\027\n\017"
-    "recursion_depth\030\013 \001(\r\022$\n\010tag_mode\030\010 \001(\0162"
-    "\022.git.block.TagMode\022\020\n\010insecure\030\t \001(\010\022\021\n"
-    "\tca_bundle\030\n \001(\t\"\277\001\n\tFetchOpts\022\023\n\013remote"
-    "_name\030\001 \001(\t\022\022\n\nremote_url\030\002 \001(\t\022\021\n\tref_s"
-    "pecs\030\003 \003(\t\022\r\n\005depth\030\004 \001(\r\022$\n\010tag_mode\030\005 "
-    "\001(\0162\022.git.block.TagMode\022\r\n\005force\030\006 \001(\010\022\020"
-    "\n\010insecure\030\007 \001(\010\022\021\n\tca_bundle\030\010 \001(\t\022\r\n\005p"
-    "rune\030\t \001(\010\"g\n\014CheckoutOpts\022\032\n\006commit\030\001 \001"
-    "(\0132\n.hash.Hash\022\016\n\006branch\030\002 \001(\t\022\016\n\006create"
-    "\030\003 \001(\010\022\r\n\005force\030\004 \001(\010\022\014\n\004keep\030\005 \001(\010*^\n\rR"
-    "eferenceType\022\031\n\025ReferenceType_INVALID\020\000\022"
-    "\026\n\022ReferenceType_HASH\020\001\022\032\n\026ReferenceType"
-    "_SYMBOLIC\020\002*\345\001\n\021EncodedObjectType\022\035\n\031Enc"
-    "odedObjectType_INVALID\020\000\022\034\n\030EncodedObjec"
-    "tType_COMMIT\020\001\022\032\n\026EncodedObjectType_TREE"
-    "\020\002\022\032\n\026EncodedObjectType_BLOB\020\003\022\031\n\025Encode"
-    "dObjectType_TAG\020\004\022\037\n\033EncodedObjectType_O"
-    "FS_DELTA\020\006\022\037\n\033EncodedObjectType_REF_DELT"
-    "A\020\007*X\n\007TagMode\022\023\n\017TagMode_DEFAULT\020\000\022\020\n\014T"
-    "agMode_NONE\020\001\022\017\n\013TagMode_ALL\020\002\022\025\n\021TagMod"
-    "e_FOLLOWING\020\003b\006proto3"
+    "\022\n\ngit_config\030\005 \001(\t\"\242\001\n\022EncodedObjectSto"
+    "re\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block.KeyVa"
+    "lueStore\022\'\n\014chunker_args\030\002 \001(\0132\021.blob.Ch"
+    "unkerArgs\0225\n\022packfile_kvtx_root\030\003 \001(\0132\031."
+    "kvtx.block.KeyValueStore\"\241\001\n\010Packfile\022\035\n"
+    "\tpack_hash\030\001 \001(\0132\n.hash.Hash\022\035\n\tpack_blo"
+    "b\030\002 \001(\0132\n.blob.Blob\022\034\n\010idx_blob\030\003 \001(\0132\n."
+    "blob.Blob\022\024\n\014object_count\030\004 \001(\004\022\021\n\tpack_"
+    "size\030\005 \001(\004\022\020\n\010idx_size\030\006 \001(\004\"\?\n\017Referenc"
+    "esStore\022,\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block."
+    "KeyValueStore\"E\n\025ModuleReferencesStore\022,"
+    "\n\tkvtx_root\030\001 \001(\0132\031.kvtx.block.KeyValueS"
+    "tore\"4\n\020ShallowRefsStore\022 \n\014shallow_refs"
+    "\030\001 \003(\0132\n.hash.Hash\"<\n\tSubmodule\022\014\n\004name\030"
+    "\001 \001(\t\022!\n\010repo_ref\030\002 \001(\0132\017.block.BlockRef"
+    "\"\204\001\n\tReference\022\014\n\004name\030\001 \001(\t\0220\n\016referenc"
+    "e_type\030\002 \001(\0162\030.git.block.ReferenceType\022\030"
+    "\n\004hash\030\003 \001(\0132\n.hash.Hash\022\035\n\025target_refer"
+    "ence_name\030\004 \001(\t\"\210\001\n\rEncodedObject\022\035\n\tdat"
+    "a_blob\030\001 \001(\0132\n.blob.Blob\022\035\n\tdata_hash\030\002 "
+    "\001(\0132\n.hash.Hash\0229\n\023encoded_object_type\030\003"
+    " \001(\0162\034.git.block.EncodedObjectType\"\306\001\n\005I"
+    "ndex\022\017\n\007version\030\001 \001(\r\022&\n\007entries\030\002 \003(\0132\025"
+    ".git.block.IndexEntry\022\036\n\005cache\030\003 \001(\0132\017.g"
+    "it.block.Tree\022,\n\014resolve_undo\030\004 \001(\0132\026.gi"
+    "t.block.ResolveUndo\0226\n\022end_of_index_entr"
+    "y\030\005 \001(\0132\032.git.block.EndOfIndexEntry\"-\n\004T"
+    "ree\022%\n\007entries\030\001 \003(\0132\024.git.block.TreeEnt"
+    "ry\"S\n\tTreeEntry\022\014\n\004path\030\001 \001(\t\022\017\n\007entries"
+    "\030\002 \001(\005\022\r\n\005trees\030\003 \001(\005\022\030\n\004hash\030\004 \001(\0132\n.ha"
+    "sh.Hash\";\n\013ResolveUndo\022,\n\007entries\030\001 \003(\0132"
+    "\033.git.block.ResolveUndoEntry\"\224\001\n\020Resolve"
+    "UndoEntry\022\014\n\004path\030\001 \001(\t\0227\n\006stages\030\002 \003(\0132"
+    "\'.git.block.ResolveUndoEntry.StagesEntry"
+    "\0329\n\013StagesEntry\022\013\n\003key\030\001 \001(\r\022\031\n\005value\030\002 "
+    "\001(\0132\n.hash.Hash:\0028\001\";\n\017EndOfIndexEntry\022\016"
+    "\n\006offset\030\001 \001(\r\022\030\n\004hash\030\002 \001(\0132\n.hash.Hash"
+    "\"\256\002\n\nIndexEntry\022\035\n\tdata_hash\030\001 \001(\0132\n.has"
+    "h.Hash\022\014\n\004name\030\002 \001(\t\022.\n\ncreated_at\030\003 \001(\013"
+    "2\032.google.protobuf.Timestamp\022/\n\013modified"
+    "_at\030\004 \001(\0132\032.google.protobuf.Timestamp\022\013\n"
+    "\003dev\030\005 \001(\r\022\r\n\005inode\030\006 \001(\r\022\021\n\tfile_mode\030\007"
+    " \001(\r\022\013\n\003uid\030\010 \001(\r\022\013\n\003gid\030\t \001(\r\022\014\n\004size\030\n"
+    " \001(\r\022\r\n\005stage\030\013 \001(\r\022\025\n\rskip_worktree\030\014 \001"
+    "(\010\022\025\n\rintent_to_add\030\r \001(\010\"-\n\010AuthOpts\022\020\n"
+    "\010username\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"\361\001\n\tClo"
+    "neOpts\022\013\n\003url\030\001 \001(\t\022\023\n\013remote_name\030\002 \001(\t"
+    "\022\013\n\003ref\030\003 \001(\t\022\025\n\rsingle_branch\030\004 \001(\010\022\030\n\020"
+    "disable_checkout\030\005 \001(\010\022\r\n\005depth\030\006 \001(\r\022\021\n"
+    "\trecursive\030\007 \001(\010\022\027\n\017recursion_depth\030\013 \001("
+    "\r\022$\n\010tag_mode\030\010 \001(\0162\022.git.block.TagMode\022"
+    "\020\n\010insecure\030\t \001(\010\022\021\n\tca_bundle\030\n \001(\t\"\277\001\n"
+    "\tFetchOpts\022\023\n\013remote_name\030\001 \001(\t\022\022\n\nremot"
+    "e_url\030\002 \001(\t\022\021\n\tref_specs\030\003 \003(\t\022\r\n\005depth\030"
+    "\004 \001(\r\022$\n\010tag_mode\030\005 \001(\0162\022.git.block.TagM"
+    "ode\022\r\n\005force\030\006 \001(\010\022\020\n\010insecure\030\007 \001(\010\022\021\n\t"
+    "ca_bundle\030\010 \001(\t\022\r\n\005prune\030\t \001(\010\"g\n\014Checko"
+    "utOpts\022\032\n\006commit\030\001 \001(\0132\n.hash.Hash\022\016\n\006br"
+    "anch\030\002 \001(\t\022\016\n\006create\030\003 \001(\010\022\r\n\005force\030\004 \001("
+    "\010\022\014\n\004keep\030\005 \001(\010*^\n\rReferenceType\022\031\n\025Refe"
+    "renceType_INVALID\020\000\022\026\n\022ReferenceType_HAS"
+    "H\020\001\022\032\n\026ReferenceType_SYMBOLIC\020\002*\345\001\n\021Enco"
+    "dedObjectType\022\035\n\031EncodedObjectType_INVAL"
+    "ID\020\000\022\034\n\030EncodedObjectType_COMMIT\020\001\022\032\n\026En"
+    "codedObjectType_TREE\020\002\022\032\n\026EncodedObjectT"
+    "ype_BLOB\020\003\022\031\n\025EncodedObjectType_TAG\020\004\022\037\n"
+    "\033EncodedObjectType_OFS_DELTA\020\006\022\037\n\033Encode"
+    "dObjectType_REF_DELTA\020\007*X\n\007TagMode\022\023\n\017Ta"
+    "gMode_DEFAULT\020\000\022\020\n\014TagMode_NONE\020\001\022\017\n\013Tag"
+    "Mode_ALL\020\002\022\025\n\021TagMode_FOLLOWING\020\003b\006proto"
+    "3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps[5] = {
@@ -972,13 +1028,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto = {
     false,
     false,
-    3141,
+    3361,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
     "github.com/aperturerobotics/hydra/git/block/git.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_once,
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto_deps,
     5,
-    20,
+    21,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto::offsets,
@@ -1471,6 +1527,12 @@ void EncodedObjectStore::clear_chunker_args() {
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
+void EncodedObjectStore::clear_packfile_kvtx_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.packfile_kvtx_root_ != nullptr) _impl_.packfile_kvtx_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
 EncodedObjectStore::EncodedObjectStore(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, EncodedObjectStore_class_data_.base()) {
@@ -1507,6 +1569,9 @@ EncodedObjectStore::EncodedObjectStore(
   _impl_.chunker_args_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.chunker_args_)
                 : nullptr;
+  _impl_.packfile_kvtx_root_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.packfile_kvtx_root_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:git.block.EncodedObjectStore)
 }
@@ -1520,9 +1585,9 @@ inline void EncodedObjectStore::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, kvtx_root_),
            0,
-           offsetof(Impl_, chunker_args_) -
+           offsetof(Impl_, packfile_kvtx_root_) -
                offsetof(Impl_, kvtx_root_) +
-               sizeof(Impl_::chunker_args_));
+               sizeof(Impl_::packfile_kvtx_root_));
 }
 EncodedObjectStore::~EncodedObjectStore() {
   // @@protoc_insertion_point(destructor:git.block.EncodedObjectStore)
@@ -1537,6 +1602,7 @@ inline void EncodedObjectStore::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   delete this_._impl_.kvtx_root_;
   delete this_._impl_.chunker_args_;
+  delete this_._impl_.packfile_kvtx_root_;
   this_._impl_.~Impl_();
 }
 
@@ -1583,17 +1649,17 @@ EncodedObjectStore::GetClassData() const {
   return EncodedObjectStore_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 3, 0, 2>
 EncodedObjectStore::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    2,  // num_aux_entries
+    3,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     EncodedObjectStore_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1602,14 +1668,19 @@ EncodedObjectStore::_table_ = {
     ::_pbi::TcParser::GetTable<::git::block::EncodedObjectStore>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .blob.ChunkerArgs chunker_args = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 1,
-      PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.chunker_args_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .kvtx.block.KeyValueStore kvtx_root = 1;
     {::_pbi::TcParser::FastMtS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.kvtx_root_)}},
+    // .blob.ChunkerArgs chunker_args = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.chunker_args_)}},
+    // .kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 2,
+      PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.packfile_kvtx_root_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1617,10 +1688,13 @@ EncodedObjectStore::_table_ = {
     {PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.kvtx_root_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .blob.ChunkerArgs chunker_args = 2;
     {PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.chunker_args_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+    {PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.packfile_kvtx_root_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
       {::_pbi::TcParser::GetTable<::blob::ChunkerArgs>()},
+      {::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>()},
   }},
   {{
   }},
@@ -1633,7 +1707,7 @@ PROTOBUF_NOINLINE void EncodedObjectStore::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(_impl_.kvtx_root_ != nullptr);
       _impl_.kvtx_root_->Clear();
@@ -1641,6 +1715,10 @@ PROTOBUF_NOINLINE void EncodedObjectStore::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(_impl_.chunker_args_ != nullptr);
       _impl_.chunker_args_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.packfile_kvtx_root_ != nullptr);
+      _impl_.packfile_kvtx_root_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1680,6 +1758,13 @@ PROTOBUF_NOINLINE void EncodedObjectStore::Clear() {
         stream);
   }
 
+  // .kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.packfile_kvtx_root_, this_._impl_.packfile_kvtx_root_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1705,7 +1790,7 @@ PROTOBUF_NOINLINE void EncodedObjectStore::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // .kvtx.block.KeyValueStore kvtx_root = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -1715,6 +1800,11 @@ PROTOBUF_NOINLINE void EncodedObjectStore::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.chunker_args_);
+    }
+    // .kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.packfile_kvtx_root_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1736,7 +1826,7 @@ void EncodedObjectStore::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.kvtx_root_ != nullptr);
       if (_this->_impl_.kvtx_root_ == nullptr) {
@@ -1751,6 +1841,14 @@ void EncodedObjectStore::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.chunker_args_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.chunker_args_);
       } else {
         _this->_impl_.chunker_args_->MergeFrom(*from._impl_.chunker_args_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.packfile_kvtx_root_ != nullptr);
+      if (_this->_impl_.packfile_kvtx_root_ == nullptr) {
+        _this->_impl_.packfile_kvtx_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.packfile_kvtx_root_);
+      } else {
+        _this->_impl_.packfile_kvtx_root_->MergeFrom(*from._impl_.packfile_kvtx_root_);
       }
     }
   }
@@ -1772,14 +1870,483 @@ void EncodedObjectStore::InternalSwap(EncodedObjectStore* PROTOBUF_RESTRICT PROT
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.chunker_args_)
-      + sizeof(EncodedObjectStore::_impl_.chunker_args_)
+      PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.packfile_kvtx_root_)
+      + sizeof(EncodedObjectStore::_impl_.packfile_kvtx_root_)
       - PROTOBUF_FIELD_OFFSET(EncodedObjectStore, _impl_.kvtx_root_)>(
           reinterpret_cast<char*>(&_impl_.kvtx_root_),
           reinterpret_cast<char*>(&other->_impl_.kvtx_root_));
 }
 
 ::google::protobuf::Metadata EncodedObjectStore::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class Packfile::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<Packfile>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(Packfile, _impl_._has_bits_);
+};
+
+void Packfile::clear_pack_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.pack_hash_ != nullptr) _impl_.pack_hash_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+void Packfile::clear_pack_blob() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.pack_blob_ != nullptr) _impl_.pack_blob_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+void Packfile::clear_idx_blob() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.idx_blob_ != nullptr) _impl_.idx_blob_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+Packfile::Packfile(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, Packfile_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:git.block.Packfile)
+}
+PROTOBUF_NDEBUG_INLINE Packfile::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::git::block::Packfile& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+Packfile::Packfile(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const Packfile& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, Packfile_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  Packfile* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.pack_hash_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.pack_hash_)
+                : nullptr;
+  _impl_.pack_blob_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.pack_blob_)
+                : nullptr;
+  _impl_.idx_blob_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.idx_blob_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, object_count_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, object_count_),
+           offsetof(Impl_, idx_size_) -
+               offsetof(Impl_, object_count_) +
+               sizeof(Impl_::idx_size_));
+
+  // @@protoc_insertion_point(copy_constructor:git.block.Packfile)
+}
+PROTOBUF_NDEBUG_INLINE Packfile::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void Packfile::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, pack_hash_),
+           0,
+           offsetof(Impl_, idx_size_) -
+               offsetof(Impl_, pack_hash_) +
+               sizeof(Impl_::idx_size_));
+}
+Packfile::~Packfile() {
+  // @@protoc_insertion_point(destructor:git.block.Packfile)
+  SharedDtor(*this);
+}
+inline void Packfile::SharedDtor(MessageLite& self) {
+  Packfile& this_ = static_cast<Packfile&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.pack_hash_;
+  delete this_._impl_.pack_blob_;
+  delete this_._impl_.idx_blob_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL Packfile::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) Packfile(arena);
+}
+constexpr auto Packfile::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(Packfile),
+                                            alignof(Packfile));
+}
+constexpr auto Packfile::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_Packfile_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &Packfile::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<Packfile>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &Packfile::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<Packfile>(), &Packfile::ByteSizeLong,
+              &Packfile::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(Packfile, _impl_._cached_size_),
+          false,
+      },
+      &Packfile::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull Packfile_class_data_ =
+        Packfile::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+Packfile::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&Packfile_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(Packfile_class_data_.tc_table);
+  return Packfile_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 3, 0, 2>
+Packfile::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(Packfile, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    3,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    Packfile_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::git::block::Packfile>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .hash.Hash pack_hash = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_hash_)}},
+    // .blob.Blob pack_blob = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_blob_)}},
+    // .blob.Blob idx_blob = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 2,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.idx_blob_)}},
+    // uint64 object_count = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Packfile, _impl_.object_count_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.object_count_)}},
+    // uint64 pack_size = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Packfile, _impl_.pack_size_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_size_)}},
+    // uint64 idx_size = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Packfile, _impl_.idx_size_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.idx_size_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .hash.Hash pack_hash = 1;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_hash_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .blob.Blob pack_blob = 2;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_blob_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .blob.Blob idx_blob = 3;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.idx_blob_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 object_count = 4;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.object_count_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 pack_size = 5;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_size_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 idx_size = 6;
+    {PROTOBUF_FIELD_OFFSET(Packfile, _impl_.idx_size_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::hash::Hash>()},
+      {::_pbi::TcParser::GetTable<::blob::Blob>()},
+      {::_pbi::TcParser::GetTable<::blob::Blob>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void Packfile::Clear() {
+// @@protoc_insertion_point(message_clear_start:git.block.Packfile)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.pack_hash_ != nullptr);
+      _impl_.pack_hash_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.pack_blob_ != nullptr);
+      _impl_.pack_blob_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.idx_blob_ != nullptr);
+      _impl_.idx_blob_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000038U)) {
+    ::memset(&_impl_.object_count_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.idx_size_) -
+        reinterpret_cast<char*>(&_impl_.object_count_)) + sizeof(_impl_.idx_size_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL Packfile::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const Packfile& this_ = static_cast<const Packfile&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL Packfile::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const Packfile& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:git.block.Packfile)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .hash.Hash pack_hash = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.pack_hash_, this_._impl_.pack_hash_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .blob.Blob pack_blob = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.pack_blob_, this_._impl_.pack_blob_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .blob.Blob idx_blob = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.idx_blob_, this_._impl_.idx_blob_->GetCachedSize(), target,
+        stream);
+  }
+
+  // uint64 object_count = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_object_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          4, this_._internal_object_count(), target);
+    }
+  }
+
+  // uint64 pack_size = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_pack_size() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_pack_size(), target);
+    }
+  }
+
+  // uint64 idx_size = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_idx_size() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_idx_size(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:git.block.Packfile)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t Packfile::ByteSizeLong(const MessageLite& base) {
+  const Packfile& this_ = static_cast<const Packfile&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t Packfile::ByteSizeLong() const {
+  const Packfile& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:git.block.Packfile)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // .hash.Hash pack_hash = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.pack_hash_);
+    }
+    // .blob.Blob pack_blob = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.pack_blob_);
+    }
+    // .blob.Blob idx_blob = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.idx_blob_);
+    }
+    // uint64 object_count = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_object_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_object_count());
+      }
+    }
+    // uint64 pack_size = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_pack_size() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_pack_size());
+      }
+    }
+    // uint64 idx_size = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_idx_size() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_idx_size());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void Packfile::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<Packfile*>(&to_msg);
+  auto& from = static_cast<const Packfile&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:git.block.Packfile)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.pack_hash_ != nullptr);
+      if (_this->_impl_.pack_hash_ == nullptr) {
+        _this->_impl_.pack_hash_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.pack_hash_);
+      } else {
+        _this->_impl_.pack_hash_->MergeFrom(*from._impl_.pack_hash_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.pack_blob_ != nullptr);
+      if (_this->_impl_.pack_blob_ == nullptr) {
+        _this->_impl_.pack_blob_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.pack_blob_);
+      } else {
+        _this->_impl_.pack_blob_->MergeFrom(*from._impl_.pack_blob_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.idx_blob_ != nullptr);
+      if (_this->_impl_.idx_blob_ == nullptr) {
+        _this->_impl_.idx_blob_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.idx_blob_);
+      } else {
+        _this->_impl_.idx_blob_->MergeFrom(*from._impl_.idx_blob_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_object_count() != 0) {
+        _this->_impl_.object_count_ = from._impl_.object_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_pack_size() != 0) {
+        _this->_impl_.pack_size_ = from._impl_.pack_size_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_idx_size() != 0) {
+        _this->_impl_.idx_size_ = from._impl_.idx_size_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void Packfile::CopyFrom(const Packfile& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:git.block.Packfile)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void Packfile::InternalSwap(Packfile* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Packfile, _impl_.idx_size_)
+      + sizeof(Packfile::_impl_.idx_size_)
+      - PROTOBUF_FIELD_OFFSET(Packfile, _impl_.pack_hash_)>(
+          reinterpret_cast<char*>(&_impl_.pack_hash_),
+          reinterpret_cast<char*>(&other->_impl_.pack_hash_));
+}
+
+::google::protobuf::Metadata Packfile::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

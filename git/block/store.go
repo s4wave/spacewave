@@ -23,9 +23,11 @@ type Store struct {
 	root      *Repo
 	refStore  ReferenceStore
 
-	refTree kvtx.BlockTx
-	modTree kvtx.BlockTx
-	objTree kvtx.BlockTx
+	refTree   kvtx.BlockTx
+	modTree   kvtx.BlockTx
+	objTree   kvtx.BlockTx
+	packTree  kvtx.BlockTx
+	packCache map[plumbing.Hash]*storePackCacheEntry
 
 	// Bulk mode state: objects are written to KV via per-object
 	// mini-transactions, then IAVL trees are built bottom-up at Commit.
@@ -111,6 +113,10 @@ func (r *Store) Commit() error {
 
 // Close closes the store, canceling the context.
 func (r *Store) Close() error {
+	for _, entry := range r.packCache {
+		_ = entry.pack.Close()
+	}
+	r.packCache = nil
 	r.ctxCancel()
 	return nil
 }
@@ -122,6 +128,19 @@ func (r *Store) buildEncodedObjectTree() (kvtx.BlockTx, *block.Cursor, error) {
 		return nil, nil, err
 	}
 	v, err := encStore.BuildObjectTree(r.ctx, storeCs)
+	if err != nil {
+		return nil, nil, err
+	}
+	return v, storeCs, nil
+}
+
+// buildPackfileTree builds the packfile metadata tree handle.
+func (r *Store) buildPackfileTree() (kvtx.BlockTx, *block.Cursor, error) {
+	encStore, storeCs, err := r.root.FollowEncodedObjectStore(r.ctx, r.bcs)
+	if err != nil {
+		return nil, nil, err
+	}
+	v, err := encStore.BuildPackfileTree(r.ctx, storeCs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -165,6 +184,10 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 	if err != nil {
 		return err
 	}
+	r.packTree, _, err = r.buildPackfileTree()
+	if err != nil {
+		return err
+	}
 	r.refTree, _, err = r.buildRefTree()
 	if err != nil {
 		return err
@@ -174,6 +197,7 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 		return err
 	}
 	r.btx, r.bcs = btx, bcs
+	r.packCache = make(map[plumbing.Hash]*storePackCacheEntry)
 	r.initBulkMode()
 	return nil
 }

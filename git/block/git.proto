@@ -29,6 +29,25 @@ message EncodedObjectStore {
   .kvtx.block.KeyValueStore kvtx_root = 1;
   // ChunkerArgs are arguments passed to ensure consistent chunking.
   .blob.ChunkerArgs chunker_args = 2;
+  // PackfileKvtxRoot is the root of the packfile metadata tree.
+  .kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+}
+
+// Packfile contains a Git packfile and its index.
+message Packfile {
+  // PackHash contains the packfile checksum.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash pack_hash = 1;
+  // PackBlob contains the raw Git packfile bytes.
+  blob.Blob pack_blob = 2;
+  // IdxBlob contains the Git pack index bytes.
+  blob.Blob idx_blob = 3;
+  // ObjectCount is the number of objects in the pack index.
+  uint64 object_count = 4;
+  // PackSize is the byte size of the packfile.
+  uint64 pack_size = 5;
+  // IdxSize is the byte size of the index file.
+  uint64 idx_size = 6;
 }
 
 // ReferencesStore maps between ReferenceName and Reference.

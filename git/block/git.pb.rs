@@ -30,6 +30,32 @@ pub struct EncodedObjectStore {
     /// ChunkerArgs are arguments passed to ensure consistent chunking.
     #[prost(message, optional, tag="2")]
     pub chunker_args: ::core::option::Option<super::super::blob::ChunkerArgs>,
+    /// PackfileKvtxRoot is the root of the packfile metadata tree.
+    #[prost(message, optional, tag="3")]
+    pub packfile_kvtx_root: ::core::option::Option<super::super::kvtx::block::KeyValueStore>,
+}
+/// Packfile contains a Git packfile and its index.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Packfile {
+    /// PackHash contains the packfile checksum.
+    /// Note: currently, this is enforced to hash type SHA1.
+    #[prost(message, optional, tag="1")]
+    pub pack_hash: ::core::option::Option<super::super::hash::Hash>,
+    /// PackBlob contains the raw Git packfile bytes.
+    #[prost(message, optional, tag="2")]
+    pub pack_blob: ::core::option::Option<super::super::blob::Blob>,
+    /// IdxBlob contains the Git pack index bytes.
+    #[prost(message, optional, tag="3")]
+    pub idx_blob: ::core::option::Option<super::super::blob::Blob>,
+    /// ObjectCount is the number of objects in the pack index.
+    #[prost(uint64, tag="4")]
+    pub object_count: u64,
+    /// PackSize is the byte size of the packfile.
+    #[prost(uint64, tag="5")]
+    pub pack_size: u64,
+    /// IdxSize is the byte size of the index file.
+    #[prost(uint64, tag="6")]
+    pub idx_size: u64,
 }
 /// ReferencesStore maps between ReferenceName and Reference.
 #[derive(Clone, PartialEq, ::prost::Message)]
