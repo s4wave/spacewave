@@ -96,6 +96,10 @@ func TestWorldState_RenameObject(t *testing.T) {
 	if !errors.Is(err, world.ErrObjectNotFound) {
 		t.Fatalf("expected ErrObjectNotFound, got %v", err)
 	}
+	_, err = ws.RenameObject(ctx, "rename-missing", otherKey, true)
+	if !errors.Is(err, world.ErrObjectNotFound) {
+		t.Fatalf("expected ErrObjectNotFound, got %v", err)
+	}
 
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
