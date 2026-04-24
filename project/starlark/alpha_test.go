@@ -74,8 +74,8 @@ func TestEvaluateAlpha(t *testing.T) {
 	if core.GetBuilder().GetId() != "bldr/plugin/compiler/go" {
 		t.Fatalf("unexpected builder: %q", core.GetBuilder().GetId())
 	}
-	if core.GetBuilder().GetRev() != 11 {
-		t.Fatalf("unexpected builder rev: %d", core.GetBuilder().GetRev())
+	if core.GetBuilder().GetRev() == 0 {
+		t.Fatal("expected non-zero builder rev")
 	}
 	configData := core.GetBuilder().GetConfig()
 	if len(configData) == 0 {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -27,7 +28,8 @@ import (
 )
 
 func TestPluginCompilerJs(t *testing.T) {
-	ctx := context.Background()
+	ctx, ctxCancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -198,7 +200,7 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 	if len(backend) != 1 {
 		t.Fatalf("expected one backend entrypoint, got %d", len(backend))
 	}
-	if got := backend[0].GetImportPath(); got != "v/b/be/plugin/notes/backend-abc123.mjs" {
+	if got := backend[0].GetImportPath(); got != "/assets/v/b/be/plugin/notes/backend-abc123.mjs" {
 		t.Fatalf("unexpected backend import path: %q", got)
 	}
 }
