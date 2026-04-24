@@ -8,8 +8,24 @@
 
 namespace block::rpc {
 
+starpc::Error SRPCBlockStoreClientImpl::GetHashType(const block::rpc::GetHashTypeRequest& in, block::rpc::GetHashTypeResponse* out) {
+  return cc_->ExecCall(service_id_, "GetHashType", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::GetSupportedFeatures(const block::rpc::GetSupportedFeaturesRequest& in, block::rpc::GetSupportedFeaturesResponse* out) {
+  return cc_->ExecCall(service_id_, "GetSupportedFeatures", in, out);
+}
+
 starpc::Error SRPCBlockStoreClientImpl::PutBlock(const block::rpc::PutBlockRequest& in, block::rpc::PutBlockResponse* out) {
   return cc_->ExecCall(service_id_, "PutBlock", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::PutBlockBatch(const block::rpc::PutBlockBatchRequest& in, block::rpc::PutBlockBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "PutBlockBatch", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::PutBlockBackground(const block::rpc::PutBlockBackgroundRequest& in, block::rpc::PutBlockBackgroundResponse* out) {
+  return cc_->ExecCall(service_id_, "PutBlockBackground", in, out);
 }
 
 starpc::Error SRPCBlockStoreClientImpl::GetBlock(const block::rpc::GetBlockRequest& in, block::rpc::GetBlockResponse* out) {
@@ -20,16 +36,45 @@ starpc::Error SRPCBlockStoreClientImpl::GetBlockExists(const block::rpc::GetBloc
   return cc_->ExecCall(service_id_, "GetBlockExists", in, out);
 }
 
+starpc::Error SRPCBlockStoreClientImpl::GetBlockExistsBatch(const block::rpc::GetBlockExistsBatchRequest& in, block::rpc::GetBlockExistsBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "GetBlockExistsBatch", in, out);
+}
+
 starpc::Error SRPCBlockStoreClientImpl::RmBlock(const block::rpc::RmBlockRequest& in, block::rpc::RmBlockResponse* out) {
   return cc_->ExecCall(service_id_, "RmBlock", in, out);
 }
 
+starpc::Error SRPCBlockStoreClientImpl::StatBlock(const block::rpc::StatBlockRequest& in, block::rpc::StatBlockResponse* out) {
+  return cc_->ExecCall(service_id_, "StatBlock", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) {
+  return cc_->ExecCall(service_id_, "Flush", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) {
+  return cc_->ExecCall(service_id_, "BeginDeferFlush", in, out);
+}
+
+starpc::Error SRPCBlockStoreClientImpl::EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) {
+  return cc_->ExecCall(service_id_, "EndDeferFlush", in, out);
+}
+
 std::vector<std::string> SRPCBlockStoreHandler::GetMethodIDs() const {
   return {
+    "GetHashType",
+    "GetSupportedFeatures",
     "PutBlock",
+    "PutBlockBatch",
+    "PutBlockBackground",
     "GetBlock",
     "GetBlockExists",
+    "GetBlockExistsBatch",
     "RmBlock",
+    "StatBlock",
+    "Flush",
+    "BeginDeferFlush",
+    "EndDeferFlush",
   };
 }
 
@@ -41,12 +86,44 @@ std::pair<bool, starpc::Error> SRPCBlockStoreHandler::InvokeMethod(
     return {false, starpc::Error::OK};
   }
 
-  if (method_id == "PutBlock") {
+  if (method_id == "GetHashType") {
+    block::rpc::GetHashTypeRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::GetHashTypeResponse resp;
+    err = impl_->GetHashType(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetSupportedFeatures") {
+    block::rpc::GetSupportedFeaturesRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::GetSupportedFeaturesResponse resp;
+    err = impl_->GetSupportedFeatures(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "PutBlock") {
     block::rpc::PutBlockRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
     block::rpc::PutBlockResponse resp;
     err = impl_->PutBlock(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "PutBlockBatch") {
+    block::rpc::PutBlockBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::PutBlockBatchResponse resp;
+    err = impl_->PutBlockBatch(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "PutBlockBackground") {
+    block::rpc::PutBlockBackgroundRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::PutBlockBackgroundResponse resp;
+    err = impl_->PutBlockBackground(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "GetBlock") {
@@ -65,12 +142,52 @@ std::pair<bool, starpc::Error> SRPCBlockStoreHandler::InvokeMethod(
     err = impl_->GetBlockExists(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetBlockExistsBatch") {
+    block::rpc::GetBlockExistsBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::GetBlockExistsBatchResponse resp;
+    err = impl_->GetBlockExistsBatch(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "RmBlock") {
     block::rpc::RmBlockRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
     block::rpc::RmBlockResponse resp;
     err = impl_->RmBlock(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "StatBlock") {
+    block::rpc::StatBlockRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::StatBlockResponse resp;
+    err = impl_->StatBlock(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "Flush") {
+    block::rpc::FlushRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::FlushResponse resp;
+    err = impl_->Flush(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "BeginDeferFlush") {
+    block::rpc::BeginDeferFlushRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::BeginDeferFlushResponse resp;
+    err = impl_->BeginDeferFlush(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "EndDeferFlush") {
+    block::rpc::EndDeferFlushRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    block::rpc::EndDeferFlushResponse resp;
+    err = impl_->EndDeferFlush(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

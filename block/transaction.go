@@ -216,12 +216,12 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// t.mtx.Unlock in LIFO order. FlushPending must run after the
 	// cursor mutex is released because the RefGraph may share it.
 	// Uses the parent ctx because subCtxCancel runs first in LIFO.
-	var df DeferFlushable
 	var deferFlushActive bool
 	deferFlushCtx := ctx
+	writeStore := t.store
 	defer func() {
 		if deferFlushActive {
-			if err := df.EndDeferFlush(deferFlushCtx); err != nil && rerr == nil {
+			if err := writeStore.EndDeferFlush(deferFlushCtx); err != nil && rerr == nil {
 				rerr = err
 			}
 		}
@@ -243,19 +243,17 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return writeRoot.ref, nil, nil
 	}
 
-	writeStore := t.store
 	if writeStore != nil {
 		writeStore = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 	}
 
-	// begin deferred GC flushing if the store supports it.
+	// begin deferred GC flushing.
 	// only activated for dirty transactions so a non-dirty WriteAtRoot
 	// never touches the shared flush counter or flushes another
 	// transaction's buffered refs.
-	if dfImpl, ok := writeStore.(DeferFlushable); ok {
-		df = dfImpl
+	if writeStore != nil {
 		deferFlushActive = true
-		df.BeginDeferFlush()
+		writeStore.BeginDeferFlush()
 	}
 
 	// create a sub-context
@@ -448,14 +446,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 						// Extract block refs before enqueuing write, since
 						// bn.blk may be cleared by clearTree after this point.
-						var blockTargets []*BlockRef
-						recorder, hasRecorder := writeStore.(BlockRefRecorder)
-						if hasRecorder {
-							blockTargets, err = ExtractBlockRefs(bn.blk)
-							if err != nil {
-								handleErr(err)
-								return
-							}
+						putOpts.Refs, err = ExtractBlockRefs(bn.blk)
+						if err != nil {
+							handleErr(err)
+							return
 						}
 
 						writeQueue.Enqueue(func() {
@@ -469,16 +463,6 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							if err != nil {
 								handleErr(err)
 								return
-							}
-							// Record block refs in the GC graph after successful write.
-							if hasRecorder && len(blockTargets) > 0 {
-								recordCtx, recordTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/record-block-refs")
-								if err := recorder.RecordBlockRefs(recordCtx, blkRef, blockTargets); err != nil {
-									recordTask.End()
-									handleErr(err)
-									return
-								}
-								recordTask.End()
 							}
 						})
 					}
@@ -552,9 +536,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	if err != nil {
 		return nil, nil, err
 	}
-	if fs, ok := writeStore.(Flushable); ok {
+	if writeStore != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/flush-write-store")
-		err = fs.Flush(taskCtx)
+		err = writeStore.Flush(taskCtx)
 		subtask.End()
 		if err != nil {
 			return nil, nil, err

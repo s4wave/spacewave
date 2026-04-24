@@ -33,6 +33,11 @@ func (s *VLoggerStore) GetHashType() hash.HashType {
 	return s.st.GetHashType()
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (s *VLoggerStore) GetSupportedFeatures() block.StoreFeature {
+	return s.st.GetSupportedFeatures()
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
@@ -50,6 +55,36 @@ func (s *VLoggerStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		)
 	}()
 	return s.st.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch writes a batch of block operations.
+func (s *VLoggerStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) (err error) {
+	t1 := time.Now()
+	defer func() {
+		s.le.Debugf(
+			"PutBlockBatch(len(%d)) => dur(%v) err(%v)",
+			len(entries),
+			time.Since(t1).String(),
+			err,
+		)
+	}()
+	return s.st.PutBlockBatch(ctx, entries)
+}
+
+// PutBlockBackground writes a block at background priority.
+func (s *VLoggerStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
+	t1 := time.Now()
+	defer func() {
+		s.le.Debugf(
+			"PutBlockBackground(len(%d)) => dur(%v) ref(%v) existed(%v) err(%v)",
+			len(data),
+			time.Since(t1).String(),
+			ref.MarshalString(),
+			existed,
+			err,
+		)
+	}()
+	return s.st.PutBlockBackground(ctx, data, opts)
 }
 
 // GetBlock gets a block with the given reference.
@@ -89,6 +124,20 @@ func (s *VLoggerStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	return s.st.GetBlockExists(ctx, ref)
 }
 
+// GetBlockExistsBatch checks if blocks exist.
+func (s *VLoggerStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) (found []bool, err error) {
+	t1 := time.Now()
+	defer func() {
+		s.le.Debugf(
+			"GetBlockExistsBatch(len(%d)) => dur(%v) err(%v)",
+			len(refs),
+			time.Since(t1).String(),
+			err,
+		)
+	}()
+	return s.st.GetBlockExistsBatch(ctx, refs)
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (s *VLoggerStore) StatBlock(ctx context.Context, ref *block.BlockRef) (stat *block.BlockStat, err error) {
@@ -124,6 +173,21 @@ func (s *VLoggerStore) RmBlock(ctx context.Context, ref *block.BlockRef) (err er
 		)
 	}()
 	return s.st.RmBlock(ctx, ref)
+}
+
+// Flush publishes buffered writes.
+func (s *VLoggerStore) Flush(ctx context.Context) error {
+	return s.st.Flush(ctx)
+}
+
+// BeginDeferFlush opens a defer-flush scope.
+func (s *VLoggerStore) BeginDeferFlush() {
+	s.st.BeginDeferFlush()
+}
+
+// EndDeferFlush closes a defer-flush scope.
+func (s *VLoggerStore) EndDeferFlush(ctx context.Context) error {
+	return s.st.EndDeferFlush(ctx)
 }
 
 // _ is a type assertion

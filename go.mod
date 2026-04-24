@@ -2,8 +2,6 @@ module github.com/aperturerobotics/hydra
 
 go 1.26.0
 
-replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260408202010-24d71a16cdcb // fix-os-js
-
 require (
 	github.com/aperturerobotics/bifrost v0.47.8-0.20260423183415-234f350559b3 // master
 	github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b // latest
@@ -36,7 +34,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-git/go-billy/v6 v6.0.0-20260328065524-593ae452e14d // main
+	github.com/go-git/go-billy/v6 v6.0.0-20260424211911-732291493fb8 // main
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/minio/minio-go/v7 v7.0.79
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33

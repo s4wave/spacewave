@@ -289,7 +289,7 @@ func CreateUpperBound(prefix []byte) []byte {
 	// Find the rightmost byte that can be incremented
 	for i, v := range slices.Backward(upperBound) {
 		if v < 255 {
-			v++
+			upperBound[i] = v + 1
 			return upperBound[:i+1]
 		}
 	}

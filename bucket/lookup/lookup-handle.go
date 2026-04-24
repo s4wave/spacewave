@@ -35,6 +35,11 @@ func (l *lookupBucket) GetHashType() hash.HashType {
 	return 0
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (l *lookupBucket) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
@@ -56,6 +61,34 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		}
 	}
 	return blockRef, existed, err
+}
+
+// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := l.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		var ref *block.BlockRef
+		if entry.Ref != nil {
+			ref = entry.Ref.Clone()
+		}
+		if _, _, err := l.PutBlock(ctx, entry.Data, &block.PutOpts{
+			ForceBlockRef: ref,
+			Refs:          cloneBlockRefs(entry.Refs),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// PutBlockBackground forwards to PutBlock.
+func (l *lookupBucket) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return l.PutBlock(ctx, data, opts)
 }
 
 // GetBlock gets a block with a cid reference.
@@ -86,6 +119,19 @@ func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	return ok, err
 }
 
+// GetBlockExistsBatch loops calling GetBlockExists per ref.
+func (l *lookupBucket) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := l.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (l *lookupBucket) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -101,6 +147,32 @@ func (l *lookupBucket) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 // In some cases, will return before confirming delete.
 func (l *lookupBucket) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return ErrNotImplemented
+}
+
+// Flush returns nil because lookupBucket has no buffered writes.
+func (l *lookupBucket) Flush(context.Context) error {
+	return nil
+}
+
+// BeginDeferFlush opens a no-op defer-flush scope.
+func (l *lookupBucket) BeginDeferFlush() {}
+
+// EndDeferFlush closes a no-op defer-flush scope.
+func (l *lookupBucket) EndDeferFlush(context.Context) error {
+	return nil
+}
+
+func cloneBlockRefs(refs []*block.BlockRef) []*block.BlockRef {
+	if len(refs) == 0 {
+		return nil
+	}
+	cloned := make([]*block.BlockRef, len(refs))
+	for i, ref := range refs {
+		if ref != nil {
+			cloned[i] = ref.Clone()
+		}
+	}
+	return cloned
 }
 
 // _ is a type assertion

@@ -134,6 +134,53 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	checkMetadata(mds[3], "child-a", "type/a", "parent")
 }
 
+func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := ws.CreateObject(ctx, "repo-1", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_types.SetObjectType(ctx, ws, "repo-1", "git/repo"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	quads, err := ws.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuad("<repo-1>", "<type>", "", ""),
+		1,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 1 {
+		t.Fatalf("expected 1 quad, got %d", len(quads))
+	}
+	if quads[0].GetObj() != "<types/git/repo>" {
+		t.Fatalf("expected object %q, got %q", "<types/git/repo>", quads[0].GetObj())
+	}
+}
+
 // TestWorldState_DeleteObject tests the DeleteObject functionality
 func TestWorldState_DeleteObject(t *testing.T) {
 	ctx := context.Background()

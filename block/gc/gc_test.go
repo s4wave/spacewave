@@ -75,6 +75,10 @@ func (e *testEnv) flush(t *testing.T) {
 	}
 }
 
+func (e *testEnv) recordRefs(source *block.BlockRef, targets []*block.BlockRef) {
+	e.gcStore.bufferBlockRefs(source, targets)
+}
+
 // blockExists checks if a block exists in the raw store.
 func (e *testEnv) blockExists(t *testing.T, ref *block.BlockRef) bool {
 	t.Helper()
@@ -107,17 +111,11 @@ func TestCollector_AllRooted(t *testing.T) {
 	c := env.putBlock(t, "block-c")
 
 	// a -> b -> c
-	err := env.gcStore.RecordBlockRefs(env.ctx, a, []*block.BlockRef{b})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, b, []*block.BlockRef{c})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(a, []*block.BlockRef{b})
+	env.recordRefs(b, []*block.BlockRef{c})
 
 	// Root at a.
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(a))
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(a))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -178,18 +176,12 @@ func TestCollector_CascadingOrphans(t *testing.T) {
 	c := env.putBlock(t, "block-c")
 
 	// a -> b -> c
-	err := env.gcStore.RecordBlockRefs(env.ctx, a, []*block.BlockRef{b})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, b, []*block.BlockRef{c})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(a, []*block.BlockRef{b})
+	env.recordRefs(b, []*block.BlockRef{c})
 
 	// Root at a.
 	aIRI := BlockIRI(a)
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, aIRI)
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, aIRI)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -235,19 +227,10 @@ func TestCollector_DiamondDAG(t *testing.T) {
 	d := env.putBlock(t, "block-d")
 
 	// root -> b, root -> c, b -> d, c -> d
-	err := env.gcStore.RecordBlockRefs(env.ctx, root, []*block.BlockRef{b, c})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, b, []*block.BlockRef{d})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, c, []*block.BlockRef{d})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(root))
+	env.recordRefs(root, []*block.BlockRef{b, c})
+	env.recordRefs(b, []*block.BlockRef{d})
+	env.recordRefs(c, []*block.BlockRef{d})
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(root))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -279,19 +262,10 @@ func TestCollector_DiamondPartialRemove(t *testing.T) {
 	d := env.putBlock(t, "block-d")
 
 	// root -> b, root -> c, b -> d, c -> d
-	err := env.gcStore.RecordBlockRefs(env.ctx, root, []*block.BlockRef{b, c})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, b, []*block.BlockRef{d})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, c, []*block.BlockRef{d})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(root))
+	env.recordRefs(root, []*block.BlockRef{b, c})
+	env.recordRefs(b, []*block.BlockRef{d})
+	env.recordRefs(c, []*block.BlockRef{d})
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(root))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -328,15 +302,9 @@ func TestCollector_MultipleRoots(t *testing.T) {
 	d := env.putBlock(t, "child-of-c")
 	orphan := env.putBlock(t, "orphan")
 
-	err := env.gcStore.RecordBlockRefs(env.ctx, a, []*block.BlockRef{b})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.RecordBlockRefs(env.ctx, c, []*block.BlockRef{d})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(a))
+	env.recordRefs(a, []*block.BlockRef{b})
+	env.recordRefs(c, []*block.BlockRef{d})
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(a))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -404,12 +372,9 @@ func TestCollector_SweepCleansGraph(t *testing.T) {
 	orphanChild := env.putBlock(t, "orphan-child")
 
 	// orphan -> orphanChild
-	err := env.gcStore.RecordBlockRefs(env.ctx, orphan, []*block.BlockRef{orphanChild})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(orphan, []*block.BlockRef{orphanChild})
 	env.flush(t)
-	err = env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(rooted))
+	err := env.gcStore.AddGCRef(env.ctx, NodeGCRoot, BlockIRI(rooted))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -418,7 +383,7 @@ func TestCollector_SweepCleansGraph(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	// orphan has unreferenced edge, orphanChild doesn't (RecordBlockRefs removed it).
+	// orphan has unreferenced edge, orphanChild doesn't (block refs removed it).
 	// First iteration: delete orphan -> cascades orphanChild to unreferenced.
 	// Second iteration: delete orphanChild.
 	if stats.NodesSwept != 2 {

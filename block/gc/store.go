@@ -23,16 +23,13 @@ type WALAppender interface {
 	Append(ctx context.Context, adds, removes []RefEdge) error
 }
 
-// DeferFlushable is an alias for block.DeferFlushable.
-type DeferFlushable = block.DeferFlushable
-
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.
 //
-// PutBlock and RecordBlockRefs are called from Transaction.Write's
-// concurrent worker goroutines. Since the RefGraph shares the block
-// cursor's mutex, writing to the RefGraph inside those goroutines
-// would deadlock. Instead, GCStoreOps buffers the operations and
-// they are flushed via FlushPending after Transaction.Write returns.
+// PutBlock is called from Transaction.Write's concurrent worker goroutines.
+// Since the RefGraph shares the block cursor's mutex, writing to the RefGraph
+// inside those goroutines would deadlock. Instead, GCStoreOps buffers the
+// operations and they are flushed via FlushPending after Transaction.Write
+// returns.
 //
 // When parentIRI is set, new blocks are tracked under parentIRI
 // instead of the "unreferenced" staging node. This allows
@@ -43,7 +40,7 @@ type GCStoreOps struct {
 	wal        WALAppender
 	parentIRI  string
 	flushTask  string
-	deferFlush atomic.Int32
+	deferFlush atomic.Int64
 
 	mu             sync.Mutex
 	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
@@ -119,6 +116,11 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 	return g.store.GetHashType()
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (g *GCStoreOps) GetSupportedFeatures() block.StoreFeature {
+	return g.store.GetSupportedFeatures() | block.StoreFeatureNativeDeferFlush
+}
+
 // GetRefGraph returns the underlying ref graph.
 func (g *GCStoreOps) GetRefGraph() RefGraphOps {
 	return g.refGraph
@@ -150,6 +152,13 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		g.mu.Unlock()
 		subtask.End()
 	}
+	var refs []*block.BlockRef
+	if opts != nil {
+		refs = opts.GetRefs()
+	}
+	if ref != nil && !ref.GetEmpty() && len(refs) != 0 {
+		g.bufferBlockRefs(ref, refs)
+	}
 	return ref, existed, nil
 }
 
@@ -157,15 +166,10 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 // store supports it. Falls back to regular PutBlock otherwise. Used by
 // GC operations to avoid competing with foreground commit writes.
 func (g *GCStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	bg, ok := g.store.(block.BackgroundPutStore)
-	if !ok {
-		return g.PutBlock(ctx, data, opts)
-	}
-
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-background")
 	defer task.End()
 
-	ref, existed, err := bg.PutBlockBackground(ctx, data, opts)
+	ref, existed, err := g.store.PutBlockBackground(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -175,13 +179,19 @@ func (g *GCStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *
 		g.pendingUnref = append(g.pendingUnref, iri)
 		g.mu.Unlock()
 	}
+	var refs []*block.BlockRef
+	if opts != nil {
+		refs = opts.GetRefs()
+	}
+	if ref != nil && !ref.GetEmpty() && len(refs) != 0 {
+		g.bufferBlockRefs(ref, refs)
+	}
 	return ref, existed, nil
 }
 
 // PutBlockBatch writes a batch of blocks through the inner store and buffers
-// GC ref edges for all new non-tombstone blocks. When the inner store
-// implements BatchPutStore, the batch flows through as a single lower-layer
-// operation. Otherwise falls back to per-entry PutBlock/RmBlock.
+// GC ref edges for all new non-tombstone blocks. The inner store decides
+// whether the batch flows through a native path or an internal fallback.
 //
 // Tombstone entries are handled via GCStoreOps.RmBlock so refgraph
 // cleanup (outgoing edge removal, orphan cascade) is preserved.
@@ -212,65 +222,44 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	// for genuinely new blocks (matching the single-put !existed guard).
 	newBlock := make([]bool, len(puts))
 	checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
-	if batcher, ok := g.store.(block.BatchExistsStore); ok {
-		refs := make([]*block.BlockRef, len(puts))
-		for i, entry := range puts {
-			if entry.Ref == nil || entry.Ref.GetEmpty() {
-				continue
-			}
-			refs[i] = entry.Ref
+	refs := make([]*block.BlockRef, len(puts))
+	for i, entry := range puts {
+		if entry.Ref == nil || entry.Ref.GetEmpty() {
+			continue
 		}
-		exists, err := batcher.GetBlockExistsBatch(checkCtx, refs)
-		if err != nil {
-			checkTask.End()
-			return err
-		}
-		for i, found := range exists {
-			newBlock[i] = !found
-		}
-	} else {
-		for i, entry := range puts {
-			if entry.Ref == nil || entry.Ref.GetEmpty() {
-				continue
-			}
-			exists, err := g.store.GetBlockExists(checkCtx, entry.Ref)
-			if err != nil {
-				checkTask.End()
-				return err
-			}
-			newBlock[i] = !exists
-		}
+		refs[i] = entry.Ref
+	}
+	exists, err := g.store.GetBlockExistsBatch(checkCtx, refs)
+	if err != nil {
+		checkTask.End()
+		return err
+	}
+	for i, found := range exists {
+		newBlock[i] = !found
 	}
 	checkTask.End()
 
-	if batcher, ok := g.store.(block.BatchPutStore); ok {
-		writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
-		if err := batcher.PutBlockBatch(writeCtx, puts); err != nil {
-			writeTask.End()
-			return err
-		}
+	writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
+	if err := g.store.PutBlockBatch(writeCtx, puts); err != nil {
 		writeTask.End()
-	} else {
-		for _, entry := range puts {
-			writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block")
-			if _, _, err := g.store.PutBlock(writeCtx, entry.Data, &block.PutOpts{
-				ForceBlockRef: entry.Ref.Clone(),
-			}); err != nil {
-				writeTask.End()
-				return err
-			}
-			writeTask.End()
-		}
+		return err
 	}
+	writeTask.End()
 
 	// Buffer GC ref edges only for genuinely new blocks.
 	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
 	g.mu.Lock()
 	for i, entry := range puts {
 		if !newBlock[i] || entry.Ref == nil || entry.Ref.GetEmpty() {
+			if entry.Ref != nil && !entry.Ref.GetEmpty() && len(entry.Refs) != 0 {
+				g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
+			}
 			continue
 		}
 		g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
+		if len(entry.Refs) != 0 {
+			g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
+		}
 	}
 	g.mu.Unlock()
 	subtask.End()
@@ -286,6 +275,11 @@ func (g *GCStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 // GetBlockExists checks if a block exists.
 func (g *GCStoreOps) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return g.store.GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch checks whether each block exists.
+func (g *GCStoreOps) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return g.store.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -320,10 +314,19 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return g.refGraph.RemoveRef(ctx, parent, iri)
 }
 
-// RecordBlockRefs buffers block-to-block reference edges for later flush.
-func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, targets []*block.BlockRef) error {
-	sourceIRI := BlockIRI(source)
+// Flush forwards the durability boundary to the inner store.
+func (g *GCStoreOps) Flush(ctx context.Context) error {
+	return g.store.Flush(ctx)
+}
+
+func (g *GCStoreOps) bufferBlockRefs(source *block.BlockRef, targets []*block.BlockRef) {
 	g.mu.Lock()
+	g.bufferBlockRefsLocked(source, targets)
+	g.mu.Unlock()
+}
+
+func (g *GCStoreOps) bufferBlockRefsLocked(source *block.BlockRef, targets []*block.BlockRef) {
+	sourceIRI := BlockIRI(source)
 	for _, t := range targets {
 		if t == nil || t.GetEmpty() {
 			continue
@@ -332,32 +335,28 @@ func (g *GCStoreOps) RecordBlockRefs(_ context.Context, source *block.BlockRef, 
 		g.pendingRefs = append(g.pendingRefs, pendingRef{sourceIRI, targetIRI})
 		g.pendingUnunref = append(g.pendingUnunref, targetIRI)
 	}
-	g.mu.Unlock()
-	return nil
 }
 
 // BeginDeferFlush enters a deferred-flush scope. While deferred,
 // FlushPending returns immediately without flushing; pending
 // operations accumulate in the buffer. Supports nesting.
-// Also forwards to the inner store if it implements DeferFlushable,
-// so nested GC layers (e.g. bucket-level gcOps inside bucketHandle)
-// are also deferred.
+// Also forwards to the inner store so nested GC layers (e.g. bucket-level
+// gcOps inside bucketHandle) are also deferred.
 func (g *GCStoreOps) BeginDeferFlush() {
 	g.deferFlush.Add(1)
-	if df, ok := g.store.(block.DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	g.store.BeginDeferFlush()
 }
 
 // EndDeferFlush exits a deferred-flush scope. When the outermost
 // scope ends, calls FlushPending to flush all accumulated operations
 // in one batch. Also forwards to the inner store.
 func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
-	var innerErr error
-	if df, ok := g.store.(block.DeferFlushable); ok {
-		innerErr = df.EndDeferFlush(ctx)
+	depth := g.deferFlush.Add(-1)
+	if depth < 0 {
+		return errors.New("block gc: EndDeferFlush called more than BeginDeferFlush")
 	}
-	if g.deferFlush.Add(-1) == 0 {
+	innerErr := g.store.EndDeferFlush(ctx)
+	if depth == 0 {
 		if err := g.FlushPending(ctx); err != nil {
 			return err
 		}
@@ -365,8 +364,8 @@ func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
 	return innerErr
 }
 
-// FlushPending writes all buffered PutBlock and RecordBlockRefs
-// operations to the RefGraph, using batched ref graph updates when
+// FlushPending writes all buffered PutBlock operations to the RefGraph, using
+// batched ref graph updates when
 // the implementation supports them. Must be called after
 // Transaction.Write completes and the cursor mutex is no longer held.
 //
@@ -474,8 +473,5 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 
 // _ is a type assertion
 var (
-	_ block.StoreOps           = ((*GCStoreOps)(nil))
-	_ block.BlockRefRecorder   = ((*GCStoreOps)(nil))
-	_ block.BatchPutStore      = ((*GCStoreOps)(nil))
-	_ block.BackgroundPutStore = ((*GCStoreOps)(nil))
+	_ block.StoreOps = ((*GCStoreOps)(nil))
 )

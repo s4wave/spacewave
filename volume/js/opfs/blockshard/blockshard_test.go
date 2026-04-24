@@ -304,11 +304,7 @@ func TestBlockStoreGetBlockExistsBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	batcher, ok := any(store).(block.BatchExistsStore)
-	if !ok {
-		t.Fatal("expected block store to implement BatchExistsStore")
-	}
-	found, err := batcher.GetBlockExistsBatch(context.Background(), []*block.BlockRef{
+	found, err := store.GetBlockExistsBatch(context.Background(), []*block.BlockRef{
 		ref1.Clone(),
 		ref2.Clone(),
 		ref3.Clone(),

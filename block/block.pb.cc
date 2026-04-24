@@ -56,6 +56,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr PutOpts::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        refs_{},
         force_block_ref_{nullptr},
         hash_type_{static_cast< ::hash::HashType >(0)} {}
 
@@ -80,7 +81,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutOptsDefaultTypeInternal _PutOpts_default_instance_;
 }  // namespace block
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto = nullptr;
 const ::uint32_t
@@ -93,9 +94,11 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::block::PutOpts, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::block::PutOpts, _impl_.hash_type_),
         PROTOBUF_FIELD_OFFSET(::block::PutOpts, _impl_.force_block_ref_),
+        PROTOBUF_FIELD_OFFSET(::block::PutOpts, _impl_.refs_),
+        2,
         1,
         0,
 };
@@ -114,15 +117,21 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fb
     "\n3github.com/aperturerobotics/hydra/bloc"
     "k/block.proto\022\005block\0323github.com/apertur"
     "erobotics/bifrost/hash/hash.proto\"$\n\010Blo"
-    "ckRef\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"V\n\007PutOp"
+    "ckRef\022\030\n\004hash\030\001 \001(\0132\n.hash.Hash\"u\n\007PutOp"
     "ts\022!\n\thash_type\030\001 \001(\0162\016.hash.HashType\022(\n"
-    "\017force_block_ref\030\002 \001(\0132\017.block.BlockRef*"
-    "\303\001\n\013OverlayMode\022\016\n\nUPPER_ONLY\020\000\022\016\n\nLOWER"
-    "_ONLY\020\001\022\017\n\013UPPER_CACHE\020\002\022\017\n\013LOWER_CACHE\020"
-    "\003\022\024\n\020UPPER_READ_CACHE\020\004\022\024\n\020LOWER_READ_CA"
-    "CHE\020\005\022\025\n\021UPPER_WRITE_CACHE\020\006\022\025\n\021LOWER_WR"
-    "ITE_CACHE\020\007\022\030\n\024UPPER_READBACK_CACHE\020\010b\006p"
-    "roto3"
+    "\017force_block_ref\030\002 \001(\0132\017.block.BlockRef\022"
+    "\035\n\004refs\030\003 \003(\0132\017.block.BlockRef*\343\001\n\014Store"
+    "Feature\022\031\n\025STORE_FEATURE_UNKNOWN\020\000\022\"\n\036ST"
+    "ORE_FEATURE_NATIVE_BATCH_PUT\020\001\022%\n!STORE_"
+    "FEATURE_NATIVE_BATCH_EXISTS\020\002\022\'\n#STORE_F"
+    "EATURE_NATIVE_BACKGROUND_PUT\020\004\022\036\n\032STORE_"
+    "FEATURE_NATIVE_FLUSH\020\010\022$\n STORE_FEATURE_"
+    "NATIVE_DEFER_FLUSH\020\020*\303\001\n\013OverlayMode\022\016\n\n"
+    "UPPER_ONLY\020\000\022\016\n\nLOWER_ONLY\020\001\022\017\n\013UPPER_CA"
+    "CHE\020\002\022\017\n\013LOWER_CACHE\020\003\022\024\n\020UPPER_READ_CAC"
+    "HE\020\004\022\024\n\020LOWER_READ_CACHE\020\005\022\025\n\021UPPER_WRIT"
+    "E_CACHE\020\006\022\025\n\021LOWER_WRITE_CACHE\020\007\022\030\n\024UPPE"
+    "R_READBACK_CACHE\020\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto_deps[1] = {
@@ -132,7 +141,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto = {
     false,
     false,
-    445,
+    706,
     descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
     "github.com/aperturerobotics/hydra/block/block.proto",
     &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto_once,
@@ -146,9 +155,15 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
     file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
 };
 namespace block {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OverlayMode_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StoreFeature_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto);
   return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t StoreFeature_internal_data_[] = {
+    196608u, 32u, 8226u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OverlayMode_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t OverlayMode_internal_data_[] = {
     589824u, 0u, };
@@ -453,7 +468,8 @@ PROTOBUF_NDEBUG_INLINE PutOpts::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::block::PutOpts& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        refs_{visibility, arena, from.refs_} {}
 
 PutOpts::PutOpts(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -469,7 +485,7 @@ PutOpts::PutOpts(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.force_block_ref_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.force_block_ref_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.force_block_ref_)
                 : nullptr;
   _impl_.hash_type_ = from._impl_.hash_type_;
@@ -479,7 +495,8 @@ PutOpts::PutOpts(
 PROTOBUF_NDEBUG_INLINE PutOpts::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        refs_{visibility, arena} {}
 
 inline void PutOpts::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -511,8 +528,20 @@ inline void* PROTOBUF_NONNULL PutOpts::PlacementNew_(
   return ::new (mem) PutOpts(arena);
 }
 constexpr auto PutOpts::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(PutOpts),
-                                            alignof(PutOpts));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.refs_) +
+          decltype(PutOpts::_impl_.refs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(PutOpts), alignof(PutOpts), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&PutOpts::PlacementNew_,
+                                 sizeof(PutOpts),
+                                 alignof(PutOpts));
+  }
 }
 constexpr auto PutOpts::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -548,17 +577,17 @@ PutOpts::GetClassData() const {
   return PutOpts_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 2, 0, 2>
 PutOpts::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(PutOpts, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
+    3,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     PutOpts_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -567,23 +596,31 @@ PutOpts::_table_ = {
     ::_pbi::TcParser::GetTable<::block::PutOpts>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .hash.HashType hash_type = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(PutOpts, _impl_.hash_type_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.hash_type_)}},
     // .block.BlockRef force_block_ref = 2;
     {::_pbi::TcParser::FastMtS1,
-     {18, 0, 0,
+     {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.force_block_ref_)}},
-    // .hash.HashType hash_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(PutOpts, _impl_.hash_type_), 1>(),
-     {8, 1, 0,
-      PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.hash_type_)}},
+    // repeated .block.BlockRef refs = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 0, 1,
+      PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.refs_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .hash.HashType hash_type = 1;
-    {PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.hash_type_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.hash_type_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .block.BlockRef force_block_ref = 2;
-    {PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.force_block_ref_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.force_block_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .block.BlockRef refs = 3;
+    {PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.refs_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
+      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
       {::_pbi::TcParser::GetTable<::block::BlockRef>()},
   }},
   {{
@@ -597,9 +634,14 @@ PROTOBUF_NOINLINE void PutOpts::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.force_block_ref_ != nullptr);
-    _impl_.force_block_ref_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.refs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.force_block_ref_ != nullptr);
+      _impl_.force_block_ref_->Clear();
+    }
   }
   _impl_.hash_type_ = 0;
   _impl_._has_bits_.Clear();
@@ -626,7 +668,7 @@ PROTOBUF_NOINLINE void PutOpts::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .hash.HashType hash_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_hash_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -635,10 +677,23 @@ PROTOBUF_NOINLINE void PutOpts::Clear() {
   }
 
   // .block.BlockRef force_block_ref = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.force_block_ref_, this_._impl_.force_block_ref_->GetCachedSize(), target,
         stream);
+  }
+
+  // repeated .block.BlockRef refs = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_refs_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_refs().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -666,14 +721,21 @@ PROTOBUF_NOINLINE void PutOpts::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // repeated .block.BlockRef refs = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_refs_size();
+      for (const auto& msg : this_._internal_refs()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // .block.BlockRef force_block_ref = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.force_block_ref_);
     }
     // .hash.HashType hash_type = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_hash_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_hash_type());
@@ -699,8 +761,13 @@ void PutOpts::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_refs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_refs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(from._impl_.force_block_ref_ != nullptr);
       if (_this->_impl_.force_block_ref_ == nullptr) {
         _this->_impl_.force_block_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.force_block_ref_);
@@ -708,7 +775,7 @@ void PutOpts::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.force_block_ref_->MergeFrom(*from._impl_.force_block_ref_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_hash_type() != 0) {
         _this->_impl_.hash_type_ = from._impl_.hash_type_;
       }
@@ -731,6 +798,7 @@ void PutOpts::InternalSwap(PutOpts* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.refs_.InternalSwap(&other->_impl_.refs_);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(PutOpts, _impl_.hash_type_)
       + sizeof(PutOpts::_impl_.hash_type_)

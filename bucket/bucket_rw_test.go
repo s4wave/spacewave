@@ -11,6 +11,8 @@ import (
 )
 
 type bucketRWTestStore struct {
+	block.NopStoreOps
+
 	mtx              sync.Mutex
 	putCalls         int
 	rmCalls          int
@@ -102,11 +104,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	b := NewBucketRW(readBucket, writeBucket)
 	ref := &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1})}
 
-	batcher, ok := b.(block.BatchPutStore)
-	if !ok {
-		t.Fatal("expected bucketRW to implement block.BatchPutStore")
-	}
-	if err := batcher.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
+	if err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
 	putCalls, _, batchCalls, _, _, _ := writeStore.getCounts()
@@ -114,11 +112,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", batchCalls, putCalls)
 	}
 
-	bg, ok := b.(block.BackgroundPutStore)
-	if !ok {
-		t.Fatal("expected bucketRW to implement block.BackgroundPutStore")
-	}
-	if _, _, err := bg.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
+	if _, _, err := b.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 	putCalls, _, _, _, backgroundCalls, _ := writeStore.getCounts()
@@ -126,11 +120,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", backgroundCalls, putCalls)
 	}
 
-	existsBatcher, ok := b.(block.BatchExistsStore)
-	if !ok {
-		t.Fatal("expected bucketRW to implement block.BatchExistsStore")
-	}
-	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
+	if _, err := b.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 	_, _, _, _, _, existsBatchCalls := readStore.getCounts()
@@ -139,7 +129,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	}
 }
 
-func TestBucketRWTransactionWriteUsesBatchPutStore(t *testing.T) {
+func TestBucketRWTransactionWriteUsesBatchPut(t *testing.T) {
 	ctx := context.Background()
 	readStore := &bucketRWTestStore{}
 	writeStore := &bucketRWTestStore{}

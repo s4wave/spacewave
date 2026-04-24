@@ -14,6 +14,11 @@ func (k *KVTx) GetHashType() hash.HashType {
 	return k.blk.GetHashType()
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (k *KVTx) GetSupportedFeatures() block.StoreFeature {
+	return k.blk.GetSupportedFeatures()
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
@@ -37,19 +42,7 @@ func (k *KVTx) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, e
 
 // GetBlockExistsBatch forwards batched existence probes to the underlying block store when supported.
 func (k *KVTx) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if batcher, ok := k.blk.(block.BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := k.blk.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
+	return k.blk.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -67,55 +60,30 @@ func (k *KVTx) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // PutBlockBatch forwards batched writes to the underlying block store when supported.
 func (k *KVTx) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	batcher, ok := k.blk.(block.BatchPutStore)
-	if !ok {
-		for _, entry := range entries {
-			if entry.Tombstone {
-				if err := k.blk.RmBlock(ctx, entry.Ref); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, _, err := k.blk.PutBlock(ctx, entry.Data, &block.PutOpts{
-				ForceBlockRef: entry.Ref.Clone(),
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	return batcher.PutBlockBatch(ctx, entries)
+	return k.blk.PutBlockBatch(ctx, entries)
 }
 
 // PutBlockBackground forwards background writes to the underlying block store when supported.
 func (k *KVTx) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	bg, ok := k.blk.(block.BackgroundPutStore)
-	if !ok {
-		return k.blk.PutBlock(ctx, data, opts)
-	}
-	return bg.PutBlockBackground(ctx, data, opts)
+	return k.blk.PutBlockBackground(ctx, data, opts)
+}
+
+// Flush forwards the durability boundary to the underlying block store.
+func (k *KVTx) Flush(ctx context.Context) error {
+	return k.blk.Flush(ctx)
 }
 
 // BeginDeferFlush forwards deferred-flush scope entry to the underlying block store when supported.
 func (k *KVTx) BeginDeferFlush() {
-	if df, ok := k.blk.(block.DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	k.blk.BeginDeferFlush()
 }
 
 // EndDeferFlush forwards deferred-flush scope exit to the underlying block store when supported.
 func (k *KVTx) EndDeferFlush(ctx context.Context) error {
-	if df, ok := k.blk.(block.DeferFlushable); ok {
-		return df.EndDeferFlush(ctx)
-	}
-	return nil
+	return k.blk.EndDeferFlush(ctx)
 }
 
 // _ is a type assertion
 var (
-	_ block.StoreOps           = ((*KVTx)(nil))
-	_ block.BatchExistsStore   = ((*KVTx)(nil))
-	_ block.BatchPutStore      = ((*KVTx)(nil))
-	_ block.BackgroundPutStore = ((*KVTx)(nil))
-	_ block.DeferFlushable     = ((*KVTx)(nil))
+	_ block.StoreOps = ((*KVTx)(nil))
 )

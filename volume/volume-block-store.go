@@ -25,6 +25,11 @@ func (v *VolumeBlockStore) GetHashType() hash.HashType {
 	return v.store.GetHashType()
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (v *VolumeBlockStore) GetSupportedFeatures() block.StoreFeature {
+	return v.store.GetSupportedFeatures()
+}
+
 // PutBlock puts a block into the store.
 func (v *VolumeBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return v.store.PutBlock(ctx, data, opts)
@@ -42,19 +47,7 @@ func (v *VolumeBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockR
 
 // GetBlockExistsBatch forwards batched existence probes to the wrapped block store when supported.
 func (v *VolumeBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if batcher, ok := v.store.(block.BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := v.store.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
+	return v.store.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -70,33 +63,27 @@ func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) err
 
 // PutBlockBatch forwards batched writes to the wrapped block store when supported.
 func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	batcher, ok := v.store.(block.BatchPutStore)
-	if !ok {
-		for _, entry := range entries {
-			if entry.Tombstone {
-				if err := v.store.RmBlock(ctx, entry.Ref); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, _, err := v.store.PutBlock(ctx, entry.Data, &block.PutOpts{
-				ForceBlockRef: entry.Ref.Clone(),
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	return batcher.PutBlockBatch(ctx, entries)
+	return v.store.PutBlockBatch(ctx, entries)
 }
 
 // PutBlockBackground forwards background writes to the wrapped block store when supported.
 func (v *VolumeBlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	bg, ok := v.store.(block.BackgroundPutStore)
-	if !ok {
-		return v.store.PutBlock(ctx, data, opts)
-	}
-	return bg.PutBlockBackground(ctx, data, opts)
+	return v.store.PutBlockBackground(ctx, data, opts)
+}
+
+// Flush forwards to the wrapped block store.
+func (v *VolumeBlockStore) Flush(ctx context.Context) error {
+	return v.store.Flush(ctx)
+}
+
+// BeginDeferFlush opens a defer-flush scope on the wrapped block store.
+func (v *VolumeBlockStore) BeginDeferFlush() {
+	v.store.BeginDeferFlush()
+}
+
+// EndDeferFlush closes a defer-flush scope on the wrapped block store.
+func (v *VolumeBlockStore) EndDeferFlush(ctx context.Context) error {
+	return v.store.EndDeferFlush(ctx)
 }
 
 // GetGCManagerHooks forwards WAL-backed GC manager hooks from the wrapped
@@ -113,9 +100,6 @@ func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
 
 // _ is a type assertion
 var (
-	_ Volume                   = ((*VolumeBlockStore)(nil))
-	_ block_store.Store        = ((*VolumeBlockStore)(nil))
-	_ block.BatchExistsStore   = ((*VolumeBlockStore)(nil))
-	_ block.BatchPutStore      = ((*VolumeBlockStore)(nil))
-	_ block.BackgroundPutStore = ((*VolumeBlockStore)(nil))
+	_ Volume            = ((*VolumeBlockStore)(nil))
+	_ block_store.Store = ((*VolumeBlockStore)(nil))
 )

@@ -12,6 +12,8 @@ import (
 )
 
 type countingBatchStore struct {
+	block.NopStoreOps
+
 	putCalls         int
 	putBatchCalls    int
 	existsBatchCalls int
@@ -52,12 +54,10 @@ func (s *countingBatchStore) GetBlockExistsBatch(_ context.Context, refs []*bloc
 }
 
 var (
-	_ block.StoreOps         = ((*countingBatchStore)(nil))
-	_ block.BatchExistsStore = ((*countingBatchStore)(nil))
-	_ block.BatchPutStore    = ((*countingBatchStore)(nil))
+	_ block.StoreOps = ((*countingBatchStore)(nil))
 )
 
-func TestVolumeForwardsBatchPutStore(t *testing.T) {
+func TestVolumeForwardsBatchPut(t *testing.T) {
 	ctx := context.Background()
 	kvKey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
@@ -82,11 +82,6 @@ func TestVolumeForwardsBatchPutStore(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = vol.Close() })
 
-	batcher, ok := any(vol).(block.BatchPutStore)
-	if !ok {
-		t.Fatal("expected Volume to implement block.BatchPutStore")
-	}
-
 	ref1, err := block.BuildBlockRef([]byte("hello"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef failed: %v", err)
@@ -96,7 +91,7 @@ func TestVolumeForwardsBatchPutStore(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
-	if err := batcher.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if err := vol.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
 	}); err != nil {
@@ -110,11 +105,7 @@ func TestVolumeForwardsBatchPutStore(t *testing.T) {
 		t.Fatalf("expected 0 fallback PutBlock calls, got %d", inner.putCalls)
 	}
 
-	existsBatcher, ok := any(vol).(block.BatchExistsStore)
-	if !ok {
-		t.Fatal("expected Volume to implement block.BatchExistsStore")
-	}
-	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref1, ref2}); err != nil {
+	if _, err := vol.GetBlockExistsBatch(ctx, []*block.BlockRef{ref1, ref2}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
 	if inner.existsBatchCalls != 1 {

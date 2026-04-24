@@ -71,6 +71,11 @@ func (b *HTTPBlock) GetHashType() hash.HashType {
 	return b.hashType
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (b *HTTPBlock) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
@@ -149,6 +154,34 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		)
 	}
 	return ref, putResp.GetExists(), nil
+}
+
+// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := b.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		var ref *block.BlockRef
+		if entry.Ref != nil {
+			ref = entry.Ref.Clone()
+		}
+		if _, _, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
+			ForceBlockRef: ref,
+			Refs:          cloneBlockRefs(entry.Refs),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// PutBlockBackground forwards to PutBlock.
+func (b *HTTPBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return b.PutBlock(ctx, data, opts)
 }
 
 // GetBlock looks up a block in the store.
@@ -258,6 +291,19 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	return existsResp.GetExists(), nil
 }
 
+// GetBlockExistsBatch loops calling GetBlockExists per ref.
+func (b *HTTPBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := b.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Falls back to GetBlockExists and returns Size=-1 (unknown).
 // Returns nil, nil if the block does not exist.
@@ -311,6 +357,32 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return errors.Wrap(errors.New(errStr), "service returned error")
 	}
 	return nil
+}
+
+// Flush returns nil because HTTPBlock has no buffered writes.
+func (b *HTTPBlock) Flush(context.Context) error {
+	return nil
+}
+
+// BeginDeferFlush opens a no-op defer-flush scope.
+func (b *HTTPBlock) BeginDeferFlush() {}
+
+// EndDeferFlush closes a no-op defer-flush scope.
+func (b *HTTPBlock) EndDeferFlush(context.Context) error {
+	return nil
+}
+
+func cloneBlockRefs(refs []*block.BlockRef) []*block.BlockRef {
+	if len(refs) == 0 {
+		return nil
+	}
+	cloned := make([]*block.BlockRef, len(refs))
+	for i, ref := range refs {
+		if ref != nil {
+			cloned[i] = ref.Clone()
+		}
+	}
+	return cloned
 }
 
 // _ is a type assertion

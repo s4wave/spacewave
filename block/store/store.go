@@ -3,6 +3,7 @@ package block_store
 import (
 	"context"
 
+	block_hash "github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/sirupsen/logrus"
 )
@@ -24,8 +25,8 @@ type Constructor func(
 
 // store wraps StoreOps with an ID.
 type store struct {
-	// StoreOps are the block store operations.
-	block.StoreOps
+	// ops are the block store operations.
+	ops block.StoreOps
 
 	// id is the block store id
 	id string
@@ -33,7 +34,7 @@ type store struct {
 
 // NewStore constructs a store with an id and opts.
 func NewStore(id string, ops block.StoreOps) Store {
-	return &store{StoreOps: ops, id: id}
+	return &store{ops: ops, id: id}
 }
 
 // GetID returns the ID of the block store.
@@ -41,74 +42,72 @@ func (s *store) GetID() string {
 	return s.id
 }
 
-// PutBlockBatch forwards batched writes to the inner StoreOps when supported.
+// GetHashType returns the preferred hash type for the store.
+func (s *store) GetHashType() block_hash.HashType {
+	return s.ops.GetHashType()
+}
+
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (s *store) GetSupportedFeatures() block.StoreFeature {
+	return s.ops.GetSupportedFeatures()
+}
+
+// PutBlock forwards to the inner StoreOps.
+func (s *store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return s.ops.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch forwards batched writes to the inner StoreOps.
 func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	batcher, ok := s.StoreOps.(block.BatchPutStore)
-	if !ok {
-		for _, entry := range entries {
-			if entry.Tombstone {
-				if err := s.StoreOps.RmBlock(ctx, entry.Ref); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, _, err := s.StoreOps.PutBlock(ctx, entry.Data, &block.PutOpts{
-				ForceBlockRef: entry.Ref.Clone(),
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	return batcher.PutBlockBatch(ctx, entries)
+	return s.ops.PutBlockBatch(ctx, entries)
 }
 
-// GetBlockExistsBatch forwards batched existence probes to the inner StoreOps when supported.
-func (s *store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if batcher, ok := s.StoreOps.(block.BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := s.StoreOps.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
-}
-
-// PutBlockBackground forwards background writes to the inner StoreOps when supported.
+// PutBlockBackground forwards background writes to the inner StoreOps.
 func (s *store) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	bg, ok := s.StoreOps.(block.BackgroundPutStore)
-	if !ok {
-		return s.StoreOps.PutBlock(ctx, data, opts)
-	}
-	return bg.PutBlockBackground(ctx, data, opts)
+	return s.ops.PutBlockBackground(ctx, data, opts)
 }
 
-// BeginDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+// GetBlock forwards to the inner StoreOps.
+func (s *store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	return s.ops.GetBlock(ctx, ref)
+}
+
+// GetBlockExists forwards to the inner StoreOps.
+func (s *store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return s.ops.GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch forwards batched existence probes to the inner StoreOps.
+func (s *store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return s.ops.GetBlockExistsBatch(ctx, refs)
+}
+
+// RmBlock forwards to the inner StoreOps.
+func (s *store) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	return s.ops.RmBlock(ctx, ref)
+}
+
+// StatBlock forwards to the inner StoreOps.
+func (s *store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return s.ops.StatBlock(ctx, ref)
+}
+
+// Flush forwards to the inner StoreOps.
+func (s *store) Flush(ctx context.Context) error {
+	return s.ops.Flush(ctx)
+}
+
+// BeginDeferFlush forwards to the inner StoreOps.
 func (s *store) BeginDeferFlush() {
-	if df, ok := s.StoreOps.(block.DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	s.ops.BeginDeferFlush()
 }
 
-// EndDeferFlush forwards to the inner StoreOps if it supports deferred flushing.
+// EndDeferFlush forwards to the inner StoreOps.
 func (s *store) EndDeferFlush(ctx context.Context) error {
-	if df, ok := s.StoreOps.(block.DeferFlushable); ok {
-		return df.EndDeferFlush(ctx)
-	}
-	return nil
+	return s.ops.EndDeferFlush(ctx)
 }
 
 // _ is a type assertion
 var (
-	_ Store                    = ((*store)(nil))
-	_ block.BatchExistsStore   = ((*store)(nil))
-	_ block.BatchPutStore      = ((*store)(nil))
-	_ block.BackgroundPutStore = ((*store)(nil))
-	_ block.DeferFlushable     = ((*store)(nil))
+	_ Store = ((*store)(nil))
 )

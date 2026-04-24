@@ -220,9 +220,7 @@ func TestGCIntegrationSweepUnreachable(t *testing.T) {
 	if !ok {
 		t.Fatal("bad block IRI 1")
 	}
-	if err := ops.RecordBlockRefs(ctx, ref0, []*block.BlockRef{ref1}); err != nil {
-		t.Fatal(err)
-	}
+	ops.bufferBlockRefs(ref0, []*block.BlockRef{ref1})
 	if err := ops.FlushPending(ctx); err != nil {
 		t.Fatal(err)
 	}

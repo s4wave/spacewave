@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	"github.com/sirupsen/logrus"
 )
 
 // StoreOverlay layers an upper block store over a lower store.
@@ -50,6 +51,35 @@ func (o *StoreOverlay) GetHashType() hash.HashType {
 	return o.lower.GetHashType()
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the overlay.
+func (o *StoreOverlay) GetSupportedFeatures() StoreFeature {
+	upper := o.upper.GetSupportedFeatures()
+	lower := o.lower.GetSupportedFeatures()
+	both := upper & lower
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		return upper
+	case OverlayMode_LOWER_ONLY:
+		return lower
+	case OverlayMode_UPPER_CACHE, OverlayMode_LOWER_CACHE:
+		return both
+	case OverlayMode_UPPER_READ_CACHE:
+		return (lower & (StoreFeatureNativeBatchPut | StoreFeatureNativeBackgroundPut | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush)) |
+			(both & StoreFeatureNativeBatchExists)
+	case OverlayMode_LOWER_READ_CACHE:
+		return (upper & (StoreFeatureNativeBatchPut | StoreFeatureNativeBackgroundPut | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush)) |
+			(both & StoreFeatureNativeBatchExists)
+	case OverlayMode_UPPER_WRITE_CACHE, OverlayMode_UPPER_READBACK_CACHE:
+		return (upper & (StoreFeatureNativeBatchPut | StoreFeatureNativeBackgroundPut | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush)) |
+			(both & StoreFeatureNativeBatchExists)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		return (lower & (StoreFeatureNativeBatchPut | StoreFeatureNativeBackgroundPut | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush)) |
+			(both & StoreFeatureNativeBatchExists)
+	}
+}
+
 // GetBlock gets a block with the given reference.
 // The ref should not be modified or retained by GetBlock.
 // Returns data, found, error.
@@ -80,6 +110,8 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 			}
 
 			go func() {
+				defer writebackCtxCancel()
+
 				// Prepare writeback options
 				putOpts := o.writebackPutOpts.CloneVT()
 				if putOpts == nil {
@@ -87,9 +119,9 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 				}
 				putOpts.ForceBlockRef = ref.Clone()
 
-				// Perform writeback asynchronously
-				_, _, _ = writeBack.PutBlock(writebackCtx, data, putOpts)
-				writebackCtxCancel()
+				if _, _, err := writeBack.PutBlock(writebackCtx, data, putOpts); err != nil {
+					logrus.WithError(err).Debug("block overlay writeback failed")
+				}
 			}()
 		}
 		return data, true, nil
@@ -443,78 +475,49 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	}
 }
 
+// Flush forwards the durability boundary to stores used by the overlay.
+func (o *StoreOverlay) Flush(ctx context.Context) error {
+	var err error
+	if uerr := o.upper.Flush(ctx); uerr != nil {
+		err = uerr
+	}
+	if lerr := o.lower.Flush(ctx); lerr != nil && err == nil {
+		err = lerr
+	}
+	return err
+}
+
 // BeginDeferFlush forwards to upper and lower stores that support deferred flushing.
 func (o *StoreOverlay) BeginDeferFlush() {
-	if df, ok := o.upper.(DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
-	if df, ok := o.lower.(DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	o.upper.BeginDeferFlush()
+	o.lower.BeginDeferFlush()
 }
 
 // EndDeferFlush forwards to upper and lower stores that support deferred flushing.
 func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
 	var err error
-	if df, ok := o.upper.(DeferFlushable); ok {
-		err = df.EndDeferFlush(ctx)
+	if uerr := o.upper.EndDeferFlush(ctx); uerr != nil {
+		err = uerr
 	}
-	if df, ok := o.lower.(DeferFlushable); ok {
-		if lerr := df.EndDeferFlush(ctx); lerr != nil && err == nil {
-			err = lerr
-		}
+	if lerr := o.lower.EndDeferFlush(ctx); lerr != nil && err == nil {
+		err = lerr
 	}
 	return err
 }
 
 func putBatchEntries(ctx context.Context, store StoreOps, entries []*PutBatchEntry) error {
-	if batcher, ok := store.(BatchPutStore); ok {
-		return batcher.PutBlockBatch(ctx, entries)
-	}
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := store.RmBlock(ctx, entry.Ref); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, _, err := store.PutBlock(ctx, entry.Data, &PutOpts{
-			ForceBlockRef: entry.Ref.Clone(),
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return store.PutBlockBatch(ctx, entries)
 }
 
 func putBlockBackground(ctx context.Context, store StoreOps, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	if bg, ok := store.(BackgroundPutStore); ok {
-		return bg.PutBlockBackground(ctx, data, opts)
-	}
-	return store.PutBlock(ctx, data, opts)
+	return store.PutBlockBackground(ctx, data, opts)
 }
 
 func getBlockExistsBatch(ctx context.Context, store StoreOps, refs []*BlockRef) ([]bool, error) {
-	if batcher, ok := store.(BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := store.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
+	return store.GetBlockExistsBatch(ctx, refs)
 }
 
 // _ is a type assertion
 var (
-	_ StoreOps           = ((*StoreOverlay)(nil))
-	_ BatchExistsStore   = ((*StoreOverlay)(nil))
-	_ BatchPutStore      = ((*StoreOverlay)(nil))
-	_ BackgroundPutStore = ((*StoreOverlay)(nil))
-	_ DeferFlushable     = ((*StoreOverlay)(nil))
+	_ StoreOps = ((*StoreOverlay)(nil))
 )

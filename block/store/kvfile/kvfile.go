@@ -65,10 +65,28 @@ func (k *KvfileBlock) GetHashType() hash.HashType {
 	return 0
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (k *KvfileBlock) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KvfileBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	return nil, false, block_store.ErrReadOnly
+}
+
+// PutBlockBatch returns ErrReadOnly for write entries.
+func (k *KvfileBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	for range entries {
+		return block_store.ErrReadOnly
+	}
+	return nil
+}
+
+// PutBlockBackground returns ErrReadOnly.
+func (k *KvfileBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return k.PutBlock(ctx, data, opts)
 }
 
 // GetBlock looks up a block in the store.
@@ -95,6 +113,19 @@ func (k *KvfileBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (
 	return k.store.Exists(key)
 }
 
+// GetBlockExistsBatch loops calling GetBlockExists per ref.
+func (k *KvfileBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := k.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KvfileBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -116,6 +147,19 @@ func (k *KvfileBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 // Should not return an error if the block did not exist.
 func (k *KvfileBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return block_store.ErrReadOnly
+}
+
+// Flush returns nil because KvfileBlock has no buffered writes.
+func (k *KvfileBlock) Flush(context.Context) error {
+	return nil
+}
+
+// BeginDeferFlush opens a no-op defer-flush scope.
+func (k *KvfileBlock) BeginDeferFlush() {}
+
+// EndDeferFlush closes a no-op defer-flush scope.
+func (k *KvfileBlock) EndDeferFlush(context.Context) error {
+	return nil
 }
 
 // _ is a type assertion

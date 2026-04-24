@@ -9,6 +9,8 @@ import (
 )
 
 type wrapperBatchTestStore struct {
+	block.NopStoreOps
+
 	putCalls         int
 	rmCalls          int
 	batchCalls       int
@@ -63,33 +65,21 @@ func TestStoreForwardsBatchAndBackground(t *testing.T) {
 	store := NewStore("test", inner)
 	ref := &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1})}
 
-	batcher, ok := store.(block.BatchPutStore)
-	if !ok {
-		t.Fatal("expected store to implement block.BatchPutStore")
-	}
-	if err := batcher.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.batchCalls != 1 || inner.putCalls != 0 {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", inner.batchCalls, inner.putCalls)
 	}
 
-	bg, ok := store.(block.BackgroundPutStore)
-	if !ok {
-		t.Fatal("expected store to implement block.BackgroundPutStore")
-	}
-	if _, _, err := bg.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
+	if _, _, err := store.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.backgroundCalls != 1 || inner.putCalls != 0 {
 		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", inner.backgroundCalls, inner.putCalls)
 	}
 
-	existsBatcher, ok := any(store).(block.BatchExistsStore)
-	if !ok {
-		t.Fatal("expected store to implement block.BatchExistsStore")
-	}
-	if _, err := existsBatcher.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
+	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.existsBatchCalls != 1 {

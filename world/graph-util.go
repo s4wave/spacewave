@@ -7,6 +7,8 @@ import (
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/graph/iterator"
+	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
 )
@@ -35,36 +37,52 @@ func CheckQuadExists(ctx context.Context, h CayleyHandle, gq quad.Quad) (bool, e
 }
 
 // FilterIterateQuads iterates over quads matching the input quad.
-// empty fields are ignored
+// Empty fields are ignored.
 func FilterIterateQuads(ctx context.Context, h CayleyHandle, gq quad.Quad, cb func(q quad.Quad) error) error {
-	var q shape.Quads
-	subject := gq.Subject
-	if subject != nil {
-		q = append(q, shape.QuadFilter{Dir: quad.Subject, Values: shape.Lookup([]quad.Value{subject})})
-	}
-	pred := gq.Predicate
-	if pred != nil {
-		q = append(q, shape.QuadFilter{Dir: quad.Predicate, Values: shape.Lookup([]quad.Value{pred})})
-	}
-	obj := gq.Object
-	if obj != nil {
-		q = append(q, shape.QuadFilter{Dir: quad.Object, Values: shape.Lookup([]quad.Value{obj})})
-	}
-	val := gq.Label
-	if val != nil {
-		q = append(q, shape.QuadFilter{Dir: quad.Label, Values: shape.Lookup([]quad.Value{val})})
-	}
-	return OptimizeIterateQuads(ctx, h, q, cb)
+	return IterateFilteredFullQuads(ctx, h, gq, cb)
 }
 
-// OptimizeIterateQuads optimizes a shape and iterates over the quads.
-func OptimizeIterateQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
-	sh, _, err := shape.Optimize(ctx, sh, h)
-	if err != nil {
+// IterateFilteredFullQuads iterates over full quads matching a concrete quad filter.
+func IterateFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Quad, cb func(q quad.Quad) error) error {
+	if cb == nil {
+		return nil
+	}
+	if !hasQuadFilter(filter) {
+		it := h.QuadsAllIterator(ctx).Iterate(ctx)
+		defer it.Close()
+		return iterateQuadResults(ctx, h, it, cb)
+	}
+
+	dir, ref, ok, err := selectQuadFilterIterator(ctx, h, filter)
+	if err != nil || !ok {
 		return err
 	}
+
+	it := h.QuadIterator(ctx, dir, ref).Iterate(ctx)
+	defer it.Close()
+	return iterateQuadResults(ctx, h, it, func(q quad.Quad) error {
+		if !quadMatchesFilter(q, filter) {
+			return nil
+		}
+		return cb(q)
+	})
+}
+
+// IterateFullQuads iterates over the full quads matched by a shape.
+func IterateFullQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
+	if cb == nil {
+		return nil
+	}
+
+	// Do not call shape.Optimize here. Optimized shapes may yield node/value refs
+	// instead of quad refs, but graph.NewResultReader requires each iterator result
+	// to be a quad ref so QuadStore.Quad can recover all four directions.
 	it := sh.BuildIterator(ctx, h).Iterate(ctx)
 	defer it.Close()
+	return iterateQuadResults(ctx, h, it, cb)
+}
+
+func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner, cb func(q quad.Quad) error) error {
 	rsc := graph.NewResultReader(ctx, h, it)
 	for {
 		q, err := rsc.ReadQuad(ctx)
@@ -78,6 +96,63 @@ func OptimizeIterateQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, c
 			return err
 		}
 	}
+}
+
+func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Quad) (quad.Direction, graph.Ref, bool, error) {
+	var bestDir quad.Direction
+	var bestRef graph.Ref
+	var bestSize refs.Size
+	var found bool
+	for _, dir := range quad.Directions {
+		val := filter.Get(dir)
+		if val == nil {
+			continue
+		}
+		ref, err := h.ValueOf(ctx, val)
+		if err != nil || ref == nil {
+			return 0, nil, false, err
+		}
+		size, err := h.QuadIteratorSize(ctx, dir, ref)
+		if err != nil {
+			return 0, nil, false, err
+		}
+		if !found || size.Value < bestSize.Value {
+			bestDir = dir
+			bestRef = ref
+			bestSize = size
+			found = true
+		}
+	}
+	return bestDir, bestRef, found, nil
+}
+
+func hasQuadFilter(q quad.Quad) bool {
+	for _, dir := range quad.Directions {
+		if q.Get(dir) != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func quadMatchesFilter(q, filter quad.Quad) bool {
+	for _, dir := range quad.Directions {
+		val := filter.Get(dir)
+		if val == nil {
+			continue
+		}
+		if !quadValuesEqual(q.Get(dir), val) {
+			return false
+		}
+	}
+	return true
+}
+
+func quadValuesEqual(v1, v2 quad.Value) bool {
+	if v1 == nil || v2 == nil {
+		return v1 == v2
+	}
+	return v1.String() == v2.String()
 }
 
 // IteratePathWithKeys starts & iterates a path from the given object keys.
