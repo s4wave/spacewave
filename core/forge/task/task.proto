@@ -1,0 +1,20 @@
+syntax = "proto3";
+package s4wave.forge.task;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/forge/task;forge_task_ops";
+
+// ForgeTaskCreateOp creates a Forge Task and optionally links it to a Job.
+// Wraps CreateTaskWithTarget + graph linking in a single world op.
+message ForgeTaskCreateOp {
+  // TaskKey is the object key for the new Task.
+  string task_key = 1;
+  // Name is the task name (must be a valid DNS label).
+  string name = 2;
+  // JobKey is the object key of the Job to link the Task to.
+  // If empty, the Task is created without a Job link.
+  string job_key = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}

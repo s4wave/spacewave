@@ -1,0 +1,45 @@
+syntax = "proto3";
+package provider.spacewave;
+
+// Config configures the Spacewave cloud provider controller.
+message Config {
+  // ProviderId is the provider identifier.
+  string provider_id = 1;
+  // Endpoint is the Spacewave cloud API endpoint.
+  string endpoint = 2;
+  // PeerId is the peer ID constraint for the entity.
+  string peer_id = 3;
+  // Sync is the sync configuration.
+  SyncConfig sync = 4;
+  // AccountEndpoint is the account service endpoint (e.g. https://account.spacewave.app).
+  // SSO entry, OAuth callback, and related auth flows are served from this endpoint.
+  string account_endpoint = 7;
+  // PublicBaseUrl is the public Spacewave app URL (e.g. https://spacewave.app).
+  // Browser-facing recovery and checkout links should use this base URL.
+  string public_base_url = 8;
+  // SigningEnvPrefix is the request-signing environment prefix expected by the cloud.
+  string signing_env_prefix = 9;
+}
+
+// SyncConfig configures block store synchronization behavior.
+message SyncConfig {
+  // InactivityTimeoutSecs is the inactivity timeout in seconds before flushing.
+  // Default: 10.
+  uint32 inactivity_timeout_secs = 1;
+  // SizeThresholdBytes is the dirty size threshold in bytes before flushing.
+  // Default: 10485760 (10MB).
+  uint32 size_threshold_bytes = 2;
+  // AutoSync enables automatic sync on block writes.
+  // Default: true.
+  bool auto_sync = 3;
+  // SyncMode is the sync mode.
+  SyncMode sync_mode = 4;
+}
+
+// SyncMode is the sync mode for block stores.
+enum SyncMode {
+  // SyncMode_CACHE only fetches blocks on demand.
+  SyncMode_CACHE = 0;
+  // SyncMode_MIRROR downloads all blocks from new packfiles.
+  SyncMode_MIRROR = 1;
+}

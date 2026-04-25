@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
@@ -13,7 +14,6 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

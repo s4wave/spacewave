@@ -1,0 +1,6 @@
+syntax = "proto3";
+package e2e.wasm.session;
+option go_package = "github.com/s4wave/spacewave/e2e/wasm/session;e2e_wasm_session";
+
+// Config configures the session harness controller.
+message Config {}

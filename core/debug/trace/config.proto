@@ -1,0 +1,9 @@
+syntax = "proto3";
+package debug.trace;
+
+// Config configures the debug trace HTTP controller.
+message Config {
+  // TraceDurationSeconds is the trace capture duration.
+  // Defaults to 30 seconds.
+  uint32 trace_duration_seconds = 1;
+}

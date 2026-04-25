@@ -1,0 +1,184 @@
+syntax = "proto3";
+package provider.spacewave;
+
+// AuditEventMetadata is the typed metadata wrapper serialized into the
+// spacewave-cloud audit_events.metadata_json column as protoJson.
+message AuditEventMetadata {
+  // RequestMethod is the originating HTTP method when one exists.
+  string request_method = 1;
+  // RequestPath is the originating HTTP path when one exists.
+  string request_path = 2;
+  // ActorPeerId is the session or entity peer id when the mutation came from a
+  // signed caller.
+  string actor_peer_id = 3;
+  // AuthorizedBy names the entity keypair that authorized a session action.
+  string authorized_by = 4;
+
+  // Body is the per-action metadata payload.
+  oneof body {
+    // UserCreated is metadata for account-creation actions.
+    UserCreatedAuditMetadata user_created = 10;
+    // EntityKeypairsChanged is metadata for auth-method and keypair changes.
+    EntityKeypairsChangedAuditMetadata entity_keypairs_changed = 11;
+    // ResourceCreated is metadata for block-store and shared-object creation.
+    ResourceCreatedAuditMetadata resource_created = 12;
+    // ResourceOwnershipTransferred is metadata for owner-transfer actions.
+    ResourceOwnershipTransferredAuditMetadata resource_ownership_transferred = 13;
+    // SharedObjectChanged is metadata for shared-object metadata or delete actions.
+    SharedObjectChangedAuditMetadata shared_object_changed = 14;
+    // OrganizationChanged is metadata for org lifecycle and membership actions.
+    OrganizationChangedAuditMetadata organization_changed = 15;
+    // BillingStatusChanged is metadata for billing lifecycle transitions.
+    BillingStatusChangedAuditMetadata billing_status_changed = 16;
+    // BillingAdminAction is metadata for admin-driven billing actions.
+    BillingAdminActionAuditMetadata billing_admin_action = 17;
+    // Generic is metadata for actions that only need a small summary.
+    GenericAuditMetadata generic = 18;
+  }
+}
+
+// UserCreatedAuditMetadata describes a new-account creation action.
+message UserCreatedAuditMetadata {
+  // Username is the created account username.
+  string username = 1;
+  // AuthMethod is the initial account auth method family.
+  string auth_method = 2;
+  // BillingAccountId is the initial managed billing-account id.
+  string billing_account_id = 3;
+  // Email is the initial linked email when one exists.
+  string email = 4;
+}
+
+// EntityKeypairsChangedAuditMetadata describes a keypair/auth-method mutation.
+message EntityKeypairsChangedAuditMetadata {
+  // ChangeType identifies the mutation kind (add/remove/update-threshold/etc).
+  string change_type = 1;
+  // KeypairPeerId is the affected keypair when one specific keypair changed.
+  string keypair_peer_id = 2;
+  // AuthMethod is the auth-method family for attached credentials.
+  string auth_method = 3;
+  // SessionPeerId is the affected session for revoke actions.
+  string session_peer_id = 4;
+  // AuthThreshold is the resulting auth threshold when relevant.
+  uint32 auth_threshold = 5;
+}
+
+// ResourceCreatedAuditMetadata describes resource creation.
+message ResourceCreatedAuditMetadata {
+  // ResourceType is the created resource type.
+  string resource_type = 1;
+  // OwnerType is the owner principal type.
+  string owner_type = 2;
+  // OwnerId is the owner principal id.
+  string owner_id = 3;
+  // DisplayName is the resource display name when one exists.
+  string display_name = 4;
+  // ObjectType is the shared-object body/object type when relevant.
+  string object_type = 5;
+  // AccountPrivate reflects the shared-object account_private flag when relevant.
+  bool account_private = 6;
+}
+
+// ResourceOwnershipTransferredAuditMetadata describes a transfer action.
+message ResourceOwnershipTransferredAuditMetadata {
+  // PreviousOwnerType is the owner type before transfer.
+  string previous_owner_type = 1;
+  // PreviousOwnerId is the owner id before transfer.
+  string previous_owner_id = 2;
+  // NewOwnerType is the owner type after transfer.
+  string new_owner_type = 3;
+  // NewOwnerId is the owner id after transfer.
+  string new_owner_id = 4;
+}
+
+// SharedObjectChangedAuditMetadata describes shared-object metadata changes.
+message SharedObjectChangedAuditMetadata {
+  // ChangeType identifies the mutation kind.
+  string change_type = 1;
+  // DisplayName is the updated display name when present.
+  string display_name = 2;
+  // ObjectType is the SO object type when relevant.
+  string object_type = 3;
+  // PublicRead is the resulting public_read value when relevant.
+  bool public_read = 4;
+}
+
+// OrganizationChangedAuditMetadata describes organization mutations.
+message OrganizationChangedAuditMetadata {
+  // ChangeType identifies the org mutation kind.
+  string change_type = 1;
+  // OrganizationId is the affected organization.
+  string organization_id = 2;
+  // DisplayName is the org display name when relevant.
+  string display_name = 3;
+  // MemberAccountId is the affected member account when relevant.
+  string member_account_id = 4;
+  // InviteId is the affected invite id when relevant.
+  string invite_id = 5;
+}
+
+// BillingStatusChangedAuditMetadata describes billing lifecycle changes.
+message BillingStatusChangedAuditMetadata {
+  // BillingAccountId is the affected billing account.
+  string billing_account_id = 1;
+  // PreviousStatus is the prior subscription status.
+  string previous_status = 2;
+  // NewStatus is the new subscription status.
+  string new_status = 3;
+  // PreviousLifecycleState is the prior lifecycle state.
+  string previous_lifecycle_state = 4;
+  // NewLifecycleState is the new lifecycle state.
+  string new_lifecycle_state = 5;
+}
+
+// BillingAdminActionAuditMetadata describes admin-driven billing actions.
+message BillingAdminActionAuditMetadata {
+  // AdminAction identifies the admin action kind.
+  string admin_action = 1;
+  // BillingAccountId is the affected billing account when one exists.
+  string billing_account_id = 2;
+  // DisputeId is the affected dispute id when one exists.
+  string dispute_id = 3;
+  // DisputerId is the affected disputer row id when one exists.
+  string disputer_id = 4;
+}
+
+// GenericAuditMetadata is a minimal fallback summary payload.
+message GenericAuditMetadata {
+  // Summary is a short summary for generic actions.
+  string summary = 1;
+}
+
+// AuditEvent is one decoded admin-visible audit row.
+message AuditEvent {
+  // Id is the audit event ULID.
+  string id = 1;
+  // Action is the normalized action name.
+  string action = 2;
+  // ActorType is the normalized actor principal type.
+  string actor_type = 3;
+  // ActorId is the normalized actor principal id.
+  string actor_id = 4;
+  // ActorAccountId is the actor's backing account id when one exists.
+  string actor_account_id = 5;
+  // TargetType is the normalized target principal or resource type.
+  string target_type = 6;
+  // TargetId is the normalized target id.
+  string target_id = 7;
+  // Outcome is success, denied, or failed.
+  string outcome = 8;
+  // HttpStatus is the HTTP status code for the outcome.
+  int32 http_status = 9;
+  // ErrorCode is the stable audit error-code slug when one exists.
+  string error_code = 10;
+  // Metadata is the decoded audit metadata payload.
+  AuditEventMetadata metadata = 11;
+  // CreatedAtMs is the event creation timestamp in epoch milliseconds.
+  int64 created_at_ms = 12;
+}
+
+// ListAuditEventsResponse is the admin audit list response.
+message ListAuditEventsResponse {
+  // Events is the returned audit event page.
+  repeated AuditEvent events = 1;
+}

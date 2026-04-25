@@ -383,7 +383,7 @@ class TxRenameObject final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fworld_2fblock_2ftx_2ftx_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxRenameObject_class_data_;

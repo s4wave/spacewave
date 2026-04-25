@@ -1,0 +1,50 @@
+import type { BackendAPI } from '@aptre/bldr-sdk'
+import { TestbedRoot } from '../../../sdk/testbed/testbed.js'
+import testMain from './{{TEST_FILE_NAME}}'
+
+export default async function main(
+  backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
+) {
+  let testbedRoot: TestbedRoot | undefined
+  let success = false
+  let errorMsg = ''
+
+  try {
+    console.log('testbed wrapper: setting up resources client...')
+
+    // use the pre-configured resource client from the backend API
+    using rootResourceRef = await backendAPI.resourceClient.accessRootResource()
+    console.log('testbed wrapper: created root resource handle')
+
+    // create testbed root resource
+    testbedRoot = new TestbedRoot(rootResourceRef)
+    console.log('testbed wrapper: testbed root ready')
+
+    // run the test
+    console.log('testbed wrapper: running test...')
+    await testMain(backendAPI, abortSignal, testbedRoot)
+
+    success = true
+    console.log('testbed wrapper: test completed successfully')
+  } catch (err) {
+    success = false
+    errorMsg = String(err)
+    console.error('testbed wrapper: test failed:', err)
+  }
+
+  // report result to testbed root
+  try {
+    if (testbedRoot) {
+      console.log('testbed wrapper: marking test result...')
+      await testbedRoot.markTestResult(success, errorMsg)
+      console.log('testbed wrapper: test result marked')
+    }
+  } catch (err) {
+    console.error('testbed wrapper: failed to mark test result:', err)
+  }
+
+  if (!success) {
+    throw new Error('test failed: ' + errorMsg)
+  }
+}

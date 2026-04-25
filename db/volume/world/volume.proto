@@ -1,7 +1,6 @@
 syntax = "proto3";
 package volume.world;
 
-import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
 import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";

@@ -186,38 +186,36 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     "e/value.proto\022\013forge.value\0320github.com/s"
     "4wave/spacewave/db/block/block.proto\0322gi"
     "thub.com/s4wave/spacewave/db/bucket/buck"
-    "et.proto\0326github.com/s4wave/spacewave/db"
-    "/world/block/world.proto\"\315\001\n\005Value\022\014\n\004na"
-    "me\030\001 \001(\t\022*\n\nvalue_type\030\002 \001(\0162\026.forge.val"
-    "ue.ValueType\022\"\n\tblock_ref\030\003 \001(\0132\017.block."
-    "BlockRef\022%\n\nbucket_ref\030\004 \001(\0132\021.bucket.Ob"
-    "jectRef\022\?\n\025world_object_snapshot\030\005 \001(\0132 "
-    ".forge.value.WorldObjectSnapshot\"\?\n\006Resu"
-    "lt\022\017\n\007success\030\001 \001(\010\022\022\n\nfail_error\030\002 \001(\t\022"
-    "\020\n\010canceled\030\003 \001(\010\"\200\001\n\023WorldObjectSnapsho"
-    "t\022\013\n\003key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucke"
-    "t.ObjectRef\022\013\n\003rev\030\003 \001(\004\022\023\n\013object_type\030"
-    "\004 \001(\t\022\025\n\robject_parent\030\005 \001(\t*z\n\tValueTyp"
-    "e\022\025\n\021ValueType_UNKNOWN\020\000\022\027\n\023ValueType_BL"
-    "OCK_REF\020\001\022\030\n\024ValueType_BUCKET_REF\020\002\022#\n\037V"
-    "alueType_WORLD_OBJECT_SNAPSHOT\020\003b\006proto3"
+    "et.proto\"\315\001\n\005Value\022\014\n\004name\030\001 \001(\t\022*\n\nvalu"
+    "e_type\030\002 \001(\0162\026.forge.value.ValueType\022\"\n\t"
+    "block_ref\030\003 \001(\0132\017.block.BlockRef\022%\n\nbuck"
+    "et_ref\030\004 \001(\0132\021.bucket.ObjectRef\022\?\n\025world"
+    "_object_snapshot\030\005 \001(\0132 .forge.value.Wor"
+    "ldObjectSnapshot\"\?\n\006Result\022\017\n\007success\030\001 "
+    "\001(\010\022\022\n\nfail_error\030\002 \001(\t\022\020\n\010canceled\030\003 \001("
+    "\010\"\200\001\n\023WorldObjectSnapshot\022\013\n\003key\030\001 \001(\t\022#"
+    "\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\022\013\n\003r"
+    "ev\030\003 \001(\004\022\023\n\013object_type\030\004 \001(\t\022\025\n\robject_"
+    "parent\030\005 \001(\t*z\n\tValueType\022\025\n\021ValueType_U"
+    "NKNOWN\020\000\022\027\n\023ValueType_BLOCK_REF\020\001\022\030\n\024Val"
+    "ueType_BUCKET_REF\020\002\022#\n\037ValueType_WORLD_O"
+    "BJECT_SNAPSHOT\020\003b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto_deps[3] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
-        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fworld_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto = {
     false,
     false,
-    760,
+    704,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto,
     "github.com/s4wave/spacewave/forge/value/value.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fvalue_2fvalue_2eproto_deps,
-    3,
+    2,
     3,
     schemas,
     file_default_instances,

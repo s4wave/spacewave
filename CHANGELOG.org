@@ -1,0 +1,33 @@
+#+TITLE: Spacewave Changelog
+
+* v0.1.0 Alpha Launch
+<2026-04-18 Fri>
+
+Launch release of Spacewave with encrypted local-first storage, peer-to-peer
+sync, desktop and web clients, collaborative Spaces, and an extensible plugin
+platform.
+
+** Features
+
+- Drive: encrypted file storage and sync with drag-and-drop upload, projected
+  downloads, zip export, and real-time file watching.
+- Notes: offline-first markdown editing for notebooks, blog posts, and
+  documentation.
+- Chat: end-to-end encrypted messaging synced across linked devices.
+- Canvas: an infinite 2D workspace for visual thinking with embedded live
+  objects.
+- Git Viewer: repository browsing with branches, tags, commit history, and tree
+  views.
+- Media viewing: photo gallery support and inline image previews inside the app.
+- Session and account management: unified session details, account lifecycle
+  flows, recovery flows, passkey support, and session self-rejoin.
+- Organizations and collaboration: shared Spaces, invite flows, and role-based
+  access control.
+- System status dashboard: live application status surfaced from watched runtime
+  state.
+- Plugins and SDK: custom applications in TypeScript or Go with live reload
+  support.
+- CLI: command-line tools for managing Spaces, syncing files, and automating
+  workflows.
+- Desktop, web, and CLI builds from the same codebase.
+

@@ -204,8 +204,10 @@ describe('useResource', () => {
       root?.render(
         React.createElement(
           ResourcesProvider,
-          { client: client as never },
-          React.createElement(TestHandle, { factory }),
+          {
+            client: client as never,
+            children: React.createElement(TestHandle, { factory }),
+          },
         ),
       )
       await flush()
@@ -238,11 +240,13 @@ describe('useResource', () => {
       root?.render(
         React.createElement(
           ResourcesProvider,
-          { client: client as never },
-          React.createElement(TestHandle, {
-            factory,
-            retryOnReleasedResource: false,
-          }),
+          {
+            client: client as never,
+            children: React.createElement(TestHandle, {
+              factory,
+              retryOnReleasedResource: false,
+            }),
+          },
         ),
       )
       await flush()
@@ -456,13 +460,20 @@ describe('useResource', () => {
   })
 
   it('settles as not loading when the parent resolves to null', async () => {
-    const factory = vi.fn(async () => null)
+    const factory = vi.fn(
+      async (): Promise<{ version: number } | null> => null,
+    )
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(React.createElement(TestStreamValue, { factory, version: 1 }))
+      root?.render(
+        React.createElement(TestStreamValue, {
+          factory: factory as never,
+          version: 1,
+        }),
+      )
       await flush()
       await flush()
     })

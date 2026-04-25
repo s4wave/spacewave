@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Transfer Tests</title>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    const results = {}
+    window.__results = results
+
+    function log(msg) {
+      const el = document.getElementById('log')
+      const div = document.createElement('div')
+      div.textContent = msg
+      div.dataset.msg = msg
+      el.appendChild(div)
+    }
+
+    async function createLocalPeerPair() {
+      const pc1 = new RTCPeerConnection()
+      const pc2 = new RTCPeerConnection()
+
+      pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate) }
+      pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate) }
+
+      const dc1 = pc1.createDataChannel('test', { ordered: true })
+      const dc2Promise = new Promise((resolve) => {
+        pc2.ondatachannel = (e) => resolve(e.channel)
+      })
+
+      const offer = await pc1.createOffer()
+      await pc1.setLocalDescription(offer)
+      await pc2.setRemoteDescription(offer)
+      const answer = await pc2.createAnswer()
+      await pc2.setLocalDescription(answer)
+      await pc1.setRemoteDescription(answer)
+
+      const dc2 = await dc2Promise
+
+      await Promise.all([
+        dc1.readyState === 'open' ? Promise.resolve() : new Promise((r) => { dc1.onopen = r }),
+        dc2.readyState === 'open' ? Promise.resolve() : new Promise((r) => { dc2.onopen = r }),
+      ])
+
+      return { pc1, pc2, dc1, dc2 }
+    }
+
+    function workerMsg(worker, testName, result, timeout = 5000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout')), timeout)
+        const handler = (e) => {
+          if (e.data.test === testName && (!result || e.data.result === result)) {
+            clearTimeout(timer)
+            worker.removeEventListener('message', handler)
+            resolve(e.data)
+          }
+        }
+        worker.addEventListener('message', handler)
+      })
+    }
+
+    // Collect worker messages until we get a terminal result or timeout.
+    // Terminal results: 'sent', 'data-received', 'error', 'closed'.
+    // settleDelay: after first terminal message, wait this long for more.
+    function allWorkerMsgs(worker, testName, timeout = 5000, settleDelay = 500) {
+      return new Promise((resolve) => {
+        const msgs = []
+        let settleTimer = null
+        const handler = (e) => {
+          if (e.data.test === testName) {
+            msgs.push(e.data)
+            const r = e.data.result
+            if (r === 'sent' || r === 'data-received' || r === 'error' || r === 'closed') {
+              // Got a terminal message; give a bit more time for stragglers
+              clearTimeout(settleTimer)
+              settleTimer = setTimeout(finish, settleDelay)
+            }
+          }
+        }
+        const maxTimer = setTimeout(finish, timeout)
+        function finish() {
+          clearTimeout(maxTimer)
+          clearTimeout(settleTimer)
+          worker.removeEventListener('message', handler)
+          resolve(msgs)
+        }
+        worker.addEventListener('message', handler)
+      })
+    }
+
+    // Test: Transfer RTCDataChannel with legacy array syntax
+    async function testDCTransferLegacy() {
+      const name = 'dc-transfer-legacy'
+      log(`TEST:${name}:start`)
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer')
+
+        worker.postMessage(
+          { test: 'dc-transfer', payload: { dataChannel: dc2 } },
+          [dc2]
+        )
+
+        // Send data (worker may need to wait for onopen if DC resets to connecting)
+        dc1.send('ping from main')
+
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const sent = msgs.find((m) => m.result === 'sent')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        // Check dc2 is neutered
+        let neutered = false
+        try { dc2.send('x') } catch { neutered = true }
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          sent: !!sent,
+          dataReceived: !!dataRx,
+          neutered,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer RTCDataChannel with options syntax {transfer: [...]}
+    async function testDCTransferOptions() {
+      const name = 'dc-transfer-options'
+      log(`TEST:${name}:start`)
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer-options')
+
+        worker.postMessage(
+          { test: 'dc-transfer-options', payload: { dataChannel: dc2 } },
+          { transfer: [dc2] }
+        )
+
+        // Send data (worker may need to wait for onopen if DC resets to connecting)
+        dc1.send('ping from main via options')
+
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const sent = msgs.find((m) => m.result === 'sent')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        let neutered = false
+        try { dc2.send('x') } catch { neutered = true }
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          sent: !!sent,
+          dataReceived: !!dataRx,
+          neutered,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer RTCDataChannel as top-level (not nested)
+    async function testDCTransferTopLevel() {
+      const name = 'dc-transfer-top-level'
+      log(`TEST:${name}:start`)
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        const msgCollector = allWorkerMsgs(worker, 'dc-top-level')
+
+        worker.postMessage(
+          { test: 'dc-top-level', dataChannel: dc2 },
+          { transfer: [dc2] }
+        )
+
+        // Send data from dc1 (the DC might re-open in the worker)
+        dc1.send('ping from main top-level')
+
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const opened = msgs.find((m) => m.result === 'opened')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (opened) log(`TEST:${name}:worker-dc-opened`)
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          opened: !!opened,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer the OFFERER's data channel (dc1 instead of dc2)
+    async function testDCTransferOfferer() {
+      const name = 'dc-transfer-offerer'
+      log(`TEST:${name}:start`)
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer')
+
+        worker.postMessage(
+          { test: 'dc-transfer', payload: { dataChannel: dc1 } },
+          { transfer: [dc1] }
+        )
+
+        // Send data from answerer side
+        dc2.send('ping from main to offerer dc')
+
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const opened = msgs.find((m) => m.result === 'opened')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (opened) log(`TEST:${name}:worker-dc-opened`)
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          opened: !!opened,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer offerer DC immediately after createDataChannel (before signaling)
+    async function testDCTransferEarlyOfferer() {
+      const name = 'dc-transfer-early-offerer'
+      log(`TEST:${name}:start`)
+      const pc1 = new RTCPeerConnection()
+      const pc2 = new RTCPeerConnection()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate) }
+        pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate) }
+
+        // Create DC and transfer IMMEDIATELY, before any signaling
+        const dc1 = pc1.createDataChannel('early-test', { ordered: true })
+        log(`TEST:${name}:dc1-created:readyState=${dc1.readyState}`)
+
+        // Start collecting messages BEFORE transfer to avoid race
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer')
+
+        worker.postMessage(
+          { test: 'dc-transfer', payload: { dataChannel: dc1 } },
+          { transfer: [dc1] }
+        )
+
+        // Now do signaling AFTER the transfer
+        const dc2Promise = new Promise((resolve) => {
+          pc2.ondatachannel = (e) => resolve(e.channel)
+        })
+        const offer = await pc1.createOffer()
+        await pc1.setLocalDescription(offer)
+        await pc2.setRemoteDescription(offer)
+        const answer = await pc2.createAnswer()
+        await pc2.setLocalDescription(answer)
+        await pc1.setRemoteDescription(answer)
+
+        const dc2 = await dc2Promise
+        await new Promise((resolve) => {
+          if (dc2.readyState === 'open') resolve()
+          else dc2.onopen = resolve
+        })
+
+        // Send from dc2 to the transferred dc1 in the worker
+        dc2.send('hello from main to early-transferred dc')
+
+        // Wait for all messages
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const sent = msgs.find((m) => m.result === 'sent')
+        const opened = msgs.find((m) => m.result === 'opened')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (opened) log(`TEST:${name}:worker-dc-opened`)
+        if (sent) log(`TEST:${name}:worker-sent`)
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        let neutered = false
+        try { dc1.send('x') } catch { neutered = true }
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          opened: !!opened,
+          sent: !!sent,
+          dataReceived: !!dataRx,
+          neutered,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}:neutered=${neutered}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer answerer DC immediately from ondatachannel (before open)
+    async function testDCTransferEarlyAnswerer() {
+      const name = 'dc-transfer-early-answerer'
+      log(`TEST:${name}:start`)
+      const pc1 = new RTCPeerConnection()
+      const pc2 = new RTCPeerConnection()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate) }
+        pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate) }
+
+        const dc1 = pc1.createDataChannel('early-ans-test', { ordered: true })
+
+        // Start collecting messages BEFORE transfer to avoid race
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer')
+
+        // Transfer dc2 IMMEDIATELY when ondatachannel fires (before open)
+        const transferDone = new Promise((resolve) => {
+          pc2.ondatachannel = (e) => {
+            const dc2 = e.channel
+            log(`TEST:${name}:dc2-received:readyState=${dc2.readyState}`)
+            worker.postMessage(
+              { test: 'dc-transfer', payload: { dataChannel: dc2 } },
+              { transfer: [dc2] }
+            )
+            resolve()
+          }
+        })
+
+        const offer = await pc1.createOffer()
+        await pc1.setLocalDescription(offer)
+        await pc2.setRemoteDescription(offer)
+        const answer = await pc2.createAnswer()
+        await pc2.setLocalDescription(answer)
+        await pc1.setRemoteDescription(answer)
+
+        await transferDone
+
+        // Wait for dc1 to open
+        await new Promise((resolve) => {
+          if (dc1.readyState === 'open') resolve()
+          else dc1.onopen = resolve
+        })
+
+        // Send data from dc1 to transferred dc2
+        dc1.send('hello from main to early-answerer dc')
+
+        // Wait for all messages
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const opened = msgs.find((m) => m.result === 'opened')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (opened) log(`TEST:${name}:worker-dc-opened`)
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          opened: !!opened,
+          dataReceived: !!dataRx,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer negotiated DC (both sides use same ID, like bifrost)
+    async function testDCTransferNegotiated() {
+      const name = 'dc-transfer-negotiated'
+      log(`TEST:${name}:start`)
+      const pc1 = new RTCPeerConnection()
+      const pc2 = new RTCPeerConnection()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate) }
+        pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate) }
+
+        // Negotiated DC: both sides create with same ID (bifrost pattern)
+        const negotiated = true
+        const id = 0
+        const dcOpts = { negotiated, id, ordered: false, protocol: 'bifrost-quic' }
+
+        const dc1 = pc1.createDataChannel('bifrost-quic', dcOpts)
+        const dc2 = pc2.createDataChannel('bifrost-quic', dcOpts)
+        log(`TEST:${name}:dc1-created:readyState=${dc1.readyState}`)
+        log(`TEST:${name}:dc2-created:readyState=${dc2.readyState}`)
+
+        // Start collecting messages BEFORE transfer to avoid race
+        const msgCollector = allWorkerMsgs(worker, 'dc-transfer')
+
+        // Transfer dc1 IMMEDIATELY (before signaling)
+        worker.postMessage(
+          { test: 'dc-transfer', payload: { dataChannel: dc1 } },
+          { transfer: [dc1] }
+        )
+
+        // Signaling
+        const offer = await pc1.createOffer()
+        await pc1.setLocalDescription(offer)
+        await pc2.setRemoteDescription(offer)
+        const answer = await pc2.createAnswer()
+        await pc2.setLocalDescription(answer)
+        await pc1.setRemoteDescription(answer)
+
+        // Wait for dc2 to open
+        await new Promise((resolve) => {
+          if (dc2.readyState === 'open') resolve()
+          else dc2.onopen = resolve
+        })
+
+        // Send from dc2 (main) to dc1 (worker) once dc2 is open
+        dc2.send('hello from main to negotiated dc in worker')
+
+        // Wait for all messages
+        const msgs = await msgCollector
+        const received = msgs.find((m) => m.result === 'received')
+        const opened = msgs.find((m) => m.result === 'opened')
+        const sent = msgs.find((m) => m.result === 'sent')
+        const dataRx = msgs.find((m) => m.result === 'data-received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.readyState}`)
+        }
+        if (opened) log(`TEST:${name}:worker-dc-opened`)
+        if (sent) log(`TEST:${name}:worker-sent`)
+        if (dataRx) log(`TEST:${name}:worker-rx-data:${dataRx.data}`)
+
+        let neutered = false
+        try { dc1.send('x') } catch { neutered = true }
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          opened: !!opened,
+          sent: !!sent,
+          dataReceived: !!dataRx,
+          neutered,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}:neutered=${neutered}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Transfer RTCPeerConnection
+    async function testPCTransfer() {
+      const name = 'pc-transfer'
+      log(`TEST:${name}:start`)
+      const pc = new RTCPeerConnection()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        worker.postMessage(
+          { test: 'pc-transfer', payload: { peerConnection: pc } },
+          { transfer: [pc] }
+        )
+
+        const msgs = await allWorkerMsgs(worker, 'pc-transfer', 3000)
+        const received = msgs.find((m) => m.result === 'received')
+
+        if (received) {
+          log(`TEST:${name}:worker-received:${received.constructorName}:${received.signalingState}`)
+        }
+
+        results[name] = {
+          pass: !!received,
+          received: received || null,
+          error: null,
+        }
+        log(`TEST:${name}:${received ? 'PASS' : 'FAIL'}`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc.close()
+      }
+    }
+
+    // Test: MessagePort pipe (text + binary, full duplex)
+    async function testMessagePortPipe() {
+      const name = 'msgport-pipe'
+      log(`TEST:${name}:start`)
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = new Worker('/workers/transfer-test.js')
+
+      try {
+        dc1.binaryType = 'arraybuffer'
+        dc2.binaryType = 'arraybuffer'
+
+        const { port1: mainPort, port2: workerPort } = new MessageChannel()
+
+        // Pipe: mainPort <-> dc2
+        dc2.onmessage = (e) => {
+          if (e.data instanceof ArrayBuffer) {
+            mainPort.postMessage(e.data, [e.data])
+          } else {
+            mainPort.postMessage(e.data)
+          }
+        }
+        mainPort.onmessage = (e) => {
+          if (dc2.readyState !== 'open') return
+          if (e.data instanceof ArrayBuffer) {
+            dc2.send(new Uint8Array(e.data))
+          } else {
+            dc2.send(e.data)
+          }
+        }
+        mainPort.start()
+
+        worker.postMessage(
+          { test: 'msgport-pipe', payload: { port: workerPort } },
+          { transfer: [workerPort] }
+        )
+
+        // Worker sends text
+        const received = await workerMsg(worker, 'msgport-pipe', 'received', 3000)
+        log(`TEST:${name}:worker-received:${received.constructorName}`)
+
+        const sent = await workerMsg(worker, 'msgport-pipe', 'sent', 3000)
+
+        // dc1 should receive what worker sent (via dc2 pipe)
+        const dc1TextPromise = new Promise((resolve) => {
+          dc1.onmessage = (e) => resolve(e.data)
+        })
+        const workerText = await dc1TextPromise
+        log(`TEST:${name}:main-rx-text:${workerText}`)
+
+        // Send text from dc1 -> dc2 -> pipe -> worker
+        dc1.send('text-from-main')
+        const textRx = await workerMsg(worker, 'msgport-pipe', 'data-received', 3000)
+        log(`TEST:${name}:worker-rx-text:${textRx.data}`)
+
+        // Send binary from dc1 -> dc2 -> pipe -> worker
+        const binData = new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF])
+        dc1.onmessage = null // clear
+        dc1.send(binData)
+        const binRx = await workerMsg(worker, 'msgport-pipe', 'data-received', 3000)
+        log(`TEST:${name}:worker-rx-binary:${binRx.data}`)
+
+        // Worker echoed the binary back, check we get it on dc1
+        const dc1BinPromise = new Promise((resolve) => {
+          dc1.onmessage = (e) => resolve(e.data)
+        })
+        const echoedBin = await dc1BinPromise
+        const echoBuf = new Uint8Array(echoedBin)
+        const binMatch = echoBuf[0] === 0xDE && echoBuf[1] === 0xAD &&
+                          echoBuf[2] === 0xBE && echoBuf[3] === 0xEF
+        log(`TEST:${name}:binary-roundtrip:${binMatch ? 'match' : 'mismatch'}`)
+
+        results[name] = {
+          pass: true,
+          textRoundTrip: true,
+          binaryRoundTrip: binMatch,
+          error: null,
+        }
+        log(`TEST:${name}:PASS`)
+      } catch (err) {
+        results[name] = { pass: false, error: err.message }
+        log(`TEST:${name}:FAIL:${err.message}`)
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    // Test: Check API availability
+    async function testAPIAvailability() {
+      const name = 'api-availability'
+      log(`TEST:${name}:start`)
+
+      const apis = {
+        RTCPeerConnection: typeof RTCPeerConnection !== 'undefined',
+        RTCDataChannel: typeof RTCDataChannel !== 'undefined',
+        RTCSessionDescription: typeof RTCSessionDescription !== 'undefined',
+        RTCIceCandidate: typeof RTCIceCandidate !== 'undefined',
+        RTCRtpScriptTransform: typeof RTCRtpScriptTransform !== 'undefined',
+        MessageChannel: typeof MessageChannel !== 'undefined',
+        Worker: typeof Worker !== 'undefined',
+      }
+
+      for (const [api, avail] of Object.entries(apis)) {
+        log(`TEST:${name}:${api}:${avail ? 'YES' : 'NO'}`)
+      }
+
+      results[name] = apis
+      log(`TEST:${name}:PASS`)
+    }
+
+    async function run() {
+      log('STARTED')
+      try {
+        await testAPIAvailability()
+        await testDCTransferEarlyOfferer()
+        await testDCTransferEarlyAnswerer()
+        await testDCTransferNegotiated()
+        await testDCTransferLegacy()
+        await testDCTransferOptions()
+        await testDCTransferTopLevel()
+        await testDCTransferOfferer()
+        await testPCTransfer()
+        await testMessagePortPipe()
+      } catch (err) {
+        log(`FATAL:${err.message}`)
+      }
+      log('DONE')
+    }
+
+    run()
+  </script>
+</body>
+</html>

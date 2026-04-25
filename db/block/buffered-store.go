@@ -7,10 +7,10 @@ import (
 	"slices"
 	"sync/atomic"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 type pendingBlock struct {

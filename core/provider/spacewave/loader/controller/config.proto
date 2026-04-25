@@ -1,0 +1,28 @@
+syntax = "proto3";
+package spacewave.loader.controller;
+
+// Config configures the loader controller.
+//
+// The loader controller spawns the cross-platform spacewave-helper binary in
+// --loading mode during plugin bootstrap and terminates it when the app is
+// ready or the controller's context is canceled. It is expected to run
+// embedded in the shipped launcher binary so the loading UI is visible from
+// the first moments after launch while plugins stream in from the remote
+// world.
+message Config {
+  // ProjectId is the project identifier used to locate the
+  // platform-appropriate storage root for the helper's pipesock endpoint.
+  // Defaults to "spacewave" when empty.
+  string project_id = 1;
+  // HelperBinaryName overrides the helper binary lookup name. Defaults to
+  // "spacewave-helper" (".exe" on Windows).
+  string helper_binary_name = 2;
+  // WatchPluginIds are the plugin ids whose LoadPlugin directive state is
+  // observed to drive the loading progress bar. When all listed plugins
+  // become running, the helper is dismissed. When empty, defaults to the
+  // stock Spacewave set (spacewave-core, spacewave-web, spacewave-app, web).
+  repeated string watch_plugin_ids = 3;
+  // IconPath is an optional path to a platform icon file. When empty, the
+  // helper window renders without an app icon.
+  string icon_path = 4;
+}

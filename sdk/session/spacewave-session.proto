@@ -1,0 +1,79 @@
+syntax = "proto3";
+package s4wave.session;
+
+import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
+import "github.com/s4wave/spacewave/sdk/session/shared-object-self-enrollment.proto";
+
+service SpacewaveSessionResourceService {
+  rpc WatchOnboardingStatus(.s4wave.provider.spacewave.WatchOnboardingStatusRequest) returns (stream .s4wave.provider.spacewave.WatchOnboardingStatusResponse);
+  rpc CreateLinkedLocalSession(.s4wave.provider.spacewave.CreateLinkedLocalSessionRequest) returns (.s4wave.provider.spacewave.CreateLinkedLocalSessionResponse);
+  rpc GetLinkedLocalSession(.s4wave.provider.spacewave.GetLinkedLocalSessionRequest) returns (.s4wave.provider.spacewave.GetLinkedLocalSessionResponse);
+  rpc UnlinkLocalSession(.s4wave.provider.spacewave.UnlinkLocalSessionRequest) returns (.s4wave.provider.spacewave.UnlinkLocalSessionResponse);
+
+  rpc CreateCheckoutSession(.s4wave.provider.spacewave.CreateCheckoutSessionRequest) returns (.s4wave.provider.spacewave.CreateCheckoutSessionResponse);
+  rpc CancelCheckoutSession(.s4wave.provider.spacewave.CancelCheckoutSessionRequest) returns (.s4wave.provider.spacewave.CancelCheckoutSessionResponse);
+  rpc WatchSubscriptionStatus(.s4wave.provider.spacewave.WatchSubscriptionStatusRequest) returns (stream .s4wave.provider.spacewave.WatchSubscriptionStatusResponse);
+  rpc WatchBillingState(.s4wave.provider.spacewave.WatchBillingStateRequest) returns (stream .s4wave.provider.spacewave.WatchBillingStateResponse);
+  rpc WatchCheckoutStatus(.s4wave.provider.spacewave.WatchCheckoutStatusRequest) returns (stream .s4wave.provider.spacewave.WatchCheckoutStatusResponse);
+  rpc RefreshBillingState(.s4wave.provider.spacewave.RefreshBillingStateRequest) returns (.s4wave.provider.spacewave.RefreshBillingStateResponse);
+  rpc CancelSubscription(.s4wave.provider.spacewave.CancelSubscriptionRequest) returns (.s4wave.provider.spacewave.CancelSubscriptionResponse);
+  rpc ReactivateSubscription(.s4wave.provider.spacewave.ReactivateSubscriptionRequest) returns (.s4wave.provider.spacewave.ReactivateSubscriptionResponse);
+  rpc SwitchBillingInterval(.s4wave.provider.spacewave.SwitchBillingIntervalRequest) returns (.s4wave.provider.spacewave.SwitchBillingIntervalResponse);
+  rpc CreateBillingPortal(.s4wave.provider.spacewave.CreateBillingPortalRequest) returns (.s4wave.provider.spacewave.CreateBillingPortalResponse);
+  rpc CreateBillingAccount(.s4wave.provider.spacewave.CreateBillingAccountRequest) returns (.s4wave.provider.spacewave.CreateBillingAccountResponse);
+  rpc ListManagedBillingAccounts(.s4wave.provider.spacewave.ListManagedBillingAccountsRequest) returns (.s4wave.provider.spacewave.ListManagedBillingAccountsResponse);
+  rpc AssignBillingAccount(.s4wave.provider.spacewave.AssignBillingAccountRequest) returns (.s4wave.provider.spacewave.AssignBillingAccountResponse);
+  rpc DetachBillingAccount(.s4wave.provider.spacewave.DetachBillingAccountRequest) returns (.s4wave.provider.spacewave.DetachBillingAccountResponse);
+  rpc RenameBillingAccount(.s4wave.provider.spacewave.RenameBillingAccountRequest) returns (.s4wave.provider.spacewave.RenameBillingAccountResponse);
+  rpc DeleteBillingAccount(.s4wave.provider.spacewave.DeleteBillingAccountRequest) returns (.s4wave.provider.spacewave.DeleteBillingAccountResponse);
+  rpc RequestDeleteNowEmail(.s4wave.provider.spacewave.RequestDeleteNowEmailRequest) returns (.s4wave.provider.spacewave.RequestDeleteNowEmailResponse);
+  rpc ConfirmDeleteNowCode(.s4wave.provider.spacewave.ConfirmDeleteNowCodeRequest) returns (.s4wave.provider.spacewave.ConfirmDeleteNowCodeResponse);
+  rpc UndoDeleteNow(.s4wave.provider.spacewave.UndoDeleteNowRequest) returns (.s4wave.provider.spacewave.UndoDeleteNowResponse);
+
+  rpc WatchOrganizations(.s4wave.provider.spacewave.WatchOrganizationsRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationsResponse);
+  rpc CreateOrganization(.s4wave.provider.spacewave.CreateOrganizationRequest) returns (.s4wave.provider.spacewave.CreateOrganizationResponse);
+  rpc WatchOrganizationState(.s4wave.provider.spacewave.WatchOrganizationStateRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationStateResponse);
+  rpc DeleteOrganization(.s4wave.provider.spacewave.DeleteOrganizationRequest) returns (.s4wave.provider.spacewave.DeleteOrganizationResponse);
+  rpc CreateOrgInvite(.s4wave.provider.spacewave.CreateOrgInviteRequest) returns (.s4wave.provider.spacewave.CreateOrgInviteResponse);
+  rpc JoinOrganization(.s4wave.provider.spacewave.JoinOrganizationRequest) returns (.s4wave.provider.spacewave.JoinOrganizationResponse);
+  rpc RevokeOrgInvite(.s4wave.provider.spacewave.RevokeOrgInviteRequest) returns (.s4wave.provider.spacewave.RevokeOrgInviteResponse);
+  rpc LeaveOrganization(.s4wave.provider.spacewave.LeaveOrganizationRequest) returns (.s4wave.provider.spacewave.LeaveOrganizationResponse);
+  rpc RemoveOrgMember(.s4wave.provider.spacewave.RemoveOrgMemberRequest) returns (.s4wave.provider.spacewave.RemoveOrgMemberResponse);
+  rpc UpdateOrganization(.s4wave.provider.spacewave.UpdateOrganizationRequest) returns (.s4wave.provider.spacewave.UpdateOrganizationResponse);
+  rpc TransferResource(.s4wave.provider.spacewave.TransferResourceRequest) returns (.s4wave.provider.spacewave.TransferResourceResponse);
+
+  rpc RepairSharedObject(.s4wave.provider.spacewave.RepairSharedObjectRequest) returns (.s4wave.provider.spacewave.RepairSharedObjectResponse);
+  rpc ReinitializeSharedObject(.s4wave.provider.spacewave.ReinitializeSharedObjectRequest) returns (.s4wave.provider.spacewave.ReinitializeSharedObjectResponse);
+  rpc MountSharedObjectSelfEnrollment(MountSharedObjectSelfEnrollmentRequest) returns (MountSharedObjectSelfEnrollmentResponse);
+
+  rpc WatchEmails(.s4wave.provider.spacewave.WatchEmailsRequest) returns (stream .s4wave.provider.spacewave.WatchEmailsResponse);
+  rpc SendVerificationEmail(.s4wave.provider.spacewave.SendVerificationEmailRequest) returns (.s4wave.provider.spacewave.SendVerificationEmailResponse);
+  rpc VerifyEmailCode(.s4wave.provider.spacewave.VerifyEmailCodeRequest) returns (.s4wave.provider.spacewave.VerifyEmailCodeResponse);
+  rpc AddEmail(.s4wave.provider.spacewave.AddEmailRequest) returns (.s4wave.provider.spacewave.AddEmailResponse);
+  rpc RemoveEmail(.s4wave.provider.spacewave.RemoveEmailRequest) returns (.s4wave.provider.spacewave.RemoveEmailResponse);
+  rpc SetPrimaryEmail(.s4wave.provider.spacewave.SetPrimaryEmailRequest) returns (.s4wave.provider.spacewave.SetPrimaryEmailResponse);
+
+  rpc EnrollSpaceMember(.s4wave.provider.spacewave.EnrollSpaceMemberRequest) returns (.s4wave.provider.spacewave.EnrollSpaceMemberResponse);
+  rpc RemoveSpaceMember(.s4wave.provider.spacewave.RemoveSpaceMemberRequest) returns (.s4wave.provider.spacewave.RemoveSpaceMemberResponse);
+  rpc LookupInviteCode(.s4wave.provider.spacewave.LookupInviteCodeRequest) returns (.s4wave.provider.spacewave.LookupInviteCodeResponse);
+  rpc ProcessMailboxEntry(.s4wave.provider.spacewave.ProcessMailboxEntryRequest) returns (.s4wave.provider.spacewave.ProcessMailboxEntryResponse);
+
+  rpc StartDesktopSSOLink(.s4wave.provider.spacewave.StartDesktopSSOLinkRequest) returns (.s4wave.provider.spacewave.StartDesktopSSOLinkResponse);
+  rpc StartDesktopPasskeyReauth(.s4wave.provider.spacewave.StartDesktopPasskeyReauthRequest) returns (.s4wave.provider.spacewave.StartDesktopPasskeyReauthResponse);
+
+  rpc EncryptForHandoff(.s4wave.provider.spacewave.EncryptForHandoffRequest) returns (.s4wave.provider.spacewave.EncryptForHandoffResponse);
+  // PreviewSpaceLink verifies a SpaceLink ticket for trusted UI display.
+  rpc PreviewSpaceLink(.s4wave.provider.spacewave.PreviewSpaceLinkRequest) returns (.s4wave.provider.spacewave.PreviewSpaceLinkResponse);
+  // ApproveSpaceLink approves a SpaceLink ticket for a target Space.
+  rpc ApproveSpaceLink(.s4wave.provider.spacewave.ApproveSpaceLinkRequest) returns (.s4wave.provider.spacewave.ApproveSpaceLinkResponse);
+  rpc ResetSession(.s4wave.provider.spacewave.ResetSessionRequest) returns (.s4wave.provider.spacewave.ResetSessionResponse);
+}
+
+// MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.
+message MountSharedObjectSelfEnrollmentRequest {}
+
+// MountSharedObjectSelfEnrollmentResponse is the response for MountSharedObjectSelfEnrollment.
+message MountSharedObjectSelfEnrollmentResponse {
+  // ResourceId is the mounted shared-object self-enrollment resource id.
+  uint32 resource_id = 1;
+}

@@ -357,15 +357,15 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "omRequest\032).bldr.plugin.host.AccessState"
     "AtomResponse\022`\n\rGetPluginInfo\022&.bldr.plu"
     "gin.host.GetPluginInfoRequest\032\'.bldr.plu"
-    "gin.host.GetPluginInfoResponseB2Z0github"
+    "gin.host.GetPluginInfoResponseBCZAgithub"
     ".com/s4wave/spacewave/bldr/sdk/plugin/ho"
-    "stb\006proto3"
+    "st;bldr_plugin_hostb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
     false,
     false,
-    1050,
+    1067,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,

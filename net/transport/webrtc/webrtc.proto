@@ -3,7 +3,6 @@ package webrtc;
 
 import "github.com/s4wave/spacewave/net/transport/common/quic/quic.proto";
 import "github.com/s4wave/spacewave/net/transport/common/dialer/dialer.proto";
-import "github.com/s4wave/spacewave/net/stream/srpc/client/client.proto";
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 
 // Config is the configuration for the WebRTC Signal RPC transport.

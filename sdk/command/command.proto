@@ -1,0 +1,31 @@
+syntax = "proto3";
+package s4wave.command;
+
+// Command is the metadata for a registered command.
+message Command {
+  // CommandId is the unique reverse-domain command identifier.
+  // e.g. "spacewave.file.save", "notes.new-note"
+  string command_id = 1;
+  // Label is the human-readable display name.
+  string label = 2;
+  // Keybinding is the default key combination.
+  // Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
+  // CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
+  string keybinding = 3;
+  // MenuPath is the menu placement path.
+  // Format: "File/Save", "File/Export/PDF", "View/Toggle Sidebar"
+  // Empty means the command is not in any menu.
+  string menu_path = 4;
+  // MenuGroup controls separator placement within a menu level.
+  // Commands with the same group are visually grouped together.
+  uint32 menu_group = 5;
+  // MenuOrder controls ordering within a group.
+  uint32 menu_order = 6;
+  // Icon is an optional icon identifier.
+  string icon = 7;
+  // Description is an optional longer description for the palette.
+  string description = 8;
+  // HasSubItems indicates the command has a sub-item list in the palette.
+  // When selected, the palette replaces the command list with sub-items.
+  bool has_sub_items = 9;
+}

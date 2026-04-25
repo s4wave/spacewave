@@ -717,11 +717,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace rpc
 }  // namespace block
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = nullptr;
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = nullptr;
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = nullptr;
 const ::uint32_t
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x000, // bitmap
         0x081, // bitmap
@@ -931,99 +931,99 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::block::rpc::_EndDeferFlushRequest_default_instance_._instance,
     &::block::rpc::_EndDeferFlushResponse_default_instance_._instance,
 };
-const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
+const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n7github.com/s4wave/spacewave/db/bloc"
-    "k/rpc/block.proto\022\tblock.rpc\0323github.com"
-    "/aperturerobotics/bifrost/hash/hash.prot"
-    "o\0323github.com/s4wave/spacewave/db/blo"
-    "ck/block.proto\"\024\n\022GetHashTypeRequest\"8\n\023"
-    "GetHashTypeResponse\022!\n\thash_type\030\001 \001(\0162\016"
-    ".hash.HashType\"\035\n\033GetSupportedFeaturesRe"
-    "quest\"E\n\034GetSupportedFeaturesResponse\022%\n"
-    "\010features\030\001 \001(\0162\023.block.StoreFeature\"A\n\017"
-    "PutBlockRequest\022\014\n\004data\030\001 \001(\014\022 \n\010put_opt"
-    "s\030\002 \001(\0132\016.block.PutOpts\"P\n\020PutBlockRespo"
-    "nse\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\017\n\007exi"
-    "sted\030\002 \001(\010\022\r\n\005error\030\003 \001(\t\"r\n\022PutBlockBat"
-    "chEntry\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\014\n"
-    "\004data\030\002 \001(\014\022\035\n\004refs\030\003 \003(\0132\017.block.BlockR"
-    "ef\022\021\n\ttombstone\030\004 \001(\010\"F\n\024PutBlockBatchRe"
-    "quest\022.\n\007entries\030\001 \003(\0132\035.block.rpc.PutBl"
-    "ockBatchEntry\"&\n\025PutBlockBatchResponse\022\r"
-    "\n\005error\030\001 \001(\t\"K\n\031PutBlockBackgroundReque"
-    "st\022\014\n\004data\030\001 \001(\014\022 \n\010put_opts\030\002 \001(\0132\016.blo"
-    "ck.PutOpts\"Z\n\032PutBlockBackgroundResponse"
-    "\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\017\n\007existe"
-    "d\030\002 \001(\010\022\r\n\005error\030\003 \001(\t\"/\n\017GetBlockReques"
-    "t\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\"\?\n\020GetBl"
-    "ockResponse\022\016\n\006exists\030\001 \001(\010\022\014\n\004data\030\002 \001("
-    "\014\022\r\n\005error\030\003 \001(\t\"5\n\025GetBlockExistsReques"
-    "t\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\"7\n\026GetBl"
-    "ockExistsResponse\022\016\n\006exists\030\001 \001(\010\022\r\n\005err"
-    "or\030\002 \001(\t\";\n\032GetBlockExistsBatchRequest\022\035"
-    "\n\004refs\030\001 \003(\0132\017.block.BlockRef\"<\n\033GetBloc"
-    "kExistsBatchResponse\022\016\n\006exists\030\001 \003(\010\022\r\n\005"
-    "error\030\002 \001(\t\".\n\016RmBlockRequest\022\034\n\003ref\030\001 \001"
-    "(\0132\017.block.BlockRef\" \n\017RmBlockResponse\022\r"
-    "\n\005error\030\001 \001(\t\"0\n\020StatBlockRequest\022\034\n\003ref"
-    "\030\001 \001(\0132\017.block.BlockRef\"^\n\021StatBlockResp"
-    "onse\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\022\014\n\004si"
-    "ze\030\002 \001(\003\022\016\n\006exists\030\003 \001(\010\022\r\n\005error\030\004 \001(\t\""
-    "\016\n\014FlushRequest\"\036\n\rFlushResponse\022\r\n\005erro"
-    "r\030\001 \001(\t\"\030\n\026BeginDeferFlushRequest\"(\n\027Beg"
-    "inDeferFlushResponse\022\r\n\005error\030\001 \001(\t\"\026\n\024E"
-    "ndDeferFlushRequest\"&\n\025EndDeferFlushResp"
-    "onse\022\r\n\005error\030\001 \001(\t2\265\010\n\nBlockStore\022L\n\013Ge"
-    "tHashType\022\035.block.rpc.GetHashTypeRequest"
-    "\032\036.block.rpc.GetHashTypeResponse\022g\n\024GetS"
-    "upportedFeatures\022&.block.rpc.GetSupporte"
-    "dFeaturesRequest\032\'.block.rpc.GetSupporte"
-    "dFeaturesResponse\022C\n\010PutBlock\022\032.block.rp"
-    "c.PutBlockRequest\032\033.block.rpc.PutBlockRe"
-    "sponse\022R\n\rPutBlockBatch\022\037.block.rpc.PutB"
-    "lockBatchRequest\032 .block.rpc.PutBlockBat"
-    "chResponse\022a\n\022PutBlockBackground\022$.block"
-    ".rpc.PutBlockBackgroundRequest\032%.block.r"
-    "pc.PutBlockBackgroundResponse\022C\n\010GetBloc"
-    "k\022\032.block.rpc.GetBlockRequest\032\033.block.rp"
-    "c.GetBlockResponse\022U\n\016GetBlockExists\022 .b"
-    "lock.rpc.GetBlockExistsRequest\032!.block.r"
-    "pc.GetBlockExistsResponse\022d\n\023GetBlockExi"
-    "stsBatch\022%.block.rpc.GetBlockExistsBatch"
-    "Request\032&.block.rpc.GetBlockExistsBatchR"
-    "esponse\022@\n\007RmBlock\022\031.block.rpc.RmBlockRe"
-    "quest\032\032.block.rpc.RmBlockResponse\022F\n\tSta"
-    "tBlock\022\033.block.rpc.StatBlockRequest\032\034.bl"
-    "ock.rpc.StatBlockResponse\022:\n\005Flush\022\027.blo"
-    "ck.rpc.FlushRequest\032\030.block.rpc.FlushRes"
-    "ponse\022X\n\017BeginDeferFlush\022!.block.rpc.Beg"
-    "inDeferFlushRequest\032\".block.rpc.BeginDef"
-    "erFlushResponse\022R\n\rEndDeferFlush\022\037.block"
-    ".rpc.EndDeferFlushRequest\032 .block.rpc.En"
-    "dDeferFlushResponseb\006proto3"
+    "\n4github.com/s4wave/spacewave/db/block/r"
+    "pc/block.proto\022\tblock.rpc\032/github.com/s4"
+    "wave/spacewave/net/hash/hash.proto\0320gith"
+    "ub.com/s4wave/spacewave/db/block/block.p"
+    "roto\"\024\n\022GetHashTypeRequest\"8\n\023GetHashTyp"
+    "eResponse\022!\n\thash_type\030\001 \001(\0162\016.hash.Hash"
+    "Type\"\035\n\033GetSupportedFeaturesRequest\"E\n\034G"
+    "etSupportedFeaturesResponse\022%\n\010features\030"
+    "\001 \001(\0162\023.block.StoreFeature\"A\n\017PutBlockRe"
+    "quest\022\014\n\004data\030\001 \001(\014\022 \n\010put_opts\030\002 \001(\0132\016."
+    "block.PutOpts\"P\n\020PutBlockResponse\022\034\n\003ref"
+    "\030\001 \001(\0132\017.block.BlockRef\022\017\n\007existed\030\002 \001(\010"
+    "\022\r\n\005error\030\003 \001(\t\"r\n\022PutBlockBatchEntry\022\034\n"
+    "\003ref\030\001 \001(\0132\017.block.BlockRef\022\014\n\004data\030\002 \001("
+    "\014\022\035\n\004refs\030\003 \003(\0132\017.block.BlockRef\022\021\n\ttomb"
+    "stone\030\004 \001(\010\"F\n\024PutBlockBatchRequest\022.\n\007e"
+    "ntries\030\001 \003(\0132\035.block.rpc.PutBlockBatchEn"
+    "try\"&\n\025PutBlockBatchResponse\022\r\n\005error\030\001 "
+    "\001(\t\"K\n\031PutBlockBackgroundRequest\022\014\n\004data"
+    "\030\001 \001(\014\022 \n\010put_opts\030\002 \001(\0132\016.block.PutOpts"
+    "\"Z\n\032PutBlockBackgroundResponse\022\034\n\003ref\030\001 "
+    "\001(\0132\017.block.BlockRef\022\017\n\007existed\030\002 \001(\010\022\r\n"
+    "\005error\030\003 \001(\t\"/\n\017GetBlockRequest\022\034\n\003ref\030\001"
+    " \001(\0132\017.block.BlockRef\"\?\n\020GetBlockRespons"
+    "e\022\016\n\006exists\030\001 \001(\010\022\014\n\004data\030\002 \001(\014\022\r\n\005error"
+    "\030\003 \001(\t\"5\n\025GetBlockExistsRequest\022\034\n\003ref\030\001"
+    " \001(\0132\017.block.BlockRef\"7\n\026GetBlockExistsR"
+    "esponse\022\016\n\006exists\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\";"
+    "\n\032GetBlockExistsBatchRequest\022\035\n\004refs\030\001 \003"
+    "(\0132\017.block.BlockRef\"<\n\033GetBlockExistsBat"
+    "chResponse\022\016\n\006exists\030\001 \003(\010\022\r\n\005error\030\002 \001("
+    "\t\".\n\016RmBlockRequest\022\034\n\003ref\030\001 \001(\0132\017.block"
+    ".BlockRef\" \n\017RmBlockResponse\022\r\n\005error\030\001 "
+    "\001(\t\"0\n\020StatBlockRequest\022\034\n\003ref\030\001 \001(\0132\017.b"
+    "lock.BlockRef\"^\n\021StatBlockResponse\022\034\n\003re"
+    "f\030\001 \001(\0132\017.block.BlockRef\022\014\n\004size\030\002 \001(\003\022\016"
+    "\n\006exists\030\003 \001(\010\022\r\n\005error\030\004 \001(\t\"\016\n\014FlushRe"
+    "quest\"\036\n\rFlushResponse\022\r\n\005error\030\001 \001(\t\"\030\n"
+    "\026BeginDeferFlushRequest\"(\n\027BeginDeferFlu"
+    "shResponse\022\r\n\005error\030\001 \001(\t\"\026\n\024EndDeferFlu"
+    "shRequest\"&\n\025EndDeferFlushResponse\022\r\n\005er"
+    "ror\030\001 \001(\t2\265\010\n\nBlockStore\022L\n\013GetHashType\022"
+    "\035.block.rpc.GetHashTypeRequest\032\036.block.r"
+    "pc.GetHashTypeResponse\022g\n\024GetSupportedFe"
+    "atures\022&.block.rpc.GetSupportedFeaturesR"
+    "equest\032\'.block.rpc.GetSupportedFeaturesR"
+    "esponse\022C\n\010PutBlock\022\032.block.rpc.PutBlock"
+    "Request\032\033.block.rpc.PutBlockResponse\022R\n\r"
+    "PutBlockBatch\022\037.block.rpc.PutBlockBatchR"
+    "equest\032 .block.rpc.PutBlockBatchResponse"
+    "\022a\n\022PutBlockBackground\022$.block.rpc.PutBl"
+    "ockBackgroundRequest\032%.block.rpc.PutBloc"
+    "kBackgroundResponse\022C\n\010GetBlock\022\032.block."
+    "rpc.GetBlockRequest\032\033.block.rpc.GetBlock"
+    "Response\022U\n\016GetBlockExists\022 .block.rpc.G"
+    "etBlockExistsRequest\032!.block.rpc.GetBloc"
+    "kExistsResponse\022d\n\023GetBlockExistsBatch\022%"
+    ".block.rpc.GetBlockExistsBatchRequest\032&."
+    "block.rpc.GetBlockExistsBatchResponse\022@\n"
+    "\007RmBlock\022\031.block.rpc.RmBlockRequest\032\032.bl"
+    "ock.rpc.RmBlockResponse\022F\n\tStatBlock\022\033.b"
+    "lock.rpc.StatBlockRequest\032\034.block.rpc.St"
+    "atBlockResponse\022:\n\005Flush\022\027.block.rpc.Flu"
+    "shRequest\032\030.block.rpc.FlushResponse\022X\n\017B"
+    "eginDeferFlush\022!.block.rpc.BeginDeferFlu"
+    "shRequest\032\".block.rpc.BeginDeferFlushRes"
+    "ponse\022R\n\rEndDeferFlush\022\037.block.rpc.EndDe"
+    "ferFlushRequest\032 .block.rpc.EndDeferFlus"
+    "hResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_deps[2] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fbifrost_2fhash_2fhash_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2fblock_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fnet_2fhash_2fhash_2eproto,
 };
-static ::absl::once_flag descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_once;
-PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto = {
+static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_once;
+PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto = {
     false,
     false,
-    2747,
-    descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+    2737,
+    descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
     "github.com/s4wave/spacewave/db/block/rpc/block.proto",
-    &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_once,
-    descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto_deps,
+    &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_once,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto_deps,
     2,
     27,
     schemas,
     file_default_instances,
-    TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto::offsets,
-    file_level_enum_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
-    file_level_service_descriptors_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+    TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto::offsets,
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
+    file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
 };
 namespace block {
 namespace rpc {
@@ -1084,7 +1084,7 @@ constexpr auto GetHashTypeRequest::InternalGenerateClassData_() {
           false,
       },
       &GetHashTypeRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1216,7 +1216,7 @@ constexpr auto GetHashTypeResponse::InternalGenerateClassData_() {
           false,
       },
       &GetHashTypeResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1441,7 +1441,7 @@ constexpr auto GetSupportedFeaturesRequest::InternalGenerateClassData_() {
           false,
       },
       &GetSupportedFeaturesRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1573,7 +1573,7 @@ constexpr auto GetSupportedFeaturesResponse::InternalGenerateClassData_() {
           false,
       },
       &GetSupportedFeaturesResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -1847,7 +1847,7 @@ constexpr auto PutBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &PutBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2174,7 +2174,7 @@ constexpr auto PutBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &PutBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2559,7 +2559,7 @@ constexpr auto PutBlockBatchEntry::InternalGenerateClassData_() {
           false,
       },
       &PutBlockBatchEntry::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -2947,7 +2947,7 @@ constexpr auto PutBlockBatchRequest::InternalGenerateClassData_() {
           false,
       },
       &PutBlockBatchRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3220,7 +3220,7 @@ constexpr auto PutBlockBatchResponse::InternalGenerateClassData_() {
           false,
       },
       &PutBlockBatchResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3507,7 +3507,7 @@ constexpr auto PutBlockBackgroundRequest::InternalGenerateClassData_() {
           false,
       },
       &PutBlockBackgroundRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -3834,7 +3834,7 @@ constexpr auto PutBlockBackgroundResponse::InternalGenerateClassData_() {
           false,
       },
       &PutBlockBackgroundResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4190,7 +4190,7 @@ constexpr auto GetBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4463,7 +4463,7 @@ constexpr auto GetBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -4815,7 +4815,7 @@ constexpr auto GetBlockExistsRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5085,7 +5085,7 @@ constexpr auto GetBlockExistsResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5408,7 +5408,7 @@ constexpr auto GetBlockExistsBatchRequest::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsBatchRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -5695,7 +5695,7 @@ constexpr auto GetBlockExistsBatchResponse::InternalGenerateClassData_() {
           false,
       },
       &GetBlockExistsBatchResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6014,7 +6014,7 @@ constexpr auto RmBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &RmBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6282,7 +6282,7 @@ constexpr auto RmBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &RmBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6566,7 +6566,7 @@ constexpr auto StatBlockRequest::InternalGenerateClassData_() {
           false,
       },
       &StatBlockRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -6858,7 +6858,7 @@ constexpr auto StatBlockResponse::InternalGenerateClassData_() {
           false,
       },
       &StatBlockResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7198,7 +7198,7 @@ constexpr auto FlushRequest::InternalGenerateClassData_() {
           false,
       },
       &FlushRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7344,7 +7344,7 @@ constexpr auto FlushResponse::InternalGenerateClassData_() {
           false,
       },
       &FlushResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7582,7 +7582,7 @@ constexpr auto BeginDeferFlushRequest::InternalGenerateClassData_() {
           false,
       },
       &BeginDeferFlushRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7728,7 +7728,7 @@ constexpr auto BeginDeferFlushResponse::InternalGenerateClassData_() {
           false,
       },
       &BeginDeferFlushResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -7966,7 +7966,7 @@ constexpr auto EndDeferFlushRequest::InternalGenerateClassData_() {
           false,
       },
       &EndDeferFlushRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8112,7 +8112,7 @@ constexpr auto EndDeferFlushResponse::InternalGenerateClassData_() {
           false,
       },
       &EndDeferFlushResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto,
       nullptr,  // tracker
   };
 }
@@ -8303,6 +8303,6 @@ namespace protobuf {
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
     _static_init2_ [[maybe_unused]] =
-        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2faperturerobotics_2fhydra_2fblock_2frpc_2fblock_2eproto),
+        (::_pbi::AddDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

@@ -117,27 +117,24 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n8github.com/s4wave/spacewave/db/volume/"
-    "world/volume.proto\022\014volume.world\032>github"
-    ".com/s4wave/spacewave/db/block/transform"
-    "/transform.proto\0322github.com/s4wave/spac"
-    "ewave/db/bucket/bucket.proto\0324github.com"
-    "/s4wave/spacewave/db/store/kvtx/kvtx.pro"
-    "to\0326github.com/s4wave/spacewave/db/store"
-    "/kvkey/kvkey.proto\032Agithub.com/s4wave/sp"
-    "acewave/db/volume/controller/controller."
-    "proto\"\305\002\n\006Config\022(\n\013kv_key_opts\030\001 \001(\0132\023."
-    "store.kvkey.Config\022\017\n\007verbose\030\002 \001(\010\0220\n\rv"
-    "olume_config\030\003 \001(\0132\031.volume.controller.C"
-    "onfig\022(\n\014store_config\030\004 \001(\0132\022.store.kvtx"
-    ".Config\022\027\n\017no_generate_key\030\005 \001(\010\022\024\n\014no_w"
-    "rite_key\030\013 \001(\010\022(\n\rinit_head_ref\030\006 \001(\0132\021."
-    "bucket.ObjectRef\022\021\n\tengine_id\030\007 \001(\t\022\022\n\no"
-    "bject_key\030\010 \001(\t\022\021\n\tbucket_id\030\t \001(\t\022\021\n\tvo"
-    "lume_id\030\n \001(\tb\006proto3"
+    "world/volume.proto\022\014volume.world\0322github"
+    ".com/s4wave/spacewave/db/bucket/bucket.p"
+    "roto\0324github.com/s4wave/spacewave/db/sto"
+    "re/kvtx/kvtx.proto\0326github.com/s4wave/sp"
+    "acewave/db/store/kvkey/kvkey.proto\032Agith"
+    "ub.com/s4wave/spacewave/db/volume/contro"
+    "ller/controller.proto\"\305\002\n\006Config\022(\n\013kv_k"
+    "ey_opts\030\001 \001(\0132\023.store.kvkey.Config\022\017\n\007ve"
+    "rbose\030\002 \001(\010\0220\n\rvolume_config\030\003 \001(\0132\031.vol"
+    "ume.controller.Config\022(\n\014store_config\030\004 "
+    "\001(\0132\022.store.kvtx.Config\022\027\n\017no_generate_k"
+    "ey\030\005 \001(\010\022\024\n\014no_write_key\030\013 \001(\010\022(\n\rinit_h"
+    "ead_ref\030\006 \001(\0132\021.bucket.ObjectRef\022\021\n\tengi"
+    "ne_id\030\007 \001(\t\022\022\n\nobject_key\030\010 \001(\t\022\021\n\tbucke"
+    "t_id\030\t \001(\t\022\021\n\tvolume_id\030\n \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto_deps[5] = {
-        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2ftransform_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto_deps[4] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvkey_2fkvkey_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fstore_2fkvtx_2fkvtx_2eproto,
@@ -147,12 +144,12 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto = {
     false,
     false,
-    701,
+    637,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto,
     "github.com/s4wave/spacewave/db/volume/world/volume.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fworld_2fvolume_2eproto_deps,
-    5,
+    4,
     1,
     schemas,
     file_default_instances,

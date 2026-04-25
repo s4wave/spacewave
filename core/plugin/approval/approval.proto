@@ -1,0 +1,23 @@
+syntax = "proto3";
+package plugin.approval;
+
+import "google/protobuf/timestamp.proto";
+
+// PluginApproval records the user's approval decision for a plugin in a specific Space.
+// Stored in the PlatformAccount KV store, not in shared Spaces.
+message PluginApproval {
+  // State is the approval decision.
+  PluginApprovalState state = 1;
+  // DecidedAt is when the decision was made.
+  .google.protobuf.Timestamp decided_at = 2;
+}
+
+// PluginApprovalState is the approval state for a plugin.
+enum PluginApprovalState {
+  // PluginApprovalState_UNSPECIFIED means no decision yet.
+  PluginApprovalState_UNSPECIFIED = 0;
+  // PluginApprovalState_APPROVED means the user approved loading.
+  PluginApprovalState_APPROVED = 1;
+  // PluginApprovalState_DENIED means the user denied loading.
+  PluginApprovalState_DENIED = 2;
+}

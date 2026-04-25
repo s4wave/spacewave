@@ -1,0 +1,76 @@
+syntax = "proto3";
+package provider.transfer;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+// TransferMode defines the type of transfer operation.
+enum TransferMode {
+  // TransferMode_UNKNOWN is the zero value.
+  TransferMode_UNKNOWN = 0;
+  // TransferMode_MERGE moves all spaces from source to target and deletes source.
+  TransferMode_MERGE = 1;
+  // TransferMode_MIGRATE moves all spaces between providers (cloud/local).
+  TransferMode_MIGRATE = 2;
+  // TransferMode_MIRROR copies spaces from source to target without deleting source.
+  TransferMode_MIRROR = 3;
+}
+
+// TransferPhase defines the current phase of a transfer operation.
+enum TransferPhase {
+  // TransferPhase_IDLE is the initial state before transfer starts.
+  TransferPhase_IDLE = 0;
+  // TransferPhase_SCANNING enumerates source shared objects.
+  TransferPhase_SCANNING = 1;
+  // TransferPhase_COPYING_BLOCKS copies block data from source to target.
+  TransferPhase_COPYING_BLOCKS = 2;
+  // TransferPhase_COPYING_SO copies shared object state from source to target.
+  TransferPhase_COPYING_SO = 3;
+  // TransferPhase_CLEANUP removes source data after successful transfer.
+  TransferPhase_CLEANUP = 4;
+  // TransferPhase_COMPLETE indicates the transfer finished successfully.
+  TransferPhase_COMPLETE = 5;
+  // TransferPhase_FAILED indicates the transfer encountered an unrecoverable error.
+  TransferPhase_FAILED = 6;
+}
+
+// SpaceTransferState tracks the transfer progress for a single shared object.
+message SpaceTransferState {
+  // SharedObjectId is the source shared object identifier.
+  string shared_object_id = 1;
+  // Phase is the current transfer phase for this space.
+  TransferPhase phase = 2;
+  // BlocksCopied is the number of blocks copied so far.
+  uint64 blocks_copied = 3;
+  // BlocksTotal is the total number of blocks to copy (0 if not yet scanned).
+  uint64 blocks_total = 4;
+  // ErrorMessage contains the error if phase is FAILED.
+  string error_message = 5;
+  // Meta is the shared object metadata from the source.
+  .sobject.SharedObjectMeta meta = 6;
+}
+
+// TransferState tracks the overall transfer operation state.
+message TransferState {
+  // Mode is the transfer mode (merge, migrate, mirror).
+  TransferMode mode = 1;
+  // Phase is the overall transfer phase.
+  TransferPhase phase = 2;
+  // SourceSessionIndex is the source session index.
+  uint32 source_session_index = 3;
+  // TargetSessionIndex is the target session index.
+  uint32 target_session_index = 4;
+  // Spaces is the per-space transfer progress.
+  repeated SpaceTransferState spaces = 5;
+  // ErrorMessage contains the error if phase is FAILED.
+  string error_message = 6;
+}
+
+// TransferCheckpoint persists transfer progress for resumability.
+message TransferCheckpoint {
+  // State is the current transfer state snapshot.
+  TransferState state = 1;
+  // SpaceIds is the ordered list of space IDs to transfer.
+  repeated string space_ids = 2;
+  // CurrentSpaceIndex is the index into space_ids currently being processed.
+  uint32 current_space_index = 3;
+}

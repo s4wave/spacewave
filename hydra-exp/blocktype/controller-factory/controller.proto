@@ -1,0 +1,5 @@
+syntax = "proto3";
+package blocktype.controller.factory;
+
+// Config configures the BlockType controller.
+message Config {}

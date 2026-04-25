@@ -1,0 +1,81 @@
+syntax = "proto3";
+package s4wave.session;
+
+option go_package = "github.com/s4wave/spacewave/sdk/session;s4wave_session";
+
+// SharedObjectSelfEnrollmentResourceService provides the post-sign-in
+// self-enrollment flow for the current session peer.
+service SharedObjectSelfEnrollmentResourceService {
+  // WatchState streams self-enrollment state changes.
+  rpc WatchState(WatchSharedObjectSelfEnrollmentStateRequest) returns (stream WatchSharedObjectSelfEnrollmentStateResponse);
+  // Start runs self-enrollment for the current pending set.
+  rpc Start(StartSharedObjectSelfEnrollmentRequest) returns (StartSharedObjectSelfEnrollmentResponse);
+  // Skip records the user's skip choice for the current generation.
+  rpc Skip(SkipSharedObjectSelfEnrollmentRequest) returns (SkipSharedObjectSelfEnrollmentResponse);
+}
+
+// WatchSharedObjectSelfEnrollmentStateRequest is the request for WatchState.
+message WatchSharedObjectSelfEnrollmentStateRequest {}
+
+// WatchSharedObjectSelfEnrollmentStateResponse contains the current session
+// self-enrollment sweep state.
+message WatchSharedObjectSelfEnrollmentStateResponse {
+  // SharedObjectIds is the sorted set of shared objects needing
+  // self-enrollment for the current session peer.
+  repeated string shared_object_ids = 1;
+  // GenerationKey identifies the current pending self-enrollment set.
+  string generation_key = 2;
+  // Count is the number of shared objects pending self-enrollment.
+  uint32 count = 3;
+  // CredentialRequired indicates Start needs an unlocked entity keypair.
+  bool credential_required = 4;
+  // Running indicates Start is currently processing the pending set.
+  bool running = 5;
+  // CurrentSharedObjectId is the shared object currently being processed.
+  string current_shared_object_id = 6;
+  // CompletedSharedObjectIds is the set completed by the current run.
+  repeated string completed_shared_object_ids = 7;
+  // Skipped indicates the current generation is skipped on the backend.
+  bool skipped = 8;
+  // SkippedGenerationKey is the backend skip generation key, if any.
+  string skipped_generation_key = 9;
+  // Failures is the set of per-object failures from the current run.
+  repeated SharedObjectSelfEnrollmentFailure failures = 10;
+}
+
+// SharedObjectSelfEnrollmentFailure describes a failed per-object enrollment.
+message SharedObjectSelfEnrollmentFailure {
+  // SharedObjectId is the shared object that failed.
+  string shared_object_id = 1;
+  // Category is the UI routing category for the failure.
+  SharedObjectSelfEnrollmentErrorCategory category = 2;
+  // Message is the operator-facing error summary.
+  string message = 3;
+}
+
+// SharedObjectSelfEnrollmentErrorCategory classifies per-object failures.
+enum SharedObjectSelfEnrollmentErrorCategory {
+  // SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_UNKNOWN is unset.
+  SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_UNKNOWN = 0;
+  // SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_RETRY means retry can run in place.
+  SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_RETRY = 1;
+  // SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT means the object route owns repair.
+  SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT = 2;
+  // SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT means the issue needs reporting.
+  SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT = 3;
+}
+
+// StartSharedObjectSelfEnrollmentRequest is the request for Start.
+message StartSharedObjectSelfEnrollmentRequest {}
+
+// StartSharedObjectSelfEnrollmentResponse is the response for Start.
+message StartSharedObjectSelfEnrollmentResponse {}
+
+// SkipSharedObjectSelfEnrollmentRequest is the request for Skip.
+message SkipSharedObjectSelfEnrollmentRequest {
+  // GenerationKey is the generation to skip.
+  string generation_key = 1;
+}
+
+// SkipSharedObjectSelfEnrollmentResponse is the response for Skip.
+message SkipSharedObjectSelfEnrollmentResponse {}

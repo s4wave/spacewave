@@ -313,7 +313,10 @@ func BuildViteBundle(
 	}
 
 	// Add the base config path
-	baseConfigRelPath, err := filepath.Rel(codeRootPath, filepath.Join(distSourcePath, "web/bundler/vite/vite-base.config.ts"))
+	baseConfigRelPath, err := filepath.Rel(
+		codeRootPath,
+		filepath.Join(distSourcePath, bldr_vite.ResolveViteBaseConfigPath(distSourcePath)),
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}

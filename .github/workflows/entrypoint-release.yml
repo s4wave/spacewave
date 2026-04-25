@@ -1,0 +1,567 @@
+name: entrypoint-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: entrypoint release environment
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+      version:
+        description: release version (for example 0.1.0)
+        required: true
+        type: string
+      rev:
+        description: dist config revision
+        required: true
+        type: string
+      skip_notarize:
+        description: skip Apple notarization
+        required: false
+        type: boolean
+        default: false
+      react_dev:
+        description: build browser entrypoint in dev mode
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: entrypoint-release-${{ inputs.environment }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.vars.outputs.environment_name }}
+      release_env: ${{ steps.vars.outputs.release_env }}
+      version: ${{ steps.vars.outputs.version }}
+      rev: ${{ steps.vars.outputs.rev }}
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.environment }}" == "production" ]]; then
+            release_env="prod"
+            environment_name="production"
+            expected_ref="refs/heads/release"
+          else
+            release_env="staging"
+            environment_name="staging"
+            expected_ref="refs/heads/master"
+          fi
+          if [[ "${GITHUB_REF}" != "${expected_ref}" ]]; then
+            echo "entrypoint-release ${{ inputs.environment }} must run from ${expected_ref}, got ${GITHUB_REF}" >&2
+            exit 1
+          fi
+          echo "environment_name=${environment_name}" >> "${GITHUB_OUTPUT}"
+          echo "release_env=${release_env}" >> "${GITHUB_OUTPUT}"
+          echo "version=${{ inputs.version }}" >> "${GITHUB_OUTPUT}"
+          echo "rev=${{ inputs.rev }}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${{ inputs.version }}" >> "${GITHUB_OUTPUT}"
+
+  linux:
+    needs: prep
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+
+      - name: Build Linux and browser handoff slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --platforms "linux-amd64,linux-arm64" \
+            --include-browser \
+            --react-dev=${{ inputs.react_dev }} \
+            --skip-notarize \
+            --out-dir .tmp/entrypoint-handoff/linux
+
+      - name: Build Windows release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --platforms "windows-amd64,windows-arm64" \
+            --skip-package \
+            --stage-build-inputs \
+            --out-dir .tmp/windows-release-inputs
+
+      - name: Upload Linux handoff part
+        uses: actions/upload-artifact@v4
+        with:
+          name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/linux
+          if-no-files-found: error
+
+      - name: Upload Windows release inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/windows-release-inputs
+          if-no-files-found: error
+
+  windows:
+    needs:
+      - prep
+      - linux
+    runs-on: windows-2025
+    environment: ${{ needs.prep.outputs.environment_name }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+
+      - name: Download Windows release inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .
+
+      - name: Azure login with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Collect Windows binaries to sign
+        id: windows_binary_files
+        shell: pwsh
+        run: |
+          $files = @(
+            (Resolve-Path ".tmp/dist/windows-amd64/spacewave.exe").Path
+            (Resolve-Path ".tmp/dist/windows-arm64/spacewave.exe").Path
+            (Resolve-Path ".tmp/dist-cli/windows-amd64/spacewave.exe").Path
+            (Resolve-Path ".tmp/dist-cli/windows-arm64/spacewave.exe").Path
+            (Resolve-Path "dist/helper/windows-amd64/spacewave-helper.exe").Path
+            (Resolve-Path "dist/helper/windows-arm64/spacewave-helper.exe").Path
+          )
+          "files<<EOF" >> $env:GITHUB_OUTPUT
+          $files | ForEach-Object { $_ >> $env:GITHUB_OUTPUT }
+          "EOF" >> $env:GITHUB_OUTPUT
+
+      - name: Sign Windows binaries
+        uses: azure/artifact-signing-action@v1
+        with:
+          endpoint: https://wus.codesigning.azure.net/
+          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          files: ${{ steps.windows_binary_files.outputs.files }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: Spacewave
+
+      - name: Build Windows handoff slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --platforms "windows-amd64,windows-arm64" \
+            --skip-build \
+            --out-dir .tmp/entrypoint-handoff/windows
+
+      - name: Collect Windows MSIX installers
+        id: windows_msix_files
+        shell: pwsh
+        run: |
+          $files = @(
+            (Resolve-Path "dist/installers/spacewave-windows-amd64.msix").Path
+            (Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path
+          )
+          "files<<EOF" >> $env:GITHUB_OUTPUT
+          $files | ForEach-Object { $_ >> $env:GITHUB_OUTPUT }
+          "EOF" >> $env:GITHUB_OUTPUT
+
+      - name: Sign Windows MSIX installers
+        uses: azure/artifact-signing-action@v1
+        with:
+          endpoint: https://wus.codesigning.azure.net/
+          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          files: ${{ steps.windows_msix_files.outputs.files }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: Spacewave
+
+      - name: Refresh staged Windows installers after MSIX signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/entrypoint-handoff/windows/installers
+          mkdir -p .tmp/entrypoint-handoff/windows/installers
+          cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
+
+      - name: Upload Windows handoff part
+        uses: actions/upload-artifact@v4
+        with:
+          name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/windows
+          if-no-files-found: error
+
+  macos:
+    needs: prep
+    runs-on: macos-15
+    environment: ${{ needs.prep.outputs.environment_name }}
+    permissions:
+      contents: read
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+
+      - name: Import macOS signing certificate
+        shell: bash
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_P12_PASSWORD: ${{ secrets.MACOS_CERT_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="${RUNNER_TEMP}/entrypoint-release.keychain-db"
+          CERT_PATH="${RUNNER_TEMP}/entrypoint-release.p12"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          echo "${MACOS_CERT_P12_BASE64}" | base64 -D > "${CERT_PATH}"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERT_PATH}" -k "${KEYCHAIN_PATH}" -P "${MACOS_CERT_P12_PASSWORD}" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcrun
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security list-keychains -d user -s "${KEYCHAIN_PATH}" login.keychain-db
+          security default-keychain -d user -s "${KEYCHAIN_PATH}"
+          rm -f "${CERT_PATH}"
+
+      - name: Bootstrap macOS notarization credentials
+        if: ${{ !inputs.skip_notarize }}
+        shell: bash
+        env:
+          BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
+          APPLE_NOTARY_KEY_ID: ${{ vars.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ vars.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARY_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${BLDR_MACOS_NOTARIZE_PROFILE}" ]]; then
+            echo "BLDR_MACOS_NOTARIZE_PROFILE is required when notarization is enabled"
+            exit 1
+          fi
+          if [[ -z "${APPLE_NOTARY_KEY_ID}" ]]; then
+            echo "APPLE_NOTARY_KEY_ID is required when notarization is enabled"
+            exit 1
+          fi
+          if [[ -z "${APPLE_NOTARY_ISSUER_ID}" ]]; then
+            echo "APPLE_NOTARY_ISSUER_ID is required when notarization is enabled"
+            exit 1
+          fi
+          if [[ -z "${APPLE_NOTARY_KEY_P8_BASE64}" ]]; then
+            echo "APPLE_NOTARY_KEY_P8_BASE64 is required when notarization is enabled"
+            exit 1
+          fi
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${APPLE_NOTARY_KEY_ID}.p8"
+          echo "${APPLE_NOTARY_KEY_P8_BASE64}" | base64 -D > "${KEY_PATH}"
+          chmod 600 "${KEY_PATH}"
+          xcrun notarytool store-credentials "${BLDR_MACOS_NOTARIZE_PROFILE}" \
+            --key "${KEY_PATH}" \
+            --key-id "${APPLE_NOTARY_KEY_ID}" \
+            --issuer "${APPLE_NOTARY_ISSUER_ID}"
+          rm -f "${KEY_PATH}"
+
+      - name: Build macOS handoff slice
+        shell: bash
+        env:
+          BLDR_MACOS_SIGN_IDENTITY: ${{ vars.BLDR_MACOS_SIGN_IDENTITY }}
+          BLDR_MACOS_SIGN_ENTITLEMENTS: ${{ vars.BLDR_MACOS_SIGN_ENTITLEMENTS }}
+          BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
+          BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --platforms "darwin-amd64,darwin-arm64" \
+            --skip-notarize=${{ inputs.skip_notarize }} \
+            --out-dir .tmp/entrypoint-handoff/macos
+
+      - name: Upload macOS handoff part
+        uses: actions/upload-artifact@v4
+        with:
+          name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/macos
+          if-no-files-found: error
+
+  assemble:
+    needs:
+      - prep
+      - linux
+      - windows
+      - macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download Linux handoff part
+        uses: actions/download-artifact@v4
+        with:
+          name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/linux
+
+      - name: Download macOS handoff part
+        uses: actions/download-artifact@v4
+        with:
+          name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/macos
+
+      - name: Download Windows handoff part
+        uses: actions/download-artifact@v4
+        with:
+          name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/windows
+
+      - name: Assemble entrypoint handoff bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/entrypoint-handoff
+          mkdir -p .tmp/entrypoint-handoff/installers
+          mkdir -p .tmp/entrypoint-handoff/bundles
+          mkdir -p .tmp/entrypoint-handoff/cli
+          cp -R .tmp/entrypoint-parts/linux/installers/. .tmp/entrypoint-handoff/installers/
+          cp -R .tmp/entrypoint-parts/linux/bundles/. .tmp/entrypoint-handoff/bundles/
+          if [ -d .tmp/entrypoint-parts/linux/cli ]; then
+            cp -R .tmp/entrypoint-parts/linux/cli/. .tmp/entrypoint-handoff/cli/
+          fi
+          cp -R .tmp/entrypoint-parts/windows/installers/. .tmp/entrypoint-handoff/installers/
+          cp -R .tmp/entrypoint-parts/windows/bundles/. .tmp/entrypoint-handoff/bundles/
+          if [ -d .tmp/entrypoint-parts/windows/cli ]; then
+            cp -R .tmp/entrypoint-parts/windows/cli/. .tmp/entrypoint-handoff/cli/
+          fi
+          cp -R .tmp/entrypoint-parts/macos/installers/. .tmp/entrypoint-handoff/installers/
+          cp -R .tmp/entrypoint-parts/macos/bundles/. .tmp/entrypoint-handoff/bundles/
+          if [ -d .tmp/entrypoint-parts/macos/cli ]; then
+            cp -R .tmp/entrypoint-parts/macos/cli/. .tmp/entrypoint-handoff/cli/
+          fi
+          cp -R .tmp/entrypoint-parts/linux/browser-staging .tmp/entrypoint-handoff/browser-staging
+          cp .tmp/entrypoint-parts/linux/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
+
+      - name: Build checksums and handoff manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(".tmp/entrypoint-handoff")
+          installers_root = root / "installers"
+          bundles_root = root / "bundles"
+          cli_root = root / "cli"
+          browser_root = root / "browser-staging"
+          static_manifest_path = root / "static-manifest.ts"
+
+          def sha256(path: Path) -> str:
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  while True:
+                      chunk = f.read(1024 * 1024)
+                      if not chunk:
+                          break
+                      h.update(chunk)
+              return h.hexdigest()
+
+          installers = []
+          for path in sorted(p for p in installers_root.rglob("*") if p.is_file()):
+              installers.append({
+                  "path": path.relative_to(root).as_posix(),
+                  "sha256": sha256(path),
+                  "size": path.stat().st_size,
+              })
+
+          bundles = []
+          checksums_lines = []
+          for path in sorted(p for p in bundles_root.rglob("*") if p.is_file()):
+              digest = sha256(path)
+              bundles.append({
+                  "path": path.relative_to(root).as_posix(),
+                  "sha256": digest,
+                  "size": path.stat().st_size,
+              })
+              checksums_lines.append(f"{digest}  {path.name}")
+
+          cli_artifacts = []
+          if cli_root.exists():
+              for path in sorted(p for p in cli_root.rglob("*") if p.is_file()):
+                  digest = sha256(path)
+                  cli_artifacts.append({
+                      "path": path.relative_to(root).as_posix(),
+                      "sha256": digest,
+                      "size": path.stat().st_size,
+                  })
+                  checksums_lines.append(f"{digest}  {path.name}")
+
+          checksums_path = root / "checksums.txt"
+          checksums_path.write_text("\n".join(checksums_lines) + "\n", encoding="utf-8")
+
+          browser_entries = []
+          for path in sorted(p for p in browser_root.rglob("*") if p.is_file()):
+              browser_entries.append({
+                  "path": path.relative_to(root).as_posix(),
+                  "sha256": sha256(path),
+                  "size": path.stat().st_size,
+              })
+
+          manifest = {
+              "format": "entrypoint-handoff.v1",
+              "release_environment": "${{ needs.prep.outputs.environment_name }}",
+              "version": "${{ needs.prep.outputs.version }}",
+              "rev": "${{ needs.prep.outputs.rev }}",
+              "tag": "${{ needs.prep.outputs.tag }}",
+              "git_sha": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "source_repo": os.environ["GITHUB_REPOSITORY"],
+              "workflow": os.environ["GITHUB_WORKFLOW"],
+              "installers": installers,
+              "bundles": bundles,
+              "cli": cli_artifacts,
+              "checksums": {
+                  "path": "checksums.txt",
+                  "sha256": sha256(checksums_path),
+                  "size": checksums_path.stat().st_size,
+              },
+              "browser_staging": browser_entries,
+              "static_manifest": {
+                  "path": "static-manifest.ts",
+                  "sha256": sha256(static_manifest_path),
+                  "size": static_manifest_path.stat().st_size,
+              },
+          }
+          (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+      - name: Archive entrypoint handoff bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -cf .tmp/entrypoint-handoff.tar -C .tmp/entrypoint-handoff .
+
+      - name: Upload entrypoint handoff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: entrypoint-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff.tar
+          if-no-files-found: error
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > .tmp/release-notes.md <<'EOF'
+          Automated draft release assembled by the entrypoint-release workflow.
+          Publication to R2 and Worker deploy happen from the private promotion workflow.
+          EOF
+
+      - name: Create or update draft GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ needs.prep.outputs.tag }}"
+          if ! gh release view "${tag}" >/dev/null 2>&1; then
+            gh release create "${tag}" \
+              --title "${tag}" \
+              --notes-file .tmp/release-notes.md \
+              --draft
+          else
+            gh release edit "${tag}" \
+              --title "${tag}" \
+              --notes-file .tmp/release-notes.md
+          fi
+          upload_args=(
+            .tmp/entrypoint-handoff/checksums.txt
+            .tmp/entrypoint-handoff/installers/*
+          )
+          if compgen -G ".tmp/entrypoint-handoff/cli/*" > /dev/null; then
+            upload_args+=(.tmp/entrypoint-handoff/cli/*)
+          fi
+          gh release upload "${tag}" "${upload_args[@]}" --clobber
+
+      - name: Attest entrypoint release assets
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            .tmp/entrypoint-handoff/checksums.txt
+            .tmp/entrypoint-handoff/installers/*
+            .tmp/entrypoint-handoff/bundles/*
+            .tmp/entrypoint-handoff/cli/*

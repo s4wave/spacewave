@@ -1,0 +1,18 @@
+syntax = "proto3";
+package notes;
+
+import "github.com/s4wave/spacewave/plugin/notes/proto/blog.proto";
+
+service BlogResourceService {
+  rpc WatchBlog(WatchBlogRequest)
+    returns (stream WatchBlogResponse);
+}
+
+// WatchBlogRequest is the request for WatchBlog.
+message WatchBlogRequest {}
+
+// WatchBlogResponse is the response for WatchBlog.
+message WatchBlogResponse {
+  // Blog is the current blog state.
+  Blog blog = 1;
+}

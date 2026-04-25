@@ -1,0 +1,46 @@
+syntax = "proto3";
+package s4wave.testbed;
+
+service TestbedResourceService {
+  rpc CreateWorld(CreateWorldRequest) returns (CreateWorldResponse);
+  
+  rpc MarkTestResult(MarkTestResultRequest) returns (MarkTestResultResponse);
+  
+  rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
+}
+
+// CreateWorldRequest is the request type for CreateWorld.
+message CreateWorldRequest {
+  // EngineId is the ID for the world engine (optional, will be generated if empty).
+  string engine_id = 1;
+}
+
+// CreateWorldResponse is the response type for CreateWorld.
+message CreateWorldResponse {
+  // ResourceId is the ID of the created engine resource.
+  uint32 resource_id = 1;
+}
+
+// MarkTestResultRequest is the request type for MarkTestResult.
+message MarkTestResultRequest {
+  // Success indicates if the test passed.
+  bool success = 1;
+  // ErrorMessage contains the error message if the test failed.
+  string error_message = 2;
+}
+
+// MarkTestResultResponse is the response type for MarkTestResult.
+message MarkTestResultResponse {}
+
+// AccessStateAtomRequest is the request for AccessStateAtom.
+message AccessStateAtomRequest {
+  // StoreId is the identifier for the state store.
+  // If empty, uses the default "ui-state" store.
+  string store_id = 1;
+}
+
+// AccessStateAtomResponse is the response for AccessStateAtom.
+message AccessStateAtomResponse {
+  // ResourceId is the ID of the state atom resource.
+  uint32 resource_id = 1;
+}

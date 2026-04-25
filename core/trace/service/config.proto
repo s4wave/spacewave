@@ -1,0 +1,5 @@
+syntax = "proto3";
+package trace.service;
+
+// Config configures the trace service controller.
+message Config {}

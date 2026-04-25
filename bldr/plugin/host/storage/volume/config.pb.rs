@@ -3,7 +3,7 @@
 /// Config configures the plugin storage volume controller.
 /// Configures a storage_volume on the plugin host.
 /// Proxies to that storage volume with an RPC client.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Config {
     /// StorageId is the id to use to look up the storage on the plugin host bus.
     /// defaults to "default" if unset

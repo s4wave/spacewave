@@ -1,0 +1,26 @@
+syntax = "proto3";
+package bstore;
+
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
+
+// BlockStoreRef is a reference to a shared object stored on a provider.
+message BlockStoreRef {
+  // ProviderResourceRef is the reference to the resource on the provider.
+  .provider.ProviderResourceRef provider_resource_ref = 1;
+}
+
+// BlockStoreParticipantRole defines the general role of a shared object participant.
+// In order of least permissive to most permissive.
+enum BlockStoreParticipantRole {
+  // BlockStoreParticipantRole_UNKNOWN is the zero / invalid / unknown type.
+  BlockStoreParticipantRole_UNKNOWN = 0;
+
+  // BlockStoreParticipantRole_READER can read values from the block store only.
+  BlockStoreParticipantRole_READER = 1;
+
+  // BlockStoreParticipantRole_WRITER can read and write but not delete values.
+  BlockStoreParticipantRole_WRITER = 2;
+
+  // BlockStoreParticipantRole_OWNER can read and write and delete values.
+  BlockStoreParticipantRole_OWNER = 3;
+}

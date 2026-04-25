@@ -3,16 +3,16 @@ package bucket_mock
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // mockBucket is a mock in-memory bucket.
 type mockBucket struct {
 	store block.StoreOps
-	conf *bucket.Config
+	conf  *bucket.Config
 }
 
 // NewMockBucket constructs a new mock bucket for testing.

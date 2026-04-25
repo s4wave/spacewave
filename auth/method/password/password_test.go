@@ -3,11 +3,24 @@ package auth_method_password
 import (
 	"testing"
 
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+const testScryptN = 14
+
+func buildTestParametersWithUsernamePassword(username string, password []byte) (*Parameters, crypto.PrivKey, error) {
+	return buildParametersWithUsernamePassword(
+		username,
+		password,
+		testScryptN,
+		DefaultScryptR,
+		DefaultScryptP,
+	)
+}
+
 func TestBuildParametersWithUsernamePassword(t *testing.T) {
-	params, priv, err := BuildParametersWithUsernamePassword("alice", []byte("hunter2"))
+	params, priv, err := buildTestParametersWithUsernamePassword("alice", []byte("hunter2"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,11 +40,11 @@ func TestBuildParametersWithUsernamePassword(t *testing.T) {
 }
 
 func TestDeterministic(t *testing.T) {
-	_, priv1, err := BuildParametersWithUsernamePassword("bob", []byte("password123"))
+	_, priv1, err := buildTestParametersWithUsernamePassword("bob", []byte("password123"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, priv2, err := BuildParametersWithUsernamePassword("bob", []byte("password123"))
+	_, priv2, err := buildTestParametersWithUsernamePassword("bob", []byte("password123"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +57,11 @@ func TestDeterministic(t *testing.T) {
 }
 
 func TestDifferentPasswords(t *testing.T) {
-	_, priv1, err := BuildParametersWithUsernamePassword("carol", []byte("pass1"))
+	_, priv1, err := buildTestParametersWithUsernamePassword("carol", []byte("pass1"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, priv2, err := BuildParametersWithUsernamePassword("carol", []byte("pass2"))
+	_, priv2, err := buildTestParametersWithUsernamePassword("carol", []byte("pass2"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,11 +74,11 @@ func TestDifferentPasswords(t *testing.T) {
 }
 
 func TestDifferentUsernames(t *testing.T) {
-	_, priv1, err := BuildParametersWithUsernamePassword("dave", []byte("samepass"))
+	_, priv1, err := buildTestParametersWithUsernamePassword("dave", []byte("samepass"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, priv2, err := BuildParametersWithUsernamePassword("eve", []byte("samepass"))
+	_, priv2, err := buildTestParametersWithUsernamePassword("eve", []byte("samepass"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +91,7 @@ func TestDifferentUsernames(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	params, priv, err := BuildParametersWithUsernamePassword("frank", []byte("mypassword"))
+	params, priv, err := buildTestParametersWithUsernamePassword("frank", []byte("mypassword"))
 	if err != nil {
 		t.Fatal(err)
 	}

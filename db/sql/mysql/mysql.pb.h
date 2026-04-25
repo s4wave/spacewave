@@ -32,7 +32,7 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 #include "../../block/block.pb.h"
-#include "../../block/msgpack/msgpack.pb.h"
+#include "../../block/blob/blob.pb.h"
 #include "../../kvtx/block/kvtx.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -98,6 +98,10 @@ class TableSchemaColumn;
 struct TableSchemaColumnDefaultTypeInternal;
 extern TableSchemaColumnDefaultTypeInternal _TableSchemaColumn_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TableSchemaColumn_class_data_;
+class TableTimestamp;
+struct TableTimestampDefaultTypeInternal;
+extern TableTimestampDefaultTypeInternal _TableTimestamp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TableTimestamp_class_data_;
 }  // namespace mysql
 namespace google {
 namespace protobuf {
@@ -109,6 +113,208 @@ namespace mysql {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class TableTimestamp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:mysql.TableTimestamp) */ {
+ public:
+  inline TableTimestamp() : TableTimestamp(nullptr) {}
+  ~TableTimestamp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TableTimestamp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TableTimestamp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TableTimestamp(::google::protobuf::internal::ConstantInitialized);
+
+  inline TableTimestamp(const TableTimestamp& from) : TableTimestamp(nullptr, from) {}
+  inline TableTimestamp(TableTimestamp&& from) noexcept
+      : TableTimestamp(nullptr, ::std::move(from)) {}
+  inline TableTimestamp& operator=(const TableTimestamp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TableTimestamp& operator=(TableTimestamp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TableTimestamp& default_instance() {
+    return *reinterpret_cast<const TableTimestamp*>(
+        &_TableTimestamp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(TableTimestamp& a, TableTimestamp& b) { a.Swap(&b); }
+  inline void Swap(TableTimestamp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TableTimestamp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TableTimestamp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TableTimestamp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TableTimestamp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TableTimestamp& from) { TableTimestamp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TableTimestamp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "mysql.TableTimestamp"; }
+
+  explicit TableTimestamp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TableTimestamp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TableTimestamp& from);
+  TableTimestamp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TableTimestamp&& from) noexcept
+      : TableTimestamp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUnixSecondsFieldNumber = 1,
+    kNanosFieldNumber = 2,
+  };
+  // int64 unix_seconds = 1;
+  void clear_unix_seconds() ;
+  ::int64_t unix_seconds() const;
+  void set_unix_seconds(::int64_t value);
+
+  private:
+  ::int64_t _internal_unix_seconds() const;
+  void _internal_set_unix_seconds(::int64_t value);
+
+  public:
+  // int32 nanos = 2;
+  void clear_nanos() ;
+  ::int32_t nanos() const;
+  void set_nanos(::int32_t value);
+
+  private:
+  ::int32_t _internal_nanos() const;
+  void _internal_set_nanos(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:mysql.TableTimestamp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TableTimestamp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::int64_t unix_seconds_;
+    ::int32_t nanos_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TableTimestamp_class_data_;
 // -------------------------------------------------------------------
 
 class TableSchemaColumn final : public ::google::protobuf::Message
@@ -166,7 +372,7 @@ class TableSchemaColumn final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableSchemaColumn*>(
         &_TableSchemaColumn_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(TableSchemaColumn& a, TableSchemaColumn& b) { a.Swap(&b); }
   inline void Swap(TableSchemaColumn* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -482,7 +688,7 @@ class TableSchema final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableSchema*>(
         &_TableSchema_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(TableSchema& a, TableSchema& b) { a.Swap(&b); }
   inline void Swap(TableSchema* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1497,6 +1703,18 @@ class TableColumn final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableColumn*>(
         &_TableColumn_default_instance_);
   }
+  enum ValueCase {
+    kBoolValue = 2,
+    kIntValue = 3,
+    kUintValue = 4,
+    kFloatValue = 5,
+    kStringBlob = 6,
+    kBytesBlob = 7,
+    kJsonBlob = 8,
+    kTimestampValue = 9,
+    kTimespanMicros = 10,
+    VALUE_NOT_SET = 0,
+  };
   static constexpr int kIndexInFileMessages = 7;
   friend void swap(TableColumn& a, TableColumn& b) { a.Swap(&b); }
   inline void Swap(TableColumn* PROTOBUF_NONNULL other) {
@@ -1584,29 +1802,166 @@ class TableColumn final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kMsgpackBlobFieldNumber = 1,
+    kBoolValueFieldNumber = 2,
+    kIntValueFieldNumber = 3,
+    kUintValueFieldNumber = 4,
+    kFloatValueFieldNumber = 5,
+    kStringBlobFieldNumber = 6,
+    kBytesBlobFieldNumber = 7,
+    kJsonBlobFieldNumber = 8,
+    kTimestampValueFieldNumber = 9,
+    kTimespanMicrosFieldNumber = 10,
   };
-  // .msgpack.MsgpackBlob msgpack_blob = 1;
-  bool has_msgpack_blob() const;
-  void clear_msgpack_blob() ;
-  const ::msgpack::MsgpackBlob& msgpack_blob() const;
-  [[nodiscard]] ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE release_msgpack_blob();
-  ::msgpack::MsgpackBlob* PROTOBUF_NONNULL mutable_msgpack_blob();
-  void set_allocated_msgpack_blob(::msgpack::MsgpackBlob* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_msgpack_blob(::msgpack::MsgpackBlob* PROTOBUF_NULLABLE value);
-  ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE unsafe_arena_release_msgpack_blob();
+  // bool bool_value = 2;
+  bool has_bool_value() const;
+  void clear_bool_value() ;
+  bool bool_value() const;
+  void set_bool_value(bool value);
 
   private:
-  const ::msgpack::MsgpackBlob& _internal_msgpack_blob() const;
-  ::msgpack::MsgpackBlob* PROTOBUF_NONNULL _internal_mutable_msgpack_blob();
+  bool _internal_bool_value() const;
+  void _internal_set_bool_value(bool value);
 
   public:
+  // int64 int_value = 3;
+  bool has_int_value() const;
+  void clear_int_value() ;
+  ::int64_t int_value() const;
+  void set_int_value(::int64_t value);
+
+  private:
+  ::int64_t _internal_int_value() const;
+  void _internal_set_int_value(::int64_t value);
+
+  public:
+  // uint64 uint_value = 4;
+  bool has_uint_value() const;
+  void clear_uint_value() ;
+  ::uint64_t uint_value() const;
+  void set_uint_value(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_uint_value() const;
+  void _internal_set_uint_value(::uint64_t value);
+
+  public:
+  // double float_value = 5;
+  bool has_float_value() const;
+  void clear_float_value() ;
+  double float_value() const;
+  void set_float_value(double value);
+
+  private:
+  double _internal_float_value() const;
+  void _internal_set_float_value(double value);
+
+  public:
+  // .blob.Blob string_blob = 6;
+  bool has_string_blob() const;
+  private:
+  bool _internal_has_string_blob() const;
+
+  public:
+  void clear_string_blob() ;
+  const ::blob::Blob& string_blob() const;
+  [[nodiscard]] ::blob::Blob* PROTOBUF_NULLABLE release_string_blob();
+  ::blob::Blob* PROTOBUF_NONNULL mutable_string_blob();
+  void set_allocated_string_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_string_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  ::blob::Blob* PROTOBUF_NULLABLE unsafe_arena_release_string_blob();
+
+  private:
+  const ::blob::Blob& _internal_string_blob() const;
+  ::blob::Blob* PROTOBUF_NONNULL _internal_mutable_string_blob();
+
+  public:
+  // .blob.Blob bytes_blob = 7;
+  bool has_bytes_blob() const;
+  private:
+  bool _internal_has_bytes_blob() const;
+
+  public:
+  void clear_bytes_blob() ;
+  const ::blob::Blob& bytes_blob() const;
+  [[nodiscard]] ::blob::Blob* PROTOBUF_NULLABLE release_bytes_blob();
+  ::blob::Blob* PROTOBUF_NONNULL mutable_bytes_blob();
+  void set_allocated_bytes_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_bytes_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  ::blob::Blob* PROTOBUF_NULLABLE unsafe_arena_release_bytes_blob();
+
+  private:
+  const ::blob::Blob& _internal_bytes_blob() const;
+  ::blob::Blob* PROTOBUF_NONNULL _internal_mutable_bytes_blob();
+
+  public:
+  // .blob.Blob json_blob = 8;
+  bool has_json_blob() const;
+  private:
+  bool _internal_has_json_blob() const;
+
+  public:
+  void clear_json_blob() ;
+  const ::blob::Blob& json_blob() const;
+  [[nodiscard]] ::blob::Blob* PROTOBUF_NULLABLE release_json_blob();
+  ::blob::Blob* PROTOBUF_NONNULL mutable_json_blob();
+  void set_allocated_json_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_json_blob(::blob::Blob* PROTOBUF_NULLABLE value);
+  ::blob::Blob* PROTOBUF_NULLABLE unsafe_arena_release_json_blob();
+
+  private:
+  const ::blob::Blob& _internal_json_blob() const;
+  ::blob::Blob* PROTOBUF_NONNULL _internal_mutable_json_blob();
+
+  public:
+  // .mysql.TableTimestamp timestamp_value = 9;
+  bool has_timestamp_value() const;
+  private:
+  bool _internal_has_timestamp_value() const;
+
+  public:
+  void clear_timestamp_value() ;
+  const ::mysql::TableTimestamp& timestamp_value() const;
+  [[nodiscard]] ::mysql::TableTimestamp* PROTOBUF_NULLABLE release_timestamp_value();
+  ::mysql::TableTimestamp* PROTOBUF_NONNULL mutable_timestamp_value();
+  void set_allocated_timestamp_value(::mysql::TableTimestamp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_timestamp_value(::mysql::TableTimestamp* PROTOBUF_NULLABLE value);
+  ::mysql::TableTimestamp* PROTOBUF_NULLABLE unsafe_arena_release_timestamp_value();
+
+  private:
+  const ::mysql::TableTimestamp& _internal_timestamp_value() const;
+  ::mysql::TableTimestamp* PROTOBUF_NONNULL _internal_mutable_timestamp_value();
+
+  public:
+  // int64 timespan_micros = 10;
+  bool has_timespan_micros() const;
+  void clear_timespan_micros() ;
+  ::int64_t timespan_micros() const;
+  void set_timespan_micros(::int64_t value);
+
+  private:
+  ::int64_t _internal_timespan_micros() const;
+  void _internal_set_timespan_micros(::int64_t value);
+
+  public:
+  void clear_value();
+  ValueCase value_case() const;
   // @@protoc_insertion_point(class_scope:mysql.TableColumn)
  private:
   class _Internal;
+  void set_has_bool_value();
+  void set_has_int_value();
+  void set_has_uint_value();
+  void set_has_float_value();
+  void set_has_string_blob();
+  void set_has_bytes_blob();
+  void set_has_json_blob();
+  void set_has_timestamp_value();
+  void set_has_timespan_micros();
+  inline bool has_value() const;
+  inline void clear_has_value();
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 9,
+                                   4, 0,
                                    2>
       _table_;
 
@@ -1625,9 +1980,21 @@ class TableColumn final : public ::google::protobuf::Message
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
         const TableColumn& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    union ValueUnion {
+      constexpr ValueUnion() : _constinit_{} {}
+      ::google::protobuf::internal::ConstantInitialized _constinit_;
+      bool bool_value_;
+      ::int64_t int_value_;
+      ::uint64_t uint_value_;
+      double float_value_;
+      ::google::protobuf::Message* PROTOBUF_NULLABLE string_blob_;
+      ::google::protobuf::Message* PROTOBUF_NULLABLE bytes_blob_;
+      ::google::protobuf::Message* PROTOBUF_NULLABLE json_blob_;
+      ::google::protobuf::Message* PROTOBUF_NULLABLE timestamp_value_;
+      ::int64_t timespan_micros_;
+    } value_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE msgpack_blob_;
+    ::uint32_t _oneof_case_[1];
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3361,97 +3728,527 @@ TableRow::_internal_mutable_columns() {
 
 // TableColumn
 
-// .msgpack.MsgpackBlob msgpack_blob = 1;
-inline bool TableColumn::has_msgpack_blob() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
-  PROTOBUF_ASSUME(!value || _impl_.msgpack_blob_ != nullptr);
-  return value;
+// bool bool_value = 2;
+inline bool TableColumn::has_bool_value() const {
+  return value_case() == kBoolValue;
 }
-inline const ::msgpack::MsgpackBlob& TableColumn::_internal_msgpack_blob() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::msgpack::MsgpackBlob* p = _impl_.msgpack_blob_;
-  return p != nullptr ? *p : reinterpret_cast<const ::msgpack::MsgpackBlob&>(::msgpack::_MsgpackBlob_default_instance_);
+inline void TableColumn::set_has_bool_value() {
+  _impl_._oneof_case_[0] = kBoolValue;
 }
-inline const ::msgpack::MsgpackBlob& TableColumn::msgpack_blob() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:mysql.TableColumn.msgpack_blob)
-  return _internal_msgpack_blob();
-}
-inline void TableColumn::unsafe_arena_set_allocated_msgpack_blob(
-    ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE value) {
+inline void TableColumn::clear_bool_value() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.msgpack_blob_);
+  if (value_case() == kBoolValue) {
+    _impl_.value_.bool_value_ = false;
+    clear_has_value();
   }
-  _impl_.msgpack_blob_ = reinterpret_cast<::msgpack::MsgpackBlob*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableColumn.msgpack_blob)
 }
-inline ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE TableColumn::release_msgpack_blob() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
+inline bool TableColumn::bool_value() const {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.bool_value)
+  return _internal_bool_value();
+}
+inline void TableColumn::set_bool_value(bool value) {
+  if (value_case() != kBoolValue) {
+    clear_value();
+    set_has_bool_value();
+  }
+  _impl_.value_.bool_value_ = value;
+  // @@protoc_insertion_point(field_set:mysql.TableColumn.bool_value)
+}
+inline bool TableColumn::_internal_bool_value() const {
+  if (value_case() == kBoolValue) {
+    return _impl_.value_.bool_value_;
+  }
+  return false;
+}
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::msgpack::MsgpackBlob* released = _impl_.msgpack_blob_;
-  _impl_.msgpack_blob_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
+// int64 int_value = 3;
+inline bool TableColumn::has_int_value() const {
+  return value_case() == kIntValue;
+}
+inline void TableColumn::set_has_int_value() {
+  _impl_._oneof_case_[0] = kIntValue;
+}
+inline void TableColumn::clear_int_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value_case() == kIntValue) {
+    _impl_.value_.int_value_ = ::int64_t{0};
+    clear_has_value();
+  }
+}
+inline ::int64_t TableColumn::int_value() const {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.int_value)
+  return _internal_int_value();
+}
+inline void TableColumn::set_int_value(::int64_t value) {
+  if (value_case() != kIntValue) {
+    clear_value();
+    set_has_int_value();
+  }
+  _impl_.value_.int_value_ = value;
+  // @@protoc_insertion_point(field_set:mysql.TableColumn.int_value)
+}
+inline ::int64_t TableColumn::_internal_int_value() const {
+  if (value_case() == kIntValue) {
+    return _impl_.value_.int_value_;
+  }
+  return ::int64_t{0};
+}
+
+// uint64 uint_value = 4;
+inline bool TableColumn::has_uint_value() const {
+  return value_case() == kUintValue;
+}
+inline void TableColumn::set_has_uint_value() {
+  _impl_._oneof_case_[0] = kUintValue;
+}
+inline void TableColumn::clear_uint_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value_case() == kUintValue) {
+    _impl_.value_.uint_value_ = ::uint64_t{0u};
+    clear_has_value();
+  }
+}
+inline ::uint64_t TableColumn::uint_value() const {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.uint_value)
+  return _internal_uint_value();
+}
+inline void TableColumn::set_uint_value(::uint64_t value) {
+  if (value_case() != kUintValue) {
+    clear_value();
+    set_has_uint_value();
+  }
+  _impl_.value_.uint_value_ = value;
+  // @@protoc_insertion_point(field_set:mysql.TableColumn.uint_value)
+}
+inline ::uint64_t TableColumn::_internal_uint_value() const {
+  if (value_case() == kUintValue) {
+    return _impl_.value_.uint_value_;
+  }
+  return ::uint64_t{0u};
+}
+
+// double float_value = 5;
+inline bool TableColumn::has_float_value() const {
+  return value_case() == kFloatValue;
+}
+inline void TableColumn::set_has_float_value() {
+  _impl_._oneof_case_[0] = kFloatValue;
+}
+inline void TableColumn::clear_float_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value_case() == kFloatValue) {
+    _impl_.value_.float_value_ = 0;
+    clear_has_value();
+  }
+}
+inline double TableColumn::float_value() const {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.float_value)
+  return _internal_float_value();
+}
+inline void TableColumn::set_float_value(double value) {
+  if (value_case() != kFloatValue) {
+    clear_value();
+    set_has_float_value();
+  }
+  _impl_.value_.float_value_ = value;
+  // @@protoc_insertion_point(field_set:mysql.TableColumn.float_value)
+}
+inline double TableColumn::_internal_float_value() const {
+  if (value_case() == kFloatValue) {
+    return _impl_.value_.float_value_;
+  }
+  return 0;
+}
+
+// .blob.Blob string_blob = 6;
+inline bool TableColumn::has_string_blob() const {
+  return value_case() == kStringBlob;
+}
+inline bool TableColumn::_internal_has_string_blob() const {
+  return value_case() == kStringBlob;
+}
+inline void TableColumn::set_has_string_blob() {
+  _impl_._oneof_case_[0] = kStringBlob;
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::release_string_blob() {
+  // @@protoc_insertion_point(field_release:mysql.TableColumn.string_blob)
+  if (value_case() == kStringBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.string_blob_);
     if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
     }
+    _impl_.value_.string_blob_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
   }
-  return released;
 }
-inline ::msgpack::MsgpackBlob* PROTOBUF_NULLABLE TableColumn::unsafe_arena_release_msgpack_blob() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:mysql.TableColumn.msgpack_blob)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::msgpack::MsgpackBlob* temp = _impl_.msgpack_blob_;
-  _impl_.msgpack_blob_ = nullptr;
-  return temp;
+inline const ::blob::Blob& TableColumn::_internal_string_blob() const {
+  return value_case() == kStringBlob ? static_cast<const ::blob::Blob&>(*reinterpret_cast<::blob::Blob*>(_impl_.value_.string_blob_))
+                     : reinterpret_cast<const ::blob::Blob&>(::blob::_Blob_default_instance_);
 }
-inline ::msgpack::MsgpackBlob* PROTOBUF_NONNULL TableColumn::_internal_mutable_msgpack_blob() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.msgpack_blob_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::msgpack::MsgpackBlob>(GetArena());
-    _impl_.msgpack_blob_ = reinterpret_cast<::msgpack::MsgpackBlob*>(p);
+inline const ::blob::Blob& TableColumn::string_blob() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.string_blob)
+  return _internal_string_blob();
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::unsafe_arena_release_string_blob() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:mysql.TableColumn.string_blob)
+  if (value_case() == kStringBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.string_blob_);
+    _impl_.value_.string_blob_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
   }
-  return _impl_.msgpack_blob_;
 }
-inline ::msgpack::MsgpackBlob* PROTOBUF_NONNULL TableColumn::mutable_msgpack_blob()
+inline void TableColumn::unsafe_arena_set_allocated_string_blob(
+    ::blob::Blob* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_value();
+  if (value) {
+    set_has_string_blob();
+    _impl_.value_.string_blob_ = reinterpret_cast<::google::protobuf::Message*>(value);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableColumn.string_blob)
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::_internal_mutable_string_blob() {
+  if (value_case() != kStringBlob) {
+    clear_value();
+    set_has_string_blob();
+    _impl_.value_.string_blob_ = reinterpret_cast<::google::protobuf::Message*>(
+        ::google::protobuf::Message::DefaultConstruct<::blob::Blob>(GetArena()));
+  }
+  return reinterpret_cast<::blob::Blob*>(_impl_.value_.string_blob_);
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::mutable_string_blob()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::msgpack::MsgpackBlob* _msg = _internal_mutable_msgpack_blob();
-  // @@protoc_insertion_point(field_mutable:mysql.TableColumn.msgpack_blob)
+  ::blob::Blob* _msg = _internal_mutable_string_blob();
+  // @@protoc_insertion_point(field_mutable:mysql.TableColumn.string_blob)
   return _msg;
 }
-inline void TableColumn::set_allocated_msgpack_blob(::msgpack::MsgpackBlob* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.msgpack_blob_);
-  }
 
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+// .blob.Blob bytes_blob = 7;
+inline bool TableColumn::has_bytes_blob() const {
+  return value_case() == kBytesBlob;
+}
+inline bool TableColumn::_internal_has_bytes_blob() const {
+  return value_case() == kBytesBlob;
+}
+inline void TableColumn::set_has_bytes_blob() {
+  _impl_._oneof_case_[0] = kBytesBlob;
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::release_bytes_blob() {
+  // @@protoc_insertion_point(field_release:mysql.TableColumn.bytes_blob)
+  if (value_case() == kBytesBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.bytes_blob_);
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    _impl_.value_.bytes_blob_ = nullptr;
+    return temp;
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    return nullptr;
   }
+}
+inline const ::blob::Blob& TableColumn::_internal_bytes_blob() const {
+  return value_case() == kBytesBlob ? static_cast<const ::blob::Blob&>(*reinterpret_cast<::blob::Blob*>(_impl_.value_.bytes_blob_))
+                     : reinterpret_cast<const ::blob::Blob&>(::blob::_Blob_default_instance_);
+}
+inline const ::blob::Blob& TableColumn::bytes_blob() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.bytes_blob)
+  return _internal_bytes_blob();
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::unsafe_arena_release_bytes_blob() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:mysql.TableColumn.bytes_blob)
+  if (value_case() == kBytesBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.bytes_blob_);
+    _impl_.value_.bytes_blob_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void TableColumn::unsafe_arena_set_allocated_bytes_blob(
+    ::blob::Blob* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_value();
+  if (value) {
+    set_has_bytes_blob();
+    _impl_.value_.bytes_blob_ = reinterpret_cast<::google::protobuf::Message*>(value);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableColumn.bytes_blob)
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::_internal_mutable_bytes_blob() {
+  if (value_case() != kBytesBlob) {
+    clear_value();
+    set_has_bytes_blob();
+    _impl_.value_.bytes_blob_ = reinterpret_cast<::google::protobuf::Message*>(
+        ::google::protobuf::Message::DefaultConstruct<::blob::Blob>(GetArena()));
+  }
+  return reinterpret_cast<::blob::Blob*>(_impl_.value_.bytes_blob_);
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::mutable_bytes_blob()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::blob::Blob* _msg = _internal_mutable_bytes_blob();
+  // @@protoc_insertion_point(field_mutable:mysql.TableColumn.bytes_blob)
+  return _msg;
+}
 
-  _impl_.msgpack_blob_ = reinterpret_cast<::msgpack::MsgpackBlob*>(value);
-  // @@protoc_insertion_point(field_set_allocated:mysql.TableColumn.msgpack_blob)
+// .blob.Blob json_blob = 8;
+inline bool TableColumn::has_json_blob() const {
+  return value_case() == kJsonBlob;
+}
+inline bool TableColumn::_internal_has_json_blob() const {
+  return value_case() == kJsonBlob;
+}
+inline void TableColumn::set_has_json_blob() {
+  _impl_._oneof_case_[0] = kJsonBlob;
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::release_json_blob() {
+  // @@protoc_insertion_point(field_release:mysql.TableColumn.json_blob)
+  if (value_case() == kJsonBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.json_blob_);
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.value_.json_blob_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::blob::Blob& TableColumn::_internal_json_blob() const {
+  return value_case() == kJsonBlob ? static_cast<const ::blob::Blob&>(*reinterpret_cast<::blob::Blob*>(_impl_.value_.json_blob_))
+                     : reinterpret_cast<const ::blob::Blob&>(::blob::_Blob_default_instance_);
+}
+inline const ::blob::Blob& TableColumn::json_blob() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.json_blob)
+  return _internal_json_blob();
+}
+inline ::blob::Blob* PROTOBUF_NULLABLE TableColumn::unsafe_arena_release_json_blob() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:mysql.TableColumn.json_blob)
+  if (value_case() == kJsonBlob) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::blob::Blob*>(_impl_.value_.json_blob_);
+    _impl_.value_.json_blob_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void TableColumn::unsafe_arena_set_allocated_json_blob(
+    ::blob::Blob* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_value();
+  if (value) {
+    set_has_json_blob();
+    _impl_.value_.json_blob_ = reinterpret_cast<::google::protobuf::Message*>(value);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableColumn.json_blob)
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::_internal_mutable_json_blob() {
+  if (value_case() != kJsonBlob) {
+    clear_value();
+    set_has_json_blob();
+    _impl_.value_.json_blob_ = reinterpret_cast<::google::protobuf::Message*>(
+        ::google::protobuf::Message::DefaultConstruct<::blob::Blob>(GetArena()));
+  }
+  return reinterpret_cast<::blob::Blob*>(_impl_.value_.json_blob_);
+}
+inline ::blob::Blob* PROTOBUF_NONNULL TableColumn::mutable_json_blob()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::blob::Blob* _msg = _internal_mutable_json_blob();
+  // @@protoc_insertion_point(field_mutable:mysql.TableColumn.json_blob)
+  return _msg;
+}
+
+// .mysql.TableTimestamp timestamp_value = 9;
+inline bool TableColumn::has_timestamp_value() const {
+  return value_case() == kTimestampValue;
+}
+inline bool TableColumn::_internal_has_timestamp_value() const {
+  return value_case() == kTimestampValue;
+}
+inline void TableColumn::set_has_timestamp_value() {
+  _impl_._oneof_case_[0] = kTimestampValue;
+}
+inline void TableColumn::clear_timestamp_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value_case() == kTimestampValue) {
+    if (GetArena() == nullptr) {
+      delete _impl_.value_.timestamp_value_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.value_.timestamp_value_);
+    }
+    clear_has_value();
+  }
+}
+inline ::mysql::TableTimestamp* PROTOBUF_NULLABLE TableColumn::release_timestamp_value() {
+  // @@protoc_insertion_point(field_release:mysql.TableColumn.timestamp_value)
+  if (value_case() == kTimestampValue) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::mysql::TableTimestamp*>(_impl_.value_.timestamp_value_);
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.value_.timestamp_value_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::mysql::TableTimestamp& TableColumn::_internal_timestamp_value() const {
+  return value_case() == kTimestampValue ? static_cast<const ::mysql::TableTimestamp&>(*reinterpret_cast<::mysql::TableTimestamp*>(_impl_.value_.timestamp_value_))
+                     : reinterpret_cast<const ::mysql::TableTimestamp&>(::mysql::_TableTimestamp_default_instance_);
+}
+inline const ::mysql::TableTimestamp& TableColumn::timestamp_value() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.timestamp_value)
+  return _internal_timestamp_value();
+}
+inline ::mysql::TableTimestamp* PROTOBUF_NULLABLE TableColumn::unsafe_arena_release_timestamp_value() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:mysql.TableColumn.timestamp_value)
+  if (value_case() == kTimestampValue) {
+    clear_has_value();
+    auto* temp = reinterpret_cast<::mysql::TableTimestamp*>(_impl_.value_.timestamp_value_);
+    _impl_.value_.timestamp_value_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void TableColumn::unsafe_arena_set_allocated_timestamp_value(
+    ::mysql::TableTimestamp* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_value();
+  if (value) {
+    set_has_timestamp_value();
+    _impl_.value_.timestamp_value_ = reinterpret_cast<::google::protobuf::Message*>(value);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableColumn.timestamp_value)
+}
+inline ::mysql::TableTimestamp* PROTOBUF_NONNULL TableColumn::_internal_mutable_timestamp_value() {
+  if (value_case() != kTimestampValue) {
+    clear_value();
+    set_has_timestamp_value();
+    _impl_.value_.timestamp_value_ = reinterpret_cast<::google::protobuf::Message*>(
+        ::google::protobuf::Message::DefaultConstruct<::mysql::TableTimestamp>(GetArena()));
+  }
+  return reinterpret_cast<::mysql::TableTimestamp*>(_impl_.value_.timestamp_value_);
+}
+inline ::mysql::TableTimestamp* PROTOBUF_NONNULL TableColumn::mutable_timestamp_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::mysql::TableTimestamp* _msg = _internal_mutable_timestamp_value();
+  // @@protoc_insertion_point(field_mutable:mysql.TableColumn.timestamp_value)
+  return _msg;
+}
+
+// int64 timespan_micros = 10;
+inline bool TableColumn::has_timespan_micros() const {
+  return value_case() == kTimespanMicros;
+}
+inline void TableColumn::set_has_timespan_micros() {
+  _impl_._oneof_case_[0] = kTimespanMicros;
+}
+inline void TableColumn::clear_timespan_micros() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value_case() == kTimespanMicros) {
+    _impl_.value_.timespan_micros_ = ::int64_t{0};
+    clear_has_value();
+  }
+}
+inline ::int64_t TableColumn::timespan_micros() const {
+  // @@protoc_insertion_point(field_get:mysql.TableColumn.timespan_micros)
+  return _internal_timespan_micros();
+}
+inline void TableColumn::set_timespan_micros(::int64_t value) {
+  if (value_case() != kTimespanMicros) {
+    clear_value();
+    set_has_timespan_micros();
+  }
+  _impl_.value_.timespan_micros_ = value;
+  // @@protoc_insertion_point(field_set:mysql.TableColumn.timespan_micros)
+}
+inline ::int64_t TableColumn::_internal_timespan_micros() const {
+  if (value_case() == kTimespanMicros) {
+    return _impl_.value_.timespan_micros_;
+  }
+  return ::int64_t{0};
+}
+
+inline bool TableColumn::has_value() const {
+  return value_case() != VALUE_NOT_SET;
+}
+inline void TableColumn::clear_has_value() {
+  _impl_._oneof_case_[0] = VALUE_NOT_SET;
+}
+inline TableColumn::ValueCase TableColumn::value_case() const {
+  return TableColumn::ValueCase(_impl_._oneof_case_[0]);
+}
+// -------------------------------------------------------------------
+
+// TableTimestamp
+
+// int64 unix_seconds = 1;
+inline void TableTimestamp::clear_unix_seconds() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unix_seconds_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::int64_t TableTimestamp::unix_seconds() const {
+  // @@protoc_insertion_point(field_get:mysql.TableTimestamp.unix_seconds)
+  return _internal_unix_seconds();
+}
+inline void TableTimestamp::set_unix_seconds(::int64_t value) {
+  _internal_set_unix_seconds(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:mysql.TableTimestamp.unix_seconds)
+}
+inline ::int64_t TableTimestamp::_internal_unix_seconds() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.unix_seconds_;
+}
+inline void TableTimestamp::_internal_set_unix_seconds(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unix_seconds_ = value;
+}
+
+// int32 nanos = 2;
+inline void TableTimestamp::clear_nanos() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nanos_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::int32_t TableTimestamp::nanos() const {
+  // @@protoc_insertion_point(field_get:mysql.TableTimestamp.nanos)
+  return _internal_nanos();
+}
+inline void TableTimestamp::set_nanos(::int32_t value) {
+  _internal_set_nanos(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:mysql.TableTimestamp.nanos)
+}
+inline ::int32_t TableTimestamp::_internal_nanos() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.nanos_;
+}
+inline void TableTimestamp::_internal_set_nanos(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nanos_ = value;
 }
 
 // -------------------------------------------------------------------

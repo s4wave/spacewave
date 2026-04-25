@@ -1,0 +1,3 @@
+# bldr: project.ProjectConfig
+# NOTE: this config is used by the browser E2E test
+id: spacewave-browser-e2e

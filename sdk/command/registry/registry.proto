@@ -1,0 +1,126 @@
+syntax = "proto3";
+package s4wave.command.registry;
+
+import "github.com/s4wave/spacewave/sdk/command/command.proto";
+
+service CommandRegistryResourceService {
+  rpc RegisterCommand(RegisterCommandRequest)
+    returns (RegisterCommandResponse);
+  rpc SetActive(SetActiveRequest) returns (SetActiveResponse);
+  rpc SetEnabled(SetEnabledRequest) returns (SetEnabledResponse);
+  rpc WatchCommands(WatchCommandsRequest)
+    returns (stream WatchCommandsResponse);
+  rpc GetSubItems(GetSubItemsRequest) returns (GetSubItemsResponse);
+  rpc InvokeCommand(InvokeCommandRequest)
+    returns (InvokeCommandResponse);
+}
+
+service CommandHandlerService {
+  rpc GetSubItems(GetSubItemsRequest) returns (GetSubItemsResponse);
+  rpc HandleCommand(HandleCommandRequest)
+    returns (HandleCommandResponse);
+}
+
+// RegisterCommandRequest is the request for RegisterCommand.
+message RegisterCommandRequest {
+  // Command is the command metadata.
+  s4wave.command.Command command = 1;
+  // HandlerResourceId is the resource ID of the attached handler.
+  // If 0, the command has no handler (display-only).
+  uint32 handler_resource_id = 2;
+}
+
+// RegisterCommandResponse is the response for RegisterCommand.
+message RegisterCommandResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the command.
+  uint32 resource_id = 1;
+}
+
+// SetActiveRequest is the request for SetActive.
+message SetActiveRequest {
+  // ResourceId is the command registration to update.
+  uint32 resource_id = 1;
+  // Active is whether the registration is active.
+  bool active = 2;
+}
+
+// SetActiveResponse is the response for SetActive.
+message SetActiveResponse {}
+
+// SetEnabledRequest is the request for SetEnabled.
+message SetEnabledRequest {
+  // ResourceId is the command registration to update.
+  uint32 resource_id = 1;
+  // Enabled is whether the registration is enabled.
+  bool enabled = 2;
+}
+
+// SetEnabledResponse is the response for SetEnabled.
+message SetEnabledResponse {}
+
+// WatchCommandsRequest is the request for WatchCommands.
+message WatchCommandsRequest {}
+
+// CommandState is a registered command instance with active and enabled state.
+message CommandState {
+  // ResourceId is the registration resource ID.
+  uint32 resource_id = 1;
+  // Command is the command metadata.
+  s4wave.command.Command command = 2;
+  // Active is whether the registration is active.
+  bool active = 3;
+  // Enabled is whether the registration is enabled.
+  bool enabled = 4;
+}
+
+// WatchCommandsResponse is the response for WatchCommands.
+message WatchCommandsResponse {
+  // Commands is the full registry of command registrations.
+  repeated CommandState commands = 1;
+}
+
+// CommandSubItem is a sub-item returned for a command palette entry.
+message CommandSubItem {
+  // Id is the stable sub-item identifier.
+  string id = 1;
+  // Label is the display label.
+  string label = 2;
+  // Description is an optional longer description.
+  string description = 3;
+}
+
+// GetSubItemsRequest is the request for GetSubItems.
+message GetSubItemsRequest {
+  // CommandId is the command to query.
+  string command_id = 1;
+  // Query is the user-entered filter text.
+  string query = 2;
+}
+
+// GetSubItemsResponse is the response for GetSubItems.
+message GetSubItemsResponse {
+  // Items is the sub-item list for the command.
+  repeated CommandSubItem items = 1;
+}
+
+// InvokeCommandRequest is the request for InvokeCommand.
+message InvokeCommandRequest {
+  // CommandId is the command to invoke.
+  string command_id = 1;
+  // Args is optional key-value arguments.
+  map<string, string> args = 2;
+}
+
+// InvokeCommandResponse is the response for InvokeCommand.
+message InvokeCommandResponse {}
+
+// HandleCommandRequest is the request for HandleCommand.
+message HandleCommandRequest {
+  // CommandId is the invoked command.
+  string command_id = 1;
+  // Args is the arguments passed by the invoker.
+  map<string, string> args = 2;
+}
+
+// HandleCommandResponse is the response for HandleCommand.
+message HandleCommandResponse {}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+package cdn;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/core/provider/spacewave/packfile/packfile.proto";
+
+// CdnRootPointer is the top-level CDN artifact for a public_read Space.
+// The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
+// packedmsg-encoded blob (see repos/bldr/util/packedmsg) on every successful
+// sync/push for a public_read Space. Anonymous clients fetch and decode this
+// blob to discover the current signed root and the set of packs they need to
+// reconstruct Space state; no Worker round-trip is required on the read path.
+message CdnRootPointer {
+  // SpaceId is the SharedObject ULID for this Space.
+  string space_id = 1;
+
+  // Root is the signed SORoot for the Space at the time of publication.
+  // Clients verify it against the config chain's validator peers.
+  .sobject.SORoot root = 2;
+
+  // ConfigChainHash is the hash of the current config chain head.
+  bytes config_chain_hash = 3;
+
+  // ConfigChainSeqno is the seqno of the current config chain head.
+  uint64 config_chain_seqno = 4;
+
+  // Packs is the list of packfile entries currently published to the CDN for
+  // this Space. Each pack lives at
+  // cdn.spacewave.app/{spaceId}/packs/{shard}/{id}.kvf. Bloom filters are
+  // included so clients can skip packs that don't contain blocks they need.
+  repeated .provider.spacewave.packfile.PackfileEntry packs = 5;
+
+  // CreatedAtMs is when this root pointer was regenerated, expressed as unix
+  // epoch milliseconds. Informational only; does not affect verification.
+  int64 created_at_ms = 6;
+}

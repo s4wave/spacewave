@@ -1,0 +1,57 @@
+syntax = "proto3";
+package spacewave.chat;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/chat;spacewave_chat";
+
+// ChatChannel is a chat channel world object.
+// All channels are visible to Space participants (no visibility field).
+message ChatChannel {
+  // Name is the channel display name.
+  string name = 1;
+  // Topic is an optional channel topic description.
+  string topic = 2;
+  // CreatedAt is the creation timestamp.
+  .google.protobuf.Timestamp created_at = 3;
+}
+
+// ChatMessage is a chat message world object linked to a channel.
+message ChatMessage {
+  // SenderPeerId is the peer ID of the message sender.
+  string sender_peer_id = 1;
+  // Content is the message content.
+  ChatMessageContent content = 2;
+  // CreatedAt is the message creation timestamp.
+  .google.protobuf.Timestamp created_at = 3;
+  // ReplyToKey is the object key of the message being replied to.
+  string reply_to_key = 4;
+}
+
+// ChatMessageContent contains the message body.
+message ChatMessageContent {
+  oneof content {
+    // Text is a plain text message.
+    string text = 1;
+  }
+}
+
+// InitChatDemoOp creates a "General" channel on space quickstart.
+message InitChatDemoOp {
+  // ChannelObjectKey is the key for the channel object.
+  string channel_object_key = 1;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
+// CreateChatChannelOp creates a new chat channel.
+message CreateChatChannelOp {
+  // ObjectKey is the key to create the channel at.
+  string object_key = 1;
+  // Name is the channel name.
+  string name = 2;
+  // Topic is the optional channel topic.
+  string topic = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}

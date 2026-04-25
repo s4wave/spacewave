@@ -1,0 +1,203 @@
+syntax = "proto3";
+package s4wave.org;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/org;s4wave_org";
+
+// OrgState is the state of an Organization SharedObject.
+// Stored as the organization's world block.
+message OrgState {
+  // DisplayName is the organization display name.
+  string display_name = 1;
+  // CreatedAt is the organization creation timestamp.
+  .google.protobuf.Timestamp created_at = 2;
+  // BillingAccountId is the linked billing account ID (cloud only).
+  // Empty until a subscription is created for the org.
+  string billing_account_id = 3;
+  // Members is the list of organization members with metadata.
+  // SOParticipantConfig is the authority for membership, this is supplementary.
+  repeated OrgMemberInfo members = 4;
+  // ChildSharedObjects is the list of child SO references (Spaces under this org).
+  repeated OrgChildRef child_shared_objects = 5;
+  // Invites is the list of active organization invites.
+  repeated OrgInvite invites = 6;
+}
+
+// OrgMemberInfo contains per-member metadata within the organization.
+// Supplements SOParticipantConfig (which holds crypto access roles).
+message OrgMemberInfo {
+  // AccountId is the member's account identifier.
+  string account_id = 1;
+  // DisplayRole is the human-readable role label (e.g. "Owner", "Member").
+  string display_role = 2;
+  // JoinedAt is when the member joined the organization.
+  .google.protobuf.Timestamp joined_at = 3;
+}
+
+// OrgChildRef is a reference to a child SharedObject owned by this organization.
+message OrgChildRef {
+  // SharedObjectId is the identifier of the child SharedObject.
+  string shared_object_id = 1;
+}
+
+// OrgInviteType is the type of organization invite.
+enum OrgInviteType {
+  // ORG_INVITE_TYPE_UNKNOWN is unknown.
+  ORG_INVITE_TYPE_UNKNOWN = 0;
+  // ORG_INVITE_TYPE_CODE is a short alphanumeric code invite.
+  ORG_INVITE_TYPE_CODE = 1;
+  // ORG_INVITE_TYPE_LINK is a URL link invite.
+  ORG_INVITE_TYPE_LINK = 2;
+  // ORG_INVITE_TYPE_EMAIL is an email invite (cloud relay).
+  ORG_INVITE_TYPE_EMAIL = 3;
+}
+
+// OrgInvite is an organization invite stored in OrgState.
+message OrgInvite {
+  // Id is the unique invite identifier.
+  string id = 1;
+  // Type is the invite mechanism type.
+  OrgInviteType type = 2;
+  // Token is the invite token (8-char code, 32-char hex, or email-specific).
+  string token = 3;
+  // Config is optional invite configuration (e.g. target email for email invites).
+  string config = 4;
+  // Uses is the current number of times this invite has been used.
+  uint32 uses = 5;
+  // MaxUses is the maximum number of uses (0 = unlimited).
+  uint32 max_uses = 6;
+  // ExpiresAt is the invite expiration timestamp (zero = no expiry).
+  .google.protobuf.Timestamp expires_at = 7;
+}
+
+// InitOrganizationOp initializes an organization world object on space quickstart.
+message InitOrganizationOp {
+  // OrgObjectKey is the key for the organization object.
+  string org_object_key = 1;
+  // DisplayName is the organization display name.
+  string display_name = 2;
+  // CreatorAccountId is the account ID of the organization creator.
+  string creator_account_id = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}
+
+// UpdateOrgOp applies a mutation to an existing organization object.
+message UpdateOrgOp {
+  // OrgObjectKey is the key for the organization object.
+  string org_object_key = 1;
+  // Body is the mutation to apply.
+  oneof body {
+    // UpdateDisplayName changes the display name.
+    UpdateOrgDisplayName update_display_name = 2;
+    // AddMember adds a member to the organization.
+    AddOrgMember add_member = 3;
+    // RemoveMember removes a member from the organization.
+    RemoveOrgMember remove_member = 4;
+    // AddChildSo adds a child SO reference.
+    AddOrgChildSo add_child_so = 5;
+    // RemoveChildSo removes a child SO reference.
+    RemoveOrgChildSo remove_child_so = 6;
+    // CreateInvite creates a new invite.
+    CreateOrgInviteOp create_invite = 7;
+    // RevokeInvite revokes an existing invite.
+    RevokeOrgInviteOp revoke_invite = 8;
+    // JoinViaInvite joins the org using an invite token.
+    JoinOrgViaInviteOp join_via_invite = 9;
+  }
+}
+
+// UpdateOrgDisplayName is the body for updating the org display name.
+message UpdateOrgDisplayName {
+  // DisplayName is the new display name.
+  string display_name = 1;
+}
+
+// AddOrgMember is the body for adding a member.
+message AddOrgMember {
+  // Member is the member info to add.
+  OrgMemberInfo member = 1;
+}
+
+// RemoveOrgMember is the body for removing a member.
+message RemoveOrgMember {
+  // AccountId is the account ID of the member to remove.
+  string account_id = 1;
+}
+
+// AddOrgChildSo is the body for adding a child SO reference.
+message AddOrgChildSo {
+  // SharedObjectId is the child SO ID to add.
+  string shared_object_id = 1;
+}
+
+// RemoveOrgChildSo is the body for removing a child SO reference.
+message RemoveOrgChildSo {
+  // SharedObjectId is the child SO ID to remove.
+  string shared_object_id = 1;
+}
+
+// CreateOrgInviteOp creates a new invite in the organization.
+message CreateOrgInviteOp {
+  // Type is the invite type (code, link, or email).
+  OrgInviteType type = 1;
+  // MaxUses is the maximum number of uses (0 = unlimited).
+  uint32 max_uses = 2;
+  // ExpiresAt is the invite expiration timestamp (zero = no expiry).
+  .google.protobuf.Timestamp expires_at = 3;
+  // Config is optional configuration (e.g. target email for email invites).
+  string config = 4;
+  // Timestamp is the creation timestamp for deterministic replay.
+  .google.protobuf.Timestamp timestamp = 5;
+}
+
+// RevokeOrgInviteOp revokes an existing invite by ID.
+message RevokeOrgInviteOp {
+  // InviteId is the ID of the invite to revoke.
+  string invite_id = 1;
+}
+
+// JoinOrgViaInviteOp joins the organization using an invite token.
+message JoinOrgViaInviteOp {
+  // Token is the invite token to validate.
+  string token = 1;
+  // AccountId is the account ID of the joiner.
+  string account_id = 2;
+  // Timestamp is the join timestamp.
+  .google.protobuf.Timestamp timestamp = 3;
+}
+
+// DeleteOrganizationOp marks an organization as deleted.
+// Blocked if child_shared_objects is non-empty.
+message DeleteOrganizationOp {
+  // OrgObjectKey is the key for the organization object.
+  string org_object_key = 1;
+}
+
+// OrgSOOp wraps org operations for the lightweight SO state processor.
+// This is the operation format queued to org SharedObjects.
+message OrgSOOp {
+  // Body is the operation to apply.
+  oneof body {
+    // InitOrg initializes the organization state.
+    InitOrganizationOp init_org = 1;
+    // UpdateOrg applies a mutation to the organization state.
+    UpdateOrgOp update_org = 2;
+    // DeleteOrg marks the organization as deleted.
+    DeleteOrganizationOp delete_org = 3;
+  }
+}
+
+service OrgResourceService {
+  rpc WatchOrgState(WatchOrgStateRequest) returns (stream WatchOrgStateResponse);
+}
+
+// WatchOrgStateRequest is a request to watch organization state.
+message WatchOrgStateRequest {}
+
+// WatchOrgStateResponse contains the current organization state.
+message WatchOrgStateResponse {
+  // State is the current organization state.
+  OrgState state = 1;
+}

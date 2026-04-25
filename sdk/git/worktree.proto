@@ -1,0 +1,112 @@
+syntax = "proto3";
+package s4wave.git;
+
+option go_package = "github.com/s4wave/spacewave/sdk/git;s4wave_git";
+
+service GitWorktreeResourceService {
+  rpc GetWorktreeInfo(GetWorktreeInfoRequest) returns (GetWorktreeInfoResponse);
+
+  rpc GetRepoResource(GetRepoResourceRequest) returns (GetRepoResourceResponse);
+
+  rpc GetWorkdirResource(GetWorkdirResourceRequest)
+      returns (GetWorkdirResourceResponse);
+
+  rpc WatchStatus(WatchStatusRequest) returns (stream WatchStatusResponse);
+
+  rpc StageFiles(StageFilesRequest) returns (StageFilesResponse);
+
+  rpc UnstageFiles(UnstageFilesRequest) returns (UnstageFilesResponse);
+}
+
+// GetWorktreeInfoRequest is the request for GetWorktreeInfo.
+message GetWorktreeInfoRequest {}
+
+// GetWorktreeInfoResponse is the response for GetWorktreeInfo.
+message GetWorktreeInfoResponse {
+  // RepoObjectKey is the object key of the linked git/repo.
+  string repo_object_key = 1;
+  // WorkdirObjectKey is the object key of the linked workdir.
+  // Empty if no workdir is linked.
+  string workdir_object_key = 2;
+  // CheckedOutRef is the ref the worktree has checked out.
+  string checked_out_ref = 3;
+  // HeadCommitHash is the commit hash of the checked-out ref.
+  string head_commit_hash = 4;
+  // HasWorkdir is true if a workdir is linked.
+  bool has_workdir = 5;
+}
+
+// GetRepoResourceRequest is the request for GetRepoResource.
+message GetRepoResourceRequest {}
+
+// GetRepoResourceResponse is the response for GetRepoResource.
+message GetRepoResourceResponse {
+  // ResourceId is the sub-resource for the GitRepoResource.
+  uint32 resource_id = 1;
+}
+
+// GetWorkdirResourceRequest is the request for GetWorkdirResource.
+message GetWorkdirResourceRequest {}
+
+// GetWorkdirResourceResponse is the response for GetWorkdirResource.
+message GetWorkdirResourceResponse {
+  // ResourceId is the FSHandle sub-resource for the workdir.
+  uint32 resource_id = 1;
+}
+
+// FileStatusCode maps directly to go-git's StatusCode.
+enum FileStatusCode {
+  // FILE_STATUS_CODE_UNMODIFIED indicates the file is unmodified.
+  FILE_STATUS_CODE_UNMODIFIED = 0;
+  // FILE_STATUS_CODE_UNTRACKED indicates the file is untracked.
+  FILE_STATUS_CODE_UNTRACKED = 1;
+  // FILE_STATUS_CODE_MODIFIED indicates the file is modified.
+  FILE_STATUS_CODE_MODIFIED = 2;
+  // FILE_STATUS_CODE_ADDED indicates the file is added.
+  FILE_STATUS_CODE_ADDED = 3;
+  // FILE_STATUS_CODE_DELETED indicates the file is deleted.
+  FILE_STATUS_CODE_DELETED = 4;
+  // FILE_STATUS_CODE_RENAMED indicates the file is renamed.
+  FILE_STATUS_CODE_RENAMED = 5;
+  // FILE_STATUS_CODE_COPIED indicates the file is copied.
+  FILE_STATUS_CODE_COPIED = 6;
+  // FILE_STATUS_CODE_UPDATED_BUT_UNMERGED indicates the file is updated but unmerged.
+  FILE_STATUS_CODE_UPDATED_BUT_UNMERGED = 7;
+}
+
+// StatusEntry contains the status of a file in the worktree.
+message StatusEntry {
+  // FilePath is the relative path of the file.
+  string file_path = 1;
+  // StagingStatus is the status in the staging area (index).
+  FileStatusCode staging_status = 2;
+  // WorktreeStatus is the status in the working directory.
+  FileStatusCode worktree_status = 3;
+}
+
+// WatchStatusRequest is the request for WatchStatus.
+message WatchStatusRequest {}
+
+// WatchStatusResponse is the response for WatchStatus.
+message WatchStatusResponse {
+  // Entries is the list of files with non-clean status.
+  repeated StatusEntry entries = 1;
+}
+
+// StageFilesRequest is the request for StageFiles.
+message StageFilesRequest {
+  // Paths is the list of file paths to stage.
+  repeated string paths = 1;
+}
+
+// StageFilesResponse is the response for StageFiles.
+message StageFilesResponse {}
+
+// UnstageFilesRequest is the request for UnstageFiles.
+message UnstageFilesRequest {
+  // Paths is the list of file paths to unstage.
+  repeated string paths = 1;
+}
+
+// UnstageFilesResponse is the response for UnstageFiles.
+message UnstageFilesResponse {}

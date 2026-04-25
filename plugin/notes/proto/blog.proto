@@ -1,0 +1,32 @@
+syntax = "proto3";
+package notes;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/plugin/notes/proto/notebook.proto";
+
+// Blog is a world object that presents markdown files from UnixFS
+// sources as a blog with reading view and frontmatter-based filtering.
+message Blog {
+  // Name is the display name of the blog.
+  string name = 1;
+  // Description is a short description of the blog.
+  string description = 2;
+  // Sources is the ordered list of content sources (shared with Notebook).
+  repeated NotebookSource sources = 3;
+  // AuthorRegistryPath is the path to the authors.yaml file within the source.
+  string author_registry_path = 4;
+}
+
+// CreateBlogOp creates a Blog with a UnixFS source and initial post.
+message CreateBlogOp {
+  // ObjectKey is the world object key for the blog.
+  string object_key = 1;
+  // Name is the display name for the blog.
+  string name = 2;
+  // Description is a short description of the blog.
+  string description = 3;
+  // AuthorRegistryPath is the path to the authors.yaml file.
+  string author_registry_path = 4;
+  // Timestamp is the creation timestamp.
+  google.protobuf.Timestamp timestamp = 5;
+}

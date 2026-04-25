@@ -29,7 +29,10 @@ describe('goTsResolver', () => {
   function createPlugin() {
     const plugin = goTsResolver(tmpDir)
     // resolveId is the only hook we need; bind it to a no-op context
-    const resolveId = plugin.resolveId as (source: string) => Promise<string | null>
+    const resolveId = plugin.resolveId as (
+      source: string,
+      importer?: string,
+    ) => Promise<string | null>
     return resolveId
   }
 

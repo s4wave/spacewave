@@ -1,7 +1,7 @@
 syntax = "proto3";
 package resource.state;
 
-option go_package = "github.com/s4wave/spacewave/bldr/resource/state";
+option go_package = "github.com/s4wave/spacewave/bldr/resource/state;resource_state";
 
 // StateAtomResourceService provides access to persisted state atoms.
 service StateAtomResourceService {

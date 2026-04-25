@@ -1,0 +1,41 @@
+syntax = "proto3";
+package sobject.sync;
+
+option go_package = "github.com/s4wave/spacewave/core/sobject/sync;sobject_sync";
+
+// SOSyncMessage is the bidirectional message on the solicit stream.
+message SOSyncMessage {
+  // Body is the message body.
+  oneof body {
+    // Snapshot is a full SOState snapshot exchanged on stream connect.
+    SOSyncSnapshot snapshot = 1;
+    // Op carries a signed operation for the peer to apply.
+    SOSyncOp op = 2;
+    // Ack acknowledges receipt up to a sequence number.
+    SOSyncAck ack = 3;
+  }
+}
+
+// SOSyncSnapshot is a full SOState snapshot exchanged on stream connect.
+message SOSyncSnapshot {
+  // SoState is the full SOState proto bytes (MarshalVT).
+  bytes so_state = 1;
+  // RootSeqno is the inner_seqno from SORoot.
+  uint64 root_seqno = 2;
+}
+
+// SOSyncOp carries a signed operation for the peer to apply.
+message SOSyncOp {
+  // Operation is the SOOperation proto bytes (MarshalVT).
+  bytes operation = 1;
+  // Nonce is the sender's nonce counter.
+  uint64 nonce = 2;
+  // PeerId is the sender's peer ID (raw multihash bytes).
+  bytes peer_id = 3;
+}
+
+// SOSyncAck acknowledges receipt up to a sequence number.
+message SOSyncAck {
+  // AckedSeqno is the acknowledged sequence number.
+  uint64 acked_seqno = 1;
+}

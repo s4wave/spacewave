@@ -1,0 +1,55 @@
+syntax = "proto3";
+package s4wave.web.object;
+
+// ObjectInfoType contains the set of object info types.
+enum ObjectInfoType {
+  // ObjectInfoType_UNKNOWN is the zero value.
+  ObjectInfoType_UNKNOWN = 0;
+  // ObjectInfoType_WORLD is the world object type.
+  // Corresponds to WorldObjectInfo.
+  ObjectInfoType_WORLD = 1;
+  // ObjectInfoType_UNIXFS is the UnixFS object type.
+  // Corresponds to UnixfsObjectInfo.
+  ObjectInfoType_UNIXFS = 2;
+}
+
+// ObjectInfo is basic metadata about an object.
+// Often used as a selector to determine what to display in an ObjectViewer.
+// Some components support empty fields: all fields are optional.
+message ObjectInfo {
+  oneof info {
+    // WorldObjectInfo contains info about an object within a Hydra World.
+    // ObjectInfoType_WORLD
+    WorldObjectInfo world_object_info = 1;
+    // UnixfsObjectInfo contains info about a file within a UnixFS filesystem.
+    // ObjectInfoType_UNIXFS
+    UnixfsObjectInfo unixfs_object_info = 2;
+  }
+}
+
+// WorldObjectInfo is basic metadata about a world object.
+// Some components support empty fields: all fields are optional.
+// ObjectInfoType_WORLD
+message WorldObjectInfo {
+  // EngineId is the identifier used to look up the world on the bus.
+  string engine_id = 1;
+  // ObjectKey is the ID of the referenced object.
+  string object_key = 2;
+  // ObjectType is the object type string for the object.
+  string object_type = 3;
+}
+
+// UnixfsObjectInfo is basic metadata about a UnixFS file.
+// Some components support empty fields: all fields are optional.
+// ObjectInfoType_UNIXFS
+message UnixfsObjectInfo {
+  // UnixfsId is the identifier for the UnixFS on the bus.
+  // The fs should be provided with the AccessUnixFS controller.
+  string unixfs_id = 1;
+  // Path is the base path to select within the UnixFS.
+  // Optional.
+  string path = 2;
+  // MimeType is the mime type of the passed path, if known.
+  // Optional.
+  string mime_type = 3;
+}

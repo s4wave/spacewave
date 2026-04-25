@@ -125,26 +125,25 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     "\n5github.com/s4wave/spacewave/forge/work"
     "er/worker.proto\022\014forge.worker\0323github.co"
     "m/s4wave/spacewave/identity/identity.pro"
-    "to\032\037google/protobuf/timestamp.proto\"\026\n\006W"
-    "orker\022\014\n\004name\030\001 \001(\t\"W\n\016WorkerCreateOp\022\022\n"
-    "\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022#\n\010keypa"
-    "irs\030\003 \003(\0132\021.identity.Keypairb\006proto3"
+    "to\"\026\n\006Worker\022\014\n\004name\030\001 \001(\t\"W\n\016WorkerCrea"
+    "teOp\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022#"
+    "\n\010keypairs\030\003 \003(\0132\021.identity.Keypairb\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto_deps[2] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto_deps[1] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fidentity_2eproto,
-        &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto = {
     false,
     false,
-    276,
+    243,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto,
     "github.com/s4wave/spacewave/forge/worker/worker.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fworker_2fworker_2eproto_deps,
-    2,
+    1,
     2,
     schemas,
     file_default_instances,

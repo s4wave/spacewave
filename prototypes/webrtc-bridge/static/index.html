@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebRTC Bridge Prototype</title>
+  <style>
+    body { font-family: monospace; margin: 1em; }
+    #log { white-space: pre-wrap; background: #111; color: #0f0; padding: 1em; min-height: 200px; }
+  </style>
+</head>
+<body>
+  <h3>WebRTC Bridge Prototype</h3>
+  <div id="log"></div>
+
+  <script>
+    const logEl = document.getElementById('log')
+    function log(msg) {
+      const line = typeof msg === 'string' ? msg : JSON.stringify(msg)
+      logEl.textContent += line + '\n'
+      console.log('[main]', line)
+    }
+
+    // Results object exposed for Playwright
+    window.__results = {}
+
+    // PC registry: pcId -> RTCPeerConnection
+    const pcs = new Map()
+
+    function getSnapshot(pc) {
+      return {
+        connectionState: pc.connectionState,
+        signalingState: pc.signalingState,
+        iceConnectionState: pc.iceConnectionState,
+        iceGatheringState: pc.iceGatheringState,
+        localDescription: pc.localDescription
+          ? { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+          : null,
+        remoteDescription: pc.remoteDescription
+          ? { type: pc.remoteDescription.type, sdp: pc.remoteDescription.sdp }
+          : null,
+      }
+    }
+
+    function wireEvents(pc, pcId, port) {
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          port.postMessage({
+            type: 'event:icecandidate',
+            pcId,
+            candidate: {
+              candidate: e.candidate.candidate,
+              sdpMid: e.candidate.sdpMid,
+              sdpMLineIndex: e.candidate.sdpMLineIndex,
+              usernameFragment: e.candidate.usernameFragment,
+            },
+            snapshot: getSnapshot(pc),
+          })
+        }
+      }
+
+      pc.onconnectionstatechange = () => {
+        port.postMessage({
+          type: 'event:connectionstatechange',
+          pcId,
+          snapshot: getSnapshot(pc),
+        })
+      }
+
+      pc.onsignalingstatechange = () => {
+        port.postMessage({
+          type: 'event:signalingstatechange',
+          pcId,
+          snapshot: getSnapshot(pc),
+        })
+      }
+
+      pc.oniceconnectionstatechange = () => {
+        port.postMessage({
+          type: 'event:iceconnectionstatechange',
+          pcId,
+          snapshot: getSnapshot(pc),
+        })
+      }
+
+      pc.onicegatheringstatechange = () => {
+        port.postMessage({
+          type: 'event:icegatheringstatechange',
+          pcId,
+          snapshot: getSnapshot(pc),
+        })
+      }
+
+      pc.ondatachannel = (e) => {
+        const dc = e.channel
+        const msg = {
+          type: 'event:datachannel',
+          pcId,
+          dc,
+          label: dc.label,
+          snapshot: getSnapshot(pc),
+        }
+        port.postMessage(msg, [dc])
+      }
+    }
+
+    // Create worker and bridge MessagePort
+    const worker = new Worker('/workers/bridge-worker.js')
+    const channel = new MessageChannel()
+
+    // Main thread: listen on bridgePort for commands from worker
+    const bridgePort = channel.port1
+    bridgePort.onmessage = async (e) => {
+      const cmd = e.data
+      log('recv cmd: ' + cmd.type + ' cmdId=' + cmd.cmdId)
+
+      try {
+        let response
+
+        if (cmd.type === 'createPC') {
+          const pcId = 'pc-' + Math.random().toString(36).slice(2, 10)
+          const pc = new RTCPeerConnection(cmd.config || {})
+          pcs.set(pcId, pc)
+          wireEvents(pc, pcId, bridgePort)
+          log('created RTCPeerConnection ' + pcId)
+          response = {
+            type: 'createPC',
+            cmdId: cmd.cmdId,
+            pcId,
+            snapshot: getSnapshot(pc),
+          }
+        } else if (cmd.type === 'createOffer') {
+          const pc = pcs.get(cmd.pcId)
+          const offer = await pc.createOffer(cmd.options || {})
+          response = {
+            type: 'createOffer',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            sdp: { type: offer.type, sdp: offer.sdp },
+            snapshot: getSnapshot(pc),
+          }
+        } else if (cmd.type === 'createAnswer') {
+          const pc = pcs.get(cmd.pcId)
+          const answer = await pc.createAnswer(cmd.options || {})
+          response = {
+            type: 'createAnswer',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            sdp: { type: answer.type, sdp: answer.sdp },
+            snapshot: getSnapshot(pc),
+          }
+        } else if (cmd.type === 'setLocalDescription') {
+          const pc = pcs.get(cmd.pcId)
+          await pc.setLocalDescription(cmd.sdp)
+          response = {
+            type: 'setLocalDescription',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            snapshot: getSnapshot(pc),
+          }
+        } else if (cmd.type === 'setRemoteDescription') {
+          const pc = pcs.get(cmd.pcId)
+          await pc.setRemoteDescription(cmd.sdp)
+          response = {
+            type: 'setRemoteDescription',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            snapshot: getSnapshot(pc),
+          }
+        } else if (cmd.type === 'createDataChannel') {
+          const pc = pcs.get(cmd.pcId)
+          const opts = cmd.options || {}
+          const dc = pc.createDataChannel(cmd.label, opts)
+          response = {
+            type: 'createDataChannel',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            dc, // transferred via transfer list below
+            snapshot: getSnapshot(pc),
+          }
+          log('send response: createDataChannel cmdId=' + cmd.cmdId + ' (with DC transfer)')
+          bridgePort.postMessage(response, [dc])
+          return // skip the normal postMessage at the bottom
+        } else if (cmd.type === 'addIceCandidate') {
+          const pc = pcs.get(cmd.pcId)
+          await pc.addIceCandidate(cmd.candidate)
+          response = {
+            type: 'addIceCandidate',
+            cmdId: cmd.cmdId,
+            pcId: cmd.pcId,
+            snapshot: getSnapshot(pc),
+          }
+        } else {
+          response = {
+            type: cmd.type,
+            cmdId: cmd.cmdId,
+            error: 'unknown command: ' + cmd.type,
+          }
+        }
+
+        log('send response: ' + response.type + ' cmdId=' + response.cmdId)
+        bridgePort.postMessage(response)
+      } catch (err) {
+        log('cmd error: ' + err.message)
+        bridgePort.postMessage({
+          type: cmd.type,
+          cmdId: cmd.cmdId,
+          error: err.message,
+        })
+      }
+    }
+
+    // Send the other port to the worker
+    worker.postMessage({ type: 'init-bridge', port: channel.port2 }, [channel.port2])
+
+    // Listen for worker status messages
+    worker.onmessage = (e) => {
+      const msg = e.data
+      log('worker msg: ' + msg.type)
+
+      if (msg.type === 'test-result') {
+        window.__results[msg.test] = msg.result
+        if (msg.done) log('DONE')
+      }
+    }
+
+    worker.onerror = (e) => {
+      log('worker error: ' + e.message)
+    }
+  </script>
+</body>
+</html>

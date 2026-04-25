@@ -1,0 +1,258 @@
+@import './base.css';
+
+/* This file is modified based on underline.scss in FlexLayout.
+ * https://github.com/caplin/FlexLayout/blob/2e469d/style/underline.scss
+ * License: MIT
+ */
+
+.flexlayout {
+}
+
+.flexlayout__layout {
+  --font-size: var(--text-ui);
+  --font-family: var(--font-display);
+  --color-text: var(--fl-color-text);
+  --color-background: var(--fl-color-background);
+  --color-base: var(--fl-color-base);
+  --color-1: var(--fl-color-1);
+  --color-2: var(--fl-color-2);
+  --color-3: var(--fl-color-3);
+  --color-4: var(--fl-color-4);
+  --color-5: var(--fl-color-5);
+  --color-6: var(--fl-color-6);
+  --color-drag1: var(--fl-color-drag1);
+  --color-drag2: var(--fl-color-drag2);
+  --color-drag1-background: var(--fl-color-drag1-background);
+  --color-drag2-background: var(--fl-color-drag2-background);
+
+  --color-overflow: var(--fl-color-overflow);
+  --color-icon: var(--fl-color-icon);
+
+  --color-tabset-background: var(--fl-tabset);
+  --color-tabset-background-selected: var(--fl-tabset-selected);
+  --color-tabset-background-maximized: var(--fl-tabset-maximized);
+  --color-tabset-divider-line: var(--color-3);
+
+  --color-tabset-header-background: var(--fl-tabset-header);
+  --color-tabset-header: var(--fl-tabset-header-text);
+
+  --color-border-background: var(--fl-border);
+  --color-border-divider-line: var(--fl-border-divider);
+
+  --color-tab-selected: var(--fl-tab);
+  --color-tab-selected-background: var(--fl-tab-selected);
+  --color-tab-unselected: var(--fl-tab-unselected);
+  --color-tab-unselected-background: var(--fl-tab-unselected-background);
+  --color-tab-textbox: var(--fl-tab-textbox);
+  --color-tab-textbox-background: var(--fl-tab-textbox-background);
+  --color-tab-content: var(--color-background-primary);
+
+  --color-border-tab-selected: var(--fl-border-tab);
+  --color-border-tab-selected-background: var(--fl-border-tab-selected);
+  --color-border-tab-unselected: var(--fl-border-tab-unselected);
+  --color-border-tab-unselected-background: var(
+    --fl-border-tab-unselected-background
+  );
+  --color-border-tab-content: var(--color-background-primary);
+  --color-border: var(--color-text-primary);
+
+  --color-splitter: var(--fl-color-splitter);
+  --color-splitter-hover: var(--fl-color-splitter-hover);
+  --color-splitter-drag: var(--fl-color-splitter-drag);
+
+  --color-drag-rect-border: var(--fl-drag-rect-border);
+  --color-drag-rect-background: var(--fl-drag-rect-background);
+  --color-drag-rect: var(--fl-drag-rect);
+
+  --color-popup-border: var(--fl-popup-border);
+  --color-popup-unselected: var(--fl-popup-unselected);
+  --color-popup-unselected-background: var(--fl-popup-unselected-background);
+  --color-popup-selected: var(--fl-popup-selected);
+  --color-popup-selected-background: var(--fl-popup-selected-background);
+
+  --color-edge-marker: var(--fl-color-edge-marker);
+
+  --color-underline: var(--fl-color-underline);
+  --color-underline-hover: var(--fl-color-underline-hover);
+  --underline-height: var(--fl-underline-height);
+  --text-muted-color: var(--color-text-muted);
+}
+
+/* Flat Segment — default tab style.
+ * Compact, flush, sharp corners, solid backgrounds, no underline.
+ * Shell overrides this with frosted-glass in app.css. */
+.flexlayout__tab_button {
+  @apply text-editor-tab-text bg-editor-tab-inactive;
+  box-sizing: border-box;
+  height: 20px;
+  min-width: 24px;
+  max-width: 100px;
+  padding: 0 0.375rem;
+  margin: 0;
+  gap: 0.25rem;
+  border: none;
+  border-right: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: 0;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.flexlayout__tab_button::after {
+  display: none;
+}
+
+.flexlayout__tab_button_stretch {
+  padding: 0 0;
+}
+
+.flexlayout__tab_button:hover {
+  @apply bg-editor-tab-unfocused;
+}
+
+/* Selected tab in unfocused tabset */
+.flexlayout__tab_button--selected {
+  @apply bg-editor-tab-unfocused text-editor-tab-text-unfocused;
+  border-right: 1px solid oklch(1 0 0 / 0.08);
+  box-shadow: none;
+}
+
+/* Selected tab in focused tabset */
+.flexlayout__tabset-selected .flexlayout__tab_button--selected {
+  @apply bg-editor-tab-active text-editor-tab-text-active;
+  box-shadow: none;
+}
+
+.flexlayout__tab_button--unselected {
+  @apply text-editor-tab-text bg-editor-tab-inactive;
+}
+
+.flexlayout__tab_button_trailing:hover,
+.flexlayout__border_button_trailing:hover {
+  @apply bg-pulldown-hover rounded-menu-button;
+}
+
+:is(
+  .flexlayout__tab_toolbar_button:hover,
+  .flexlayout__border_toolbar_button:hover
+) {
+  @apply bg-pulldown-hover rounded-menu-button;
+}
+
+.flexlayout__border_button {
+  @apply text-ui;
+  padding: 0.175rem 0.5rem;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.flexlayout__border_button::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.flexlayout__border_button--selected::after {
+  @apply bg-primary;
+}
+
+.flexlayout__border_button--selected {
+}
+
+.flexlayout__border_button--unselected {
+}
+
+.flexlayout__border_button:hover::after {
+  @apply bg-brand-highlight;
+}
+
+.flexlayout__border_button:hover {
+  @apply bg-pulldown-hover;
+}
+
+.flexlayout__tabset_tab_divider {
+  display: none;
+}
+
+.flexlayout__border_tab_divider {
+  width: 1px;
+  margin: 0.25rem 0.375rem;
+  @apply bg-editor-outline;
+}
+
+.flexlayout__tabset {
+  border-color: var(--tabset-border-color, oklch(1 0 0 / 0.15));
+  box-shadow: var(--tabset-glow, 0 1px 4px oklch(0 0 0 / 0.3));
+}
+
+.flexlayout__tab {
+  @apply rounded-editor flex flex-col;
+  overflow: hidden;
+}
+
+.flexlayout__tab_button_content {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.flexlayout__tab_toolbar_button {
+  @apply rounded-menu-button;
+  transition: background-color 0.15s ease;
+}
+
+.flexlayout__tab_toolbar_button:focus-visible {
+  @apply outline-focus-ring outline-2;
+}
+
+.flexlayout__tabset_tabbar_outer_top {
+  @apply border-editor-outline border-b;
+  padding: 0;
+}
+
+.flexlayout__tabset_tabbar_inner {
+  height: 22px;
+  align-items: flex-end;
+}
+
+.flexlayout__tabset_tabbar_inner_tab_container {
+  padding: 0 3px;
+  gap: 0;
+  align-items: stretch;
+  border-top: none;
+}
+
+.flexlayout__tabset_tabbar_inner_tab_container_top {
+  border-top: none;
+}
+
+.flexlayout__tab_moveable {
+  @apply flex;
+}
+
+.flexlayout__tab_button_trailing {
+  visibility: visible;
+  position: relative;
+  @apply rounded-menu-button;
+  padding: 0.125rem;
+  transition: background-color 0.15s ease;
+}
+
+.flexlayout__tab_button_textbox {
+  border: none;
+  @apply bg-background-secondary text-text-primary text-ui rounded-menu-button;
+  padding: 0.25rem 0.5rem;
+}

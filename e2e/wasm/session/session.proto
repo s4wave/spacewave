@@ -1,0 +1,65 @@
+syntax = "proto3";
+package e2e.wasm.session;
+option go_package = "github.com/s4wave/spacewave/e2e/wasm/session;e2e_wasm_session";
+
+service PeerInfoResourceService {
+  rpc GetPeerInfo(GetPeerInfoRequest) returns (GetPeerInfoResponse);
+}
+
+// GetPeerInfoRequest is the request type for GetPeerInfo.
+message GetPeerInfoRequest {}
+
+// GetPeerInfoResponse is the response type for GetPeerInfo.
+message GetPeerInfoResponse {
+  // PeerId is the local bifrost peer ID (base58-encoded).
+  string peer_id = 1;
+}
+
+service EstablishLinkResourceService {
+  rpc WatchState(WatchStateRequest) returns (stream WatchStateResponse);
+}
+
+// WatchStateRequest is the request type for WatchState.
+message WatchStateRequest {
+  // TargetPeerId is the base58-encoded peer ID to establish a link with.
+  string target_peer_id = 1;
+}
+
+// WatchStateResponse is the response type for WatchState.
+message WatchStateResponse {
+  // State is the current link establishment state.
+  EstablishLinkState state = 1;
+}
+
+// EstablishLinkState represents the state of link establishment.
+enum EstablishLinkState {
+  // EstablishLinkState_UNKNOWN is the default state.
+  EstablishLinkState_UNKNOWN = 0;
+  // EstablishLinkState_PENDING indicates the link is being established.
+  EstablishLinkState_PENDING = 1;
+  // EstablishLinkState_CONNECTED indicates the bifrost link is up.
+  EstablishLinkState_CONNECTED = 2;
+  // EstablishLinkState_FAILED indicates link establishment failed.
+  EstablishLinkState_FAILED = 3;
+}
+
+service SignalRelayService {
+  rpc SignalRelay(stream SignalRelayMessage) returns (stream SignalRelayMessage);
+}
+
+// SignalRelayMessage is a message in the SignalRelay bidirectional stream.
+message SignalRelayMessage {
+  oneof body {
+    // Init identifies the remote peer for the relay session. Must be the
+    // first message sent by the client.
+    SignalRelayInit init = 1;
+    // Data carries opaque signaling bytes.
+    bytes data = 2;
+  }
+}
+
+// SignalRelayInit identifies the remote peer for the relay session.
+message SignalRelayInit {
+  // RemotePeerId is the base58-encoded peer ID of the remote peer.
+  string remote_peer_id = 1;
+}

@@ -1,0 +1,191 @@
+syntax = "proto3";
+package s4wave.space;
+
+import "github.com/s4wave/spacewave/core/plugin/approval/approval.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/core/space/world/world.proto";
+import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
+import "github.com/s4wave/spacewave/sdk/deploy/deploy.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+import "google/protobuf/timestamp.proto";
+// import "github.com/s4wave/spacewave/core/space/space.proto";
+
+service SpaceResourceService {
+  rpc WatchSpaceState(WatchSpaceStateRequest) returns (stream SpaceState) {};
+
+  rpc WatchSpaceSharingState(WatchSpaceSharingStateRequest) returns (stream SpaceSharingState) {};
+
+  rpc AccessWorld(AccessWorldRequest) returns (AccessWorldResponse) {}
+
+  rpc MountSpaceContents(MountSpaceContentsRequest) returns (MountSpaceContentsResponse) {}
+
+  rpc DeployManifest(stream .s4wave.deploy.DeployManifestMessage) returns (stream .s4wave.deploy.DeployManifestMessage) {}
+
+  rpc AddSpacePlugin(AddSpacePluginRequest) returns (AddSpacePluginResponse) {}
+
+  rpc RemoveSpacePlugin(RemoveSpacePluginRequest) returns (RemoveSpacePluginResponse) {}
+}
+
+service SpaceContentsResourceService {
+  rpc WatchState(WatchSpaceContentsStateRequest) returns (stream SpaceContentsState) {}
+
+  rpc SetPluginApproval(SetPluginApprovalRequest) returns (SetPluginApprovalResponse) {}
+
+  rpc SetProcessBinding(SetProcessBindingRequest) returns (SetProcessBindingResponse) {}
+}
+
+// WatchSpaceStateRequest is a request to watch the Workspace state.
+message WatchSpaceStateRequest {}
+
+// SpaceState contains the state for the Space for display.
+message SpaceState {
+  // Ready indicates the state is ready, false for loading.
+  bool ready = 1;
+  // WorldContents is the list of world objects.
+  .space.world.WorldContents world_contents = 2;
+  // Settings is the space settings object, if it exists.
+  .space.world.SpaceSettings settings = 3;
+  // TransformInfo contains the space's encryption and compression config.
+  TransformInfo transform_info = 4;
+}
+
+// WatchSpaceSharingStateRequest is the request to watch sharing state.
+message WatchSpaceSharingStateRequest {}
+
+// SpaceParticipantInfo is one app-facing participant presentation row.
+message SpaceParticipantInfo {
+  // AccountId is the stable cloud account identifier when present.
+  string account_id = 1;
+  // EntityId is the provider-attested username / entity identifier when known.
+  string entity_id = 2;
+  // PeerIds is the list of grouped participant session peers.
+  repeated string peer_ids = 3;
+  // Role is the strongest participant role across the grouped peers.
+  .sobject.SOParticipantRole role = 4;
+  // IsSelf is true when one of the grouped peers is the current viewer.
+  bool is_self = 5;
+}
+
+// SpaceSharingState contains the sharing snapshot for a space.
+message SpaceSharingState {
+  // Participants is the list of participants on the space.
+  repeated .sobject.SOParticipantConfig participants = 1;
+  // Invites is the list of invites on the space.
+  repeated .sobject.SOInvite invites = 2;
+  // MailboxEntries is the list of mailbox metadata entries for the space.
+  repeated .s4wave.provider.spacewave.MailboxEntryInfo mailbox_entries = 3;
+  // ViewerRole is the current viewer's effective participant role for the space.
+  .sobject.SOParticipantRole viewer_role = 4;
+  // CanManage is true when the current viewer can manage sharing state.
+  bool can_manage = 5;
+  // ParticipantInfo is the app-facing participant presentation list.
+  repeated SpaceParticipantInfo participant_info = 6;
+}
+
+// TransformInfo contains redacted transform configuration for display.
+// Sensitive fields (encryption keys) are stripped before streaming.
+message TransformInfo {
+  // Steps is the list of transform steps with sensitive fields redacted.
+  repeated .block.transform.StepConfig steps = 1;
+  // GrantCount is the number of participants with active grants.
+  uint32 grant_count = 2;
+  // StorageBytes is the total storage size in bytes from the volume.
+  uint64 storage_bytes = 3;
+}
+
+// AccessWorldRequest is a request to access the World associated with the space.
+message AccessWorldRequest {}
+
+// AccessWorldResponse contains the World resource ID.
+message AccessWorldResponse {
+  // ResourceId is the resource ID for the World resource.
+  uint32 resource_id = 1;
+}
+
+// MountSpaceContentsRequest is a request to mount the space contents.
+message MountSpaceContentsRequest {}
+
+// MountSpaceContentsResponse contains the resource ID for the SpaceContents sub-resource.
+message MountSpaceContentsResponse {
+  // ResourceId is the resource ID for the SpaceContents resource.
+  uint32 resource_id = 1;
+}
+
+// WatchSpaceContentsStateRequest is a request to watch the space contents state.
+message WatchSpaceContentsStateRequest {}
+
+// SpaceContentsState contains plugin status for the space.
+message SpaceContentsState {
+  // Ready indicates the state is ready.
+  bool ready = 1;
+  // Plugins is the list of plugin statuses.
+  repeated SpacePluginStatus plugins = 2;
+  // ProcessBindings is the list of process binding approvals.
+  repeated ProcessBindingInfo process_bindings = 3;
+}
+
+// SpacePluginStatus contains the approval state for a single plugin.
+message SpacePluginStatus {
+  // PluginId is the manifest ID of the plugin.
+  string plugin_id = 1;
+  // ApprovalState is the current approval state for this plugin.
+  .plugin.approval.PluginApprovalState approval_state = 2;
+  // Loaded indicates whether the plugin is currently running.
+  bool loaded = 3;
+  // Description is a short description from the plugin manifest metadata.
+  string description = 4;
+}
+
+// SetPluginApprovalRequest is a request to set the approval state for a plugin.
+message SetPluginApprovalRequest {
+  // PluginId is the manifest ID of the plugin.
+  string plugin_id = 1;
+  // Approved sets the approval state. True = approved, false = denied.
+  bool approved = 2;
+}
+
+// SetPluginApprovalResponse is the response for SetPluginApproval.
+message SetPluginApprovalResponse {}
+
+// AddSpacePluginRequest is a request to add a plugin to the space settings.
+message AddSpacePluginRequest {
+  // PluginId is the manifest ID of the plugin to add.
+  string plugin_id = 1;
+}
+
+// AddSpacePluginResponse is the response for AddSpacePlugin.
+message AddSpacePluginResponse {}
+
+// RemoveSpacePluginRequest is a request to remove a plugin from the space settings.
+message RemoveSpacePluginRequest {
+  // PluginId is the manifest ID of the plugin to remove.
+  string plugin_id = 1;
+}
+
+// RemoveSpacePluginResponse is the response for RemoveSpacePlugin.
+message RemoveSpacePluginResponse {}
+
+// SetProcessBindingRequest is a request to set a process binding approval.
+message SetProcessBindingRequest {
+  // ObjectKey is the world object key to bind.
+  string object_key = 1;
+  // TypeId is the ObjectType type ID.
+  string type_id = 2;
+  // Approved sets the binding state. True = approved, false = unapproved.
+  bool approved = 3;
+}
+
+// SetProcessBindingResponse is the response for SetProcessBinding.
+message SetProcessBindingResponse {}
+
+// ProcessBindingInfo contains info about a single process binding.
+message ProcessBindingInfo {
+  // ObjectKey is the world object key.
+  string object_key = 1;
+  // TypeId is the ObjectType type ID.
+  string type_id = 2;
+  // Approved indicates whether the binding is approved.
+  bool approved = 3;
+  // DecidedAt is the time the binding state was last changed.
+  .google.protobuf.Timestamp decided_at = 4;
+}

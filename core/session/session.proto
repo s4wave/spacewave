@@ -1,0 +1,93 @@
+syntax = "proto3";
+package session;
+
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
+
+// SessionRef is a reference to a session managed by a provider.
+message SessionRef {
+  // ProviderResourceRef is the reference to the resource on the provider.
+  // Contains the session ID, provider ID and provider account ID.
+  // The session ID is the ID for this particular session.
+  // The provider account ID is the ID for this user account.
+  .provider.ProviderResourceRef provider_resource_ref = 1;
+}
+
+// SessionListEntry is an entry in the local session list.
+message SessionListEntry {
+  // SessionIndex is the index of the session.
+  // The session is accessible at /u/{session-index}/...
+  uint32 session_index = 1;
+
+  // SessionRef is the reference to the session.
+  SessionRef session_ref = 2;
+}
+
+// SessionType identifies the type of session.
+enum SessionType {
+  // SESSION_TYPE_UNKNOWN is the default unknown session type.
+  SESSION_TYPE_UNKNOWN = 0;
+  // SESSION_TYPE_USER is a human user session.
+  SESSION_TYPE_USER = 1;
+  // SESSION_TYPE_APP is a third-party application session.
+  SESSION_TYPE_APP = 2;
+  // SESSION_TYPE_DEVICE is a linked device session.
+  SESSION_TYPE_DEVICE = 3;
+}
+
+// SessionLockMode identifies how a session private key is protected at rest.
+enum SessionLockMode {
+  // SESSION_LOCK_MODE_AUTO_UNLOCK is encrypted with volume-derived key.
+  SESSION_LOCK_MODE_AUTO_UNLOCK = 0;
+  // SESSION_LOCK_MODE_PIN_ENCRYPTED is encrypted with PIN-derived key.
+  SESSION_LOCK_MODE_PIN_ENCRYPTED = 1;
+}
+
+// SessionMetadata contains display information for a session.
+// Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
+message SessionMetadata {
+  // DisplayName is the display name for the session (username/entity_id).
+  string display_name = 1;
+  // ProviderDisplayName is the display name of the provider.
+  string provider_display_name = 2;
+  // ProviderAccountId is the provider account identifier.
+  string provider_account_id = 3;
+  // LockMode is set at registration and updated by SetLockMode.
+  // Used as a pre-mount hint to show the PIN overlay before the session mounts.
+  // The authoritative lock state comes from WatchLockState on the mounted session.
+  SessionLockMode lock_mode = 4;
+  // CreatedAt is the creation timestamp in milliseconds since epoch.
+  int64 created_at = 5;
+  // Reserved: account_status was removed from metadata; use reactive session state.
+  reserved 6;
+  // CloudAccountId is the cloud account ULID for free local sessions.
+  // Set when a local session is created with a cloud identity.
+  string cloud_account_id = 7;
+  // CloudEntityId is the cloud username for free local sessions.
+  string cloud_entity_id = 8;
+  // Reserved: subscription_status was removed (now served via WatchOnboardingStatus).
+  reserved 9;
+  // ProviderId is the provider type identifier (e.g. "spacewave", "local").
+  string provider_id = 10;
+}
+
+// EntityKeypair is a keypair associated with an entity for authentication.
+message EntityKeypair {
+  // PeerId is the peer ID associated with this keypair.
+  string peer_id = 1;
+  // AuthMethod is the authentication method.
+  string auth_method = 2;
+  // AuthParams is optional authentication parameters.
+  bytes auth_params = 3;
+}
+
+// EntityCredential is a credential for deriving an entity private key.
+// Used by local in-process RPCs where the credential never crosses a
+// network boundary (Go WASM and TS share the same browser process).
+message EntityCredential {
+  oneof credential {
+    // Password derives the entity key via triplesec(username, password).
+    string password = 1;
+    // PemPrivateKey is the entity private key in PEM format.
+    bytes pem_private_key = 2;
+  }
+}

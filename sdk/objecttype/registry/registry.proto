@@ -1,0 +1,63 @@
+syntax = "proto3";
+package s4wave.objecttype.registry;
+
+service ObjectTypeRegistryResourceService {
+  rpc RegisterObjectType(RegisterObjectTypeRequest)
+    returns (RegisterObjectTypeResponse);
+  rpc WatchObjectTypes(WatchObjectTypesRequest)
+    returns (stream WatchObjectTypesResponse);
+}
+
+service ObjectTypeHandlerService {
+  rpc InvokeObjectType(InvokeObjectTypeRequest)
+    returns (InvokeObjectTypeResponse);
+}
+
+// ObjectTypeRegistration is a registered ObjectType.
+message ObjectTypeRegistration {
+  // TypeId is the ObjectType ID (e.g. "spacewave-notes/notebook").
+  string type_id = 1;
+  // RegistrationId is the server-assigned ID for this registration.
+  uint32 registration_id = 2;
+  // PluginId is the source plugin.
+  string plugin_id = 3;
+}
+
+// RegisterObjectTypeRequest is the request for RegisterObjectType.
+message RegisterObjectTypeRequest {
+  // TypeId is the ObjectType ID to register.
+  string type_id = 1;
+  // PluginId is the registering plugin's ID.
+  string plugin_id = 2;
+}
+
+// RegisterObjectTypeResponse is the response for RegisterObjectType.
+message RegisterObjectTypeResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the type.
+  uint32 resource_id = 1;
+}
+
+// WatchObjectTypesRequest is the request for WatchObjectTypes.
+message WatchObjectTypesRequest {}
+
+// WatchObjectTypesResponse is the response for WatchObjectTypes.
+message WatchObjectTypesResponse {
+  // Registrations is the current set of registered ObjectTypes.
+  repeated ObjectTypeRegistration registrations = 1;
+}
+
+// InvokeObjectTypeRequest is the request for InvokeObjectType.
+message InvokeObjectTypeRequest {
+  // TypeId is the ObjectType ID.
+  string type_id = 1;
+  // ObjectKey is the world object key.
+  string object_key = 2;
+  // EngineResourceId gives World access to the handler.
+  uint32 engine_resource_id = 3;
+}
+
+// InvokeObjectTypeResponse is the response for InvokeObjectType.
+message InvokeObjectTypeResponse {
+  // ResourceId is the child resource serving the ObjectType's RPCs.
+  uint32 resource_id = 1;
+}

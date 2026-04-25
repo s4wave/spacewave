@@ -1,0 +1,164 @@
+syntax = "proto3";
+package s4wave.wizard;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/world/wizard;s4wave_wizard";
+
+service ObjectWizardRegistryResourceService {
+  rpc ListWizards(ListWizardsRequest) returns (ListWizardsResponse);
+}
+
+service WizardResourceService {
+  rpc WatchWizardState(WatchWizardStateRequest) returns (stream WatchWizardStateResponse);
+  rpc UpdateWizardState(UpdateWizardStateRequest) returns (UpdateWizardStateResponse);
+  rpc StartGitClone(StartGitCloneRequest) returns (StartGitCloneResponse);
+  rpc WatchGitCloneProgress(WatchGitCloneProgressRequest) returns (stream WatchGitCloneProgressResponse);
+}
+
+// WatchWizardStateRequest is the request for WatchWizardState.
+message WatchWizardStateRequest {}
+
+// WatchWizardStateResponse is a stream response with wizard state.
+message WatchWizardStateResponse {
+  // State is the current wizard state.
+  WizardState state = 1;
+}
+
+// UpdateWizardStateRequest updates the wizard block state.
+message UpdateWizardStateRequest {
+  // Step is the new step value. Set to -1 to leave unchanged.
+  int32 step = 1;
+  // Name is the new name. Empty string leaves unchanged.
+  string name = 2;
+  // ConfigData is the new config data. Nil leaves unchanged.
+  bytes config_data = 3;
+  // HasConfigData indicates config_data is being set (allows clearing to empty bytes).
+  bool has_config_data = 4;
+}
+
+// UpdateWizardStateResponse is the response for UpdateWizardState.
+message UpdateWizardStateResponse {
+  // State is the updated wizard state.
+  WizardState state = 1;
+}
+
+// StartGitCloneRequest is the request for StartGitClone.
+message StartGitCloneRequest {
+  // ObjectKey is the object key for the cloned git/repo.
+  string object_key = 1;
+  // Name is the repository display name.
+  string name = 2;
+  // ConfigData is the serialized CreateGitRepoWizardOp config.
+  bytes config_data = 3;
+  // OpSender is the peer ID to attach to the final world operation.
+  string op_sender = 4;
+}
+
+// StartGitCloneResponse is the response for StartGitClone.
+message StartGitCloneResponse {
+  // Progress is the current clone progress snapshot.
+  GitCloneProgress progress = 1;
+}
+
+// WatchGitCloneProgressRequest is the request for WatchGitCloneProgress.
+message WatchGitCloneProgressRequest {}
+
+// WatchGitCloneProgressResponse is a stream response with Git clone progress.
+message WatchGitCloneProgressResponse {
+  // Progress is the current clone progress snapshot.
+  GitCloneProgress progress = 1;
+}
+
+// GitCloneProgress is the in-memory progress state for a wizard Git clone.
+message GitCloneProgress {
+  // State is the current clone lifecycle state.
+  GitCloneProgressState state = 1;
+  // Message is the latest human-readable progress line.
+  string message = 2;
+  // Error is the terminal error message when state is FAILED.
+  string error = 3;
+  // ObjectKey is the created git/repo object key when known.
+  string object_key = 4;
+}
+
+// GitCloneProgressState is the lifecycle state for a wizard Git clone.
+enum GitCloneProgressState {
+  // GIT_CLONE_PROGRESS_STATE_IDLE means no clone has started.
+  GIT_CLONE_PROGRESS_STATE_IDLE = 0;
+  // GIT_CLONE_PROGRESS_STATE_RUNNING means the clone is active.
+  GIT_CLONE_PROGRESS_STATE_RUNNING = 1;
+  // GIT_CLONE_PROGRESS_STATE_DONE means the repo object was created.
+  GIT_CLONE_PROGRESS_STATE_DONE = 2;
+  // GIT_CLONE_PROGRESS_STATE_FAILED means the clone failed.
+  GIT_CLONE_PROGRESS_STATE_FAILED = 3;
+}
+
+// ListWizardsRequest is the request for ListWizards.
+message ListWizardsRequest {}
+
+// ListWizardsResponse contains all registered object wizards.
+message ListWizardsResponse {
+  // Wizards is the list of registered object wizards.
+  repeated ObjectWizard wizards = 1;
+}
+
+// ObjectWizard defines a creatable object type for the creation drawer.
+message ObjectWizard {
+  // TypeId is the target object type ID (e.g., "canvas", "forge/cluster").
+  string type_id = 1;
+  // DisplayName is the human-readable name shown in the drawer.
+  string display_name = 2;
+  // Category groups the wizard in the drawer (e.g., "Layout", "Forge").
+  string category = 3;
+  // IconName is the react-icons icon identifier (e.g., "LuLayoutGrid").
+  string icon_name = 4;
+  // CreateOpId is the world op ID for ephemeral creation.
+  string create_op_id = 5;
+  // DefaultNamePattern is the default name for new objects (e.g., "Canvas").
+  string default_name_pattern = 6;
+  // Persistent indicates this type uses a persistent wizard block flow.
+  bool persistent = 7;
+  // WizardTypeId is the wizard/ type ID for persistent wizard blocks.
+  // Only set when persistent is true.
+  string wizard_type_id = 8;
+  // KeyPrefix is the object key prefix (e.g., "canvas/", "forge/cluster/").
+  string key_prefix = 9;
+  // Experimental marks creators that are hidden in release builds.
+  bool experimental = 10;
+}
+
+// WizardState is the block state for a persistent wizard object.
+// Stored as the world object block for wizard/* type objects.
+message WizardState {
+  // Step is the current wizard step (0-indexed).
+  int32 step = 1;
+  // TargetTypeId is the object type being created (e.g., "git/repo").
+  string target_type_id = 2;
+  // TargetKeyPrefix is the key prefix for the target object.
+  string target_key_prefix = 3;
+  // Name is the user-provided name for the target object.
+  string name = 4;
+  // ConfigData is type-specific wizard configuration (serialized by the target wizard viewer).
+  bytes config_data = 5;
+}
+
+// CreateWizardObjectOp creates a persistent wizard object in the world.
+message CreateWizardObjectOp {
+  // ObjectKey is the object key for the wizard object.
+  string object_key = 1;
+  // WizardTypeId is the wizard type ID (e.g., "wizard/git/repo").
+  string wizard_type_id = 2;
+  // TargetTypeId is the target object type being created.
+  string target_type_id = 3;
+  // TargetKeyPrefix is the key prefix for the target object.
+  string target_key_prefix = 4;
+  // Name is the initial name for the target object.
+  string name = 5;
+  // Timestamp is the creation time.
+  .google.protobuf.Timestamp timestamp = 6;
+  // InitialStep is the initial wizard step (0-indexed). Defaults to 0.
+  int32 initial_step = 7;
+  // InitialConfigData is the initial type-specific wizard configuration.
+  bytes initial_config_data = 8;
+}

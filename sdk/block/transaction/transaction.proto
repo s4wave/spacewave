@@ -1,0 +1,34 @@
+syntax = "proto3";
+package s4wave.block.transaction;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// WriteRequest is the request type for Write.
+message WriteRequest {
+  // ClearTree indicates whether to clear the transaction tree after writing.
+  bool clear_tree = 1;
+}
+
+// WriteResponse is the response type for Write.
+message WriteResponse {
+  // RootRef is the written root reference.
+  .block.BlockRef root_ref = 1;
+  // ResourceId is the ID of the new root BlockCursor resource.
+  // Only set if clear_tree is false.
+  uint32 resource_id = 2;
+}
+
+// GetRootCursorRequest is the request type for GetRootCursor.
+message GetRootCursorRequest {}
+
+// GetRootCursorResponse is the response type for GetRootCursor.
+message GetRootCursorResponse {
+  // ResourceId is the ID of the root BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+service BlockTransactionResourceService {
+  rpc Write(WriteRequest) returns (WriteResponse);
+
+  rpc GetRootCursor(GetRootCursorRequest) returns (GetRootCursorResponse);
+}

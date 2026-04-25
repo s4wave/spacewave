@@ -27,7 +27,7 @@ pub struct Config {
     pub verbose: bool,
 }
 /// PutRequest is the request body for a Put request.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PutRequest {
     /// Data is the data to put at the key.
     #[prost(bytes="vec", tag="1")]

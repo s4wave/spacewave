@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Worker API Probe</title>
+  <style>
+    body { font-family: monospace; margin: 2em; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #00d4ff; font-size: 1.2em; }
+    h2 { color: #ff6b6b; font-size: 1em; margin-top: 1.5em; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+    th, td { text-align: left; padding: 4px 12px; border: 1px solid #333; }
+    th { background: #16213e; }
+    .yes { color: #00ff88; }
+    .no { color: #ff4444; }
+    .val { color: #aaa; }
+    #status { color: #ffd700; margin: 1em 0; }
+    .section { margin: 1em 0; padding: 1em; background: #16213e; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>WebRTC API Surface: Main Thread vs DedicatedWorker vs SharedWorker</h1>
+  <p id="status">Probing...</p>
+  <div id="results"></div>
+
+  <script>
+    // APIs that pion/webrtc v4 accesses via js.Global().Get(...)
+    const PROBE_GLOBALS = [
+      'window',
+      'self',
+      'globalThis',
+      'RTCPeerConnection',
+      'RTCSessionDescription',
+      'RTCIceCandidate',
+      'RTCCertificate',
+      'RTCDataChannel',
+      'RTCRtpSender',
+      'RTCRtpReceiver',
+      'RTCRtpTransceiver',
+      'RTCDtlsTransport',
+      'RTCSctpTransport',
+      'RTCStatsReport',
+      'MediaStream',
+      'MediaStreamTrack',
+      'Uint8Array',
+      'FileReader',
+      'Promise',
+      'Array',
+      'Object',
+      'navigator',
+      'navigator.mediaDevices',
+      'crypto',
+    ]
+
+    // The exact access patterns pion-webrtc uses
+    const PROBE_CHAINS = [
+      'window.RTCPeerConnection',           // peerconnection_js.go:55
+      'self.RTCPeerConnection',              // worker alternative
+      'globalThis.RTCPeerConnection',        // universal alternative
+      'window.RTCSessionDescription',
+      'self.RTCSessionDescription',
+      'globalThis.RTCSessionDescription',
+      'window.RTCIceCandidate',
+      'self.RTCIceCandidate',
+    ]
+
+    function probeAPIs() {
+      const results = {}
+
+      for (const name of PROBE_GLOBALS) {
+        try {
+          const parts = name.split('.')
+          let val = globalThis
+          for (const p of parts) {
+            val = val[p]
+            if (val === undefined || val === null) break
+          }
+          results[name] = {
+            exists: val !== undefined && val !== null,
+            type: val === undefined ? 'undefined' : val === null ? 'null' : typeof val,
+          }
+        } catch (e) {
+          results[name] = { exists: false, type: 'error: ' + e.message }
+        }
+      }
+
+      for (const chain of PROBE_CHAINS) {
+        try {
+          const parts = chain.split('.')
+          let val = globalThis
+          for (const p of parts) {
+            val = val[p]
+            if (val === undefined || val === null) break
+          }
+          results['chain:' + chain] = {
+            exists: val !== undefined && val !== null,
+            type: val === undefined ? 'undefined' : val === null ? 'null' : typeof val,
+          }
+        } catch (e) {
+          results['chain:' + chain] = { exists: false, type: 'error: ' + e.message }
+        }
+      }
+
+      // Try actually constructing an RTCPeerConnection
+      const constructTests = [
+        ['window.RTCPeerConnection', () => new (globalThis.window?.RTCPeerConnection)({})],
+        ['self.RTCPeerConnection', () => new (globalThis.self?.RTCPeerConnection)({})],
+        ['globalThis.RTCPeerConnection', () => new (globalThis.RTCPeerConnection)({})],
+      ]
+      for (const [label, fn] of constructTests) {
+        try {
+          const pc = fn()
+          pc.close()
+          results['construct:' + label] = { exists: true, type: 'success' }
+        } catch (e) {
+          results['construct:' + label] = { exists: false, type: e.name + ': ' + e.message }
+        }
+      }
+
+      return results
+    }
+
+    // Worker code as a blob URL
+    const workerCode = `
+      ${probeAPIs.toString()}
+      const PROBE_GLOBALS = ${JSON.stringify(PROBE_GLOBALS)};
+      const PROBE_CHAINS = ${JSON.stringify(PROBE_CHAINS)};
+
+      self.onmessage = function(e) {
+        if (e.data === 'probe') {
+          const results = probeAPIs();
+          self.postMessage({ type: 'results', results });
+        }
+      };
+    `
+
+    const sharedWorkerCode = `
+      ${probeAPIs.toString()}
+      const PROBE_GLOBALS = ${JSON.stringify(PROBE_GLOBALS)};
+      const PROBE_CHAINS = ${JSON.stringify(PROBE_CHAINS)};
+
+      self.onconnect = function(e) {
+        const port = e.ports[0];
+        port.onmessage = function(ev) {
+          if (ev.data === 'probe') {
+            const results = probeAPIs();
+            port.postMessage({ type: 'results', results });
+          }
+        };
+      };
+    `
+
+    function renderResults(allResults) {
+      const el = document.getElementById('results')
+      const contexts = Object.keys(allResults)
+
+      // Collect all probe keys
+      const allKeys = new Set()
+      for (const ctx of contexts) {
+        for (const k of Object.keys(allResults[ctx])) allKeys.add(k)
+      }
+
+      // Group by category
+      const groups = {
+        'Global Objects': [],
+        'Access Chains (pion-webrtc patterns)': [],
+        'Construction Tests': [],
+      }
+      for (const k of allKeys) {
+        if (k.startsWith('construct:')) groups['Construction Tests'].push(k)
+        else if (k.startsWith('chain:')) groups['Access Chains (pion-webrtc patterns)'].push(k)
+        else groups['Global Objects'].push(k)
+      }
+
+      let html = ''
+      for (const [groupName, keys] of Object.entries(groups)) {
+        html += `<div class="section"><h2>${groupName}</h2><table><tr><th>API</th>`
+        for (const ctx of contexts) html += `<th>${ctx}</th>`
+        html += '</tr>'
+        for (const k of keys.sort()) {
+          const label = k.replace('chain:', '').replace('construct:', '')
+          html += `<tr><td>${label}</td>`
+          for (const ctx of contexts) {
+            const r = allResults[ctx][k]
+            if (!r) {
+              html += '<td class="val">-</td>'
+            } else if (r.exists) {
+              html += `<td class="yes">YES <span class="val">(${r.type})</span></td>`
+            } else {
+              html += `<td class="no">NO <span class="val">(${r.type})</span></td>`
+            }
+          }
+          html += '</tr>'
+        }
+        html += '</table></div>'
+      }
+      el.innerHTML = html
+    }
+
+    async function run() {
+      const status = document.getElementById('status')
+      const allResults = {}
+
+      // Main thread
+      status.textContent = 'Probing main thread...'
+      allResults['Main Thread'] = probeAPIs()
+
+      // Dedicated Worker
+      status.textContent = 'Probing DedicatedWorker...'
+      try {
+        const blob = new Blob([workerCode], { type: 'application/javascript' })
+        const url = URL.createObjectURL(blob)
+        const worker = new Worker(url)
+        const dedicated = await new Promise((resolve, reject) => {
+          worker.onmessage = (e) => {
+            if (e.data.type === 'results') resolve(e.data.results)
+          }
+          worker.onerror = (e) => reject(e)
+          worker.postMessage('probe')
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        })
+        allResults['DedicatedWorker'] = dedicated
+        worker.terminate()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        allResults['DedicatedWorker'] = { error: { exists: false, type: e.message } }
+      }
+
+      // SharedWorker
+      status.textContent = 'Probing SharedWorker...'
+      try {
+        const blob = new Blob([sharedWorkerCode], { type: 'application/javascript' })
+        const url = URL.createObjectURL(blob)
+        const shared = new SharedWorker(url)
+        const sharedResult = await new Promise((resolve, reject) => {
+          shared.port.onmessage = (e) => {
+            if (e.data.type === 'results') resolve(e.data.results)
+          }
+          shared.onerror = (e) => reject(e)
+          shared.port.start()
+          shared.port.postMessage('probe')
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        })
+        allResults['SharedWorker'] = sharedResult
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        allResults['SharedWorker'] = { error: { exists: false, type: e.message } }
+      }
+
+      status.textContent = 'Done. Root cause: pion-webrtc accesses js.Global().Get("window").Get("RTCPeerConnection") -- "window" is undefined in workers.'
+      renderResults(allResults)
+    }
+
+    run()
+  </script>
+</body>
+</html>

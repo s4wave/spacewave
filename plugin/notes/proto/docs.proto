@@ -1,0 +1,30 @@
+syntax = "proto3";
+package notes;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/plugin/notes/proto/notebook.proto";
+
+// Documentation is a world object that presents markdown files from UnixFS
+// sources as a documentation site with sidebar navigation and page viewer.
+message Documentation {
+  // Name is the display name of the documentation site.
+  string name = 1;
+  // Description is a short description of the documentation.
+  string description = 2;
+  // Sources is the ordered list of content sources (shared with Notebook).
+  repeated NotebookSource sources = 3;
+  // CreatedAt is the creation timestamp.
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateDocumentationOp creates a Documentation with a UnixFS source and initial page.
+message CreateDocumentationOp {
+  // ObjectKey is the world object key for the documentation.
+  string object_key = 1;
+  // Name is the display name for the documentation.
+  string name = 2;
+  // Description is a short description of the documentation.
+  string description = 3;
+  // Timestamp is the creation timestamp.
+  google.protobuf.Timestamp timestamp = 4;
+}

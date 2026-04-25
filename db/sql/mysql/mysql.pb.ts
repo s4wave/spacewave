@@ -6,7 +6,7 @@ import { BlockRef } from '../../block/block.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
-import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
+import { Blob } from '../../block/blob/blob.pb.js'
 
 export const protobufPackage = 'mysql'
 
@@ -273,25 +273,201 @@ export const TablePartitionRoot: MessageType<TablePartitionRoot> =
   })
 
 /**
+ * TableTimestamp is a timestamp-like SQL value.
+ *
+ * @generated from message mysql.TableTimestamp
+ */
+export interface TableTimestamp {
+  /**
+   * UnixSeconds is seconds since Unix epoch.
+   *
+   * @generated from field: int64 unix_seconds = 1;
+   */
+  unixSeconds?: bigint
+  /**
+   * Nanos is the nanosecond offset within UnixSeconds.
+   *
+   * @generated from field: int32 nanos = 2;
+   */
+  nanos?: number
+}
+
+// TableTimestamp contains the message type declaration for TableTimestamp.
+export const TableTimestamp: MessageType<TableTimestamp> = createMessageType({
+  typeName: 'mysql.TableTimestamp',
+  fields: [
+    { no: 1, name: 'unix_seconds', kind: 'scalar', T: ScalarType.INT64 },
+    { no: 2, name: 'nanos', kind: 'scalar', T: ScalarType.INT32 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * TableColumn is an entry in a table row.
  *
  * @generated from message mysql.TableColumn
  */
 export interface TableColumn {
   /**
-   * MsgpackBlob contains the data encoded with msgpack.
-   * Data may be sharded into multiple blocks if necessary.
+   * Value contains the SQL value. If no field is set, the column is NULL.
    *
-   * @generated from field: msgpack.MsgpackBlob msgpack_blob = 1;
+   * @generated from oneof mysql.TableColumn.value
    */
-  msgpackBlob?: MsgpackBlob
+  value?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * BoolValue is a boolean SQL value.
+         *
+         * @generated from field: bool bool_value = 2;
+         */
+        value: boolean
+        case: 'boolValue'
+      }
+    | {
+        /**
+         * IntValue is a signed integer SQL value.
+         *
+         * @generated from field: int64 int_value = 3;
+         */
+        value: bigint
+        case: 'intValue'
+      }
+    | {
+        /**
+         * UintValue is an unsigned integer SQL value.
+         *
+         * @generated from field: uint64 uint_value = 4;
+         */
+        value: bigint
+        case: 'uintValue'
+      }
+    | {
+        /**
+         * FloatValue is a floating-point SQL value.
+         *
+         * @generated from field: double float_value = 5;
+         */
+        value: number
+        case: 'floatValue'
+      }
+    | {
+        /**
+         * StringBlob is a string SQL value encoded as UTF-8 bytes.
+         *
+         * @generated from field: blob.Blob string_blob = 6;
+         */
+        value: Blob
+        case: 'stringBlob'
+      }
+    | {
+        /**
+         * BytesBlob is a binary SQL value.
+         *
+         * @generated from field: blob.Blob bytes_blob = 7;
+         */
+        value: Blob
+        case: 'bytesBlob'
+      }
+    | {
+        /**
+         * JsonBlob is a JSON SQL value encoded as UTF-8 text.
+         *
+         * @generated from field: blob.Blob json_blob = 8;
+         */
+        value: Blob
+        case: 'jsonBlob'
+      }
+    | {
+        /**
+         * TimestampValue is a timestamp, datetime, or date SQL value.
+         *
+         * @generated from field: mysql.TableTimestamp timestamp_value = 9;
+         */
+        value: TableTimestamp
+        case: 'timestampValue'
+      }
+    | {
+        /**
+         * TimespanMicros is a TIME SQL value in microseconds.
+         *
+         * @generated from field: int64 timespan_micros = 10;
+         */
+        value: bigint
+        case: 'timespanMicros'
+      }
 }
 
 // TableColumn contains the message type declaration for TableColumn.
 export const TableColumn: MessageType<TableColumn> = createMessageType({
   typeName: 'mysql.TableColumn',
   fields: [
-    { no: 1, name: 'msgpack_blob', kind: 'message', T: () => MsgpackBlob },
+    {
+      no: 2,
+      name: 'bool_value',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+      oneof: 'value',
+    },
+    {
+      no: 3,
+      name: 'int_value',
+      kind: 'scalar',
+      T: ScalarType.INT64,
+      oneof: 'value',
+    },
+    {
+      no: 4,
+      name: 'uint_value',
+      kind: 'scalar',
+      T: ScalarType.UINT64,
+      oneof: 'value',
+    },
+    {
+      no: 5,
+      name: 'float_value',
+      kind: 'scalar',
+      T: ScalarType.DOUBLE,
+      oneof: 'value',
+    },
+    {
+      no: 6,
+      name: 'string_blob',
+      kind: 'message',
+      T: () => Blob,
+      oneof: 'value',
+    },
+    {
+      no: 7,
+      name: 'bytes_blob',
+      kind: 'message',
+      T: () => Blob,
+      oneof: 'value',
+    },
+    {
+      no: 8,
+      name: 'json_blob',
+      kind: 'message',
+      T: () => Blob,
+      oneof: 'value',
+    },
+    {
+      no: 9,
+      name: 'timestamp_value',
+      kind: 'message',
+      T: () => TableTimestamp,
+      oneof: 'value',
+    },
+    {
+      no: 10,
+      name: 'timespan_micros',
+      kind: 'scalar',
+      T: ScalarType.INT64,
+      oneof: 'value',
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

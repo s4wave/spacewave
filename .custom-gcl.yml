@@ -1,0 +1,4 @@
+version: v2.1.6
+plugins:
+  - module: 'github.com/s4wave/spacewave/lint/nonavigate'
+    path: ./lint/nonavigate

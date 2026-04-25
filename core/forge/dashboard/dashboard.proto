@@ -1,0 +1,55 @@
+syntax = "proto3";
+package s4wave.forge.dashboard;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/forge/dashboard;forge_dashboard";
+
+// ForgeDashboard is a unified control panel linking to Forge entities in a
+// Space. Links to Forge entities via dashboard/forge-ref graph edges.
+message ForgeDashboard {
+  // Name is the display name of this dashboard.
+  string name = 1;
+  // CreatedAt is the time this dashboard was created.
+  .google.protobuf.Timestamp created_at = 2;
+}
+
+// CreateForgeDashboardOp creates a new ForgeDashboard world object.
+message CreateForgeDashboardOp {
+  // ObjectKey is the key to create the dashboard at.
+  string object_key = 1;
+  // Name is the display name of the dashboard.
+  string name = 2;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 3;
+}
+
+// LinkForgeDashboardOp links a Forge entity to a ForgeDashboard.
+message LinkForgeDashboardOp {
+  // DashboardKey is the dashboard object key.
+  string dashboard_key = 1;
+  // EntityKey is the Forge entity object key to link.
+  string entity_key = 2;
+}
+
+// InitForgeQuickstartOp creates a complete Forge environment:
+// ObjectLayout with dashboard tab, cluster, sample job with tasks, and
+// optionally a worker linked to the session peer.
+message InitForgeQuickstartOp {
+  // LayoutKey is the object key for the ObjectLayout.
+  string layout_key = 1;
+  // DashboardKey is the object key for the Forge Dashboard.
+  string dashboard_key = 2;
+  // ClusterKey is the object key for the Forge Cluster.
+  string cluster_key = 3;
+  // ClusterName is the display name for the cluster.
+  string cluster_name = 4;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 5;
+  // WorkerKey is the object key for the session worker.
+  // If empty, no worker is created.
+  string worker_key = 6;
+  // SessionPeerId is the peer ID of the creating session.
+  // Used to link the worker to the session's keypair.
+  string session_peer_id = 7;
+}

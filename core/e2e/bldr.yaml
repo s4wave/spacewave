@@ -1,0 +1,13 @@
+# bldr: project.ProjectConfig
+# NOTE: the test merges this into the root project config at ../../bldr.star
+id: spacewave-core-e2e
+
+manifests:
+  spacewave-e2e:
+    builder:
+      id: bldr/plugin/compiler/js
+      rev: 23
+      config:
+        modules:
+        - kind: JS_MODULE_KIND_BACKEND
+          path: ./core/e2e/e2e.ts

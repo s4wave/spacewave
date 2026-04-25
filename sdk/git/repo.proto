@@ -1,0 +1,178 @@
+syntax = "proto3";
+package s4wave.git;
+
+option go_package = "github.com/s4wave/spacewave/sdk/git;s4wave_git";
+
+service GitRepoResourceService {
+  rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
+
+  rpc ResolveRef(ResolveRefRequest) returns (ResolveRefResponse);
+
+  rpc GetRepoInfo(GetRepoInfoRequest) returns (GetRepoInfoResponse);
+
+  rpc GetTreeResource(GetTreeResourceRequest) returns (GetTreeResourceResponse);
+
+  rpc GetRepoFilesystemResource(GetRepoFilesystemResourceRequest)
+      returns (GetRepoFilesystemResourceResponse);
+
+  rpc Log(LogRequest) returns (LogResponse);
+
+  rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);
+
+  rpc GetDiffStat(GetDiffStatRequest) returns (GetDiffStatResponse);
+}
+
+// RefInfo contains information about a git reference.
+message RefInfo {
+  // Name is the short name of the reference.
+  string name = 1;
+  // CommitHash is the hash of the commit this reference points to.
+  string commit_hash = 2;
+  // IsHead is true if this is the HEAD ref.
+  bool is_head = 3;
+}
+
+// CommitInfo contains information about a git commit.
+message CommitInfo {
+  // Hash is the commit hash.
+  string hash = 1;
+  // Message is the commit message.
+  string message = 2;
+  // AuthorName is the name of the commit author.
+  string author_name = 3;
+  // AuthorEmail is the email of the commit author.
+  string author_email = 4;
+  // AuthorTimestamp is the author timestamp as Unix seconds.
+  int64 author_timestamp = 5;
+  // ParentHashes is the list of parent commit hashes.
+  repeated string parent_hashes = 6;
+}
+
+// ListRefsRequest is the request for ListRefs.
+message ListRefsRequest {}
+
+// ListRefsResponse is the response for ListRefs.
+message ListRefsResponse {
+  // Branches is the list of branch references.
+  repeated RefInfo branches = 1;
+  // Tags is the list of tag references.
+  repeated RefInfo tags = 2;
+  // HeadRef is the name of the reference HEAD points to.
+  string head_ref = 3;
+}
+
+// ResolveRefRequest is the request for ResolveRef.
+message ResolveRefRequest {
+  // RefName is the reference name to resolve.
+  string ref_name = 1;
+}
+
+// ResolveRefResponse is the response for ResolveRef.
+message ResolveRefResponse {
+  // CommitHash is the resolved commit hash.
+  string commit_hash = 1;
+  // TreeHash is the tree hash of the resolved commit.
+  string tree_hash = 2;
+}
+
+// GetRepoInfoRequest is the request for GetRepoInfo.
+message GetRepoInfoRequest {}
+
+// GetRepoInfoResponse is the response for GetRepoInfo.
+message GetRepoInfoResponse {
+  // HeadRef is the name of the reference HEAD points to.
+  string head_ref = 1;
+  // HeadCommitHash is the commit hash HEAD resolves to.
+  string head_commit_hash = 2;
+  // ReadmePath is the path to the README file, if found.
+  string readme_path = 3;
+  // LastCommit contains info about the latest commit.
+  CommitInfo last_commit = 4;
+  // IsEmpty is true if the repository has no commits.
+  bool is_empty = 5;
+}
+
+// GetTreeResourceRequest is the request for GetTreeResource.
+message GetTreeResourceRequest {
+  // RefName is the branch/tag/commit to get the tree for.
+  // Empty means HEAD.
+  string ref_name = 1;
+}
+
+// GetTreeResourceResponse is the response for GetTreeResource.
+message GetTreeResourceResponse {
+  // ResourceId is the ID of the FSHandle sub-resource for the tree.
+  uint32 resource_id = 1;
+}
+
+// GetRepoFilesystemResourceRequest is the request for GetRepoFilesystemResource.
+message GetRepoFilesystemResourceRequest {
+  // Writable requests writable repository filesystem capabilities.
+  bool writable = 1;
+}
+
+// GetRepoFilesystemResourceResponse is the response for GetRepoFilesystemResource.
+message GetRepoFilesystemResourceResponse {
+  // ResourceId is the ID of the FSHandle sub-resource for the repository filesystem.
+  uint32 resource_id = 1;
+}
+
+// LogRequest is the request for Log.
+message LogRequest {
+  // RefName is the branch/tag/commit to start from. Empty means HEAD.
+  string ref_name = 1;
+  // Offset is the number of commits to skip.
+  uint32 offset = 2;
+  // Limit is the maximum number of commits to return. Default 50.
+  uint32 limit = 3;
+  // SinceRef filters to commits reachable from ref_name but not from since_ref.
+  string since_ref = 4;
+}
+
+// LogResponse is the response for Log.
+message LogResponse {
+  // Commits is the list of commits in reverse chronological order.
+  repeated CommitInfo commits = 1;
+  // HasMore is true if there are more commits beyond offset+limit.
+  bool has_more = 2;
+}
+
+// GetCommitRequest is the request for GetCommit.
+message GetCommitRequest {
+  // Hash is the commit hash to look up.
+  string hash = 1;
+}
+
+// GetCommitResponse is the response for GetCommit.
+message GetCommitResponse {
+  // Commit is the full commit metadata.
+  CommitInfo commit = 1;
+}
+
+// GetDiffStatRequest is the request for GetDiffStat.
+message GetDiffStatRequest {
+  // RefA is the first ref (branch, tag, or commit hash).
+  string ref_a = 1;
+  // RefB is the second ref. If empty, diffs against ref_a's parent.
+  string ref_b = 2;
+}
+
+// GetDiffStatResponse is the response for GetDiffStat.
+message GetDiffStatResponse {
+  // Files is the list of changed files with stats.
+  repeated DiffFileStat files = 1;
+  // TotalAdditions is the total number of added lines.
+  uint32 total_additions = 2;
+  // TotalDeletions is the total number of deleted lines.
+  uint32 total_deletions = 3;
+}
+
+// DiffFileStat contains line change stats for a single file.
+message DiffFileStat {
+  // Path is the file path.
+  string path = 1;
+  // Additions is the number of added lines.
+  uint32 additions = 2;
+  // Deletions is the number of deleted lines.
+  uint32 deletions = 3;
+}

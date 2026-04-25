@@ -1,7 +1,7 @@
 syntax = "proto3";
 package bldr.plugin.host;
 
-option go_package = "github.com/s4wave/spacewave/bldr/sdk/plugin/host";
+option go_package = "github.com/s4wave/spacewave/bldr/sdk/plugin/host;bldr_plugin_host";
 
 // PluginHostResourceService provides resource access for plugins.
 service PluginHostResourceService {

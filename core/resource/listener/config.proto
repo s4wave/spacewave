@@ -1,0 +1,8 @@
+syntax = "proto3";
+package resource.listener;
+
+// Config configures the resource listener controller.
+message Config {
+  // ListenerSocketPath is the path to the Unix socket to listen on.
+  string listener_socket_path = 1;
+}

@@ -31,7 +31,7 @@ pub struct ProjectConfig {
     #[prost(map="string, message", tag="6")]
     pub publish: ::std::collections::HashMap<::prost::alloc::string::String, PublishConfig>,
     /// Extends references other bldr projects to inherit configuration from.
-    /// Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+    /// Each entry is a Go module path (e.g. "github.com/s4wave/spacewave").
     /// The extended project's bldr.yaml is resolved via the vendor/ directory.
     /// Extended configs are merged in order, then local config is merged on top.
     #[prost(string, repeated, tag="7")]

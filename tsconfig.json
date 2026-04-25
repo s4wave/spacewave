@@ -15,16 +15,28 @@
     "paths": {
       "@go/github.com/s4wave/spacewave/*": ["./*"],
       "@go/*": ["./vendor/*"],
-      "@s4wave/net/*": ["./net/*"],
-      "@s4wave/net": ["./net"],
       "@aptre/bldr": ["./bldr/web/bldr/index.js"],
       "@aptre/bldr-react": ["./bldr/web/bldr-react/index.js"],
       "@aptre/bldr-sdk": ["./bldr/sdk/plugin.ts"],
       "@aptre/bldr-sdk/*": ["./bldr/sdk/*"],
+      "@s4wave/app/*": ["./app/*"],
+      "@s4wave/app": ["./app"],
+      "@s4wave/web/*": ["./web/*"],
+      "@s4wave/web": ["./web"],
+      "@s4wave/sdk/*": ["./sdk/*"],
+      "@s4wave/sdk": ["./sdk/index.ts"],
+      "@s4wave/core/*": ["./core/*"],
+      "@s4wave/net/*": ["./net/*"],
+      "@s4wave/net": ["./net"],
       "web/*": ["./bldr/web/*"]
     }
   },
   "include": [
+    "global.d.ts",
+    "app/**/*",
+    "web/**/*",
+    "core/**/*",
+    "sdk/**/*",
     "bldr/global.d.ts",
     "bldr/types/**/*",
     "bldr/web/**/*",
@@ -33,7 +45,9 @@
     "bldr/example/**/*",
     "bldr/entrypoint/**/*",
     "bldr/util/**/*",
-    "net/**/*.ts"
+    "net/**/*.ts",
+    "db/**/*.ts",
+    "forge/lib/v86/bun/**/*.ts"
   ],
   "exclude": [
     "node_modules",
@@ -49,7 +63,13 @@
     "bldr/resource",
     "bldr/storage",
     "bldr/web/saucer/build",
-    "bldr/**/*.test.ts",
-    "bldr/**/*.spec.ts"
+    "hydra",
+    "vite-check",
+    "coverage",
+    "bundle",
+    "runtime",
+    "app/prerender/dist",
+    "app/prerender/ssr-dist",
+    "e2e/wasm/memlab"
   ]
 }

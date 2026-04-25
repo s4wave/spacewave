@@ -1,0 +1,27 @@
+syntax = "proto3";
+package s4wave.process;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/process;s4wave_process";
+
+// ProcessBinding represents an approved or unapproved process binding
+// for an ObjectType in a Space. Stored in the platform-account ObjectStore.
+message ProcessBinding {
+  // State is the approval state of this binding.
+  ProcessBindingState state = 1;
+  // ObjectKey is the world object key this binding is for.
+  string object_key = 2;
+  // TypeId is the ObjectType type ID.
+  string type_id = 3;
+  // DecidedAt is the time the binding state was last changed.
+  .google.protobuf.Timestamp decided_at = 4;
+}
+
+// ProcessBindingState is the approval state of a process binding.
+enum ProcessBindingState {
+  // ProcessBindingState_UNAPPROVED means the process is not approved to run.
+  ProcessBindingState_UNAPPROVED = 0;
+  // ProcessBindingState_APPROVED means the process is approved to run.
+  ProcessBindingState_APPROVED = 1;
+}

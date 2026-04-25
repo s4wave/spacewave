@@ -3,14 +3,14 @@ package bucket
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // bucketRW combines a read and write bucket together.
 type bucketRW struct {
 	store block.StoreOps
-	conf *Config
+	conf  *Config
 }
 
 // NewBucketRW constructs a new Bucket handle using a read handle and an

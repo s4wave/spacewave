@@ -1,0 +1,1978 @@
+/* Tailwind CSS */
+@import 'tailwindcss';
+
+/* Custom variants for height-based responsive design */
+@custom-variant tall (@media (min-height: 800px));
+@custom-variant short (@media (max-height: 580px));
+@custom-variant very-short (@media (max-height: 470px));
+@custom-variant ultra-short (@media (max-height: 390px));
+@custom-variant auth-short (@container (max-height: 740px));
+@custom-variant auth-very-short (@container (max-height: 580px));
+@custom-variant auth-short-narrow (@container (max-height: 740px) and (max-width: 950px));
+
+/* Custom variants for width-based responsive design */
+@custom-variant narrow (@media (max-width: 640px));
+@custom-variant wide (@media (min-width: 1920px));
+@custom-variant ultrawide (@media (min-width: 2560px));
+
+/* Tab bar style variants for LayoutDebug (scoped via data-variant attribute) */
+@custom-variant tab-frosted-glass (&:where([data-variant=frosted-glass], [data-variant=frosted-glass] *));
+@custom-variant tab-wire-outline (&:where([data-variant=wire-outline], [data-variant=wire-outline] *));
+@custom-variant tab-brand-strip (&:where([data-variant=brand-strip], [data-variant=brand-strip] *));
+@custom-variant tab-soft-blend (&:where([data-variant=soft-blend], [data-variant=soft-blend] *));
+@custom-variant tab-elevated (&:where([data-variant=elevated], [data-variant=elevated] *));
+@custom-variant tab-flat-segment (&:where([data-variant=flat-segment], [data-variant=flat-segment] *));
+
+/* Container query variants for container-relative sizing */
+@custom-variant @xs (@container (min-width: 20rem));
+@custom-variant @sm (@container (min-width: 24rem));
+@custom-variant @md (@container (min-width: 28rem));
+@custom-variant @lg (@container (min-width: 32rem));
+@custom-variant @xl (@container (min-width: 36rem));
+@custom-variant @2xl (@container (min-width: 42rem));
+@custom-variant @3xl (@container (min-width: 48rem));
+@custom-variant @4xl (@container (min-width: 56rem));
+@custom-variant @5xl (@container (min-width: 64rem));
+
+/* Fonts */
+@import '@aptre/pragmasevka/font.css';
+@import '@fontsource-variable/manrope/wght.css';
+
+/* Shadcn */
+@import './shadcn.css';
+@import '@xterm/xterm/css/xterm.css';
+
+/* FlexLayout */
+@import './flexlayout/flexlayout.css';
+
+@theme {
+  /* Fonts */
+  --font-mono:
+    'Pragmasevka', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  --font-display: 'Manrope Variable', -apple-system, sans-serif;
+  --font-heading: 'Manrope Variable', sans-serif;
+  --default-font-family: var(--font-display);
+
+  /* Base Colors & Brand */
+  --color-brand: oklch(0.82 0.1355 16.5);
+  --color-brand-highlight: oklch(0.8189 0.1026 15.2);
+  --color-primary: oklch(0.6 0.2 16.5);
+  --color-primary-foreground: oklch(1 0 0);
+  --color-violet: oklch(0.679 0.1294 287.58);
+  --color-link-hover: var(--color-violet);
+  --color-accent: oklch(0.65 0.22 10.59 / 0.15);
+  --color-success: oklch(0.8771 0.2241 153.23);
+  --color-warning: oklch(0.8405 0.0985 55.41);
+
+  /* General Background Colors */
+  --color-background: oklch(0.225 0.002 16.5);
+  --color-background-dark: oklch(0.15 0.002 16.5);
+  --color-background-card: oklch(0.21 0.003 16.5);
+  --color-background-card-alt: oklch(0.195 0.003 16.5);
+  --color-background-landing: oklch(0.19 0.003 16.5);
+  --color-background-get-started: oklch(0.205 0.002 16.5);
+  --color-background-canvas: oklch(0.185 0.002 16.5);
+
+  /* General Foreground & Text */
+  --color-foreground: oklch(1 0 0);
+  --color-foreground-alt: oklch(0.9 0.005 16.5);
+  --color-text-primary: oklch(0.9668 0.0196 305.27);
+  --color-text-secondary: oklch(0.92 0.006 16.5);
+  --color-text-muted: oklch(0.78 0.008 16.5);
+  --color-text-highlight: oklch(1 0 0);
+  --color-text-header: oklch(0.9491 0.005 16.5);
+  --color-text-status: oklch(0.6534 0.008 16.5);
+  --color-text-menu: oklch(0.8853 0.005 16.5);
+
+  /* General UI Elements */
+  --color-muted: oklch(0.3211 0.003 16.5);
+  --color-muted-foreground: oklch(0.7456 0.01 16.5);
+  --color-border: oklch(0.3867 0.004 16.5);
+  --color-card: oklch(0.21 0.003 16.5);
+  --color-gray-secondary: oklch(0.26 0.003 16.5);
+  --color-gray-dark: oklch(0.19 0.002 16.5);
+  --color-button-hover: oklch(0.4495 0.005 16.5);
+  --color-focus-ring: oklch(0.8656 0.021 285.95);
+  --color-window-border: oklch(1 0 0 / 0.25);
+
+  /* Editor - Background Colors */
+  --color-background-primary: oklch(0.22 0.0031 8.05);
+  --color-background-secondary: oklch(0.24 0.0035 8.06);
+  --color-background-tertiary: oklch(0.28 0.003 16.5);
+  --color-background-deep: oklch(0.18 0.002 16.5);
+  --color-background-panel: oklch(0.26 0.0038 8.07);
+  --color-background-menu: oklch(0.19 0.002 16.5);
+  --color-background-menu-back: oklch(0.14 0 0);
+  --color-text-editor-back: var(--color-editor-panel-back);
+  --color-editor-panel-back: var(--color-background-secondary);
+
+  /* Editor - Borders & Outlines */
+  --color-editor-border: oklch(0.16 0 0);
+  --color-editor-outline: oklch(0.9574 0.0226 0.53 / 0.09);
+  --color-resize-handle-active: oklch(1 0 0 / 0.4);
+  --border-editor: 1px solid oklch(0.9574 0.0226 0.53 / 0.09);
+
+  /* Editor - UI Widgets */
+  --color-ui-border: oklch(0.3171 0 0);
+  --color-ui-outline: oklch(0.9574 0.0226 0.53 / 0.09);
+  --color-ui-outline-active: oklch(0.92 0.0637 6.28 / 0.25);
+  --color-ui-selected: oklch(0.3 0.01 0);
+  --color-ui-widget: oklch(0.4459 0 0);
+  --color-ui-widget-item: oklch(0.2308 0 0);
+
+  /* Shell Tabs (Top Bar) — warmed to brand hue 16.5 */
+  --color-shell-tab-active: oklch(0.28 0.003 16.5);
+  --color-shell-tab-inactive: oklch(0.2 0.002 16.5);
+  --color-shell-tab-bg: oklch(0.18 0.002 16.5);
+  --color-shell-tab-outline: oklch(0.2 0.002 16.5);
+  --color-shell-tab-text: oklch(0.78 0.008 16.5);
+  --color-shell-tab-text-active: oklch(1 0 0);
+
+  /* FlexLayout Editor Tabs */
+  --color-editor-tab-active: oklch(0.26 0.0038 8.07);
+  --color-editor-tab-unfocused: oklch(0.23 0.0033 8.06);
+  --color-editor-tab-inactive: transparent;
+  --color-editor-tab-text: oklch(0.78 0 0);
+  --color-editor-tab-text-active: oklch(1 0 0);
+  --color-editor-tab-text-unfocused: oklch(0.88 0 0);
+
+  /* Top Bar */
+  --color-topbar-back: oklch(0.18 0 0);
+  --color-topbar-button-text: oklch(0.9491 0 0);
+  --color-topbar-button-text-hi: oklch(1 0 0);
+  --color-topbar-input-background: oklch(0.2 0 0);
+  --color-topbar-button-background: oklch(0.25 0 0);
+  --color-topbar-action-button: oklch(0.25 0 0);
+  --color-topbar-separator: oklch(0.36 0 0);
+
+  /* Menus & Dropdowns */
+  --color-menu-selected: oklch(0.6368 0.0395 18.24 / 0.15);
+  --color-menu-hover: oklch(1 0 0 / 0.1);
+  --color-pulldown-hover: oklch(1 0 0 / 0.1);
+  --color-menu-shadow: oklch(0 0 0 / 0.4);
+  --color-widget-emboss: oklch(0 0 0 / 0.15);
+  --color-popover: oklch(0.19 0 0);
+  --color-popover-border: oklch(0.3942 0 0);
+  --color-popover-text: oklch(0.9249 0 0);
+
+  /* Outliner Component */
+  --color-outliner-back: var(--color-editor-panel-back);
+  --color-outliner-header: oklch(0.23 0.0033 8.06);
+  --color-outliner-text: oklch(0.8172 0 0);
+  --color-outliner-active: oklch(0.4252 0.0909 262.7);
+  --color-outliner-selected-highlight: oklch(0.27 0.007 0);
+  --color-outliner-selected-object: oklch(0.6682 0.1806 48.51);
+  --color-outliner-active-object: oklch(0.8116 0.1622 73.75);
+  --color-outliner-row-alternate: oklch(0.956 0.0218 17.54 / 0.024);
+  --color-tree-indent-line: oklch(1 0 0 / 0.08);
+
+  /* File Browser Component */
+  --color-file-back: oklch(0.225 0.002 16.5);
+  --color-file-browser-row: oklch(0.8822 0.008 16.5);
+  --color-file-sidebar: oklch(0.28 0.003 16.5);
+  --color-file-sidebar-header: oklch(0.28 0.003 16.5);
+  --color-file-sidebar-item-hover: oklch(0.5513 0.06 16.5);
+  --color-file-sidebar-section: oklch(0.25 0.003 16.5);
+  --color-panel-header: oklch(0.225 0.003 16.5);
+  --color-file-path-bar: oklch(0.28 0.003 16.5);
+  --color-file-path-bar-hover: oklch(0.3 0.004 16.5);
+  --color-file-search-box: oklch(0.2 0.003 16.5);
+  --color-file-row-alternate: oklch(0.956 0.0218 17.54 / 0.04);
+  --color-file-folder-icon: oklch(0.8 0.1679 18.13);
+
+  /* Console Component */
+  --color-console-back: var(--color-editor-panel-back);
+  --color-console-header: oklch(0.28 0 0);
+  --color-console-input: oklch(1 0 0);
+  --color-console-output: oklch(0.8359 0.1828 146.17);
+  --color-console-info: oklch(0.8084 0.1099 208.63);
+  --color-console-error: oklch(0.7703 0.1356 20.68);
+  --color-console-cursor: oklch(1 0 0);
+  --color-console-selection: oklch(0.3485 0 0);
+
+  /* Error States */
+  --color-error: oklch(0.7703 0.1356 20.68);
+  --color-error-text: oklch(0.8385 0.0891 19.11);
+  --color-error-bg: oklch(0.7703 0.1356 20.68 / 0.1);
+  --color-error-border: oklch(0.7703 0.1356 20.68 / 0.2);
+
+  /* Footer */
+  --color-footer-bg: oklch(0.15 0 0);
+  --color-footer-border: oklch(1 0 0 / 0.08);
+  --color-footer-text: oklch(0.6534 0 0);
+  --color-footer-text-hover: oklch(0.9491 0 0);
+  --color-footer-link: oklch(0.7058 0 0);
+
+  /* Navigation Links (Landing) */
+  --color-navlink-text: var(--color-brand);
+  --color-navlink-text-hover: var(--color-brand-highlight);
+  --color-navlink-selection: oklch(1 0 0 / 0.05);
+  --color-navlink-bracket: oklch(1 0 0 / 0.2);
+  --spacing-navlink-bracket: 0.042rem;
+
+  /* Semantic Icons */
+  --color-icon-folder: oklch(0.8 0.1679 18.13);
+  --color-icon-collection: oklch(0.9249 0 0);
+  --color-icon-object: oklch(0.8116 0.1622 73.75);
+  --color-icon-object-data: oklch(0.8771 0.2241 153.23);
+
+  /* Bar Item (Bottom Bar) */
+  --color-bar-item-text: oklch(0.7058 0 0);
+  --color-bar-item-text-hover: oklch(0.8853 0 0);
+
+  /* Scrollbar & Scroll Behavior */
+  --color-scroll-thumb: oklch(0.4459 0 0);
+  --scrollbar-width: 6px;
+  --scrollbar-height: 6px;
+  --color-scrollbar-track: transparent;
+  --scrollbar-track-radius: 0.25rem;
+  --color-scrollbar-thumb: oklch(0.3904 0 0);
+  --color-scrollbar-thumb-hover: oklch(0.4891 0 0);
+  --scrollbar-thumb-border: 1px;
+  --scrollbar-thumb-min-height: 40px;
+
+  /* FlexLayout Variables */
+  --fl-color-text: var(--color-text-primary);
+  --fl-color-background: var(--color-background-primary);
+  --fl-color-base: var(--color-background-primary);
+  --fl-color-1: var(--color-ui-outline);
+  --fl-color-2: var(--color-pulldown-hover);
+  --fl-color-3: var(--color-editor-border);
+  --fl-color-4: var(--color-background-tertiary);
+  --fl-color-5: var(--color-background-secondary);
+  --fl-color-6: var(--color-pulldown-hover);
+  --fl-color-drag1: var(--color-primary);
+  --fl-color-drag2: var(--color-brand-highlight);
+  --fl-color-drag1-background: oklch(0.65 0.22 10.59 / 0.1);
+  --fl-color-drag2-background: oklch(0.65 0.22 10.59 / 0.15);
+  --fl-color-overflow: var(--color-text-muted);
+  --fl-color-icon: var(--color-text-primary);
+  --fl-tabset: var(--color-background-primary);
+  --fl-tabset-selected: var(--color-background-primary);
+  --fl-tabset-maximized: var(--color-background-primary);
+  --fl-tabset-header: var(--color-background-secondary);
+  --fl-tabset-header-text: var(--color-text-primary);
+  --fl-border: var(--color-background-secondary);
+  --fl-border-divider: var(--color-editor-outline);
+  --fl-tab: var(--color-editor-tab-text-active);
+  --fl-tab-selected: var(--color-editor-tab-active);
+  --fl-tab-unselected: var(--color-editor-tab-text);
+  --fl-tab-unselected-background: var(--color-editor-tab-inactive);
+  --fl-tab-textbox: var(--color-text-primary);
+  --fl-tab-textbox-background: var(--color-background-secondary);
+  --fl-border-tab: var(--color-text-primary);
+  --fl-border-tab-selected: var(--color-editor-tab-active);
+  --fl-border-tab-unselected: var(--color-text-muted);
+  --fl-border-tab-unselected-background: transparent;
+  --fl-color-splitter: var(--color-editor-border);
+  --fl-color-splitter-hover: var(--color-ui-outline-active);
+  --fl-color-splitter-drag: var(--color-resize-handle-active);
+  --fl-drag-rect-border: var(--color-primary);
+  --fl-drag-rect-background: var(--color-background-secondary);
+  --fl-drag-rect: var(--color-text-primary);
+  --fl-popup-border: var(--color-popover-border);
+  --fl-popup-unselected: var(--color-text-primary);
+  --fl-popup-unselected-background: var(--color-popover);
+  --fl-popup-selected: var(--color-text-highlight);
+  --fl-popup-selected-background: var(--color-menu-selected);
+  --fl-color-edge-marker: var(--color-primary);
+  --fl-color-underline: var(--color-primary);
+  --fl-color-underline-hover: var(--color-brand-highlight);
+  --fl-underline-height: 2px;
+
+  /* Font Sizes - Differentiated hierarchy */
+  --text-metadata: 0.6875rem;
+  --text-metadata--line-height: 1.5;
+  --text-devtools: 0.6875rem;
+  --text-devtools--line-height: 1.5;
+  --text-ui: 0.75rem;
+  --text-ui--line-height: 1.4;
+  --text-ui--letter-spacing: 0.01em;
+  --text-file-browser: 0.75rem;
+  --text-file-browser--line-height: 1.4;
+  --text-dashboard: 0.75rem;
+  --text-topbar-menu: 0.6875rem;
+  --text-header: 0.8125rem;
+  --text-header--line-height: 1.4;
+  --text-header--font-weight: 600;
+
+  /* Border Radius */
+  --radius-editor: 6px;
+  --radius-editor-panel: 0.4rem;
+  --radius-editor-scroll: 0.5rem;
+  --radius-menu-button: 3px;
+
+  /* Shadow Effects */
+  --shadow-menu: 0 4px 12px oklch(0 0 0 / 0.4);
+  --text-shadow-glow: 0 0 1px oklch(1 0 0 / 0.05);
+  --shadow-ui-selected-glow: none;
+  --text-shadow-ui-glow: none;
+
+  /* Tooltip */
+  --color-tooltip-bg: oklch(0.2178 0 0);
+  --color-tooltip-text: oklch(0.9249 0 0);
+  --color-tooltip-border: oklch(1 0 0 / 0.12);
+
+  /* Logo Colors */
+  --color-logo-base: oklch(0.1811 0.0721 264.26);
+  --color-logo-blue: oklch(0.7126 0.1209 226.36);
+  --color-logo-pink: oklch(0.6241 0.1659 336.54);
+  --color-logo-purple: oklch(0.4586 0.1715 323.98);
+  --color-logo-dark: oklch(0.1745 0.0739 268.79);
+
+  /* Gradient Colors */
+  --gradient-blue-purple: linear-gradient(
+    145deg,
+    var(--color-blue-500),
+    var(--color-purple-500)
+  );
+  --gradient-purple-pink: linear-gradient(
+    to right,
+    var(--color-purple-500),
+    var(--color-pink-500)
+  );
+
+  /* Bars & Frame */
+  --bar-height: 22px;
+  --spacing-bar: 22px;
+  --spacing-shell-header: 28px;
+  --color-bar: oklch(0.1776 0 0);
+  --color-bar-font: oklch(1 0 0);
+  --color-bar-border-top: oklch(1 0 0 / 0.1);
+  --color-bar-item-selected: oklch(0.45 0.06 10 / 0.4);
+  --color-bar-item-selected-text: oklch(1 0 0);
+  --text-shadow-bar-item-selected: 0 0 3px oklch(0 0 0 / 0.8);
+  --color-window-bar: oklch(0.209 0 0);
+  --color-editor-bar: oklch(0.2881 0.0038 8.07);
+  --color-frame-overlay-border: var(--color-primary);
+
+  /* Object Viewer */
+  --color-object-viewer-overlay: oklch(0.1776 0 0);
+}
+
+/* Wide-gamut display enhancement: richer colors on P3 displays */
+@media (color-gamut: p3) {
+  :root {
+    /* Brand & accent — push chroma for richer reds/pinks */
+    --color-brand: oklch(0.7717 0.18 16.5);
+    --color-brand-highlight: oklch(0.8189 0.14 15.2);
+    --color-primary: oklch(0.55 0.26 16.5);
+    --color-accent: oklch(0.65 0.28 10.59 / 0.15);
+
+    /* Status colors — more vivid on wide gamut */
+    --color-success: oklch(0.8771 0.28 153.23);
+    --color-warning: oklch(0.8405 0.14 55.41);
+    --color-error: oklch(0.7104 0.17 18.72);
+    --color-error-text: oklch(0.7978 0.14 17.8);
+    --color-console-output: oklch(0.8321 0.22 148.25);
+    --color-console-info: oklch(0.7726 0.12 211.53);
+    --color-console-error: oklch(0.7104 0.17 18.72);
+
+    /* Logo — wider gamut */
+    --color-logo-blue: oklch(0.7057 0.12 220.43);
+    --color-logo-pink: oklch(0.5913 0.2 330.41);
+    --color-logo-purple: oklch(0.3973 0.2 318.21);
+
+    /* Icons — wider gamut */
+    --color-icon-folder: oklch(0.6886 0.18 16.73);
+    --color-icon-object: oklch(0.7957 0.16 69.73);
+    --color-icon-object-data: oklch(0.8771 0.28 153.23);
+    --color-outliner-selected-object: oklch(0.7163 0.18 52.29);
+    --color-outliner-active-object: oklch(0.7957 0.16 75.06);
+  }
+}
+
+/* HDR display enhancement: overbright glows and luminance depth hierarchy */
+@media (dynamic-range: high) {
+  :root {
+    /* Set constrained dynamic range as default — prevents full-page overbright */
+    dynamic-range-limit: constrained;
+
+    /* HDR glow tokens — no SDR equivalent, only exist here */
+    --hdr-glow-focus: oklch(0.75 0.14 10 / 0.35);
+    --hdr-glow-active-border: oklch(0.8 0.16 10 / 0.5);
+    --hdr-glow-active-shadow: oklch(0.65 0.12 10 / 0.2);
+    --hdr-shadow-recede: oklch(0 0 0 / 0.6);
+
+    /* Boost brand color lightness for HDR luminance */
+    --color-brand: oklch(0.82 0.18 16.5);
+    --color-brand-highlight: oklch(0.87 0.14 15.2);
+
+    /* Boost status color lightness for HDR luminance */
+    --color-success: oklch(0.92 0.28 153.23);
+    --color-warning: oklch(0.88 0.14 55.41);
+    --color-error: oklch(0.78 0.17 18.72);
+    --color-console-output: oklch(0.9 0.22 148.25);
+    --color-console-info: oklch(0.84 0.12 211.53);
+
+    /* Brighter UI active state */
+    --color-ui-outline-active: oklch(0.7 0.1 10 / 0.3);
+
+    /* Window borders with brand tint */
+    --color-window-border: oklch(0.55 0.06 10 / 0.25);
+  }
+
+  /* Active/focused FlexLayout tabsets glow on HDR */
+  .flexlayout__tabset:has(.flexlayout__tabset-selected) {
+    dynamic-range-limit: no-limit;
+    border-color: var(--hdr-glow-active-border);
+    box-shadow: 0 0 8px 1px var(--hdr-glow-active-shadow);
+  }
+
+  /* Inactive tabsets recede */
+  .flexlayout__tabset:not(:has(.flexlayout__tabset-selected)) {
+    dynamic-range-limit: standard;
+    box-shadow: 0 2px 8px var(--hdr-shadow-recede);
+  }
+
+  /* Shell-level active tabset glow (grid mode only) */
+  .shell-flexlayout:not(.shell-flexlayout--with-menu)
+    > .flexlayout__optimized_layout
+    > .flexlayout__layout
+    .flexlayout__tabset:not(.flexlayout__tab *):has(
+      .flexlayout__tabset-selected
+    ) {
+    dynamic-range-limit: no-limit;
+    border-color: var(--hdr-glow-active-border);
+    box-shadow: 0 0 10px 2px var(--hdr-glow-active-shadow);
+  }
+
+  /* Window component glow on hover */
+  .hdr-window-glow {
+    transition:
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .hdr-window-glow:hover {
+    dynamic-range-limit: no-limit;
+    box-shadow: 0 0 6px 1px var(--hdr-glow-active-shadow);
+  }
+
+  /* Transient flash for status state changes — 200ms pulse */
+  @keyframes hdr-flash {
+    0% {
+      filter: brightness(1);
+    }
+    30% {
+      filter: brightness(1.6);
+    }
+    100% {
+      filter: brightness(1);
+    }
+  }
+
+  .hdr-status-flash {
+    dynamic-range-limit: no-limit;
+  }
+
+  .hdr-status-flash[data-status-changed] {
+    animation: hdr-flash 200ms ease-out;
+  }
+
+  /* HDR boost for active tab text — more vivid on wide-gamut displays */
+  .shell-flexlayout
+    > .flexlayout__optimized_layout
+    > .flexlayout__layout
+    .flexlayout__tabset-selected
+    .flexlayout__tab_button--selected:not(.flexlayout__tab *) {
+    color: oklch(0.98 0.03 305);
+  }
+
+  .space-flexlayout
+    .flexlayout__tabset-selected
+    .flexlayout__tab_button--selected {
+    color: oklch(0.98 0.03 305);
+  }
+}
+
+/* Custom utilities for editor UI */
+.rounded-t-editor {
+  border-top-left-radius: var(--radius-editor);
+  border-top-right-radius: var(--radius-editor);
+}
+
+.rounded-menu-button {
+  border-radius: var(--radius-menu-button);
+}
+
+.text-shadow-glow {
+  text-shadow: var(--text-shadow-glow);
+}
+
+.text-shadow-bar-item-selected {
+  text-shadow: var(--text-shadow-bar-item-selected);
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.icon-shadow {
+  filter: drop-shadow(0 1px 1px oklch(0 0 0 / 0.2));
+}
+
+/* Font Rendering - Context-Optimized Winners from ELO A/B Test v2
+   Different text contexts require different rendering strategies:
+   - Console Text (11px monospace): Subpixel antialiasing for crisp code
+   - Sidebar/UI Text (11px): AA + Legibility for UI clarity  
+   - Large Headers (13px): AA + Legibility for bold presence
+   - Small Metadata (10px): AA + Text Shadow for enhanced legibility
+*/
+
+/* Base: Sidebar/UI Text winner (AA + Legibility) */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Console Text: Subpixel + subtle glow for solid white rendering on dark backgrounds */
+.console-text,
+.font-mono,
+input[type='number'],
+.numeric-value {
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: auto;
+  text-shadow: 0 0 0.25px currentColor;
+}
+
+/* Zoom-level optimizations */
+@media (min-resolution: 1.25dppx) {
+  body {
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  .icon-shadow {
+    filter: drop-shadow(0 0.8px 0.8px oklch(0 0 0 / 0.2));
+  }
+}
+
+@media (min-resolution: 1.5dppx) {
+  .icon-shadow {
+    filter: drop-shadow(0 0.67px 0.67px oklch(0 0 0 / 0.2));
+  }
+}
+
+html,
+body,
+#root {
+  @apply bg-background text-foreground font-display h-full w-full;
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+/* Base styles */
+@layer base {
+  a {
+    @apply text-brand font-bold no-underline;
+  }
+  a:hover {
+    @apply text-link-hover underline;
+  }
+  button:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+#bldr-root {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb);
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-scrollbar-thumb-hover);
+}
+
+/* Firefox scrollbar styling */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+}
+
+/* Hero Button Styles */
+.hero-button {
+  @apply border-foreground/20 bg-background/50 flex cursor-pointer items-center rounded-md border px-6 py-2 no-underline transition-all duration-300;
+}
+
+.hero-button:hover {
+  @apply border-brand/50 bg-brand/10 -translate-y-[1px];
+}
+
+/* Button Glow on Hover */
+.glow-on-hover {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--color-white);
+    opacity: 0;
+    transition: opacity 0.042s ease-in-out;
+    pointer-events: none;
+  }
+
+  &:hover::before {
+    opacity: 0.12;
+  }
+}
+
+/* Border when focusing a button */
+:focus-visible {
+  /* outline: -webkit-color-focus-ring auto 1px; */
+  outline-color: var(--color-focus-ring);
+  outline-width: 1px;
+}
+
+.aria-selected\:bg-accent[aria-selected='true'] {
+  background-color: var(--color-tertiary-accent);
+}
+
+.aria-selected\:opacity-100[aria-selected='true'] {
+  opacity: 1;
+}
+
+.\[\&_\[cmdk-group-heading\]\]\:text-muted-foreground [cmdk-group-heading] {
+  color: var(--color-text-muted);
+}
+
+/* Shell tab text should use text-ui font size */
+.text-shell-tab-text {
+  @apply text-ui;
+}
+
+.text-shell-tab-text-active {
+  @apply text-ui;
+}
+
+/* DevTools text utilities - combined size + color to avoid tailwind-merge conflicts */
+.text-devtools-success {
+  @apply text-devtools;
+  color: var(--color-success);
+}
+
+.text-devtools-warning {
+  @apply text-devtools;
+  color: var(--color-warning);
+}
+
+.text-devtools-error {
+  @apply text-devtools;
+  color: var(--color-error);
+}
+
+.text-devtools-muted {
+  @apply text-devtools;
+  color: var(--color-text-muted);
+}
+
+/* Editor tab text should use text-ui font size */
+.text-editor-tab-text {
+  @apply text-ui;
+}
+
+.text-editor-tab-text-active {
+  @apply text-ui;
+}
+
+.text-editor-tab-text-unfocused {
+  @apply text-ui;
+}
+
+/* File browser text should use text-file-browser font size */
+.text-file-browser-row {
+  @apply text-file-browser;
+}
+
+/* Sidebar text should use text-ui font size */
+.text-topbar-button-text {
+  @apply text-ui;
+}
+
+.text-topbar-button-text-hi {
+  @apply text-ui;
+}
+
+.text-text-secondary {
+  @apply text-ui;
+}
+
+.text-text-highlight {
+  @apply text-ui;
+}
+
+/* Popover text should use text-ui font size */
+.text-popover-text {
+  @apply text-ui;
+}
+
+/* Micro-interaction utilities */
+.interactive-lift {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.interactive-lift:hover {
+  transform: translateY(-1px);
+}
+
+.interactive-lift:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.interactive-scale {
+  transition: transform 0.1s ease;
+}
+
+.interactive-scale:hover {
+  transform: scale(1.02);
+}
+
+.interactive-scale:active {
+  transform: scale(0.98);
+}
+
+/* Focus visible improvements */
+.focus-ring {
+  @apply outline-none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Loading spinner animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Indeterminate progress bar sweep */
+@keyframes progress-indeterminate {
+  0% {
+    left: -33%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+/* Auto-hide scrollbar */
+.scrollbar-auto-hide {
+  scrollbar-width: thin;
+}
+
+.scrollbar-auto-hide::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.scrollbar-auto-hide:hover::-webkit-scrollbar {
+  opacity: 1;
+}
+
+.scrollbar-auto-hide::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.scrollbar-auto-hide:hover::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb);
+}
+
+/* xterm scrollbar styling - match our 6px scrollbar width */
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb);
+  border-radius: 0.25rem;
+}
+
+/* xterm scrollbar styling */
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb);
+  border-radius: 0.25rem;
+}
+
+/* Shell Tab Strip - TopBar-style tabs (content hidden, only tab strip visible) */
+.shell-tab-strip {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.shell-tab-strip .flexlayout__layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Hide the content area - we only want the tab strip */
+.shell-tab-strip .flexlayout__tabset_content {
+  display: none;
+}
+
+.shell-tab-strip .flexlayout__tab {
+  display: none;
+}
+
+/* Remove border from main tabset container */
+.shell-tab-strip .flexlayout__tabset {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  flex: 1;
+}
+
+.shell-tab-strip .flexlayout__tabset_container {
+  flex: 1;
+}
+
+/* Tab strip styled like TopBar - aligned to bottom of 30px header */
+.shell-tab-strip .flexlayout__tabset_tabbar_outer_top {
+  background: transparent;
+  height: 100%;
+  padding: 0 0.5rem 1px 0.5rem;
+  align-items: flex-end;
+  border: none;
+}
+
+.shell-tab-strip .flexlayout__tabset_tabbar_inner {
+  height: 20px;
+  align-items: flex-end;
+}
+
+.shell-tab-strip .flexlayout__tabset_tabbar_inner_tab_container {
+  padding: 0;
+  gap: 1px;
+  align-items: flex-end;
+}
+
+.shell-tab-strip .flexlayout__tabset_tabbar_inner_tab_container_top {
+  border-top: none;
+}
+
+/* Individual tab buttons styled like TopBar tabs */
+.shell-tab-strip .flexlayout__tab_button {
+  @apply text-shell-tab-text bg-shell-tab-inactive;
+  height: 20px;
+  min-width: 24px;
+  max-width: 100px;
+  padding: 0 0.5rem 2px 0.5rem;
+  margin: 0;
+  gap: 0.125rem;
+  border: 1px solid var(--color-shell-tab-outline);
+  border-bottom: none;
+  border-radius: var(--radius-editor) var(--radius-editor) 0 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  flex-shrink: 0;
+}
+
+/* Remove the underline pseudo-element */
+.shell-tab-strip .flexlayout__tab_button::after {
+  display: none;
+}
+
+.shell-tab-strip .flexlayout__tab_button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--color-shell-tab-active) 50%,
+    transparent
+  );
+}
+
+.shell-tab-strip .flexlayout__tab_button--selected {
+  @apply bg-shell-tab-active text-shell-tab-text-active;
+  box-shadow: inset 0 -1px 0 var(--color-widget-emboss);
+}
+
+.shell-tab-strip .flexlayout__tab_button--unselected {
+  @apply text-shell-tab-text bg-shell-tab-inactive;
+}
+
+/* Tab button content */
+.shell-tab-strip .flexlayout__tab_button_content {
+  @apply text-ui leading-tight;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.025em;
+}
+
+/* Tab dividers - hidden */
+.shell-tab-strip .flexlayout__tabset_tab_divider {
+  display: none;
+}
+
+/* Toolbar (add button area) */
+.shell-tab-strip .flexlayout__tab_toolbar {
+  height: 20px;
+  align-items: flex-end;
+  padding: 0;
+  margin-left: 2px;
+  padding-bottom: 1px;
+}
+
+/* Add tab button styled like TopBar tabs */
+.shell-tab-strip .flexlayout__tab_toolbar_button {
+  @apply text-shell-tab-text bg-shell-tab-inactive;
+  height: 20px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-shell-tab-outline);
+  border-bottom: none;
+  border-radius: var(--radius-editor) var(--radius-editor) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-tab-strip .flexlayout__tab_toolbar_button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--color-shell-tab-active) 50%,
+    transparent
+  );
+}
+
+/* Hide splitters */
+.shell-tab-strip .flexlayout__splitter {
+  display: none;
+}
+
+/* Shell FlexLayout - Menu bar overlay */
+.shell-flexlayout {
+  position: relative;
+}
+
+.shell-flexlayout--with-menu {
+  --menu-bar-width: 233px; /* Default, updated by JS */
+}
+
+.shell-flexlayout .shell-menu-bar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: var(--spacing-shell-header);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * Shell FlexLayout Styles
+ *
+ * These styles target only the shell's FlexLayout, not nested FlexLayouts
+ * (like SpaceFlexLayout). We use two scoping strategies:
+ *
+ * 1. Direct child selector (>) for the root .flexlayout__layout
+ * 2. :not(.flexlayout__tab *) to exclude elements inside tab content areas
+ *    where nested FlexLayouts would be rendered
+ */
+
+.shell-flexlayout > .flexlayout__optimized_layout > .flexlayout__layout {
+  --color-tab-content: var(--color-background);
+}
+
+/* Style the tabbar as the header row - only apply menu bar padding when menu exists.
+ * Use :not(.flexlayout__tab *) to exclude nested FlexLayouts inside tab content. */
+.shell-flexlayout--with-menu
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_outer_top:not(.flexlayout__tab *) {
+  @apply bg-topbar-back;
+  height: var(--spacing-shell-header);
+  min-height: var(--spacing-shell-header);
+  /* Left padding dynamically set based on menu bar width */
+  padding: 0 0.5rem 0 var(--menu-bar-width);
+  align-items: flex-end;
+  border: none;
+  @apply border-editor-outline border-b;
+}
+
+/* Grid mode tabsets - no menu bar padding */
+.shell-flexlayout:not(.shell-flexlayout--with-menu)
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_outer_top:not(.flexlayout__tab *) {
+  padding: 0 0.5rem 0 0.5rem;
+}
+
+/* Remove border from main tabset container in single-tabset mode */
+.shell-flexlayout.shell-flexlayout--with-menu
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset:not(.flexlayout__tab *) {
+  @apply bg-background;
+  border: none;
+  border-radius: 0;
+}
+
+/* Grid mode tabsets - keep borders for visual separation */
+.shell-flexlayout:not(.shell-flexlayout--with-menu)
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_container:not(.flexlayout__tab *) {
+  @apply rounded-editor overflow-hidden;
+}
+
+.shell-flexlayout:not(.shell-flexlayout--with-menu)
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset:not(.flexlayout__tab *) {
+  @apply bg-background border-editor-outline rounded-editor border;
+}
+
+/* Active tabset in grid mode - highlight border */
+.shell-flexlayout:not(.shell-flexlayout--with-menu)
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset:not(.flexlayout__tab *):has(
+    .flexlayout__tabset-selected
+  ) {
+  @apply border-ui-outline-active;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner:not(.flexlayout__tab *) {
+  height: 24px;
+  align-items: flex-end;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container:not(.flexlayout__tab *) {
+  padding: 0 3px;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container_top:not(.flexlayout__tab *) {
+  border-top: none;
+}
+
+/* Individual tab buttons — Heavy Frost style:
+ * Flush/compact tabs with frosted-glass backdrop blur on inactive,
+ * opaque active tab connecting to content. */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:not(.flexlayout__tab *) {
+  color: oklch(0.62 0 0);
+  background: oklch(0.247 0.003 8 / 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  height: 22px;
+  min-width: 24px;
+  max-width: 100px;
+  padding: 0 0.5rem 1px 0.5rem;
+  margin: 0;
+  gap: 0.25rem;
+  border: 1px solid oklch(1 0 0 / 0.06);
+  border-top: 1px solid oklch(1 0 0 / 0.08);
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    backdrop-filter 0.15s ease;
+  flex-shrink: 0;
+}
+
+/* Remove the underline pseudo-element */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:not(.flexlayout__tab *)::after {
+  display: none;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:not(.flexlayout__tab *):hover {
+  background: oklch(0.247 0.003 8 / 0.55);
+}
+
+/* Selected tab in inactive tabset */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected:not(.flexlayout__tab *) {
+  background: oklch(0.247 0.003 8);
+  color: oklch(0.85 0.01 305);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: 1px solid oklch(1 0 0 / 0.12);
+  border-left: 1px solid oklch(1 0 0 / 0.1);
+  border-right: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: none;
+}
+
+/* Selected tab in active tabset — full brightness */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected:not(.flexlayout__tab *) {
+  color: oklch(0.96 0.02 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected:not(.flexlayout__tab *) {
+  color: oklch(0.62 0 0);
+  background: oklch(0.247 0.003 8 / 0.4);
+}
+
+/* Tab button content */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button_content:not(.flexlayout__tab *) {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+/* Tab dividers - hidden */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tab_divider:not(.flexlayout__tab *) {
+  display: none;
+}
+
+/* Toolbar (add button area) */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_toolbar:not(.flexlayout__tab *) {
+  height: 20px;
+  align-items: center;
+  padding: 0;
+  margin-left: 4px;
+  gap: 1px;
+}
+
+/* Toolbar buttons - compact icon buttons */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_toolbar_button:not(.flexlayout__tab *) {
+  @apply text-shell-tab-text;
+  background: transparent;
+  height: 16px;
+  width: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-editor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_toolbar_button:not(.flexlayout__tab *):hover {
+  opacity: 1;
+  background-color: color-mix(
+    in srgb,
+    var(--color-shell-tab-text) 15%,
+    transparent
+  );
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_toolbar_button:not(.flexlayout__tab *):disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_toolbar_button:not(.flexlayout__tab *):disabled:hover {
+  background: transparent;
+}
+
+/* Tab content area - these don't need :not() since they define the boundary */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab {
+  @apply bg-background;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Add top padding to shell tab content in non-grid mode */
+.shell-flexlayout.shell-flexlayout--with-menu
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab {
+  padding-top: 4px;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_content:not(.flexlayout__tab *) {
+  @apply bg-background;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Splitters for grid layout */
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__splitter:not(.flexlayout__tab *) {
+  @apply bg-editor-border;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__splitter:not(.flexlayout__tab *):hover {
+  @apply bg-ui-outline-active;
+}
+
+.shell-flexlayout
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__splitter_drag:not(.flexlayout__tab *) {
+  @apply bg-resize-handle-active;
+}
+
+/* end of shell flexlayout styles */
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Debug page variant overrides for LayoutDebug (#/debug/ui/layout).
+ *
+ * IMPORTANT: These selectors intentionally omit :not(.flexlayout__tab *)
+ * because LayoutDebug renders inside the shell's tab content panel —
+ * that exclusion would prevent ALL variant CSS from matching.
+ * The [data-variant] + child combinator chain is sufficient scoping.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* Shared: hide the base FlexLayout ::after underline on all debug variants */
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button::after {
+  display: none;
+}
+
+/* Shared: base layout tuning for all debug variants */
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner {
+  height: 24px;
+  align-items: flex-end;
+}
+
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  padding: 0 3px;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container_top {
+  border-top: none;
+}
+
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button_content {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.shell-flexlayout[data-variant]
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tab_divider {
+  display: none;
+}
+
+/* ── A. Frosted Glass — translucent blur on inactive, opaque on active ── */
+
+.shell-flexlayout[data-variant='frosted-glass']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  color: oklch(0.62 0 0);
+  background: oklch(0.247 0.003 8 / 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  height: 22px;
+  padding: 0 0.5rem 1px;
+  border: 1px solid oklch(1 0 0 / 0.06);
+  border-top: 1px solid oklch(1 0 0 / 0.08);
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.shell-flexlayout[data-variant='frosted-glass']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  background: oklch(0.247 0.003 8 / 0.55);
+}
+
+.shell-flexlayout[data-variant='frosted-glass']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  color: oklch(0.62 0 0);
+  background: oklch(0.247 0.003 8 / 0.4);
+}
+
+.shell-flexlayout[data-variant='frosted-glass']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.247 0.003 8);
+  color: oklch(0.85 0.01 305);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: 1px solid oklch(1 0 0 / 0.12);
+  border-left: 1px solid oklch(1 0 0 / 0.1);
+  border-right: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='frosted-glass']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  color: oklch(0.96 0.02 305);
+  box-shadow: none;
+}
+
+/* ── B. Wire Outline — thin border outlines, transparent fill ── */
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  height: 22px;
+  padding: 0 0.5rem 1px;
+  border: 1px solid oklch(1 0 0 / 0.08);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: oklch(0.58 0 0);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  border-color: oklch(1 0 0 / 0.12);
+  color: oklch(0.65 0 0);
+}
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  background: transparent;
+  color: oklch(0.58 0 0);
+}
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.24 0.003 8 / 0.3);
+  border: 1px solid oklch(0.7717 0.1355 16.5 / 0.25);
+  border-bottom: none;
+  color: oklch(0.88 0.01 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  border-color: oklch(0.7717 0.1355 16.5 / 0.4);
+  color: oklch(0.96 0.02 305);
+  box-shadow: 0 0 6px oklch(0.7717 0.1355 16.5 / 0.08);
+}
+
+.shell-flexlayout[data-variant='wire-outline']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 3px;
+}
+
+/* ── C. Brand Strip — clean tabs with a brand-colored top accent stripe ── */
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  background: oklch(0.22 0.002 16.5);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  height: 22px;
+  padding: 0 0.5rem 1px;
+  border: none;
+  border-top: 2px solid transparent;
+  border-radius: 0;
+  color: oklch(0.58 0.005 16.5);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  background: oklch(0.25 0.003 16.5);
+  color: oklch(0.65 0.005 16.5);
+}
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  background: oklch(0.22 0.002 16.5);
+  color: oklch(0.58 0.005 16.5);
+}
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.26 0.004 16.5);
+  border-top: 2px solid oklch(0.7717 0.1355 16.5 / 0.5);
+  color: oklch(0.88 0.01 16.5);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  border-top-color: oklch(0.7717 0.1355 16.5);
+  color: oklch(0.96 0.015 16.5);
+  box-shadow: inset 0 2px 8px oklch(0.7717 0.1355 16.5 / 0.06);
+}
+
+.shell-flexlayout[data-variant='brand-strip']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 1px;
+}
+
+/* ── D. Soft Blend — no borders, subtle filled backgrounds, smooth transitions ── */
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  height: 22px;
+  padding: 0 0.625rem 1px;
+  border: none;
+  border-radius: 5px 5px 0 0;
+  color: oklch(0.58 0 0);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  background: oklch(1 0 0 / 0.04);
+  color: oklch(0.65 0 0);
+}
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  background: transparent;
+  color: oklch(0.58 0 0);
+}
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.27 0.005 8 / 0.7);
+  color: oklch(0.85 0.005 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  background: oklch(0.28 0.008 8 / 0.85);
+  color: oklch(0.96 0.015 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='soft-blend']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 2px;
+}
+
+/* ── E. Elevated Card — raised active tab with shadow, card-like depth ── */
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  background: oklch(0.22 0.003 8 / 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid oklch(1 0 0 / 0.05);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: oklch(0.58 0 0);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);
+  height: 22px;
+  padding: 0 0.5rem 1px;
+}
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  background: oklch(0.25 0.003 8 / 0.6);
+}
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  background: oklch(0.22 0.003 8 / 0.5);
+  color: oklch(0.58 0 0);
+}
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.26 0.005 8);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid oklch(1 0 0 / 0.1);
+  border-bottom: none;
+  color: oklch(0.85 0.01 305);
+  box-shadow:
+    0 -2px 8px oklch(0 0 0 / 0.3),
+    0 -1px 3px oklch(0 0 0 / 0.2);
+  margin-bottom: -1px;
+  padding-bottom: 1px;
+}
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  color: oklch(0.96 0.02 305);
+  box-shadow:
+    0 -2px 10px oklch(0 0 0 / 0.35),
+    0 -1px 4px oklch(0 0 0 / 0.25);
+}
+
+.shell-flexlayout[data-variant='elevated']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 3px;
+}
+
+/* ── F. Flat Segment — connected segments, no gaps, sharp edges ── */
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  background: oklch(0.22 0.003 8);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-right: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: 0;
+  color: oklch(0.58 0 0);
+  height: 22px;
+  padding: 0 0.5rem 1px;
+}
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button:hover {
+  background: oklch(0.26 0.003 8);
+}
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--unselected {
+  background: oklch(0.22 0.003 8);
+  color: oklch(0.58 0 0);
+}
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  background: oklch(0.247 0.003 8);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-right: 1px solid oklch(1 0 0 / 0.08);
+  color: oklch(0.85 0.01 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  background: oklch(0.247 0.003 8);
+  color: oklch(0.96 0.02 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant='flat-segment']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  align-items: stretch;
+  gap: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Modifier overrides — applied on top of any variant via data-* attrs.
+ * Used by the LayoutDebug sub-variant exploration sections.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Density ── */
+
+.shell-flexlayout[data-variant][data-density='compact']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  height: 18px;
+  padding: 0 0.375rem 0;
+}
+
+.shell-flexlayout[data-variant][data-density='compact']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button_content {
+  font-size: 0.6875rem;
+}
+
+.shell-flexlayout[data-variant][data-density='compact']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner {
+  height: 20px;
+}
+
+.shell-flexlayout[data-variant][data-density='spacious']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  height: 28px;
+  padding: 0 0.75rem 1px;
+}
+
+.shell-flexlayout[data-variant][data-density='spacious']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button_content {
+  font-size: 0.8125rem;
+}
+
+.shell-flexlayout[data-variant][data-density='spacious']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner {
+  height: 30px;
+}
+
+/* ── Tab Gaps ── */
+
+.shell-flexlayout[data-variant][data-gaps='flush']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 0;
+}
+
+.shell-flexlayout[data-variant][data-gaps='tight']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 1px;
+}
+
+.shell-flexlayout[data-variant][data-gaps='wide']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset_tabbar_inner_tab_container {
+  gap: 6px;
+}
+
+/* ── Border Radius ── */
+
+.shell-flexlayout[data-variant][data-radius='sharp']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  border-radius: 0;
+}
+
+.shell-flexlayout[data-variant][data-radius='soft']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  border-radius: 3px 3px 0 0;
+}
+
+.shell-flexlayout[data-variant][data-radius='round']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button {
+  border-radius: 8px 8px 0 0;
+}
+
+/* ── Active Emphasis ── */
+
+.shell-flexlayout[data-variant][data-emphasis='subtle']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  color: oklch(0.65 0 0);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant][data-emphasis='subtle']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  color: oklch(0.72 0.01 305);
+  box-shadow: none;
+}
+
+.shell-flexlayout[data-variant][data-emphasis='bold']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tab_button--selected {
+  color: oklch(0.95 0.03 305);
+  box-shadow:
+    0 -2px 12px oklch(0.7717 0.1355 16.5 / 0.15),
+    0 0 4px oklch(0.7717 0.1355 16.5 / 0.08);
+}
+
+.shell-flexlayout[data-variant][data-emphasis='bold']
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__tabset-selected
+  .flexlayout__tab_button--selected {
+  color: oklch(0.98 0.04 305);
+  box-shadow:
+    0 -3px 16px oklch(0.7717 0.1355 16.5 / 0.2),
+    0 0 6px oklch(0.7717 0.1355 16.5 / 0.12);
+}
+
+/* Collapsible section open/close animations. */
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.animate-collapsible-down {
+  animation: collapsible-down 150ms ease-out;
+}
+
+.animate-collapsible-up {
+  animation: collapsible-up 150ms ease-out;
+}
+
+/* Drag handles show grab cursor only inside canvas nodes. */
+[data-canvas-node] [data-drag-handle] {
+  cursor: grab;
+}

@@ -1,0 +1,25 @@
+syntax = "proto3";
+package s4wave.forge.job;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/forge/job;forge_job_ops";
+
+// ForgeJobCreateOp creates a Forge Job with tasks and assigns it to a Cluster.
+// Wraps CreateJobWithTasks + ClusterAssignJobOp in a single world op.
+message ForgeJobCreateOp {
+  // JobKey is the object key for the new Job.
+  string job_key = 1;
+  // ClusterKey is the object key of the Cluster to assign the Job to.
+  string cluster_key = 2;
+  // TaskDefs is the list of tasks to create under the Job.
+  repeated ForgeJobTaskDef task_defs = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}
+
+// ForgeJobTaskDef defines a task to create as part of a ForgeJobCreateOp.
+message ForgeJobTaskDef {
+  // Name is the task name (must be a valid DNS label).
+  string name = 1;
+}

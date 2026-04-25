@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
+import { existsSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
@@ -12,6 +13,15 @@ const bldrProjectRoot =
 const bldrSourceRoot = resolve(__dirname, '../../../')
 const bldrDistRoot =
   process.env['BLDR_DIST_ROOT'] || resolve(bldrSourceRoot, '.bldr/src')
+
+function resolveBldrDistPath(...segments: string[]) {
+  const monorepoRoot = resolve(bldrDistRoot, 'bldr')
+  if (existsSync(monorepoRoot)) {
+    const monorepoPath = resolve(monorepoRoot, ...segments)
+    return monorepoPath
+  }
+  return resolve(bldrDistRoot, ...segments)
+}
 
 // Use inline sourcemaps in development for faster builds.
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -38,11 +48,11 @@ export default defineConfig({
       ...buildGoAliases(bldrProjectRoot),
       {
         find: /^@aptre\/bldr$/,
-        replacement: resolve(bldrDistRoot, './web/bldr/index.js'),
+        replacement: resolveBldrDistPath('web/bldr/index.js'),
       },
       {
         find: /^@aptre\/bldr-react$/,
-        replacement: resolve(bldrDistRoot, './web/bldr-react/index.js'),
+        replacement: resolveBldrDistPath('web/bldr-react/index.js'),
       },
     ],
   },

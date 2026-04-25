@@ -34,7 +34,6 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "../../db/block/block.pb.h"
 #include "../../db/bucket/bucket.pb.h"
-#include "../../db/world/block/world.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.

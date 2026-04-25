@@ -3,9 +3,9 @@ package git_block
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/pkg/errors"
 )
 
 // NewPackfileBlock builds a new packfile block.

@@ -11,13 +11,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/format/objfile"
 	go_git_storer "github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
 const dotGitDefaultDescription = "Unnamed repository; edit this file 'description' to name the repository.\n"
@@ -884,7 +884,8 @@ func dotGitObjectsInfoPacksContent(storer any) ([]byte, error) {
 
 func dotGitHeadContent(storer interface {
 	Reference(plumbing.ReferenceName) (*plumbing.Reference, error)
-}) ([]byte, error) {
+},
+) ([]byte, error) {
 	if storer == nil {
 		return []byte("ref: refs/heads/master\n"), nil
 	}
@@ -901,7 +902,8 @@ func dotGitHeadContent(storer interface {
 
 func dotGitConfigContent(storer interface {
 	Config() (*config.Config, error)
-}) ([]byte, error) {
+},
+) ([]byte, error) {
 	cfg := config.NewConfig()
 	if storer != nil {
 		var err error
@@ -920,7 +922,8 @@ func dotGitReferenceFileContent(ref *plumbing.Reference) string {
 
 func dotGitPackedRefsContent(refStorer interface {
 	IterReferences() (go_git_storer.ReferenceIter, error)
-}) ([]byte, error) {
+},
+) ([]byte, error) {
 	if refStorer == nil {
 		return nil, nil
 	}
@@ -951,7 +954,8 @@ func dotGitPackedRefsContent(refStorer interface {
 
 func dotGitShallowContent(storer interface {
 	Shallow() ([]plumbing.Hash, error)
-}) ([]byte, error) {
+},
+) ([]byte, error) {
 	if storer == nil {
 		return nil, nil
 	}
@@ -984,7 +988,8 @@ func dotGitRefsPathKind(path []string) string {
 
 func dotGitCollectRefs(refStorer interface {
 	IterReferences() (go_git_storer.ReferenceIter, error)
-}, kind string, prefix []string) ([]*plumbing.Reference, error) {
+}, kind string, prefix []string,
+) ([]*plumbing.Reference, error) {
 	if refStorer == nil {
 		return nil, nil
 	}

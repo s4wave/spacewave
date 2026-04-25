@@ -1,0 +1,10 @@
+syntax = "proto3";
+package space.http.export;
+
+// Config configures the export controller.
+message Config {}
+
+// ExportBatchRequest lists descendant paths relative to one projected base path.
+message ExportBatchRequest {
+  repeated string paths = 1;
+}

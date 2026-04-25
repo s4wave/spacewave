@@ -1,0 +1,14 @@
+syntax = "proto3";
+package plugin.list;
+
+// ManifestInfo contains metadata about a plugin's manifest.
+message ManifestInfo {
+  // Name is the human-readable plugin name (manifest ID).
+  string name = 1;
+  // Description is the plugin description from manifest metadata.
+  string description = 2;
+  // Version is the plugin version string (manifest revision).
+  string version = 3;
+  // BuildTypes is the list of build type identifiers (e.g. "dev", "release").
+  repeated string build_types = 4;
+}

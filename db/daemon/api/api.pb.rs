@@ -47,7 +47,7 @@ pub struct ApplyBucketConfigResponse {
     #[prost(message, optional, tag="1")]
     pub apply_conf_result: ::core::option::Option<super::super::bucket::ApplyBucketConfigResult>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BucketOpRequest {
     /// Op is the operation to perform against the bucket.
     #[prost(enumeration="BucketOp", tag="1")]

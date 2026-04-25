@@ -212,7 +212,10 @@ describe('SqliteBridgeServer', () => {
 
     expect(internals.databasesByPath.size).toBe(1)
     const shared = internals.databasesByPath.get('/shared.db')
-    expect(shared).toBeTruthy()
+    expect(shared).toBeDefined()
+    if (!shared) {
+      throw new Error('expected shared database')
+    }
     expect(shared.refCount).toBe(2)
 
     await server.Exec({ dbId: dbId1, sql: 'CREATE TABLE t (v TEXT)' })

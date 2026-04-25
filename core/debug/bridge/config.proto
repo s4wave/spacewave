@@ -1,0 +1,9 @@
+syntax = "proto3";
+package debug.bridge;
+
+// Config configures the debug bridge controller.
+message Config {
+  // SocketPath overrides the unix socket path.
+  // Defaults to .bldr/alpha-debug.sock relative to the project root.
+  string socket_path = 1;
+}

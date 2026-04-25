@@ -472,7 +472,7 @@ export interface ProjectConfig {
   publish?: { [key: string]: PublishConfig }
   /**
    * Extends references other bldr projects to inherit configuration from.
-   * Each entry is a Go module path (e.g. "github.com/aperturerobotics/alpha").
+   * Each entry is a Go module path (e.g. "github.com/s4wave/spacewave").
    * The extended project's bldr.yaml is resolved via the vendor/ directory.
    * Extended configs are merged in order, then local config is merged on top.
    *

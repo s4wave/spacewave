@@ -99,9 +99,7 @@ export interface StateAtomResourceService {
 export const StateAtomResourceServiceServiceName =
   StateAtomResourceServiceDefinition.typeName
 
-export class StateAtomResourceServiceClient
-  implements StateAtomResourceService
-{
+export class StateAtomResourceServiceClient implements StateAtomResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

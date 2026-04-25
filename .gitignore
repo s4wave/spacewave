@@ -1,9 +1,15 @@
+/.trace
+/.env
 node_modules
+/plugin-release
 /coverage
 /build
-.log
-/.bldr
-.tmp
+/.log
+/.spacewave
+/.bldr*
+/bin
+/data
+/.aptre
 
 # misc
 .DS_Store
@@ -18,7 +24,9 @@ yarn-error.log*
 
 .#*
 /dist
+app/prerender/ssr-dist
 .*.swp
+*@*:*
 .vs/
 .vscode/
 !.vscode/launch.json
@@ -26,9 +34,27 @@ yarn-error.log*
 vendor/
 debug.test*
 __debug*
-.aider*
+__debug_bin*
+/.tools/
+/vite-check
 
-dist/
-.tools/
-.env
+hydra/
+*.test
+__screenshots__
+/.opencode/sess
+/.claude/cache
+*-eslint.json
+eslint-errors.json
+*-lint-*.json
+.tmp*
+/e2e-runtime*
+/test-results
+/alpha-deploy*
+/alpha-debug*
+/spacewave-cli
+/build-web-pkgs
+/playwright-report
+trace.out
+/e2e/wasm/testdata
+.aider*
 .opencode/tool-output

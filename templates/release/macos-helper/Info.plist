@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>us.aperture.spacewave.helper</string>
+    <key>CFBundleName</key>
+    <string>SpacewaveHelperPrivileged</string>
+    <key>CFBundleVersion</key>
+    <string>{{VERSION}}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>{{VERSION}}</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>SMAuthorizedClients</key>
+    <array>
+        <string>anchor apple generic and identifier "us.aperture.spacewave" and certificate leaf[subject.OU] = "{{TEAM_ID}}"</string>
+    </array>
+</dict>
+</plist>

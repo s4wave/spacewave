@@ -1,0 +1,21 @@
+syntax = "proto3";
+package provider.spacewave.cacheseed;
+
+service CacheSeedInspector {
+  rpc GetCacheSeedReasons(GetCacheSeedReasonsRequest) returns (stream CacheSeedEntry) {}
+}
+
+// GetCacheSeedReasonsRequest is the request for GetCacheSeedReasons.
+message GetCacheSeedReasonsRequest {}
+
+// CacheSeedEntry is a single recorded HTTP request tagged with a seed reason.
+message CacheSeedEntry {
+  // TimestampMs is the unix timestamp in milliseconds when the request was
+  // recorded (at dispatch time, not completion).
+  int64 timestamp_ms = 1;
+  // Reason is the X-Alpha-Seed-Reason header value. Empty when the request
+  // was not tagged.
+  string reason = 2;
+  // Path is the URL path of the request.
+  string path = 3;
+}

@@ -2,12 +2,10 @@ syntax = "proto3";
 package world.block;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
-import "github.com/s4wave/spacewave/db/block/bloom/bloom.proto";
 import "github.com/s4wave/spacewave/db/block/filters/filters.proto";
 import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
-import "google/protobuf/timestamp.proto";
 
 // World contains a key/value Object store, and a graph database with quads
 // <subject, predicate, object, value>. Optionally a 2D changelog is used for

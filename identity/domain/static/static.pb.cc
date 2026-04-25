@@ -91,19 +91,17 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fidentit
     protodesc_cold) = {
     "\n\?github.com/s4wave/spacewave/identity/d"
     "omain/static/static.proto\022\026identity.doma"
-    "in.static\0326github.com/aperturerobotics/u"
-    "til/backoff/backoff.proto\0323github.com/s4"
-    "wave/spacewave/identity/identity.proto\0328"
-    "github.com/s4wave/spacewave/identity/dom"
-    "ain/domain.proto\"\240\001\n\006Config\0220\n\013domain_in"
-    "fo\030\001 \001(\0132\033.identity.domain.DomainInfo\022\"\n"
-    "\010entities\030\002 \003(\0132\020.identity.Entity\022\030\n\020sil"
-    "ent_not_found\030\003 \001(\010\022&\n\036resolve_select_id"
-    "entity_domain\030\004 \001(\010b\006proto3"
+    "in.static\0323github.com/s4wave/spacewave/i"
+    "dentity/identity.proto\0328github.com/s4wav"
+    "e/spacewave/identity/domain/domain.proto"
+    "\"\240\001\n\006Config\0220\n\013domain_info\030\001 \001(\0132\033.ident"
+    "ity.domain.DomainInfo\022\"\n\010entities\030\002 \003(\0132"
+    "\020.identity.Entity\022\030\n\020silent_not_found\030\003 "
+    "\001(\010\022&\n\036resolve_select_identity_domain\030\004 "
+    "\001(\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto_deps[3] = {
-        &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2fbackoff_2fbackoff_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fdomain_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fidentity_2eproto,
 };
@@ -111,12 +109,12 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fid
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto = {
     false,
     false,
-    427,
+    371,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto,
     "github.com/s4wave/spacewave/identity/domain/static/static.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fidentity_2fdomain_2fstatic_2fstatic_2eproto_deps,
-    3,
+    2,
     1,
     schemas,
     file_default_instances,

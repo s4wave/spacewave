@@ -1,0 +1,59 @@
+syntax = "proto3";
+package s4wave.configtype.registry;
+
+service ConfigTypeRegistryResourceService {
+  rpc RegisterConfigType(RegisterConfigTypeRequest)
+    returns (RegisterConfigTypeResponse);
+  rpc WatchConfigTypes(WatchConfigTypesRequest)
+    returns (stream WatchConfigTypesResponse);
+}
+
+// ConfigTypeRegistration is a registered config type editor.
+// Dynamic registrations carry metadata only; the editor component loaded via
+// script_path handles its own proto serialization (receives raw bytes as
+// value). Static (compiled-in) registrations provide a MessageType for
+// automatic typed conversion on the TypeScript side.
+message ConfigTypeRegistration {
+  // ConfigId is the config type identifier (e.g. "forge/task", "git/repo").
+  string config_id = 1;
+  // RegistrationId is the server-assigned ID for this registration.
+  uint32 registration_id = 2;
+  // PluginId is the source plugin.
+  string plugin_id = 3;
+  // DisplayName is the human-readable name shown in the UI.
+  string display_name = 4;
+  // Category groups the config type in the UI (e.g. "Forge", "Code").
+  string category = 5;
+  // ScriptPath is the React module path for dynamic plugin editors.
+  // Used with React.lazy for dynamic loading. Empty for static editors.
+  string script_path = 6;
+}
+
+// RegisterConfigTypeRequest is the request for RegisterConfigType.
+message RegisterConfigTypeRequest {
+  // ConfigId is the config type identifier to register.
+  string config_id = 1;
+  // PluginId is the registering plugin's ID.
+  string plugin_id = 2;
+  // DisplayName is the human-readable name.
+  string display_name = 3;
+  // Category is the UI grouping category.
+  string category = 4;
+  // ScriptPath is the React module path for the editor component.
+  string script_path = 5;
+}
+
+// RegisterConfigTypeResponse is the response for RegisterConfigType.
+message RegisterConfigTypeResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the type.
+  uint32 resource_id = 1;
+}
+
+// WatchConfigTypesRequest is the request for WatchConfigTypes.
+message WatchConfigTypesRequest {}
+
+// WatchConfigTypesResponse is the response for WatchConfigTypes.
+message WatchConfigTypesResponse {
+  // Registrations is the current set of registered config types.
+  repeated ConfigTypeRegistration registrations = 1;
+}

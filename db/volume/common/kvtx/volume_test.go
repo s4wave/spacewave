@@ -53,9 +53,7 @@ func (s *countingBatchStore) GetBlockExistsBatch(_ context.Context, refs []*bloc
 	return make([]bool, len(refs)), nil
 }
 
-var (
-	_ block.StoreOps = ((*countingBatchStore)(nil))
-)
+var _ block.StoreOps = ((*countingBatchStore)(nil))
 
 func TestVolumeForwardsBatchPut(t *testing.T) {
 	ctx := context.Background()

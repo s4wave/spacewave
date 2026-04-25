@@ -1,0 +1,77 @@
+syntax = "proto3";
+package spacewave.chat.rpc;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/chat/rpc;spacewave_chat_rpc";
+
+service ChatResourceService {
+  rpc GetChannelInfo(GetChannelInfoRequest) returns (GetChannelInfoResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc WatchMessages(WatchMessagesRequest) returns (stream WatchMessagesResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+}
+
+// ChatMessageInfo contains flattened message info for the client.
+message ChatMessageInfo {
+  // ObjectKey is the message world object key.
+  string object_key = 1;
+  // SenderPeerId is the sender's peer ID.
+  string sender_peer_id = 2;
+  // Text is the message text content.
+  string text = 3;
+  // CreatedAt is the message creation timestamp.
+  .google.protobuf.Timestamp created_at = 4;
+  // ReplyToKey is the key of the message being replied to.
+  string reply_to_key = 5;
+}
+
+// GetChannelInfoRequest is a request for channel info.
+message GetChannelInfoRequest {}
+
+// GetChannelInfoResponse contains channel metadata.
+message GetChannelInfoResponse {
+  // Name is the channel name.
+  string name = 1;
+  // Topic is the channel topic.
+  string topic = 2;
+}
+
+// ListMessagesRequest is a request for paginated messages.
+message ListMessagesRequest {
+  // BeforeKey returns messages before this key (for pagination).
+  string before_key = 1;
+  // Limit is the maximum number of messages to return.
+  uint32 limit = 2;
+}
+
+// ListMessagesResponse contains a page of messages.
+message ListMessagesResponse {
+  // Messages is the list of messages.
+  repeated ChatMessageInfo messages = 1;
+  // HasMore indicates more messages exist before the earliest returned.
+  bool has_more = 2;
+}
+
+// WatchMessagesRequest is a request to stream messages.
+message WatchMessagesRequest {}
+
+// WatchMessagesResponse contains a batch of new messages.
+message WatchMessagesResponse {
+  // Messages is the list of new messages since last response.
+  repeated ChatMessageInfo messages = 1;
+}
+
+// SendMessageRequest is a request to send a message.
+message SendMessageRequest {
+  // Text is the message text.
+  string text = 1;
+  // ReplyToKey is the optional key of the message to reply to.
+  string reply_to_key = 2;
+}
+
+// SendMessageResponse is the response after sending a message.
+message SendMessageResponse {
+  // MessageKey is the object key of the created message.
+  string message_key = 1;
+}

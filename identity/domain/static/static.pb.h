@@ -31,7 +31,6 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/aperturerobotics/util/backoff/backoff.pb.h"
 #include "../../identity.pb.h"
 #include "../domain.pb.h"
 // @@protoc_insertion_point(includes)

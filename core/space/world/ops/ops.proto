@@ -1,0 +1,110 @@
+syntax = "proto3";
+package space.world.ops;
+
+import "github.com/s4wave/spacewave/core/space/world/world.proto";
+import "github.com/s4wave/spacewave/sdk/canvas/canvas.proto";
+import "google/protobuf/timestamp.proto";
+
+// Config configures the LookupWorldOp controller for common space world ops.
+message Config {
+  // EngineId restricts the LookupWorldOp resolver to a specific engine id.
+  // If unset, resolves the ops for all engines.
+  string engine_id = 1;
+}
+
+// SetSpaceSettingsOp is an operation to set the space settings.
+// Can be applied as either an object op or a world op.
+message SetSpaceSettingsOp {
+  // ObjectKey is the object key for the settings.
+  // If empty, defaults to "settings".
+  string object_key = 1;
+  // Settings contains the space settings to set.
+  .space.world.SpaceSettings settings = 2;
+  // Overwrite indicates to overwrite any existing object.
+  bool overwrite = 3;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 4;
+}
+
+// InitUnixFSOp is an operation to initialize a UnixFS filesystem with starter content.
+// This creates a filesystem with:
+//   - A file at /getting-started.md
+//   - Content written to /getting-started.md
+message InitUnixFSOp {
+  // ObjectKey is the object key for the UnixFS filesystem.
+  // Must be set.
+  string object_key = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
+// InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
+// This creates an ObjectLayout with a simple tabset containing one tab.
+// The object key must have the required "object-layout/" prefix.
+message InitObjectLayoutOp {
+  // ObjectKey is the object key for the ObjectLayout.
+  // Must have the "object-layout/" prefix.
+  string object_key = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
+// InitCanvasDemoOp is an operation to initialize a Canvas with demo content.
+// This creates a canvas object and populates it with a git repo node.
+message InitCanvasDemoOp {
+  // ObjectKey is the object key for the Canvas.
+  // Must be set.
+  string object_key = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
+// CanvasInitOp is an operation to initialize a blank canvas.
+// Creates an empty CanvasState and sets the object type to "canvas".
+message CanvasInitOp {
+  // ObjectKey is the object key for the Canvas.
+  string object_key = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
+// CanvasAddNodeOp is an operation to add a node to a canvas.
+message CanvasAddNodeOp {
+  // ObjectKey is the canvas object key.
+  string object_key = 1;
+  // Node is the full node to add.
+  .s4wave.canvas.CanvasNode node = 2;
+}
+
+// CanvasRemoveNodeOp is an operation to remove nodes from a canvas.
+message CanvasRemoveNodeOp {
+  // ObjectKey is the canvas object key.
+  string object_key = 1;
+  // NodeIds is the list of node IDs to remove.
+  repeated string node_ids = 2;
+}
+
+// CanvasSetNodeOp is an operation to replace a node in a canvas.
+// The full node is provided; it replaces the existing node with the same ID.
+message CanvasSetNodeOp {
+  // ObjectKey is the canvas object key.
+  string object_key = 1;
+  // Node is the full replacement node.
+  .s4wave.canvas.CanvasNode node = 2;
+}
+
+// CanvasAddEdgeOp is an operation to add an edge to a canvas.
+message CanvasAddEdgeOp {
+  // ObjectKey is the canvas object key.
+  string object_key = 1;
+  // Edge is the edge to add.
+  .s4wave.canvas.CanvasEdge edge = 2;
+}
+
+// CanvasRemoveEdgeOp is an operation to remove edges from a canvas.
+message CanvasRemoveEdgeOp {
+  // ObjectKey is the canvas object key.
+  string object_key = 1;
+  // EdgeIds is the list of edge IDs to remove.
+  repeated string edge_ids = 2;
+}

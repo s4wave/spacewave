@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
-	"github.com/pkg/errors"
 )
 
 // BlockStore implements the BlockStore RPC service.

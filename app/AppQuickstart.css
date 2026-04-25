@@ -1,0 +1,94 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(0.8);
+    opacity: 0.2;
+  }
+  25% {
+    transform: translateY(-8px) rotate(90deg) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-12px) rotate(180deg) scale(1.1);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-8px) rotate(270deg) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(0) rotate(360deg) scale(0.8);
+    opacity: 0.2;
+  }
+}
+
+@keyframes gentlePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out;
+}
+
+.animate-floatParticle {
+  animation: floatParticle 6s ease-in-out infinite;
+}
+
+.animate-gentlePulse {
+  animation: gentlePulse 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+.animation-delay-600 {
+  animation-delay: 600ms;
+}

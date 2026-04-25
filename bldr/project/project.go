@@ -235,7 +235,7 @@ func (c *PublishConfig) DedupePlatformIDs() []string {
 
 // LoadExtendedProjectConfig loads a project config from an extended module path.
 // sourcePath is the root directory of the current project (containing vendor/).
-// modulePath is the Go module path to resolve (e.g. "github.com/aperturerobotics/alpha").
+// modulePath is the Go module path to resolve (e.g. "github.com/s4wave/spacewave").
 // Returns the loaded config and a list of files that were loaded (for watch tracking).
 func LoadExtendedProjectConfig(sourcePath, modulePath string) (*ProjectConfig, []string, error) {
 	if modulePath == "" {

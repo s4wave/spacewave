@@ -1,0 +1,25 @@
+syntax = "proto3";
+package s4wave.trace;
+
+service TraceService {
+  rpc StartTrace(StartTraceRequest) returns (StartTraceResponse);
+  rpc StopTrace(StopTraceRequest) returns (stream StopTraceResponse);
+}
+
+// StartTraceRequest is the request for StartTrace.
+message StartTraceRequest {
+  // Label is an optional human-readable label for the capture.
+  string label = 1;
+}
+
+// StartTraceResponse is the response for StartTrace.
+message StartTraceResponse {}
+
+// StopTraceRequest is the request for StopTrace.
+message StopTraceRequest {}
+
+// StopTraceResponse is a streamed response chunk for StopTrace.
+message StopTraceResponse {
+  // Data is a chunk of the raw runtime trace bytes.
+  bytes data = 1;
+}

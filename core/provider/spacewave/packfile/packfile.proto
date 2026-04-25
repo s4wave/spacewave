@@ -1,0 +1,50 @@
+syntax = "proto3";
+package provider.spacewave.packfile;
+
+import "google/protobuf/timestamp.proto";
+
+// PackfileEntry describes a single packfile in the manifest.
+message PackfileEntry {
+  // Id is the packfile identifier (ULID).
+  string id = 1;
+  // BloomFilter is the serialized bloom filter for the packfile.
+  bytes bloom_filter = 2;
+  // BlockCount is the number of blocks in the packfile.
+  uint64 block_count = 3;
+  // SizeBytes is the size of the packfile in bytes.
+  uint64 size_bytes = 4;
+  // CreatedAt is the time the packfile was created.
+  .google.protobuf.Timestamp created_at = 5;
+  // BloomFormatVersion is the encoding version of the bloom_filter bytes.
+  // Version 1 means the current serialized Hydra BloomFilter bytes; future
+  // bloom layouts add new versions, not mutations of v1. Required on every
+  // entry; cloud rejects pushes whose advertised version is not in its
+  // accepted-versions allowlist.
+  uint32 bloom_format_version = 6;
+  // Sequence is the monotonic cursor anchor assigned by the cloud DO single
+  // writer at insert time. Pull cursors advance over sequence > since
+  // instead of pack ULID ordering. Local entries not yet pushed carry 0.
+  uint64 sequence = 7;
+  // SupersededBy is the replacement packfile ID; empty when the row is
+  // current.
+  string superseded_by = 8;
+  // SupersededAt is the time supersession was recorded; absent when the
+  // row is current.
+  .google.protobuf.Timestamp superseded_at = 9;
+}
+
+// PullResponse is the response to a pull request.
+message PullResponse {
+  // Entries is the list of packfile entries.
+  repeated PackfileEntry entries = 1;
+}
+
+// PushResponse is the response to a push request.
+message PushResponse {
+  // PackId is the packfile identifier.
+  string pack_id = 1;
+  // AlreadyExists indicates the packfile already existed.
+  bool already_exists = 2;
+  // SizeBytes is the size of the packfile in bytes.
+  uint64 size_bytes = 3;
+}

@@ -3,7 +3,7 @@
 /// Config is the kvfile read-only volume controller config.
 ///
 /// kvfile is used as a static read-only store with optimized reads.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Config {
     /// FilePath is the file path to open as a kvfile using os file.
     #[prost(string, tag="7")]

@@ -1,0 +1,31 @@
+syntax = "proto3";
+package notes;
+
+import "google/protobuf/timestamp.proto";
+
+// Notebook is a world object that curates markdown files from UnixFS
+// sources into a note-browsing experience.
+message Notebook {
+  // Name is the display name of the notebook.
+  string name = 1;
+  // Sources is the ordered list of content sources.
+  repeated NotebookSource sources = 2;
+}
+
+// NotebookSource is a reference to a UnixFS path.
+message NotebookSource {
+  // Name is the display name for this source in the sidebar.
+  string name = 1;
+  // Ref is a UnixFS path reference (object-uri format: key/-/path).
+  string ref = 2;
+}
+
+// InitNotebookOp creates a Notebook with a UnixFS source and starter notes.
+message InitNotebookOp {
+  // NotebookObjectKey is the world object key for the notebook.
+  string notebook_object_key = 1;
+  // UnixfsObjectKey is the world object key for the UnixFS storage.
+  string unixfs_object_key = 2;
+  // Timestamp is the creation timestamp.
+  google.protobuf.Timestamp timestamp = 3;
+}

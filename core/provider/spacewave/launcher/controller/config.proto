@@ -1,0 +1,41 @@
+syntax = "proto3";
+package spacewave.launcher.controller;
+
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures the launcher controller.
+message Config {
+  // ObjectStoreId is the object store to use for state.
+  // Defaults to "spacewave/launcher"
+  string object_store_id = 1;
+  // ObjectStoreKey is the object store key to store the dist conf.
+  // Defaults to "dist-conf"
+  string object_store_key = 2;
+  // VolumeId is the volume id to use for storage.
+  // Defaults to the plugin host volume.
+  string volume_id = 3;
+  // ProjectId is the project identifier that must match the dist config project id.
+  string project_id = 4;
+  // DistPeerIds are the peer IDs we accept for distribution signatures.
+  repeated string dist_peer_ids = 5;
+  // Endpoints is the list of HTTPs endpoints to check for updates.
+  repeated HttpEndpoint endpoints = 6;
+  // RefetchDur is the frequency to re-fetch the config after success.
+  // If empty or zero disables refetch.
+  // Staggers by +/- 10%
+  string refetch_dur = 7;
+  // EndpointsBackoff is the backoff config for calling the endpoints.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff endpoints_backoff = 8;
+  // InitDistConfig is the initial distribution configuration packedmsg.
+  // If unset, uses a blank config.
+  string init_dist_config = 9;
+}
+
+// HttpEndpoint is an http endpoint.
+message HttpEndpoint {
+  // Url is the url to the endpoint.
+  string url = 1;
+  // Headers are optional headers to add to the request.
+  map<string, string> headers = 2;
+}

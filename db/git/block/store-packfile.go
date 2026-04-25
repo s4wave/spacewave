@@ -8,14 +8,14 @@ import (
 	"slices"
 	"time"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/format/idxfile"
 	go_git_packfile "github.com/go-git/go-git/v6/plumbing/format/packfile"
 	"github.com/go-git/go-git/v6/plumbing/hash"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
 // PackfileWriter returns a writer for preserving an incoming Git packfile.

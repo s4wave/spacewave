@@ -1,0 +1,31 @@
+syntax = "proto3";
+package s4wave.provider;
+
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
+
+service ProviderResourceService {
+  rpc GetProviderInfo(GetProviderInfoRequest) returns (GetProviderInfoResponse);
+
+  rpc AccessProviderAccount(AccessProviderAccountRequest) returns (AccessProviderAccountResponse);
+}
+
+// GetProviderInfoRequest is the request type for GetProviderInfo.
+message GetProviderInfoRequest {}
+
+// GetProviderInfoResponse is the response type for GetProviderInfo.
+message GetProviderInfoResponse {
+  // ProviderInfo contains the provider information.
+  .provider.ProviderInfo provider_info = 1;
+}
+
+// AccessProviderAccountRequest is the request type for AccessProviderAccount.
+message AccessProviderAccountRequest {
+  // AccountId is the provider account ID to access.
+  string account_id = 1;
+}
+
+// AccessProviderAccountResponse is the response type for AccessProviderAccount.
+message AccessProviderAccountResponse {
+  // ResourceId is the ID of the mounted account resource.
+  uint32 resource_id = 1;
+}

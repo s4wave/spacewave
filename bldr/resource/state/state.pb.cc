@@ -242,14 +242,15 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     ".SetStateRequest\032 .resource.state.SetSta"
     "teResponse\022U\n\nWatchState\022!.resource.stat"
     "e.WatchStateRequest\032\".resource.state.Wat"
-    "chStateResponse0\001B1Z/github.com/s4wave/s"
-    "pacewave/bldr/resource/stateb\006proto3"
+    "chStateResponse0\001B@Z>github.com/s4wave/s"
+    "pacewave/bldr/resource/state;resource_st"
+    "ateb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fstate_2fstate_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fstate_2fstate_2eproto = {
     false,
     false,
-    636,
+    651,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fstate_2fstate_2eproto,
     "github.com/s4wave/spacewave/bldr/resource/state/state.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fstate_2fstate_2eproto_once,

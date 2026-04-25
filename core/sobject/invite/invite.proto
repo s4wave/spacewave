@@ -1,0 +1,29 @@
+syntax = "proto3";
+package sobject.invite;
+
+option go_package = "github.com/s4wave/spacewave/core/sobject/invite;sobject_invite";
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+service SOInviteService {
+  rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
+}
+
+// AcceptInviteRequest is sent by the invitee to the owner.
+message AcceptInviteRequest {
+  // JoinResponse is the signed join response from the invitee.
+  .sobject.SOJoinResponse join_response = 1;
+  // Token is the raw invite token.
+  // The owner BLAKE3 hashes it to verify against the on-chain token_hash.
+  // Only the owner sees the raw token on the authenticated stream.
+  // The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
+  bytes token = 2;
+}
+
+// AcceptInviteResponse is returned by the owner after enrollment.
+message AcceptInviteResponse {
+  // Grant is the encrypted SOGrant for the invitee.
+  .sobject.SOGrant grant = 1;
+  // SharedObjectId is the ID of the shared object the invitee was enrolled in.
+  string shared_object_id = 2;
+}

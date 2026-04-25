@@ -1,0 +1,17 @@
+syntax = "proto3";
+package s4wave.provider.local;
+
+import "github.com/s4wave/spacewave/core/session/session.proto";
+
+service LocalProviderResourceService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+}
+
+// CreateAccountRequest creates a new account on the local provider.
+message CreateAccountRequest {}
+
+// CreateAccountResponse returns the details of the created provider account.
+message CreateAccountResponse {
+  // SessionListEntry is the created session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}

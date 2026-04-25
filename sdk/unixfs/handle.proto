@@ -1,0 +1,342 @@
+syntax = "proto3";
+package s4wave.unixfs;
+
+option go_package = "github.com/s4wave/spacewave/sdk/unixfs;s4wave_unixfs";
+
+// DirEntry represents a directory entry.
+message DirEntry {
+  // Name is the entry name (base name only).
+  string name = 1;
+  // IsDir indicates if this is a directory.
+  bool is_dir = 2;
+  // IsSymlink indicates if this is a symbolic link.
+  bool is_symlink = 3;
+  // Size is the file size in bytes (0 for directories).
+  uint64 size = 4;
+  // ModTime is the modification time as Unix timestamp in seconds.
+  int64 mod_time = 5;
+  // Mode is the file mode/permissions.
+  uint32 mode = 6;
+}
+
+service FSHandleResourceService {
+  rpc Lookup(HandleLookupRequest) returns (HandleLookupResponse);
+
+  rpc LookupPath(HandleLookupPathRequest) returns (HandleLookupPathResponse);
+
+  rpc ReadAt(HandleReadAtRequest) returns (HandleReadAtResponse);
+
+  rpc WriteAt(HandleWriteAtRequest) returns (HandleWriteAtResponse);
+
+  rpc Truncate(HandleTruncateRequest) returns (HandleTruncateResponse);
+
+  rpc GetSize(HandleGetSizeRequest) returns (HandleGetSizeResponse);
+
+  rpc GetFileInfo(HandleGetFileInfoRequest) returns (HandleGetFileInfoResponse);
+
+  rpc GetNodeType(HandleGetNodeTypeRequest) returns (HandleGetNodeTypeResponse);
+
+  rpc Readdir(HandleReaddirRequest) returns (stream HandleReaddirResponse);
+
+  rpc Mknod(HandleMknodRequest) returns (HandleMknodResponse);
+
+  rpc Remove(HandleRemoveRequest) returns (HandleRemoveResponse);
+
+  rpc MkdirAll(HandleMkdirAllRequest) returns (HandleMkdirAllResponse);
+
+  rpc Rename(HandleRenameRequest) returns (HandleRenameResponse);
+
+  rpc Clone(HandleCloneRequest) returns (HandleCloneResponse);
+
+  rpc Readlink(HandleReadlinkRequest) returns (HandleReadlinkResponse);
+
+  rpc UploadFile(stream HandleUploadFileRequest) returns (HandleUploadFileResponse);
+
+  rpc UploadTree(stream HandleUploadTreeRequest) returns (HandleUploadTreeResponse);
+
+  rpc WatchReaddir(HandleWatchReaddirRequest) returns (stream HandleWatchReaddirResponse);
+}
+
+// FileInfo contains file metadata.
+message FileInfo {
+  // Name is the base name of the file.
+  string name = 1;
+  // Size is the file size in bytes.
+  int64 size = 2;
+  // Mode is the file mode/permissions.
+  uint32 mode = 3;
+  // ModTime is the modification time as Unix timestamp in seconds.
+  int64 mod_time = 4;
+  // IsDir indicates if this is a directory.
+  bool is_dir = 5;
+}
+
+// NodeType contains the type of filesystem node.
+message NodeType {
+  // IsFile indicates if this is a regular file.
+  bool is_file = 1;
+  // IsDir indicates if this is a directory.
+  bool is_dir = 2;
+  // IsSymlink indicates if this is a symbolic link.
+  bool is_symlink = 3;
+}
+
+// HandleLookupRequest is the request for Lookup.
+message HandleLookupRequest {
+  // Name is the child name to look up.
+  string name = 1;
+}
+
+// HandleLookupResponse is the response for Lookup.
+message HandleLookupResponse {
+  // ResourceId is the ID of the new FSHandle resource for the child.
+  uint32 resource_id = 1;
+  // Info is the file info for the child (optional, for convenience).
+  FileInfo info = 2;
+}
+
+// HandleLookupPathRequest is the request for LookupPath.
+message HandleLookupPathRequest {
+  // Path is the relative path to look up (can contain '/').
+  string path = 1;
+}
+
+// HandleLookupPathResponse is the response for LookupPath.
+message HandleLookupPathResponse {
+  // ResourceId is the ID of the new FSHandle resource.
+  uint32 resource_id = 1;
+  // TraversedPath is the path components that were successfully traversed.
+  repeated string traversed_path = 2;
+  // Info is the file info at the destination (optional).
+  FileInfo info = 3;
+}
+
+// HandleReadAtRequest is the request for ReadAt.
+message HandleReadAtRequest {
+  // Offset is the byte offset to start reading from.
+  int64 offset = 1;
+  // Length is the number of bytes to read.
+  int64 length = 2;
+}
+
+// HandleReadAtResponse is the response for ReadAt.
+message HandleReadAtResponse {
+  // Data is the bytes that were read.
+  bytes data = 1;
+  // BytesRead is the number of bytes actually read.
+  int64 bytes_read = 2;
+  // Eof indicates if end of file was reached.
+  bool eof = 3;
+}
+
+// HandleWriteAtRequest is the request for WriteAt.
+message HandleWriteAtRequest {
+  // Offset is the byte offset to start writing at.
+  int64 offset = 1;
+  // Data is the bytes to write.
+  bytes data = 2;
+}
+
+// HandleWriteAtResponse is the response for WriteAt.
+message HandleWriteAtResponse {
+  // BytesWritten is the number of bytes written (always len(data) on success).
+  int64 bytes_written = 1;
+}
+
+// HandleTruncateRequest is the request for Truncate.
+message HandleTruncateRequest {
+  // Size is the new size to truncate to.
+  uint64 size = 1;
+}
+
+// HandleTruncateResponse is the response for Truncate.
+message HandleTruncateResponse {}
+
+// HandleGetSizeRequest is the request for GetSize.
+message HandleGetSizeRequest {}
+
+// HandleGetSizeResponse is the response for GetSize.
+message HandleGetSizeResponse {
+  // Size is the current file size in bytes.
+  uint64 size = 1;
+}
+
+// HandleGetFileInfoRequest is the request for GetFileInfo.
+message HandleGetFileInfoRequest {}
+
+// HandleGetFileInfoResponse is the response for GetFileInfo.
+message HandleGetFileInfoResponse {
+  // Info is the file metadata.
+  FileInfo info = 1;
+}
+
+// HandleGetNodeTypeRequest is the request for GetNodeType.
+message HandleGetNodeTypeRequest {}
+
+// HandleGetNodeTypeResponse is the response for GetNodeType.
+message HandleGetNodeTypeResponse {
+  // NodeType contains the type information.
+  NodeType node_type = 1;
+}
+
+// HandleReaddirRequest is the request for Readdir.
+message HandleReaddirRequest {
+  // Skip is the number of entries to skip (for pagination).
+  uint64 skip = 1;
+}
+
+// HandleReaddirResponse is a streaming response for Readdir.
+message HandleReaddirResponse {
+  // Entry is a directory entry (nil when done).
+  DirEntry entry = 1;
+  // Done indicates this is the last message.
+  bool done = 2;
+}
+
+// MknodType specifies the type of node to create.
+enum MknodType {
+  // MKNOD_TYPE_UNSPECIFIED is the default value.
+  MKNOD_TYPE_UNSPECIFIED = 0;
+  // MKNOD_TYPE_FILE creates a regular file.
+  MKNOD_TYPE_FILE = 1;
+  // MKNOD_TYPE_DIR creates a directory.
+  MKNOD_TYPE_DIR = 2;
+}
+
+// HandleMknodRequest is the request for Mknod.
+message HandleMknodRequest {
+  // Names is the list of names to create (can create multiple at once).
+  repeated string names = 1;
+  // NodeType is the type of node to create.
+  MknodType node_type = 2;
+  // Mode is the file mode/permissions.
+  uint32 mode = 3;
+  // CheckExist if true, returns error if entry already exists.
+  bool check_exist = 4;
+}
+
+// HandleMknodResponse is the response for Mknod.
+message HandleMknodResponse {}
+
+// HandleRemoveRequest is the request for Remove.
+message HandleRemoveRequest {
+  // Names is the list of names to remove.
+  repeated string names = 1;
+}
+
+// HandleRemoveResponse is the response for Remove.
+message HandleRemoveResponse {}
+
+// HandleMkdirAllRequest is the request for MkdirAll.
+message HandleMkdirAllRequest {
+  // PathParts is the list of directory names to create.
+  repeated string path_parts = 1;
+  // Mode is the file mode/permissions for created directories.
+  uint32 mode = 2;
+}
+
+// HandleMkdirAllResponse is the response for MkdirAll.
+message HandleMkdirAllResponse {}
+
+// HandleRenameRequest is the request for Rename.
+message HandleRenameRequest {
+  // DestParentResourceId is the resource ID of the destination parent handle.
+  // If 0, the destination is in the same directory as the source.
+  uint32 dest_parent_resource_id = 1;
+  // DestName is the new name for the entry.
+  string dest_name = 2;
+  // SourceName is the name of the entry to rename within this directory.
+  // If set, this handle is treated as the parent directory containing the entry.
+  // If empty, renames this handle's entry (legacy behavior).
+  string source_name = 3;
+}
+
+// HandleRenameResponse is the response for Rename.
+message HandleRenameResponse {}
+
+// HandleCloneRequest is the request for Clone.
+message HandleCloneRequest {}
+
+// HandleCloneResponse is the response for Clone.
+message HandleCloneResponse {
+  // ResourceId is the ID of the cloned handle resource.
+  uint32 resource_id = 1;
+}
+
+// HandleReadlinkRequest is the request for Readlink.
+message HandleReadlinkRequest {}
+
+// HandleReadlinkResponse is the response for Readlink.
+message HandleReadlinkResponse {
+  // Target is the symlink target path.
+  string target = 1;
+}
+
+// HandleUploadFileRequest is the request for UploadFile.
+// First message must include name, total_size, and mode.
+// Every message includes chunk data.
+message HandleUploadFileRequest {
+  // Name is the filename to create (first message only).
+  string name = 1;
+  // TotalSize is the total file size in bytes (first message only).
+  int64 total_size = 2;
+  // Mode is the file permissions (first message only).
+  uint32 mode = 3;
+  // Data is the chunk data.
+  bytes data = 4;
+}
+
+// HandleUploadFileResponse is the response for UploadFile.
+message HandleUploadFileResponse {
+  // BytesWritten is the total bytes written.
+  int64 bytes_written = 1;
+}
+
+// HandleUploadTreeDirectory describes one directory entry in UploadTree.
+message HandleUploadTreeDirectory {
+  // Path is the slash-separated relative path from this handle.
+  string path = 1;
+  // Mode is the directory permissions.
+  uint32 mode = 2;
+}
+
+// HandleUploadTreeFileStart starts one file in UploadTree.
+message HandleUploadTreeFileStart {
+  // Path is the slash-separated relative path from this handle.
+  string path = 1;
+  // TotalSize is the total file size in bytes.
+  int64 total_size = 2;
+  // Mode is the file permissions.
+  uint32 mode = 3;
+}
+
+// HandleUploadTreeRequest is one UploadTree stream message.
+message HandleUploadTreeRequest {
+  oneof body {
+    // Directory creates an explicit directory entry.
+    HandleUploadTreeDirectory directory = 1;
+    // FileStart starts a new file payload.
+    HandleUploadTreeFileStart file_start = 2;
+    // Data is a chunk for the current file payload.
+    bytes data = 3;
+  }
+}
+
+// HandleUploadTreeResponse is the response for UploadTree.
+message HandleUploadTreeResponse {
+  // BytesWritten is the total file payload bytes written.
+  int64 bytes_written = 1;
+  // FilesWritten is the number of file entries applied.
+  int64 files_written = 2;
+  // DirectoriesWritten is the number of explicit directory entries applied.
+  int64 directories_written = 3;
+}
+
+// HandleWatchReaddirRequest is the request for WatchReaddir.
+message HandleWatchReaddirRequest {}
+
+// HandleWatchReaddirResponse is the response for WatchReaddir.
+message HandleWatchReaddirResponse {
+  // Entries is the full directory listing.
+  repeated DirEntry entries = 1;
+}

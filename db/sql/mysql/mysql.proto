@@ -2,7 +2,7 @@ syntax = "proto3";
 package mysql;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
-import "github.com/s4wave/spacewave/db/block/msgpack/msgpack.proto";
+import "github.com/s4wave/spacewave/db/block/blob/blob.proto";
 import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
 
 // Root is the root object of the mysql database.
@@ -72,9 +72,35 @@ message TableRow {
 
 // TableColumn is an entry in a table row.
 message TableColumn {
-  // MsgpackBlob contains the data encoded with msgpack.
-  // Data may be sharded into multiple blocks if necessary.
-  .msgpack.MsgpackBlob msgpack_blob = 1;
+  // Value contains the SQL value. If no field is set, the column is NULL.
+  oneof value {
+    // BoolValue is a boolean SQL value.
+    bool bool_value = 2;
+    // IntValue is a signed integer SQL value.
+    int64 int_value = 3;
+    // UintValue is an unsigned integer SQL value.
+    uint64 uint_value = 4;
+    // FloatValue is a floating-point SQL value.
+    double float_value = 5;
+    // StringBlob is a string SQL value encoded as UTF-8 bytes.
+    .blob.Blob string_blob = 6;
+    // BytesBlob is a binary SQL value.
+    .blob.Blob bytes_blob = 7;
+    // JsonBlob is a JSON SQL value encoded as UTF-8 text.
+    .blob.Blob json_blob = 8;
+    // TimestampValue is a timestamp, datetime, or date SQL value.
+    TableTimestamp timestamp_value = 9;
+    // TimespanMicros is a TIME SQL value in microseconds.
+    int64 timespan_micros = 10;
+  }
+}
+
+// TableTimestamp is a timestamp-like SQL value.
+message TableTimestamp {
+  // UnixSeconds is seconds since Unix epoch.
+  int64 unix_seconds = 1;
+  // Nanos is the nanosecond offset within UnixSeconds.
+  int32 nanos = 2;
 }
 
 // TableSchema is the schema for a table.

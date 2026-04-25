@@ -1,0 +1,38 @@
+syntax = "proto3";
+package space.world;
+
+// WorldContents contains a list of world objects and types.
+message WorldContents {
+  // Objects contains the list of world objects.
+  repeated WorldContentsObject objects = 1;
+  // ObjectTypes contains the list of world object types.
+  repeated WorldContentsObjectType object_types = 2;
+}
+
+// WorldContentsObject is an entry in the WorldContents.
+message WorldContentsObject {
+  // ObjectKey is the key of the object in the world.
+  string object_key = 1;
+  // ParentObjectKey is the key of the parent of the object.
+  // Can be empty.
+  string parent_object_key = 2;
+  // ObjectType is the type of the object.
+  string object_type = 3;
+}
+
+// WorldContentsObjectType is an entry in the WorldContents.
+message WorldContentsObjectType {
+  // ObjectType is the type id.
+  string object_type = 1;
+}
+
+// SpaceSettings is an object containing the settings for a Space.
+//
+// Note: the space name and other "public" details are in the SpaceSoMeta.
+message SpaceSettings {
+  // IndexPath is the default URL path to display at /.
+  string index_path = 1;
+  // PluginIds lists manifest IDs of plugins this Space uses.
+  // Shared with all Space participants.
+  repeated string plugin_ids = 2;
+}

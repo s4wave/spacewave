@@ -4013,7 +4013,7 @@ class Packfile final : public ::google::protobuf::Message
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2faperturerobotics_2fhydra_2fgit_2fblock_2fgit_2eproto;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fgit_2fblock_2fgit_2eproto;
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Packfile_class_data_;

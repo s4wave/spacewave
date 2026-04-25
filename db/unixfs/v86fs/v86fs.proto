@@ -1,9 +1,7 @@
 syntax = "proto3";
 package unixfs.v86fs;
 
-import "github.com/s4wave/spacewave/db/unixfs/block/fstree.proto";
-
-option go_package = "github.com/s4wave/spacewave/db/unixfs/v86fs";
+option go_package = "github.com/s4wave/spacewave/db/unixfs/v86fs;unixfs_v86fs";
 
 // V86fsMessage wraps all v86fs protocol messages in a single oneof.
 // Used for both client-to-server and server-to-client directions.

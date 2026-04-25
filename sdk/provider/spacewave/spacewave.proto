@@ -1,0 +1,1900 @@
+syntax = "proto3";
+package s4wave.provider.spacewave;
+
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+service SpacewaveProviderResourceService {
+  // GetCloudProviderConfig returns pre-auth cloud provider configuration.
+  rpc GetCloudProviderConfig(GetCloudProviderConfigRequest) returns (CloudProviderConfig);
+  // GetLinkedCloudSession returns the linked cloud session index when present.
+  rpc GetLinkedCloudSession(GetLinkedCloudSessionRequest) returns (GetLinkedCloudSessionResponse);
+
+  // GenerateAuthKeypairs creates provider-owned account and session identity key material.
+  rpc GenerateAuthKeypairs(GenerateAuthKeypairsRequest) returns (GenerateAuthKeypairsResponse);
+  // WrapPemWithPin wraps an entity PEM with provider-owned PIN encryption.
+  rpc WrapPemWithPin(WrapPemWithPinRequest) returns (WrapPemWithPinResponse);
+  // UnwrapPemWithPin unwraps an entity PEM with provider-owned PIN encryption.
+  rpc UnwrapPemWithPin(UnwrapPemWithPinRequest) returns (UnwrapPemWithPinResponse);
+  // GeneratePasskeyPrfSalt creates a provider-owned WebAuthn PRF salt.
+  rpc GeneratePasskeyPrfSalt(GeneratePasskeyPrfSaltRequest) returns (GeneratePasskeyPrfSaltResponse);
+  // WrapWithPasskeyPrf wraps an auth blob with provider-owned passkey PRF encryption.
+  rpc WrapWithPasskeyPrf(WrapWithPasskeyPrfRequest) returns (WrapWithPasskeyPrfResponse);
+  // UnwrapWithPasskeyPrf unwraps an auth blob with provider-owned passkey PRF encryption.
+  rpc UnwrapWithPasskeyPrf(UnwrapWithPasskeyPrfRequest) returns (UnwrapWithPasskeyPrfResponse);
+
+  // CreateAccount creates a Spacewave account with the supplied credential.
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  // LoginAccount logs in to an existing Spacewave account with the supplied credential.
+  rpc LoginAccount(LoginAccountRequest) returns (LoginAccountResponse);
+  // LoginOrCreateAccount logs in or creates an account with username and password.
+  rpc LoginOrCreateAccount(LoginOrCreateAccountRequest) returns (LoginOrCreateAccountResponse);
+  // LoginWithEntityKey logs in using a provider-owned entity private key PEM.
+  rpc LoginWithEntityKey(LoginWithEntityKeyRequest) returns (LoginWithEntityKeyResponse);
+  // ReauthenticateSession reauthenticates a mounted session with fresh auth material.
+  rpc ReauthenticateSession(ReauthenticateSessionRequest) returns (ReauthenticateSessionResponse);
+
+  // StartBrowserHandoff starts the external browser auth handoff flow.
+  rpc StartBrowserHandoff(StartBrowserHandoffRequest) returns (StartBrowserHandoffResponse);
+
+  // SSOCodeExchange exchanges an OAuth provider code for SSO account data.
+  rpc SSOCodeExchange(SSOCodeExchangeRequest) returns (SSOCodeExchangeResponse);
+  // SSONonceExchange exchanges an auth-session nonce for stored SSO account data.
+  rpc SSONonceExchange(SSONonceExchangeRequest) returns (SSOCodeExchangeResponse);
+  // StartDesktopSSO starts the native desktop SSO handoff flow.
+  rpc StartDesktopSSO(StartDesktopSSORequest) returns (StartDesktopSSOResponse);
+  // ConfirmDesktopSSO completes SSO account creation from provider-owned key material.
+  rpc ConfirmDesktopSSO(ConfirmDesktopSSORequest) returns (ConfirmDesktopSSOResponse);
+
+  // PasskeyCheckUsername acknowledges the username-first passkey step.
+  rpc PasskeyCheckUsername(PasskeyCheckUsernameRequest) returns (PasskeyCheckUsernameResponse);
+  // PasskeyRegisterChallenge fetches WebAuthn registration options for signup.
+  rpc PasskeyRegisterChallenge(PasskeyRegisterChallengeRequest) returns (PasskeyRegisterChallengeResponse);
+  // PasskeyConfirmSignup confirms browser-owned passkey signup.
+  rpc PasskeyConfirmSignup(PasskeyConfirmSignupRequest) returns (PasskeyConfirmSignupResponse);
+  // PasskeyAuthOptions fetches WebAuthn authentication options for login.
+  rpc PasskeyAuthOptions(PasskeyAuthOptionsRequest) returns (PasskeyAuthOptionsResponse);
+  // PasskeyAuthVerify verifies a WebAuthn authentication credential.
+  rpc PasskeyAuthVerify(PasskeyAuthVerifyRequest) returns (PasskeyAuthVerifyResponse);
+  // StartDesktopPasskey starts the native desktop passkey handoff flow.
+  rpc StartDesktopPasskey(StartDesktopPasskeyRequest) returns (StartDesktopPasskeyResponse);
+  // ConfirmDesktopPasskey completes native desktop passkey account creation.
+  rpc ConfirmDesktopPasskey(ConfirmDesktopPasskeyRequest) returns (ConfirmDesktopPasskeyResponse);
+  // RelayDesktopPasskey relays a browser passkey ceremony result to a native client.
+  rpc RelayDesktopPasskey(RelayDesktopPasskeyRequest) returns (RelayDesktopPasskeyResponse);
+
+  // RequestRecoveryEmail sends an account recovery email.
+  rpc RequestRecoveryEmail(RequestRecoveryEmailRequest) returns (RequestRecoveryEmailResponse);
+  // RecoverVerify verifies a recovery token from email.
+  rpc RecoverVerify(RecoverVerifyRequest) returns (RecoverVerifyResponse);
+  // RecoverExecute completes account recovery with replacement key material.
+  rpc RecoverExecute(RecoverExecuteRequest) returns (RecoverExecuteResponse);
+}
+
+// PasswordCredential derives an entity keypair from a password.
+message PasswordCredential {
+  // Password is the account password used for key derivation.
+  string password = 1;
+}
+
+// PemCredential provides an entity private key directly.
+message PemCredential {
+  // PemData is the entity private key in PEM format.
+  bytes pem_data = 1;
+}
+
+// PasskeyCredential provides a WebAuthn assertion.
+message PasskeyCredential {
+  // AttestationJson is the AuthenticationResponseJSON from @simplewebauthn/browser.
+  string attestation_json = 1;
+}
+
+// CreateAccountRequest creates an account on the spacewave provider.
+message CreateAccountRequest {
+  // EntityId is the account username (entity_id / DNS label).
+  string entity_id = 1;
+  // TurnstileToken is the Cloudflare Turnstile verification token.
+  string turnstile_token = 2;
+  // Credential is the authentication credential for key derivation.
+  oneof credential {
+    PasswordCredential password = 3;
+    PemCredential pem = 4;
+    PasskeyCredential passkey = 5;
+  }
+}
+
+// CreateAccountResponse returns the details of the created spacewave provider account.
+message CreateAccountResponse {
+  // SessionListEntry is the created session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}
+
+// LoginAccountRequest attempts to log in to an existing account without creating one.
+message LoginAccountRequest {
+  // EntityId is the account username (entity_id / DNS label).
+  string entity_id = 1;
+  // TurnstileToken is the Cloudflare Turnstile verification token.
+  string turnstile_token = 2;
+  // Credential is the authentication credential for key derivation.
+  oneof credential {
+    PasswordCredential password = 3;
+    PemCredential pem = 4;
+    PasskeyCredential passkey = 5;
+  }
+}
+
+// LoginAccountResponse is the response for LoginAccount.
+message LoginAccountResponse {
+  // Result is the login outcome.
+  oneof result {
+    // Session is the session entry on successful login.
+    .session.SessionListEntry session = 1;
+    // IsNewAccount is true if no account exists for this entity_id.
+    bool is_new_account = 2;
+    // ErrorCode is set when login failed with a known error.
+    // Values: "wrong_password", "key_not_recognized", "passkey_not_recognized".
+    string error_code = 3;
+  }
+}
+
+// LoginOrCreateAccountRequest logs in or creates an account on the spacewave provider.
+message LoginOrCreateAccountRequest {
+  // Username is the account username.
+  string username = 1;
+  // Password is the account password used for key derivation.
+  string password = 2;
+}
+
+// LoginOrCreateAccountResponse is the response for LoginOrCreateAccount.
+message LoginOrCreateAccountResponse {
+  // SessionListEntry is the created session entry.
+  .session.SessionListEntry session_list_entry = 1;
+  // IsNewAccount is true if a new account was created, false if logging into an existing account.
+  bool is_new_account = 2;
+}
+
+// LoginWithEntityKeyRequest creates a session using a pre-resolved entity private key.
+message LoginWithEntityKeyRequest {
+  // PemPrivateKey is the entity private key in PEM format.
+  bytes pem_private_key = 1;
+}
+
+// LoginWithEntityKeyResponse is the response for LoginWithEntityKey.
+message LoginWithEntityKeyResponse {
+  // SessionListEntry is the created session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}
+
+// GenerateAuthKeypairsRequest requests new auth key material.
+message GenerateAuthKeypairsRequest {}
+
+// GeneratedEntityKeypair is generated entity key material.
+message GeneratedEntityKeypair {
+  // PemPrivateKey is the entity private key in PEM format.
+  string pem_private_key = 1;
+  // PeerId is the bifrost peer ID for the entity keypair.
+  string peer_id = 2;
+  // CustodiedPemBase64 is the base64-encoded entity PEM for cloud custody.
+  string custodied_pem_base64 = 3;
+}
+
+// GeneratedSessionKeypair is generated session key material.
+message GeneratedSessionKeypair {
+  // PeerId is the bifrost peer ID for the session keypair.
+  string peer_id = 1;
+}
+
+// GenerateAuthKeypairsResponse returns generated auth key material.
+message GenerateAuthKeypairsResponse {
+  // Entity is the generated account entity keypair.
+  GeneratedEntityKeypair entity = 1;
+  // Session is the generated session keypair.
+  GeneratedSessionKeypair session = 2;
+}
+
+// WrapPemWithPinRequest requests Layer 1 PIN wrapping for an entity PEM.
+message WrapPemWithPinRequest {
+  // PemPrivateKey is the entity private key in PEM format.
+  string pem_private_key = 1;
+  // Pin is the user PIN used for age scrypt wrapping.
+  string pin = 2;
+}
+
+// WrapPemWithPinResponse returns a PIN-wrapped PEM blob.
+message WrapPemWithPinResponse {
+  // WrappedPemBase64 is the base64-encoded age-encrypted PEM.
+  string wrapped_pem_base64 = 1;
+}
+
+// UnwrapPemWithPinRequest requests Layer 1 PIN unwrapping for an entity PEM.
+message UnwrapPemWithPinRequest {
+  // WrappedPemBase64 is the base64-encoded age-encrypted PEM.
+  string wrapped_pem_base64 = 1;
+  // Pin is the user PIN used for age scrypt unwrapping.
+  string pin = 2;
+}
+
+// UnwrapPemWithPinResponse returns a decrypted PEM.
+message UnwrapPemWithPinResponse {
+  // PemPrivateKey is the entity private key in PEM format.
+  bytes pem_private_key = 1;
+}
+
+// GeneratePasskeyPrfSaltRequest requests a passkey PRF salt.
+message GeneratePasskeyPrfSaltRequest {}
+
+// GeneratePasskeyPrfSaltResponse returns a passkey PRF salt.
+message GeneratePasskeyPrfSaltResponse {
+  // PrfSalt is the base64url-encoded 32-byte PRF salt.
+  string prf_salt = 1;
+}
+
+// WrapWithPasskeyPrfRequest requests passkey PRF wrapping for an auth blob.
+message WrapWithPasskeyPrfRequest {
+  // Plaintext is the PEM or PIN-wrapped PEM bytes to wrap.
+  bytes plaintext = 1;
+  // PrfOutput is the 32-byte WebAuthn PRF output.
+  bytes prf_output = 2;
+  // PinWrapped indicates whether Plaintext is still PIN wrapped.
+  bool pin_wrapped = 3;
+}
+
+// WrapWithPasskeyPrfResponse returns a PRF-wrapped auth blob.
+message WrapWithPasskeyPrfResponse {
+  // EncryptedBlobBase64 is the base64-encoded AES-GCM ciphertext.
+  string encrypted_blob_base64 = 1;
+  // AuthParamsBase64 is the base64-encoded PasskeyPrfAuthParams proto bytes.
+  string auth_params_base64 = 2;
+}
+
+// UnwrapWithPasskeyPrfRequest requests passkey PRF unwrapping for an auth blob.
+message UnwrapWithPasskeyPrfRequest {
+  // EncryptedBlobBase64 is the base64-encoded AES-GCM ciphertext.
+  string encrypted_blob_base64 = 1;
+  // AuthParamsBase64 is the base64-encoded PasskeyPrfAuthParams proto bytes.
+  string auth_params_base64 = 2;
+  // PrfOutput is the 32-byte WebAuthn PRF output.
+  bytes prf_output = 3;
+}
+
+// UnwrapWithPasskeyPrfResponse returns a PRF-unwrapped auth blob.
+message UnwrapWithPasskeyPrfResponse {
+  // Plaintext is the PEM or PIN-wrapped PEM bytes.
+  bytes plaintext = 1;
+  // PinWrapped indicates whether Plaintext is still PIN wrapped.
+  bool pin_wrapped = 2;
+}
+
+// PasskeyAuthOptionsRequest fetches WebAuthn authentication options.
+message PasskeyAuthOptionsRequest {
+  // Username optionally scopes auth options to one account's passkeys.
+  string username = 1;
+}
+
+// PasskeyAuthOptionsResponse contains the WebAuthn options JSON.
+message PasskeyAuthOptionsResponse {
+  // OptionsJson is the PublicKeyCredentialRequestOptions as a JSON string.
+  string options_json = 1;
+}
+
+// PasskeyAuthVerifyRequest verifies a WebAuthn authentication credential.
+message PasskeyAuthVerifyRequest {
+  // CredentialJson is the AuthenticationResponseJSON from @simplewebauthn/browser.
+  string credential_json = 1;
+}
+
+// PasskeyAuthVerifyResponse contains the verified credential details.
+message PasskeyAuthVerifyResponse {
+  // AccountId is the account identifier.
+  string account_id = 1;
+  // EntityId is the entity identifier (username).
+  string entity_id = 2;
+  // EncryptedBlob is the base64-encoded encrypted entity key blob.
+  string encrypted_blob = 3;
+  // PrfCapable indicates whether this credential supports PRF.
+  bool prf_capable = 4;
+  // PrfSalt is the base64-encoded 32-byte salt for PRF evaluation.
+  string prf_salt = 5;
+  // AuthParams is the base64-encoded serialized CustodiedKeyParams.
+  string auth_params = 6;
+  // PinWrapped indicates if the blob still has Layer 1 PIN wrapping.
+  bool pin_wrapped = 7;
+}
+
+// PasskeyPrfWrapAlgorithm identifies the passkey PRF wrapping algorithm.
+enum PasskeyPrfWrapAlgorithm {
+  // PASSKEY_PRF_WRAP_ALGORITHM_UNSPECIFIED is invalid.
+  PASSKEY_PRF_WRAP_ALGORITHM_UNSPECIFIED = 0;
+  // PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1 uses the WebAuthn PRF output as
+  // an AES-256-GCM key with a 96-bit nonce.
+  PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1 = 1;
+}
+
+// PasskeyPrfAuthParams is the canonical generated auth-params blob for a
+// passkey PRF wrapped PEM.
+message PasskeyPrfAuthParams {
+  // Algorithm identifies the PRF wrapping algorithm.
+  PasskeyPrfWrapAlgorithm algorithm = 1;
+  // Nonce is the AES-GCM nonce.
+  bytes nonce = 2;
+  // PinWrapped indicates whether the PRF plaintext is still PIN wrapped.
+  bool pin_wrapped = 3;
+}
+
+// PasskeyCheckUsernameRequest acknowledges the username-first passkey step.
+message PasskeyCheckUsernameRequest {
+  // Username is the Spacewave username for the next passkey step.
+  string username = 1;
+}
+
+// PasskeyCheckUsernameResponse acknowledges the opaque first passkey step.
+message PasskeyCheckUsernameResponse {
+  // Ok reports that the opaque first passkey step was accepted.
+  bool ok = 1;
+}
+
+// PasskeyRegisterChallengeRequest fetches unauthenticated WebAuthn registration options.
+message PasskeyRegisterChallengeRequest {
+  // Username is the pending Spacewave username for display in the browser ceremony.
+  string username = 1;
+}
+
+// PasskeyRegisterChallengeResponse contains registration options JSON.
+message PasskeyRegisterChallengeResponse {
+  // OptionsJson is the PublicKeyCredentialCreationOptions JSON string.
+  string options_json = 1;
+}
+
+// StartDesktopPasskeyRequest starts the native desktop passkey flow.
+message StartDesktopPasskeyRequest {}
+
+// DesktopPasskeyLinkedResult is returned when desktop passkey finds an existing account.
+message DesktopPasskeyLinkedResult {
+  // Nonce is the auth-session nonce associated with this desktop passkey flow.
+  string nonce = 1;
+  // EncryptedBlob is the base64-encoded entity key blob for local completion.
+  string encrypted_blob = 2;
+  // PrfCapable indicates whether the passkey requires PRF-based unwrap.
+  bool prf_capable = 3;
+  // PrfSalt is the base64-encoded PRF salt from the linked credential.
+  string prf_salt = 4;
+  // AuthParams is the base64-encoded passkey auth-params blob.
+  string auth_params = 5;
+  // PinWrapped indicates whether the resulting blob still needs PIN unwrap.
+  bool pin_wrapped = 6;
+  // PrfOutput is the base64-encoded PRF output captured in the browser.
+  string prf_output = 7;
+}
+
+// DesktopPasskeyNewAccountResult is returned when desktop passkey needs native signup.
+message DesktopPasskeyNewAccountResult {
+  // Nonce is the auth-session nonce associated with this desktop passkey flow.
+  string nonce = 1;
+  // Username is the browser-collected username for the pending account.
+  string username = 2;
+  // CredentialJson is the browser registration credential JSON.
+  string credential_json = 3;
+  // PrfCapable indicates whether the passkey supports PRF-based wrapping.
+  bool prf_capable = 4;
+  // PrfSalt is the base64url PRF salt chosen during registration.
+  string prf_salt = 5;
+  // PrfOutput is the base64-encoded PRF output captured in the browser.
+  string prf_output = 6;
+}
+
+// StartDesktopPasskeyResponse is the desktop passkey result routed back to native alpha.
+message StartDesktopPasskeyResponse {
+  // Result is the desktop passkey outcome.
+  oneof result {
+    // Linked is set when desktop passkey authenticated an existing account.
+    DesktopPasskeyLinkedResult linked = 1;
+    // NewAccount is set when desktop passkey completed registration artifacts.
+    DesktopPasskeyNewAccountResult new_account = 2;
+  }
+}
+
+// ConfirmDesktopPasskeyRequest completes native desktop passkey account creation.
+message ConfirmDesktopPasskeyRequest {
+  // Nonce is the desktop auth-session nonce to confirm.
+  string nonce = 1;
+  // Username is the Spacewave username to create.
+  string username = 2;
+  // CredentialJson is the browser registration credential JSON.
+  string credential_json = 3;
+  // WrappedEntityKey is the base64-encoded wrapped entity key blob.
+  string wrapped_entity_key = 4;
+  // EntityPeerId is the entity peer ID derived from the keypair.
+  string entity_peer_id = 5;
+  // SessionPeerId is the session peer ID derived from the keypair.
+  string session_peer_id = 6;
+  // PinWrapped reports whether the client applied PIN wrapping.
+  bool pin_wrapped = 7;
+  // PrfCapable reports whether the client applied PRF wrapping.
+  bool prf_capable = 8;
+  // PrfSalt is the base64url PRF salt chosen during registration.
+  string prf_salt = 9;
+  // AuthParams is the base64-encoded passkey auth-params blob for PRF wrapping.
+  string auth_params = 10;
+}
+
+// ConfirmDesktopPasskeyResponse reports the confirmed desktop passkey account.
+message ConfirmDesktopPasskeyResponse {
+  // AccountId is the created account identifier.
+  string account_id = 1;
+  // SessionPeerId is the registered session peer ID.
+  string session_peer_id = 2;
+}
+
+// PasskeyConfirmSignupRequest confirms browser-owned passkey signup for the web flow.
+message PasskeyConfirmSignupRequest {
+  // CredentialJson is the RegistrationResponseJSON from @simplewebauthn/browser.
+  string credential_json = 1;
+  // Username is the Spacewave username to create.
+  string username = 2;
+  // WrappedEntityKey is the base64-encoded wrapped entity key blob.
+  string wrapped_entity_key = 3;
+  // EntityPeerId is the entity peer ID derived from the keypair.
+  string entity_peer_id = 4;
+  // SessionPeerId is the session peer ID derived from the keypair.
+  string session_peer_id = 5;
+  // PinWrapped reports whether the client applied PIN wrapping.
+  bool pin_wrapped = 6;
+  // PrfCapable reports whether the client applied PRF wrapping.
+  bool prf_capable = 7;
+  // PrfSalt is the base64url PRF salt chosen during registration.
+  string prf_salt = 8;
+  // AuthParams is the base64-encoded passkey auth-params blob for PRF wrapping.
+  string auth_params = 9;
+}
+
+// PasskeyConfirmSignupResponse reports the created web passkey account.
+message PasskeyConfirmSignupResponse {
+  // AccountId is the created account identifier.
+  string account_id = 1;
+  // SessionPeerId is the registered session peer ID.
+  string session_peer_id = 2;
+}
+
+// RelayDesktopPasskeyRequest relays a browser ceremony result back to native alpha.
+message RelayDesktopPasskeyRequest {
+  // Nonce is the auth-session nonce associated with this desktop passkey flow.
+  string nonce = 1;
+  // Result is the linked-login or new-account browser result.
+  oneof result {
+    // Linked is set when the browser authenticated an existing account.
+    DesktopPasskeyLinkedResult linked = 2;
+    // NewAccount is set when the browser collected registration artifacts for native completion.
+    DesktopPasskeyNewAccountResult new_account = 3;
+  }
+}
+
+// RelayDesktopPasskeyResponse reports relay success.
+message RelayDesktopPasskeyResponse {}
+
+// SSOCodeExchangeRequest exchanges an OAuth authorization code for account
+// info.
+message SSOCodeExchangeRequest {
+  // Provider is the SSO provider name ("google" or "github").
+  string provider = 1;
+  // Code is the OAuth authorization code from the popup callback.
+  string code = 2;
+  // RedirectUri is the OAuth redirect URI used by the client.
+  string redirect_uri = 3;
+}
+
+// SSONonceExchangeRequest exchanges an auth-session nonce for the stored SSO
+// result.
+message SSONonceExchangeRequest {
+  // Nonce is the auth-session nonce to exchange.
+  string nonce = 1;
+}
+
+// SSOCodeExchangeResponse is the response after exchanging an OAuth code.
+message SSOCodeExchangeResponse {
+  // Linked indicates whether an existing account was found for this OAuth identity.
+  bool linked = 1;
+  // AccountId is set when linked=true.
+  string account_id = 2;
+  // EntityId is set when linked=true.
+  string entity_id = 3;
+  // EncryptedBlob is the base64-encoded unwrapped key blob (linked=true).
+  string encrypted_blob = 4;
+  // PinWrapped indicates if the blob still has Layer 1 PIN wrapping.
+  bool pin_wrapped = 5;
+  // AuthParams is base64-encoded CustodiedKeyParams (linked=true).
+  string auth_params = 6;
+  // SsoProvider is set when linked=false.
+  string sso_provider = 7;
+  // Email is the OAuth provider email. Always set when known.
+  string email = 8;
+  // Username is the Spacewave account username. Set when linked=true.
+  string username = 9;
+}
+
+// GetCloudProviderConfigRequest fetches pre-auth provider config.
+message GetCloudProviderConfigRequest {}
+
+// StartBrowserHandoffRequest opens the external browser auth handoff flow.
+message StartBrowserHandoffRequest {
+  // ClientType is the requesting native client type.
+  string client_type = 1;
+  // Username pre-fills the browser auth flow when set.
+  string username = 2;
+  // AuthIntent hints whether the browser should emphasize login or signup.
+  // Known values are "login" and "signup".
+  string auth_intent = 3;
+}
+
+// StartBrowserHandoffResponse returns the mounted session from browser auth.
+message StartBrowserHandoffResponse {
+  // SessionListEntry is the mounted session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}
+
+// StartDesktopSSORequest starts the native desktop SSO flow.
+message StartDesktopSSORequest {
+  // SsoProvider is the requested SSO provider ("google" or "github").
+  string sso_provider = 1;
+}
+
+// DesktopSSOLinkedResult is returned when desktop SSO finds an existing account.
+message DesktopSSOLinkedResult {
+  // Nonce is the auth-session nonce associated with this desktop SSO flow.
+  string nonce = 1;
+  // AccountId is the linked account identifier.
+  string account_id = 2;
+  // EntityId is the linked entity identifier.
+  string entity_id = 3;
+  // PemPrivateKey is the linked entity private key in PEM format.
+  bytes pem_private_key = 4;
+  // PinWrapped reports whether pem_private_key contains a PIN-wrapped key blob.
+  bool pin_wrapped = 5;
+  // Username is the Spacewave account username for the linked account.
+  string username = 6;
+}
+
+// DesktopSSONewAccountResult is returned when desktop SSO needs native signup.
+message DesktopSSONewAccountResult {
+  // Nonce is the auth-session nonce associated with this desktop SSO flow.
+  string nonce = 1;
+  // SsoProvider is the requested SSO provider ("google" or "github").
+  string sso_provider = 2;
+  // Email is the email returned by the OAuth provider.
+  string email = 3;
+}
+
+// StartDesktopSSOResponse is the desktop SSO result routed back to native alpha.
+message StartDesktopSSOResponse {
+  // Result is the desktop SSO outcome.
+  oneof result {
+    // Linked is set when desktop SSO found an existing account.
+    DesktopSSOLinkedResult linked = 1;
+    // NewAccount is set when desktop SSO needs native account creation.
+    DesktopSSONewAccountResult new_account = 2;
+  }
+}
+
+// StartDesktopSSOLinkRequest starts the native desktop SessionDetails
+// SSO-link flow for the currently authenticated account.
+message StartDesktopSSOLinkRequest {
+  // SsoProvider is the requested SSO provider ("google" or "github").
+  string sso_provider = 1;
+}
+
+// StartDesktopSSOLinkResponse returns the OAuth result for account linking.
+// Native alpha opens the system browser, waits on the cloud relay, and
+// returns { provider, code } so the caller can hand off to the existing
+// Account.LinkSSO mutation path.
+message StartDesktopSSOLinkResponse {
+  // SsoProvider is the SSO provider the user authorized with.
+  string sso_provider = 1;
+  // Code is the OAuth authorization code returned by the provider.
+  string code = 2;
+}
+
+// StartDesktopPasskeyReauthRequest starts the native desktop passkey reauth
+// flow for unlocking one specific entity keypair.
+message StartDesktopPasskeyReauthRequest {
+  // PeerId is the entity peer ID the browser ceremony must authenticate.
+  string peer_id = 1;
+}
+
+// StartDesktopPasskeyReauthResponse returns the browser-authenticated passkey
+// artifacts for the requested entity keypair.
+message StartDesktopPasskeyReauthResponse {
+  // EncryptedBlob is the base64-encoded entity key blob for unlock.
+  string encrypted_blob = 1;
+  // PrfCapable indicates whether the credential supports PRF-based unwrap.
+  bool prf_capable = 2;
+  // PrfSalt is the base64-encoded PRF salt used by the linked credential.
+  string prf_salt = 3;
+  // AuthParams is the base64-encoded authentication parameters for unwrap.
+  string auth_params = 4;
+  // PinWrapped indicates whether the entity key still has PIN wrapping.
+  bool pin_wrapped = 5;
+  // PrfOutput is the base64-encoded PRF output captured in the browser.
+  string prf_output = 6;
+}
+
+// ConfirmDesktopSSORequest completes native desktop SSO account creation.
+message ConfirmDesktopSSORequest {
+  // Nonce is the desktop auth-session nonce to confirm.
+  string nonce = 1;
+  // Username is the Spacewave username to create.
+  string username = 2;
+  // WrappedEntityKey is the base64-encoded wrapped entity PEM.
+  string wrapped_entity_key = 3;
+  // EntityPeerId is the entity peer ID derived from the keypair.
+  string entity_peer_id = 4;
+  // SessionPeerId is the session peer ID derived from the keypair.
+  string session_peer_id = 5;
+  // PinWrapped reports whether the client applied PIN wrapping.
+  bool pin_wrapped = 6;
+}
+
+// ConfirmDesktopSSOResponse reports the confirmed desktop SSO account.
+message ConfirmDesktopSSOResponse {
+  // AccountId is the created account identifier.
+  string account_id = 1;
+  // SessionPeerId is the registered session peer ID.
+  string session_peer_id = 2;
+}
+
+// CloudProviderConfig returns pre-auth provider config for the client.
+message CloudProviderConfig {
+  // SsoBaseUrl is the base URL for SSO entry redirects.
+  // Client redirects to {sso_base_url}/{provider}?origin={origin}.
+  string sso_base_url = 1;
+  // ExchangeUrl is the URL for exchanging SSO nonces.
+  // Client POSTs {nonce} to this URL to get the OAuth result.
+  string exchange_url = 2;
+  // ConfirmUrl is the URL for confirming SSO account creation.
+  // Client POSTs account creation data to this URL.
+  string confirm_url = 3;
+  // TurnstileSiteKey is the Cloudflare Turnstile site key to render.
+  string turnstile_site_key = 4;
+  // AccountBaseUrl is the browser-facing account site base URL.
+  string account_base_url = 5;
+  // PublicBaseUrl is the browser-facing Spacewave app base URL.
+  string public_base_url = 6;
+  // GoogleSsoEnabled reports whether Google SSO is configured server-side.
+  bool google_sso_enabled = 7;
+  // GithubSsoEnabled reports whether GitHub SSO is configured server-side.
+  bool github_sso_enabled = 8;
+}
+
+// RequestRecoveryEmailRequest requests a recovery email for an account.
+message RequestRecoveryEmailRequest {
+  // Email is the verified account email address.
+  string email = 1;
+  // TurnstileToken is the Cloudflare Turnstile verification token.
+  string turnstile_token = 2;
+}
+
+// RequestRecoveryEmailResponse reports whether a recovery email was queued.
+message RequestRecoveryEmailResponse {
+  // Sent indicates the recovery request was accepted.
+  bool sent = 1;
+}
+
+// RecoverVerifyRequest verifies a recovery token from an email link.
+message RecoverVerifyRequest {
+  // Token is the recovery token from the email link.
+  string token = 1;
+}
+
+// RecoverVerifyResponse contains the account info for a valid recovery token.
+message RecoverVerifyResponse {
+  // AccountId is the account identifier.
+  string account_id = 1;
+  // EntityId is the entity identifier (username).
+  string entity_id = 2;
+}
+
+// RecoverExecuteRequest completes account recovery.
+message RecoverExecuteRequest {
+  // Token is the recovery token.
+  string token = 1;
+  // Username is the account username for KDF.
+  string username = 2;
+  // NewPassword is the new password for key derivation.
+  string new_password = 3;
+  // RemovePeerId is the base58 peer ID of the old keypair to remove.
+  // If empty, only adds the new keypair without removing any.
+  string remove_peer_id = 4;
+  // AccountId is the account ID from the verify step, included in
+  // the recovery signing payload to prevent cross-account replay.
+  string account_id = 5;
+}
+
+// RecoverExecuteResponse is the response for RecoverExecute.
+message RecoverExecuteResponse {
+  // PeerId is the base58 peer ID of the new keypair.
+  string peer_id = 1;
+}
+
+// ReauthenticateSessionRequest re-authenticates a session whose key became stale.
+// Generates a new session key and re-registers with the cloud.
+message ReauthenticateSessionRequest {
+  // SessionIndex is the local session index to reauthenticate.
+  uint32 session_index = 1;
+  // Credential is the entity credential for account ownership verification.
+  oneof credential {
+    PasswordCredential password = 2;
+    PemCredential pem = 3;
+  }
+  // EntityId is the account username for password-based KDF.
+  string entity_id = 4;
+  // TurnstileToken is the Cloudflare Turnstile verification token.
+  string turnstile_token = 5;
+}
+
+// ReauthenticateSessionResponse is the response for ReauthenticateSession.
+message ReauthenticateSessionResponse {
+  // AccountStatus is the updated account status after reauthentication.
+  .provider.ProviderAccountStatus account_status = 1;
+}
+
+// ResetSessionRequest resets a PIN-locked session.
+message ResetSessionRequest {
+  // SessionIdx is the index of the session to reset.
+  uint32 session_idx = 1;
+  // Credential is the entity signing credential for account ownership verification.
+  .session.EntityCredential credential = 2;
+}
+
+// ResetSessionResponse is the response for ResetSession.
+message ResetSessionResponse {}
+
+// CreateLinkedLocalSessionRequest creates a local provider session with cloud identity.
+message CreateLinkedLocalSessionRequest {}
+
+// CreateLinkedLocalSessionResponse is the response for CreateLinkedLocalSession.
+message CreateLinkedLocalSessionResponse {
+  // SessionListEntry is the created local session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}
+
+// GetLinkedLocalSessionRequest is the request for GetLinkedLocalSession.
+message GetLinkedLocalSessionRequest {}
+
+// GetLinkedLocalSessionResponse is the response for GetLinkedLocalSession.
+message GetLinkedLocalSessionResponse {
+  // Found indicates whether a linked local session exists.
+  bool found = 1;
+  // SessionIndex is the session index of the linked local session.
+  uint32 session_index = 2;
+}
+
+// GetLinkedCloudSessionRequest is the request for GetLinkedCloudSession.
+message GetLinkedCloudSessionRequest {}
+
+// GetLinkedCloudSessionResponse is the response for GetLinkedCloudSession.
+message GetLinkedCloudSessionResponse {
+  // Found indicates whether a linked cloud session exists.
+  bool found = 1;
+  // SessionIndex is the session index of the linked cloud session.
+  uint32 session_index = 2;
+  // LocalSessionEmpty indicates the local session has no SharedObjects or
+  // BlockStores. When true, the upgrade flow can skip migration and delete
+  // the local account directly.
+  bool local_session_empty = 3;
+}
+
+// EncryptForHandoffRequest encrypts the active session privkey to a device pubkey.
+message EncryptForHandoffRequest {
+  // DevicePublicKey is the Ed25519 public key from the HandoffRequest.
+  bytes device_public_key = 1;
+  // SessionNonce is the ULID that keys the AuthSessionDO.
+  string session_nonce = 2;
+}
+
+// EncryptForHandoffResponse contains the encrypted session key and account info.
+message EncryptForHandoffResponse {
+  // EncryptedSessionKey is the session privkey encrypted to the device pubkey.
+  bytes encrypted_session_key = 1;
+  // AccountId is the cloud account ULID.
+  string account_id = 2;
+  // EntityId is the cloud username.
+  string entity_id = 3;
+}
+
+// CreateCheckoutSessionRequest creates a Stripe Checkout Session for subscription.
+// BillingStatus is the billing account status.
+enum BillingStatus {
+  // BillingStatus_UNKNOWN is unknown.
+  BillingStatus_UNKNOWN = 0;
+  // BillingStatus_NONE is no subscription.
+  BillingStatus_NONE = 1;
+  // BillingStatus_ACTIVE is active subscription.
+  BillingStatus_ACTIVE = 2;
+  // BillingStatus_PAST_DUE is payment failed.
+  BillingStatus_PAST_DUE = 3;
+  // BillingStatus_PAST_DUE_READONLY is past due and read-only.
+  BillingStatus_PAST_DUE_READONLY = 4;
+  // BillingStatus_CANCELED is canceled subscription.
+  BillingStatus_CANCELED = 5;
+  // BillingStatus_DELETED is deleted account.
+  BillingStatus_DELETED = 6;
+  // BillingStatus_TRIALING is a trial subscription.
+  BillingStatus_TRIALING = 7;
+  // BillingStatus_LAPSED is a lapsed subscription (grace period expired, data preserved).
+  BillingStatus_LAPSED = 8;
+}
+
+// AccountLifecycleState is the canonical product lifecycle for a cloud account.
+enum AccountLifecycleState {
+  // AccountLifecycleState_UNKNOWN is unknown.
+  AccountLifecycleState_UNKNOWN = 0;
+  // AccountLifecycleState_ACTIVE is a normal accessible account.
+  AccountLifecycleState_ACTIVE = 1;
+  // AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END keeps full access
+  // until the current billing period ends.
+  AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END = 2;
+  // AccountLifecycleState_CANCELED_GRACE_READONLY is the standard 30-day
+  // read-only/export grace window after end-of-period cancellation.
+  AccountLifecycleState_CANCELED_GRACE_READONLY = 3;
+  // AccountLifecycleState_PENDING_DELETE_READONLY is the delete-now 24-hour
+  // countdown window with read-only/export access and undo.
+  AccountLifecycleState_PENDING_DELETE_READONLY = 4;
+  // AccountLifecycleState_LAPSED_READONLY is the read-only state after undo or
+  // other preserved-data lapses before terminal logical deletion.
+  AccountLifecycleState_LAPSED_READONLY = 5;
+  // AccountLifecycleState_DELETED_PENDING_PURGE is logically deleted from the
+  // product while physical purge is still pending.
+  AccountLifecycleState_DELETED_PENDING_PURGE = 6;
+  // AccountLifecycleState_DELETED is physically purged.
+  AccountLifecycleState_DELETED = 7;
+  // AccountLifecycleState_DISPUTED_HARD_SUSPEND is a hard-suspended account
+  // following a cardholder chargeback.
+  AccountLifecycleState_DISPUTED_HARD_SUSPEND = 8;
+}
+
+// BillingInterval is the billing interval.
+enum BillingInterval {
+  // BillingInterval_UNKNOWN is unknown.
+  BillingInterval_UNKNOWN = 0;
+  // BillingInterval_MONTH is monthly billing.
+  BillingInterval_MONTH = 1;
+  // BillingInterval_YEAR is annual billing.
+  BillingInterval_YEAR = 2;
+}
+
+// BillingAccountInfo contains billing account state.
+message BillingAccountInfo {
+  // Id is the billing account ULID.
+  string id = 1;
+  // Status is the current billing status.
+  BillingStatus status = 2;
+  // BillingInterval is month or year.
+  BillingInterval billing_interval = 3;
+  // PastDueSince is when past_due started (ms).
+  int64 past_due_since = 4;
+  // CancelAt is when subscription ends (ms).
+  int64 cancel_at = 5;
+  // CurrentPeriodEnd is the period end (ms).
+  int64 current_period_end = 6;
+  // LifecycleState is the canonical product lifecycle state.
+  AccountLifecycleState lifecycle_state = 7;
+  // DeleteAt is the next scheduled deletion/grace deadline (ms), if any.
+  int64 delete_at = 8;
+  // LifecycleUpdatedAt is when the lifecycle state last changed (ms).
+  int64 lifecycle_updated_at = 9;
+  // DeletedAt is when the account became logically deleted (ms), if any.
+  int64 deleted_at = 10;
+  // DisplayName is the user-set label for the billing account.
+  string display_name = 11;
+}
+
+// BillingUsageInfo contains usage counters.
+message BillingUsageInfo {
+  // StorageBytes is total storage used.
+  double storage_bytes = 1;
+  // StorageBaselineBytes is the baseline.
+  double storage_baseline_bytes = 2;
+  // WriteOps is total write ops this period.
+  int64 write_ops = 3;
+  // WriteOpsBaseline is the baseline.
+  int64 write_ops_baseline = 4;
+  // ReadOps is total read ops this period.
+  int64 read_ops = 5;
+  // ReadOpsBaseline is the baseline.
+  int64 read_ops_baseline = 6;
+  // StorageOverageBytes is current storage beyond the included baseline.
+  double storage_overage_bytes = 7;
+  // StorageOverageMonthlyCostEstimateUsd is the estimated monthly cost for
+  // current storage overage if held for a full month.
+  double storage_overage_monthly_cost_estimate_usd = 8;
+  // StorageOverageMonthToDateGbMonths is accrued storage overage for the
+  // current billing period in GB-months.
+  double storage_overage_month_to_date_gb_months = 9;
+  // StorageOverageMonthToDateCostEstimateUsd is the estimated cost for accrued
+  // storage overage in the current billing period.
+  double storage_overage_month_to_date_cost_estimate_usd = 10;
+  // StorageOverageDeletedGbMonths is the accrued overage attributable to data
+  // that is no longer resident.
+  double storage_overage_deleted_gb_months = 11;
+  // StorageOverageDeletedCostEstimateUsd is the estimated cost for deleted-data
+  // storage overage in the current billing period.
+  double storage_overage_deleted_cost_estimate_usd = 12;
+  // UsageMeteredThroughAt is the Spacewave usage ledger freshness timestamp
+  // in Unix epoch milliseconds.
+  int64 usage_metered_through_at = 13;
+}
+
+message CreateCheckoutSessionRequest {
+  // SuccessUrl is the URL to redirect to after successful checkout.
+  string success_url = 1;
+  // CancelUrl is the URL to redirect to if checkout is canceled.
+  string cancel_url = 2;
+  // BillingInterval selects monthly or annual.
+  BillingInterval billing_interval = 3;
+  // BillingAccountId selects a specific billing account to check out. Empty
+  // falls back to the caller's single managed BA (legacy default).
+  string billing_account_id = 5;
+}
+
+// CreateCheckoutSessionResponse is the response for CreateCheckoutSession.
+// Returns the checkout URL and ticket for a pending session (existing or new).
+message CreateCheckoutSessionResponse {
+  // CheckoutUrl is the Stripe Checkout URL for redirect.
+  string checkout_url = 1;
+  // WsTicket is a short-lived JWT for connecting to the checkout status WebSocket.
+  string ws_ticket = 2;
+  // Status is the checkout attempt status (pending, completed, expired).
+  CheckoutStatus status = 3;
+}
+
+// CancelCheckoutSessionRequest cancels a pending checkout.
+message CancelCheckoutSessionRequest {}
+
+// CancelCheckoutSessionResponse is the response for CancelCheckoutSession.
+message CancelCheckoutSessionResponse {
+  // Status is 'canceled' if the checkout was canceled, or 'completed' if the
+  // subscription activated during the race window before the cancel reached
+  // Stripe.
+  CheckoutStatus status = 1;
+}
+
+// GetSubscriptionStatusRequest requests the current subscription status.
+message GetSubscriptionStatusRequest {}
+
+// GetSubscriptionStatusResponse contains the current subscription status.
+message GetSubscriptionStatusResponse {
+  // SubscriptionStatus is the current subscription status.
+  BillingStatus subscription_status = 1;
+  // CancelAt is the cancellation timestamp in milliseconds, if applicable.
+  int64 cancel_at = 2;
+}
+
+// WatchSubscriptionStatusRequest is the request for WatchSubscriptionStatus.
+message WatchSubscriptionStatusRequest {}
+
+// WatchSubscriptionStatusResponse contains the current subscription status.
+// Streamed whenever the status changes.
+message WatchSubscriptionStatusResponse {
+  // BillingAccount is the billing account state.
+  BillingAccountInfo billing_account = 1;
+}
+
+// WatchBillingStateRequest is the request for WatchBillingState.
+message WatchBillingStateRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// WatchBillingStateResponse is the combined watched billing snapshot.
+message WatchBillingStateResponse {
+  // BillingAccount is the billing account state.
+  BillingAccountInfo billing_account = 1;
+  // Usage is the current period usage.
+  BillingUsageInfo usage = 2;
+}
+
+// CheckoutStatus is the status of a checkout attempt.
+enum CheckoutStatus {
+  CheckoutStatus_UNKNOWN = 0;
+  CheckoutStatus_PENDING = 1;
+  CheckoutStatus_COMPLETED = 2;
+  CheckoutStatus_EXPIRED = 3;
+  CheckoutStatus_CANCELED = 4;
+}
+
+
+// WatchCheckoutStatusRequest is the request for WatchCheckoutStatus.
+message WatchCheckoutStatusRequest {}
+
+// WatchCheckoutStatusResponse is the response for WatchCheckoutStatus.
+// Streamed whenever the checkout status changes.
+message WatchCheckoutStatusResponse {
+  // Status is the current checkout attempt status.
+  CheckoutStatus status = 1;
+}
+
+// WatchOnboardingStatusRequest is the request for WatchOnboardingStatus.
+message WatchOnboardingStatusRequest {}
+
+// SelfEnrollmentGateState describes the route-level self-enrollment decision.
+enum SelfEnrollmentGateState {
+  // SelfEnrollmentGateState_UNKNOWN indicates no gate state was provided.
+  SELF_ENROLLMENT_GATE_STATE_UNKNOWN = 0;
+  // SelfEnrollmentGateState_CHECKING indicates the backend is evaluating
+  // connected spaces.
+  SELF_ENROLLMENT_GATE_STATE_CHECKING = 1;
+  // SelfEnrollmentGateState_AUTO_CONNECTING indicates the backend is
+  // automatically connecting this session to readable spaces.
+  SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING = 2;
+  // SelfEnrollmentGateState_ACTION_REQUIRED indicates the user must unlock or
+  // skip session connection for one or more spaces.
+  SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED = 3;
+  // SelfEnrollmentGateState_READY indicates no self-enrollment gate is needed.
+  SELF_ENROLLMENT_GATE_STATE_READY = 4;
+}
+
+// WatchOnboardingStatusResponse contains the current onboarding state.
+// Streamed whenever the onboarding state changes.
+message WatchOnboardingStatusResponse {
+  // HasSubscription indicates an active subscription exists.
+  bool has_subscription = 1;
+  // SubscriptionStatus is the current subscription status.
+  BillingStatus subscription_status = 2;
+  // HasLinkedLocal indicates a linked local session exists (cloud context).
+  bool has_linked_local = 3;
+  // LinkedLocalSessionIndex is the local session index.
+  uint32 linked_local_session_index = 4;
+  // LinkedLocalHasContent indicates the linked local session has SharedObjects.
+  bool linked_local_has_content = 5;
+  // HasLinkedCloud indicates a linked cloud session exists (local context).
+  bool has_linked_cloud = 6;
+  // LinkedCloudSessionIndex is the cloud session index.
+  uint32 linked_cloud_session_index = 7;
+  // CheckoutInProgress indicates a checkout is pending.
+  bool checkout_in_progress = 8;
+  // CancelAt is the Unix timestamp (ms) when the subscription will cancel, or 0.
+  int64 cancel_at = 9;
+  // EmailVerified is true if the account has at least one verified email.
+  bool email_verified = 10;
+  // LifecycleState is the canonical product lifecycle state.
+  AccountLifecycleState lifecycle_state = 11;
+  // DeleteAt is the next scheduled deletion/grace deadline (ms), if any.
+  int64 delete_at = 12;
+  // LifecycleUpdatedAt is when the lifecycle state last changed (ms).
+  int64 lifecycle_updated_at = 13;
+  // DeletedAt is when the account became logically deleted (ms), if any.
+  int64 deleted_at = 14;
+  // AccountStatus is the current provider account status for this session.
+  .provider.ProviderAccountStatus account_status = 15;
+  // ManagedBaCount is the total number of billing accounts the caller manages.
+  uint32 managed_ba_count = 16;
+  // ManagedActiveBaCount is the subset of managed BAs whose subscription status
+  // is active or trialing.
+  uint32 managed_active_ba_count = 17;
+  // ManagedNoSubscriptionBaCount is the subset of managed BAs whose
+  // subscription status is none.
+  uint32 managed_no_subscription_ba_count = 18;
+  // BillingSummaryLoaded indicates subscription status and managed BA counts
+  // are definitive enough for onboarding route decisions.
+  bool billing_summary_loaded = 19;
+  // SelfEnrollmentGateState describes whether the root route should keep
+  // loading, show an action screen, or proceed to the dashboard.
+  SelfEnrollmentGateState self_enrollment_gate_state = 20;
+  // SessionSelfEnrollmentGenerationKey identifies the current pending
+  // self-enrollment set for skip and interstitial routing.
+  string session_self_enrollment_generation_key = 21;
+  // SessionSelfEnrollmentCount is the number of shared objects pending
+  // self-enrollment for the current session peer.
+  uint32 session_self_enrollment_count = 22;
+}
+
+// UnlinkLocalSessionRequest is the request for UnlinkLocalSession.
+message UnlinkLocalSessionRequest {}
+
+// UnlinkLocalSessionResponse is the response for UnlinkLocalSession.
+message UnlinkLocalSessionResponse {}
+
+// OrganizationInfo contains info about an organization.
+message OrganizationInfo {
+  // Id is the organization ULID.
+  string id = 1;
+  // DisplayName is the user-visible org name.
+  string display_name = 2;
+  // Role is the requesting user's role in this org.
+  string role = 3;
+  // BillingAccountId is the billing account ULID for the org.
+  string billing_account_id = 4;
+  // SpaceIds is the list of shared object IDs owned by this org.
+  repeated string space_ids = 5;
+}
+
+// WatchOrganizationsRequest is the request for WatchOrganizations.
+message WatchOrganizationsRequest {}
+
+// WatchOrganizationsResponse is a streaming response with the current org list.
+message WatchOrganizationsResponse {
+  // Organizations is the current list of orgs the user belongs to.
+  repeated OrganizationInfo organizations = 1;
+}
+
+// ListOrganizationsRequest is the request for ListOrganizations.
+message ListOrganizationsRequest {}
+
+// ListOrganizationsResponse is the response for ListOrganizations.
+message ListOrganizationsResponse {
+  // Organizations is the list of orgs the user belongs to.
+  repeated OrganizationInfo organizations = 1;
+}
+
+// GetSpaceMetadataRequest is the request for GetSpaceMetadata.
+message GetSpaceMetadataRequest {
+  // SharedObjectId is the shared object ULID.
+  string shared_object_id = 1;
+}
+
+// GetSpaceMetadataResponse is the response for GetSpaceMetadata.
+message GetSpaceMetadataResponse {
+  // OwnerType is the owner principal type ("account" or "organization").
+  string owner_type = 1;
+  // DisplayName is the space display name.
+  string display_name = 2;
+  // ObjectType is the shared object type.
+  string object_type = 3;
+  // OwnerId is the owner principal id (account id or organization id).
+  string owner_id = 4;
+}
+
+// CreateOrganizationRequest is the request for CreateOrganization.
+message CreateOrganizationRequest {
+  // DisplayName is the user-visible org name.
+  string display_name = 1;
+}
+
+// CreateOrganizationResponse is the response for CreateOrganization.
+message CreateOrganizationResponse {
+  // Organization is the created org info.
+  OrganizationInfo organization = 1;
+}
+
+// OrgInviteInfo contains info about an org invite.
+message OrgInviteInfo {
+  // Id is the invite ULID.
+  string id = 1;
+  // Type is the invite type (code, email, link).
+  string type = 2;
+  // Token is the invite code/link token.
+  string token = 3;
+  // Uses is the current use count.
+  int32 uses = 4;
+  // MaxUses is the max allowed uses (0=unlimited).
+  int32 max_uses = 5;
+  // ExpiresAt is the expiry timestamp (0=never).
+  int64 expires_at = 6;
+}
+
+// CreateOrgInviteRequest is the request for CreateOrgInvite.
+message CreateOrgInviteRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+  // Type is the invite type (code, email, link).
+  string type = 2;
+  // MaxUses is the max allowed uses (0=unlimited).
+  int32 max_uses = 3;
+  // ExpiresAt is the expiry timestamp (0=never).
+  int64 expires_at = 4;
+  // Email is the target email (for type=email).
+  string email = 5;
+}
+
+// CreateOrgInviteResponse is the response for CreateOrgInvite.
+message CreateOrgInviteResponse {
+  // Invite is the created invite info.
+  OrgInviteInfo invite = 1;
+}
+
+// JoinOrganizationRequest is the request for JoinOrganization.
+message JoinOrganizationRequest {
+  // Token is the invite code or link token.
+  string token = 1;
+}
+
+// JoinOrganizationResponse is the response for JoinOrganization.
+message JoinOrganizationResponse {
+  // Organization is the joined org info.
+  OrganizationInfo organization = 1;
+}
+
+// UpdateOrganizationRequest is the request for UpdateOrganization.
+message UpdateOrganizationRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+  // DisplayName is the new display name for the org.
+  string display_name = 2;
+}
+
+// UpdateOrganizationResponse is the response for UpdateOrganization.
+message UpdateOrganizationResponse {}
+
+// DeleteOrganizationRequest is the request for DeleteOrganization.
+message DeleteOrganizationRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+}
+
+// DeleteOrganizationResponse is the response for DeleteOrganization.
+message DeleteOrganizationResponse {}
+
+// GetOrganizationRequest is the request for GetOrganization.
+message GetOrganizationRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+}
+
+// WatchOrganizationStateRequest is the request for WatchOrganizationState.
+message WatchOrganizationStateRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+}
+
+// OrgMemberInfo contains info about an org member.
+message OrgMemberInfo {
+  // Id is the role binding ULID.
+  string id = 1;
+  // SubjectId is the member's account ID.
+  string subject_id = 2;
+  // RoleId is the member's role (e.g. org:owner, org:member).
+  string role_id = 3;
+  // CreatedAt is the binding creation timestamp (ms).
+  int64 created_at = 4;
+  // EntityId is the provider-attested account username / entity identifier.
+  string entity_id = 5;
+}
+
+// OrgSpaceInfo contains info about a space owned by an organization.
+message OrgSpaceInfo {
+  // Id is the shared object ULID.
+  string id = 1;
+  // DisplayName is the space display name.
+  string display_name = 2;
+  // ObjectType is the shared object type (e.g. "space").
+  string object_type = 3;
+}
+
+// SharedObjectMutationPermission contains the viewer's repair and
+// reinitialize authority for a shared object.
+message SharedObjectMutationPermission {
+  // CanRepair reports whether the current viewer may run repair.
+  bool can_repair = 1;
+  // CanReinitialize reports whether the current viewer may run reinitialize.
+  bool can_reinitialize = 2;
+  // DisabledReason explains why the mutation actions are disabled.
+  string disabled_reason = 3;
+}
+
+// OrganizationRootStateInfo contains the org-root shared object identity and
+// degraded health summary.
+message OrganizationRootStateInfo {
+  // SharedObjectId is the canonical shared object id for the org root.
+  string shared_object_id = 1;
+  // Health is the current org-root health snapshot.
+  .sobject.SharedObjectHealth health = 2;
+  // MutationPermission is the viewer's org-root remediation authority.
+  SharedObjectMutationPermission mutation_permission = 3;
+}
+
+// GetOrganizationResponse is the response for GetOrganization.
+message GetOrganizationResponse {
+  // Organization is the org info.
+  OrganizationInfo organization = 1;
+  // Members is the list of org members.
+  repeated OrgMemberInfo members = 2;
+  // Spaces is the list of spaces owned by this organization.
+  repeated OrgSpaceInfo spaces = 3;
+  // RootState is the canonical org-root shared object identity and health.
+  OrganizationRootStateInfo root_state = 4;
+}
+
+// WatchOrganizationStateResponse is the combined watched organization snapshot.
+message WatchOrganizationStateResponse {
+  // Organization is the org info.
+  OrganizationInfo organization = 1;
+  // Members is the list of org members.
+  repeated OrgMemberInfo members = 2;
+  // Spaces is the list of spaces owned by this organization.
+  repeated OrgSpaceInfo spaces = 3;
+  // Invites is the list of org invites visible to the viewer.
+  repeated OrgInviteInfo invites = 4;
+  // RootState is the canonical org-root shared object identity and health.
+  OrganizationRootStateInfo root_state = 5;
+}
+
+// RepairSharedObjectRequest is the request for RepairSharedObject.
+message RepairSharedObjectRequest {
+  // SharedObjectId is the shared object to repair.
+  string shared_object_id = 1;
+}
+
+// RepairSharedObjectResponse is the response for RepairSharedObject.
+message RepairSharedObjectResponse {}
+
+// ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
+message ReinitializeSharedObjectRequest {
+  // SharedObjectId is the shared object to reinitialize in place.
+  string shared_object_id = 1;
+}
+
+// ReinitializeSharedObjectResponse is the response for ReinitializeSharedObject.
+message ReinitializeSharedObjectResponse {}
+
+// ListOrgInvitesRequest is the request for ListOrgInvites.
+message ListOrgInvitesRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+}
+
+// ListOrgInvitesResponse is the response for ListOrgInvites.
+message ListOrgInvitesResponse {
+  // Invites is the list of org invites.
+  repeated OrgInviteInfo invites = 1;
+}
+
+// RevokeOrgInviteRequest is the request for RevokeOrgInvite.
+message RevokeOrgInviteRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+  // InviteId is the invite ULID to revoke.
+  string invite_id = 2;
+}
+
+// RevokeOrgInviteResponse is the response for RevokeOrgInvite.
+message RevokeOrgInviteResponse {}
+
+// LeaveOrganizationRequest is the request for LeaveOrganization.
+message LeaveOrganizationRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+}
+
+// LeaveOrganizationResponse is the response for LeaveOrganization.
+message LeaveOrganizationResponse {}
+
+// RemoveOrgMemberRequest is the request for RemoveOrgMember.
+message RemoveOrgMemberRequest {
+  // OrgId is the organization ULID.
+  string org_id = 1;
+  // MemberId is the account ID of the member to remove.
+  string member_id = 2;
+}
+
+// RemoveOrgMemberResponse is the response for RemoveOrgMember.
+message RemoveOrgMemberResponse {}
+
+// TransferResourceRequest is the request for TransferResource.
+message TransferResourceRequest {
+  // ResourceId is the SO or BS ULID.
+  string resource_id = 1;
+  // NewOwnerType is the destination principal type ("account" | "organization").
+  string new_owner_type = 2;
+  // NewOwnerId is the destination principal id (account ULID or org ULID).
+  string new_owner_id = 3;
+}
+
+// TransferResourceResponse is the response for TransferResource.
+message TransferResourceResponse {}
+
+// AssignBillingAccountRequest is the request for AssignBillingAccount.
+// Binds a billing account to a principal (account or organization). The caller
+// must be the BA's created_by_account_id; for org targets the caller must also
+// hold org:owner on the target org.
+message AssignBillingAccountRequest {
+  // BillingAccountId is the billing account to assign.
+  string billing_account_id = 1;
+  // TargetOwnerType is the principal type receiving the assignment
+  // ("account" | "organization").
+  string target_owner_type = 2;
+  // TargetOwnerId is the principal id (account ULID or org ULID).
+  string target_owner_id = 3;
+}
+
+// AssignBillingAccountResponse is the response for AssignBillingAccount.
+message AssignBillingAccountResponse {}
+
+// DetachBillingAccountRequest is the request for DetachBillingAccount.
+// Clears the billing account assignment on a principal. The caller must be the
+// principal itself (for account targets) or hold org:owner on the target org.
+message DetachBillingAccountRequest {
+  // TargetOwnerType is the principal type to detach ("account" | "organization").
+  string target_owner_type = 1;
+  // TargetOwnerId is the principal id (account ULID or org ULID).
+  string target_owner_id = 2;
+}
+
+// DetachBillingAccountResponse is the response for DetachBillingAccount.
+message DetachBillingAccountResponse {}
+
+// ManagedBillingAccount describes one billing account the caller manages
+// (created_by_account_id = caller).
+message ManagedBillingAccount {
+  // Id is the billing account ULID.
+  string id = 1;
+  // StripeCustomerId is the Stripe customer id, when present.
+  string stripe_customer_id = 2;
+  // SubscriptionStatus is the normalized billing status.
+  BillingStatus subscription_status = 3;
+  // LifecycleState is the billing account lifecycle state.
+  AccountLifecycleState lifecycle_state = 4;
+  // CreatedAt is the billing account creation time in unix ms.
+  int64 created_at = 5;
+  // UpdatedAt is the billing account last-updated time in unix ms.
+  int64 updated_at = 6;
+  // Assignees is the list of principals currently pointing at this BA
+  // (accounts.billing_account_id or organizations.billing_account_id).
+  repeated PrincipalAssignment assignees = 7;
+  // DisplayName is the user-editable label for this billing account.
+  string display_name = 8;
+}
+
+// PrincipalAssignment identifies one principal that has this billing account
+// set as its active assignment.
+message PrincipalAssignment {
+  // OwnerType is the principal type ("account" | "organization").
+  string owner_type = 1;
+  // OwnerId is the principal id (account ULID or org ULID).
+  string owner_id = 2;
+  // DisplayName is the principal's display name. For accounts this may be
+  // empty; the caller typically renders their own account as "Personal".
+  string display_name = 3;
+}
+
+// CreateBillingAccountRequest is the request for CreateBillingAccount.
+// Creates a new unassigned billing account owned (managed) by the caller.
+message CreateBillingAccountRequest {
+  // DisplayName is the initial label for the billing account. Optional; the
+  // server falls back to a generic default when empty.
+  string display_name = 1;
+}
+
+// RenameBillingAccountRequest is the request for RenameBillingAccount.
+message RenameBillingAccountRequest {
+  // BillingAccountId is the billing account to rename.
+  string billing_account_id = 1;
+  // DisplayName is the new display name.
+  string display_name = 2;
+}
+
+// RenameBillingAccountResponse is the response for RenameBillingAccount.
+message RenameBillingAccountResponse {}
+
+// DeleteBillingAccountRequest is the request for DeleteBillingAccount.
+// Deletes a billing account the caller manages once it is canceled and no
+// principals still point at it.
+message DeleteBillingAccountRequest {
+  // BillingAccountId is the billing account to delete.
+  string billing_account_id = 1;
+}
+
+// DeleteBillingAccountResponse is the response for DeleteBillingAccount.
+message DeleteBillingAccountResponse {}
+
+// CreateBillingAccountResponse is the response for CreateBillingAccount.
+message CreateBillingAccountResponse {
+  // BillingAccountId is the new BA's ULID.
+  string billing_account_id = 1;
+}
+
+// ListManagedBillingAccountsRequest is the request for ListManagedBillingAccounts.
+message ListManagedBillingAccountsRequest {}
+
+// ListManagedBillingAccountsResponse is the response for ListManagedBillingAccounts.
+message ListManagedBillingAccountsResponse {
+  // Accounts is the list of BAs the caller manages, ordered by created_at asc.
+  repeated ManagedBillingAccount accounts = 1;
+}
+
+// GetBillingAccountRequest is the request for GetBillingAccount.
+message GetBillingAccountRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// GetBillingAccountResponse is the response for GetBillingAccount.
+message GetBillingAccountResponse {
+  // Account is the billing account state.
+  BillingAccountInfo account = 1;
+}
+
+// GetBillingUsageRequest is the request for GetBillingUsage.
+message GetBillingUsageRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// GetBillingUsageResponse is the response for GetBillingUsage.
+message GetBillingUsageResponse {
+  // Usage is the current period usage.
+  BillingUsageInfo usage = 1;
+}
+
+// RefreshBillingStateRequest is the request for RefreshBillingState.
+message RefreshBillingStateRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// RefreshBillingStateResponse is the response for RefreshBillingState.
+message RefreshBillingStateResponse {}
+
+// CancelSubscriptionRequest is the request for CancelSubscription.
+message CancelSubscriptionRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// CancelSubscriptionResponse is the response for CancelSubscription.
+message CancelSubscriptionResponse {}
+
+// ReactivateSubscriptionRequest is the request for ReactivateSubscription.
+message ReactivateSubscriptionRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// ReactivateSubscriptionResponse is the response for ReactivateSubscription.
+message ReactivateSubscriptionResponse {
+  // NeedsCheckout is true when the subscription is lapsed and requires a new
+  // checkout session instead of a simple reactivation.
+  bool needs_checkout = 1;
+}
+
+// SwitchBillingIntervalRequest is the request for SwitchBillingInterval.
+message SwitchBillingIntervalRequest {
+  // BillingInterval is the target interval.
+  BillingInterval billing_interval = 1;
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 2;
+}
+
+// SwitchBillingIntervalResponse is the response for SwitchBillingInterval.
+message SwitchBillingIntervalResponse {}
+
+// CreateBillingPortalRequest is the request for CreateBillingPortal.
+message CreateBillingPortalRequest {
+  // BillingAccountId overrides the personal billing account when set.
+  string billing_account_id = 1;
+}
+
+// CreateBillingPortalResponse is the response for CreateBillingPortal.
+message CreateBillingPortalResponse {
+  // Url is the Stripe billing portal URL.
+  string url = 1;
+}
+
+// RequestDeleteNowEmailRequest is the request for RequestDeleteNowEmail.
+message RequestDeleteNowEmailRequest {}
+
+// RequestDeleteNowEmailResponse is the response for RequestDeleteNowEmail.
+message RequestDeleteNowEmailResponse {
+  // Sent is true if the confirmation email was queued.
+  bool sent = 1;
+  // RetryAfter is the resend cooldown in seconds. Zero means sent immediately.
+  uint32 retry_after = 2;
+  // Email is the verified address that received the confirmation email.
+  string email = 3;
+}
+
+// ConfirmDeleteNowCodeRequest is the request for ConfirmDeleteNowCode.
+message ConfirmDeleteNowCodeRequest {
+  // Code is the 6-digit delete-now confirmation code.
+  string code = 1;
+}
+
+// ConfirmDeleteNowCodeResponse is the response for ConfirmDeleteNowCode.
+message ConfirmDeleteNowCodeResponse {
+  // DeleteAt is when the 24-hour delete-now countdown ends.
+  uint64 delete_at = 1;
+  // InvoiceTotal is Stripe's final invoice total in cents.
+  int64 invoice_total = 2;
+  // InvoiceAmountDue is the final invoice amount due in cents.
+  int64 invoice_amount_due = 3;
+  // InvoiceCurrency is the final invoice currency code.
+  string invoice_currency = 4;
+  // InvoiceStatus is the final invoice status.
+  string invoice_status = 5;
+  // ChargeAttempted reports whether Stripe attempted an immediate charge.
+  bool charge_attempted = 6;
+  // RefundAmount is the immediate refund amount in cents.
+  int64 refund_amount = 7;
+  // RefundCurrency is the refund currency code.
+  string refund_currency = 8;
+}
+
+// UndoDeleteNowRequest is the request for UndoDeleteNow.
+message UndoDeleteNowRequest {}
+
+// UndoDeleteNowResponse is the response for UndoDeleteNow.
+message UndoDeleteNowResponse {}
+
+// -- Email Management --
+
+// EmailInfo describes a single account email entry.
+message EmailInfo {
+  // Email is the email address.
+  string email = 1;
+  // Verified is true if the email has been verified.
+  bool verified = 2;
+  // Source is the origin of the email (manual, stripe, sso, test).
+  string source = 3;
+  // Primary is true if this is the primary email.
+  bool primary = 4;
+}
+
+// ListEmailsRequest is the request for ListEmails.
+message ListEmailsRequest {}
+
+// ListEmailsResponse is the response for ListEmails.
+message ListEmailsResponse {
+  // Emails is the list of account email entries.
+  repeated EmailInfo emails = 1;
+}
+
+// WatchEmailsRequest is the request for WatchEmails.
+message WatchEmailsRequest {}
+
+// WatchEmailsResponse is the response for WatchEmails.
+message WatchEmailsResponse {
+  // Emails is the list of account email entries.
+  repeated EmailInfo emails = 1;
+}
+
+// SendVerificationEmailRequest is the request for SendVerificationEmail.
+message SendVerificationEmailRequest {
+  // Email is the email address to send verification to.
+  string email = 1;
+}
+
+// SendVerificationEmailResponse is the response for SendVerificationEmail.
+message SendVerificationEmailResponse {
+  // Sent is true if the verification email was sent.
+  bool sent = 1;
+  // RetryAfter is the number of seconds to wait before resending. Zero if sent immediately.
+  uint32 retry_after = 2;
+}
+
+// VerifyEmailCodeRequest is the request for VerifyEmailCode.
+message VerifyEmailCodeRequest {
+  // Email is the email address being verified.
+  string email = 1;
+  // Code is the 6-digit verification code.
+  string code = 2;
+}
+
+// VerifyEmailCodeResponse is the response for VerifyEmailCode.
+message VerifyEmailCodeResponse {
+  // Verified is true if the code was valid and the email is now verified.
+  bool verified = 1;
+}
+
+// AddEmailRequest is the request for AddEmail.
+message AddEmailRequest {
+  // Email is the email address to add.
+  string email = 1;
+}
+
+// AddEmailResponse is the response for AddEmail.
+message AddEmailResponse {
+  // Sent is true if a verification email was sent.
+  bool sent = 1;
+  // RetryAfter is the number of seconds to wait before resending. Zero if sent immediately.
+  uint32 retry_after = 2;
+}
+
+// RemoveEmailRequest is the request for RemoveEmail.
+message RemoveEmailRequest {
+  // Email is the email address to remove.
+  string email = 1;
+}
+
+// RemoveEmailResponse is the response for RemoveEmail.
+message RemoveEmailResponse {}
+
+// SetPrimaryEmailRequest is the request for SetPrimaryEmail.
+message SetPrimaryEmailRequest {
+  // Email is the verified email address to promote to primary.
+  string email = 1;
+}
+
+// SetPrimaryEmailResponse is the response for SetPrimaryEmail.
+message SetPrimaryEmailResponse {
+  // Primary is the email that is now primary after the call.
+  string primary = 1;
+}
+
+// -- Space Sharing --
+
+// EnrollSpaceMemberRequest is the request for EnrollSpaceMember.
+message EnrollSpaceMemberRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // AccountId is the target member's account ID.
+  string account_id = 2;
+  // Role is the participant role to assign (e.g. WRITER).
+  sobject.SOParticipantRole role = 3;
+}
+
+// EnrollSpaceMemberResult describes the enrollment outcome for a single peer.
+message EnrollSpaceMemberResult {
+  // PeerId is the session peer ID (base58).
+  string peer_id = 1;
+  // Enrolled is true if the peer was successfully enrolled.
+  bool enrolled = 2;
+  // AlreadyParticipant is true if the peer was already a participant (no-op).
+  bool already_participant = 3;
+  // Error is set if enrollment failed for this peer.
+  string error = 4;
+}
+
+// EnrollSpaceMemberResponse is the response for EnrollSpaceMember.
+message EnrollSpaceMemberResponse {
+  // Results is one entry per session peer for the target account.
+  repeated EnrollSpaceMemberResult results = 1;
+}
+
+// RemoveSpaceMemberRequest is the request for RemoveSpaceMember.
+message RemoveSpaceMemberRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // AccountId is the target member's account ID.
+  string account_id = 2;
+}
+
+// RemoveSpaceMemberResult describes the removal outcome for a single peer.
+message RemoveSpaceMemberResult {
+  // PeerId is the session peer ID (base58).
+  string peer_id = 1;
+  // Removed is true if the peer was successfully removed.
+  bool removed = 2;
+  // NotParticipant is true if the peer was not a participant (no-op).
+  bool not_participant = 3;
+  // Error is set if removal failed for this peer.
+  string error = 4;
+}
+
+// RemoveSpaceMemberResponse is the response for RemoveSpaceMember.
+message RemoveSpaceMemberResponse {
+  // Results is one entry per session peer for the target account.
+  repeated RemoveSpaceMemberResult results = 1;
+}
+
+// LookupInviteCodeRequest is the request for LookupInviteCode.
+message LookupInviteCodeRequest {
+  // Code is the short invite code to look up.
+  string code = 1;
+}
+
+// LookupInviteCodeResponse is the response for LookupInviteCode.
+message LookupInviteCodeResponse {
+  // InviteId is the invite identifier.
+  string invite_id = 1;
+  // InviteMessage is the full SOInviteMessage for the code.
+  .sobject.SOInviteMessage invite_message = 2;
+}
+
+// GetMailboxEntriesRequest is the request for GetMailboxEntries.
+message GetMailboxEntriesRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+}
+
+// GetMailboxEntriesResponse is the response for GetMailboxEntries.
+message GetMailboxEntriesResponse {
+  // Entries is the list of pending mailbox entries.
+  repeated MailboxEntryInfo entries = 1;
+}
+
+// MailboxEntryInfo is a pending mailbox entry.
+message MailboxEntryInfo {
+  // Id is the entry ID.
+  int64 id = 1;
+  // InviteId is the invite this entry corresponds to.
+  string invite_id = 2;
+  // PeerId is the peer who submitted the join response.
+  string peer_id = 3;
+  // Status is the current status (pending, accepted, rejected).
+  string status = 4;
+  // CreatedAt is the creation timestamp in milliseconds.
+  int64 created_at = 5;
+  // AccountId is the invitee cloud account that submitted the entry.
+  string account_id = 6;
+  // EntityId is the provider-attested username / entity identifier.
+  string entity_id = 7;
+}
+
+// ProcessMailboxEntryRequest is the request for ProcessMailboxEntry.
+message ProcessMailboxEntryRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // EntryId is the mailbox entry ID.
+  int64 entry_id = 2;
+  // Accept indicates whether to accept (true) or reject (false) the entry.
+  bool accept = 3;
+}
+
+// ProcessMailboxEntryResponse is the response for ProcessMailboxEntry.
+message ProcessMailboxEntryResponse {}
+
+// SpaceLinkAuthRequest is the unsigned SpaceLink consent payload.
+message SpaceLinkAuthRequest {
+  // Version is the SpaceLink wire version.
+  uint32 version = 1;
+  // SessionType is the type of session the external actor is requesting.
+  .session.SessionType session_type = 2;
+  // AgentPeerId is the raw bifrost peer ID bytes for the external actor.
+  bytes agent_peer_id = 3;
+  // Label is the external actor display label.
+  string label = 4;
+  // CallbackUrl is the post-consent redirect target.
+  string callback_url = 5;
+  // RequestedRole is the participant role requested for the target Space.
+  sobject.SOParticipantRole requested_role = 6;
+  // Nonce is the replay-defense nonce.
+  bytes nonce = 7;
+  // ExpiresAt is the hard expiry time as Unix seconds.
+  int64 expires_at = 8;
+  // TargetHint is an optional suggested target Space resource ID.
+  bytes target_hint = 9;
+}
+
+// SpaceLinkAuthTicket is the signed SpaceLink ticket envelope.
+message SpaceLinkAuthTicket {
+  // Payload is the exact serialized SpaceLinkAuthRequest bytes.
+  bytes payload = 1;
+  // AgentSignature verifies over Payload directly without reserialization.
+  bytes agent_signature = 2;
+}
+
+// PreviewSpaceLinkRequest is the request for PreviewSpaceLink.
+message PreviewSpaceLinkRequest {
+  // Ticket is the SpaceLinkAuthTicket proto bytes.
+  bytes ticket = 1;
+}
+
+// PreviewSpaceLinkResponse is the response for PreviewSpaceLink.
+message PreviewSpaceLinkResponse {
+  // Label is the verified external actor display label.
+  string label = 1;
+  // SessionType is the verified external actor session type.
+  .session.SessionType session_type = 2;
+  // AgentPeerId is the verified raw bifrost peer ID bytes.
+  bytes agent_peer_id = 3;
+  // RequestedRole is the verified requested participant role.
+  sobject.SOParticipantRole requested_role = 4;
+  // TargetHint is the verified optional target Space hint.
+  bytes target_hint = 5;
+  // Nonce is the verified replay-defense nonce.
+  bytes nonce = 6;
+  // ExpiresAt is the verified expiry time as Unix seconds.
+  int64 expires_at = 7;
+  // CallbackUrl is the verified callback target.
+  string callback_url = 8;
+}
+
+// ApproveSpaceLinkRequest is the request for ApproveSpaceLink.
+message ApproveSpaceLinkRequest {
+  // Ticket is the SpaceLinkAuthTicket proto bytes.
+  bytes ticket = 1;
+  // ResourceId is the target Space shared object ID.
+  bytes resource_id = 2;
+}
+
+// ApproveSpaceLinkResponse is the response for ApproveSpaceLink.
+message ApproveSpaceLinkResponse {
+  // AccountId is the linked external actor cloud account ID.
+  string account_id = 1;
+  // ResourceId is the target Space shared object ID.
+  bytes resource_id = 2;
+  // SessionPeerId is the linked external actor session peer ID.
+  bytes session_peer_id = 3;
+  // Nonce is echoed from the verified ticket for the callback.
+  bytes nonce = 4;
+  // CallbackUrl is the re-verified callback target.
+  string callback_url = 5;
+}

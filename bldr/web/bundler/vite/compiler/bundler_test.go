@@ -73,3 +73,19 @@ func TestViteCompilerBootstrapBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestResolveViteBaseConfigPathMonorepo(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "bldr/web/bundler/vite/vite-base.config.ts")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, []byte("export default {}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := bldr_web_bundler_vite.ResolveViteBaseConfigPath(tmpDir)
+	if got != "bldr/web/bundler/vite/vite-base.config.ts" {
+		t.Fatalf("unexpected vite base config path: %q", got)
+	}
+}

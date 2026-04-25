@@ -1,0 +1,753 @@
+syntax = "proto3";
+package s4wave.session;
+
+import "github.com/s4wave/spacewave/core/account/settings/settings.proto";
+import "github.com/s4wave/spacewave/core/provider/transfer/transfer.proto";
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/core/space/space.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+import "google/protobuf/timestamp.proto";
+
+service SessionResourceService {
+  rpc GetSessionInfo(GetSessionInfoRequest) returns (GetSessionInfoResponse);
+  rpc WatchResourcesList(WatchResourcesListRequest) returns (stream WatchResourcesListResponse);
+  rpc CreateSpace(CreateSpaceRequest) returns (CreateSpaceResponse);
+  rpc MountSharedObject(MountSharedObjectRequest) returns (MountSharedObjectResponse) {};
+  rpc WatchSharedObjectHealth(WatchSharedObjectHealthRequest) returns (stream WatchSharedObjectHealthResponse);
+  rpc WatchSyncStatus(WatchSyncStatusRequest) returns (stream WatchSyncStatusResponse);
+  rpc DeleteSpace(DeleteSpaceRequest) returns (DeleteSpaceResponse);
+  rpc RenameSpace(RenameSpaceRequest) returns (RenameSpaceResponse);
+  rpc WatchLockState(WatchLockStateRequest) returns (stream WatchLockStateResponse);
+  rpc SetLockMode(SetLockModeRequest) returns (SetLockModeResponse);
+  rpc UnlockSession(UnlockSessionRequest) returns (UnlockSessionResponse);
+  rpc LockSession(LockSessionRequest) returns (LockSessionResponse);
+  rpc GeneratePairingCode(GeneratePairingCodeRequest) returns (GeneratePairingCodeResponse);
+  rpc CompletePairing(CompletePairingRequest) returns (CompletePairingResponse);
+  rpc GetSASEmoji(GetSASEmojiRequest) returns (GetSASEmojiResponse);
+  rpc ConfirmSASMatch(ConfirmSASMatchRequest) returns (ConfirmSASMatchResponse);
+  rpc ConfirmPairing(ConfirmPairingRequest) returns (ConfirmPairingResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+  rpc AccessStateAtom(AccessSessionStateAtomRequest) returns (AccessSessionStateAtomResponse);
+  rpc WatchStateAtoms(WatchSessionStateAtomsRequest) returns (stream WatchSessionStateAtomsResponse);
+  rpc GetTransferInventory(GetTransferInventoryRequest) returns (GetTransferInventoryResponse);
+  rpc StartTransfer(StartTransferRequest) returns (StartTransferResponse);
+  rpc WatchTransferProgress(WatchTransferProgressRequest) returns (stream WatchTransferProgressResponse);
+  rpc CancelTransfer(CancelTransferRequest) returns (CancelTransferResponse);
+  rpc GetTransferStatus(GetTransferStatusRequest) returns (GetTransferStatusResponse);
+  rpc WatchPairedDevices(WatchPairedDevicesRequest) returns (stream WatchPairedDevicesResponse);
+  rpc WatchPairingStatus(WatchPairingStatusRequest) returns (stream WatchPairingStatusResponse);
+  rpc UnlinkDevice(UnlinkDeviceRequest) returns (UnlinkDeviceResponse);
+  rpc CreateSpaceInvite(CreateSpaceInviteRequest) returns (CreateSpaceInviteResponse);
+  rpc ListSpaceInvites(ListSpaceInvitesRequest) returns (ListSpaceInvitesResponse);
+  rpc ListSpaceParticipants(ListSpaceParticipantsRequest) returns (ListSpaceParticipantsResponse);
+  rpc RemoveSpaceParticipant(RemoveSpaceParticipantRequest) returns (RemoveSpaceParticipantResponse);
+  rpc RevokeSpaceInvite(RevokeSpaceInviteRequest) returns (RevokeSpaceInviteResponse);
+  rpc JoinSpaceViaInvite(JoinSpaceViaInviteRequest) returns (JoinSpaceViaInviteResponse);
+  rpc CreateLocalPairingOffer(CreateLocalPairingOfferRequest) returns (CreateLocalPairingOfferResponse);
+  rpc AcceptLocalPairingOffer(AcceptLocalPairingOfferRequest) returns (AcceptLocalPairingOfferResponse);
+  rpc AcceptLocalPairingAnswer(AcceptLocalPairingAnswerRequest) returns (AcceptLocalPairingAnswerResponse);
+}
+
+// GetSessionInfoRequest is the request type for GetSessionInfo.
+message GetSessionInfoRequest {}
+
+// GetSessionInfoResponse is the response type for GetSessionInfo.
+message GetSessionInfoResponse {
+  // SessionRef is the session reference.
+  .session.SessionRef session_ref = 1;
+  // PeerId is the session peer id.
+  string peer_id = 2;
+  // CryptoInfo contains the session's cryptographic identity info.
+  SessionCryptoInfo crypto_info = 3;
+}
+
+// SessionCryptoInfo contains session crypto identity and storage summary.
+message SessionCryptoInfo {
+  // KeyType is the session key type (e.g. "Ed25519").
+  string key_type = 1;
+  // PublicKeyBase58 is the session public key encoded as base58.
+  string public_key_base58 = 2;
+  // SpaceCount is the number of spaces in the session.
+  uint32 space_count = 3;
+  // TotalStorageBytes is the aggregate storage size across all spaces.
+  uint64 total_storage_bytes = 4;
+  // PublicKeyPem is the session public key in PEM format.
+  string public_key_pem = 5;
+}
+
+// WatchResourcesListRequest is the request type for WatchResourcesList.
+message WatchResourcesListRequest {}
+
+// WatchResourcesListResponse is the response type for WatchResourcesList.
+message WatchResourcesListResponse {
+  // SpacesList is the snapshot of the full spaces list.
+  repeated .space.SpaceSoListEntry spaces_list = 1;
+}
+
+// CreateSpaceRequest is the request type for CreateSpace.
+message CreateSpaceRequest {
+  // SpaceName is the human readable name for the new space.
+  string space_name = 1;
+  // OwnerType is the owner principal type ("account" or "organization").
+  string owner_type = 2;
+  // OwnerId is the owner principal id (account id or organization id).
+  string owner_id = 3;
+}
+
+// CreateSpaceResponse is the response type for CreateSpace.
+message CreateSpaceResponse {
+  // SharedObjectRef is the reference to the created SharedObject.
+  .sobject.SharedObjectRef shared_object_ref = 1;
+  // SharedObjectMeta is the metadata for the created SharedObject.
+  .sobject.SharedObjectMeta shared_object_meta = 2;
+}
+
+// DeleteSpaceRequest is the request type for DeleteSpace.
+message DeleteSpaceRequest {
+  // SharedObjectId is the id of the shared object (space) to delete.
+  string shared_object_id = 1;
+}
+
+// DeleteSpaceResponse is the response type for DeleteSpace.
+message DeleteSpaceResponse {}
+
+// RenameSpaceRequest is the request type for RenameSpace.
+message RenameSpaceRequest {
+  // SharedObjectId is the id of the shared object (space) to rename.
+  string shared_object_id = 1;
+  // DisplayName is the new human-readable display name.
+  string display_name = 2;
+}
+
+// RenameSpaceResponse is the response type for RenameSpace.
+message RenameSpaceResponse {}
+
+// MountSharedObjectRequest is the request type for MountSharedObject.
+message MountSharedObjectRequest {
+  // SharedObjectId is the id of the shared object to mount.
+  string shared_object_id = 1;
+}
+
+// MountSharedObjectResponse is the response type for MountSharedObject.
+message MountSharedObjectResponse {
+  // ResourceId is the ID of the mounted shared object resource.
+  uint32 resource_id = 1;
+  // SharedObjectMeta is the metadata for the SharedObject.
+  // Contains the body type and body metadata.
+  .sobject.SharedObjectMeta shared_object_meta = 2;
+  // PeerId is the peer id of our local participant for the shared object.
+  string peer_id = 3;
+  // SharedObjectId is the id of the shared object.
+  string shared_object_id = 4;
+  // BlockStoreId is the id of the block store used for the shared object.
+  string block_store_id = 5;
+  // HashType is the hash type preferred by the block store used for the shared object.
+  // The zero value (0) indicates any.
+  .hash.HashType hash_type = 6;
+}
+
+// WatchSharedObjectHealthRequest is the request type for WatchSharedObjectHealth.
+message WatchSharedObjectHealthRequest {
+  // SharedObjectId is the id of the shared object to watch.
+  string shared_object_id = 1;
+}
+
+// WatchSharedObjectHealthResponse is the response type for WatchSharedObjectHealth.
+message WatchSharedObjectHealthResponse {
+  // Health is the current SharedObject health snapshot.
+  .sobject.SharedObjectHealth health = 1;
+}
+
+// WatchSyncStatusRequest is the request type for WatchSyncStatus.
+message WatchSyncStatusRequest {}
+
+// SyncStatusState describes the aggregate session sync state.
+enum SyncStatusState {
+  // SyncStatusState_SYNCED means no sync work or sync error is known.
+  SyncStatusState_SYNCED = 0;
+  // SyncStatusState_ACTIVE means upload or download sync work is active.
+  SyncStatusState_ACTIVE = 1;
+  // SyncStatusState_ERROR means sync is blocked by the last recorded error.
+  SyncStatusState_ERROR = 2;
+}
+
+// SyncActivityDirection describes the direction of active sync work.
+enum SyncActivityDirection {
+  // SyncActivityDirection_NONE means no active transfer direction is known.
+  SyncActivityDirection_NONE = 0;
+  // SyncActivityDirection_UPLOAD means upload work is active.
+  SyncActivityDirection_UPLOAD = 1;
+  // SyncActivityDirection_DOWNLOAD means download work is active.
+  SyncActivityDirection_DOWNLOAD = 2;
+  // SyncActivityDirection_UPLOAD_DOWNLOAD means upload and download work are active.
+  SyncActivityDirection_UPLOAD_DOWNLOAD = 3;
+}
+
+// SyncTransportState describes cloud transport availability for the session.
+enum SyncTransportState {
+  // SyncTransportState_UNKNOWN means transport availability has not been reported.
+  SyncTransportState_UNKNOWN = 0;
+  // SyncTransportState_UNAVAILABLE means no cloud transport is configured.
+  SyncTransportState_UNAVAILABLE = 1;
+  // SyncTransportState_CONNECTING means cloud transport is connecting.
+  SyncTransportState_CONNECTING = 2;
+  // SyncTransportState_ONLINE means cloud transport is online.
+  SyncTransportState_ONLINE = 3;
+  // SyncTransportState_ERROR means cloud transport is in an error state.
+  SyncTransportState_ERROR = 4;
+}
+
+// SyncP2PState describes p2p lifecycle state for the session.
+enum SyncP2PState {
+  // SyncP2PState_UNKNOWN means p2p state has not been reported.
+  SyncP2PState_UNKNOWN = 0;
+  // SyncP2PState_NO_PEERS means p2p is ready but has no connected peers.
+  SyncP2PState_NO_PEERS = 1;
+  // SyncP2PState_IDLE means p2p peers are present with no active work.
+  SyncP2PState_IDLE = 2;
+  // SyncP2PState_ACTIVE means p2p lifecycle activity is active.
+  SyncP2PState_ACTIVE = 3;
+  // SyncP2PState_ERROR means p2p lifecycle state has an error.
+  SyncP2PState_ERROR = 4;
+}
+
+// WatchSyncStatusResponse is the response type for WatchSyncStatus.
+message WatchSyncStatusResponse {
+  // State is the aggregate sync state.
+  SyncStatusState state = 1;
+  // Direction is the active transfer direction, when any.
+  SyncActivityDirection direction = 2;
+  // TransportState is the cloud transport state.
+  SyncTransportState transport_state = 3;
+  // P2PState is the p2p lifecycle state.
+  SyncP2PState p2p_state = 4;
+  // PendingUploadBytes is the approximate upload backlog in bytes.
+  uint64 pending_upload_bytes = 5;
+  // PendingDownloadBytes is the approximate download backlog in bytes.
+  uint64 pending_download_bytes = 6;
+  // PendingUploadCount is the approximate number of pending upload items.
+  uint32 pending_upload_count = 7;
+  // PendingDownloadCount is the approximate number of pending download items.
+  uint32 pending_download_count = 8;
+  // UploadBytesPerSecond is the approximate current upload rate.
+  uint64 upload_bytes_per_second = 9;
+  // DownloadBytesPerSecond is the approximate current download rate.
+  uint64 download_bytes_per_second = 10;
+  // ActiveUploadBytes is the approximate byte size of upload work in flight.
+  uint64 active_upload_bytes = 52;
+  // ActiveUploadTransferredBytes is the approximate in-flight upload bytes sent.
+  uint64 active_upload_transferred_bytes = 53;
+  // InFlightUploadCount is the number of active upload requests.
+  uint32 in_flight_upload_count = 54;
+  // ActiveStoreCount is the number of stores currently contributing activity.
+  uint32 active_store_count = 11;
+  // ActivePeerCount is the number of connected p2p peers.
+  uint32 active_peer_count = 12;
+  // LastError is the latest sync or transport error message, if any.
+  string last_error = 13;
+  // LastActivityAt is the latest sync activity timestamp, if known.
+  google.protobuf.Timestamp last_activity_at = 14;
+  // PackRangeRequestCount is the number of completed packfile range requests.
+  uint64 pack_range_request_count = 15;
+  // PackRangeResponseBytes is the number of bytes returned by packfile range responses.
+  uint64 pack_range_response_bytes = 16;
+  // PackFullResponseFallbackCount is the number of range requests served by full responses.
+  uint64 pack_full_response_fallback_count = 17;
+  // PackFullResponseFallbackBytes is the number of discarded prefix bytes from full responses.
+  uint64 pack_full_response_fallback_bytes = 18;
+  // PackLastFullResponseFallbackBytes is the latest full-response prefix discard.
+  uint64 pack_last_full_response_fallback_bytes = 19;
+  // PackManifestEntries is the number of packfile manifest entries.
+  uint32 pack_manifest_entries = 20;
+  // PackBlockCountTotal is the sum of manifest entry block counts.
+  uint64 pack_block_count_total = 21;
+  // PackBlockCountMin is the smallest manifest entry block count.
+  uint64 pack_block_count_min = 22;
+  // PackBlockCountMax is the largest manifest entry block count.
+  uint64 pack_block_count_max = 23;
+  // PackSizeBytesTotal is the sum of manifest entry pack sizes.
+  uint64 pack_size_bytes_total = 24;
+  // PackSizeBytesMin is the smallest manifest entry pack size.
+  uint64 pack_size_bytes_min = 25;
+  // PackSizeBytesMax is the largest manifest entry pack size.
+  uint64 pack_size_bytes_max = 26;
+  // PackBloomFilterCount is the number of entries with valid bloom metadata.
+  uint32 pack_bloom_filter_count = 27;
+  // PackBloomMissingCount is the number of entries missing bloom metadata.
+  uint32 pack_bloom_missing_count = 28;
+  // PackBloomInvalidCount is the number of entries with malformed bloom metadata.
+  uint32 pack_bloom_invalid_count = 29;
+  // PackBloomParameterShapeCount is the summed per-store count of bloom parameter shapes.
+  uint32 pack_bloom_parameter_shape_count = 30;
+  // PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
+  double pack_bloom_max_false_positive_rate = 31;
+  // PackBloomRiskPackCount is the number of packs above the bloom false-positive target.
+  uint32 pack_bloom_risk_pack_count = 32;
+  // PackLookupCount is the number of pack lookups.
+  uint64 pack_lookup_count = 33;
+  // PackCandidatePacks is the total number of manifest candidates selected by lookups.
+  uint64 pack_candidate_packs = 34;
+  // PackOpenedPacks is the total number of candidate packs opened by lookups.
+  uint64 pack_opened_packs = 35;
+  // PackNegativePacks is the total number of opened candidates that missed.
+  uint64 pack_negative_packs = 36;
+  // PackTargetHits is the total number of lookups that found the target block.
+  uint64 pack_target_hits = 37;
+  // PackLastCandidatePacks is the candidate count from the latest lookup.
+  uint32 pack_last_candidate_packs = 38;
+  // PackLastOpenedPacks is the opened pack count from the latest lookup.
+  uint32 pack_last_opened_packs = 39;
+  // PackLastNegativePacks is the negative pack count from the latest lookup.
+  uint32 pack_last_negative_packs = 40;
+  // PackLastTargetHit is true when the latest lookup found its target.
+  bool pack_last_target_hit = 41;
+  // PackIndexCacheHits is the number of pack index cache hits.
+  uint64 pack_index_cache_hits = 42;
+  // PackIndexCacheMisses is the number of pack index cache misses.
+  uint64 pack_index_cache_misses = 43;
+  // PackIndexCacheReadErrors is the number of pack index cache read errors.
+  uint64 pack_index_cache_read_errors = 44;
+  // PackIndexCacheWriteErrors is the number of pack index cache write errors.
+  uint64 pack_index_cache_write_errors = 45;
+  // PackRemoteIndexLoads is the number of remote pack index loads.
+  uint64 pack_remote_index_loads = 46;
+  // PackRemoteIndexBytes is the number of remote pack index bytes fetched.
+  uint64 pack_remote_index_bytes = 47;
+  // PackLastRemoteIndexBytes is the latest remote pack index load byte count.
+  uint64 pack_last_remote_index_bytes = 48;
+  // PackIndexTailFetchCount is the number of completed index-tail range fetches.
+  uint64 pack_index_tail_fetch_count = 49;
+  // PackIndexTailFetchBytes is the number of requested index-tail range bytes.
+  uint64 pack_index_tail_fetch_bytes = 50;
+  // PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
+  uint64 pack_index_tail_response_bytes = 51;
+}
+
+// WatchLockStateRequest is the request type for WatchLockState.
+message WatchLockStateRequest {}
+
+// WatchLockStateResponse is the response type for WatchLockState.
+message WatchLockStateResponse {
+  // Mode is the current lock mode.
+  .session.SessionLockMode mode = 1;
+  // Locked is true if the session is currently locked (PIN mode and not yet unlocked).
+  bool locked = 2;
+}
+
+// SetLockModeRequest is the request type for SetLockMode.
+message SetLockModeRequest {
+  // Mode is the desired lock mode.
+  .session.SessionLockMode mode = 1;
+  // Pin is required when mode is PIN_ENCRYPTED.
+  bytes pin = 2;
+}
+
+// SetLockModeResponse is the response type for SetLockMode.
+message SetLockModeResponse {}
+
+// UnlockSessionRequest is the request type for UnlockSession.
+message UnlockSessionRequest {
+  // Pin is the PIN to unlock the session.
+  bytes pin = 1;
+}
+
+// UnlockSessionResponse is the response type for UnlockSession.
+message UnlockSessionResponse {}
+
+// LockSessionRequest is the request type for LockSession.
+message LockSessionRequest {}
+
+// LockSessionResponse is the response type for LockSession.
+message LockSessionResponse {}
+
+// GeneratePairingCodeRequest is the request for GeneratePairingCode.
+message GeneratePairingCodeRequest {}
+
+// GeneratePairingCodeResponse is the response for GeneratePairingCode.
+message GeneratePairingCodeResponse {
+  // Code is the 8-char alphanumeric pairing code.
+  string code = 1;
+}
+
+// CompletePairingRequest is the request for CompletePairing.
+message CompletePairingRequest {
+  // Code is the 8-char pairing code from the other device.
+  string code = 1;
+}
+
+// CompletePairingResponse is the response for CompletePairing.
+message CompletePairingResponse {
+  // RemotePeerId is the base58 peer ID of the linked device.
+  string remote_peer_id = 1;
+}
+
+// GetSASEmojiRequest is the request for GetSASEmoji.
+message GetSASEmojiRequest {
+  // RemotePeerId is the base58 peer ID of the remote device.
+  string remote_peer_id = 1;
+}
+
+// GetSASEmojiResponse is the response for GetSASEmoji.
+message GetSASEmojiResponse {
+  // Emoji is the 6-emoji verification sequence.
+  repeated string emoji = 1;
+}
+
+// ConfirmSASMatchRequest is the request for ConfirmSASMatch.
+message ConfirmSASMatchRequest {
+  // Confirmed is true if the user confirms the emoji match, false to reject.
+  bool confirmed = 1;
+}
+
+// ConfirmSASMatchResponse is the response for ConfirmSASMatch.
+message ConfirmSASMatchResponse {}
+
+// ConfirmPairingRequest is the request for ConfirmPairing.
+message ConfirmPairingRequest {
+  // RemotePeerId is the base58 peer ID of the verified remote device.
+  string remote_peer_id = 1;
+  // DisplayName is an optional display name for the paired device.
+  string display_name = 2;
+}
+
+// ConfirmPairingResponse is the response for ConfirmPairing.
+message ConfirmPairingResponse {}
+
+// DeleteAccountRequest is the request type for DeleteAccount.
+message DeleteAccountRequest {
+  // SessionIdx is the session index to delete.
+  uint32 session_idx = 1;
+}
+
+// DeleteAccountResponse is the response type for DeleteAccount.
+message DeleteAccountResponse {}
+
+// AccessSessionStateAtomRequest is the request for AccessStateAtom.
+message AccessSessionStateAtomRequest {
+  // StoreId is the identifier for the state store.
+  // If empty, uses the default "ui-state" store.
+  string store_id = 1;
+}
+
+// AccessSessionStateAtomResponse is the response for AccessStateAtom.
+message AccessSessionStateAtomResponse {
+  // ResourceId is the ID of the state atom resource.
+  uint32 resource_id = 1;
+}
+
+// WatchSessionStateAtomsRequest is the request for WatchStateAtoms.
+message WatchSessionStateAtomsRequest {}
+
+// WatchSessionStateAtomsResponse is the response for WatchStateAtoms.
+message WatchSessionStateAtomsResponse {
+  // StoreIds is the current list of known session state atom store ids.
+  repeated string store_ids = 1;
+  // StoreCount is the total number of known session state atom stores.
+  uint32 store_count = 2;
+}
+
+// ExportBackupKeyRequest is the request for ExportBackupKey.
+message ExportBackupKeyRequest {
+  // Password encrypts the PEM output. Required.
+  string password = 1;
+}
+
+// ExportBackupKeyResponse is the response for ExportBackupKey.
+message ExportBackupKeyResponse {
+  // PemData is the PEM-encoded private key.
+  bytes pem_data = 1;
+  // PeerId is the base58 peer ID derived from the key.
+  string peer_id = 2;
+}
+
+// GetTransferInventoryRequest is the request for GetTransferInventory.
+message GetTransferInventoryRequest {
+  // SessionIndex is the session index to inventory.
+  uint32 session_index = 1;
+}
+
+// GetTransferInventoryResponse is the response for GetTransferInventory.
+message GetTransferInventoryResponse {
+  // Spaces is the list of spaces available for transfer.
+  repeated .space.SpaceSoListEntry spaces = 1;
+}
+
+// StartTransferRequest is the request for StartTransfer.
+message StartTransferRequest {
+  // SourceSessionIndex is the source session index.
+  uint32 source_session_index = 1;
+  // TargetSessionIndex is the target session index.
+  uint32 target_session_index = 2;
+  // Mode is the transfer mode.
+  .provider.transfer.TransferMode mode = 3;
+  // SpaceIds is the optional list of space IDs to transfer.
+  // If empty, all spaces are transferred.
+  repeated string space_ids = 4;
+}
+
+// StartTransferResponse is the response for StartTransfer.
+message StartTransferResponse {}
+
+// WatchTransferProgressRequest is the request for WatchTransferProgress.
+message WatchTransferProgressRequest {}
+
+// WatchTransferProgressResponse is the response for WatchTransferProgress.
+message WatchTransferProgressResponse {
+  // State is the current transfer state.
+  .provider.transfer.TransferState state = 1;
+}
+
+// CancelTransferRequest is the request for CancelTransfer.
+message CancelTransferRequest {}
+
+// CancelTransferResponse is the response for CancelTransfer.
+message CancelTransferResponse {}
+
+// WatchPairedDevicesRequest is the request for WatchPairedDevices.
+message WatchPairedDevicesRequest {}
+
+// WatchPairedDevicesResponse is the response for WatchPairedDevices.
+message WatchPairedDevicesResponse {
+  // PairedDevices is the current list of paired devices.
+  repeated .account.settings.PairedDevice paired_devices = 1;
+  // OnlinePeerIds contains the base58 peer IDs of paired devices that
+  // currently have an active bifrost link via the session transport.
+  repeated string online_peer_ids = 2;
+}
+
+// UnlinkDeviceRequest is the request for UnlinkDevice.
+message UnlinkDeviceRequest {
+  // PeerId is the base58 peer ID of the device to unlink.
+  string peer_id = 1;
+}
+
+// UnlinkDeviceResponse is the response for UnlinkDevice.
+message UnlinkDeviceResponse {}
+
+// PairingStatus describes the current phase of a device pairing flow.
+enum PairingStatus {
+  // PairingStatus_IDLE means no pairing is in progress.
+  PairingStatus_IDLE = 0;
+  // PairingStatus_CODE_GENERATED means a pairing code was created and posted.
+  PairingStatus_CODE_GENERATED = 1;
+  // PairingStatus_WAITING_FOR_PEER means the code was resolved and waiting for link.
+  PairingStatus_WAITING_FOR_PEER = 2;
+  // PairingStatus_PEER_CONNECTED means bifrost link established with remote peer.
+  PairingStatus_PEER_CONNECTED = 3;
+  // PairingStatus_VERIFYING_EMOJI means SAS emoji verification is in progress.
+  PairingStatus_VERIFYING_EMOJI = 4;
+  // PairingStatus_VERIFIED means SAS verification succeeded.
+  PairingStatus_VERIFIED = 5;
+  // PairingStatus_FAILED means the pairing flow failed.
+  PairingStatus_FAILED = 6;
+  // PairingStatus_SIGNALING_FAILED means the signaling connection failed.
+  PairingStatus_SIGNALING_FAILED = 7;
+  // PairingStatus_CONNECTION_TIMEOUT means the peer connection timed out.
+  PairingStatus_CONNECTION_TIMEOUT = 8;
+  // PairingStatus_WAITING_FOR_REMOTE_CONFIRM means local user confirmed SAS
+  // match and is waiting for the remote device to confirm.
+  PairingStatus_WAITING_FOR_REMOTE_CONFIRM = 9;
+  // PairingStatus_BOTH_CONFIRMED means both devices confirmed the SAS match.
+  PairingStatus_BOTH_CONFIRMED = 10;
+  // PairingStatus_PAIRING_REJECTED means one side rejected the SAS match.
+  PairingStatus_PAIRING_REJECTED = 11;
+  // PairingStatus_CONFIRMATION_TIMEOUT means remote confirmation was not
+  // received within the timeout period.
+  PairingStatus_CONFIRMATION_TIMEOUT = 12;
+}
+
+// WatchPairingStatusRequest is the request for WatchPairingStatus.
+message WatchPairingStatusRequest {}
+
+// WatchPairingStatusResponse is the response for WatchPairingStatus.
+message WatchPairingStatusResponse {
+  // Status is the current pairing status.
+  PairingStatus status = 1;
+  // RemotePeerId is the base58 peer ID of the remote device (set after code resolved).
+  string remote_peer_id = 2;
+  // Code is the pairing code (set after code generated).
+  string code = 3;
+  // Emoji is the SAS emoji sequence (set during verification).
+  repeated string emoji = 4;
+  // ErrorMessage describes what went wrong (set when status is FAILED).
+  string error_message = 5;
+}
+
+// -- Space Invites --
+
+// CreateSpaceInviteRequest is the request for CreateSpaceInvite.
+message CreateSpaceInviteRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // Role is the participant role granted on acceptance.
+  .sobject.SOParticipantRole role = 2;
+  // TargetPeerId is the optional peer ID of the intended invitee (b58).
+  // Empty means open invite (anyone with the token can join).
+  string target_peer_id = 3;
+  // MaxUses is the maximum number of times the invite can be used.
+  // 0 means unlimited.
+  uint32 max_uses = 4;
+  // ExpiresAt is the time after which the invite is invalid.
+  // Unset means no expiry.
+  .google.protobuf.Timestamp expires_at = 5;
+}
+
+// CreateSpaceInviteResponse is the response for CreateSpaceInvite.
+message CreateSpaceInviteResponse {
+  // InviteMessage is the signed invite message for out-of-band distribution.
+  // Contains the raw token (not stored on-chain).
+  .sobject.SOInviteMessage invite_message = 1;
+  // ShortCode is an optional short code registered with the cloud.
+  // Present for spacewave sessions, empty for local sessions.
+  string short_code = 2;
+}
+
+// ListSpaceInvitesRequest is the request for ListSpaceInvites.
+message ListSpaceInvitesRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+}
+
+// ListSpaceInvitesResponse is the response for ListSpaceInvites.
+message ListSpaceInvitesResponse {
+  // Invites is the list of invites on the space.
+  repeated .sobject.SOInvite invites = 1;
+}
+
+// ListSpaceParticipantsRequest is the request for ListSpaceParticipants.
+message ListSpaceParticipantsRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+}
+
+// ListSpaceParticipantsResponse is the response for ListSpaceParticipants.
+message ListSpaceParticipantsResponse {
+  // Participants is the list of participants on the space.
+  repeated .sobject.SOParticipantConfig participants = 1;
+}
+
+// RemoveSpaceParticipantRequest is the request for RemoveSpaceParticipant.
+message RemoveSpaceParticipantRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // PeerId is the peer ID of the participant to remove.
+  string peer_id = 2;
+}
+
+// RemoveSpaceParticipantResponse is the response for RemoveSpaceParticipant.
+message RemoveSpaceParticipantResponse {
+  // Removed indicates whether the participant was found and removed.
+  bool removed = 1;
+}
+
+// RevokeSpaceInviteRequest is the request for RevokeSpaceInvite.
+message RevokeSpaceInviteRequest {
+  // SpaceId is the shared object ULID for the space.
+  string space_id = 1;
+  // InviteId is the invite to revoke.
+  string invite_id = 2;
+}
+
+// RevokeSpaceInviteResponse is the response for RevokeSpaceInvite.
+message RevokeSpaceInviteResponse {}
+
+// JoinSpaceViaInviteRequest is the request for JoinSpaceViaInvite.
+message JoinSpaceViaInviteRequest {
+  // InviteMessage is the out-of-band SOInviteMessage from the space owner.
+  .sobject.SOInviteMessage invite_message = 1;
+}
+
+// JoinSpaceViaInviteResult describes the immediate outcome of an invite join.
+enum JoinSpaceViaInviteResult {
+  // JoinSpaceViaInviteResult_UNSPECIFIED means the join outcome was not set.
+  JoinSpaceViaInviteResult_UNSPECIFIED = 0;
+  // JoinSpaceViaInviteResult_ACCEPTED means the invite was accepted and the
+  // shared object was joined immediately.
+  JoinSpaceViaInviteResult_ACCEPTED = 1;
+  // JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL means the invite request is
+  // waiting for owner-side mailbox processing.
+  JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL = 2;
+  // JoinSpaceViaInviteResult_REJECTED means the invite request was denied or is
+  // otherwise not eligible to join.
+  JoinSpaceViaInviteResult_REJECTED = 3;
+  // JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE means this invite path
+  // requires a live direct owner session and no owner was reachable.
+  JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE = 4;
+}
+
+// JoinSpaceViaInviteResponse is the response for JoinSpaceViaInvite.
+message JoinSpaceViaInviteResponse {
+  // SharedObjectId is the invited space ID when known.
+  string shared_object_id = 1;
+  // Result describes whether the join completed immediately or only submitted.
+  JoinSpaceViaInviteResult result = 2;
+}
+
+// GetTransferStatusRequest is the request for GetTransferStatus.
+message GetTransferStatusRequest {}
+
+// GetTransferStatusResponse is the response for GetTransferStatus.
+message GetTransferStatusResponse {
+  // Active is true if a transfer is currently running in memory.
+  bool active = 1;
+  // HasCheckpoint is true if a checkpoint exists from an interrupted transfer.
+  bool has_checkpoint = 2;
+  // State is the transfer state (from active transfer or checkpoint).
+  .provider.transfer.TransferState state = 3;
+}
+
+// -- No-Cloud Pairing (Direct WebRTC) --
+
+// LocalPairingOffer is the SDP offer for no-cloud device pairing.
+// Serialized as proto binary, compressed with DEFLATE, then base58 encoded for
+// display as QR code or copyable string. The public key is extracted from the
+// peer ID (which embeds the multihash of the public key).
+message LocalPairingOffer {
+  // Sdp is the complete SDP offer string (with ICE candidates gathered).
+  string sdp = 1;
+  // PeerId is the base58 peer ID of the offerer.
+  string peer_id = 2;
+}
+
+// LocalPairingAnswer is the SDP answer for no-cloud device pairing.
+// Same encoding: proto binary -> DEFLATE compress -> base58.
+message LocalPairingAnswer {
+  // Sdp is the complete SDP answer string (with ICE candidates gathered).
+  string sdp = 1;
+  // PeerId is the base58 peer ID of the answerer.
+  string peer_id = 2;
+}
+
+// CreateLocalPairingOfferRequest is the request for CreateLocalPairingOffer.
+message CreateLocalPairingOfferRequest {}
+
+// CreateLocalPairingOfferResponse is the response for CreateLocalPairingOffer.
+message CreateLocalPairingOfferResponse {
+  // OfferPayload is the compressed, base58-encoded offer string.
+  string offer_payload = 1;
+}
+
+// AcceptLocalPairingOfferRequest is the request for AcceptLocalPairingOffer.
+message AcceptLocalPairingOfferRequest {
+  // OfferPayload is the compressed, base58-encoded offer string from the offerer.
+  string offer_payload = 1;
+}
+
+// AcceptLocalPairingOfferResponse is the response for AcceptLocalPairingOffer.
+message AcceptLocalPairingOfferResponse {
+  // AnswerPayload is the compressed, base58-encoded answer string.
+  string answer_payload = 1;
+}
+
+// AcceptLocalPairingAnswerRequest is the request for AcceptLocalPairingAnswer.
+message AcceptLocalPairingAnswerRequest {
+  // AnswerPayload is the compressed, base58-encoded answer string from the answerer.
+  string answer_payload = 1;
+}
+
+// AcceptLocalPairingAnswerResponse is the response for AcceptLocalPairingAnswer.
+message AcceptLocalPairingAnswerResponse {
+  // RemotePeerId is the base58 peer ID of the remote device.
+  string remote_peer_id = 1;
+}

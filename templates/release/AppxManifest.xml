@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap uap10 rescap">
+  <Identity Name="ApertureRobotics.Spacewave"
+            Publisher="CN=Aperture Robotics, LLC."
+            Version="{{VERSION}}"
+            ProcessorArchitecture="{{ARCH}}" />
+  <Properties>
+    <DisplayName>Spacewave</DisplayName>
+    <PublisherDisplayName>Aperture Robotics, LLC.</PublisherDisplayName>
+    <Description>Self-host anything in the browser</Description>
+    <Logo>Assets\Square256x256Logo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop"
+                        MinVersion="10.0.17763.0"
+                        MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="Spacewave"
+                 Executable="Spacewave.exe"
+                 EntryPoint="Windows.FullTrustApplication"
+                 uap10:TrustLevel="mediumIL">
+      <uap:VisualElements DisplayName="Spacewave"
+                          Description="Self-host anything in the browser"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square128x128Logo.png"
+                          Square44x44Logo="Assets\Square48x48Logo.png" />
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

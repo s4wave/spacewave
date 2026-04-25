@@ -1,0 +1,42 @@
+syntax = "proto3";
+package s4wave.layout.world;
+
+import "github.com/s4wave/spacewave/web/object/object.proto";
+import "github.com/s4wave/spacewave/sdk/layout/layout.proto";
+
+// ObjectLayout contains information about a layout of objects.
+// This is the body of a world object with type "alpha/object-layout".
+message ObjectLayout {
+  // LayoutModel contains the definition of the layout model.
+  // The Tab data field contains serialized ObjectLayoutTab messages.
+  .s4wave.layout.LayoutModel layout_model = 1;
+}
+
+// ObjectLayoutTab contains data stored in the ObjectLayout TabDef.
+// This message is serialized into the TabDef.data field.
+message ObjectLayoutTab {
+  // ComponentId is the identifier of the selected component to load.
+  // May be empty if not selected yet.
+  string component_id = 1;
+  // ObjectInfo is the information about the object to render info about.
+  .s4wave.web.object.ObjectInfo object_info = 2;
+  // Path is the path to navigate to within the ObjectContainer.
+  string path = 3;
+}
+
+// CreateObjectLayoutOp creates an ObjectLayout.
+// The layout must not already exist.
+// The object key must have the required prefix.
+message CreateObjectLayoutOp {
+  // ObjectLayoutKey is the object key for the ObjectLayout.
+  string object_layout_key = 1;
+}
+
+// UpdateObjectLayoutOp sets the model of an ObjectLayout.
+// The layout must already exist and have the correct type.
+message UpdateObjectLayoutOp {
+  // ObjectLayoutKey is the object key for the ObjectLayout.
+  string object_layout_key = 1;
+  // LayoutModel is the updated layout model for the layout.
+  .s4wave.layout.LayoutModel layout_model = 2;
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "css": "./web/style/shadcn.css",
+    "baseColor": "gray",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@s4wave/web",
+    "utils": "@s4wave/web/style/utils.js",
+    "hooks": "@s4wave/web/hooks",
+    "lib": "@s4wave/web/ui/lib"
+  }
+}

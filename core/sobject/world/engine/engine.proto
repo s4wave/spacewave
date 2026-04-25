@@ -1,0 +1,85 @@
+syntax = "proto3";
+package sobject.world.engine;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/db/world/block/tx/tx.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures a World Graph engine bound to a block graph and controlled by a Shared Object.
+// Uses MountSharedObject to mount and access the shared object and block store.
+// Stores the HEAD reference in the Shared Object.
+message Config {
+  // EngineId is the identifier used to look up the world on the bus.
+  // Used to match & resolve WorldEngine directives.
+  // If empty, LookupWorldEngine will not be processed.
+  string engine_id = 1;
+  // Ref is the shared object ref.
+  .sobject.SharedObjectRef ref = 2;
+  // InitWorldOp overrides the contents of the InitWorldOp when initializing the world.
+  // Only used if the shared object is empty.
+  InitWorldOp init_world_op = 3;
+
+  // DisableLookup disables looking up anything on the bus via directives.
+  // Implies both DisableApplyWorldOp and DisableApplyObjectOp.
+  bool disable_lookup = 4;
+  // DisableApplyWorldOp disables calling the ApplyWorldOp directive.
+  bool disable_apply_world_op = 5;
+  // DisableApplyObjectOp disables calling the ApplyObjectOp directive.
+  bool disable_apply_object_op = 6;
+
+  // Verbose logs all operation results as debug messages.
+  bool verbose = 7;
+
+  // ProcessOpsBackoff is the backoff for processing ops as a validator.
+  // Defaults to reasonable defaults if unset.
+  .backoff.Backoff process_ops_backoff = 8;
+
+  // GcSweepIdleWindowDur is the idle window duration after the last write
+  // before a GC sweep is triggered if garbage exists.
+  // Duration in nanoseconds. If zero, defaults to 5 seconds.
+  uint64 gc_sweep_idle_window_dur = 9;
+  // GcSweepBackstopIntervalDur is the periodic backstop interval for GC sweeps.
+  // Duration in nanoseconds. If zero, defaults to 5 minutes.
+  uint64 gc_sweep_backstop_interval_dur = 10;
+}
+
+// InnerState contains the inner state object for the SharedObject.
+// Note that the SharedObject inner state thas a very small size limit.
+message InnerState {
+  // HeadRef is the most recent reference to the world state.
+  // Includes the in-line transform config w/ crypto key.
+  // The bucket ID will be overridden when loaded.
+  // The bucket ID should be set to empty.
+  // The object referenced is a .world.block.World block.
+  .bucket.ObjectRef head_ref = 1;
+}
+
+// SOWorldOp is the outer wrapper for a shared object operation against a world InnerState.
+message SOWorldOp {
+  // Body is the body of the operation.
+  oneof body {
+    // InitWorld is the init world operation.
+    InitWorldOp init_world = 1;
+    // ApplyTxOp applies a world transaction.
+    ApplyTxOp apply_tx_op = 2;
+  }
+}
+
+// InitWorldOp is the operation to initialize the inner state.
+message InitWorldOp {
+  // LastChangeDisable indicates the changelog is disabled for this world.
+  // If set, last_change will be empty, except for the seqno field.
+  // NOTE: the seqno field will not be empty on LastChange.
+  bool last_change_disable = 1;
+  // TransformConf is the transform configuration to use for the world.
+  // If unset, a default transform config with a random key will be generated.
+  .block.transform.Config transform_conf = 2;
+}
+
+// ApplyTxOp is the operation to apply a world transaction.
+message ApplyTxOp {
+  // tx is the tx or tx batch to apply
+  .world.block.tx.Tx tx = 1;
+}

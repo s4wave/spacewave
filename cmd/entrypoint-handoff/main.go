@@ -1,0 +1,936 @@
+//go:build !js
+
+package main
+
+import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"flag"
+	"image"
+	"image/png"
+	"io"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+)
+
+const usageText = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser] --out-dir /path/to/out"
+
+func main() {
+	if err := run(context.Background(), os.Args[1:]); err != nil {
+		_, _ = io.WriteString(os.Stderr, err.Error()+"\n")
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("entrypoint-handoff", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+
+	var version string
+	var platformsCSV string
+	var outDir string
+	var reactDev bool
+	var skipNotarize bool
+	var includeBrowser bool
+	var skipBuild bool
+	var skipPackage bool
+	var stageBuildInputs bool
+	if err := func() error {
+		fs.StringVar(&version, "version", "", "release version")
+		fs.StringVar(&platformsCSV, "platforms", "", "comma-separated target platforms")
+		fs.StringVar(&outDir, "out-dir", "", "path to the staged handoff output dir")
+		fs.BoolVar(&reactDev, "react-dev", false, "build browser entrypoint in dev mode")
+		fs.BoolVar(&skipNotarize, "skip-notarize", false, "skip Apple notarization during packaging")
+		fs.BoolVar(&includeBrowser, "include-browser", false, "include browser staging tree and static-manifest.ts")
+		fs.BoolVar(&skipBuild, "skip-build", false, "skip helper and entrypoint builds and package existing artifacts")
+		fs.BoolVar(&skipPackage, "skip-package", false, "skip installer packaging")
+		fs.BoolVar(&stageBuildInputs, "stage-build-inputs", false, "stage raw dist/helper/icon inputs into out-dir")
+		return fs.Parse(args)
+	}(); err != nil {
+		return errors.Wrap(err, "parse flags")
+	}
+	if version == "" || platformsCSV == "" || outDir == "" {
+		return errors.New(usageText)
+	}
+
+	repoDir, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "resolve repo dir")
+	}
+	platforms := splitCSV(platformsCSV)
+	if len(platforms) == 0 {
+		return errors.New("at least one platform is required")
+	}
+
+	le := logrus.NewEntry(logrus.StandardLogger())
+	le.WithField("platforms", strings.Join(platforms, ",")).
+		WithField("include_browser", includeBrowser).
+		Info("building entrypoint handoff slice")
+
+	if err := os.RemoveAll(outDir); err != nil {
+		return errors.Wrap(err, "clean out dir")
+	}
+	for _, rel := range []string{
+		filepath.Join(".tmp", "dist"),
+		filepath.Join(".tmp", "Spacewave.app"),
+		filepath.Join(".tmp", "Spacewave-amd64.zip"),
+		filepath.Join(".tmp", "Spacewave-arm64.zip"),
+		filepath.Join(".tmp", "Spacewave.AppDir-amd64"),
+		filepath.Join(".tmp", "Spacewave.AppDir-arm64"),
+		filepath.Join(".tmp", "msix-layout-amd64"),
+		filepath.Join(".tmp", "msix-layout-arm64"),
+		filepath.Join(".tmp", "winzip-layout-amd64"),
+		filepath.Join(".tmp", "winzip-layout-arm64"),
+		filepath.Join(".tmp", "macos-helper-plists"),
+		"staging",
+		filepath.Join("dist", "installers"),
+	} {
+		if err := os.RemoveAll(filepath.Join(repoDir, rel)); err != nil {
+			return errors.Wrap(err, "clean "+rel)
+		}
+	}
+
+	if err := prepareSupportFiles(ctx, repoDir, platforms); err != nil {
+		return err
+	}
+	if !skipBuild && needsBuilderImage(platforms) {
+		if err := runScript(repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh")); err != nil {
+			return errors.Wrap(err, "ensure builder image")
+		}
+	}
+	if !skipBuild {
+		if err := buildHelpers(repoDir, platforms); err != nil {
+			return err
+		}
+		if err := buildEntrypoints(ctx, repoDir, platforms); err != nil {
+			return err
+		}
+		if err := buildCliEntrypoints(ctx, repoDir, platforms); err != nil {
+			return err
+		}
+		if err := signMacOSCliEntrypoints(ctx, repoDir, platforms); err != nil {
+			return err
+		}
+	}
+	if stageBuildInputs {
+		if err := stageBuildInputsTree(repoDir, outDir, platforms); err != nil {
+			return err
+		}
+	}
+	if skipPackage {
+		return nil
+	}
+	if err := buildBundles(repoDir, platforms); err != nil {
+		return err
+	}
+	if err := packageInstallers(repoDir, version, platforms, skipNotarize); err != nil {
+		return err
+	}
+	if err := packageCliArtifacts(repoDir, platforms); err != nil {
+		return err
+	}
+	if err := notarizeMacOSCliArchives(ctx, repoDir, platforms, skipNotarize); err != nil {
+		return err
+	}
+	if includeBrowser {
+		if err := buildBrowser(ctx, repoDir, reactDev); err != nil {
+			return err
+		}
+	}
+	if err := stageOutputs(repoDir, outDir, includeBrowser); err != nil {
+		return err
+	}
+	return nil
+}
+
+func splitCSV(v string) []string {
+	var out []string
+	for item := range strings.SplitSeq(v, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func needsBuilderImage(platforms []string) bool {
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		if goos != "darwin" {
+			return true
+		}
+	}
+	return false
+}
+
+func splitPlatform(platform string) (string, string) {
+	for i := len(platform) - 1; i >= 0; i-- {
+		if platform[i] == '-' {
+			return platform[:i], platform[i+1:]
+		}
+	}
+	return platform, ""
+}
+
+func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string) error {
+	if err := runScript(repoDir, filepath.Join("scripts", "release", "gen-desktop.sh")); err != nil {
+		return errors.Wrap(err, "gen-desktop")
+	}
+	iconPath := filepath.Join(repoDir, "web", "images", "spacewave-icon.png")
+	needsDarwin := false
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		if goos == "darwin" {
+			needsDarwin = true
+			break
+		}
+	}
+	if !needsDarwin {
+		return generateHostIcons(ctx, repoDir, iconPath)
+	}
+	if err := runScript(repoDir, filepath.Join("scripts", "release", "gen-icons.sh"), iconPath); err != nil {
+		return errors.Wrap(err, "gen-icons")
+	}
+	return nil
+}
+
+func buildHelpers(repoDir string, platforms []string) error {
+	needsDarwin := false
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		if goos == "darwin" {
+			needsDarwin = true
+			continue
+		}
+		if err := runScript(repoDir, filepath.Join("scripts", "release", "build-helper.sh"), goos, goarch); err != nil {
+			return errors.Wrap(err, "build helper "+platform)
+		}
+	}
+	if !needsDarwin {
+		return nil
+	}
+	if err := runScript(repoDir, filepath.Join("scripts", "release", "build-helper.sh"), "darwin", "arm64"); err != nil {
+		return errors.Wrap(err, "build helper darwin")
+	}
+	return nil
+}
+
+func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		buildID := "release-desktop-" + goos + "-" + goarch
+		if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", buildID); err != nil {
+			return errors.Wrap(err, "run bldr "+platform)
+		}
+
+		binName := "spacewave"
+		if goos == "windows" {
+			binName += ".exe"
+		}
+		srcBin := filepath.Join(
+			repoDir, ".bldr", "build", "desktop", goos, goarch,
+			"spacewave-dist", "dist", binName,
+		)
+		dstDir := filepath.Join(repoDir, ".tmp", "dist", platform)
+		dstBin := filepath.Join(dstDir, binName)
+		if err := os.MkdirAll(dstDir, 0o755); err != nil {
+			return errors.Wrap(err, "mkdir dist dir "+platform)
+		}
+		if err := copyFile(srcBin, dstBin); err != nil {
+			return errors.Wrap(err, "copy dist binary "+platform)
+		}
+		if err := os.Chmod(dstBin, 0o755); err != nil {
+			return errors.Wrap(err, "chmod dist binary "+platform)
+		}
+	}
+	return nil
+}
+
+// buildCliEntrypoints cross-compiles the standalone spacewave-cli binary
+// for each requested platform and stages the result at
+// .tmp/dist-cli/<platform>/spacewave[.exe]. The archive payload uses the
+// public command name even though the internal build target is spacewave-cli.
+func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		buildID := "release-cli-" + goos + "-" + goarch
+		if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", buildID); err != nil {
+			return errors.Wrap(err, "run bldr "+platform)
+		}
+
+		srcBinName := "spacewave-cli"
+		dstBinName := "spacewave"
+		if goos == "windows" {
+			srcBinName += ".exe"
+			dstBinName += ".exe"
+		}
+		srcBin := filepath.Join(
+			repoDir, ".bldr", "build", "desktop", goos, goarch,
+			"spacewave-cli", "dist", srcBinName,
+		)
+		dstDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
+		dstBin := filepath.Join(dstDir, dstBinName)
+		if err := os.MkdirAll(dstDir, 0o755); err != nil {
+			return errors.Wrap(err, "mkdir cli dist dir "+platform)
+		}
+		if err := copyFile(srcBin, dstBin); err != nil {
+			return errors.Wrap(err, "copy cli binary "+platform)
+		}
+		if err := os.Chmod(dstBin, 0o755); err != nil {
+			return errors.Wrap(err, "chmod cli binary "+platform)
+		}
+	}
+	return nil
+}
+
+// signMacOSCliEntrypoints applies the same Developer ID signing identity used
+// for the desktop .app to standalone macOS CLI binaries before they are
+// archived. Windows CLI binaries are signed in the GitHub workflow with Azure
+// Trusted Signing after the staged build-input artifact is downloaded.
+func signMacOSCliEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+	signingID := strings.TrimSpace(os.Getenv("BLDR_MACOS_SIGN_IDENTITY"))
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		if goos != "darwin" {
+			continue
+		}
+		if signingID == "" {
+			return errors.New("BLDR_MACOS_SIGN_IDENTITY is required to sign macOS CLI artifacts")
+		}
+		binPath := filepath.Join(repoDir, ".tmp", "dist-cli", platform, "spacewave")
+		cmd := exec.CommandContext(
+			ctx,
+			"codesign",
+			"--force",
+			"--sign", signingID,
+			"--options", "runtime",
+			binPath,
+		)
+		cmd.Dir = repoDir
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return errors.Wrap(err, "codesign cli "+platform)
+		}
+		verify := exec.CommandContext(ctx, "codesign", "--verify", "--strict", binPath)
+		verify.Dir = repoDir
+		verify.Env = os.Environ()
+		verify.Stdout = os.Stdout
+		verify.Stderr = os.Stderr
+		if err := verify.Run(); err != nil {
+			return errors.Wrap(err, "verify cli signature "+platform)
+		}
+	}
+	return nil
+}
+
+func buildBundles(repoDir string, platforms []string) error {
+	bundlesDir := filepath.Join(repoDir, ".tmp", "dist", "bundles")
+	if err := os.RemoveAll(bundlesDir); err != nil {
+		return errors.Wrap(err, "clean bundles dir")
+	}
+	if err := os.MkdirAll(bundlesDir, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir bundles dir")
+	}
+
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		srcDir := filepath.Join(repoDir, ".tmp", "dist", platform)
+		archivePath := filepath.Join(bundlesDir, archiveName(goos, platform))
+		if goos == "windows" {
+			if _, err := zipDir(srcDir, archivePath); err != nil {
+				return errors.Wrap(err, "zip "+platform)
+			}
+			continue
+		}
+		if _, err := tarGzDir(srcDir, archivePath); err != nil {
+			return errors.Wrap(err, "tar.gz "+platform)
+		}
+	}
+	return nil
+}
+
+func generateHostIcons(ctx context.Context, repoDir, iconPath string) error {
+	f, err := os.Open(iconPath)
+	if err != nil {
+		return errors.Wrap(err, "open icon source")
+	}
+	defer f.Close()
+
+	src, _, err := image.Decode(f)
+	if err != nil {
+		return errors.Wrap(err, "decode icon source")
+	}
+
+	iconsDir := filepath.Join(repoDir, ".tmp", "icons")
+	if err := os.MkdirAll(iconsDir, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir icons dir")
+	}
+	for _, size := range []int{16, 32, 48, 64, 128, 256, 512} {
+		dst := resizeImage(src, size)
+		outPath := filepath.Join(iconsDir, "icon-"+itoa(size)+".png")
+		outFile, err := os.Create(outPath)
+		if err != nil {
+			return errors.Wrap(err, "create "+outPath)
+		}
+		if err := png.Encode(outFile, dst); err != nil {
+			_ = outFile.Close()
+			return errors.Wrap(err, "encode "+outPath)
+		}
+		if err := outFile.Close(); err != nil {
+			return errors.Wrap(err, "close "+outPath)
+		}
+	}
+	icoInputs := []string{
+		filepath.Join(iconsDir, "icon-16.png"),
+		filepath.Join(iconsDir, "icon-32.png"),
+		filepath.Join(iconsDir, "icon-48.png"),
+		filepath.Join(iconsDir, "icon-64.png"),
+		filepath.Join(iconsDir, "icon-128.png"),
+		filepath.Join(iconsDir, "icon-256.png"),
+	}
+	outFile, err := os.Create(filepath.Join(iconsDir, "icon.ico"))
+	if err != nil {
+		return errors.Wrap(err, "create icon.ico")
+	}
+	defer outFile.Close()
+
+	cmd := exec.CommandContext(ctx, "bun", append([]string{"x", "png-to-ico"}, icoInputs...)...)
+	cmd.Dir = repoDir
+	cmd.Env = os.Environ()
+	cmd.Stdout = outFile
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "png-to-ico")
+	}
+	return nil
+}
+
+func resizeImage(src image.Image, size int) *image.RGBA {
+	dst := image.NewRGBA(image.Rect(0, 0, size, size))
+	bounds := src.Bounds()
+	sw := bounds.Dx()
+	sh := bounds.Dy()
+	for y := range size {
+		sy := bounds.Min.Y + ((2*y+1)*sh)/(2*size)
+		for x := range size {
+			sx := bounds.Min.X + ((2*x+1)*sw)/(2*size)
+			dst.Set(x, y, src.At(sx, sy))
+		}
+	}
+	return dst
+}
+
+func archiveName(goos, platform string) string {
+	if goos == "windows" {
+		return "spacewave-" + platform + ".zip"
+	}
+	return "spacewave-" + platform + ".tar.gz"
+}
+
+// cliArchiveName returns the per-platform CLI archive filename. macOS and
+// Windows targets get zip archives; Linux targets get tar.gz. macOS uses the
+// user-facing "macos" label rather than the Go GOOS "darwin" so the filename
+// matches the URLs declared in app/download/manifest.ts and the existing
+// installer naming (spacewave-macos-*.dmg).
+func cliArchiveName(goos, platform string) string {
+	label := userFacingPlatformLabel(goos, platform)
+	if goos == "darwin" || goos == "windows" {
+		return "spacewave-cli-" + label + ".zip"
+	}
+	return "spacewave-cli-" + label + ".tar.gz"
+}
+
+// userFacingPlatformLabel returns the human-facing platform label for a
+// given goos/platform tuple. macOS gets "macos" everywhere it appears
+// in user-visible filenames; other platforms keep their Go GOOS name.
+func userFacingPlatformLabel(goos, platform string) string {
+	if goos != "darwin" {
+		return platform
+	}
+	_, goarch := splitPlatform(platform)
+	return "macos-" + goarch
+}
+
+// packageCliArtifacts archives each per-platform CLI binary staged by
+// buildCliEntrypoints into the named archive expected by the public
+// /download manifest. Output lands in dist/cli/.
+func packageCliArtifacts(repoDir string, platforms []string) error {
+	cliDir := filepath.Join(repoDir, "dist", "cli")
+	if err := os.RemoveAll(cliDir); err != nil {
+		return errors.Wrap(err, "clean cli dir")
+	}
+	if err := os.MkdirAll(cliDir, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir cli dir")
+	}
+
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		srcDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
+		archivePath := filepath.Join(cliDir, cliArchiveName(goos, platform))
+		if goos == "darwin" || goos == "windows" {
+			if _, err := zipDir(srcDir, archivePath); err != nil {
+				return errors.Wrap(err, "zip cli "+platform)
+			}
+			continue
+		}
+		if _, err := tarGzDir(srcDir, archivePath); err != nil {
+			return errors.Wrap(err, "tar.gz cli "+platform)
+		}
+	}
+	return nil
+}
+
+// notarizeMacOSCliArchives submits the signed macOS CLI zip archives to Apple
+// notarization. Plain command-line tools cannot be stapled like .app/.dmg/.pkg
+// payloads, so the distributable zip is the notarized artifact.
+func notarizeMacOSCliArchives(ctx context.Context, repoDir string, platforms []string, skipNotarize bool) error {
+	if skipNotarize {
+		return nil
+	}
+	profile := strings.TrimSpace(os.Getenv("BLDR_MACOS_NOTARIZE_PROFILE"))
+	if profile == "" {
+		profile = "spacewave-notarize"
+	}
+	for _, platform := range platforms {
+		goos, _ := splitPlatform(platform)
+		if goos != "darwin" {
+			continue
+		}
+		archivePath := filepath.Join(repoDir, "dist", "cli", cliArchiveName(goos, platform))
+		cmd := exec.CommandContext(
+			ctx,
+			"xcrun",
+			"notarytool",
+			"submit",
+			archivePath,
+			"--keychain-profile", profile,
+			"--wait",
+		)
+		cmd.Dir = repoDir
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return errors.Wrap(err, "notarize cli "+platform)
+		}
+	}
+	return nil
+}
+
+func packageInstallers(repoDir, version string, platforms []string, skipNotarize bool) error {
+	for _, platform := range platforms {
+		goos, goarch := splitPlatform(platform)
+		switch goos {
+		case "darwin":
+			args := []string{filepath.Join("scripts", "release", "build-macos.sh"), goarch, version}
+			if skipNotarize {
+				args = append(args, "--skip-notarize")
+			}
+			if err := runScript(repoDir, args[0], args[1:]...); err != nil {
+				return errors.Wrap(err, "build-macos "+platform)
+			}
+		case "windows":
+			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-msix.sh"), goarch, version); err != nil {
+				return errors.Wrap(err, "build-msix "+platform)
+			}
+			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-winzip.sh"), goarch, version); err != nil {
+				return errors.Wrap(err, "build-winzip "+platform)
+			}
+		case "linux":
+			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-appimage.sh"), goarch); err != nil {
+				return errors.Wrap(err, "build-appimage "+platform)
+			}
+		default:
+			return errors.New("unknown platform " + platform)
+		}
+	}
+	return nil
+}
+
+func buildBrowser(ctx context.Context, repoDir string, reactDev bool) error {
+	for _, rel := range []string{".bldr-dist", filepath.Join("app", "prerender", "dist")} {
+		if err := os.RemoveAll(filepath.Join(repoDir, rel)); err != nil {
+			return errors.Wrap(err, "clean "+rel)
+		}
+	}
+
+	buildScript := "build:release:web"
+	if reactDev {
+		buildScript = "build:release:web:debug"
+	}
+	if err := runBun(ctx, repoDir, "run", buildScript); err != nil {
+		return errors.Wrap(err, "build release web")
+	}
+	if err := runBun(ctx, repoDir, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
+		return errors.Wrap(err, "build hydrate bundle")
+	}
+	if err := runBun(ctx, repoDir, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
+		return errors.Wrap(err, "build prerender bundle")
+	}
+
+	bldrDistDir := filepath.Join(repoDir, ".bldr-dist", "build", "js", "spacewave-dist", "dist")
+	if err := runBun(ctx, repoDir, "./app/prerender/ssr-dist/build.js", "--dist-dir", bldrDistDir); err != nil {
+		return errors.Wrap(err, "prerender")
+	}
+
+	stagingDir := filepath.Join(repoDir, "staging")
+	if err := os.RemoveAll(stagingDir); err != nil {
+		return errors.Wrap(err, "clean staging")
+	}
+	if err := stageWebDist(bldrDistDir, stagingDir); err != nil {
+		return errors.Wrap(err, "stage web dist")
+	}
+	if err := stageStaticHTML(filepath.Join(repoDir, "app", "prerender", "dist"), stagingDir); err != nil {
+		return errors.Wrap(err, "stage static html")
+	}
+	return nil
+}
+
+func stageOutputs(repoDir, outDir string, includeBrowser bool) error {
+	installersOut := filepath.Join(outDir, "installers")
+	bundlesOut := filepath.Join(outDir, "bundles")
+	cliOut := filepath.Join(outDir, "cli")
+	if err := os.MkdirAll(installersOut, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir installers out")
+	}
+	if err := os.MkdirAll(bundlesOut, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir bundles out")
+	}
+	if err := os.MkdirAll(cliOut, 0o755); err != nil {
+		return errors.Wrap(err, "mkdir cli out")
+	}
+	if err := copyDirContents(filepath.Join(repoDir, "dist", "installers"), installersOut); err != nil {
+		return errors.Wrap(err, "stage installers")
+	}
+	if err := copyDirContents(filepath.Join(repoDir, ".tmp", "dist", "bundles"), bundlesOut); err != nil {
+		return errors.Wrap(err, "stage bundles")
+	}
+	cliDir := filepath.Join(repoDir, "dist", "cli")
+	if _, err := os.Stat(cliDir); err == nil {
+		if err := copyDirContents(cliDir, cliOut); err != nil {
+			return errors.Wrap(err, "stage cli")
+		}
+	}
+	if !includeBrowser {
+		return nil
+	}
+	if err := copyTree(filepath.Join(repoDir, "staging"), filepath.Join(outDir, "browser-staging")); err != nil {
+		return errors.Wrap(err, "stage browser tree")
+	}
+	if err := copyFile(
+		filepath.Join(repoDir, "app", "prerender", "dist", "static-manifest.ts"),
+		filepath.Join(outDir, "static-manifest.ts"),
+	); err != nil {
+		return errors.Wrap(err, "stage static-manifest.ts")
+	}
+	return nil
+}
+
+func stageBuildInputsTree(repoDir, outDir string, platforms []string) error {
+	for _, platform := range platforms {
+		if err := copyTree(
+			filepath.Join(repoDir, ".tmp", "dist", platform),
+			filepath.Join(outDir, ".tmp", "dist", platform),
+		); err != nil {
+			return errors.Wrap(err, "stage dist "+platform)
+		}
+		if err := copyTree(
+			filepath.Join(repoDir, ".tmp", "dist-cli", platform),
+			filepath.Join(outDir, ".tmp", "dist-cli", platform),
+		); err != nil {
+			return errors.Wrap(err, "stage dist-cli "+platform)
+		}
+		if err := copyTree(
+			filepath.Join(repoDir, "dist", "helper", platform),
+			filepath.Join(outDir, "dist", "helper", platform),
+		); err != nil {
+			return errors.Wrap(err, "stage helper "+platform)
+		}
+	}
+	if err := copyTree(
+		filepath.Join(repoDir, ".tmp", "icons"),
+		filepath.Join(outDir, ".tmp", "icons"),
+	); err != nil {
+		return errors.Wrap(err, "stage icons")
+	}
+	return nil
+}
+
+func runScript(repoDir, script string, args ...string) error {
+	cmd := exec.Command("bash", append([]string{script}, args...)...)
+	cmd.Dir = repoDir
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runBldr(ctx context.Context, repoDir string, args ...string) error {
+	cmdArgs := append([]string{"run", "github.com/s4wave/spacewave/bldr/cmd/bldr"}, args...)
+	cmd := exec.CommandContext(ctx, "go", cmdArgs...)
+	cmd.Dir = repoDir
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runBun(ctx context.Context, repoDir string, args ...string) error {
+	cmd := exec.CommandContext(ctx, "bun", args...)
+	cmd.Dir = repoDir
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func itoa(v int) string { return strconv.Itoa(v) }
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return errors.Wrap(err, "open "+src)
+	}
+	defer in.Close()
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return errors.Wrap(err, "mkdir "+filepath.Dir(dst))
+	}
+	out, err := os.Create(dst)
+	if err != nil {
+		return errors.Wrap(err, "create "+dst)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return errors.Wrap(err, "copy "+src)
+	}
+	return out.Close()
+}
+
+func copyDirContents(srcDir, dstDir string) error {
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return errors.Wrap(err, "read "+srcDir)
+	}
+	for _, entry := range entries {
+		src := filepath.Join(srcDir, entry.Name())
+		dst := filepath.Join(dstDir, entry.Name())
+		if entry.IsDir() {
+			if err := copyTree(src, dst); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := copyFile(src, dst); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyTree(srcRoot, dstRoot string) error {
+	return filepath.Walk(srcRoot, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrap(err, "walk "+path)
+		}
+		rel, err := filepath.Rel(srcRoot, path)
+		if err != nil {
+			return errors.Wrap(err, "rel path")
+		}
+		if rel == "." {
+			return os.MkdirAll(dstRoot, 0o755)
+		}
+		dst := filepath.Join(dstRoot, rel)
+		if info.IsDir() {
+			return os.MkdirAll(dst, 0o755)
+		}
+		if err := copyFile(path, dst); err != nil {
+			return err
+		}
+		return os.Chmod(dst, info.Mode())
+	})
+}
+
+func tarGzDir(srcDir, destPath string) (string, error) {
+	outFile, err := os.Create(destPath)
+	if err != nil {
+		return "", errors.Wrap(err, "create output")
+	}
+	defer outFile.Close()
+
+	hash := sha256.New()
+	mw := io.MultiWriter(outFile, hash)
+	gw := gzip.NewWriter(mw)
+	tw := tar.NewWriter(gw)
+
+	err = filepath.Walk(srcDir, func(path string, info fs.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+		header, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return errors.Wrap(err, "file info header")
+		}
+		header.Name = relPath
+		if info.IsDir() {
+			header.Name += "/"
+		}
+		if err := tw.WriteHeader(header); err != nil {
+			return errors.Wrap(err, "write header")
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return errors.Wrap(err, "open "+relPath)
+		}
+		defer f.Close()
+		if _, err := io.Copy(tw, f); err != nil {
+			return errors.Wrap(err, "copy "+relPath)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "walk")
+	}
+	if err := tw.Close(); err != nil {
+		return "", errors.Wrap(err, "close tar")
+	}
+	if err := gw.Close(); err != nil {
+		return "", errors.Wrap(err, "close gzip")
+	}
+	if err := outFile.Close(); err != nil {
+		return "", errors.Wrap(err, "close file")
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func zipDir(srcDir, destPath string) (string, error) {
+	outFile, err := os.Create(destPath)
+	if err != nil {
+		return "", errors.Wrap(err, "create output")
+	}
+	defer outFile.Close()
+
+	hash := sha256.New()
+	mw := io.MultiWriter(outFile, hash)
+	zw := zip.NewWriter(mw)
+
+	err = filepath.Walk(srcDir, func(path string, info fs.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+		if info.IsDir() {
+			_, err := zw.Create(relPath + "/")
+			return err
+		}
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return errors.Wrap(err, "file info header")
+		}
+		header.Name = relPath
+		header.Method = zip.Deflate
+		w, err := zw.CreateHeader(header)
+		if err != nil {
+			return errors.Wrap(err, "create header")
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return errors.Wrap(err, "open "+relPath)
+		}
+		defer f.Close()
+		if _, err := io.Copy(w, f); err != nil {
+			return errors.Wrap(err, "copy "+relPath)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "walk")
+	}
+	if err := zw.Close(); err != nil {
+		return "", errors.Wrap(err, "close zip")
+	}
+	if err := outFile.Close(); err != nil {
+		return "", errors.Wrap(err, "close file")
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func stageWebDist(distDir, stagingDir string) error {
+	return filepath.WalkDir(distDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return errors.Wrap(err, "walk "+path)
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(distDir, path)
+		if err != nil {
+			return errors.Wrap(err, "rel path")
+		}
+		relPath = filepath.ToSlash(relPath)
+
+		destPath := filepath.Join(stagingDir, "app", relPath)
+		if strings.HasSuffix(d.Name(), ".packedmsg") {
+			destPath = filepath.Join(stagingDir, "dist", d.Name())
+		}
+		return copyFile(path, destPath)
+	})
+}
+
+func stageStaticHTML(prerenderDir, stagingDir string) error {
+	return filepath.WalkDir(prerenderDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return errors.Wrap(err, "walk "+path)
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		switch filepath.Ext(d.Name()) {
+		case ".html", ".css", ".js", ".woff2", ".png", ".svg", ".ico":
+		default:
+			return nil
+		}
+
+		relPath, err := filepath.Rel(prerenderDir, path)
+		if err != nil {
+			return errors.Wrap(err, "rel path")
+		}
+		return copyFile(path, filepath.Join(stagingDir, "static", relPath))
+	})
+}

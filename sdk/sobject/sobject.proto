@@ -1,0 +1,28 @@
+syntax = "proto3";
+package s4wave.sobject;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+service SharedObjectResourceService {
+  rpc WatchSharedObjectHealth(WatchSharedObjectHealthRequest) returns (stream WatchSharedObjectHealthResponse);
+
+  rpc MountSharedObjectBody(MountSharedObjectBodyRequest) returns (MountSharedObjectBodyResponse);
+}
+
+// WatchSharedObjectHealthRequest is the request type for WatchSharedObjectHealth.
+message WatchSharedObjectHealthRequest {}
+
+// WatchSharedObjectHealthResponse is the response type for WatchSharedObjectHealth.
+message WatchSharedObjectHealthResponse {
+  // Health is the current SharedObject health snapshot.
+  .sobject.SharedObjectHealth health = 1;
+}
+
+// MountSharedObjectBodyRequest is the request type for MountSharedObjectBody.
+message MountSharedObjectBodyRequest {}
+
+// MountSharedObjectBodyResponse is the response type for MountSharedObjectBody.
+message MountSharedObjectBodyResponse {
+  // ResourceId is the ID of the mounted shared object body resource.
+  uint32 resource_id = 1;
+}

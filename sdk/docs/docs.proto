@@ -1,0 +1,33 @@
+syntax = "proto3";
+package s4wave.docs;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/docs;s4wave_docs";
+
+// Documentation is a world object representing a documentation site.
+// Content is sourced from a UnixFS directory (markdown files) linked via
+// the doc/source graph edge. Optionally linked to a GitRepo for versioning.
+message Documentation {
+  // Name is the display name of the documentation site.
+  string name = 1;
+  // Description is a short description of the documentation.
+  string description = 2;
+  // CreatedAt is the creation timestamp.
+  .google.protobuf.Timestamp created_at = 3;
+  // Links (via graph edges, not proto fields):
+  //   doc/source -> UnixFS object (markdown root directory)
+  //   doc/git-repo -> GitRepo object (optional, for version history)
+}
+
+// CreateDocumentationOp creates a new Documentation world object.
+message CreateDocumentationOp {
+  // ObjectKey is the key to create the documentation at.
+  string object_key = 1;
+  // Name is the display name.
+  string name = 2;
+  // Description is a short description.
+  string description = 3;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 4;
+}

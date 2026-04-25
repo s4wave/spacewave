@@ -38,7 +38,6 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "../common/quic/quic.pb.h"
 #include "../common/dialer/dialer.pb.h"
-#include "../../stream/srpc/client/client.pb.h"
 #include "github.com/aperturerobotics/util/backoff/backoff.pb.h"
 // @@protoc_insertion_point(includes)
 

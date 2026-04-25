@@ -2,7 +2,6 @@ syntax = "proto3";
 package bldr.web.plugin;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
-import "github.com/aperturerobotics/util/filter/filter.proto";
 import "github.com/s4wave/spacewave/bldr/web/view/handler/handler.proto";
 
 // WebPlugin implements the bldr web plugin service.
@@ -117,4 +116,3 @@ message HandleWebPkgsViaPluginAssetsResponse {
     bool ready = 1;
   }
 }
-

@@ -1,0 +1,5 @@
+syntax = "proto3";
+package space.http.download;
+
+// Config configures the download controller.
+message Config {}

@@ -1,0 +1,162 @@
+syntax = "proto3";
+package s4wave.bucket_lookup;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+
+// MountBucketLookupRequest is the request type for mounting a bucket lookup cursor.
+message MountBucketLookupRequest {
+  // BucketId is the bucket to access.
+  string bucket_id = 1;
+  // VolumeId is the volume for read-write access.
+  // If empty, the cursor will be read-only.
+  string volume_id = 2;
+  // TransformConf is the transform configuration.
+  // Optional, may be empty.
+  .block.transform.Config transform_conf = 3;
+}
+
+// MountBucketLookupResponse is the response type for mounting a bucket lookup cursor.
+message MountBucketLookupResponse {
+  // ResourceId is the ID of the BucketLookupCursor resource.
+  uint32 resource_id = 1;
+  // BucketId is the bucket ID.
+  string bucket_id = 2;
+  // VolumeId is the volume ID.
+  // Empty if read-only.
+  string volume_id = 3;
+}
+
+// GetRefRequest is the request type for GetRef.
+message GetRefRequest {}
+
+// GetRefResponse is the response type for GetRef.
+message GetRefResponse {
+  // Ref is the current object reference.
+  .bucket.ObjectRef ref = 1;
+}
+
+// FollowRefRequest is the request type for FollowRef.
+message FollowRefRequest {
+  // Ref is the object reference to follow.
+  .bucket.ObjectRef ref = 1;
+}
+
+// FollowRefResponse is the response type for FollowRef.
+message FollowRefResponse {
+  // ResourceId is the ID of the new BucketLookupCursor resource.
+  uint32 resource_id = 1;
+}
+
+// GetBlockRequest is the request type for GetBlock.
+message GetBlockRequest {
+  // Ref is the block reference to get.
+  .block.BlockRef ref = 1;
+}
+
+// GetBlockResponse is the response type for GetBlock.
+message GetBlockResponse {
+  // Data is the block data.
+  bytes data = 1;
+  // Found indicates if the block was found.
+  bool found = 2;
+}
+
+// PutBlockRequest is the request type for PutBlock.
+message PutBlockRequest {
+  // Data is the block data to store.
+  bytes data = 1;
+  // Opts are the put options.
+  .block.PutOpts opts = 2;
+}
+
+// PutBlockResponse is the response type for PutBlock.
+message PutBlockResponse {
+  // Ref is the block reference.
+  .block.BlockRef ref = 1;
+  // Existed indicates if the block already existed.
+  bool existed = 2;
+}
+
+// BuildTransactionRequest is the request type for BuildTransaction.
+message BuildTransactionRequest {
+  // PutOpts are the default put options for the transaction.
+  .block.PutOpts put_opts = 1;
+}
+
+// BuildTransactionResponse is the response type for BuildTransaction.
+message BuildTransactionResponse {
+  // TransactionResourceId is the ID of the BlockTransaction resource.
+  uint32 transaction_resource_id = 1;
+  // CursorResourceId is the ID of the root BlockCursor resource.
+  uint32 cursor_resource_id = 2;
+}
+
+// BuildTransactionAtRefRequest is the request type for BuildTransactionAtRef.
+message BuildTransactionAtRefRequest {
+  // PutOpts are the default put options for the transaction.
+  .block.PutOpts put_opts = 1;
+  // Ref is the block reference to build the transaction at.
+  .block.BlockRef ref = 2;
+}
+
+// BuildTransactionAtRefResponse is the response type for BuildTransactionAtRef.
+message BuildTransactionAtRefResponse {
+  // TransactionResourceId is the ID of the BlockTransaction resource.
+  uint32 transaction_resource_id = 1;
+  // CursorResourceId is the ID of the root BlockCursor resource.
+  uint32 cursor_resource_id = 2;
+}
+
+// CloneRequest is the request type for Clone.
+message CloneRequest {}
+
+// CloneResponse is the response type for Clone.
+message CloneResponse {
+  // ResourceId is the ID of the cloned BucketLookupCursor resource.
+  uint32 resource_id = 1;
+}
+
+// ReleaseRequest is the request type for Release.
+message ReleaseRequest {}
+
+// ReleaseResponse is the response type for Release.
+message ReleaseResponse {}
+
+// UnmarshalRequest is the request type for Unmarshal.
+message UnmarshalRequest {
+  // Ref is the object reference to unmarshal.
+  .bucket.ObjectRef ref = 1;
+  // Data is the raw block data to unmarshal.
+  // If empty, will fetch the block first.
+  bytes data = 2;
+}
+
+// UnmarshalResponse is the response type for Unmarshal.
+message UnmarshalResponse {
+  // Data is the unmarshaled block data.
+  bytes data = 1;
+  // Found indicates if the block was found.
+  bool found = 2;
+}
+
+service BucketLookupCursorResourceService {
+  rpc GetRef(GetRefRequest) returns (GetRefResponse);
+  
+  rpc FollowRef(FollowRefRequest) returns (FollowRefResponse);
+  
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+  
+  rpc PutBlock(PutBlockRequest) returns (PutBlockResponse);
+  
+  rpc BuildTransaction(BuildTransactionRequest) returns (BuildTransactionResponse);
+  
+  rpc BuildTransactionAtRef(BuildTransactionAtRefRequest) returns (BuildTransactionAtRefResponse);
+  
+  rpc Clone(CloneRequest) returns (CloneResponse);
+  
+  rpc Release(ReleaseRequest) returns (ReleaseResponse);
+  
+  rpc Unmarshal(UnmarshalRequest) returns (UnmarshalResponse);
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package resource.root.controller;
+
+// Config configures the root resource server controller.
+message Config {
+  // ServiceId overrides which service id the controller will respond to.
+  // Defaults to s4wave.resource.ResourceService
+  // Can be empty.
+  string service_id = 1;
+}

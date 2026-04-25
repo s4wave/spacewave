@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/testbed"
 	billy "github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-billy/v6/memfs"
 	git "github.com/go-git/go-git/v6"
@@ -15,6 +14,7 @@ import (
 	go_git_packfile "github.com/go-git/go-git/v6/plumbing/format/packfile"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/go-git/go-git/v6/storage/memory"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
 

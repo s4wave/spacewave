@@ -31,7 +31,6 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "../../block/transform/transform.pb.h"
 #include "../../bucket/bucket.pb.h"
 #include "../../store/kvtx/kvtx.pb.h"
 #include "../../store/kvkey/kvkey.pb.h"

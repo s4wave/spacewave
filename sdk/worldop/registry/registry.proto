@@ -1,0 +1,99 @@
+syntax = "proto3";
+package s4wave.worldop.registry;
+
+service WorldOpRegistryResourceService {
+  rpc RegisterWorldOp(RegisterWorldOpRequest)
+    returns (RegisterWorldOpResponse);
+  rpc WatchWorldOps(WatchWorldOpsRequest)
+    returns (stream WatchWorldOpsResponse);
+}
+
+service WorldOpHandlerService {
+  rpc ApplyWorldOp(ApplyWorldOpRequest)
+    returns (ApplyWorldOpResponse);
+  rpc ApplyWorldObjectOp(ApplyWorldObjectOpRequest)
+    returns (ApplyWorldObjectOpResponse);
+  rpc ValidateOp(ValidateOpRequest)
+    returns (ValidateOpResponse);
+}
+
+// WorldOpRegistration is a registered world op.
+message WorldOpRegistration {
+  // OperationTypeId is the operation type ID.
+  string operation_type_id = 1;
+  // RegistrationId is the server-assigned ID.
+  uint32 registration_id = 2;
+  // PluginId is the source plugin.
+  string plugin_id = 3;
+}
+
+// RegisterWorldOpRequest is the request for RegisterWorldOp.
+message RegisterWorldOpRequest {
+  // OperationTypeId is the operation type ID to register.
+  string operation_type_id = 1;
+  // PluginId is the registering plugin's ID.
+  string plugin_id = 2;
+}
+
+// RegisterWorldOpResponse is the response for RegisterWorldOp.
+message RegisterWorldOpResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the op.
+  uint32 resource_id = 1;
+}
+
+// WatchWorldOpsRequest is the request for WatchWorldOps.
+message WatchWorldOpsRequest {}
+
+// WatchWorldOpsResponse is the response for WatchWorldOps.
+message WatchWorldOpsResponse {
+  // Registrations is the current set of registered world ops.
+  repeated WorldOpRegistration registrations = 1;
+}
+
+// ApplyWorldOpRequest is the request for ApplyWorldOp.
+message ApplyWorldOpRequest {
+  // OperationTypeId identifies the operation type.
+  string operation_type_id = 1;
+  // OpData is the serialized operation proto bytes.
+  bytes op_data = 2;
+  // EngineResourceId gives World access to the handler.
+  uint32 engine_resource_id = 3;
+}
+
+// ApplyWorldOpResponse is the response for ApplyWorldOp.
+message ApplyWorldOpResponse {
+  // SystemError indicates a system error (vs user error).
+  bool system_error = 1;
+}
+
+// ApplyWorldObjectOpRequest is the request for ApplyWorldObjectOp.
+message ApplyWorldObjectOpRequest {
+  // OperationTypeId identifies the operation type.
+  string operation_type_id = 1;
+  // OpData is the serialized operation proto bytes.
+  bytes op_data = 2;
+  // ObjectKey is the target object key.
+  string object_key = 3;
+  // EngineResourceId gives World access to the handler.
+  uint32 engine_resource_id = 4;
+}
+
+// ApplyWorldObjectOpResponse is the response for ApplyWorldObjectOp.
+message ApplyWorldObjectOpResponse {
+  // SystemError indicates a system error (vs user error).
+  bool system_error = 1;
+}
+
+// ValidateOpRequest is the request for ValidateOp.
+message ValidateOpRequest {
+  // OperationTypeId identifies the operation type.
+  string operation_type_id = 1;
+  // OpData is the serialized operation proto bytes.
+  bytes op_data = 2;
+}
+
+// ValidateOpResponse is the response for ValidateOp.
+message ValidateOpResponse {
+  // Error is the validation error message, empty if valid.
+  string error = 1;
+}

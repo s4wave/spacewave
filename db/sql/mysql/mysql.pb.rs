@@ -83,10 +83,53 @@ pub struct TableRow {
 /// TableColumn is an entry in a table row.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TableColumn {
-    /// MsgpackBlob contains the data encoded with msgpack.
-    /// Data may be sharded into multiple blocks if necessary.
-    #[prost(message, optional, tag="1")]
-    pub msgpack_blob: ::core::option::Option<super::msgpack::MsgpackBlob>,
+    /// Value contains the SQL value. If no field is set, the column is NULL.
+    #[prost(oneof="table_column::Value", tags="2, 3, 4, 5, 6, 7, 8, 9, 10")]
+    pub value: ::core::option::Option<table_column::Value>,
+}
+/// Nested message and enum types in `TableColumn`.
+pub mod table_column {
+    /// Value contains the SQL value. If no field is set, the column is NULL.
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        /// BoolValue is a boolean SQL value.
+        #[prost(bool, tag="2")]
+        BoolValue(bool),
+        /// IntValue is a signed integer SQL value.
+        #[prost(int64, tag="3")]
+        IntValue(i64),
+        /// UintValue is an unsigned integer SQL value.
+        #[prost(uint64, tag="4")]
+        UintValue(u64),
+        /// FloatValue is a floating-point SQL value.
+        #[prost(double, tag="5")]
+        FloatValue(f64),
+        /// StringBlob is a string SQL value encoded as UTF-8 bytes.
+        #[prost(message, tag="6")]
+        StringBlob(super::super::blob::Blob),
+        /// BytesBlob is a binary SQL value.
+        #[prost(message, tag="7")]
+        BytesBlob(super::super::blob::Blob),
+        /// JsonBlob is a JSON SQL value encoded as UTF-8 text.
+        #[prost(message, tag="8")]
+        JsonBlob(super::super::blob::Blob),
+        /// TimestampValue is a timestamp, datetime, or date SQL value.
+        #[prost(message, tag="9")]
+        TimestampValue(super::TableTimestamp),
+        /// TimespanMicros is a TIME SQL value in microseconds.
+        #[prost(int64, tag="10")]
+        TimespanMicros(i64),
+    }
+}
+/// TableTimestamp is a timestamp-like SQL value.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TableTimestamp {
+    /// UnixSeconds is seconds since Unix epoch.
+    #[prost(int64, tag="1")]
+    pub unix_seconds: i64,
+    /// Nanos is the nanosecond offset within UnixSeconds.
+    #[prost(int32, tag="2")]
+    pub nanos: i32,
 }
 /// TableSchema is the schema for a table.
 #[derive(Clone, PartialEq, ::prost::Message)]

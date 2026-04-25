@@ -1,0 +1,50 @@
+syntax = "proto3";
+package s4wave.status;
+
+option go_package = "github.com/s4wave/spacewave/sdk/status;s4wave_status";
+
+service SystemStatusService {
+  rpc WatchControllers(WatchControllersRequest) returns (stream WatchControllersResponse);
+
+  rpc WatchDirectives(WatchDirectivesRequest) returns (stream WatchDirectivesResponse);
+}
+
+// ControllerInfo describes a running controller.
+message ControllerInfo {
+  // Id is the controller identifier.
+  string id = 1;
+  // Version is the controller version string.
+  string version = 2;
+  // Description is a human-readable description.
+  string description = 3;
+}
+
+// DirectiveInfo describes an active directive.
+message DirectiveInfo {
+  // Name is the directive type name.
+  string name = 1;
+  // Ident is the human-readable directive identification string.
+  string ident = 2;
+}
+
+// WatchControllersRequest is the request type for WatchControllers.
+message WatchControllersRequest {}
+
+// WatchControllersResponse is the response type for WatchControllers.
+message WatchControllersResponse {
+  // Controllers is the current list of active controllers.
+  repeated ControllerInfo controllers = 1;
+  // ControllerCount is the total number of active controllers.
+  uint32 controller_count = 2;
+}
+
+// WatchDirectivesRequest is the request type for WatchDirectives.
+message WatchDirectivesRequest {}
+
+// WatchDirectivesResponse is the response type for WatchDirectives.
+message WatchDirectivesResponse {
+  // Directives is the current list of active directives.
+  repeated DirectiveInfo directives = 1;
+  // DirectiveCount is the total number of active directives.
+  uint32 directive_count = 2;
+}

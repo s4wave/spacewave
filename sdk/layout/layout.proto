@@ -1,0 +1,146 @@
+syntax = "proto3";
+package s4wave.layout;
+
+service LayoutHost {
+  rpc WatchLayoutModel(stream WatchLayoutModelRequest) returns (stream LayoutModel) {};
+  rpc NavigateTab(NavigateTabRequest) returns (NavigateTabResponse) {};
+  rpc AddTab(AddTabRequest) returns (AddTabResponse) {};
+}
+
+// NavigateTabRequest is a request to navigate within a tab.
+message NavigateTabRequest {
+  // TabId is the identifier of the tab to navigate within.
+  string tab_id = 1;
+  // Path is the path to navigate to, relative or absolute.
+  string path = 2;
+}
+
+// NavigateTabResponse is a response to navigate within a tab.
+message NavigateTabResponse {}
+
+// AddTabRequest is a request to add a new tab to the layout.
+message AddTabRequest {
+  // TabSetId is the identifier of the tabset to add the tab to.
+  // If empty, the tab is added to the currently active tabset.
+  string tab_set_id = 1;
+  // Tab is the tab definition to add.
+  TabDef tab = 2;
+  // AfterTabId is the ID of the tab to insert after.
+  // If empty, the tab is added at the end of the tabset.
+  string after_tab_id = 3;
+  // Select indicates whether to select the new tab after adding.
+  bool select = 4;
+}
+
+// AddTabResponse is a response to adding a new tab.
+message AddTabResponse {
+  // TabId is the ID of the newly added tab.
+  string tab_id = 1;
+}
+
+// WatchLayoutModelRequest is a request sent by the client of WatchLayoutModel.
+message WatchLayoutModelRequest {
+  oneof body {
+    // SetModel sets a full snapshot of the layout model.
+    // May return an error if the model does not validate correctly.
+    // Updates the model internally & yields new version on WatchLayoutModel.
+    LayoutModel set_model = 1;
+  }
+}
+
+// LayoutModel contains information about Tabs and ObjectViewers in a layout.
+message LayoutModel {
+  // Borders contains the optional list of borders containing tabs.
+  // Borders can contain tabs on the sides of the layout.
+  repeated BorderDef borders = 1;
+  // Layout contains the row definition for the model.
+  RowDef layout = 2;
+}
+
+// LayoutSnapshot contains a complete layout state including local UI state.
+// Used for URL encoding of grid layouts to preserve selection state.
+message LayoutSnapshot {
+  // Model contains the structural layout (tabs, tabsets, rows).
+  LayoutModel model = 1;
+  // LocalState contains ephemeral UI state (selections, active tabset).
+  LayoutLocalState local_state = 2;
+}
+
+// LayoutLocalState contains local/ephemeral layout state.
+// This state is not persisted to the server but preserved in URLs.
+message LayoutLocalState {
+  // ActiveTabSetId is the ID of the currently active/focused tabset.
+  string active_tab_set_id = 1;
+  // TabSetSelections maps tabset IDs to their selected tab IDs.
+  map<string, string> tab_set_selections = 2;
+  // MaximizedTabSetId is the ID of the maximized tabset, if any.
+  string maximized_tab_set_id = 3;
+}
+
+// BorderLocation is the list of possible border locations.
+enum BorderLocation {
+  // BorderLocation_TOP is the default value.
+  BorderLocation_TOP = 0;
+  // BorderLocation_BOTTOM is the bottom edge.
+  BorderLocation_BOTTOM = 1;
+  // BorderLocation_LEFT is the left edge.
+  BorderLocation_LEFT = 2;
+  // BorderLocation_RIGHT is the right edge.
+  BorderLocation_RIGHT = 3;
+}
+
+// BorderDef contains a definition of a tab border.
+message BorderDef {
+  // BorderLocation is the border location.
+  BorderLocation border_location = 1;
+  // Children contains the list of tabs in this border.
+  repeated TabDef children = 2;
+  // Selected is the index of selected/visible tab in border; -1 means no tab selected
+  int32 selected = 3;
+  // Hide indicates if this border should be hidden
+  bool hide = 4;
+}
+
+// TabDef contains information about a tab.
+message TabDef {
+  // Id is the unique identifier for the tab.
+  string id = 1;
+  // Name is the title of the tab.
+  string name = 2;
+  // HelpText is text that shows when hovering over the tab.
+  string help_text = 3;
+  // EnableClose enables closing the tab with the close button.
+  bool enable_close = 4;
+  // Data contains data passed to the tab contents.
+  bytes data = 5;
+}
+
+// RowDef contains information about a row.
+message RowDef {
+  // Id is the id of the row.
+  string id = 1;
+  // Children is the list of children nodes.
+  repeated RowOrTabSetDef children = 2;
+  // Weight is the weight of the row.
+  float weight = 3;
+}
+
+// TabSetDef contains information about a set of tabs.
+message TabSetDef {
+  // Id is the unique identifier for the tab.
+  string id = 1;
+  // Name is an optional title for the tab.
+  string name = 2;
+  // Weight is the relative size of the tab set.
+  float weight = 3;
+  // Children contains the list of children tabs.
+  repeated TabDef children = 4;
+}
+
+// RowOrTabSetDef contains either a RowDef or a TabSetDef.
+message RowOrTabSetDef {
+  oneof node {
+    RowDef row = 1;
+    TabSetDef tab_set = 2;
+  }
+}

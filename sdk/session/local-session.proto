@@ -1,0 +1,67 @@
+syntax = "proto3";
+package s4wave.session;
+
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/sdk/session/session.proto";
+
+service LocalSessionResourceService {
+  rpc ExportBackupKey(ExportBackupKeyRequest) returns (ExportBackupKeyResponse);
+
+  rpc AddEntityKeypair(AddLocalEntityKeypairRequest) returns (AddLocalEntityKeypairResponse);
+
+  rpc RemoveEntityKeypair(RemoveLocalEntityKeypairRequest) returns (RemoveLocalEntityKeypairResponse);
+
+  rpc WatchEntityKeypairs(WatchLocalEntityKeypairsRequest) returns (stream WatchLocalEntityKeypairsResponse);
+
+  rpc SetDisplayName(SetLocalDisplayNameRequest) returns (SetLocalDisplayNameResponse);
+
+  rpc WatchDisplayName(WatchLocalDisplayNameRequest) returns (stream WatchLocalDisplayNameResponse);
+}
+
+// AddLocalEntityKeypairRequest is the request for AddEntityKeypair on local sessions.
+message AddLocalEntityKeypairRequest {
+  // Credential is the entity signing credential (password or PEM key).
+  .session.EntityCredential credential = 1;
+}
+
+// AddLocalEntityKeypairResponse is the response for AddEntityKeypair.
+message AddLocalEntityKeypairResponse {
+  // PeerId is the peer ID of the added keypair.
+  string peer_id = 1;
+}
+
+// RemoveLocalEntityKeypairRequest is the request for RemoveEntityKeypair on local sessions.
+message RemoveLocalEntityKeypairRequest {
+  // PeerId is the peer ID of the entity keypair to remove.
+  string peer_id = 1;
+}
+
+// RemoveLocalEntityKeypairResponse is the response for RemoveEntityKeypair.
+message RemoveLocalEntityKeypairResponse {}
+
+// WatchLocalEntityKeypairsRequest is the request for WatchEntityKeypairs on local sessions.
+message WatchLocalEntityKeypairsRequest {}
+
+// WatchLocalEntityKeypairsResponse is the response for WatchEntityKeypairs on local sessions.
+message WatchLocalEntityKeypairsResponse {
+  // Keypairs is the list of entity keypairs from AccountSettings.
+  repeated .session.EntityKeypair keypairs = 1;
+}
+
+// SetLocalDisplayNameRequest is the request for SetDisplayName on local sessions.
+message SetLocalDisplayNameRequest {
+  // DisplayName is the new display name for the local provider account.
+  string display_name = 1;
+}
+
+// SetLocalDisplayNameResponse is the response for SetDisplayName.
+message SetLocalDisplayNameResponse {}
+
+// WatchLocalDisplayNameRequest is the request for WatchDisplayName on local sessions.
+message WatchLocalDisplayNameRequest {}
+
+// WatchLocalDisplayNameResponse is the response for WatchDisplayName on local sessions.
+message WatchLocalDisplayNameResponse {
+  // DisplayName is the current local provider account display name.
+  string display_name = 1;
+}

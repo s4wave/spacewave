@@ -13,7 +13,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 		meta,
 		[]string{"assets.kvfile", "config-set.bin"},
 		map[string]string{
-			"github.com/aperturerobotics/alpha/cmd/spacewave-cli/cli": "spacewave_cli",
+			"github.com/s4wave/spacewave/cmd/spacewave-cli/cli": "spacewave_cli",
 		},
 		true,
 	)
@@ -21,7 +21,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 	if !strings.Contains(src, `cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"`) {
 		t.Fatalf("expected native CLI import, got:\n%s", src)
 	}
-	if !strings.Contains(src, `spacewave_cli "github.com/aperturerobotics/alpha/cmd/spacewave-cli/cli"`) {
+	if !strings.Contains(src, `spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave-cli/cli"`) {
 		t.Fatalf("expected CLI package import, got:\n%s", src)
 	}
 	if !strings.Contains(src, `var cliCommands = []cli_entrypoint.BuildCommandsFunc{spacewave_cli.NewCliCommands}`) {

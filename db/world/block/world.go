@@ -693,8 +693,6 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	// makes frequent NewTx() Get() Discard() calls
 	// back it all w/ a single transaction
 	graphOpts := make(graph.Options, 1)
-	// disable bloom filter: very slow to allocate during tx processing
-	graphOpts[cayley_kv.OptBloom] = false
 	// disable custom indexes: use the default set
 	// reduces the number of Get calls to zero
 	graphOpts[cayley_kv.OptAssumeDefaultIdx] = true

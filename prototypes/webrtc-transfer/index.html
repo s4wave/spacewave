@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Object Transfer to Worker</title>
+  <style>
+    body { font-family: monospace; margin: 2em; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #00d4ff; font-size: 1.2em; }
+    h2 { color: #ff6b6b; font-size: 1em; margin-top: 1.5em; }
+    .pass { color: #00ff88; font-weight: bold; }
+    .fail { color: #ff4444; font-weight: bold; }
+    .info { color: #ffd700; }
+    .section { margin: 1em 0; padding: 1em; background: #16213e; border-radius: 4px; }
+    pre { white-space: pre-wrap; word-break: break-all; }
+    #log { max-height: 80vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>WebRTC Object Transfer: Main Thread to DedicatedWorker</h1>
+  <p>Tests whether RTCPeerConnection, RTCDataChannel, and MessagePort-piped
+     data channels can be transferred to a DedicatedWorker via postMessage.</p>
+  <div id="log"></div>
+
+  <script>
+    const logEl = document.getElementById('log')
+    function log(msg, cls) {
+      const div = document.createElement('div')
+      div.className = cls || ''
+      div.textContent = msg
+      logEl.appendChild(div)
+    }
+    function section(title) {
+      const h = document.createElement('h2')
+      h.textContent = title
+      logEl.appendChild(h)
+    }
+
+    // Worker code: receives transferred objects and tests them
+    const workerCode = `
+      // Listen for rtctransform event (WebRTC Encoded Transform API)
+      self.addEventListener('rtctransform', (event) => {
+        const transformer = event.transformer
+        self.postMessage({
+          test: 'rtctransform',
+          result: 'event-received',
+          hasReadable: !!transformer.readable,
+          hasWritable: !!transformer.writable,
+          hasOptions: !!transformer.options,
+          options: JSON.stringify(transformer.options),
+          readableType: transformer.readable?.constructor?.name || 'none',
+          writableType: transformer.writable?.constructor?.name || 'none',
+        })
+
+        // Try to use the streams as a data pipe
+        const reader = transformer.readable.getReader()
+        const writer = transformer.writable.getWriter()
+
+        // Read from the readable and report what we get
+        ;(async () => {
+          try {
+            while (true) {
+              const { value, done } = await reader.read()
+              if (done) {
+                self.postMessage({ test: 'rtctransform', result: 'stream-done' })
+                break
+              }
+              self.postMessage({
+                test: 'rtctransform',
+                result: 'frame-received',
+                frameType: value?.constructor?.name || typeof value,
+                hasData: !!value?.data,
+                dataByteLength: value?.data?.byteLength || 0,
+                type: value?.type || 'unknown',
+                timestamp: value?.timestamp || 0,
+              })
+              // Pass through to writable (required for media to flow)
+              await writer.write(value)
+            }
+          } catch (err) {
+            self.postMessage({ test: 'rtctransform', result: 'read-error', error: err.message })
+          }
+        })()
+      })
+
+      self.onmessage = async function(e) {
+        const { test, payload } = e.data
+
+        if (test === 'check-rtctransform') {
+          // Check what RTCRtpScriptTransform-related APIs exist in worker
+          self.postMessage({
+            test: 'rtctransform',
+            result: 'api-check',
+            hasRTCTransformEvent: typeof RTCTransformEvent !== 'undefined',
+            hasRTCRtpScriptTransformer: typeof RTCRtpScriptTransformer !== 'undefined',
+            hasRTCEncodedVideoFrame: typeof RTCEncodedVideoFrame !== 'undefined',
+            hasRTCEncodedAudioFrame: typeof RTCEncodedAudioFrame !== 'undefined',
+          })
+        }
+
+        if (test === 'datachannel-direct') {
+          // Test 1: Directly transferred RTCDataChannel
+          const dc = payload.dataChannel
+          try {
+            self.postMessage({
+              test,
+              result: 'received',
+              type: typeof dc,
+              constructorName: dc?.constructor?.name || 'unknown',
+              readyState: dc?.readyState || 'unknown',
+              label: dc?.label || 'unknown',
+            })
+
+            // Try to use it
+            dc.onmessage = (ev) => {
+              self.postMessage({
+                test,
+                result: 'data-received',
+                data: typeof ev.data === 'string' ? ev.data : 'binary:' + ev.data.byteLength,
+              })
+            }
+            dc.onopen = () => {
+              self.postMessage({ test, result: 'opened' })
+            }
+            dc.onclose = () => {
+              self.postMessage({ test, result: 'closed' })
+            }
+            dc.onerror = (err) => {
+              self.postMessage({ test, result: 'error', error: err.message || String(err) })
+            }
+
+            // If already open, try sending
+            if (dc.readyState === 'open') {
+              dc.send('hello from worker via transferred datachannel')
+              self.postMessage({ test, result: 'sent-data' })
+            }
+          } catch (err) {
+            self.postMessage({ test, result: 'error', error: err.message })
+          }
+        }
+
+        if (test === 'peerconnection-direct') {
+          // Test 2: Directly transferred RTCPeerConnection
+          const pc = payload.peerConnection
+          try {
+            self.postMessage({
+              test,
+              result: 'received',
+              type: typeof pc,
+              constructorName: pc?.constructor?.name || 'unknown',
+              signalingState: pc?.signalingState || 'unknown',
+            })
+          } catch (err) {
+            self.postMessage({ test, result: 'error', error: err.message })
+          }
+        }
+
+        if (test === 'messageport-pipe') {
+          // Test 3: MessagePort that pipes to a DataChannel on main thread
+          const port = payload.port
+          try {
+            self.postMessage({
+              test,
+              result: 'received',
+              type: typeof port,
+              constructorName: port?.constructor?.name || 'unknown',
+            })
+
+            port.onmessage = (ev) => {
+              self.postMessage({
+                test,
+                result: 'data-received',
+                data: typeof ev.data === 'string' ? ev.data : 'binary:' + ev.data.byteLength,
+              })
+              // Echo back
+              port.postMessage('echo from worker: ' + ev.data)
+            }
+            port.start()
+
+            // Send data through the pipe
+            port.postMessage('hello from worker via messageport pipe')
+            self.postMessage({ test, result: 'sent-data' })
+          } catch (err) {
+            self.postMessage({ test, result: 'error', error: err.message })
+          }
+        }
+      }
+    `
+
+    async function createLocalPeerPair() {
+      log('Creating local RTCPeerConnection pair...')
+      const pc1 = new RTCPeerConnection()
+      const pc2 = new RTCPeerConnection()
+
+      // ICE candidate exchange
+      pc1.onicecandidate = (e) => {
+        if (e.candidate) pc2.addIceCandidate(e.candidate)
+      }
+      pc2.onicecandidate = (e) => {
+        if (e.candidate) pc1.addIceCandidate(e.candidate)
+      }
+
+      // Create data channel on pc1
+      const dc1 = pc1.createDataChannel('test-channel', { ordered: true })
+
+      // Wait for data channel on pc2
+      const dc2Promise = new Promise((resolve) => {
+        pc2.ondatachannel = (e) => resolve(e.channel)
+      })
+
+      // Offer/answer
+      const offer = await pc1.createOffer()
+      await pc1.setLocalDescription(offer)
+      await pc2.setRemoteDescription(offer)
+      const answer = await pc2.createAnswer()
+      await pc2.setLocalDescription(answer)
+      await pc1.setRemoteDescription(answer)
+
+      const dc2 = await dc2Promise
+
+      // Wait for both channels to open
+      await Promise.all([
+        dc1.readyState === 'open' ? Promise.resolve() : new Promise((r) => { dc1.onopen = r }),
+        dc2.readyState === 'open' ? Promise.resolve() : new Promise((r) => { dc2.onopen = r }),
+      ])
+
+      log('  Both data channels open', 'pass')
+      return { pc1, pc2, dc1, dc2 }
+    }
+
+    function createWorker() {
+      const blob = new Blob([workerCode], { type: 'application/javascript' })
+      const url = URL.createObjectURL(blob)
+      return new Worker(url)
+    }
+
+    function waitForWorkerMessage(worker, testName, resultType, timeout = 3000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout')), timeout)
+        const handler = (e) => {
+          if (e.data.test === testName && (!resultType || e.data.result === resultType)) {
+            clearTimeout(timer)
+            worker.removeEventListener('message', handler)
+            resolve(e.data)
+          }
+        }
+        worker.addEventListener('message', handler)
+      })
+    }
+
+    function collectWorkerMessages(worker, testName, duration = 2000) {
+      return new Promise((resolve) => {
+        const msgs = []
+        const handler = (e) => {
+          if (e.data.test === testName) msgs.push(e.data)
+        }
+        worker.addEventListener('message', handler)
+        setTimeout(() => {
+          worker.removeEventListener('message', handler)
+          resolve(msgs)
+        }, duration)
+      })
+    }
+
+    async function testDirectDataChannelTransfer() {
+      section('Test 1: Direct RTCDataChannel Transfer')
+      log('Attempting to transfer RTCDataChannel to worker via postMessage...')
+
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = createWorker()
+
+      try {
+        // Try transferring dc2 (the received channel) to the worker
+        worker.postMessage(
+          { test: 'datachannel-direct', payload: { dataChannel: dc2 } },
+          [dc2]  // Transfer list
+        )
+
+        const msgs = await collectWorkerMessages(worker, 'datachannel-direct', 2000)
+        if (msgs.length === 0) {
+          log('  No response from worker (transfer may have failed silently)', 'fail')
+          return false
+        }
+
+        for (const msg of msgs) {
+          log(`  Worker: ${msg.result} | ${JSON.stringify(msg)}`, msg.result === 'error' ? 'fail' : 'pass')
+        }
+
+        // Check if dc2 is neutered on main thread (sign of successful transfer)
+        try {
+          dc2.send('test after transfer')
+          log('  dc2 still usable on main thread (NOT transferred)', 'info')
+        } catch (e) {
+          log(`  dc2 neutered on main thread: ${e.message} (TRANSFERRED)`, 'pass')
+        }
+
+        // If worker received it, try sending data from dc1 (main thread) to transferred dc2 (worker)
+        const received = msgs.find((m) => m.result === 'received')
+        if (received && received.readyState === 'open') {
+          dc1.send('hello from main thread to transferred channel')
+          const dataMsg = await waitForWorkerMessage(worker, 'datachannel-direct', 'data-received', 2000).catch(() => null)
+          if (dataMsg) {
+            log(`  Data received in worker: ${dataMsg.data}`, 'pass')
+          } else {
+            log('  No data received in worker from main thread send', 'fail')
+          }
+        }
+
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+
+        // Check if the error is about non-transferable
+        if (err.message.includes('could not be cloned') ||
+            err.message.includes('is not transferable') ||
+            err.message.includes('Failed to execute')) {
+          log('  RTCDataChannel is NOT Transferable in this browser', 'fail')
+        }
+        return false
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    async function testDirectPeerConnectionTransfer() {
+      section('Test 2: Direct RTCPeerConnection Transfer')
+      log('Attempting to transfer RTCPeerConnection to worker via postMessage...')
+
+      const pc = new RTCPeerConnection()
+      const worker = createWorker()
+
+      try {
+        worker.postMessage(
+          { test: 'peerconnection-direct', payload: { peerConnection: pc } },
+          [pc]  // Transfer list
+        )
+
+        const msgs = await collectWorkerMessages(worker, 'peerconnection-direct', 2000)
+        if (msgs.length === 0) {
+          log('  No response from worker', 'fail')
+          return false
+        }
+
+        for (const msg of msgs) {
+          log(`  Worker: ${msg.result} | ${JSON.stringify(msg)}`, msg.result === 'error' ? 'fail' : 'pass')
+        }
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        if (err.message.includes('could not be cloned') ||
+            err.message.includes('is not transferable')) {
+          log('  RTCPeerConnection is NOT Transferable in this browser', 'fail')
+        }
+        return false
+      } finally {
+        worker.terminate()
+        pc.close()
+      }
+    }
+
+    async function testStructuredCloneDataChannel() {
+      section('Test 3: RTCDataChannel via Structured Clone (no transfer list)')
+      log('Attempting to send RTCDataChannel without transfer list (structured clone)...')
+
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = createWorker()
+
+      try {
+        // Try WITHOUT transfer list - structured clone
+        worker.postMessage(
+          { test: 'datachannel-direct', payload: { dataChannel: dc2 } }
+          // No transfer list
+        )
+
+        const msgs = await collectWorkerMessages(worker, 'datachannel-direct', 2000)
+        if (msgs.length === 0) {
+          log('  No response from worker', 'fail')
+          return false
+        }
+
+        for (const msg of msgs) {
+          log(`  Worker: ${msg.result} | ${JSON.stringify(msg)}`, msg.result === 'error' ? 'fail' : 'pass')
+        }
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        return false
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    async function testMessagePortPipe() {
+      section('Test 4: MessagePort Pipe (fallback approach)')
+      log('Creating MessagePort pipe between DataChannel and Worker...')
+
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = createWorker()
+
+      try {
+        // Create MessageChannel - one end goes to worker, other pipes to DataChannel
+        const { port1: mainPort, port2: workerPort } = new MessageChannel()
+
+        // Pipe: mainPort <-> dc2
+        dc2.onmessage = (e) => {
+          mainPort.postMessage(e.data)
+        }
+        mainPort.onmessage = (e) => {
+          if (dc2.readyState === 'open') {
+            dc2.send(e.data)
+          }
+        }
+        mainPort.start()
+
+        // Transfer workerPort to worker
+        worker.postMessage(
+          { test: 'messageport-pipe', payload: { port: workerPort } },
+          [workerPort]
+        )
+
+        const receivedMsg = await waitForWorkerMessage(worker, 'messageport-pipe', 'received', 3000)
+        log(`  Worker received MessagePort: ${receivedMsg.constructorName}`, 'pass')
+
+        // Worker sends data through the pipe
+        const sentMsg = await waitForWorkerMessage(worker, 'messageport-pipe', 'sent-data', 3000)
+        log('  Worker sent data through MessagePort pipe', 'pass')
+
+        // Main thread should have received it on dc2 -> piped to dc1's peer
+        // dc1 receives what dc2 gets from worker via pipe
+        const dc1DataPromise = new Promise((resolve) => {
+          dc1.onmessage = (e) => resolve(e.data)
+        })
+
+        // Wait a bit for the pipe to flush
+        await new Promise((r) => setTimeout(r, 200))
+
+        // Now send from dc1 (main thread) through the peer connection to dc2 -> pipe -> worker
+        dc1.send('main-to-worker via peer connection + pipe')
+
+        const workerDataMsg = await waitForWorkerMessage(worker, 'messageport-pipe', 'data-received', 3000)
+        log(`  Worker received via pipe: "${workerDataMsg.data}"`, 'pass')
+
+        // Check if worker's echo came back through dc1
+        const echoData = await dc1DataPromise.catch(() => null)
+        if (echoData) {
+          log(`  Main thread received echo via pipe: "${echoData}"`, 'pass')
+        }
+
+        log('  MessagePort pipe: FULL DUPLEX WORKING', 'pass')
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        return false
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    async function testMessagePortPipeBinary() {
+      section('Test 5: MessagePort Pipe with Binary Data')
+      log('Testing binary (Uint8Array) transfer through MessagePort pipe...')
+
+      const { pc1, pc2, dc1, dc2 } = await createLocalPeerPair()
+      const worker = createWorker()
+
+      try {
+        // Set binary type
+        dc1.binaryType = 'arraybuffer'
+        dc2.binaryType = 'arraybuffer'
+
+        const { port1: mainPort, port2: workerPort } = new MessageChannel()
+
+        // Pipe with binary support
+        dc2.onmessage = (e) => {
+          if (e.data instanceof ArrayBuffer) {
+            mainPort.postMessage(new Uint8Array(e.data), [e.data])
+          } else {
+            mainPort.postMessage(e.data)
+          }
+        }
+        mainPort.onmessage = (e) => {
+          if (dc2.readyState === 'open') {
+            if (e.data instanceof Uint8Array || e.data instanceof ArrayBuffer) {
+              dc2.send(e.data)
+            } else {
+              dc2.send(e.data)
+            }
+          }
+        }
+        mainPort.start()
+
+        worker.postMessage(
+          { test: 'messageport-pipe', payload: { port: workerPort } },
+          [workerPort]
+        )
+
+        await waitForWorkerMessage(worker, 'messageport-pipe', 'received', 3000)
+
+        // Send binary data from dc1 through the connection
+        const testData = new Uint8Array([0x42, 0x49, 0x46, 0x52, 0x4f, 0x53, 0x54]) // "BIFROST"
+        dc1.send(testData)
+
+        const workerDataMsg = await waitForWorkerMessage(worker, 'messageport-pipe', 'data-received', 3000)
+        log(`  Worker received binary via pipe: "${workerDataMsg.data}"`, 'pass')
+
+        log('  Binary MessagePort pipe: WORKING', 'pass')
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        return false
+      } finally {
+        worker.terminate()
+        pc1.close()
+        pc2.close()
+      }
+    }
+
+    async function testRtcTransformEvent() {
+      section('Test 6: RTCRtpScriptTransform (Encoded Transform API)')
+      log('Testing whether rtctransform event fires in worker with stream access...', 'info')
+      log('Idea: RTCRtpScriptTransform gives workers readable/writable streams', 'info')
+      log('tied to an RTP sender/receiver. Could we leverage this as a data pipe?', 'info')
+
+      // Check if the API exists on the main thread
+      if (typeof RTCRtpScriptTransform === 'undefined') {
+        log('  RTCRtpScriptTransform is NOT available on main thread', 'fail')
+        return false
+      }
+      log('  RTCRtpScriptTransform constructor exists on main thread', 'pass')
+
+      const worker = createWorker()
+
+      try {
+        // First, check what APIs the worker sees
+        worker.postMessage({ test: 'check-rtctransform', payload: {} })
+        const apiCheck = await waitForWorkerMessage(worker, 'rtctransform', 'api-check', 3000)
+        log(`  Worker APIs: RTCTransformEvent=${apiCheck.hasRTCTransformEvent}, ` +
+            `RTCRtpScriptTransformer=${apiCheck.hasRTCRtpScriptTransformer}, ` +
+            `RTCEncodedVideoFrame=${apiCheck.hasRTCEncodedVideoFrame}, ` +
+            `RTCEncodedAudioFrame=${apiCheck.hasRTCEncodedAudioFrame}`,
+            apiCheck.hasRTCRtpScriptTransformer ? 'pass' : 'info')
+
+        // Create a peer connection pair with a media track
+        // We need a real media track to attach the transform to
+        const pc1 = new RTCPeerConnection()
+        const pc2 = new RTCPeerConnection()
+
+        pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate) }
+        pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate) }
+
+        // Create a silent audio track via Web Audio (no permissions needed)
+        const audioCtx = new AudioContext()
+        const oscillator = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        gain.gain.value = 0 // silent
+        oscillator.connect(gain)
+        const dest = audioCtx.createMediaStreamDestination()
+        gain.connect(dest)
+        oscillator.start()
+
+        const audioTrack = dest.stream.getAudioTracks()[0]
+        const sender = pc1.addTrack(audioTrack, dest.stream)
+        log('  Added silent audio track to peer connection', 'pass')
+
+        // Create RTCRtpScriptTransform pointing at our worker
+        // The options object is passed to the worker via event.transformer.options
+        try {
+          const transform = new RTCRtpScriptTransform(worker, {
+            purpose: 'test-data-pipe',
+            label: 'bifrost-experiment',
+          })
+          sender.transform = transform
+          log('  Assigned RTCRtpScriptTransform to sender', 'pass')
+        } catch (err) {
+          log(`  Failed to create RTCRtpScriptTransform: ${err.message}`, 'fail')
+          pc1.close()
+          pc2.close()
+          audioCtx.close()
+          return false
+        }
+
+        // Also try on the receiver side
+        const receiverTransformPromise = new Promise((resolve) => {
+          pc2.ontrack = (e) => {
+            try {
+              const rxTransform = new RTCRtpScriptTransform(worker, {
+                purpose: 'test-receiver-pipe',
+                label: 'bifrost-rx-experiment',
+              })
+              e.receiver.transform = rxTransform
+              log('  Assigned RTCRtpScriptTransform to receiver', 'pass')
+              resolve(true)
+            } catch (err) {
+              log(`  Failed to assign receiver transform: ${err.message}`, 'fail')
+              resolve(false)
+            }
+          }
+        })
+
+        // Negotiate
+        const offer = await pc1.createOffer()
+        await pc1.setLocalDescription(offer)
+        await pc2.setRemoteDescription(offer)
+        const answer = await pc2.createAnswer()
+        await pc2.setLocalDescription(answer)
+        await pc1.setRemoteDescription(answer)
+
+        await receiverTransformPromise
+
+        // Collect messages from worker for a few seconds
+        const msgs = await collectWorkerMessages(worker, 'rtctransform', 4000)
+        if (msgs.length === 0) {
+          log('  No rtctransform events received by worker', 'fail')
+        } else {
+          for (const msg of msgs) {
+            if (msg.result === 'event-received') {
+              log(`  rtctransform event fired! readable=${msg.readableType}, ` +
+                  `writable=${msg.writableType}, options=${msg.options}`, 'pass')
+            } else if (msg.result === 'frame-received') {
+              log(`  Frame in worker: ${msg.frameType}, ` +
+                  `data=${msg.dataByteLength}b, type=${msg.type}`, 'pass')
+            } else if (msg.result === 'read-error') {
+              log(`  Stream read error: ${msg.error}`, 'fail')
+            }
+          }
+        }
+
+        const gotEvent = msgs.some((m) => m.result === 'event-received')
+        const gotFrames = msgs.some((m) => m.result === 'frame-received')
+
+        if (gotEvent && gotFrames) {
+          log('  Encoded Transform: worker received live media frames', 'pass')
+          log('  NOTE: These are RTCEncodedAudioFrame objects, not raw bytes.', 'info')
+          log('  Could embed data channel payloads inside frame.data but this', 'info')
+          log('  is a media codec path, not a general-purpose data pipe.', 'info')
+        } else if (gotEvent) {
+          log('  Encoded Transform: event fired but no frames received yet', 'info')
+        }
+
+        oscillator.stop()
+        audioCtx.close()
+        pc1.close()
+        pc2.close()
+
+        return gotEvent
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        return false
+      } finally {
+        worker.terminate()
+      }
+    }
+
+    async function testSilentAudioAntiThrottle() {
+      section('Test 7: Silent Audio Anti-Throttle')
+      log('Testing whether a silent Web Audio oscillator prevents tab throttling...', 'info')
+      log('Browsers skip timer throttling for tabs playing audio.', 'info')
+      log('This could keep the main-thread WebRTC bridge responsive in background tabs.', 'info')
+
+      try {
+        // Create a silent oscillator - the trick used to prevent throttling
+        const audioCtx = new AudioContext()
+        const oscillator = audioCtx.createOscillator()
+        oscillator.frequency.value = 440
+        const gain = audioCtx.createGain()
+        gain.gain.value = 0 // completely silent
+        oscillator.connect(gain)
+        gain.connect(audioCtx.destination) // must connect to destination for browser to consider it "playing"
+        oscillator.start()
+
+        log(`  AudioContext state: ${audioCtx.state}`, audioCtx.state === 'running' ? 'pass' : 'info')
+        if (audioCtx.state === 'suspended') {
+          log('  AudioContext is suspended (needs user gesture to resume)', 'info')
+          log('  Click the page and refresh to test with active AudioContext', 'info')
+        }
+
+        // Measure timer precision with and without audio
+        // In throttled tabs, setTimeout minimum is 1000ms; in foreground, ~4ms
+        async function measureTimerPrecision(label, iterations) {
+          const times = []
+          for (let i = 0; i < iterations; i++) {
+            const start = performance.now()
+            await new Promise((r) => setTimeout(r, 0))
+            times.push(performance.now() - start)
+          }
+          const avg = times.reduce((a, b) => a + b, 0) / times.length
+          const max = Math.max(...times)
+          const min = Math.min(...times)
+          log(`  ${label}: avg=${avg.toFixed(2)}ms, min=${min.toFixed(2)}ms, max=${max.toFixed(2)}ms`, 'info')
+          return avg
+        }
+
+        const avgTime = await measureTimerPrecision('setTimeout(0) precision', 20)
+
+        // Also measure MessagePort latency (relevant for the bridge)
+        async function measurePortLatency(iterations) {
+          const times = []
+          const worker = createWorker()
+          for (let i = 0; i < iterations; i++) {
+            const start = performance.now()
+            worker.postMessage({ test: 'check-rtctransform', payload: {} })
+            await new Promise((resolve) => {
+              const handler = (e) => {
+                worker.removeEventListener('message', handler)
+                resolve()
+              }
+              worker.addEventListener('message', handler)
+            })
+            times.push(performance.now() - start)
+          }
+          worker.terminate()
+          const avg = times.reduce((a, b) => a + b, 0) / times.length
+          const max = Math.max(...times)
+          log(`  Worker postMessage RTT: avg=${avg.toFixed(2)}ms, max=${max.toFixed(2)}ms`, 'info')
+          return avg
+        }
+
+        const portLatency = await measurePortLatency(20)
+
+        log('', '')
+        if (audioCtx.state === 'running') {
+          log('  Silent audio IS playing - tab should resist throttling', 'pass')
+          log(`  Timer precision: ${avgTime.toFixed(2)}ms (< 10ms = not throttled)`, avgTime < 10 ? 'pass' : 'info')
+        } else {
+          log('  Silent audio NOT playing (suspended) - tab may be throttled when backgrounded', 'info')
+        }
+        log(`  Worker message RTT: ${portLatency.toFixed(2)}ms`, portLatency < 5 ? 'pass' : 'info')
+        log('  NOTE: Throttling only kicks in when tab is backgrounded.', 'info')
+        log('  Run this test, switch to another tab for 30s, then return.', 'info')
+
+        // Leave the oscillator running so user can test background behavior
+        // Set up a continuous timer logger
+        let bgTestCount = 0
+        const bgTestInterval = setInterval(() => {
+          bgTestCount++
+          const now = performance.now()
+          if (bgTestCount <= 5) return // skip first 5
+          if (bgTestCount > 60) {
+            clearInterval(bgTestInterval)
+            oscillator.stop()
+            audioCtx.close()
+            return
+          }
+          // Log every 5th sample
+          if (bgTestCount % 5 === 0) {
+            log(`  Background sample #${bgTestCount}: timer fired at ${new Date().toISOString()}`, 'info')
+          }
+        }, 1000)
+
+        return true
+      } catch (err) {
+        log(`  FAILED: ${err.message}`, 'fail')
+        return false
+      }
+    }
+
+    async function run() {
+      log('Starting WebRTC transfer tests...', 'info')
+      log(`Browser: ${navigator.userAgent}`, 'info')
+      log('')
+
+      const results = {}
+
+      // Test 1: Direct DataChannel transfer
+      results.directDC = await testDirectDataChannelTransfer()
+
+      // Test 2: Direct PeerConnection transfer
+      results.directPC = await testDirectPeerConnectionTransfer()
+
+      // Test 3: Structured clone (no transfer list)
+      results.cloneDC = await testStructuredCloneDataChannel()
+
+      // Test 4: MessagePort pipe (fallback)
+      results.msgPortPipe = await testMessagePortPipe()
+
+      // Test 5: Binary through MessagePort pipe
+      results.msgPortBinary = await testMessagePortPipeBinary()
+
+      // Test 6: RTCRtpScriptTransform (Encoded Transform API)
+      results.rtcTransform = await testRtcTransformEvent()
+
+      // Test 7: Silent audio anti-throttle
+      results.silentAudio = await testSilentAudioAntiThrottle()
+
+      section('Summary')
+      log(`Direct RTCDataChannel transfer:    ${results.directDC ? 'PASS' : 'FAIL'}`, results.directDC ? 'pass' : 'fail')
+      log(`Direct RTCPeerConnection transfer: ${results.directPC ? 'PASS' : 'FAIL'}`, results.directPC ? 'pass' : 'fail')
+      log(`Structured clone DataChannel:      ${results.cloneDC ? 'PASS' : 'FAIL'}`, results.cloneDC ? 'pass' : 'fail')
+      log(`MessagePort pipe (text):           ${results.msgPortPipe ? 'PASS' : 'FAIL'}`, results.msgPortPipe ? 'pass' : 'fail')
+      log(`MessagePort pipe (binary):         ${results.msgPortBinary ? 'PASS' : 'FAIL'}`, results.msgPortBinary ? 'pass' : 'fail')
+      log(`RTCRtpScriptTransform event:       ${results.rtcTransform ? 'PASS' : 'FAIL'}`, results.rtcTransform ? 'pass' : 'fail')
+      log(`Silent audio anti-throttle:        ${results.silentAudio ? 'PASS' : 'FAIL'}`, results.silentAudio ? 'pass' : 'fail')
+
+      log('', '')
+      if (results.rtcTransform) {
+        log('RTCRtpScriptTransform gives the worker readable/writable streams', 'info')
+        log('for encoded media frames. These are RTCEncodedAudioFrame/VideoFrame', 'info')
+        log('objects, not raw bytes. Possible creative use: embed data channel', 'info')
+        log('payloads in frame.data, but this is a media codec path and would', 'info')
+        log('add encoding overhead. Not a clean fit for bifrost data channels.', 'info')
+      }
+
+      if (!results.directDC && results.msgPortPipe) {
+        log('', '')
+        log('Conclusion: RTCDataChannel is NOT directly transferable.', 'info')
+        log('MessagePort pipe is the viable approach for bridging', 'info')
+        log('WebRTC data channels to workers.', 'info')
+      } else if (results.directDC) {
+        log('', '')
+        log('Conclusion: RTCDataChannel IS directly transferable!', 'info')
+        log('This is the optimal path - zero-copy transfer to worker.', 'info')
+      }
+
+      if (results.silentAudio) {
+        log('', '')
+        log('Silent audio trick can prevent background tab throttling,', 'info')
+        log('keeping the main-thread WebRTC bridge responsive.', 'info')
+      }
+    }
+
+    run()
+  </script>
+</body>
+</html>

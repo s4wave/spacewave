@@ -1,0 +1,37 @@
+syntax = "proto3";
+package s4wave.process;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/process;s4wave_process";
+
+service PersistentExecutionService {
+  rpc Execute(ExecuteRequest) returns (stream ExecuteStatus);
+}
+
+// ExecuteRequest is the request to start a persistent process.
+message ExecuteRequest {}
+
+// ExecuteStatus is a status update from a running process.
+message ExecuteStatus {
+  // ExecutionState is the current state of the process.
+  ExecutionState state = 1;
+  // Error is the error message if state is ERROR.
+  string error = 2;
+  // Timestamp is the time of this status update.
+  .google.protobuf.Timestamp timestamp = 3;
+}
+
+// ExecutionState is the state of a persistent process.
+enum ExecutionState {
+  // ExecutionState_STARTING is the initial state before the process is ready.
+  ExecutionState_STARTING = 0;
+  // ExecutionState_RUNNING is the state when the process is running normally.
+  ExecutionState_RUNNING = 1;
+  // ExecutionState_STOPPING is the state when the process is shutting down.
+  ExecutionState_STOPPING = 2;
+  // ExecutionState_STOPPED is the state after the process has exited cleanly.
+  ExecutionState_STOPPED = 3;
+  // ExecutionState_ERROR is the state when the process has exited with an error.
+  ExecutionState_ERROR = 4;
+}

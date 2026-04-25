@@ -1,0 +1,457 @@
+name: plugin-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: plugin release environment
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+      plugin_rev:
+        description: immutable plugin channel revision (defaults to commit sha)
+        required: false
+        type: string
+
+concurrency:
+  group: plugin-release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.vars.outputs.environment_name }}
+      plugin_rev: ${{ steps.vars.outputs.plugin_rev }}
+    steps:
+      - id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested_environment="${{ inputs.environment }}"
+          requested_rev="${{ inputs.plugin_rev }}"
+          if [[ -z "${requested_rev}" ]]; then
+            requested_rev="${GITHUB_SHA}"
+          fi
+          if [[ "${requested_environment}" == "production" ]]; then
+            environment_name="plugin-production"
+            expected_ref="refs/heads/release"
+          else
+            environment_name="plugin-staging"
+            expected_ref="refs/heads/master"
+          fi
+          if [[ "${GITHUB_REF}" != "${expected_ref}" ]]; then
+            echo "plugin-release ${requested_environment} must run from ${expected_ref}, got ${GITHUB_REF}" >&2
+            exit 1
+          fi
+          echo "environment_name=${environment_name}" >> "${GITHUB_OUTPUT}"
+          echo "plugin_rev=${requested_rev}" >> "${GITHUB_OUTPUT}"
+
+  browser:
+    needs: prep
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Build browser plugin channel manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run bldr -- --build-type=release --watch=false build -b plugin-release-browser
+
+      - name: Upload plugin world state
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-world-browser
+          path: .bldr/devtool.s4wave
+          if-no-files-found: error
+
+  native-macos:
+    needs:
+      - prep
+      - browser
+    runs-on: macos-15
+    environment: ${{ needs.prep.outputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plugin world state
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-world-browser
+          path: .tmp/plugin-world-browser
+
+      - name: Restore plugin world state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .bldr
+          cp .tmp/plugin-world-browser/devtool.s4wave .bldr/devtool.s4wave
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Import macOS signing certificate
+        shell: bash
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_P12_PASSWORD: ${{ secrets.MACOS_CERT_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MACOS_CERT_P12_BASE64}" ]]; then
+            echo "MACOS_CERT_P12_BASE64 is required"
+            exit 1
+          fi
+          KEYCHAIN_PATH="${RUNNER_TEMP}/plugin-release.keychain-db"
+          CERT_PATH="${RUNNER_TEMP}/plugin-release.p12"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          echo "${MACOS_CERT_P12_BASE64}" | base64 -D > "${CERT_PATH}"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERT_PATH}" -k "${KEYCHAIN_PATH}" -P "${MACOS_CERT_P12_PASSWORD}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security list-keychains -d user -s "${KEYCHAIN_PATH}" login.keychain-db
+          security default-keychain -d user -s "${KEYCHAIN_PATH}"
+          rm -f "${CERT_PATH}"
+
+      - name: Build signed macOS native plugin manifests
+        shell: bash
+        env:
+          BLDR_MACOS_SIGN_IDENTITY: ${{ vars.BLDR_MACOS_SIGN_IDENTITY }}
+          BLDR_MACOS_SIGN_ENTITLEMENTS: ${{ vars.BLDR_MACOS_SIGN_ENTITLEMENTS }}
+          BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
+        run: |
+          set -euo pipefail
+          bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-darwin-arm64,plugin-release-desktop-darwin-amd64
+
+      - name: Verify macOS signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r path; do
+            if file "${path}" | grep -q "Mach-O"; then
+              codesign --verify --strict "${path}"
+            fi
+          done < <(find .bldr/build/native/darwin -type f)
+
+      - name: Upload plugin world state
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-world-macos
+          path: .bldr/devtool.s4wave
+          if-no-files-found: error
+
+      - name: Upload native plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-native-darwin
+          path: |
+            .bldr/build/native/darwin/arm64/spacewave-core/dist/*
+            .bldr/build/native/darwin/amd64/spacewave-core/dist/*
+          if-no-files-found: error
+
+      - name: Attest native plugin artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            .bldr/build/native/darwin/arm64/spacewave-core/dist/*
+            .bldr/build/native/darwin/amd64/spacewave-core/dist/*
+
+  native-windows:
+    needs:
+      - prep
+      - native-macos
+    runs-on: windows-2025
+    environment: ${{ needs.prep.outputs.environment_name }}
+    env:
+      AZURE_CORE_OUTPUT: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plugin world state
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-world-macos
+          path: .tmp/plugin-world-macos
+
+      - name: Restore plugin world state
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .bldr | Out-Null
+          Copy-Item .tmp/plugin-world-macos/devtool.s4wave .bldr/devtool.s4wave
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Artifact Signing Azure CLI extension
+        shell: pwsh
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt
+          az extension add --name artifact-signing --upgrade
+          az sign -h | Out-Null
+
+      - name: Build signed Windows native plugin manifests
+        shell: pwsh
+        env:
+          BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          BLDR_WINDOWS_SIGN_PUBLISHER: ${{ vars.BLDR_WINDOWS_SIGN_PUBLISHER }}
+        run: |
+          bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-windows-arm64,plugin-release-desktop-windows-amd64
+
+      - name: Verify Windows signatures
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path .bldr/build/native/windows -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
+          foreach ($file in $files) {
+            $sig = Get-AuthenticodeSignature -FilePath $file.FullName
+            if ($sig.Status -ne "Valid") {
+              throw "signature verification failed for $($file.FullName): $($sig.Status)"
+            }
+          }
+
+      - name: Upload plugin world state
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-world-windows
+          path: .bldr/devtool.s4wave
+          if-no-files-found: error
+
+      - name: Upload native plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-native-windows
+          path: |
+            .bldr/build/native/windows/arm64/spacewave-core/dist/*
+            .bldr/build/native/windows/amd64/spacewave-core/dist/*
+          if-no-files-found: error
+
+      - name: Attest native plugin artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            .bldr/build/native/windows/arm64/spacewave-core/dist/*
+            .bldr/build/native/windows/amd64/spacewave-core/dist/*
+
+  native-linux:
+    needs:
+      - prep
+      - native-windows
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plugin world state
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-world-windows
+          path: .tmp/plugin-world-windows
+
+      - name: Restore plugin world state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .bldr
+          cp .tmp/plugin-world-windows/devtool.s4wave .bldr/devtool.s4wave
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Build Linux native plugin manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-linux-arm64,plugin-release-desktop-linux-amd64
+
+      - name: Upload plugin world state
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-world-linux
+          path: .bldr/devtool.s4wave
+          if-no-files-found: error
+
+      - name: Upload native plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-native-linux
+          path: |
+            .bldr/build/native/linux/arm64/spacewave-core/dist/*
+            .bldr/build/native/linux/amd64/spacewave-core/dist/*
+          if-no-files-found: error
+
+      - name: Attest native plugin artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            .bldr/build/native/linux/arm64/spacewave-core/dist/*
+            .bldr/build/native/linux/amd64/spacewave-core/dist/*
+
+  handoff:
+    needs:
+      - prep
+      - native-linux
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plugin world state
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-world-linux
+          path: .tmp/plugin-world-linux
+
+      - name: Restore plugin world state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .bldr
+          cp .tmp/plugin-world-linux/devtool.s4wave .bldr/devtool.s4wave
+
+      - name: Download macOS native plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-native-darwin
+          path: .tmp/native-artifacts/darwin
+
+      - name: Download Windows native plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-native-windows
+          path: .tmp/native-artifacts/windows
+
+      - name: Download Linux native plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-native-linux
+          path: .tmp/native-artifacts/linux
+
+      - name: Stage plugin handoff bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/plugin-handoff
+          mkdir -p .tmp/plugin-handoff/native
+          cp .tmp/plugin-world-linux/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
+          cp -R .tmp/native-artifacts/darwin .tmp/plugin-handoff/native/darwin
+          cp -R .tmp/native-artifacts/windows .tmp/plugin-handoff/native/windows
+          cp -R .tmp/native-artifacts/linux .tmp/plugin-handoff/native/linux
+
+      - name: Build plugin handoff manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(".tmp/plugin-handoff/native")
+          world_path = Path(".tmp/plugin-handoff/devtool.s4wave")
+
+          def sha256(path: Path) -> str:
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  while True:
+                      chunk = f.read(1024 * 1024)
+                      if not chunk:
+                          break
+                      h.update(chunk)
+              return h.hexdigest()
+
+          artifacts = []
+          if root.exists():
+              for path in sorted(p for p in root.rglob("*") if p.is_file()):
+                  artifacts.append({
+                      "path": path.relative_to(root).as_posix(),
+                      "sha256": sha256(path),
+                      "size": path.stat().st_size,
+                  })
+
+          out_path = Path(".tmp/plugin-handoff")
+          out_path.mkdir(parents=True, exist_ok=True)
+
+          manifest = {
+              "format": "plugin-handoff.v1",
+              "plugin_rev": "${{ needs.prep.outputs.plugin_rev }}",
+              "release_environment": "${{ needs.prep.outputs.environment_name }}",
+              "git_sha": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "source_repo": os.environ["GITHUB_REPOSITORY"],
+              "workflow": os.environ["GITHUB_WORKFLOW"],
+              "world": {
+                  "path": "devtool.s4wave",
+                  "sha256": sha256(world_path),
+                  "size": world_path.stat().st_size,
+              },
+              "artifacts": artifacts,
+          }
+
+          manifest_path = out_path / "manifest.json"
+          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+      - name: Archive plugin handoff bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -cf .tmp/plugin-handoff.tar -C .tmp/plugin-handoff .
+
+      - name: Upload plugin handoff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.plugin_rev }}
+          path: .tmp/plugin-handoff.tar
+          if-no-files-found: error

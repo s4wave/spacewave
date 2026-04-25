@@ -1,0 +1,513 @@
+syntax = "proto3";
+package s4wave.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
+
+service EngineResourceService {
+  rpc GetEngineInfo(GetEngineInfoRequest) returns (GetEngineInfoResponse);
+
+  rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
+
+  rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
+
+  rpc WaitSeqno(WaitSeqnoRequest) returns (WaitSeqnoResponse);
+
+  rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
+
+  rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+}
+
+// EngineInfo contains metadata about a world engine.
+message EngineInfo {
+  // EngineId is the ID of the world engine.
+  string engine_id = 1;
+  // BucketId is the bucket ID the engine is attached to.
+  string bucket_id = 2;
+}
+
+// GetEngineInfoRequest is the request type for GetEngineInfo.
+message GetEngineInfoRequest {}
+
+// GetEngineInfoResponse is the response type for GetEngineInfo.
+message GetEngineInfoResponse {
+  // EngineInfo is the engine information.
+  EngineInfo engine_info = 1;
+}
+
+// NewTransactionRequest is the request type for NewTransaction.
+message NewTransactionRequest {
+  // Write indicates whether this transaction will perform write operations.
+  bool write = 1;
+}
+
+// NewTransactionResponse is the response type for NewTransaction.
+message NewTransactionResponse {
+  // ResourceId is the ID of the created Tx resource.
+  uint32 resource_id = 1;
+  // ReadOnly indicates whether the transaction is read-only.
+  bool read_only = 2;
+}
+
+// GetSeqnoRequest is the request type for GetSeqno.
+message GetSeqnoRequest {}
+
+// GetSeqnoResponse is the response type for GetSeqno.
+message GetSeqnoResponse {
+  // Seqno is the current sequence number of the world state.
+  uint64 seqno = 1;
+}
+
+// WaitSeqnoRequest is the request type for WaitSeqno.
+message WaitSeqnoRequest {
+  // Seqno is the minimum sequence number to wait for.
+  uint64 seqno = 1;
+}
+
+// WaitSeqnoResponse is the response type for WaitSeqno.
+message WaitSeqnoResponse {
+  // Seqno is the sequence number when the wait condition was satisfied.
+  uint64 seqno = 1;
+}
+
+// AccessWorldStateRequest is the request type for AccessWorldState.
+message AccessWorldStateRequest {
+  // Ref is an optional reference to access a specific object.
+  // If unset, we will access the Root of the WorldState.
+  .bucket.ObjectRef ref = 1;
+}
+
+// AccessWorldStateResponse is the response type for AccessWorldState.
+message AccessWorldStateResponse {
+  // ResourceId is the ID of the bucket cursor resource for accessing world state.
+  uint32 resource_id = 1;
+}
+
+service WorldStateResourceService {
+  rpc GetReadOnly(GetReadOnlyRequest) returns (GetReadOnlyResponse);
+
+  rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
+
+  rpc WaitSeqno(WaitSeqnoRequest) returns (WaitSeqnoResponse);
+
+  rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
+
+  rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+
+  rpc CreateObject(CreateObjectRequest) returns (CreateObjectResponse);
+
+  rpc GetObject(GetObjectRequest) returns (GetObjectResponse);
+
+  rpc IterateObjects(IterateObjectsRequest) returns (IterateObjectsResponse);
+
+  rpc RenameObject(RenameObjectRequest) returns (RenameObjectResponse);
+
+  rpc DeleteObject(DeleteObjectRequest) returns (DeleteObjectResponse);
+
+  rpc SetGraphQuad(SetGraphQuadRequest) returns (SetGraphQuadResponse);
+
+  rpc DeleteGraphQuad(DeleteGraphQuadRequest) returns (DeleteGraphQuadResponse);
+
+  rpc LookupGraphQuads(LookupGraphQuadsRequest) returns (LookupGraphQuadsResponse);
+
+  rpc ListObjectsWithType(ListObjectsWithTypeRequest) returns (ListObjectsWithTypeResponse);
+
+  rpc DeleteGraphObject(DeleteGraphObjectRequest) returns (DeleteGraphObjectResponse);
+
+  rpc ApplyWorldOp(ApplyWorldOpRequest) returns (ApplyWorldOpResponse);
+
+}
+
+service WatchWorldStateResourceService {
+  rpc WatchWorldState(WatchWorldStateRequest) returns (stream WatchWorldStateResponse);
+}
+
+service TxResourceService {
+  rpc Commit(CommitRequest) returns (CommitResponse);
+
+  rpc Discard(DiscardRequest) returns (DiscardResponse);
+}
+
+// CommitRequest is the request type for Commit.
+message CommitRequest {}
+
+// CommitResponse is the response type for Commit.
+message CommitResponse {}
+
+// DiscardRequest is the request type for Discard.
+message DiscardRequest {}
+
+// DiscardResponse is the response type for Discard.
+message DiscardResponse {}
+
+// GetReadOnlyRequest is the request type for GetReadOnly.
+message GetReadOnlyRequest {}
+
+// GetReadOnlyResponse is the response type for GetReadOnly.
+message GetReadOnlyResponse {
+  // ReadOnly indicates whether the transaction is read-only.
+  bool read_only = 1;
+}
+
+// BuildStorageCursorRequest is the request type for BuildStorageCursor.
+message BuildStorageCursorRequest {}
+
+// BuildStorageCursorResponse is the response type for BuildStorageCursor.
+message BuildStorageCursorResponse {
+  // ResourceId is the ID of the storage cursor resource.
+  uint32 resource_id = 1;
+}
+
+// CreateObjectRequest is the request type for CreateObject.
+message CreateObjectRequest {
+  // ObjectKey is the unique identifier for the object within the world.
+  string object_key = 1;
+  // RootRef is the initial reference to the object's root data.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// CreateObjectResponse is the response type for CreateObject.
+message CreateObjectResponse {
+  // ResourceId is the ID of the created ObjectState resource.
+  uint32 resource_id = 1;
+  // ObjectKey is the unique identifier of the created object.
+  string object_key = 2;
+}
+
+// GetObjectRequest is the request type for GetObject.
+message GetObjectRequest {
+  // ObjectKey is the unique identifier of the object to retrieve.
+  string object_key = 1;
+}
+
+// GetObjectResponse is the response type for GetObject.
+message GetObjectResponse {
+  // Found indicates whether the object exists in the world.
+  bool found = 1;
+  // ResourceId is the ID of the ObjectState resource, if found.
+  uint32 resource_id = 2;
+  // ObjectKey is the unique identifier of the object, if found.
+  string object_key = 3;
+}
+
+// RenameObjectRequest is the request type for RenameObject.
+message RenameObjectRequest {
+  // OldObjectKey is the object key to rename.
+  string old_object_key = 1;
+  // NewObjectKey is the new object key.
+  string new_object_key = 2;
+  // Descendants renames objects under old_object_key + "/" to the new prefix.
+  bool descendants = 3;
+}
+
+// RenameObjectResponse is the response type for RenameObject.
+message RenameObjectResponse {
+  // ResourceId is the ID of the renamed ObjectState resource.
+  uint32 resource_id = 1;
+  // ObjectKey is the unique identifier of the renamed object.
+  string object_key = 2;
+}
+
+// DeleteObjectRequest is the request type for DeleteObject.
+message DeleteObjectRequest {
+  // ObjectKey is the unique identifier of the object to delete.
+  string object_key = 1;
+}
+
+// DeleteObjectResponse is the response type for DeleteObject.
+message DeleteObjectResponse {
+  // Deleted indicates whether the object was found and successfully deleted.
+  bool deleted = 1;
+}
+
+// IterateObjectsRequest is the request type for IterateObjects.
+message IterateObjectsRequest {
+  // Prefix filters objects to those whose keys start with this string.
+  // Empty prefix returns all objects.
+  string prefix = 1;
+  // Reversed indicates whether to return results in descending order.
+  bool reversed = 2;
+}
+
+// IterateObjectsResponse is the response type for IterateObjects.
+message IterateObjectsResponse {
+  // ResourceId is the ID of the ObjectIterator resource.
+  uint32 resource_id = 1;
+}
+
+// SetGraphQuadRequest is the request type for SetGraphQuad.
+message SetGraphQuadRequest {
+  // Quad is the graph quad to add or update in the store.
+  .quad.Quad quad = 1;
+}
+
+// SetGraphQuadResponse is the response type for SetGraphQuad.
+message SetGraphQuadResponse {}
+
+// DeleteGraphQuadRequest is the request type for DeleteGraphQuad.
+message DeleteGraphQuadRequest {
+  // Quad is the graph quad to remove from the store.
+  .quad.Quad quad = 1;
+}
+
+// DeleteGraphQuadResponse is the response type for DeleteGraphQuad.
+message DeleteGraphQuadResponse {}
+
+// LookupGraphQuadsRequest is the request type for LookupGraphQuads.
+message LookupGraphQuadsRequest {
+  // Filter specifies the criteria for matching quads.
+  // Empty fields in the filter match any value for that field.
+  .quad.Quad filter = 1;
+  // Limit restricts the maximum number of quads to return.
+  // Zero means no limit.
+  uint32 limit = 2;
+}
+
+// LookupGraphQuadsResponse is the response type for LookupGraphQuads.
+message LookupGraphQuadsResponse {
+  // Quads is the list of graph quads matching the filter criteria.
+  repeated .quad.Quad quads = 1;
+}
+
+// ListObjectsWithTypeRequest is the request type for ListObjectsWithType.
+message ListObjectsWithTypeRequest {
+  // TypeId is the type identifier to match.
+  string type_id = 1;
+}
+
+// ListObjectsWithTypeResponse is the response type for ListObjectsWithType.
+message ListObjectsWithTypeResponse {
+  // ObjectKeys is the list of object keys with the given type.
+  repeated string object_keys = 1;
+}
+
+// DeleteGraphObjectRequest is the request type for DeleteGraphObject.
+message DeleteGraphObjectRequest {
+  // ObjectKey is the key of the object whose graph references should be deleted.
+  string object_key = 1;
+}
+
+// DeleteGraphObjectResponse is the response type for DeleteGraphObject.
+message DeleteGraphObjectResponse {}
+
+// ApplyWorldOpRequest is the request type for ApplyWorldOp.
+message ApplyWorldOpRequest {
+  // OpTypeId is the operation type identifier.
+  string op_type_id = 1;
+  // OpData is the encoded operation body.
+  bytes op_data = 2;
+  // OpSender is the peer ID of the sender applying the operation.
+  string op_sender = 3;
+}
+
+// ApplyWorldOpResponse is the response type for ApplyWorldOp.
+message ApplyWorldOpResponse {
+  // Seqno is the sequence number following the operation execution.
+  uint64 seqno = 1;
+  // SysErr indicates if the error is a transient system error.
+  bool sys_err = 2;
+}
+
+// WatchWorldStateRequest is the request type for WatchWorldState.
+message WatchWorldStateRequest {}
+
+// WatchWorldStateResponse is the response type for WatchWorldState.
+message WatchWorldStateResponse {
+  // ResourceId is the ID of the tracked WorldState resource.
+  // This changes each time tracked resources are modified.
+  uint32 resource_id = 1;
+}
+
+// TrackedWorldStateSnapshot is an immutable snapshot of tracked WorldState accesses.
+// Used internally to coordinate change detection with StateRoutineContainer.
+message TrackedWorldStateSnapshot {
+  // ObjectAccess represents a tracked object access.
+  message ObjectAccess {
+    // Key is the object key that was accessed.
+    string key = 1;
+    // Rev is the revision of the object at access time.
+    uint64 rev = 2;
+  }
+
+  // ObjectAccesses is the list of object accesses that were tracked.
+  repeated ObjectAccess object_accesses = 1;
+
+  // HasQuadAccess indicates if any quad queries were performed.
+  bool has_quad_access = 2;
+
+  // InitialSeqno is the world seqno when tracking started.
+  uint64 initial_seqno = 3;
+}
+
+service ObjectIteratorResourceService {
+  rpc Err(ErrRequest) returns (ErrResponse);
+
+  rpc Valid(ValidRequest) returns (ValidResponse);
+
+  rpc Key(KeyRequest) returns (KeyResponse);
+
+  rpc Next(NextRequest) returns (NextResponse);
+
+  rpc Seek(SeekRequest) returns (SeekResponse);
+
+  rpc Close(CloseRequest) returns (CloseResponse);
+}
+
+// ErrRequest is the request type for Err.
+message ErrRequest {}
+
+// ErrResponse is the response type for Err.
+message ErrResponse {
+  // Error is the error message, empty if no error.
+  string error = 1;
+}
+
+// ValidRequest is the request type for Valid.
+message ValidRequest {}
+
+// ValidResponse is the response type for Valid.
+message ValidResponse {
+  // Valid indicates if the iterator points to a valid entry.
+  bool valid = 1;
+}
+
+// KeyRequest is the request type for Key.
+message KeyRequest {}
+
+// KeyResponse is the response type for Key.
+message KeyResponse {
+  // ObjectKey is the current entry key, or empty if not valid.
+  string object_key = 1;
+}
+
+// NextRequest is the request type for Next.
+message NextRequest {}
+
+// NextResponse is the response type for Next.
+message NextResponse {
+  // Valid indicates if the iterator points to a valid entry after advancing.
+  bool valid = 1;
+}
+
+// SeekRequest is the request type for Seek.
+message SeekRequest {
+  // ObjectKey is the key to seek to, or empty to seek to beginning (or end if reversed).
+  string object_key = 1;
+}
+
+// SeekResponse is the response type for Seek.
+message SeekResponse {}
+
+// CloseRequest is the request type for Close.
+message CloseRequest {}
+
+// CloseResponse is the response type for Close.
+message CloseResponse {}
+
+service ObjectStateResourceService {
+  rpc GetKey(GetKeyRequest) returns (GetKeyResponse);
+
+  rpc GetRootRef(GetRootRefRequest) returns (GetRootRefResponse);
+
+  rpc SetRootRef(SetRootRefRequest) returns (SetRootRefResponse);
+
+  rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+
+  rpc ApplyObjectOp(ApplyObjectOpRequest) returns (ApplyObjectOpResponse);
+
+  rpc IncrementRev(IncrementRevRequest) returns (IncrementRevResponse);
+
+  rpc WaitRev(WaitRevRequest) returns (WaitRevResponse);
+}
+
+// GetKeyRequest is the request type for GetKey.
+message GetKeyRequest {}
+
+// GetKeyResponse is the response type for GetKey.
+message GetKeyResponse {
+  // ObjectKey is the unique identifier of the object within the world.
+  string object_key = 1;
+}
+
+// GetRootRefRequest is the request type for GetRootRef.
+message GetRootRefRequest {}
+
+// GetRootRefResponse is the response type for GetRootRef.
+message GetRootRefResponse {
+  // RootRef is the reference to the object's root data.
+  .bucket.ObjectRef root_ref = 1;
+  // Rev is the revision number when this reference was retrieved.
+  uint64 rev = 2;
+}
+
+// SetRootRefRequest is the request type for SetRootRef.
+message SetRootRefRequest {
+  // RootRef is the new reference to set as the object's root data.
+  .bucket.ObjectRef root_ref = 1;
+}
+
+// SetRootRefResponse is the response type for SetRootRef.
+message SetRootRefResponse {
+  // Rev is the revision number after the update.
+  uint64 rev = 1;
+}
+
+// ApplyObjectOpRequest is the request type for ApplyObjectOp.
+message ApplyObjectOpRequest {
+  // OpTypeId is the operation type identifier.
+  string op_type_id = 1;
+  // OpData is the encoded operation body.
+  bytes op_data = 2;
+  // OpSender is the peer ID of the sender applying the operation.
+  string op_sender = 3;
+}
+
+// ApplyObjectOpResponse is the response type for ApplyObjectOp.
+message ApplyObjectOpResponse {
+  // Rev is the revision number following the operation execution.
+  uint64 rev = 1;
+  // SysErr indicates if the error is a transient system error.
+  bool sys_err = 2;
+}
+
+// IncrementRevRequest is the request type for IncrementRev.
+message IncrementRevRequest {}
+
+// IncrementRevResponse is the response type for IncrementRev.
+message IncrementRevResponse {
+  // Rev is the revision number after the increment.
+  uint64 rev = 1;
+}
+
+// WaitRevRequest is the request type for WaitRev.
+message WaitRevRequest {
+  // Rev is the minimum revision number to wait for.
+  uint64 rev = 1;
+  // IgnoreNotFound waits for the object to exist if it doesn't.
+  bool ignore_not_found = 2;
+}
+
+// WaitRevResponse is the response type for WaitRev.
+message WaitRevResponse {
+  // Rev is the revision number when the wait condition was satisfied.
+  uint64 rev = 1;
+}
+
+service TypedObjectResourceService {
+  rpc AccessTypedObject(AccessTypedObjectRequest) returns (AccessTypedObjectResponse);
+}
+
+// AccessTypedObjectRequest is the request type for AccessTypedObject.
+message AccessTypedObjectRequest {
+  // ObjectKey is the key of the object to access.
+  string object_key = 1;
+}
+
+// AccessTypedObjectResponse is the response type for AccessTypedObject.
+message AccessTypedObjectResponse {
+  // ResourceId is the ID of the typed resource.
+  // The resource implements the RPC service appropriate for the object type.
+  uint32 resource_id = 1;
+  // TypeId is the type identifier of the object.
+  string type_id = 2;
+}

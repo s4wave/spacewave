@@ -6,8 +6,11 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
+	"github.com/aperturerobotics/fsnotify"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -56,6 +59,74 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
+	dbPath := s.db.Path()
+	lockPath := dbPath + "-lock"
+	if err := checkBoltPaths(dbPath, lockPath); err != nil {
+		_ = s.db.Close()
+		return err
+	}
+	for _, path := range []string{dbPath, lockPath} {
+		if err := watcher.Add(path); err != nil {
+			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
+				_ = s.db.Close()
+				return pathErr
+			}
+			return err
+		}
+	}
+
+	dirs := make(map[string]struct{})
+	for _, path := range []string{dbPath, lockPath} {
+		dirs[filepath.Dir(path)] = struct{}{}
+	}
+	for dir := range dirs {
+		if err := watcher.Add(dir); err != nil {
+			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
+				_ = s.db.Close()
+				return pathErr
+			}
+			return err
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case _, ok := <-watcher.Events:
+			if !ok {
+				return nil
+			}
+			if err := checkBoltPaths(dbPath, lockPath); err != nil {
+				_ = s.db.Close()
+				return err
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return nil
+			}
+			if pathErr := checkBoltPaths(dbPath, lockPath); pathErr != nil {
+				_ = s.db.Close()
+				return pathErr
+			}
+			return err
+		}
+	}
+}
+
+func checkBoltPaths(dbPath, lockPath string) error {
+	if _, err := os.Stat(dbPath); err != nil {
+		return errors.Join(bdberrors.ErrLockFileChanged, err)
+	}
+	if _, err := os.Stat(lockPath); err != nil {
+		return errors.Join(bdberrors.ErrLockFileChanged, err)
+	}
 	return nil
 }
 

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package space;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+// SpaceSoMeta is metadata about a space stored in SharedObjectMeta.
+message SpaceSoMeta {
+  // Name is the user-defined space name.
+  string name = 1;
+}
+
+// SpaceSoListEntry is a SharedObjectListEntry with parsed metadata.
+message SpaceSoListEntry {
+  // Entry is the shared object list entry.
+  .sobject.SharedObjectListEntry entry = 1;
+  // SpaceMeta is the space shared object meta.
+  SpaceSoMeta space_meta = 2;
+}

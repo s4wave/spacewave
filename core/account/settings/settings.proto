@@ -1,0 +1,90 @@
+syntax = "proto3";
+package account.settings;
+
+import "github.com/s4wave/spacewave/core/session/session.proto";
+
+// AccountSettings is the root state data for account settings SharedObjects.
+// Stored as SORootInner.StateData.
+message AccountSettings {
+  // DisplayName is the user-visible name for the local provider account.
+  string display_name = 1;
+  // PairedDevices is the list of paired devices for this account.
+  repeated PairedDevice paired_devices = 2;
+  // EntityKeypairs is the list of entity keypairs for authentication.
+  // Synced between devices via the SharedObject.
+  repeated .session.EntityKeypair entity_keypairs = 3;
+  // SessionPresentations is the mirrored private presentation metadata keyed
+  // by session peer ID for both local and cloud sessions.
+  repeated SessionPresentation session_presentations = 4;
+}
+
+// PairedDevice is a device that has been paired with this account via P2P.
+message PairedDevice {
+  // PeerId is the base58 string representation of the paired device's peer ID.
+  string peer_id = 1;
+  // DisplayName is a human-readable name for the device.
+  string display_name = 2;
+  // PairedAt is the unix timestamp (seconds) when the device was paired.
+  int64 paired_at = 3;
+}
+
+// SessionPresentation stores private presentation metadata for a session row.
+message SessionPresentation {
+  // PeerId is the session peer ID.
+  string peer_id = 1;
+  // Label is the primary display label for the session.
+  string label = 2;
+  // DeviceType identifies the broad device class ("web", "desktop", etc.).
+  string device_type = 3;
+  // ClientName is the app or browser name when known.
+  string client_name = 4;
+  // Os is the operating system or platform when known.
+  string os = 5;
+  // Location is the observed network location when known.
+  string location = 6;
+}
+
+// AccountSettingsOp is an operation on the account settings SharedObject.
+// Stored as SOOperationInner.OpData.
+message AccountSettingsOp {
+  oneof op {
+    // UpdateDisplayName changes the local provider account display name.
+    UpdateDisplayNameOp update_display_name = 1;
+    // AddPairedDevice adds a paired device.
+    PairedDevice add_paired_device = 2;
+    // RemovePairedDevice removes a paired device by peer_id.
+    RemovePairedDeviceOp remove_paired_device = 3;
+    // AddEntityKeypair adds an entity keypair. Deduplicates by peer_id.
+    .session.EntityKeypair add_entity_keypair = 4;
+    // RemoveEntityKeypair removes an entity keypair by peer_id.
+    RemoveEntityKeypairOp remove_entity_keypair = 5;
+    // UpsertSessionPresentation adds or replaces a session presentation row.
+    SessionPresentation upsert_session_presentation = 6;
+    // RemoveSessionPresentation removes a session presentation by peer_id.
+    RemoveSessionPresentationOp remove_session_presentation = 7;
+  }
+}
+
+// UpdateDisplayNameOp changes the local provider account display name.
+message UpdateDisplayNameOp {
+  // DisplayName is the new display name for the account.
+  string display_name = 1;
+}
+
+// RemoveEntityKeypairOp removes an entity keypair by peer ID.
+message RemoveEntityKeypairOp {
+  // PeerId is the peer ID of the entity keypair to remove.
+  string peer_id = 1;
+}
+
+// RemovePairedDeviceOp removes a paired device by peer ID.
+message RemovePairedDeviceOp {
+  // PeerId is the peer ID of the device to remove.
+  string peer_id = 1;
+}
+
+// RemoveSessionPresentationOp removes session presentation metadata by peer ID.
+message RemoveSessionPresentationOp {
+  // PeerId is the peer ID of the session metadata entry to remove.
+  string peer_id = 1;
+}

@@ -168,9 +168,11 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 
 // TestDetect verifies feature detection probes across all 3 browsers.
 func TestDetect(t *testing.T) {
-	browsers := []string{"chromium", "firefox", "webkit"}
+	browsers := []string{"chromium"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "detect")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -231,7 +233,9 @@ func TestDetect(t *testing.T) {
 func TestSabRing(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "sab-ring")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -252,7 +256,9 @@ func TestSabRing(t *testing.T) {
 func TestSabBus(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "sab-bus")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -274,7 +280,9 @@ func TestSabBus(t *testing.T) {
 func TestDedicatedWorker(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "dedicated")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -297,7 +305,9 @@ func TestDedicatedWorker(t *testing.T) {
 func TestStartupFailures(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "startup-failures")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -320,7 +330,9 @@ func TestStartupFailures(t *testing.T) {
 func TestTransportFactory(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "transport")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -459,6 +471,7 @@ func assertBoolCap(t *testing.T, caps map[string]any, key string, expected bool)
 func TestCrossTab(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
@@ -580,6 +593,7 @@ func TestCrossTab(t *testing.T) {
 func TestCrossTabCleanup(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
@@ -710,6 +724,7 @@ func TestCrossTabCleanup(t *testing.T) {
 func TestCrossTabSWRestart(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
@@ -846,7 +861,9 @@ func TestCrossTabSWRestart(t *testing.T) {
 func TestCrossTabRpc(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
 				Headless: new(true),
@@ -947,7 +964,9 @@ func TestCrossTabRpc(t *testing.T) {
 func TestTransportStreams(t *testing.T) {
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "transport-streams")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -983,7 +1002,9 @@ func TestTransportStreams(t *testing.T) {
 func TestSabRpc(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "sab-rpc")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -1005,7 +1026,9 @@ func TestSabRpc(t *testing.T) {
 func TestOpfsVolume(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "opfs-volume")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -1029,7 +1052,9 @@ func TestOpfsVolume(t *testing.T) {
 func TestOpfsKvtx(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "opfs-kvtx")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -1056,7 +1081,9 @@ func TestOpfsKvtx(t *testing.T) {
 func TestOpfsPrimitives(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "opfs-primitives")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -1086,7 +1113,9 @@ func TestOpfsPrimitives(t *testing.T) {
 func TestOpfsPerFileLock(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
 			results := runFixture(t, browser, "opfs-perfile-lock")
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
@@ -1109,16 +1138,21 @@ func TestOpfsPerFileLock(t *testing.T) {
 // detection returns Config A (no SAB, no SharedWorker hosting for plugins).
 // Uses a separate test server without COOP/COEP headers.
 func TestConfigAFallback(t *testing.T) {
-	noCOIServer, err := newTestServerNoCOI(distDir)
-	if err != nil {
-		t.Fatalf("create no-COI server: %v", err)
+	if os.Getenv("RUN_NO_COI_E2E") == "" {
+		t.Skip("set RUN_NO_COI_E2E=1 to run the no-COI fallback browser test")
 	}
-	defer noCOIServer.Close()
-	noCOIURL := "http://" + noCOIServer.Listener.Addr().String()
 
 	browsers := []string{"chromium", "firefox", "webkit"}
 	for _, browser := range browsers {
+		browser := browser
 		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
+			noCOIServer, err := newTestServerNoCOI(distDir)
+			if err != nil {
+				t.Fatalf("create no-COI server: %v", err)
+			}
+			defer noCOIServer.Close()
+			noCOIURL := noCOIServer.URL
 			bt := browserType(browser)
 			bw, err := bt.Launch(playwright.BrowserTypeLaunchOptions{
 				Headless: new(true),

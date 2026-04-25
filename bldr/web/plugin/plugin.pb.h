@@ -32,7 +32,6 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 #include "github.com/aperturerobotics/util/backoff/backoff.pb.h"
-#include "github.com/aperturerobotics/util/filter/filter.pb.h"
 #include "../view/handler/handler.pb.h"
 // @@protoc_insertion_point(includes)
 

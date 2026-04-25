@@ -1,0 +1,38 @@
+syntax = "proto3";
+package changelog;
+
+// Changelog contains all release entries.
+message Changelog {
+  // releases is the list of releases, newest first.
+  repeated Release releases = 1;
+}
+
+// Release is a single versioned release.
+message Release {
+  // version is the semver version string (e.g. "0.1.0").
+  string version = 1;
+  // date is the release date in YYYY-MM-DD format.
+  string date = 2;
+  // summary is a 1-2 sentence summary of the release.
+  string summary = 3;
+  // summary_markdown is the display-ready markdown summary.
+  string summary_markdown = 4;
+  // features is the list of new feature entries.
+  repeated ChangeEntry features = 5;
+  // fixes is the list of bug fix entries.
+  repeated ChangeEntry fixes = 6;
+  // improvements is the list of improvement entries.
+  repeated ChangeEntry improvements = 7;
+  // security is the list of security-related entries.
+  repeated ChangeEntry security = 8;
+  // release_url is an optional public release URL.
+  string release_url = 9;
+}
+
+// ChangeEntry is a single changelog entry.
+message ChangeEntry {
+  // description is the user-facing description.
+  string description = 1;
+  // description_markdown is the display-ready markdown description.
+  string description_markdown = 2;
+}

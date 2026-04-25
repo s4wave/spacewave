@@ -1,0 +1,261 @@
+syntax = "proto3";
+package s4wave.block.cursor;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// FetchRequest is the request type for Fetch.
+message FetchRequest {}
+
+// FetchResponse is the response type for Fetch.
+message FetchResponse {
+  // Data is the raw block data.
+  bytes data = 1;
+  // Found indicates if the block was found.
+  bool found = 2;
+}
+
+// SetBlockRequest is the request type for SetBlock.
+message SetBlockRequest {
+  // Data is the marshaled block data.
+  bytes data = 1;
+  // MarkDirty marks the block as dirty for persistence.
+  bool mark_dirty = 2;
+  // BlockType is the block type identifier.
+  // Format: "github.com/s4wave/spacewave/db/block/mock.Root"
+  string block_type = 3;
+}
+
+// SetBlockResponse is the response type for SetBlock.
+message SetBlockResponse {}
+
+// FollowRefRequest is the request type for FollowRef.
+message FollowRefRequest {
+  // RefId is the reference field ID to follow.
+  uint32 ref_id = 1;
+  // BlkRef is the optional block reference to follow.
+  // If not provided, will follow the ref stored at RefId.
+  .block.BlockRef blk_ref = 2;
+}
+
+// FollowRefResponse is the response type for FollowRef.
+message FollowRefResponse {
+  // ResourceId is the ID of the new BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+// GetRefRequest is the request type for GetRef.
+message GetRefRequest {}
+
+// GetRefResponse is the response type for GetRef.
+message GetRefResponse {
+  // Ref is the current block reference.
+  .block.BlockRef ref = 1;
+}
+
+// IsDirtyRequest is the request type for IsDirty.
+message IsDirtyRequest {}
+
+// IsDirtyResponse is the response type for IsDirty.
+message IsDirtyResponse {
+  // Dirty indicates if the cursor has uncommitted changes.
+  bool dirty = 1;
+}
+
+// MarkDirtyRequest is the request type for MarkDirty.
+message MarkDirtyRequest {}
+
+// MarkDirtyResponse is the response type for MarkDirty.
+message MarkDirtyResponse {}
+
+// GetBlockRequest is the request type for GetBlock.
+message GetBlockRequest {}
+
+// GetBlockResponse is the response type for GetBlock.
+message GetBlockResponse {
+  // Data is the raw block data.
+  bytes data = 1;
+  // IsSubBlock indicates if this is a sub-block.
+  bool is_sub_block = 2;
+}
+
+// UnmarshalRequest is the request type for Unmarshal.
+message UnmarshalRequest {}
+
+// UnmarshalResponse is the response type for Unmarshal.
+message UnmarshalResponse {
+  // Data is the unmarshaled block data.
+  bytes data = 1;
+  // Found indicates if the block was found.
+  bool found = 2;
+}
+
+// IsSubBlockRequest is the request type for IsSubBlock.
+message IsSubBlockRequest {}
+
+// IsSubBlockResponse is the response type for IsSubBlock.
+message IsSubBlockResponse {
+  // IsSubBlock indicates if the cursor is at a sub-block position.
+  bool is_sub_block = 1;
+}
+
+// FollowSubBlockRequest is the request type for FollowSubBlock.
+message FollowSubBlockRequest {
+  // RefId is the sub-block field ID to follow.
+  uint32 ref_id = 1;
+}
+
+// FollowSubBlockResponse is the response type for FollowSubBlock.
+message FollowSubBlockResponse {
+  // ResourceId is the ID of the new BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+// SetAsSubBlockRequest is the request type for SetAsSubBlock.
+message SetAsSubBlockRequest {
+  // RefId is the field ID to set as a sub-block.
+  uint32 ref_id = 1;
+  // ParentResourceId is the resource ID of the parent cursor.
+  uint32 parent_resource_id = 2;
+}
+
+// SetAsSubBlockResponse is the response type for SetAsSubBlock.
+message SetAsSubBlockResponse {}
+
+// ClearRefRequest is the request type for ClearRef.
+message ClearRefRequest {
+  // RefId is the reference field ID to clear.
+  uint32 ref_id = 1;
+}
+
+// ClearRefResponse is the response type for ClearRef.
+message ClearRefResponse {}
+
+// ClearAllRefsRequest is the request type for ClearAllRefs.
+message ClearAllRefsRequest {}
+
+// ClearAllRefsResponse is the response type for ClearAllRefs.
+message ClearAllRefsResponse {}
+
+// SetRefRequest is the request type for SetRef.
+message SetRefRequest {
+  // RefId is the reference field ID to set.
+  uint32 ref_id = 1;
+  // TargetResourceId is the resource ID of the target cursor.
+  uint32 target_resource_id = 2;
+}
+
+// SetRefResponse is the response type for SetRef.
+message SetRefResponse {}
+
+// GetExistingRefRequest is the request type for GetExistingRef.
+message GetExistingRefRequest {
+  // RefId is the reference field ID to check.
+  uint32 ref_id = 1;
+}
+
+// GetExistingRefResponse is the response type for GetExistingRef.
+message GetExistingRefResponse {
+  // ResourceId is the ID of the existing BlockCursor resource.
+  // Zero if the reference has not been traversed.
+  uint32 resource_id = 1;
+}
+
+// GetAllRefsRequest is the request type for GetAllRefs.
+message GetAllRefsRequest {
+  // ExistingOnly returns only references that have already been traversed.
+  bool existing_only = 1;
+}
+
+// GetAllRefsResponse is the response type for GetAllRefs.
+message GetAllRefsResponse {
+  // Refs maps reference field IDs to BlockCursor resource IDs.
+  map<uint32, uint32> refs = 1;
+}
+
+// DetachRequest is the request type for Detach.
+message DetachRequest {
+  // KeepRefs adds the new location as a parent of all previously referenced blocks.
+  bool keep_refs = 1;
+}
+
+// DetachResponse is the response type for Detach.
+message DetachResponse {
+  // ResourceId is the ID of the new detached BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+// DetachTransactionRequest is the request type for DetachTransaction.
+message DetachTransactionRequest {}
+
+// DetachTransactionResponse is the response type for DetachTransaction.
+message DetachTransactionResponse {
+  // ResourceId is the ID of the new detached BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+// DetachRecursiveRequest is the request type for DetachRecursive.
+message DetachRecursiveRequest {
+  // DetachTx creates a new detached transaction.
+  bool detach_tx = 1;
+  // CloneBlocks clones the block objects.
+  bool clone_blocks = 2;
+  // MarkDirty marks all positions as dirty.
+  bool mark_dirty = 3;
+}
+
+// DetachRecursiveResponse is the response type for DetachRecursive.
+message DetachRecursiveResponse {
+  // ResourceId is the ID of the new detached BlockCursor resource.
+  uint32 resource_id = 1;
+}
+
+// ParentsRequest is the request type for Parents.
+message ParentsRequest {}
+
+// ParentsResponse is the response type for Parents.
+message ParentsResponse {
+  // ParentResourceIds are the resource IDs of parent cursors.
+  repeated uint32 parent_resource_ids = 1;
+}
+
+service BlockCursorResourceService {
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+
+  rpc SetBlock(SetBlockRequest) returns (SetBlockResponse);
+
+  rpc FollowRef(FollowRefRequest) returns (FollowRefResponse);
+
+  rpc GetRef(GetRefRequest) returns (GetRefResponse);
+
+  rpc IsDirty(IsDirtyRequest) returns (IsDirtyResponse);
+
+  rpc MarkDirty(MarkDirtyRequest) returns (MarkDirtyResponse);
+
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  rpc Unmarshal(UnmarshalRequest) returns (UnmarshalResponse);
+
+  rpc IsSubBlock(IsSubBlockRequest) returns (IsSubBlockResponse);
+
+  rpc FollowSubBlock(FollowSubBlockRequest) returns (FollowSubBlockResponse);
+
+  rpc SetAsSubBlock(SetAsSubBlockRequest) returns (SetAsSubBlockResponse);
+
+  rpc ClearRef(ClearRefRequest) returns (ClearRefResponse);
+
+  rpc ClearAllRefs(ClearAllRefsRequest) returns (ClearAllRefsResponse);
+
+  rpc SetRef(SetRefRequest) returns (SetRefResponse);
+
+  rpc GetExistingRef(GetExistingRefRequest) returns (GetExistingRefResponse);
+
+  rpc GetAllRefs(GetAllRefsRequest) returns (GetAllRefsResponse);
+
+  rpc Detach(DetachRequest) returns (DetachResponse);
+
+  rpc DetachTransaction(DetachTransactionRequest) returns (DetachTransactionResponse);
+
+  rpc DetachRecursive(DetachRecursiveRequest) returns (DetachRecursiveResponse);
+
+  rpc Parents(ParentsRequest) returns (ParentsResponse);
+}

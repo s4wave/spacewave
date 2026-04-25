@@ -1,0 +1,47 @@
+syntax = "proto3";
+package s4wave.cdn;
+
+option go_package = "github.com/s4wave/spacewave/sdk/cdn;s4wave_cdn";
+
+service CdnResourceService {
+  rpc GetCdnSpaceId(GetCdnSpaceIdRequest) returns (GetCdnSpaceIdResponse);
+
+  rpc MountCdnSpace(MountCdnSpaceRequest) returns (MountCdnSpaceResponse);
+
+  rpc CopyVmImageToSpace(CopyVmImageToSpaceRequest)
+      returns (CopyVmImageToSpaceResponse);
+}
+
+// GetCdnSpaceIdRequest is the request type for GetCdnSpaceId.
+message GetCdnSpaceIdRequest {}
+
+// GetCdnSpaceIdResponse is the response type for GetCdnSpaceId.
+message GetCdnSpaceIdResponse {
+  // SpaceId is the CDN Space ULID.
+  string space_id = 1;
+}
+
+// MountCdnSpaceRequest is the request type for MountCdnSpace.
+message MountCdnSpaceRequest {}
+
+// MountCdnSpaceResponse is the response type for MountCdnSpace.
+message MountCdnSpaceResponse {
+  // ResourceId is the client resource id of the mounted SpaceResource.
+  uint32 resource_id = 1;
+}
+
+// CopyVmImageToSpaceRequest is the request type for CopyVmImageToSpace.
+message CopyVmImageToSpaceRequest {
+  // SessionIdx is the caller's session index; used to resolve the
+  // destination user Space via the standard session-aware mount path.
+  uint32 session_idx = 1;
+  // DstSpaceId is the ULID of the user Space the VmImage will land in.
+  string dst_space_id = 2;
+  // SrcObjectKey is the VmImage object key in the CDN Space.
+  string src_object_key = 3;
+  // DstObjectKey is the object key in the destination Space.
+  string dst_object_key = 4;
+}
+
+// CopyVmImageToSpaceResponse is the response type for CopyVmImageToSpace.
+message CopyVmImageToSpaceResponse {}

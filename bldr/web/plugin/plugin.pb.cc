@@ -416,65 +416,63 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n8github.com/s4wave/spacewave/bldr/web/p"
     "lugin/plugin.proto\022\017bldr.web.plugin\0326git"
     "hub.com/aperturerobotics/util/backoff/ba"
-    "ckoff.proto\0324github.com/aperturerobotics"
-    "/util/filter/filter.proto\032\?github.com/s4"
-    "wave/spacewave/bldr/web/view/handler/han"
-    "dler.proto\"Q\n\035HandleWebViewViaPluginRequ"
-    "est\022\030\n\020handle_plugin_id\030\001 \001(\t\022\026\n\016web_vie"
-    "w_id_re\030\002 \001(\t\"9\n\036HandleWebViewViaPluginR"
-    "esponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"\205\001\n\034Han"
-    "dleWebPkgViaPluginRequest\022\030\n\020handle_plug"
-    "in_id\030\001 \001(\t\022\025\n\rweb_pkg_id_re\030\002 \001(\t\022\033\n\023we"
-    "b_pkg_id_prefixes\030\003 \003(\t\022\027\n\017web_pkg_id_li"
-    "st\030\004 \003(\t\"8\n\035HandleWebPkgViaPluginRespons"
-    "e\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"\205\001\n\031HandleRpc"
-    "ViaPluginRequest\022\030\n\020handle_plugin_id\030\001 \001"
-    "(\t\022\025\n\rservice_id_re\030\002 \001(\t\022\024\n\014server_id_r"
-    "e\030\003 \001(\t\022!\n\007backoff\030\004 \001(\0132\020.backoff.Backo"
-    "ff\"5\n\032HandleRpcViaPluginResponse\022\017\n\005read"
-    "y\030\001 \001(\010H\000B\006\n\004body\"Z\n\037HandleWebViewViaHan"
-    "dlersRequest\0227\n\006config\030\001 \001(\0132\'.web.view."
-    "handler.WebViewHandlersConfig\";\n HandleW"
-    "ebViewViaHandlersResponse\022\017\n\005ready\030\001 \001(\010"
-    "H\000B\006\n\004body\"o\n#HandleWebPkgsViaPluginAsse"
-    "tsRequest\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n\rw"
-    "eb_pkgs_path\030\002 \001(\t\022\027\n\017web_pkg_id_list\030\003 "
-    "\003(\t\"\?\n$HandleWebPkgsViaPluginAssetsRespo"
-    "nse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body2\221\005\n\tWebPlug"
-    "in\022}\n\026HandleWebViewViaPlugin\022..bldr.web."
-    "plugin.HandleWebViewViaPluginRequest\032/.b"
-    "ldr.web.plugin.HandleWebViewViaPluginRes"
-    "ponse\"\0000\001\022z\n\025HandleWebPkgViaPlugin\022-.bld"
-    "r.web.plugin.HandleWebPkgViaPluginReques"
-    "t\032..bldr.web.plugin.HandleWebPkgViaPlugi"
-    "nResponse\"\0000\001\022q\n\022HandleRpcViaPlugin\022*.bl"
-    "dr.web.plugin.HandleRpcViaPluginRequest\032"
-    "+.bldr.web.plugin.HandleRpcViaPluginResp"
-    "onse\"\0000\001\022\203\001\n\030HandleWebViewViaHandlers\0220."
-    "bldr.web.plugin.HandleWebViewViaHandlers"
-    "Request\0321.bldr.web.plugin.HandleWebViewV"
-    "iaHandlersResponse\"\0000\001\022\217\001\n\034HandleWebPkgs"
-    "ViaPluginAssets\0224.bldr.web.plugin.Handle"
-    "WebPkgsViaPluginAssetsRequest\0325.bldr.web"
-    ".plugin.HandleWebPkgsViaPluginAssetsResp"
-    "onse\"\0000\001b\006proto3"
+    "ckoff.proto\032\?github.com/s4wave/spacewave"
+    "/bldr/web/view/handler/handler.proto\"Q\n\035"
+    "HandleWebViewViaPluginRequest\022\030\n\020handle_"
+    "plugin_id\030\001 \001(\t\022\026\n\016web_view_id_re\030\002 \001(\t\""
+    "9\n\036HandleWebViewViaPluginResponse\022\017\n\005rea"
+    "dy\030\001 \001(\010H\000B\006\n\004body\"\205\001\n\034HandleWebPkgViaPl"
+    "uginRequest\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n"
+    "\rweb_pkg_id_re\030\002 \001(\t\022\033\n\023web_pkg_id_prefi"
+    "xes\030\003 \003(\t\022\027\n\017web_pkg_id_list\030\004 \003(\t\"8\n\035Ha"
+    "ndleWebPkgViaPluginResponse\022\017\n\005ready\030\001 \001"
+    "(\010H\000B\006\n\004body\"\205\001\n\031HandleRpcViaPluginReque"
+    "st\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n\rservice_"
+    "id_re\030\002 \001(\t\022\024\n\014server_id_re\030\003 \001(\t\022!\n\007bac"
+    "koff\030\004 \001(\0132\020.backoff.Backoff\"5\n\032HandleRp"
+    "cViaPluginResponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004b"
+    "ody\"Z\n\037HandleWebViewViaHandlersRequest\0227"
+    "\n\006config\030\001 \001(\0132\'.web.view.handler.WebVie"
+    "wHandlersConfig\";\n HandleWebViewViaHandl"
+    "ersResponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"o\n#"
+    "HandleWebPkgsViaPluginAssetsRequest\022\030\n\020h"
+    "andle_plugin_id\030\001 \001(\t\022\025\n\rweb_pkgs_path\030\002"
+    " \001(\t\022\027\n\017web_pkg_id_list\030\003 \003(\t\"\?\n$HandleW"
+    "ebPkgsViaPluginAssetsResponse\022\017\n\005ready\030\001"
+    " \001(\010H\000B\006\n\004body2\221\005\n\tWebPlugin\022}\n\026HandleWe"
+    "bViewViaPlugin\022..bldr.web.plugin.HandleW"
+    "ebViewViaPluginRequest\032/.bldr.web.plugin"
+    ".HandleWebViewViaPluginResponse\"\0000\001\022z\n\025H"
+    "andleWebPkgViaPlugin\022-.bldr.web.plugin.H"
+    "andleWebPkgViaPluginRequest\032..bldr.web.p"
+    "lugin.HandleWebPkgViaPluginResponse\"\0000\001\022"
+    "q\n\022HandleRpcViaPlugin\022*.bldr.web.plugin."
+    "HandleRpcViaPluginRequest\032+.bldr.web.plu"
+    "gin.HandleRpcViaPluginResponse\"\0000\001\022\203\001\n\030H"
+    "andleWebViewViaHandlers\0220.bldr.web.plugi"
+    "n.HandleWebViewViaHandlersRequest\0321.bldr"
+    ".web.plugin.HandleWebViewViaHandlersResp"
+    "onse\"\0000\001\022\217\001\n\034HandleWebPkgsViaPluginAsset"
+    "s\0224.bldr.web.plugin.HandleWebPkgsViaPlug"
+    "inAssetsRequest\0325.bldr.web.plugin.Handle"
+    "WebPkgsViaPluginAssetsResponse\"\0000\001b\006prot"
+    "o3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[3] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2fbackoff_2fbackoff_2eproto,
-        &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2ffilter_2ffilter_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fview_2fhandler_2fhandler_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    1776,
+    1722,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps,
-    3,
+    2,
     10,
     schemas,
     file_default_instances,

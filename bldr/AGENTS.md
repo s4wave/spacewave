@@ -75,12 +75,12 @@ Proto files use Go-style import paths based on Go module names (from `go.mod`).
 
 **Within this project:**
 
-This project's module is `github.com/aperturerobotics/alpha`. Local proto files reference each other using the full Go module path:
+This project's module is `github.com/s4wave/spacewave`. Local proto files reference each other using the full Go module path:
 
 ```protobuf
 // In sdk/session/session.proto
-import "github.com/aperturerobotics/alpha/core/session/session.proto";
-import "github.com/aperturerobotics/alpha/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 ```
 
 **From external Go modules:**

@@ -1,0 +1,462 @@
+syntax = "proto3";
+package s4wave.root;
+
+import "github.com/s4wave/spacewave/core/changelog/changelog.proto";
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+service RootResourceService {
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+  rpc LookupProvider(LookupProviderRequest) returns (LookupProviderResponse);
+
+  rpc MountSession(MountSessionRequest) returns (MountSessionResponse);
+  rpc MountSessionByIdx(MountSessionByIdxRequest) returns (MountSessionByIdxResponse);
+
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc WatchSessions(WatchSessionsRequest) returns (stream WatchSessionsResponse);
+  rpc WatchAllAccountStatuses(WatchAllAccountStatusesRequest) returns (stream WatchAllAccountStatusesResponse);
+  rpc GetSessionMetadata(GetSessionMetadataRequest) returns (GetSessionMetadataResponse);
+  rpc WatchSessionMetadata(WatchSessionMetadataRequest) returns (stream WatchSessionMetadataResponse);
+  rpc UnlockSession(UnlockSessionByIdxRequest) returns (UnlockSessionByIdxResponse);
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+  rpc ResetSession(ResetSessionByIdxRequest) returns (ResetSessionByIdxResponse);
+
+  rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
+  rpc WatchStateAtoms(WatchStateAtomsRequest) returns (stream WatchStateAtomsResponse);
+
+  rpc MarshalHash(MarshalHashRequest) returns (MarshalHashResponse);
+  rpc ParseHash(ParseHashRequest) returns (ParseHashResponse);
+  rpc HashSum(HashSumRequest) returns (HashSumResponse);
+  rpc HashValidate(HashValidateRequest) returns (HashValidateResponse);
+
+  rpc GetChangelog(GetChangelogRequest) returns (GetChangelogResponse);
+
+  rpc GetDebugDb(GetDebugDbRequest) returns (GetDebugDbResponse);
+
+  rpc GetCdn(GetCdnRequest) returns (GetCdnResponse);
+
+  rpc AccessWebListener(AccessWebListenerRequest) returns (AccessWebListenerResponse);
+  rpc WatchWebListeners(WatchWebListenersRequest) returns (stream WatchWebListenersResponse);
+  rpc StopWebListener(StopWebListenerRequest) returns (StopWebListenerResponse);
+
+  rpc WatchListenerYieldPrompts(WatchListenerYieldPromptsRequest) returns (stream WatchListenerYieldPromptsResponse);
+  rpc RespondToListenerYieldPrompt(RespondToListenerYieldPromptRequest) returns (RespondToListenerYieldPromptResponse);
+  rpc WatchRuntimeHandoff(WatchRuntimeHandoffRequest) returns (stream WatchRuntimeHandoffResponse);
+  rpc ReclaimRuntime(ReclaimRuntimeRequest) returns (ReclaimRuntimeResponse);
+
+  rpc WatchListenerStatus(WatchListenerStatusRequest) returns (stream WatchListenerStatusResponse);
+}
+
+// LookupProviderRequest is the request type for LookupProvider.
+message LookupProviderRequest {
+  // ProviderId is the ID of the provider to lookup.
+  string provider_id = 1;
+}
+
+// LookupProviderResponse is the response type for LookupProvider.
+message LookupProviderResponse {
+  // ResourceId is the ID of the provider resource.
+  uint32 resource_id = 1;
+}
+
+// MountSessionRequest is the request type for MountSession.
+message MountSessionRequest {
+  // SessionRef is the reference to the session to mount.
+  .session.SessionRef session_ref = 1;
+}
+
+// MountSessionResponse is the response type for MountSession.
+message MountSessionResponse {
+  // ResourceId is the ID of the mounted session resource.
+  uint32 resource_id = 1;
+}
+
+// MountSessionByIdxRequest is the request type for MountSessionByIdx.
+message MountSessionByIdxRequest {
+  // SessionIdx is the index of the session to mount.
+  uint32 session_idx = 1;
+}
+
+// MountSessionByIdxResponse is the response type for MountSessionByIdx.
+message MountSessionByIdxResponse {
+  // ResourceId is the ID of the mounted session resource.
+  uint32 resource_id = 1;
+  // SessionRef is the reference to the session.
+  .session.SessionRef session_ref = 2;
+  // NotFound is true if the session was not found.
+  bool not_found = 3;
+}
+
+// ListProvidersRequest is the request type for ListProviders.
+message ListProvidersRequest {}
+
+// ListProvidersResponse is the response type for ListProviders.
+message ListProvidersResponse {
+  // Providers is the list of available providers.
+  repeated .provider.ProviderInfo providers = 1;
+}
+
+// ListSessionsRequest is the request type for ListSessions.
+message ListSessionsRequest {}
+
+// ListSessionsResponse is the response type for ListSessions.
+message ListSessionsResponse {
+  // Sessions is the list of configured sessions.
+  repeated .session.SessionListEntry sessions = 1;
+}
+
+// WatchSessionsRequest is the request type for WatchSessions.
+message WatchSessionsRequest {}
+
+// WatchSessionsResponse is the response type for WatchSessions.
+message WatchSessionsResponse {
+  // Sessions is the current list of configured sessions.
+  repeated .session.SessionListEntry sessions = 1;
+}
+
+// WatchAllAccountStatusesRequest is the request type for WatchAllAccountStatuses.
+message WatchAllAccountStatusesRequest {}
+
+// SessionAccountStatus is the current account status for a session index.
+message SessionAccountStatus {
+  // SessionIdx is the session index.
+  uint32 session_idx = 1;
+  // AccountStatus is the provider account status for the session.
+  .provider.ProviderAccountStatus account_status = 2;
+}
+
+// WatchAllAccountStatusesResponse is the streamed account-status snapshot.
+message WatchAllAccountStatusesResponse {
+  // Statuses contains one account status row per session index.
+  repeated SessionAccountStatus statuses = 1;
+}
+
+// GetSessionMetadataRequest is the request type for GetSessionMetadata.
+message GetSessionMetadataRequest {
+  // SessionIdx is the index of the session.
+  uint32 session_idx = 1;
+}
+
+// GetSessionMetadataResponse is the response type for GetSessionMetadata.
+message GetSessionMetadataResponse {
+  // Metadata is the session metadata.
+  .session.SessionMetadata metadata = 1;
+  // NotFound is true if the session was not found.
+  bool not_found = 2;
+}
+
+// WatchSessionMetadataRequest is the request type for WatchSessionMetadata.
+message WatchSessionMetadataRequest {
+  // SessionIdx is the index of the session.
+  uint32 session_idx = 1;
+}
+
+// WatchSessionMetadataResponse is the response type for WatchSessionMetadata.
+message WatchSessionMetadataResponse {
+  // Metadata is the current session metadata.
+  .session.SessionMetadata metadata = 1;
+  // NotFound is true if the session was not found.
+  bool not_found = 2;
+}
+
+// UnlockSessionByIdxRequest is the request type for UnlockSession.
+message UnlockSessionByIdxRequest {
+  // SessionIdx is the index of the session to unlock.
+  uint32 session_idx = 1;
+  // Pin is the PIN to use for unlocking.
+  bytes pin = 2;
+}
+
+// UnlockSessionByIdxResponse is the response type for UnlockSession.
+message UnlockSessionByIdxResponse {}
+
+// DeleteSessionRequest is the request type for DeleteSession.
+message DeleteSessionRequest {
+  // SessionIdx is the index of the session to delete.
+  uint32 session_idx = 1;
+}
+
+// DeleteSessionResponse is the response type for DeleteSession.
+message DeleteSessionResponse {}
+
+// ResetSessionByIdxRequest is the request type for ResetSession.
+message ResetSessionByIdxRequest {
+  // SessionIdx is the index of the session to reset.
+  uint32 session_idx = 1;
+  // Credential authenticates the reset via entity key derivation.
+  .session.EntityCredential credential = 2;
+}
+
+// ResetSessionByIdxResponse is the response type for ResetSession.
+message ResetSessionByIdxResponse {}
+
+// MarshalHashRequest is the request type for MarshalHash.
+message MarshalHashRequest {
+  // Hash is the hash to marshal.
+  .hash.Hash hash = 1;
+}
+
+// MarshalHashResponse is the response type for MarshalHash.
+message MarshalHashResponse {
+  // HashStr is the base58-encoded string representation.
+  string hash_str = 1;
+}
+
+// ParseHashRequest is the request type for ParseHash.
+message ParseHashRequest {
+  // HashStr is the base58-encoded string to parse.
+  string hash_str = 1;
+}
+
+// ParseHashResponse is the response type for ParseHash.
+message ParseHashResponse {
+  // Hash is the parsed hash.
+  .hash.Hash hash = 1;
+}
+
+// HashSumRequest is the request type for HashSum.
+message HashSumRequest {
+  // HashType is the hash type to use.
+  .hash.HashType hash_type = 1;
+  // Data is the data to hash.
+  bytes data = 2;
+}
+
+// HashSumResponse is the response type for HashSum.
+message HashSumResponse {
+  // Hash is the computed hash.
+  .hash.Hash hash = 1;
+}
+
+// HashValidateRequest is the request type for HashValidate.
+message HashValidateRequest {
+  // Hash is the hash to validate.
+  .hash.Hash hash = 1;
+}
+
+// HashValidateResponse is the response type for HashValidate.
+message HashValidateResponse {
+  // Valid is true if the hash is valid.
+  bool valid = 1;
+  // Error contains the validation error message if not valid.
+  string error = 2;
+}
+
+// AccessStateAtomRequest is the request for AccessStateAtom.
+message AccessStateAtomRequest {
+  // StoreId is the identifier for the state store.
+  // If empty, uses the default "ui-state" store.
+  string store_id = 1;
+}
+
+// AccessStateAtomResponse is the response for AccessStateAtom.
+message AccessStateAtomResponse {
+  // ResourceId is the ID of the state atom resource.
+  uint32 resource_id = 1;
+}
+
+// WatchStateAtomsRequest is the request for WatchStateAtoms.
+message WatchStateAtomsRequest {}
+
+// WatchStateAtomsResponse is the response for WatchStateAtoms.
+message WatchStateAtomsResponse {
+  // StoreIds is the current list of known root state atom store ids.
+  repeated string store_ids = 1;
+  // StoreCount is the total number of known root state atom stores.
+  uint32 store_count = 2;
+}
+
+// GetChangelogRequest is the request type for GetChangelog.
+message GetChangelogRequest {}
+
+// GetChangelogResponse is the response type for GetChangelog.
+message GetChangelogResponse {
+  // changelog is the application changelog.
+  .changelog.Changelog changelog = 1;
+}
+
+// GetDebugDbRequest is the request type for GetDebugDb.
+message GetDebugDbRequest {}
+
+// GetDebugDbResponse is the response type for GetDebugDb.
+message GetDebugDbResponse {
+  // ResourceId is the ID of the debug database resource.
+  uint32 resource_id = 1;
+}
+
+// GetCdnRequest is the request type for GetCdn.
+message GetCdnRequest {
+  // CdnId selects the CDN instance. Empty selects the default CDN. Unknown
+  // ids cause GetCdn to fail with an ErrUnknownCdn-wrapped error so callers
+  // can distinguish misconfigured ids from transport errors.
+  string cdn_id = 1;
+}
+
+// GetCdnResponse is the response type for GetCdn.
+message GetCdnResponse {
+  // ResourceId is the client resource id of the mounted CdnResource.
+  uint32 resource_id = 1;
+  // CdnSpaceId is the CDN Space ULID for the selected instance. Returned in
+  // the same round-trip so callers do not need a follow-up RPC.
+  string cdn_space_id = 2;
+}
+
+// AccessWebListenerRequest is the request type for AccessWebListener.
+message AccessWebListenerRequest {
+  // ListenMultiaddr is the requested listener bind address. Empty defaults to
+  // /ip4/127.0.0.1/tcp/0.
+  string listen_multiaddr = 1;
+  // Background keeps the listener in the daemon registry after the CLI exits.
+  bool background = 2;
+}
+
+// AccessWebListenerResponse is the response type for AccessWebListener.
+message AccessWebListenerResponse {
+  // ResourceId is the client-owned listener resource id for foreground mode.
+  uint32 resource_id = 1;
+  // ListenerId is the daemon-local identifier for this listener.
+  string listener_id = 2;
+  // ListenMultiaddr is the resolved listener multiaddr including actual port.
+  string listen_multiaddr = 3;
+  // Url is the localhost URL the user should open.
+  string url = 4;
+  // BootstrapSecret is the single-use bootstrap secret for the printed URL.
+  string bootstrap_secret = 5;
+  // Reused is true when a background port-0 listener was reused.
+  bool reused = 6;
+}
+
+// WatchWebListenersRequest is the request type for WatchWebListeners.
+message WatchWebListenersRequest {}
+
+// WebListenerInfo describes a daemon-owned web listener.
+message WebListenerInfo {
+  // ListenerId is the daemon-local identifier for this listener.
+  string listener_id = 1;
+  // ListenMultiaddr is the resolved listener multiaddr including actual port.
+  string listen_multiaddr = 2;
+  // Url is the localhost URL served by the listener.
+  string url = 3;
+  // Background is true when the listener is daemon-owned.
+  bool background = 4;
+}
+
+// WatchWebListenersResponse is the response type for WatchWebListeners.
+message WatchWebListenersResponse {
+  // Listeners is the active daemon-owned web listeners.
+  repeated WebListenerInfo listeners = 1;
+}
+
+// StopWebListenerRequest is the request type for StopWebListener.
+message StopWebListenerRequest {
+  // ListenerId is the daemon-local identifier for the listener to stop.
+  string listener_id = 1;
+}
+
+// StopWebListenerResponse is the response type for StopWebListener.
+message StopWebListenerResponse {
+  // NotFound is true when no daemon-owned listener had ListenerId.
+  bool not_found = 1;
+}
+
+// ListenerYieldPrompt describes a pending takeover prompt surfaced to
+// the desktop app's active window so the user can allow or deny a
+// remote runtime's request to take over the shared Unix socket.
+message ListenerYieldPrompt {
+  // PromptId is the broker-assigned identifier used to resolve the
+  // prompt via RespondToListenerYieldPrompt.
+  string prompt_id = 1;
+  // RequesterName is the human-readable name of the requesting
+  // runtime, typically "spacewave serve".
+  string requester_name = 2;
+  // SocketPath is the Unix socket path the requester wants to bind.
+  string socket_path = 3;
+  // DeadlineUnixMs is the auto-deny deadline in unix milliseconds.
+  int64 deadline_unix_ms = 4;
+}
+
+// WatchListenerYieldPromptsRequest is the request type for
+// WatchListenerYieldPrompts.
+message WatchListenerYieldPromptsRequest {}
+
+// WatchListenerYieldPromptsResponse is streamed whenever the pending
+// prompt list changes. Subscribers render whichever prompt is first
+// in the list (there is at most one at a time under current policy).
+message WatchListenerYieldPromptsResponse {
+  // Prompts is the current set of pending prompts awaiting response.
+  repeated ListenerYieldPrompt prompts = 1;
+}
+
+// RespondToListenerYieldPromptRequest carries the user's decision.
+message RespondToListenerYieldPromptRequest {
+  // PromptId identifies the prompt being resolved.
+  string prompt_id = 1;
+  // Allow is true when the user approves the takeover request.
+  bool allow = 2;
+}
+
+// RespondToListenerYieldPromptResponse is the response type for
+// RespondToListenerYieldPrompt.
+message RespondToListenerYieldPromptResponse {
+  // NotFound is true when the prompt id is unknown (e.g. already
+  // resolved or timed out).
+  bool not_found = 1;
+}
+
+// RuntimeHandoffState describes the current runtime-handoff snapshot.
+message RuntimeHandoffState {
+  // Active is true when the desktop listener has yielded the socket
+  // and is waiting for the user to reclaim the runtime.
+  bool active = 1;
+  // RequesterName is the name of the runtime that took over.
+  string requester_name = 2;
+  // SocketPath is the socket path that was yielded.
+  string socket_path = 3;
+  // SinceUnixMs is when the handoff started in unix milliseconds.
+  int64 since_unix_ms = 4;
+}
+
+// WatchRuntimeHandoffRequest is the request type for
+// WatchRuntimeHandoff.
+message WatchRuntimeHandoffRequest {}
+
+// WatchRuntimeHandoffResponse is streamed whenever the handoff state
+// changes.
+message WatchRuntimeHandoffResponse {
+  // State is the current handoff snapshot.
+  RuntimeHandoffState state = 1;
+}
+
+// ReclaimRuntimeRequest is the request type for ReclaimRuntime.
+message ReclaimRuntimeRequest {}
+
+// ReclaimRuntimeResponse is the response type for ReclaimRuntime.
+message ReclaimRuntimeResponse {
+  // Reclaimed is true when the reclaim signal was fired. False when
+  // there was no active handoff to reclaim from.
+  bool reclaimed = 1;
+}
+
+// WatchListenerStatusRequest is the request type for WatchListenerStatus.
+message WatchListenerStatusRequest {}
+
+// WatchListenerStatusResponse streams the effective desktop resource
+// listener socket path, whether the listener is currently bound, and
+// the count of connected resource clients. The UI subscribes via
+// useWatchStateRpc to render a live status chip on the session-local
+// command-line setup page.
+message WatchListenerStatusResponse {
+  // SocketPath is the effective absolute path of the listener socket.
+  // Populated once the listener controller resolves the configured
+  // path, before the first bind attempt.
+  string socket_path = 1;
+  // Listening is true when the listener currently has an open Unix
+  // socket accepting connections. False during startup before the
+  // first bind, during reclaim-wait when the runtime is handed off,
+  // and during teardown.
+  bool listening = 2;
+  // ConnectedClients is the count of clients currently connected to
+  // the listener socket. Updates on accept and on client disconnect.
+  uint32 connected_clients = 3;
+}

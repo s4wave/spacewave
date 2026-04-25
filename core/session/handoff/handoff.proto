@@ -1,0 +1,33 @@
+syntax = "proto3";
+package session.handoff;
+
+option go_package = "github.com/s4wave/spacewave/core/session/handoff";
+
+// HandoffRequest is sent by the device (desktop/CLI) to initiate
+// browser-delegated auth. Encoded as base64url in URL fragment.
+message HandoffRequest {
+  // DevicePublicKey is the ephemeral Ed25519 public key of the device.
+  bytes device_public_key = 1;
+  // DeviceName is the human-readable name of the device.
+  string device_name = 2;
+  // SessionNonce is a ULID that keys the AuthSessionDO.
+  string session_nonce = 3;
+  // ClientType is the type of client requesting auth.
+  string client_type = 4;
+}
+
+// HandoffCompletion is sent by the browser to the AuthSessionDO
+// after successful auth. Contains the encrypted session key.
+message HandoffCompletion {
+  // EncryptedSessionKey is the session private key encrypted to the
+  // device public key using bifrost EncryptToEd25519.
+  bytes encrypted_session_key = 1;
+  // AccountId is the cloud account ULID.
+  string account_id = 2;
+  // EntityId is the cloud username.
+  string entity_id = 3;
+}
+
+// HandoffAck is sent by the device to confirm receipt of the
+// encrypted session key.
+message HandoffAck {}

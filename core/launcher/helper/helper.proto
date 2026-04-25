@@ -1,0 +1,56 @@
+syntax = "proto3";
+package launcher.helper;
+
+// HelperMessage is sent from the launcher to the desktop loading-UI helper.
+message HelperMessage {
+  oneof body {
+    ProgressUpdate progress = 1;
+    StatusUpdate status = 2;
+    DismissCommand dismiss = 3;
+    ErrorReport error = 4;
+  }
+}
+
+// HelperEvent is sent from the desktop helper back to the launcher.
+message HelperEvent {
+  oneof body {
+    RetryRequest retry = 1;
+    CancelRequest cancel = 2;
+    HelperReady ready = 3;
+  }
+}
+
+// ProgressUpdate reports download/processing progress.
+message ProgressUpdate {
+  // Fraction is the progress fraction 0.0..1.0.
+  // Negative values indicate indeterminate progress.
+  float fraction = 1;
+  // Text is a human-readable status string.
+  string text = 2;
+}
+
+// StatusUpdate reports a status text change without progress.
+message StatusUpdate {
+  // Text is the status message to display.
+  string text = 1;
+}
+
+// DismissCommand tells the helper to close its window and exit.
+message DismissCommand {}
+
+// ErrorReport displays an error to the user.
+message ErrorReport {
+  // Message is the error description.
+  string message = 1;
+  // Retryable indicates the user can retry the operation.
+  bool retryable = 2;
+}
+
+// RetryRequest is sent when the user clicks retry after an error.
+message RetryRequest {}
+
+// CancelRequest is sent when the user cancels the operation.
+message CancelRequest {}
+
+// HelperReady is sent when the helper window is displayed and ready.
+message HelperReady {}

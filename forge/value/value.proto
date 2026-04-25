@@ -3,7 +3,6 @@ package forge.value;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
-import "github.com/s4wave/spacewave/db/world/block/world.proto";
 
 // Value contains a input/output value.
 message Value {

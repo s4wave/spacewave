@@ -1,0 +1,45 @@
+syntax = "proto3";
+package s4wave.debug;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+service DebugBridgeService {
+  rpc EvalJS(EvalJSRequest) returns (EvalJSResponse);
+  rpc GetPageInfo(GetPageInfoRequest) returns (GetPageInfoResponse);
+  rpc PluginRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// EvalJSRequest is a request to evaluate JavaScript code.
+message EvalJSRequest {
+  // Code is the JavaScript code to evaluate.
+  string code = 1;
+  // Url is a URL to import as an ES module (alternative to code).
+  // Set by the bridge service; the default export is used as the result.
+  string url = 2;
+  // IsModule indicates the code is already a full ES module.
+  // When true, the bridge stores the code as-is without wrapping in an async IIFE.
+  bool is_module = 3;
+}
+
+// EvalJSResponse is the response from evaluating JavaScript code.
+message EvalJSResponse {
+  // Result is the JSON-stringified result of the evaluation.
+  string result = 1;
+  // Error is the error message, if any.
+  string error = 2;
+}
+
+// GetPageInfoRequest is a request to get page information.
+message GetPageInfoRequest {}
+
+// GetPageInfoResponse is the response containing page information.
+message GetPageInfoResponse {
+  // Url is the current page URL.
+  string url = 1;
+  // Title is the current page title.
+  string title = 2;
+  // WebViewId is the web view identifier.
+  string web_view_id = 3;
+  // DocumentId is the web document identifier.
+  string document_id = 4;
+}

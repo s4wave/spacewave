@@ -1,0 +1,144 @@
+syntax = "proto3";
+package s4wave.debugdb;
+
+option go_package = "github.com/s4wave/spacewave/sdk/debugdb;s4wave_debugdb";
+
+service DebugDbResourceService {
+  rpc GetStorageInfo(GetStorageInfoRequest) returns (GetStorageInfoResponse);
+  rpc StartBenchmark(StartBenchmarkRequest) returns (StartBenchmarkResponse);
+}
+
+service DebugDbBenchmarkService {
+  rpc WatchProgress(WatchProgressRequest) returns (stream WatchProgressResponse);
+  rpc GetResults(GetResultsRequest) returns (GetResultsResponse);
+}
+
+// GetStorageInfoRequest is the request type for GetStorageInfo.
+message GetStorageInfoRequest {}
+
+// GetStorageInfoResponse is the response type for GetStorageInfo.
+message GetStorageInfoResponse {
+  // Info is the current storage information.
+  StorageInfo info = 1;
+}
+
+// StorageInfo describes the current storage backend configuration.
+message StorageInfo {
+  // VolumeType is the volume implementation type (e.g. "hydra/volume/opfs").
+  string volume_type = 1;
+  // BlockShardCount is the number of block shards.
+  uint32 block_shard_count = 2;
+  // BlockFlushThreshold is the per-shard flush entry threshold.
+  uint32 block_flush_threshold = 3;
+  // BlockFlushMaxAgeMillis is the max coalescing age in milliseconds.
+  uint32 block_flush_max_age_millis = 4;
+  // PageSize is the metadata page size in bytes.
+  uint32 page_size = 5;
+  // AsyncIo is true if the async OPFS API is enabled.
+  bool async_io = 6;
+  // Goos is the Go runtime GOOS value.
+  string goos = 7;
+  // Goarch is the Go runtime GOARCH value.
+  string goarch = 8;
+  // UserAgent is the browser user agent string.
+  string user_agent = 9;
+}
+
+// StartBenchmarkRequest is the request type for StartBenchmark.
+message StartBenchmarkRequest {
+  // Config is the benchmark configuration.
+  BenchmarkConfig config = 1;
+}
+
+// StartBenchmarkResponse is the response type for StartBenchmark.
+message StartBenchmarkResponse {
+  // ResourceId is the ID of the benchmark resource.
+  uint32 resource_id = 1;
+}
+
+// BenchmarkConfig configures a benchmark run.
+message BenchmarkConfig {
+  // DurationSeconds is the total benchmark duration target in seconds.
+  // Each suite gets a proportional share. Defaults to 10.
+  uint32 duration_seconds = 1;
+  // BlockSizes is the list of block sizes to test in bytes.
+  // Defaults to [256, 1024, 4096, 16384, 65536].
+  repeated uint32 block_sizes = 2;
+  // IncludeWorldSuite enables the world transaction benchmark suite.
+  bool include_world_suite = 3;
+  // AsyncIo runs the benchmark against OPFS async file writes.
+  bool async_io = 4;
+}
+
+// WatchProgressRequest is the request type for WatchProgress.
+message WatchProgressRequest {}
+
+// WatchProgressResponse is the response type for WatchProgress.
+message WatchProgressResponse {
+  // SuiteName is the name of the currently running suite.
+  string suite_name = 1;
+  // SuiteIndex is the zero-based index of the current suite.
+  uint32 suite_index = 2;
+  // SuiteCount is the total number of suites.
+  uint32 suite_count = 3;
+  // PercentComplete is the overall progress (0-100).
+  uint32 percent_complete = 4;
+  // MetricName is the name of the current metric being measured.
+  string metric_name = 5;
+  // Done is true when the benchmark has completed.
+  bool done = 6;
+}
+
+// GetResultsRequest is the request type for GetResults.
+message GetResultsRequest {}
+
+// GetResultsResponse is the response type for GetResults.
+message GetResultsResponse {
+  // Results is the full benchmark results.
+  BenchmarkResults results = 1;
+}
+
+// BenchmarkResults contains the complete results of a benchmark run.
+message BenchmarkResults {
+  // Info is the storage info at benchmark time.
+  StorageInfo info = 1;
+  // Config is the benchmark config that was used.
+  BenchmarkConfig config = 2;
+  // Suites is the list of benchmark suite results.
+  repeated BenchmarkSuite suites = 3;
+  // StartTimeUnixMillis is the benchmark start time.
+  uint64 start_time_unix_millis = 4;
+  // TotalDurationMillis is the total wall-clock duration.
+  uint64 total_duration_millis = 5;
+}
+
+// BenchmarkSuite contains results for one benchmark suite.
+message BenchmarkSuite {
+  // Name is the suite name (e.g. "blockshard-put-single").
+  string name = 1;
+  // Metrics is the list of measured metrics.
+  repeated BenchmarkMetric metrics = 2;
+}
+
+// BenchmarkMetric contains measurements for one metric.
+message BenchmarkMetric {
+  // Name is the metric name (e.g. "put-4096b").
+  string name = 1;
+  // Unit is the measurement unit (e.g. "ms", "ops/s").
+  string unit = 2;
+  // Count is the number of operations measured.
+  uint64 count = 3;
+  // TotalMs is the total time in milliseconds.
+  double total_ms = 4;
+  // MinMs is the minimum operation time.
+  double min_ms = 5;
+  // P50Ms is the 50th percentile operation time.
+  double p50_ms = 6;
+  // P99Ms is the 99th percentile operation time.
+  double p99_ms = 7;
+  // MaxMs is the maximum operation time.
+  double max_ms = 8;
+  // Samples contains raw timing samples when count < 1000.
+  // Empty for high-count metrics to keep response compact.
+  repeated double samples = 9;
+}

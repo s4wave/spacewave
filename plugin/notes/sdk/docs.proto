@@ -1,0 +1,18 @@
+syntax = "proto3";
+package notes;
+
+import "github.com/s4wave/spacewave/plugin/notes/proto/docs.proto";
+
+service DocsResourceService {
+  rpc WatchDocs(WatchDocsRequest)
+    returns (stream WatchDocsResponse);
+}
+
+// WatchDocsRequest is the request for WatchDocs.
+message WatchDocsRequest {}
+
+// WatchDocsResponse is the response for WatchDocs.
+message WatchDocsResponse {
+  // Documentation is the current documentation state.
+  Documentation documentation = 1;
+}

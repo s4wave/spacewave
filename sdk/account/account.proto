@@ -1,0 +1,433 @@
+syntax = "proto3";
+package s4wave.account;
+
+import "github.com/s4wave/spacewave/core/provider/spacewave/api/api.proto";
+import "github.com/s4wave/spacewave/core/session/session.proto";
+import "google/protobuf/timestamp.proto";
+
+service AccountResourceService {
+  rpc WatchAccountInfo(WatchAccountInfoRequest) returns (stream WatchAccountInfoResponse);
+
+  rpc WatchAuthMethods(WatchAuthMethodsRequest) returns (stream WatchAuthMethodsResponse);
+
+  rpc WatchSessions(WatchSessionsRequest) returns (stream WatchSessionsResponse);
+
+  rpc AddAuthMethod(AddAuthMethodRequest) returns (AddAuthMethodResponse);
+
+  rpc RemoveAuthMethod(RemoveAuthMethodRequest) returns (RemoveAuthMethodResponse);
+
+  rpc SetSecurityLevel(SetSecurityLevelRequest) returns (SetSecurityLevelResponse);
+
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+
+  rpc GenerateBackupKey(GenerateBackupKeyRequest) returns (GenerateBackupKeyResponse);
+
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+
+  rpc WatchEntityKeypairs(WatchEntityKeypairsRequest) returns (stream WatchEntityKeypairsResponse);
+
+  rpc UnlockEntityKeypair(UnlockEntityKeypairRequest) returns (UnlockEntityKeypairResponse);
+
+  rpc LockEntityKeypair(LockEntityKeypairRequest) returns (LockEntityKeypairResponse);
+
+  rpc LockAllEntityKeypairs(LockAllEntityKeypairsRequest) returns (LockAllEntityKeypairsResponse);
+
+  rpc SSOCodeExchange(SSOCodeExchangeRequest) returns (SSOCodeExchangeResponse);
+
+  rpc LinkSSO(LinkSSORequest) returns (LinkSSOResponse);
+
+  rpc StartDesktopPasskeyRegister(StartDesktopPasskeyRegisterRequest) returns (StartDesktopPasskeyRegisterResponse);
+  rpc StartDesktopPasskeyRegisterHandoff(StartDesktopPasskeyRegisterHandoffRequest) returns (StartDesktopPasskeyRegisterHandoffResponse);
+
+  rpc PasskeyRegisterOptions(PasskeyRegisterOptionsRequest) returns (PasskeyRegisterOptionsResponse);
+
+  rpc PasskeyRegisterVerify(PasskeyRegisterVerifyRequest) returns (PasskeyRegisterVerifyResponse);
+}
+
+// WatchAccountInfoRequest is the request type for WatchAccountInfo.
+message WatchAccountInfoRequest {}
+
+// WatchAccountInfoResponse is the response type for WatchAccountInfo.
+message WatchAccountInfoResponse {
+  // AccountId is the account identifier.
+  string account_id = 1;
+  // EntityId is the entity identifier (username).
+  string entity_id = 2;
+  // ProviderId is the provider identifier.
+  string provider_id = 3;
+  // AuthThreshold is the current auth threshold.
+  uint32 auth_threshold = 4;
+  // KeypairCount is the number of registered entity keypairs.
+  uint32 keypair_count = 5;
+}
+
+// WatchAuthMethodsRequest is the request type for WatchAuthMethods.
+message WatchAuthMethodsRequest {}
+
+// WatchAuthMethodsResponse is the response type for WatchAuthMethods.
+message WatchAuthMethodsResponse {
+  // AuthMethods is the list of account auth-method rows.
+  repeated .provider.spacewave.api.AccountAuthMethod auth_methods = 1;
+}
+
+// AccountSessionKind identifies the provider-side session model for a row.
+enum AccountSessionKind {
+  // AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED is the default kind.
+  AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED = 0;
+  // AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION identifies
+  // a local account-session row in the Sessions section.
+  AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION = 1;
+  // AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION identifies
+  // a cloud auth-session row sourced from the cloud session set.
+  AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION = 2;
+}
+
+// AccountSession identifies one attached session row for account settings.
+message AccountSession {
+  // PeerId is the session or paired-device peer ID.
+  string peer_id = 1;
+  // CurrentSession is true when this row matches the mounted session.
+  bool current_session = 2;
+  // Kind identifies whether the row is local-session state or a cloud
+  // auth-session row.
+  AccountSessionKind kind = 3;
+  // Label is the primary display label for the row.
+  string label = 4;
+  // DeviceType identifies the broad device class ("web", "desktop", etc.).
+  string device_type = 5;
+  // ClientName is the app or browser name when known.
+  string client_name = 6;
+  // Os is the operating system or platform when known.
+  string os = 7;
+  // Location is the observed network location when known.
+  string location = 8;
+  // CreatedAt is the first-seen or paired-at timestamp for the row.
+  google.protobuf.Timestamp created_at = 9;
+  // LastSeenAt is the last-seen timestamp for cloud sessions when known.
+  google.protobuf.Timestamp last_seen_at = 10;
+}
+
+// WatchSessionsRequest is the request type for WatchSessions.
+message WatchSessionsRequest {}
+
+// WatchSessionsResponse is the response type for WatchSessions.
+message WatchSessionsResponse {
+  // Sessions is the full account-attached sessions snapshot.
+  repeated AccountSession sessions = 1;
+}
+
+// AddAuthMethodRequest is the request type for AddAuthMethod.
+message AddAuthMethodRequest {
+  // Keypair is the new entity keypair to add.
+  .session.EntityKeypair keypair = 1;
+  // Credential is the entity signing credential. If unset, the call falls
+  // back to any entity keys currently unlocked in the keypair tracker.
+  .session.EntityCredential credential = 2;
+}
+
+// AddAuthMethodResponse is the response type for AddAuthMethod.
+message AddAuthMethodResponse {}
+
+// RemoveAuthMethodRequest is the request type for RemoveAuthMethod.
+message RemoveAuthMethodRequest {
+  // PeerId is the peer ID of the keypair to remove.
+  string peer_id = 1;
+  // Credential is the entity signing credential. If unset, the call falls
+  // back to any entity keys currently unlocked in the keypair tracker.
+  .session.EntityCredential credential = 2;
+}
+
+// RemoveAuthMethodResponse is the response type for RemoveAuthMethod.
+message RemoveAuthMethodResponse {}
+
+// SetSecurityLevelRequest is the request type for SetSecurityLevel.
+message SetSecurityLevelRequest {
+  // Threshold is the new auth threshold value.
+  uint32 threshold = 1;
+  // Credential is the entity signing credential. If unset, the call falls
+  // back to any entity keys currently unlocked in the keypair tracker.
+  .session.EntityCredential credential = 2;
+}
+
+// SetSecurityLevelResponse is the response type for SetSecurityLevel.
+message SetSecurityLevelResponse {}
+
+// RevokeSessionRequest is the request type for RevokeSession.
+message RevokeSessionRequest {
+  // SessionPeerId is the peer ID of the session to revoke.
+  string session_peer_id = 1;
+  // Credential is the entity signing credential. If unset and the target
+  // session matches the current session, the call uses the session self-
+  // revoke endpoint. Otherwise the call falls back to any entity keys
+  // currently unlocked in the keypair tracker.
+  .session.EntityCredential credential = 2;
+}
+
+// RevokeSessionResponse is the response type for RevokeSession.
+message RevokeSessionResponse {}
+
+// GenerateBackupKeyRequest is the request type for GenerateBackupKey.
+message GenerateBackupKeyRequest {
+  // Credential is the entity signing credential for authorization.
+  .session.EntityCredential credential = 1;
+}
+
+// GenerateBackupKeyResponse is the response type for GenerateBackupKey.
+message GenerateBackupKeyResponse {
+  // PemData is the private key in PEM format for the user to download.
+  bytes pem_data = 1;
+  // PeerId is the peer ID of the generated backup key.
+  string peer_id = 2;
+}
+
+// ChangePasswordRequest is the request type for ChangePassword.
+message ChangePasswordRequest {
+  // OldPassword is the current account password.
+  string old_password = 1;
+  // NewPassword is the desired new password.
+  string new_password = 2;
+}
+
+// ChangePasswordResponse is the response type for ChangePassword.
+message ChangePasswordResponse {}
+
+// EntityKeypairState describes the lock state of an entity keypair.
+message EntityKeypairState {
+  // Keypair is the entity keypair metadata.
+  .session.EntityKeypair keypair = 1;
+  // Unlocked is true if the private key is held in memory.
+  bool unlocked = 2;
+}
+
+// WatchEntityKeypairsRequest is the request type for WatchEntityKeypairs.
+message WatchEntityKeypairsRequest {}
+
+// WatchEntityKeypairsResponse is the response type for WatchEntityKeypairs.
+message WatchEntityKeypairsResponse {
+  // Keypairs is the list of entity keypairs with lock state.
+  repeated EntityKeypairState keypairs = 1;
+  // UnlockedCount is the number of currently unlocked keypairs.
+  uint32 unlocked_count = 2;
+}
+
+// AccountEscalationIntentKind identifies the protected action being authorized.
+enum AccountEscalationIntentKind {
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED is
+  // the zero/default intent kind.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED = 0;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION
+  // authorizes revoking another session.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION = 1;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD
+  // authorizes removing an auth method.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD = 2;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY
+  // authorizes generating a backup key.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY = 3;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_LINK_SSO
+  // authorizes linking an SSO method.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_LINK_SSO = 4;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_SET_SECURITY_LEVEL
+  // authorizes changing the security threshold.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_SET_SECURITY_LEVEL = 5;
+  // AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD
+  // authorizes changing the account password.
+  AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD = 6;
+}
+
+// AccountEscalationIntent describes the protected-action intent shown to the user.
+message AccountEscalationIntent {
+  // Kind identifies the protected action being authorized.
+  AccountEscalationIntentKind kind = 1;
+  // Title is the primary action title shown in the prompt.
+  string title = 2;
+  // Description is the supporting explanatory copy shown in the prompt.
+  string description = 3;
+  // TargetLabel is the target label for the action when relevant.
+  string target_label = 4;
+  // TargetPeerId is the target peer ID when the protected action addresses a
+  // specific session or entity keypair.
+  string target_peer_id = 5;
+  // Provider identifies the external provider when the intent is provider-scoped.
+  string provider = 6;
+}
+
+// AccountEscalationMethod describes one auth method available for escalation.
+message AccountEscalationMethod {
+  // PeerId is the entity peer ID when the auth method is backed by a keypair.
+  string peer_id = 1;
+  // Kind identifies the auth-method row type.
+  .provider.spacewave.api.AccountAuthMethodKind kind = 2;
+  // Label is the primary auth-method label.
+  string label = 3;
+  // SecondaryLabel is the optional supporting metadata line.
+  string secondary_label = 4;
+  // Provider identifies the external provider for SSO-backed methods.
+  string provider = 5;
+  // Unlocked indicates whether the signer is already unlocked in the tracker.
+  bool unlocked = 6;
+}
+
+// AccountEscalationRequirement describes the signer threshold and progress.
+message AccountEscalationRequirement {
+  // AuthThreshold is the current account threshold value.
+  uint32 auth_threshold = 1;
+  // RequiredSigners is the number of signers required for the action.
+  uint32 required_signers = 2;
+  // UnlockedSigners is the number of currently unlocked signers.
+  uint32 unlocked_signers = 3;
+  // TotalMethods is the total number of available auth methods.
+  uint32 total_methods = 4;
+}
+
+// AccountEscalationState is the shared protected-action escalation model.
+message AccountEscalationState {
+  // Intent describes the protected action being authorized.
+  AccountEscalationIntent intent = 1;
+  // Requirement describes the threshold and current signer progress.
+  AccountEscalationRequirement requirement = 2;
+  // Methods is the list of available auth methods for escalation.
+  repeated AccountEscalationMethod methods = 3;
+}
+
+// UnlockEntityKeypairRequest is the request type for UnlockEntityKeypair.
+message UnlockEntityKeypairRequest {
+  // PeerId is the peer ID of the entity keypair to unlock.
+  string peer_id = 1;
+  // Credential is the entity signing credential (password or PEM key).
+  .session.EntityCredential credential = 2;
+}
+
+// UnlockEntityKeypairResponse is the response type for UnlockEntityKeypair.
+message UnlockEntityKeypairResponse {}
+
+// LockEntityKeypairRequest is the request type for LockEntityKeypair.
+message LockEntityKeypairRequest {
+  // PeerId is the peer ID of the entity keypair to lock.
+  string peer_id = 1;
+}
+
+// LockEntityKeypairResponse is the response type for LockEntityKeypair.
+message LockEntityKeypairResponse {}
+
+// LockAllEntityKeypairsRequest is the request type for LockAllEntityKeypairs.
+message LockAllEntityKeypairsRequest {}
+
+// LockAllEntityKeypairsResponse is the response type for LockAllEntityKeypairs.
+message LockAllEntityKeypairsResponse {}
+
+// SSOCodeExchangeRequest is the request type for SSOCodeExchange.
+message SSOCodeExchangeRequest {
+  // Provider is the SSO provider name ("google" or "github").
+  string provider = 1;
+  // Code is the OAuth authorization code.
+  string code = 2;
+  // RedirectUri is the OAuth redirect URI used by the client.
+  string redirect_uri = 3;
+}
+
+// SSOCodeExchangeResponse is the response type for SSOCodeExchange.
+message SSOCodeExchangeResponse {
+  // Linked indicates whether an account was found for this OAuth identity.
+  bool linked = 1;
+  // AccountId is set when linked=true.
+  string account_id = 2;
+  // EntityId is set when linked=true.
+  string entity_id = 3;
+  // EncryptedBlob is the base64-encoded unwrapped key blob (linked=true).
+  string encrypted_blob = 4;
+  // PinWrapped indicates if the blob still has Layer 1 PIN wrapping.
+  bool pin_wrapped = 5;
+  // AuthParams is base64-encoded CustodiedKeyParams (linked=true).
+  string auth_params = 6;
+  // Provider is set when linked=false.
+  string sso_provider = 7;
+  // Email is set when linked=false (email from OAuth provider).
+  string email = 8;
+}
+
+// LinkSSORequest is the request type for LinkSSO.
+message LinkSSORequest {
+  // Provider is the SSO provider name ("google" or "github").
+  string provider = 1;
+  // Code is the OAuth authorization code.
+  string code = 2;
+  // RedirectUri is the OAuth redirect URI used by the client.
+  string redirect_uri = 3;
+  // Pin is the optional PIN for Layer 1 wrapping.
+  // If empty, no PIN wrapping is applied.
+  bytes pin = 4;
+  // Credential is the entity signing credential for multi-sig authorization.
+  // If unset, the call falls back to any entity keys currently unlocked in
+  // the keypair tracker.
+  .session.EntityCredential credential = 5;
+}
+
+// LinkSSOResponse is the response type for LinkSSO.
+message LinkSSOResponse {}
+
+// StartDesktopPasskeyRegisterRequest is the request type for
+// StartDesktopPasskeyRegister.
+message StartDesktopPasskeyRegisterRequest {}
+
+// StartDesktopPasskeyRegisterResponse is the response type for
+// StartDesktopPasskeyRegister.
+message StartDesktopPasskeyRegisterResponse {
+  // Nonce is the auth-session nonce for the desktop passkey register flow.
+  string nonce = 1;
+  // WsTicket is the JWT ticket for the auth session WebSocket.
+  string ws_ticket = 2;
+  // OpenUrl is the full browser URL to open for the desktop passkey register flow.
+  string open_url = 3;
+}
+
+// StartDesktopPasskeyRegisterHandoffRequest is the request type for
+// StartDesktopPasskeyRegisterHandoff.
+message StartDesktopPasskeyRegisterHandoffRequest {}
+
+// StartDesktopPasskeyRegisterHandoffResponse is the response type for
+// StartDesktopPasskeyRegisterHandoff.
+message StartDesktopPasskeyRegisterHandoffResponse {
+  // Username is the account username echoed by the browser ceremony.
+  string username = 1;
+  // CredentialJson is the browser registration credential JSON.
+  string credential_json = 2;
+  // PrfCapable indicates whether the passkey supports PRF-based wrapping.
+  bool prf_capable = 3;
+  // PrfSalt is the base64url PRF salt chosen during registration.
+  string prf_salt = 4;
+  // PrfOutput is the base64-encoded PRF output captured in the browser.
+  string prf_output = 5;
+}
+
+// PasskeyRegisterOptionsRequest is the request type for PasskeyRegisterOptions.
+message PasskeyRegisterOptionsRequest {}
+
+// PasskeyRegisterOptionsResponse is the response type for PasskeyRegisterOptions.
+message PasskeyRegisterOptionsResponse {
+  // OptionsJson is the PublicKeyCredentialCreationOptions as a JSON string.
+  string options_json = 1;
+}
+
+// PasskeyRegisterVerifyRequest is the request type for PasskeyRegisterVerify.
+message PasskeyRegisterVerifyRequest {
+  // CredentialJson is the RegistrationResponseJSON from @simplewebauthn/browser.
+  string credential_json = 1;
+  // PrfCapable indicates whether the credential supports the PRF extension.
+  bool prf_capable = 2;
+  // EncryptedPrivkey is the encrypted entity private key blob (base64).
+  string encrypted_privkey = 3;
+  reserved 4;
+  // PeerId is the entity peer ID string.
+  string peer_id = 5;
+  // AuthParams is the serialized CustodiedKeyParams (base64).
+  string auth_params = 6;
+  // PrfSalt is the base64url-encoded PRF salt used for local blob wrapping.
+  string prf_salt = 7;
+}
+
+// PasskeyRegisterVerifyResponse is the response type for PasskeyRegisterVerify.
+message PasskeyRegisterVerifyResponse {
+  // CredentialId is the base64url-encoded credential ID.
+  string credential_id = 1;
+}

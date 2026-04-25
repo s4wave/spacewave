@@ -1,0 +1,42 @@
+syntax = "proto3";
+package provider.local;
+
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+
+// Config configures the local space provider controller.
+message Config {
+  // ProviderId is the provider identifier.
+  // Defaults to "local" if unset.
+  // NOTE: Many places in the codebase expect this to be "local" so change carefully!
+  string provider_id = 1;
+  // PeerId is the peer id to use.
+  // If empty, uses the first value returned from GetPeer
+  string peer_id = 2;
+  // StorageId is the storage id to use.
+  // If empty, uses the default storage controller id.
+  string storage_id = 3;
+}
+
+// LocalSOState contains the local state for a shared object.
+message LocalSOState {
+  // OpQueue contains locally queued ops not applied to the SOHost yet.
+  repeated .sobject.QueuedSOOperation op_queue = 1;
+}
+
+// LocalSOOperationResult contains the result of a SOOperation.
+message LocalSOOperationResult {
+  // LocalId is the local operation id, must be a valid ulid.
+  string local_id = 1;
+  // Result is the operation result.
+  .sobject.SOOperationResult result = 2;
+}
+
+// PairingConfirmMessage is exchanged over a bifrost link during the
+// mutual SAS verification step. Both peers send their confirmation
+// status and wait for the remote's response.
+message PairingConfirmMessage {
+  // Confirmed indicates the user verified the SAS emoji match.
+  bool confirmed = 1;
+  // Rejected indicates the user rejected the SAS emoji match.
+  bool rejected = 2;
+}

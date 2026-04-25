@@ -1,0 +1,19 @@
+syntax = "proto3";
+package bstore.world;
+
+import "github.com/s4wave/spacewave/core/bstore/bstore.proto";
+
+// BlockStoreState contains a BlockStore reference.
+message BlockStoreState {
+  // Ref is the block store ref on the provider.
+  .bstore.BlockStoreRef ref = 1;
+}
+
+// UpdateBlockStoreStateOp is an world operation to update a BlockStoreState.
+message UpdateBlockStoreStateOp {
+  // UpdatedState is the updated local block store state.
+  // The object key is derived from the block store ref.
+  BlockStoreState updated_state = 1;
+  // IfNotExists prevents overwriting an existing state if it exists.
+  bool if_not_exists = 2;
+}

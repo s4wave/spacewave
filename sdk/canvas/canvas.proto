@@ -1,0 +1,138 @@
+syntax = "proto3";
+package s4wave.canvas;
+
+option go_package = "github.com/s4wave/spacewave/sdk/canvas;s4wave_canvas";
+
+service CanvasResourceService {
+  rpc GetCanvasState(GetCanvasStateRequest) returns (GetCanvasStateResponse);
+  rpc UpdateCanvas(UpdateCanvasRequest) returns (UpdateCanvasResponse);
+  rpc WatchCanvasState(WatchCanvasStateRequest) returns (stream WatchCanvasStateResponse);
+}
+
+// NodeType is the type of a canvas node.
+enum NodeType {
+  // NODE_TYPE_UNKNOWN is unknown.
+  NODE_TYPE_UNKNOWN = 0;
+  // NODE_TYPE_TEXT is a markdown text node.
+  NODE_TYPE_TEXT = 1;
+  // NODE_TYPE_SHAPE is a shape node.
+  NODE_TYPE_SHAPE = 2;
+  // NODE_TYPE_WORLD_OBJECT is an embedded world object node.
+  NODE_TYPE_WORLD_OBJECT = 3;
+  // NODE_TYPE_DRAWING is a freeform drawing node.
+  NODE_TYPE_DRAWING = 4;
+}
+
+// EdgeStyle is the visual style of a canvas edge.
+enum EdgeStyle {
+  // EDGE_STYLE_BEZIER is the default bezier curve style.
+  EDGE_STYLE_BEZIER = 0;
+  // EDGE_STYLE_STRAIGHT is a straight line.
+  EDGE_STYLE_STRAIGHT = 1;
+}
+
+// CanvasNode is a node on the canvas.
+message CanvasNode {
+  // Id is the unique identifier for the node.
+  string id = 1;
+  // X is the x position in canvas space.
+  double x = 2;
+  // Y is the y position in canvas space.
+  double y = 3;
+  // Width is the width in canvas space.
+  double width = 4;
+  // Height is the height in canvas space.
+  double height = 5;
+  // ZIndex is the rendering order (higher = front).
+  int32 z_index = 6;
+  // Type is the node type.
+  NodeType type = 7;
+  // TextContent is the markdown source (TEXT nodes).
+  string text_content = 8;
+  // ShapeData is shape/drawing data (SHAPE/DRAWING nodes).
+  bytes shape_data = 9;
+  // ObjectKey is the world object key (WORLD_OBJECT nodes).
+  string object_key = 10;
+  // Pinned indicates the node was manually added to canvas.
+  bool pinned = 11;
+  // ViewPath is the navigation path within the embedded viewer (WORLD_OBJECT nodes).
+  string view_path = 12;
+}
+
+// CanvasEdge is a user-drawn visual-only edge.
+message CanvasEdge {
+  // Id is the unique identifier for the edge.
+  string id = 1;
+  // SourceNodeId is the source node.
+  string source_node_id = 2;
+  // TargetNodeId is the target node.
+  string target_node_id = 3;
+  // Label is an optional edge label.
+  string label = 4;
+  // Style is the edge visual style.
+  EdgeStyle style = 5;
+}
+
+// HiddenGraphLink is a canvas-scoped hidden world graph link identity.
+message HiddenGraphLink {
+  // Subject is the graph link subject IRI.
+  string subject = 1;
+  // Predicate is the graph link predicate IRI.
+  string predicate = 2;
+  // Object is the graph link object IRI.
+  string object = 3;
+  // Label is the optional graph link label.
+  string label = 4;
+}
+
+// CanvasState is the full canvas state stored as a world object block.
+message CanvasState {
+  // Nodes is the set of canvas nodes keyed by ID.
+  map<string, CanvasNode> nodes = 1;
+  // Edges is the list of user-drawn edges.
+  repeated CanvasEdge edges = 2;
+  // StrokeTreeRef is the block ref to the freeform stroke tree.
+  bytes stroke_tree_ref = 3;
+  // HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
+  repeated HiddenGraphLink hidden_graph_links = 4;
+}
+
+// GetCanvasStateRequest is the request for GetCanvasState.
+message GetCanvasStateRequest {}
+
+// GetCanvasStateResponse is the response for GetCanvasState.
+message GetCanvasStateResponse {
+  // State is the current canvas state.
+  CanvasState state = 1;
+}
+
+// UpdateCanvasRequest applies mutations to the canvas.
+message UpdateCanvasRequest {
+  // SetNodes contains nodes to add or update (keyed by ID).
+  map<string, CanvasNode> set_nodes = 1;
+  // RemoveNodeIds contains node IDs to remove.
+  repeated string remove_node_ids = 2;
+  // AddEdges contains edges to add.
+  repeated CanvasEdge add_edges = 3;
+  // RemoveEdgeIds contains edge IDs to remove.
+  repeated string remove_edge_ids = 4;
+  // AddHiddenGraphLinks contains graph links to hide.
+  repeated HiddenGraphLink add_hidden_graph_links = 5;
+  // RemoveHiddenGraphLinks contains graph links to show again.
+  repeated HiddenGraphLink remove_hidden_graph_links = 6;
+}
+
+// UpdateCanvasResponse is the response for UpdateCanvas.
+message UpdateCanvasResponse {
+  // State is the updated canvas state.
+  CanvasState state = 1;
+}
+
+// WatchCanvasStateRequest is the request for WatchCanvasState.
+message WatchCanvasStateRequest {}
+
+// WatchCanvasStateResponse is a stream response with canvas state.
+message WatchCanvasStateResponse {
+  // State is the current canvas state.
+  CanvasState state = 1;
+}

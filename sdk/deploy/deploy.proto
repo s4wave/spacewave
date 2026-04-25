@@ -1,0 +1,54 @@
+syntax = "proto3";
+package s4wave.deploy;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// DeployManifestMessage is the bidirectional message for manifest deployment.
+message DeployManifestMessage {
+  oneof body {
+    // DeployManifestRequest is sent client->server as the initial request.
+    DeployManifestRequest request = 1;
+    // BlockRequest is sent server->client to request a block.
+    BlockRequest block_request = 2;
+    // BlockResponse is sent client->server with block data.
+    BlockResponse block_response = 3;
+    // DeployManifestResult is sent server->client when deployment completes.
+    DeployManifestResult result = 4;
+  }
+}
+
+// DeployManifestRequest is the initial deployment request from the CLI.
+message DeployManifestRequest {
+  // SpaceId is the ID of the Space to deploy to.
+  string space_id = 1;
+  // ManifestRef is the object ref of the manifest to deploy.
+  // Contains the root block ref and the transform config used to encode blocks.
+  .bucket.ObjectRef manifest_ref = 2;
+  // ObjectKey is the object key to store the manifest under in the Space world.
+  string object_key = 3;
+  // ManifestId is the manifest identifier (e.g., "glados-core").
+  string manifest_id = 4;
+}
+
+// BlockRequest is a request from the server for a specific block.
+message BlockRequest {
+  // Ref is the block reference to fetch.
+  .block.BlockRef ref = 1;
+}
+
+// BlockResponse is the client's response with block data.
+message BlockResponse {
+  // Ref is the block reference.
+  .block.BlockRef ref = 1;
+  // Data is the raw block bytes.
+  bytes data = 2;
+  // NotFound indicates the block was not found in the source.
+  bool not_found = 3;
+}
+
+// DeployManifestResult is sent when deployment completes.
+message DeployManifestResult {
+  // Error is set if deployment failed.
+  string error = 1;
+}
