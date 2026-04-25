@@ -108,7 +108,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		SourceRoot: workingPath,
 
 		Outfile:     viteScriptPath,
-		EntryPoints: []string{"./web/bundler/vite/vite.ts"},
+		EntryPoints: []string{bldr_vite.ResolveViteEntrypointPath(distPath)},
 
 		Target:      esbuild.ES2022,
 		Format:      esbuild.FormatESModule,

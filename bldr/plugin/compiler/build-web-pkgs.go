@@ -6,6 +6,7 @@ import (
 	"context"
 	"path/filepath"
 
+	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -32,7 +33,7 @@ func BuildDirectWebPkgs(
 ) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
 	// Install dist deps (cached: skips if package.json unchanged).
 	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, filepath.Join(distSourcePath, "dist/deps/package.json"), buildPkgsDir); err != nil {
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
 		return nil, nil, nil, err
 	}
 

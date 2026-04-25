@@ -13,6 +13,7 @@ import (
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
@@ -523,7 +524,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 	// install dist deps (cached: skips if package.json unchanged)
 	// Use stateDir (not buildDir) so the cache survives CleanCreateDir on the build output.
 	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
-	if err := npm.EnsureBunInstall(ctx, le, stateDir, filepath.Join(bldrDistRoot, "dist/deps/package.json"), buildPkgsDir); err != nil {
+	if err := npm.EnsureBunInstall(ctx, le, stateDir, bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
 		return web_entrypoint_index.ImportMap{}, err
 	}
 

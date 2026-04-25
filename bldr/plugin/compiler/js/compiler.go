@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -370,14 +371,14 @@ func (c *Controller) BuildManifest(
 	// The entrypoint bundles @aptre/bldr which transitively imports packages
 	// (like workbox-window) that must be resolved via dist/deps/package.json.
 	distDepsDir := filepath.Join(workingPath, "dist-deps")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, filepath.Join(distSourcePath, "dist/deps/package.json"), distDepsDir); err != nil {
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), distDepsDir); err != nil {
 		return nil, errors.Wrap(err, "failed to install dist deps for entrypoint")
 	}
 	distDepsNodeModules := filepath.Join(distDepsDir, "node_modules")
 
 	// -- Compile the main JS entrypoint (plugin-{hash}.mjs) --
 	le.Info("compiling js plugin entrypoint")
-	entrypointTsSrcPath := filepath.Join(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
+	entrypointTsSrcPath := bldr.ResolveDistSourcePath(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
 
 	// Verify entrypoint source exists
 	if _, err := os.Stat(entrypointTsSrcPath); err != nil {
@@ -435,7 +436,11 @@ func (c *Controller) BuildManifest(
 	}
 
 	// Relative path to the entrypoint within the distSourcePath directory.
-	entrypointTsRelativePath := "plugin/compiler/js/entrypoint.ts"
+	entrypointTsRelativePath, err := filepath.Rel(distSourcePath, entrypointTsSrcPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to derive js plugin entrypoint path")
+	}
+	entrypointTsRelativePath = filepath.ToSlash(entrypointTsRelativePath)
 
 	// Desired output path structure (esbuild will add hash and extension)
 	entrypointOutputBase := "plugin" // plugin-HASH.mjs

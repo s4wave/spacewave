@@ -86,7 +86,7 @@ func TestPluginCompilerJs(t *testing.T) {
 		&bldr_plugin_compiler_js.Config{
 			Modules: []*bldr_plugin_compiler_js.JsModule{{
 				Kind: bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
-				Path: "./plugin/host/wazero-quickjs/plugin-quickjs_test.ts",
+				Path: "./bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts",
 			}},
 		},
 	), false)

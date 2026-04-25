@@ -12,6 +12,7 @@ import (
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
 )
@@ -50,7 +51,7 @@ func TestViteCompilerBootstrapBuild(t *testing.T) {
 	result := esbuild.Build(esbuild.BuildOptions{
 		AbsWorkingDir: distDir,
 		Outfile:       filepath.Join(t.TempDir(), "vite-bootstrap.mjs"),
-		EntryPoints:   []string{"./web/bundler/vite/vite.ts"},
+		EntryPoints:   []string{bldr_web_bundler_vite.ResolveViteEntrypointPath(distDir)},
 		Target:        esbuild.ES2022,
 		Format:        esbuild.FormatESModule,
 		Platform:      esbuild.PlatformNode,
