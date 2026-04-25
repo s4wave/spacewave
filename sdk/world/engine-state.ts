@@ -320,13 +320,26 @@ class EngineWorldStateObject implements IObjectState {
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor> {
-    return this.engineState['performOp'](false, abortSignal, async (tx) => {
+    const tx = await this.engineState.getEngine().newTransaction(
+      false,
+      abortSignal,
+    )
+    try {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
       }
-      return obj.accessWorldState(ref, abortSignal)
-    })
+      try {
+        const cursor = await obj.accessWorldState(ref, abortSignal)
+        return new TxOwnedBucketLookupCursor(cursor, tx)
+      } finally {
+        obj.release()
+      }
+    } catch (err) {
+      await tx.discard(abortSignal).catch(() => {})
+      tx.release()
+      throw err
+    }
   }
 
   public async applyObjectOp(
@@ -378,5 +391,26 @@ class EngineWorldStateObject implements IObjectState {
   // Symbol.dispose is a no-op for EngineWorldStateObject
   [Symbol.dispose](): void {
     // No-op: EngineWorldStateObject is not a Resource
+  }
+}
+
+class TxOwnedBucketLookupCursor extends BucketLookupCursor {
+  private cursor: BucketLookupCursor
+  private tx: Tx
+  private releasedCursor = false
+
+  constructor(cursor: BucketLookupCursor, tx: Tx) {
+    super(cursor.resourceRef)
+    this.cursor = cursor
+    this.tx = tx
+  }
+
+  public release(abortSignal?: AbortSignal): void {
+    if (this.releasedCursor) return
+    this.releasedCursor = true
+    this.cursor.release(abortSignal)
+    void this.tx.discard(abortSignal).catch(() => {}).finally(() => {
+      this.tx.release()
+    })
   }
 }
