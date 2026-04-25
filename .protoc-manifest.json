@@ -1116,9 +1116,7 @@
         "core/account/settings/settings.pb.rs",
         "core/account/settings/settings.pb.ts"
       ],
-      "protoFiles": [
-        "core/account/settings/settings.proto"
-      ]
+      "protoFiles": ["core/account/settings/settings.proto"]
     },
     "github.com/s4wave/spacewave/core/bstore": {
       "hash": "961e3bfad2a3f3e1cfc936bc227c50160ee1c52ddffcfd06182bc1baca2bd26c",
@@ -1129,9 +1127,7 @@
         "core/bstore/bstore.pb.rs",
         "core/bstore/bstore.pb.ts"
       ],
-      "protoFiles": [
-        "core/bstore/bstore.proto"
-      ]
+      "protoFiles": ["core/bstore/bstore.proto"]
     },
     "github.com/s4wave/spacewave/core/bstore/world": {
       "hash": "bff914c004294c4b0248b0faa06366e4eaea7768744d5b8b19a2ec72242d0c40",
@@ -1142,9 +1138,7 @@
         "core/bstore/world/world.pb.rs",
         "core/bstore/world/world.pb.ts"
       ],
-      "protoFiles": [
-        "core/bstore/world/world.proto"
-      ]
+      "protoFiles": ["core/bstore/world/world.proto"]
     },
     "github.com/s4wave/spacewave/core/cdn": {
       "hash": "1676801b8370249512ea0af55c9e85e7cd87f756ac2f1e8782fffb231a420ffc",
@@ -1155,9 +1149,7 @@
         "core/cdn/cdn.pb.rs",
         "core/cdn/cdn.pb.ts"
       ],
-      "protoFiles": [
-        "core/cdn/cdn.proto"
-      ]
+      "protoFiles": ["core/cdn/cdn.proto"]
     },
     "github.com/s4wave/spacewave/core/changelog": {
       "hash": "9d399103924a5a2e2b242a214b99d19e18ac6cb1e15b9fd5d7e2926d55000f80",
@@ -1168,9 +1160,7 @@
         "core/changelog/changelog.pb.rs",
         "core/changelog/changelog.pb.ts"
       ],
-      "protoFiles": [
-        "core/changelog/changelog.proto"
-      ]
+      "protoFiles": ["core/changelog/changelog.proto"]
     },
     "github.com/s4wave/spacewave/core/debug/bridge": {
       "hash": "9a4fc175bcf71c69942dd80172a23c315e7572a5d09685d567ea9b8b94a74fcd",
@@ -1181,9 +1171,7 @@
         "core/debug/bridge/config.pb.rs",
         "core/debug/bridge/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/debug/bridge/config.proto"
-      ]
+      "protoFiles": ["core/debug/bridge/config.proto"]
     },
     "github.com/s4wave/spacewave/core/debug/trace": {
       "hash": "317034f906d55ef744eca5534900159a188f4bb88c34207ac0002ae6a71d5a18",
@@ -1194,9 +1182,7 @@
         "core/debug/trace/config.pb.rs",
         "core/debug/trace/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/debug/trace/config.proto"
-      ]
+      "protoFiles": ["core/debug/trace/config.proto"]
     },
     "github.com/s4wave/spacewave/core/forge/dashboard": {
       "hash": "c99502560a151928f2a0394a26fac3846a7ee8993b27d1db5028ca69940bbfd8",
@@ -1207,9 +1193,7 @@
         "core/forge/dashboard/dashboard.pb.rs",
         "core/forge/dashboard/dashboard.pb.ts"
       ],
-      "protoFiles": [
-        "core/forge/dashboard/dashboard.proto"
-      ]
+      "protoFiles": ["core/forge/dashboard/dashboard.proto"]
     },
     "github.com/s4wave/spacewave/core/forge/job": {
       "hash": "68ed41193d8bdb37d0b7738cec1c6c1db6acf5d53e3a4e6696e8eec6b9ae8b37",
@@ -1220,9 +1204,7 @@
         "core/forge/job/job.pb.rs",
         "core/forge/job/job.pb.ts"
       ],
-      "protoFiles": [
-        "core/forge/job/job.proto"
-      ]
+      "protoFiles": ["core/forge/job/job.proto"]
     },
     "github.com/s4wave/spacewave/core/forge/task": {
       "hash": "68a062c97de23753ed60b721eda3bf072843409880bbfee9fafb21eca878b854",
@@ -1233,9 +1215,7 @@
         "core/forge/task/task.pb.rs",
         "core/forge/task/task.pb.ts"
       ],
-      "protoFiles": [
-        "core/forge/task/task.proto"
-      ]
+      "protoFiles": ["core/forge/task/task.proto"]
     },
     "github.com/s4wave/spacewave/core/git": {
       "hash": "94a4798a2e993ddbce6202817a3fc6a8fc774251985757f2e82c2b3643849fae",
@@ -1246,9 +1226,7 @@
         "core/git/git.pb.rs",
         "core/git/git.pb.ts"
       ],
-      "protoFiles": [
-        "core/git/git.proto"
-      ]
+      "protoFiles": ["core/git/git.proto"]
     },
     "github.com/s4wave/spacewave/core/launcher/helper": {
       "hash": "33403362074735d879e78de3adfd33eaf391c5b1f634de81654a1a422c42dd2c",
@@ -1259,9 +1237,7 @@
         "core/launcher/helper/helper.pb.rs",
         "core/launcher/helper/helper.pb.ts"
       ],
-      "protoFiles": [
-        "core/launcher/helper/helper.proto"
-      ]
+      "protoFiles": ["core/launcher/helper/helper.proto"]
     },
     "github.com/s4wave/spacewave/core/node/world": {
       "hash": "942482bab0085a6a63369e18029f2d01e91b705e8fa45edbc3cb35bf58dfdaba",
@@ -1272,9 +1248,7 @@
         "core/node/world/world.pb.rs",
         "core/node/world/world.pb.ts"
       ],
-      "protoFiles": [
-        "core/node/world/world.proto"
-      ]
+      "protoFiles": ["core/node/world/world.proto"]
     },
     "github.com/s4wave/spacewave/core/plugin/approval": {
       "hash": "548b5068ae8ac28124d5ba1189e5f25f7c8517c60a4bf8ed122762491e1fdf4f",
@@ -1285,9 +1259,7 @@
         "core/plugin/approval/approval.pb.rs",
         "core/plugin/approval/approval.pb.ts"
       ],
-      "protoFiles": [
-        "core/plugin/approval/approval.proto"
-      ]
+      "protoFiles": ["core/plugin/approval/approval.proto"]
     },
     "github.com/s4wave/spacewave/core/plugin/list": {
       "hash": "834c7e539cbe0a10752998980754176effa75e0ee09c1a6c3883f3a92ac6b3c7",
@@ -1298,9 +1270,7 @@
         "core/plugin/list/list.pb.rs",
         "core/plugin/list/list.pb.ts"
       ],
-      "protoFiles": [
-        "core/plugin/list/list.proto"
-      ]
+      "protoFiles": ["core/plugin/list/list.proto"]
     },
     "github.com/s4wave/spacewave/core/plugin/space": {
       "hash": "947226606133b25c5bc3f8d5f1cfe3bca57059574ce85c9527de72fccc150d39",
@@ -1311,9 +1281,7 @@
         "core/plugin/space/config.pb.rs",
         "core/plugin/space/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/plugin/space/config.proto"
-      ]
+      "protoFiles": ["core/plugin/space/config.proto"]
     },
     "github.com/s4wave/spacewave/core/provider": {
       "hash": "61b102930ceaf9896412f50b2d26497e000d20ab0fe8e6acc15dedac3cc1a14b",
@@ -1324,9 +1292,7 @@
         "core/provider/provider.pb.rs",
         "core/provider/provider.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/provider.proto"
-      ]
+      "protoFiles": ["core/provider/provider.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/local": {
       "hash": "12254e991cfe6bf8db214f365c538da987dd8bfa774c3e622cb28a76e205b786",
@@ -1337,9 +1303,7 @@
         "core/provider/local/local.pb.rs",
         "core/provider/local/local.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/local/local.proto"
-      ]
+      "protoFiles": ["core/provider/local/local.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave": {
       "hash": "3124590fb01677dd82a56bd22346201856df31ce5f334639069d4008ef52f100",
@@ -1369,9 +1333,7 @@
         "core/provider/spacewave/api/api.pb.rs",
         "core/provider/spacewave/api/api.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/api/api.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/api/api.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/cacheseed": {
       "hash": "a1f8f621606375510bb4a80fd7a39bdcea7c32c9bbdcbb6957ac59d7a85847fe",
@@ -1387,9 +1349,7 @@
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.rs",
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/cacheseed/cacheseed.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/cacheseed/cacheseed.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher": {
       "hash": "a645fe95b258de85b2694e0612b885799a2df3fe819098228723ecf20e01db33",
@@ -1405,9 +1365,7 @@
         "core/provider/spacewave/launcher/launcher_srpc.pb.rs",
         "core/provider/spacewave/launcher/launcher_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/launcher/launcher.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/launcher/launcher.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller": {
       "hash": "c248a989b7be4c04a6a2feacacb656d4568e026c2cd2be4da06976ba406be006",
@@ -1418,9 +1376,7 @@
         "core/provider/spacewave/launcher/controller/config.pb.rs",
         "core/provider/spacewave/launcher/controller/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/launcher/controller/config.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/launcher/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/loader/controller": {
       "hash": "62c530974d8a49434eb0a16ee2ee17a049ae2b5b8d220735d9788a148ff58e20",
@@ -1431,9 +1387,7 @@
         "core/provider/spacewave/loader/controller/config.pb.rs",
         "core/provider/spacewave/loader/controller/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/loader/controller/config.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/loader/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/packfile": {
       "hash": "dbf10ea9b9efcf73a09036c9411ee7d1b26f4c9ea46013db9277ad273d938ff2",
@@ -1444,9 +1398,7 @@
         "core/provider/spacewave/packfile/packfile.pb.rs",
         "core/provider/spacewave/packfile/packfile.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/spacewave/packfile/packfile.proto"
-      ]
+      "protoFiles": ["core/provider/spacewave/packfile/packfile.proto"]
     },
     "github.com/s4wave/spacewave/core/provider/transfer": {
       "hash": "03c61d4fe8572de99642e96c26a40a740d2589f99f9f14d0eca1ece9d467e054",
@@ -1457,9 +1409,7 @@
         "core/provider/transfer/transfer.pb.rs",
         "core/provider/transfer/transfer.pb.ts"
       ],
-      "protoFiles": [
-        "core/provider/transfer/transfer.proto"
-      ]
+      "protoFiles": ["core/provider/transfer/transfer.proto"]
     },
     "github.com/s4wave/spacewave/core/rbac": {
       "hash": "d979c6757c7dd5f6dbd3e62bb1a53a5b87096e063cc88bfc042d9b1b866d2bf1",
@@ -1470,9 +1420,7 @@
         "core/rbac/rbac.pb.rs",
         "core/rbac/rbac.pb.ts"
       ],
-      "protoFiles": [
-        "core/rbac/rbac.proto"
-      ]
+      "protoFiles": ["core/rbac/rbac.proto"]
     },
     "github.com/s4wave/spacewave/core/resource/listener": {
       "hash": "d80bcd1f7f57703029be48121410614da1500410a40497c158c7778881c449c3",
@@ -1483,9 +1431,7 @@
         "core/resource/listener/config.pb.rs",
         "core/resource/listener/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/resource/listener/config.proto"
-      ]
+      "protoFiles": ["core/resource/listener/config.proto"]
     },
     "github.com/s4wave/spacewave/core/resource/root/controller": {
       "hash": "8d3ec1f91e0c66cc6b7a159f4b42499fc3ef12498aa97ac493626b2b75b5757a",
@@ -1496,9 +1442,7 @@
         "core/resource/root/controller/config.pb.rs",
         "core/resource/root/controller/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/resource/root/controller/config.proto"
-      ]
+      "protoFiles": ["core/resource/root/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/core/session": {
       "hash": "2af4b1b88c849de348151566d6a875259828e5f9821dcd88a49ae43450399df0",
@@ -1509,9 +1453,7 @@
         "core/session/session.pb.rs",
         "core/session/session.pb.ts"
       ],
-      "protoFiles": [
-        "core/session/session.proto"
-      ]
+      "protoFiles": ["core/session/session.proto"]
     },
     "github.com/s4wave/spacewave/core/session/controller": {
       "hash": "45a86ee9e72e55268de31144ab7897068e792e3b25671b53d82a1fce8d99475e",
@@ -1522,9 +1464,7 @@
         "core/session/controller/config.pb.rs",
         "core/session/controller/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/session/controller/config.proto"
-      ]
+      "protoFiles": ["core/session/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/core/session/handoff": {
       "hash": "fb7339442f52c2ede8e0883947293a79f035a87ab1b78367cbce9b04870be289",
@@ -1535,9 +1475,7 @@
         "core/session/handoff/handoff.pb.rs",
         "core/session/handoff/handoff.pb.ts"
       ],
-      "protoFiles": [
-        "core/session/handoff/handoff.proto"
-      ]
+      "protoFiles": ["core/session/handoff/handoff.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject": {
       "hash": "c4c2d7903b67436936d59da7396f5abfadcc712bc9bb70951b5b39d2a77a6691",
@@ -1548,9 +1486,7 @@
         "core/sobject/sobject.pb.rs",
         "core/sobject/sobject.pb.ts"
       ],
-      "protoFiles": [
-        "core/sobject/sobject.proto"
-      ]
+      "protoFiles": ["core/sobject/sobject.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject/invite": {
       "hash": "baee92df80d344d30d88a9f30766dc5d14ee582452355372c662ba6724dcab5b",
@@ -1566,9 +1502,7 @@
         "core/sobject/invite/invite_srpc.pb.rs",
         "core/sobject/invite/invite_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "core/sobject/invite/invite.proto"
-      ]
+      "protoFiles": ["core/sobject/invite/invite.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject/sync": {
       "hash": "6f15498689badf5e4e1058464e1403b7bc52f6d5d988a9c0495a7b319b8cbffb",
@@ -1579,9 +1513,7 @@
         "core/sobject/sync/sync.pb.rs",
         "core/sobject/sync/sync.pb.ts"
       ],
-      "protoFiles": [
-        "core/sobject/sync/sync.proto"
-      ]
+      "protoFiles": ["core/sobject/sync/sync.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject/world/engine": {
       "hash": "038e975f5103d049cef6d40c909b1a3c01513bdd1c18c2f78496464f1a2199b5",
@@ -1592,9 +1524,7 @@
         "core/sobject/world/engine/engine.pb.rs",
         "core/sobject/world/engine/engine.pb.ts"
       ],
-      "protoFiles": [
-        "core/sobject/world/engine/engine.proto"
-      ]
+      "protoFiles": ["core/sobject/world/engine/engine.proto"]
     },
     "github.com/s4wave/spacewave/core/space": {
       "hash": "a78947569bcec17ef3ab2340149bd050967f5ebe0f2b7a56c2df8ae51b84668c",
@@ -1605,9 +1535,7 @@
         "core/space/space.pb.rs",
         "core/space/space.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/space.proto"
-      ]
+      "protoFiles": ["core/space/space.proto"]
     },
     "github.com/s4wave/spacewave/core/space/http/download": {
       "hash": "13c559129a6148090a3fed45e619f68992e4e290f5962e6555592552b4e3bd2a",
@@ -1618,9 +1546,7 @@
         "core/space/http/download/config.pb.rs",
         "core/space/http/download/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/http/download/config.proto"
-      ]
+      "protoFiles": ["core/space/http/download/config.proto"]
     },
     "github.com/s4wave/spacewave/core/space/http/export": {
       "hash": "f2b408f281c05ffade648ae8c3c990614f792e7011332b28c5b23c083b7b27ab",
@@ -1631,9 +1557,7 @@
         "core/space/http/export/config.pb.rs",
         "core/space/http/export/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/http/export/config.proto"
-      ]
+      "protoFiles": ["core/space/http/export/config.proto"]
     },
     "github.com/s4wave/spacewave/core/space/sobject": {
       "hash": "c47a015ba0304c3a3a3dd6ec453c2eb6c77105ead743450a31f8de0c9ac8c1be",
@@ -1644,9 +1568,7 @@
         "core/space/sobject/config.pb.rs",
         "core/space/sobject/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/sobject/config.proto"
-      ]
+      "protoFiles": ["core/space/sobject/config.proto"]
     },
     "github.com/s4wave/spacewave/core/space/world": {
       "hash": "496340a7c05ba8dc4ed37c1d33c93d123ecea7db308b0f2663b904e92e00bbfc",
@@ -1657,9 +1579,7 @@
         "core/space/world/world.pb.rs",
         "core/space/world/world.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/world/world.proto"
-      ]
+      "protoFiles": ["core/space/world/world.proto"]
     },
     "github.com/s4wave/spacewave/core/space/world/ops": {
       "hash": "47a60c9360b2a4b738401c72c83832df094deb7a4335affa1544d9b38a013757",
@@ -1670,9 +1590,7 @@
         "core/space/world/ops/ops.pb.rs",
         "core/space/world/ops/ops.pb.ts"
       ],
-      "protoFiles": [
-        "core/space/world/ops/ops.proto"
-      ]
+      "protoFiles": ["core/space/world/ops/ops.proto"]
     },
     "github.com/s4wave/spacewave/core/trace/service": {
       "hash": "08cc1227c38d118eaa335009abc0d940e509700ae6e1c4c29ad9f479c1766529",
@@ -1683,9 +1601,7 @@
         "core/trace/service/config.pb.rs",
         "core/trace/service/config.pb.ts"
       ],
-      "protoFiles": [
-        "core/trace/service/config.proto"
-      ]
+      "protoFiles": ["core/trace/service/config.proto"]
     },
     "github.com/s4wave/spacewave/db/block": {
       "hash": "6b074756b477ae46e5d1a1311f096421030be48b5708e90b8c2a7e4cfabd60d5",
@@ -3042,10 +2958,7 @@
         "e2e/wasm/session/session_srpc.pb.rs",
         "e2e/wasm/session/session_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "e2e/wasm/session/config.proto",
-        "e2e/wasm/session/session.proto"
-      ]
+      "protoFiles": ["e2e/wasm/session/config.proto", "e2e/wasm/session/session.proto"]
     },
     "github.com/s4wave/spacewave/forge/cluster": {
       "hash": "8a215bbc0450044493bd2fcec30a86e05adc98a569c6a06ac8f0a7cb98b123ae",
@@ -3360,9 +3273,7 @@
         "hydra-exp/blocktype/controller-factory/controller.pb.rs",
         "hydra-exp/blocktype/controller-factory/controller.pb.ts"
       ],
-      "protoFiles": [
-        "hydra-exp/blocktype/controller-factory/controller.proto"
-      ]
+      "protoFiles": ["hydra-exp/blocktype/controller-factory/controller.proto"]
     },
     "github.com/s4wave/spacewave/identity": {
       "hash": "85f02e1d0a08c32b101b666fd9bad9a7715f3eba38bc680e62af0f0a396669c8",
@@ -4171,9 +4082,7 @@
         "sdk/account/account_srpc.pb.rs",
         "sdk/account/account_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/account/account.proto"
-      ]
+      "protoFiles": ["sdk/account/account.proto"]
     },
     "github.com/s4wave/spacewave/sdk/block/cursor": {
       "hash": "621f6c0e207d389869ade57980740874a059001d263ad68863a063bea0ebae1c",
@@ -4189,9 +4098,7 @@
         "sdk/block/cursor/cursor_srpc.pb.rs",
         "sdk/block/cursor/cursor_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/block/cursor/cursor.proto"
-      ]
+      "protoFiles": ["sdk/block/cursor/cursor.proto"]
     },
     "github.com/s4wave/spacewave/sdk/block/transaction": {
       "hash": "230f3b2bb21776b31e8d0cf6ee56734dafae5270f88fbbbff4a415eabd658e06",
@@ -4207,9 +4114,7 @@
         "sdk/block/transaction/transaction_srpc.pb.rs",
         "sdk/block/transaction/transaction_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/block/transaction/transaction.proto"
-      ]
+      "protoFiles": ["sdk/block/transaction/transaction.proto"]
     },
     "github.com/s4wave/spacewave/sdk/bucket/lookup": {
       "hash": "e5adc6f040f6754357114671a04b3cb9fc3338a374ef9829010dd0645920890a",
@@ -4225,9 +4130,7 @@
         "sdk/bucket/lookup/lookup_srpc.pb.rs",
         "sdk/bucket/lookup/lookup_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/bucket/lookup/lookup.proto"
-      ]
+      "protoFiles": ["sdk/bucket/lookup/lookup.proto"]
     },
     "github.com/s4wave/spacewave/sdk/canvas": {
       "hash": "6aa7f717cb8b2c5a041f59ffad60bbcbb5b4c476adad44b0e02f859d1febc2d1",
@@ -4243,9 +4146,7 @@
         "sdk/canvas/canvas_srpc.pb.rs",
         "sdk/canvas/canvas_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/canvas/canvas.proto"
-      ]
+      "protoFiles": ["sdk/canvas/canvas.proto"]
     },
     "github.com/s4wave/spacewave/sdk/cdn": {
       "hash": "2292a7dccf6e6e90340f744c585d0cd954dcf9c0918dbbe44c9eccd21be804de",
@@ -4261,9 +4162,7 @@
         "sdk/cdn/cdn-resource_srpc.pb.rs",
         "sdk/cdn/cdn-resource_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/cdn/cdn-resource.proto"
-      ]
+      "protoFiles": ["sdk/cdn/cdn-resource.proto"]
     },
     "github.com/s4wave/spacewave/sdk/chat": {
       "hash": "aa672dbb09fb05010fe5220250f633340375d088d260af9db84479890ddded98",
@@ -4274,9 +4173,7 @@
         "sdk/chat/chat.pb.rs",
         "sdk/chat/chat.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/chat/chat.proto"
-      ]
+      "protoFiles": ["sdk/chat/chat.proto"]
     },
     "github.com/s4wave/spacewave/sdk/chat/rpc": {
       "hash": "eb01384a052236f845acad9a9c29a4624d2b4a33cb92b98b7a95c8dd5d8ff075",
@@ -4292,9 +4189,7 @@
         "sdk/chat/rpc/rpc_srpc.pb.rs",
         "sdk/chat/rpc/rpc_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/chat/rpc/rpc.proto"
-      ]
+      "protoFiles": ["sdk/chat/rpc/rpc.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command": {
       "hash": "ed4e8e63e597dd5fa8307d661e8a7c68a4a312b59e43098b565df7f8ee69ab28",
@@ -4305,9 +4200,7 @@
         "sdk/command/command.pb.rs",
         "sdk/command/command.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/command/command.proto"
-      ]
+      "protoFiles": ["sdk/command/command.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command/registry": {
       "hash": "60460207f118deec7acce6b460a0b18e3e1b29e2959978b55da2fcefc56c2ed4",
@@ -4323,9 +4216,7 @@
         "sdk/command/registry/registry_srpc.pb.rs",
         "sdk/command/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/command/registry/registry.proto"
-      ]
+      "protoFiles": ["sdk/command/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/configtype/registry": {
       "hash": "93ca3eaa5144cd4b284ed5691be7cb441ae5de4f9e12393e45fa01926387012c",
@@ -4341,9 +4232,7 @@
         "sdk/configtype/registry/registry_srpc.pb.rs",
         "sdk/configtype/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/configtype/registry/registry.proto"
-      ]
+      "protoFiles": ["sdk/configtype/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/debug": {
       "hash": "147382c90138d2b6b999e6657f8a3e66b2164624030799bd78fec979629f0251",
@@ -4359,9 +4248,7 @@
         "sdk/debug/debug_srpc.pb.rs",
         "sdk/debug/debug_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/debug/debug.proto"
-      ]
+      "protoFiles": ["sdk/debug/debug.proto"]
     },
     "github.com/s4wave/spacewave/sdk/debugdb": {
       "hash": "021bc5a39349e8c184d0794be9f0f912181fc15248f60fe9267fa5ca9e6de19d",
@@ -4377,9 +4264,7 @@
         "sdk/debugdb/debugdb_srpc.pb.rs",
         "sdk/debugdb/debugdb_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/debugdb/debugdb.proto"
-      ]
+      "protoFiles": ["sdk/debugdb/debugdb.proto"]
     },
     "github.com/s4wave/spacewave/sdk/deploy": {
       "hash": "4acfff8eb0ff430160d820c0b9068528ebfd26be3a555ec5533d18426d41111a",
@@ -4395,9 +4280,7 @@
         "sdk/deploy/deploy_srpc.pb.rs",
         "sdk/deploy/deploy_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/deploy/deploy.proto"
-      ]
+      "protoFiles": ["sdk/deploy/deploy.proto"]
     },
     "github.com/s4wave/spacewave/sdk/docs": {
       "hash": "ffe537eb3f7a941e18dab9eef69d044a97aaf4d9e4debff5382a045d41881550",
@@ -4408,9 +4291,7 @@
         "sdk/docs/docs.pb.rs",
         "sdk/docs/docs.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/docs/docs.proto"
-      ]
+      "protoFiles": ["sdk/docs/docs.proto"]
     },
     "github.com/s4wave/spacewave/sdk/git": {
       "hash": "c68728b851a55110e854ac18389f898821dcf0c0c27326b126f9064e88adfd06",
@@ -4436,10 +4317,7 @@
         "sdk/git/worktree_srpc.pb.rs",
         "sdk/git/worktree_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/git/repo.proto",
-        "sdk/git/worktree.proto"
-      ]
+      "protoFiles": ["sdk/git/repo.proto", "sdk/git/worktree.proto"]
     },
     "github.com/s4wave/spacewave/sdk/layout": {
       "hash": "b8e98df4798939230fae19a3e27f9a431719130175d96983ad8c777455e27223",
@@ -4455,9 +4333,7 @@
         "sdk/layout/layout_srpc.pb.rs",
         "sdk/layout/layout_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/layout/layout.proto"
-      ]
+      "protoFiles": ["sdk/layout/layout.proto"]
     },
     "github.com/s4wave/spacewave/sdk/layout/world": {
       "hash": "df4e1a4662be3a4cc6bcdc417dfb2c7df8a5423c2c86ad5e89b4949d5effb182",
@@ -4468,9 +4344,7 @@
         "sdk/layout/world/world.pb.rs",
         "sdk/layout/world/world.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/layout/world/world.proto"
-      ]
+      "protoFiles": ["sdk/layout/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/objecttype/registry": {
       "hash": "e303244a17809729e937fa8e2b8e747714a7939abf555d7f85a279c3c52dfbae",
@@ -4486,9 +4360,7 @@
         "sdk/objecttype/registry/registry_srpc.pb.rs",
         "sdk/objecttype/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/objecttype/registry/registry.proto"
-      ]
+      "protoFiles": ["sdk/objecttype/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/org": {
       "hash": "c5dd58831885b6eaf7304987e5eed975b954c01747aa34d79296bd46f41516fc",
@@ -4504,9 +4376,7 @@
         "sdk/org/org_srpc.pb.rs",
         "sdk/org/org_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/org/org.proto"
-      ]
+      "protoFiles": ["sdk/org/org.proto"]
     },
     "github.com/s4wave/spacewave/sdk/process": {
       "hash": "ac0035e41b71286f582b5695193712e33e9be718330eac2cedbb1c9f91af8bfa",
@@ -4527,10 +4397,7 @@
         "sdk/process/process_srpc.pb.rs",
         "sdk/process/process_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/process/binding.proto",
-        "sdk/process/process.proto"
-      ]
+      "protoFiles": ["sdk/process/binding.proto", "sdk/process/process.proto"]
     },
     "github.com/s4wave/spacewave/sdk/provider": {
       "hash": "73593cb1345abc82415e699a256180c5fa57505be878351d988baf2ffe7f29af",
@@ -4546,9 +4413,7 @@
         "sdk/provider/provider_srpc.pb.rs",
         "sdk/provider/provider_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/provider/provider.proto"
-      ]
+      "protoFiles": ["sdk/provider/provider.proto"]
     },
     "github.com/s4wave/spacewave/sdk/provider/local": {
       "hash": "0df6122cfbc51aa414ac4bd82c6e0cd52e499606a85c4473191e6f9d425cc2c3",
@@ -4564,9 +4429,7 @@
         "sdk/provider/local/local_srpc.pb.rs",
         "sdk/provider/local/local_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/provider/local/local.proto"
-      ]
+      "protoFiles": ["sdk/provider/local/local.proto"]
     },
     "github.com/s4wave/spacewave/sdk/provider/spacewave": {
       "hash": "f0c58dd6102f684e834e04f8dc85e73f8c64bc69e972b290af3e8a3878d0014a",
@@ -4582,9 +4445,7 @@
         "sdk/provider/spacewave/spacewave_srpc.pb.rs",
         "sdk/provider/spacewave/spacewave_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/provider/spacewave/spacewave.proto"
-      ]
+      "protoFiles": ["sdk/provider/spacewave/spacewave.proto"]
     },
     "github.com/s4wave/spacewave/sdk/root": {
       "hash": "0b4063f270fe39631810f3351377893839afbeb72e8edd0018a23ba8ac82270f",
@@ -4600,9 +4461,7 @@
         "sdk/root/root_srpc.pb.rs",
         "sdk/root/root_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/root/root.proto"
-      ]
+      "protoFiles": ["sdk/root/root.proto"]
     },
     "github.com/s4wave/spacewave/sdk/session": {
       "hash": "abf0567179e41927348bc5db6f3f01dc9ebb58d01e841c77a5e38530426c699a",
@@ -4668,9 +4527,7 @@
         "sdk/sobject/sobject_srpc.pb.rs",
         "sdk/sobject/sobject_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/sobject/sobject.proto"
-      ]
+      "protoFiles": ["sdk/sobject/sobject.proto"]
     },
     "github.com/s4wave/spacewave/sdk/space": {
       "hash": "eddd432ba1ac3b059165a6313f2e726ae021145214b89fe01ec72bcba7c0ba93",
@@ -4686,9 +4543,7 @@
         "sdk/space/space_srpc.pb.rs",
         "sdk/space/space_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/space/space.proto"
-      ]
+      "protoFiles": ["sdk/space/space.proto"]
     },
     "github.com/s4wave/spacewave/sdk/status": {
       "hash": "4b91409cf9bc77c69fb61b52b0903b7226d2d9fd926418776b07d142cae2c6bb",
@@ -4704,9 +4559,7 @@
         "sdk/status/status_srpc.pb.rs",
         "sdk/status/status_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/status/status.proto"
-      ]
+      "protoFiles": ["sdk/status/status.proto"]
     },
     "github.com/s4wave/spacewave/sdk/testbed": {
       "hash": "6fdb236d08f006ec029563383861b6a7cdd1c0ba79030f3cc544e10365264c56",
@@ -4722,9 +4575,7 @@
         "sdk/testbed/testbed_srpc.pb.rs",
         "sdk/testbed/testbed_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/testbed/testbed.proto"
-      ]
+      "protoFiles": ["sdk/testbed/testbed.proto"]
     },
     "github.com/s4wave/spacewave/sdk/trace": {
       "hash": "bdb9fa2428f362f890fcd0621d4ac8fe68bc97b33d209585ad91ae6a3030130a",
@@ -4740,9 +4591,7 @@
         "sdk/trace/trace_srpc.pb.rs",
         "sdk/trace/trace_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/trace/trace.proto"
-      ]
+      "protoFiles": ["sdk/trace/trace.proto"]
     },
     "github.com/s4wave/spacewave/sdk/unixfs": {
       "hash": "6cfb182eba05d2778c6f887238fe8dd7fad10e997682166d8cbf6511bc4767b7",
@@ -4758,9 +4607,7 @@
         "sdk/unixfs/handle_srpc.pb.rs",
         "sdk/unixfs/handle_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/unixfs/handle.proto"
-      ]
+      "protoFiles": ["sdk/unixfs/handle.proto"]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
       "hash": "c11f98410150b9e4eafe9c6736a345ac70204c783ffabf5a6b201da821fe50da",
@@ -4776,9 +4623,7 @@
         "sdk/viewer/registry/registry_srpc.pb.rs",
         "sdk/viewer/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/viewer/registry/registry.proto"
-      ]
+      "protoFiles": ["sdk/viewer/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/vm": {
       "hash": "fa4fdabeec6ad99c27ade26611bd5cdcd8cfa53da9b36fc9e0e11d8efd42b1d4",
@@ -4799,10 +4644,7 @@
         "sdk/vm/v86.pb.rs",
         "sdk/vm/v86.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/vm/v86-wizard.proto",
-        "sdk/vm/v86.proto"
-      ]
+      "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world": {
       "hash": "abc83281d616b504776a74412f8b1d21d4b568a9699d83a6fa20b90ad847acd0",
@@ -4818,9 +4660,7 @@
         "sdk/world/world_srpc.pb.rs",
         "sdk/world/world_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/world/world.proto"
-      ]
+      "protoFiles": ["sdk/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world/wizard": {
       "hash": "3ca7a77e6501e7d569fb7646184a4b182773650a7fb8d0efd29945513bc41fdb",
@@ -4836,9 +4676,7 @@
         "sdk/world/wizard/wizard_srpc.pb.rs",
         "sdk/world/wizard/wizard_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/world/wizard/wizard.proto"
-      ]
+      "protoFiles": ["sdk/world/wizard/wizard.proto"]
     },
     "github.com/s4wave/spacewave/sdk/worldop/registry": {
       "hash": "6edba8b480f3eeb155c46bcfcab9bfcf85e5c82227068acd6d97817c40bc303e",
@@ -4854,9 +4692,7 @@
         "sdk/worldop/registry/registry_srpc.pb.rs",
         "sdk/worldop/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": [
-        "sdk/worldop/registry/registry.proto"
-      ]
+      "protoFiles": ["sdk/worldop/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/web/object": {
       "hash": "053f755915426494b49ed7c785d86528a8421cc8fa414e217d66a03b98c07640",
@@ -4867,9 +4703,7 @@
         "web/object/object.pb.rs",
         "web/object/object.pb.ts"
       ],
-      "protoFiles": [
-        "web/object/object.proto"
-      ]
+      "protoFiles": ["web/object/object.proto"]
     }
   }
 }
