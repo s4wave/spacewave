@@ -23,7 +23,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.17.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20260424230253-a0b76daec370 // master
+	github.com/aperturerobotics/hydra v0.0.0-20260425002505-d5f2ec768537 // master
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect; bldr/saucer-streaming; indirect
@@ -43,7 +43,7 @@ require (
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.8-0.20260423185612-1f43d73f06cd // master
-	github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b // latest
+	github.com/aperturerobotics/cayley v0.12.1-0.20260425001904-6547b3cc760a // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // indirect; latest
