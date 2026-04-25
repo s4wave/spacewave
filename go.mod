@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/aperturerobotics/bifrost v0.47.8-0.20260423183415-234f350559b3 // master
-	github.com/aperturerobotics/cayley v0.12.1-0.20260412074731-c8bdb8cd633b // latest
+	github.com/aperturerobotics/cayley v0.12.1-0.20260425001904-6547b3cc760a // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
