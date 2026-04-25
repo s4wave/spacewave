@@ -78,7 +78,7 @@ func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		}
 		if _, _, err := l.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
-			Refs:          cloneBlockRefs(entry.Refs),
+			Refs:          block.CloneBlockRefs(entry.Refs),
 		}); err != nil {
 			return err
 		}
@@ -160,19 +160,6 @@ func (l *lookupBucket) BeginDeferFlush() {}
 // EndDeferFlush closes a no-op defer-flush scope.
 func (l *lookupBucket) EndDeferFlush(context.Context) error {
 	return nil
-}
-
-func cloneBlockRefs(refs []*block.BlockRef) []*block.BlockRef {
-	if len(refs) == 0 {
-		return nil
-	}
-	cloned := make([]*block.BlockRef, len(refs))
-	for i, ref := range refs {
-		if ref != nil {
-			cloned[i] = ref.Clone()
-		}
-	}
-	return cloned
 }
 
 // _ is a type assertion

@@ -100,3 +100,6 @@ func (NopStoreOps) BeginDeferFlush() {}
 func (NopStoreOps) EndDeferFlush(context.Context) error {
 	return nil
 }
+
+// _ is a type assertion
+var _ StoreOps = NopStoreOps{}

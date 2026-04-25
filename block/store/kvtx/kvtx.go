@@ -131,7 +131,7 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		}
 		if _, _, err := k.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
-			Refs:          cloneBlockRefs(entry.Refs),
+			Refs:          block.CloneBlockRefs(entry.Refs),
 		}); err != nil {
 			return err
 		}
@@ -285,19 +285,6 @@ func (k *KVTxBlock) BeginDeferFlush() {}
 // EndDeferFlush closes a no-op defer-flush scope.
 func (k *KVTxBlock) EndDeferFlush(context.Context) error {
 	return nil
-}
-
-func cloneBlockRefs(refs []*block.BlockRef) []*block.BlockRef {
-	if len(refs) == 0 {
-		return nil
-	}
-	cloned := make([]*block.BlockRef, len(refs))
-	for i, ref := range refs {
-		if ref != nil {
-			cloned[i] = ref.Clone()
-		}
-	}
-	return cloned
 }
 
 // _ is a type assertion

@@ -107,7 +107,7 @@ func (b *S3Block) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEn
 		}
 		if _, _, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
-			Refs:          cloneBlockRefs(entry.Refs),
+			Refs:          block.CloneBlockRefs(entry.Refs),
 		}); err != nil {
 			return err
 		}
@@ -234,19 +234,6 @@ func (b *S3Block) BeginDeferFlush() {}
 // EndDeferFlush closes a no-op defer-flush scope.
 func (b *S3Block) EndDeferFlush(context.Context) error {
 	return nil
-}
-
-func cloneBlockRefs(refs []*block.BlockRef) []*block.BlockRef {
-	if len(refs) == 0 {
-		return nil
-	}
-	cloned := make([]*block.BlockRef, len(refs))
-	for i, ref := range refs {
-		if ref != nil {
-			cloned[i] = ref.Clone()
-		}
-	}
-	return cloned
 }
 
 // getKeyExists checks if the given object key exists.

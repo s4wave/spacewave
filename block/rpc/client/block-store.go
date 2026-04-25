@@ -23,6 +23,10 @@ type BlockStore struct {
 	beginErr error
 	// beginErrMtx guards beginErr.
 	beginErrMtx sync.Mutex
+	// featuresOnce guards the lazy lookup of supportedFeatures.
+	featuresOnce sync.Once
+	// supportedFeatures caches the remote feature bitmask after the first call.
+	supportedFeatures block.StoreFeature
 }
 
 // NewBlockStore constructs a new BlockStore.
@@ -46,12 +50,18 @@ func (v *BlockStore) GetHashType() hash.HashType {
 }
 
 // GetSupportedFeatures returns the native feature bitmask for the remote store.
+// The result is cached after the first call: the remote feature set is static
+// for the lifetime of the store, and this method is on the hot path.
 func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
-	resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
-	if err != nil {
-		return block.StoreFeature_STORE_FEATURE_UNKNOWN
-	}
-	return resp.GetFeatures()
+	v.featuresOnce.Do(func() {
+		resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
+		if err != nil {
+			v.supportedFeatures = block.StoreFeature_STORE_FEATURE_UNKNOWN
+			return
+		}
+		v.supportedFeatures = resp.GetFeatures()
+	})
+	return v.supportedFeatures
 }
 
 // PutBlock puts a block into the store.

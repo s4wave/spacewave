@@ -45,7 +45,9 @@ type BufferedStore struct {
 	nextSeq    uint64
 	durableSeq uint64
 
+	// deferFlush counts active defer-flush scopes.
 	deferFlush atomic.Int64
+	// drainErr captures the last drain error to surface on subsequent calls.
 	drainErr error
 }
 
@@ -139,7 +141,7 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 	pendingClone := &pendingBlock{
 		ref:  ref.Clone(),
 		data: bytes.Clone(data),
-		refs: cloneBlockRefs(opts.GetRefs()),
+		refs: CloneBlockRefs(opts.GetRefs()),
 	}
 	for {
 		var waitCh <-chan struct{}
@@ -209,7 +211,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 		}
 		if _, _, err := s.PutBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: ref,
-			Refs:          cloneBlockRefs(entry.Refs),
+			Refs:          CloneBlockRefs(entry.Refs),
 		}); err != nil {
 			return err
 		}
@@ -473,7 +475,7 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 		batch.entries = append(batch.entries, &PutBatchEntry{
 			Ref:       pending.ref.Clone(),
 			Data:      pending.data,
-			Refs:      cloneBlockRefs(pending.refs),
+			Refs:      CloneBlockRefs(pending.refs),
 			Tombstone: pending.tombstone,
 		})
 		if pending.seq > batch.lastSeq {
@@ -572,20 +574,6 @@ func lenPendingData(pending *pendingBlock) int {
 		return 0
 	}
 	return len(pending.data)
-}
-
-func cloneBlockRefs(refs []*BlockRef) []*BlockRef {
-	if len(refs) == 0 {
-		return nil
-	}
-	cloned := make([]*BlockRef, len(refs))
-	for i, ref := range refs {
-		if ref == nil {
-			continue
-		}
-		cloned[i] = ref.Clone()
-	}
-	return cloned
 }
 
 // _ is a type assertion.
