@@ -609,7 +609,7 @@ func CreateEntrypointsFromViteOutputs(
 				break
 			}
 			backendEntrypoints = append(backendEntrypoints, &BackendEntrypoint{
-				ImportPath: jsOutputPath,
+				ImportPath: path.Join("/assets", jsOutputPath),
 			})
 		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
 			if jsOutputPath == "" {
