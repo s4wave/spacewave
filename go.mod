@@ -2,8 +2,6 @@ module github.com/s4wave/spacewave
 
 go 1.26.2
 
-replace github.com/go-git/go-billy/v6 => github.com/paralin/go-billy/v6 v6.0.0-20260408202010-24d71a16cdcb // fix-os-js
-
 require (
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
@@ -14,7 +12,7 @@ require (
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-20260328065524-593ae452e14d // main
+	github.com/go-git/go-billy/v6 v6.0.0-20260424211911-732291493fb8 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.1.0.20260402143348-7aeb877aaa56 // main
 	github.com/google/uuid v1.6.0 // indirect
 )
