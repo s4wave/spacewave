@@ -550,8 +550,10 @@ message DesktopSSOLinkedResult {
   bytes pem_private_key = 4;
   // PinWrapped reports whether pem_private_key contains a PIN-wrapped key blob.
   bool pin_wrapped = 5;
+  // Email is the OAuth provider email associated with the linked account.
+  string email = 6;
   // Username is the Spacewave account username for the linked account.
-  string username = 6;
+  string username = 7;
 }
 
 // DesktopSSONewAccountResult is returned when desktop SSO needs native signup.

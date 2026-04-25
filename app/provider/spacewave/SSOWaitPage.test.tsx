@@ -145,6 +145,7 @@ describe('SSOWaitPage', () => {
           pemPrivateKey: wrapped,
           pinWrapped: true,
           username: 'cjs',
+          email: 'cjs@example.com',
         },
       },
     })
@@ -154,6 +155,7 @@ describe('SSOWaitPage', () => {
 
     await screen.findByText('Enter your PIN to finish signing in')
     expect(screen.getByText('cjs')).toBeTruthy()
+    expect(screen.getByText('cjs@example.com')).toBeTruthy()
     fireEvent.change(screen.getByPlaceholderText('Enter your PIN'), {
       target: { value: '1234' },
     })
