@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cayley/quad"
-	"github.com/aperturerobotics/cayley/query/shape"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 )
@@ -31,24 +30,28 @@ func GetObjectMetadataBatch(ctx context.Context, ws world.WorldState, keys []str
 	}
 
 	result := make([]*ObjectMetadata, len(keys))
-	subjects := make([]quad.Value, len(keys))
+	subjects := make([]quad.Value, 0, len(keys))
+	seen := make(map[string]struct{}, len(keys))
 	resultByKey := make(map[string][]*ObjectMetadata, len(keys))
 	for i, key := range keys {
 		md := &ObjectMetadata{ObjectKey: key}
 		result[i] = md
-		subjects[i] = world.KeyToGraphValue(key)
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			subjects = append(subjects, world.KeyToGraphValue(key))
+		}
 		resultByKey[key] = append(resultByKey[key], md)
 	}
 
 	err := ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
-		// Type lookup: batched subject+predicate pass uses the (subject,predicate) index.
+		// Type lookup uses concrete subject+predicate indexed passes to preserve full quads.
 		if err := iterateSubjectPredicateQuads(ctx, h, subjects, TypePred, func(q quad.Quad) error {
 			return setTypeBatch(q, resultByKey)
 		}); err != nil {
 			return err
 		}
 
-		// Parent lookup: batched subject+predicate pass uses the same index.
+		// Parent lookup uses the same concrete indexed pass.
 		return iterateSubjectPredicateQuads(ctx, h, subjects, world_parent.ParentPred, func(q quad.Quad) error {
 			return setParentBatch(q, resultByKey)
 		})
@@ -72,10 +75,15 @@ func iterateSubjectPredicateQuads(
 		return nil
 	}
 
-	return world.OptimizeIterateQuads(ctx, h, shape.Quads{
-		{Dir: quad.Subject, Values: shape.Lookup(subjects)},
-		{Dir: quad.Predicate, Values: shape.Lookup([]quad.Value{predicate})},
-	}, cb)
+	for _, subject := range subjects {
+		if err := world.IterateFilteredFullQuads(ctx, h, quad.Quad{
+			Subject:   subject,
+			Predicate: predicate,
+		}, cb); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // setTypeBatch updates result metadata from a type quad.

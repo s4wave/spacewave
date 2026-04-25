@@ -43,6 +43,11 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 	return k.hashType
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (k *KVTxBlock) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
@@ -109,6 +114,34 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	err = tx.Commit(taskCtx)
 	subtask.End()
 	return ref, false, err
+}
+
+// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if err := k.RmBlock(ctx, entry.Ref); err != nil {
+				return err
+			}
+			continue
+		}
+		var ref *block.BlockRef
+		if entry.Ref != nil {
+			ref = entry.Ref.Clone()
+		}
+		if _, _, err := k.PutBlock(ctx, entry.Data, &block.PutOpts{
+			ForceBlockRef: ref,
+			Refs:          block.CloneBlockRefs(entry.Refs),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// PutBlockBackground forwards to PutBlock.
+func (k *KVTxBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return k.PutBlock(ctx, data, opts)
 }
 
 // GetBlock looks up a block in the store.
@@ -178,6 +211,19 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	return tx.Exists(ctx, key)
 }
 
+// GetBlockExistsBatch loops calling GetBlockExists per ref.
+func (k *KVTxBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := k.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -226,6 +272,19 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+// Flush returns nil because KVTxBlock has no buffered writes.
+func (k *KVTxBlock) Flush(context.Context) error {
+	return nil
+}
+
+// BeginDeferFlush opens a no-op defer-flush scope.
+func (k *KVTxBlock) BeginDeferFlush() {}
+
+// EndDeferFlush closes a no-op defer-flush scope.
+func (k *KVTxBlock) EndDeferFlush(context.Context) error {
+	return nil
 }
 
 // _ is a type assertion

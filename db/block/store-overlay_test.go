@@ -10,6 +10,8 @@ import (
 )
 
 type overlayBatchTestStore struct {
+	NopStoreOps
+
 	mu               sync.Mutex
 	putCalls         int
 	rmCalls          int
@@ -184,11 +186,7 @@ func TestStoreOverlayGetBlockExistsBatchForwards(t *testing.T) {
 	overlay := NewOverlay(ctx, lower, upper, OverlayMode_UPPER_READ_CACHE, 0, nil)
 	ref := &BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{3})}
 
-	batcher, ok := any(overlay).(BatchExistsStore)
-	if !ok {
-		t.Fatal("expected overlay to implement BatchExistsStore")
-	}
-	if _, err := batcher.GetBlockExistsBatch(ctx, []*BlockRef{ref}); err != nil {
+	if _, err := overlay.GetBlockExistsBatch(ctx, []*BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if upper.existsBatchCalls != 1 {

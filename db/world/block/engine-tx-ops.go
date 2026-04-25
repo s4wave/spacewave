@@ -110,11 +110,11 @@ func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 }
 
 // RenameObject renames an object key and updates associated graph quads.
-func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	var obj world.ObjectState
 	if err := e.performOp(func(tx *Tx) error {
 		var err error
-		obj, err = tx.RenameObject(ctx, oldKey, newKey)
+		obj, err = tx.RenameObject(ctx, oldKey, newKey, descendants)
 		return err
 	}); err != nil {
 		return nil, err

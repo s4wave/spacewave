@@ -69,7 +69,7 @@ func (t *TxRenameObject) ExecuteTx(
 		return false, err
 	}
 
-	_, err := worldInstance.RenameObject(ctx, t.GetOldObjectKey(), t.GetNewObjectKey())
+	_, err := worldInstance.RenameObject(ctx, t.GetOldObjectKey(), t.GetNewObjectKey(), false)
 	return false, err
 }
 

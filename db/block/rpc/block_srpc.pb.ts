@@ -3,14 +3,32 @@
 /* eslint-disable */
 
 import {
+  BeginDeferFlushRequest,
+  BeginDeferFlushResponse,
+  EndDeferFlushRequest,
+  EndDeferFlushResponse,
+  FlushRequest,
+  FlushResponse,
+  GetBlockExistsBatchRequest,
+  GetBlockExistsBatchResponse,
   GetBlockExistsRequest,
   GetBlockExistsResponse,
   GetBlockRequest,
   GetBlockResponse,
+  GetHashTypeRequest,
+  GetHashTypeResponse,
+  GetSupportedFeaturesRequest,
+  GetSupportedFeaturesResponse,
+  PutBlockBackgroundRequest,
+  PutBlockBackgroundResponse,
+  PutBlockBatchRequest,
+  PutBlockBatchResponse,
   PutBlockRequest,
   PutBlockResponse,
   RmBlockRequest,
   RmBlockResponse,
+  StatBlockRequest,
+  StatBlockResponse,
 } from './block.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
@@ -24,6 +42,28 @@ export const BlockStoreDefinition = {
   typeName: 'block.rpc.BlockStore',
   methods: {
     /**
+     * GetHashType requests the preferred hash type for the store.
+     *
+     * @generated from rpc block.rpc.BlockStore.GetHashType
+     */
+    GetHashType: {
+      name: 'GetHashType',
+      I: GetHashTypeRequest,
+      O: GetHashTypeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetSupportedFeatures requests the native feature bitmask for the store.
+     *
+     * @generated from rpc block.rpc.BlockStore.GetSupportedFeatures
+     */
+    GetSupportedFeatures: {
+      name: 'GetSupportedFeatures',
+      I: GetSupportedFeaturesRequest,
+      O: GetSupportedFeaturesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * PutBlock requests to put a block into the store.
      *
      * @generated from rpc block.rpc.BlockStore.PutBlock
@@ -32,6 +72,28 @@ export const BlockStoreDefinition = {
       name: 'PutBlock',
       I: PutBlockRequest,
       O: PutBlockResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PutBlockBatch requests to put blocks into the store as a batch.
+     *
+     * @generated from rpc block.rpc.BlockStore.PutBlockBatch
+     */
+    PutBlockBatch: {
+      name: 'PutBlockBatch',
+      I: PutBlockBatchRequest,
+      O: PutBlockBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PutBlockBackground requests to put a block in the background.
+     *
+     * @generated from rpc block.rpc.BlockStore.PutBlockBackground
+     */
+    PutBlockBackground: {
+      name: 'PutBlockBackground',
+      I: PutBlockBackgroundRequest,
+      O: PutBlockBackgroundResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -57,6 +119,17 @@ export const BlockStoreDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * GetBlockExistsBatch requests to check if blocks exist in the store.
+     *
+     * @generated from rpc block.rpc.BlockStore.GetBlockExistsBatch
+     */
+    GetBlockExistsBatch: {
+      name: 'GetBlockExistsBatch',
+      I: GetBlockExistsBatchRequest,
+      O: GetBlockExistsBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * RmBlock requests to remove a block from the store.
      * Does not return an error if the block was not present.
      * In some cases, will return before confirming delete.
@@ -69,6 +142,50 @@ export const BlockStoreDefinition = {
       O: RmBlockResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * StatBlock requests block metadata without reading block data.
+     *
+     * @generated from rpc block.rpc.BlockStore.StatBlock
+     */
+    StatBlock: {
+      name: 'StatBlock',
+      I: StatBlockRequest,
+      O: StatBlockResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Flush requests that buffered writes are published.
+     *
+     * @generated from rpc block.rpc.BlockStore.Flush
+     */
+    Flush: {
+      name: 'Flush',
+      I: FlushRequest,
+      O: FlushResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * BeginDeferFlush opens a defer-flush scope.
+     *
+     * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
+     */
+    BeginDeferFlush: {
+      name: 'BeginDeferFlush',
+      I: BeginDeferFlushRequest,
+      O: BeginDeferFlushResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * EndDeferFlush closes a defer-flush scope.
+     *
+     * @generated from rpc block.rpc.BlockStore.EndDeferFlush
+     */
+    EndDeferFlush: {
+      name: 'EndDeferFlush',
+      I: EndDeferFlushRequest,
+      O: EndDeferFlushResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -79,6 +196,26 @@ export const BlockStoreDefinition = {
  */
 export interface BlockStore {
   /**
+   * GetHashType requests the preferred hash type for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetHashType
+   */
+  GetHashType(
+    request: GetHashTypeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetHashTypeResponse>
+
+  /**
+   * GetSupportedFeatures requests the native feature bitmask for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetSupportedFeatures
+   */
+  GetSupportedFeatures(
+    request: GetSupportedFeaturesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSupportedFeaturesResponse>
+
+  /**
    * PutBlock requests to put a block into the store.
    *
    * @generated from rpc block.rpc.BlockStore.PutBlock
@@ -87,6 +224,26 @@ export interface BlockStore {
     request: PutBlockRequest,
     abortSignal?: AbortSignal,
   ): Promise<PutBlockResponse>
+
+  /**
+   * PutBlockBatch requests to put blocks into the store as a batch.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlockBatch
+   */
+  PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBatchResponse>
+
+  /**
+   * PutBlockBackground requests to put a block in the background.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlockBackground
+   */
+  PutBlockBackground(
+    request: PutBlockBackgroundRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBackgroundResponse>
 
   /**
    * GetBlock requests to lookup a block from the store.
@@ -109,6 +266,16 @@ export interface BlockStore {
   ): Promise<GetBlockExistsResponse>
 
   /**
+   * GetBlockExistsBatch requests to check if blocks exist in the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetBlockExistsBatch
+   */
+  GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBlockExistsBatchResponse>
+
+  /**
    * RmBlock requests to remove a block from the store.
    * Does not return an error if the block was not present.
    * In some cases, will return before confirming delete.
@@ -119,6 +286,46 @@ export interface BlockStore {
     request: RmBlockRequest,
     abortSignal?: AbortSignal,
   ): Promise<RmBlockResponse>
+
+  /**
+   * StatBlock requests block metadata without reading block data.
+   *
+   * @generated from rpc block.rpc.BlockStore.StatBlock
+   */
+  StatBlock(
+    request: StatBlockRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StatBlockResponse>
+
+  /**
+   * Flush requests that buffered writes are published.
+   *
+   * @generated from rpc block.rpc.BlockStore.Flush
+   */
+  Flush(
+    request: FlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FlushResponse>
+
+  /**
+   * BeginDeferFlush opens a defer-flush scope.
+   *
+   * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
+   */
+  BeginDeferFlush(
+    request: BeginDeferFlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BeginDeferFlushResponse>
+
+  /**
+   * EndDeferFlush closes a defer-flush scope.
+   *
+   * @generated from rpc block.rpc.BlockStore.EndDeferFlush
+   */
+  EndDeferFlush(
+    request: EndDeferFlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<EndDeferFlushResponse>
 }
 
 export const BlockStoreServiceName = BlockStoreDefinition.typeName
@@ -129,11 +336,58 @@ export class BlockStoreClient implements BlockStore {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || BlockStoreServiceName
     this.rpc = rpc
+    this.GetHashType = this.GetHashType.bind(this)
+    this.GetSupportedFeatures = this.GetSupportedFeatures.bind(this)
     this.PutBlock = this.PutBlock.bind(this)
+    this.PutBlockBatch = this.PutBlockBatch.bind(this)
+    this.PutBlockBackground = this.PutBlockBackground.bind(this)
     this.GetBlock = this.GetBlock.bind(this)
     this.GetBlockExists = this.GetBlockExists.bind(this)
+    this.GetBlockExistsBatch = this.GetBlockExistsBatch.bind(this)
     this.RmBlock = this.RmBlock.bind(this)
+    this.StatBlock = this.StatBlock.bind(this)
+    this.Flush = this.Flush.bind(this)
+    this.BeginDeferFlush = this.BeginDeferFlush.bind(this)
+    this.EndDeferFlush = this.EndDeferFlush.bind(this)
   }
+  /**
+   * GetHashType requests the preferred hash type for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetHashType
+   */
+  async GetHashType(
+    request: GetHashTypeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetHashTypeResponse> {
+    const requestMsg = GetHashTypeRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.GetHashType.name,
+      GetHashTypeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetHashTypeResponse.fromBinary(result)
+  }
+
+  /**
+   * GetSupportedFeatures requests the native feature bitmask for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetSupportedFeatures
+   */
+  async GetSupportedFeatures(
+    request: GetSupportedFeaturesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSupportedFeaturesResponse> {
+    const requestMsg = GetSupportedFeaturesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.GetSupportedFeatures.name,
+      GetSupportedFeaturesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetSupportedFeaturesResponse.fromBinary(result)
+  }
+
   /**
    * PutBlock requests to put a block into the store.
    *
@@ -151,6 +405,44 @@ export class BlockStoreClient implements BlockStore {
       abortSignal || undefined,
     )
     return PutBlockResponse.fromBinary(result)
+  }
+
+  /**
+   * PutBlockBatch requests to put blocks into the store as a batch.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlockBatch
+   */
+  async PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBatchResponse> {
+    const requestMsg = PutBlockBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.PutBlockBatch.name,
+      PutBlockBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PutBlockBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * PutBlockBackground requests to put a block in the background.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlockBackground
+   */
+  async PutBlockBackground(
+    request: PutBlockBackgroundRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBackgroundResponse> {
+    const requestMsg = PutBlockBackgroundRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.PutBlockBackground.name,
+      PutBlockBackgroundRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PutBlockBackgroundResponse.fromBinary(result)
   }
 
   /**
@@ -192,6 +484,25 @@ export class BlockStoreClient implements BlockStore {
   }
 
   /**
+   * GetBlockExistsBatch requests to check if blocks exist in the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetBlockExistsBatch
+   */
+  async GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBlockExistsBatchResponse> {
+    const requestMsg = GetBlockExistsBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.GetBlockExistsBatch.name,
+      GetBlockExistsBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetBlockExistsBatchResponse.fromBinary(result)
+  }
+
+  /**
    * RmBlock requests to remove a block from the store.
    * Does not return an error if the block was not present.
    * In some cases, will return before confirming delete.
@@ -210,5 +521,81 @@ export class BlockStoreClient implements BlockStore {
       abortSignal || undefined,
     )
     return RmBlockResponse.fromBinary(result)
+  }
+
+  /**
+   * StatBlock requests block metadata without reading block data.
+   *
+   * @generated from rpc block.rpc.BlockStore.StatBlock
+   */
+  async StatBlock(
+    request: StatBlockRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<StatBlockResponse> {
+    const requestMsg = StatBlockRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.StatBlock.name,
+      StatBlockRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return StatBlockResponse.fromBinary(result)
+  }
+
+  /**
+   * Flush requests that buffered writes are published.
+   *
+   * @generated from rpc block.rpc.BlockStore.Flush
+   */
+  async Flush(
+    request: FlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FlushResponse> {
+    const requestMsg = FlushRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.Flush.name,
+      FlushRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return FlushResponse.fromBinary(result)
+  }
+
+  /**
+   * BeginDeferFlush opens a defer-flush scope.
+   *
+   * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
+   */
+  async BeginDeferFlush(
+    request: BeginDeferFlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BeginDeferFlushResponse> {
+    const requestMsg = BeginDeferFlushRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.BeginDeferFlush.name,
+      BeginDeferFlushRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return BeginDeferFlushResponse.fromBinary(result)
+  }
+
+  /**
+   * EndDeferFlush closes a defer-flush scope.
+   *
+   * @generated from rpc block.rpc.BlockStore.EndDeferFlush
+   */
+  async EndDeferFlush(
+    request: EndDeferFlushRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<EndDeferFlushResponse> {
+    const requestMsg = EndDeferFlushRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BlockStoreDefinition.methods.EndDeferFlush.name,
+      EndDeferFlushRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return EndDeferFlushResponse.fromBinary(result)
   }
 }

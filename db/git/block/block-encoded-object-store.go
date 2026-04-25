@@ -26,6 +26,9 @@ func (r *EncodedObjectStore) Validate() error {
 	if err := r.GetKvtxRoot().Validate(); err != nil {
 		return errors.Wrap(err, "kvtx_root")
 	}
+	if err := r.GetPackfileKvtxRoot().Validate(); err != nil {
+		return errors.Wrap(err, "packfile_kvtx_root")
+	}
 	return nil
 }
 
@@ -46,6 +49,13 @@ func (r *EncodedObjectStore) BuildObjectTree(ctx context.Context, bcs *block.Cur
 	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 }
 
+// BuildPackfileTree builds the packfile metadata tree.
+//
+// Bcs should be located at EncodedObjectStore.
+func (r *EncodedObjectStore) BuildPackfileTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(3), true)
+}
+
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *EncodedObjectStore) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
@@ -55,6 +65,12 @@ func (r *EncodedObjectStore) ApplySubBlock(id uint32, next block.SubBlock) error
 			return block.ErrUnexpectedType
 		}
 		r.KvtxRoot = v
+	case 3:
+		v, ok := next.(*kvtx_block.KeyValueStore)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		r.PackfileKvtxRoot = v
 	}
 	return nil
 }
@@ -68,6 +84,7 @@ func (r *EncodedObjectStore) GetSubBlocks() map[uint32]block.SubBlock {
 
 	v := make(map[uint32]block.SubBlock)
 	v[1] = r.GetKvtxRoot()
+	v[3] = r.GetPackfileKvtxRoot()
 	return v
 }
 
@@ -80,6 +97,8 @@ func (r *EncodedObjectStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
 		return kvtx_block.NewKeyValueStoreSubBlockCtor(&r.KvtxRoot)
+	case 3:
+		return kvtx_block.NewKeyValueStoreSubBlockCtor(&r.PackfileKvtxRoot)
 	}
 	return nil
 }

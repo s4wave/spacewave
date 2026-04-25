@@ -255,6 +255,9 @@ func (r *Store) EncodedObject(ot plumbing.ObjectType, oh plumbing.Hash) (plumbin
 	}
 	encObj, encObjCs, err := r.lookupEncodedObject(key)
 	if err != nil || encObj == nil {
+		if err == plumbing.ErrObjectNotFound {
+			return r.lookupPackedObject(ot, oh)
+		}
 		return nil, err
 	}
 	ph, err := FromHash(encObj.GetDataHash())
@@ -300,7 +303,7 @@ func (r *Store) EncodedObjectByHash(ph plumbing.Hash) (plumbing.EncodedObject, e
 			return encObj, nil
 		}
 	}
-	return nil, plumbing.ErrObjectNotFound
+	return r.lookupPackedObject(plumbing.AnyObject, ph)
 }
 
 // IterObjects returns a custom EncodedObjectStorer over all the object
@@ -314,7 +317,27 @@ func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObject
 	}
 	treeTx := r.objTree
 	ktxIterator := treeTx.BlockIterate(r.ctx, prefix, false, false)
-	return NewEncodedObjectIter(r, ktxIterator), nil
+	looseIter := NewEncodedObjectIter(r, ktxIterator)
+	if r.packTree == nil {
+		return looseIter, nil
+	}
+	seen := make(map[plumbing.Hash]struct{})
+	objects := make([]plumbing.EncodedObject, 0)
+	err := looseIter.ForEach(func(obj plumbing.EncodedObject) error {
+		seen[obj.Hash()] = struct{}{}
+		objects = append(objects, obj)
+		return nil
+	})
+	looseIter.Close()
+	if err != nil {
+		return nil, err
+	}
+	packed, err := r.iterPackedObjects(ph, seen)
+	if err != nil {
+		return nil, err
+	}
+	objects = append(objects, packed...)
+	return newSliceEncodedObjectIter(objects), nil
 }
 
 // HasEncodedObject returns ErrObjNotFound if the object doesn't

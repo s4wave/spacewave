@@ -1,12 +1,25 @@
 syntax = "proto3";
 package block.rpc;
 
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
 import "github.com/s4wave/spacewave/db/block/block.proto";
 
 // BlockStore wraps a BlockStore interface with a RPC service.
 service BlockStore {
+  // GetHashType requests the preferred hash type for the store.
+  rpc GetHashType(GetHashTypeRequest) returns (GetHashTypeResponse);
+
+  // GetSupportedFeatures requests the native feature bitmask for the store.
+  rpc GetSupportedFeatures(GetSupportedFeaturesRequest) returns (GetSupportedFeaturesResponse);
+
   // PutBlock requests to put a block into the store.
   rpc PutBlock(PutBlockRequest) returns (PutBlockResponse);
+
+  // PutBlockBatch requests to put blocks into the store as a batch.
+  rpc PutBlockBatch(PutBlockBatchRequest) returns (PutBlockBatchResponse);
+
+  // PutBlockBackground requests to put a block in the background.
+  rpc PutBlockBackground(PutBlockBackgroundRequest) returns (PutBlockBackgroundResponse);
 
   // GetBlock requests to lookup a block from the store.
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
@@ -14,10 +27,43 @@ service BlockStore {
   // GetBlockExists requests to check if a block exists in the store.
   rpc GetBlockExists(GetBlockExistsRequest) returns (GetBlockExistsResponse);
 
+  // GetBlockExistsBatch requests to check if blocks exist in the store.
+  rpc GetBlockExistsBatch(GetBlockExistsBatchRequest) returns (GetBlockExistsBatchResponse);
+
   // RmBlock requests to remove a block from the store.
   // Does not return an error if the block was not present.
   // In some cases, will return before confirming delete.
   rpc RmBlock(RmBlockRequest) returns (RmBlockResponse);
+
+  // StatBlock requests block metadata without reading block data.
+  rpc StatBlock(StatBlockRequest) returns (StatBlockResponse);
+
+  // Flush requests that buffered writes are published.
+  rpc Flush(FlushRequest) returns (FlushResponse);
+
+  // BeginDeferFlush opens a defer-flush scope.
+  rpc BeginDeferFlush(BeginDeferFlushRequest) returns (BeginDeferFlushResponse);
+
+  // EndDeferFlush closes a defer-flush scope.
+  rpc EndDeferFlush(EndDeferFlushRequest) returns (EndDeferFlushResponse);
+}
+
+// GetHashTypeRequest requests the preferred hash type for the store.
+message GetHashTypeRequest {}
+
+// GetHashTypeResponse is the response to requesting the preferred hash type.
+message GetHashTypeResponse {
+  // HashType is the store's preferred hash type.
+  .hash.HashType hash_type = 1;
+}
+
+// GetSupportedFeaturesRequest requests the native feature bitmask for the store.
+message GetSupportedFeaturesRequest {}
+
+// GetSupportedFeaturesResponse is the response to requesting native features.
+message GetSupportedFeaturesResponse {
+  // Features is the native feature bitmask.
+  .block.StoreFeature features = 1;
 }
 
 // PutBlockRequest requests to put a block into the store.
@@ -30,6 +76,48 @@ message PutBlockRequest {
 
 // PutBlockResponse is the response to putting a block in the store.
 message PutBlockResponse {
+  // Ref is the reference of the added block.
+  .block.BlockRef ref = 1;
+  // Existed indicates the block already existed.
+  bool existed = 2;
+  // Error is any error adding the block to the store.
+  string error = 3;
+}
+
+// PutBlockBatchEntry is one block write in a batch request.
+message PutBlockBatchEntry {
+  // Ref is the expected content-addressed block reference.
+  .block.BlockRef ref = 1;
+  // Data is the encoded block payload.
+  bytes data = 2;
+  // Refs are outgoing refs for GC bookkeeping.
+  repeated .block.BlockRef refs = 3;
+  // Tombstone marks the block ref as deleted.
+  bool tombstone = 4;
+}
+
+// PutBlockBatchRequest requests to put blocks into the store as a batch.
+message PutBlockBatchRequest {
+  // Entries are the batch write entries.
+  repeated PutBlockBatchEntry entries = 1;
+}
+
+// PutBlockBatchResponse is the response to putting blocks as a batch.
+message PutBlockBatchResponse {
+  // Error is any error adding blocks to the store.
+  string error = 1;
+}
+
+// PutBlockBackgroundRequest requests to put a block in the background.
+message PutBlockBackgroundRequest {
+  // Data is the data to put into the store.
+  bytes data = 1;
+  // PutOpts are any options when putting the block into the store.
+  .block.PutOpts put_opts = 2;
+}
+
+// PutBlockBackgroundResponse is the response to a background put.
+message PutBlockBackgroundResponse {
   // Ref is the reference of the added block.
   .block.BlockRef ref = 1;
   // Existed indicates the block already existed.
@@ -68,6 +156,20 @@ message GetBlockExistsResponse {
   string error = 2;
 }
 
+// GetBlockExistsBatchRequest requests to check if blocks exist in the store.
+message GetBlockExistsBatchRequest {
+  // Refs are the references to check.
+  repeated .block.BlockRef refs = 1;
+}
+
+// GetBlockExistsBatchResponse is the response to checking if blocks are in the store.
+message GetBlockExistsBatchResponse {
+  // Exists indicates existence for each requested ref.
+  repeated bool exists = 1;
+  // Error is any error checking blocks in the store.
+  string error = 2;
+}
+
 // RmBlockRequest requests to remove a block from the store.
 message RmBlockRequest {
   // Ref is the reference to the block to remove.
@@ -78,5 +180,50 @@ message RmBlockRequest {
 message RmBlockResponse {
   // Error is any error removing the block in the store.
   // Will be empty if the block did not exist.
+  string error = 1;
+}
+
+// StatBlockRequest requests metadata about a block.
+message StatBlockRequest {
+  // Ref is the reference to the block to stat.
+  .block.BlockRef ref = 1;
+}
+
+// StatBlockResponse is the response to statting a block.
+message StatBlockResponse {
+  // Ref is the block reference.
+  .block.BlockRef ref = 1;
+  // Size is the block data size in bytes, or -1 if unknown.
+  int64 size = 2;
+  // Exists indicates if the block exists.
+  bool exists = 3;
+  // Error is any error statting the block.
+  string error = 4;
+}
+
+// FlushRequest requests a store flush.
+message FlushRequest {}
+
+// FlushResponse is the response to flushing the store.
+message FlushResponse {
+  // Error is any error flushing the store.
+  string error = 1;
+}
+
+// BeginDeferFlushRequest requests opening a defer-flush scope.
+message BeginDeferFlushRequest {}
+
+// BeginDeferFlushResponse is the response to opening a defer-flush scope.
+message BeginDeferFlushResponse {
+  // Error is any error opening the defer-flush scope.
+  string error = 1;
+}
+
+// EndDeferFlushRequest requests closing a defer-flush scope.
+message EndDeferFlushRequest {}
+
+// EndDeferFlushResponse is the response to closing a defer-flush scope.
+message EndDeferFlushResponse {
+  // Error is any error closing the defer-flush scope.
   string error = 1;
 }

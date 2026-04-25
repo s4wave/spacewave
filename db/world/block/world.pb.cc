@@ -278,7 +278,7 @@ const char descriptor_table_protodef_github_2ecom_2faperturerobotics_2fhydra_2fw
     "\n9github.com/s4wave/spacewave/db/worl"
     "d/block/world.proto\022\013world.block\0323github"
     ".com/aperturerobotics/hydra/block/block."
-    "proto\0329github.com/aperturerobotics/hydra"
+    "proto\0329github.com/s4wave/spacewave/db"
     "/block/bloom/bloom.proto\032=github.com/ape"
     "rturerobotics/hydra/block/filters/filter"
     "s.proto\0327github.com/aperturerobotics/hyd"

@@ -13,6 +13,67 @@ import {
 export const protobufPackage = 'block'
 
 /**
+ * StoreFeature is a bitmask of native block store capabilities.
+ * Each non-zero enum value is a single bit and values are combined with
+ * bitwise OR. The values are intentionally not sequential.
+ *
+ * @generated from enum block.StoreFeature
+ */
+export enum StoreFeature {
+  /**
+   * STORE_FEATURE_UNKNOWN indicates no native capabilities are reported.
+   *
+   * @generated from enum value: STORE_FEATURE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * STORE_FEATURE_NATIVE_BATCH_PUT means PutBlockBatch is implemented natively.
+   *
+   * @generated from enum value: STORE_FEATURE_NATIVE_BATCH_PUT = 1;
+   */
+  NATIVE_BATCH_PUT = 1,
+
+  /**
+   * STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
+   *
+   * @generated from enum value: STORE_FEATURE_NATIVE_BATCH_EXISTS = 2;
+   */
+  NATIVE_BATCH_EXISTS = 2,
+
+  /**
+   * STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
+   *
+   * @generated from enum value: STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4;
+   */
+  NATIVE_BACKGROUND_PUT = 4,
+
+  /**
+   * STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
+   *
+   * @generated from enum value: STORE_FEATURE_NATIVE_FLUSH = 8;
+   */
+  NATIVE_FLUSH = 8,
+
+  /**
+   * STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
+   *
+   * @generated from enum value: STORE_FEATURE_NATIVE_DEFER_FLUSH = 16;
+   */
+  NATIVE_DEFER_FLUSH = 16,
+}
+
+// StoreFeature_Enum is the enum type for StoreFeature.
+export const StoreFeature_Enum = createEnumType('block.StoreFeature', [
+  { no: 0, name: 'STORE_FEATURE_UNKNOWN' },
+  { no: 1, name: 'STORE_FEATURE_NATIVE_BATCH_PUT' },
+  { no: 2, name: 'STORE_FEATURE_NATIVE_BATCH_EXISTS' },
+  { no: 4, name: 'STORE_FEATURE_NATIVE_BACKGROUND_PUT' },
+  { no: 8, name: 'STORE_FEATURE_NATIVE_FLUSH' },
+  { no: 16, name: 'STORE_FEATURE_NATIVE_DEFER_FLUSH' },
+])
+
+/**
  * OverlayMode controls the mode for the block store overlay.
  *
  * @generated from enum block.OverlayMode
@@ -181,6 +242,14 @@ export interface PutOpts {
    * @generated from field: block.BlockRef force_block_ref = 2;
    */
   forceBlockRef?: BlockRef
+  /**
+   * Refs are outgoing block references recorded with this write.
+   * GC-aware stores consume these refs as part of the put. Stores that do not
+   * participate in GC ignore this field.
+   *
+   * @generated from field: repeated block.BlockRef refs = 3;
+   */
+  refs?: BlockRef[]
 }
 
 // PutOpts contains the message type declaration for PutOpts.
@@ -189,6 +258,7 @@ export const PutOpts: MessageType<PutOpts> = createMessageType({
   fields: [
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 2, name: 'force_block_ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'refs', kind: 'message', T: () => BlockRef, repeated: true },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

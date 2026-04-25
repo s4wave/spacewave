@@ -286,10 +286,10 @@ func CreateUpperBound(prefix []byte) []byte {
 	upperBound := make([]byte, len(prefix))
 	copy(upperBound, prefix)
 
-	// Find the rightmost byte that can be incremented.
+	// Find the rightmost byte that can be incremented
 	for i, v := range slices.Backward(upperBound) {
-		if v < 0xff {
-			v++
+		if v < 255 {
+			upperBound[i] = v + 1
 			return upperBound[:i+1]
 		}
 	}

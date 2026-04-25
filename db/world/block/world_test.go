@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/s4wave/spacewave/db/block/filters"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -20,6 +21,7 @@ import (
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -132,6 +134,53 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	checkMetadata(mds[3], "child-a", "type/a", "parent")
 }
 
+func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := ws.CreateObject(ctx, "repo-1", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_types.SetObjectType(ctx, ws, "repo-1", "git/repo"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	quads, err := ws.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuad("<repo-1>", "<type>", "", ""),
+		1,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 1 {
+		t.Fatalf("expected 1 quad, got %d", len(quads))
+	}
+	if quads[0].GetObj() != "<types/git/repo>" {
+		t.Fatalf("expected object %q, got %q", "<types/git/repo>", quads[0].GetObj())
+	}
+}
+
 // TestWorldState_DeleteObject tests the DeleteObject functionality
 func TestWorldState_DeleteObject(t *testing.T) {
 	ctx := context.Background()
@@ -240,6 +289,69 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	}
 
 	t.Log("DeleteObject test successful")
+}
+
+// TestWorldState_DeleteObjectWithMalformedGraphQuad verifies object deletion can clean up legacy graph quads.
+func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "delete-malformed-obj"
+	otherKey := "delete-malformed-other"
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	if _, err := ws.CreateObject(ctx, objKey, oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, otherKey, oref); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	err = ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
+		w, ok := h.(graph.QuadWriter)
+		if !ok {
+			return errors.New("expected writable graph handle")
+		}
+		return w.AddQuad(ctx, quad.Quad{
+			Subject: world.KeyToGraphValue(objKey),
+			Object:  world.KeyToGraphValue(otherKey),
+		})
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	deleted, err := ws.DeleteObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatalf("expected %q to be deleted", objKey)
+	}
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objKey, "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 0 {
+		t.Fatalf("expected malformed graph quad to be deleted, got %d", len(quads))
+	}
 }
 
 // TestWorldEngine_Fork tests forking the block-backed world state.

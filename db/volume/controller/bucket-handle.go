@@ -300,25 +300,8 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		}
 		flushTask.End()
 	} else {
-		batcher, ok := b.v.(block.BatchPutStore)
-		if ok {
-			if err := batcher.PutBlockBatch(ctx, entries); err != nil {
-				return err
-			}
-		} else {
-			for _, entry := range entries {
-				if entry.Tombstone {
-					if err := b.v.RmBlock(ctx, entry.Ref); err != nil {
-						return err
-					}
-					continue
-				}
-				if _, _, err := b.v.PutBlock(ctx, entry.Data, &block.PutOpts{
-					ForceBlockRef: entry.Ref.Clone(),
-				}); err != nil {
-					return err
-				}
-			}
+		if err := b.v.PutBlockBatch(ctx, entries); err != nil {
+			return err
 		}
 	}
 
@@ -365,6 +348,18 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 	return 0
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
+	if b == nil || b.v == nil {
+		return block.StoreFeature_STORE_FEATURE_UNKNOWN
+	}
+	features := b.v.GetSupportedFeatures()
+	if b.gcOps != nil {
+		features = b.gcOps.GetSupportedFeatures()
+	}
+	return features | block.StoreFeatureNativeDeferFlush
+}
+
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
@@ -383,6 +378,17 @@ func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	}
 
 	return b.v.GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch checks if blocks exist.
+func (b *bucketHandle) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if b.bucketConf == nil {
+		return nil, bucket.ErrBucketNotFound
+	}
+	if b.gcOps != nil {
+		return b.gcOps.GetBlockExistsBatch(ctx, refs)
+	}
+	return b.v.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -454,6 +460,24 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
+// PutBlockBackground writes a block at background priority.
+func (b *bucketHandle) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return b.PutBlock(ctx, data, opts)
+}
+
+// Flush publishes buffered writes for the bucket.
+func (b *bucketHandle) Flush(ctx context.Context) error {
+	if b.gcOps != nil {
+		if err := b.gcOps.Flush(ctx); err != nil {
+			return err
+		}
+		if err := b.gcOps.FlushPending(ctx); err != nil {
+			return err
+		}
+	}
+	return b.v.Flush(ctx)
+}
+
 // BeginDeferFlush enters a deferred-flush scope for bucket-level GC.
 // While deferred, PutBlock skips per-block FlushPending calls.
 func (b *bucketHandle) BeginDeferFlush() {
@@ -473,8 +497,6 @@ func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ bucket.Bucket           = ((*bucketHandle)(nil))
-	_ bucket.BucketHandle     = ((*bucketHandle)(nil))
-	_ block.BatchPutStore     = ((*bucketHandle)(nil))
-	_ block_gc.DeferFlushable = ((*bucketHandle)(nil))
+	_ bucket.Bucket       = ((*bucketHandle)(nil))
+	_ bucket.BucketHandle = ((*bucketHandle)(nil))
 )

@@ -3,6 +3,8 @@ package world_block
 import (
 	"context"
 	"runtime/trace"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/s4wave/spacewave/db/block"
@@ -130,7 +132,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 }
 
 // RenameObject renames an object key and updates associated graph quads.
-func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
@@ -140,7 +142,14 @@ func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (w
 	if oldKey == "" || newKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
+	if descendants {
+		return t.renameObjectDescendants(ctx, oldKey, newKey)
+	}
 
+	return t.renameObjectSingle(ctx, oldKey, newKey)
+}
+
+func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
 	oldObj, found, err := t.getObject(ctx, oldKey)
 	if err != nil {
 		return nil, err
@@ -220,6 +229,97 @@ func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (w
 	}
 
 	return NewObjectState(ctx, t, newBcs)
+}
+
+func (t *WorldState) renameObjectDescendants(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+	if oldKey == newKey {
+		return t.renameObjectSingle(ctx, oldKey, newKey)
+	}
+	if strings.HasPrefix(newKey, oldKey+"/") {
+		return nil, world.ErrObjectExists
+	}
+	if _, found, err := t.getObject(ctx, oldKey); err != nil {
+		return nil, err
+	} else if !found {
+		return nil, world.ErrObjectNotFound
+	}
+
+	renames, err := t.collectObjectRenames(ctx, oldKey, newKey)
+	if err != nil {
+		return nil, err
+	}
+	if err := t.checkObjectRenameCollisions(ctx, renames); err != nil {
+		return nil, err
+	}
+
+	var out world.ObjectState
+	for _, rename := range renames {
+		obj, err := t.renameObjectSingle(ctx, rename.oldKey, rename.newKey)
+		if err != nil {
+			return nil, err
+		}
+		if rename.oldKey == oldKey {
+			out = obj
+		}
+	}
+	return out, nil
+}
+
+func (t *WorldState) collectObjectRenames(ctx context.Context, oldKey, newKey string) ([]objectRename, error) {
+	renames := []objectRename{{oldKey: oldKey, newKey: newKey}}
+	iter := t.IterateObjects(ctx, oldKey+"/", false)
+	defer iter.Close()
+	for iter.Next() {
+		key := iter.Key()
+		next, ok := rewriteObjectKeyPrefix(key, oldKey, newKey)
+		if !ok {
+			continue
+		}
+		renames = append(renames, objectRename{oldKey: key, newKey: next})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+	slices.SortFunc(renames, func(a, b objectRename) int {
+		return len(a.oldKey) - len(b.oldKey)
+	})
+	return renames, nil
+}
+
+func (t *WorldState) checkObjectRenameCollisions(ctx context.Context, renames []objectRename) error {
+	oldKeys := make(map[string]struct{}, len(renames))
+	for _, rename := range renames {
+		oldKeys[rename.oldKey] = struct{}{}
+	}
+	for _, rename := range renames {
+		if _, ok := oldKeys[rename.newKey]; ok {
+			return world.ErrObjectExists
+		}
+		_, found, err := t.getObject(ctx, rename.newKey)
+		if err != nil {
+			return err
+		}
+		if found {
+			return world.ErrObjectExists
+		}
+	}
+	return nil
+}
+
+func rewriteObjectKeyPrefix(key, oldKey, newKey string) (string, bool) {
+	if key == oldKey {
+		return newKey, true
+	}
+	prefix := oldKey + "/"
+	if !strings.HasPrefix(key, prefix) {
+		return key, false
+	}
+	return newKey + key[len(oldKey):], true
+}
+
+type objectRename struct {
+	oldKey string
+	newKey string
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

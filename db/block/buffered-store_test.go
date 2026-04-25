@@ -12,6 +12,8 @@ import (
 )
 
 type countStore struct {
+	NopStoreOps
+
 	hashType hash.HashType
 
 	mtx           sync.Mutex
@@ -69,6 +71,7 @@ func (s *countStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (
 	if !exists {
 		s.blocks[key] = bytes.Clone(data)
 	}
+	s.recordRefTargetsLocked(ref, opts.GetRefs())
 	return ref, exists, nil
 }
 
@@ -114,6 +117,7 @@ func (s *countStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry
 			continue
 		}
 		s.blocks[key] = bytes.Clone(entry.Data)
+		s.recordRefTargetsLocked(entry.Ref, entry.Refs)
 	}
 	return nil
 }
@@ -171,19 +175,19 @@ func (s *countStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, 
 	}, nil
 }
 
-func (s *countStore) RecordBlockRefs(ctx context.Context, source *BlockRef, targets []*BlockRef) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (s *countStore) recordRefTargetsLocked(source *BlockRef, targets []*BlockRef) {
+	if len(targets) == 0 {
+		return
+	}
 	if s.recordErr != nil && s.recordFailAt > 0 && s.recordCalls >= s.recordFailAt {
-		return s.recordErr
+		return
 	}
 	s.recordCalls++
 	key, err := marshalRefKey(source)
 	if err != nil {
-		return err
+		return
 	}
 	s.recordTargets[key] += len(targets)
-	return nil
 }
 
 func (s *countStore) setBatchBlocker() <-chan struct{} {
@@ -403,20 +407,17 @@ func TestBufferedStoreReportsDrainErrorAtFlush(t *testing.T) {
 	}
 }
 
-func TestBufferedStoreFlushesBufferedRefRecords(t *testing.T) {
+func TestBufferedStoreFlushesBufferedPutRefs(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
 	store := NewBufferedStore(ctx, inner)
 
-	src, _, err := store.PutBlock(ctx, []byte("src"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	dst, _, err := store.PutBlock(ctx, []byte("dst"), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := store.RecordBlockRefs(ctx, src, []*BlockRef{dst}); err != nil {
+	src, _, err := store.PutBlock(ctx, []byte("src"), &PutOpts{Refs: []*BlockRef{dst}})
+	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.recordCalls != 0 {
@@ -435,6 +436,35 @@ func TestBufferedStoreFlushesBufferedRefRecords(t *testing.T) {
 	}
 	if inner.recordTargets[key] != 1 {
 		t.Fatalf("expected one recorded target after flush, got %d", inner.recordTargets[key])
+	}
+}
+
+func TestBufferedStoreNestedDeferFlushFlushesOnce(t *testing.T) {
+	ctx := context.Background()
+	inner := newCountStore(hash.HashType_HashType_BLAKE3)
+	store := NewBufferedStore(ctx, inner)
+
+	dst, _, err := store.PutBlock(ctx, []byte("dst"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	store.BeginDeferFlush()
+	store.BeginDeferFlush()
+	if _, _, err := store.PutBlock(ctx, []byte("src"), &PutOpts{Refs: []*BlockRef{dst}}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := store.EndDeferFlush(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.recordCalls != 0 {
+		t.Fatalf("expected inner refs to stay buffered at inner End, got %d", inner.recordCalls)
+	}
+	if err := store.EndDeferFlush(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.recordCalls != 1 {
+		t.Fatalf("expected one outermost flush, got %d", inner.recordCalls)
 	}
 }
 
@@ -535,7 +565,7 @@ func TestBufferedStoreUnblocksOnContextCancel(t *testing.T) {
 	}
 }
 
-func TestBufferedStoreUsesBatchPutStore(t *testing.T) {
+func TestBufferedStoreUsesBatchPut(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
 	store := NewBufferedStore(ctx, inner)
@@ -615,54 +645,5 @@ func TestBufferedStoreDrainUsesStoreContext(t *testing.T) {
 	err := store.Flush(context.Background())
 	if err != context.Canceled {
 		t.Fatalf("expected context.Canceled, got %v", err)
-	}
-}
-
-func TestBufferedStoreRestoresOnlyUnwrittenRefRecords(t *testing.T) {
-	ctx := context.Background()
-	inner := newCountStore(hash.HashType_HashType_BLAKE3)
-	inner.recordFailAt = 1
-	inner.recordErr = context.DeadlineExceeded
-	store := NewBufferedStore(ctx, inner)
-
-	src0, _, err := store.PutBlock(ctx, []byte("src0"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	dst0, _, err := store.PutBlock(ctx, []byte("dst0"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	src1, _, err := store.PutBlock(ctx, []byte("src1"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	dst1, _, err := store.PutBlock(ctx, []byte("dst1"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := store.RecordBlockRefs(ctx, src0, []*BlockRef{dst0}); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := store.RecordBlockRefs(ctx, src1, []*BlockRef{dst1}); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	err = store.Flush(ctx)
-	if err != context.DeadlineExceeded {
-		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
-	}
-	if inner.recordCalls != 1 {
-		t.Fatalf("expected one successful ref record before failure, got %d", inner.recordCalls)
-	}
-
-	inner.recordFailAt = 0
-	inner.recordErr = nil
-	err = store.Flush(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if inner.recordCalls != 2 {
-		t.Fatalf("expected only unwritten ref records to retry, got %d total calls", inner.recordCalls)
 	}
 }

@@ -68,6 +68,10 @@ func (e *gcTestEnv) flush(t *testing.T) {
 	}
 }
 
+func (e *gcTestEnv) recordRefs(source *block.BlockRef, targets []*block.BlockRef) {
+	e.gcStore.bufferBlockRefs(source, targets)
+}
+
 // blockExists checks if a block exists in the raw store.
 func (e *gcTestEnv) blockExists(t *testing.T, ref *block.BlockRef) bool {
 	t.Helper()
@@ -106,6 +110,39 @@ func TestGCStoreOps_PutBlockAddsUnrefEdge(t *testing.T) {
 	}
 }
 
+func TestGCStoreOps_NestedDeferFlushFlushesOnce(t *testing.T) {
+	env := newGCTestEnv(t)
+
+	env.gcStore.BeginDeferFlush()
+	env.gcStore.BeginDeferFlush()
+	ex := block_mock.NewExample("nested-defer")
+	ref, _, err := block.PutBlock(env.ctx, env.gcStore, ex)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := env.gcStore.EndDeferFlush(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.gcStore.mu.Lock()
+	pending := len(env.gcStore.pendingUnref)
+	env.gcStore.mu.Unlock()
+	if pending != 1 {
+		t.Fatalf("expected pending unref to remain after inner End, got %d", pending)
+	}
+	if err := env.gcStore.EndDeferFlush(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.gcStore.mu.Lock()
+	pending = len(env.gcStore.pendingUnref)
+	env.gcStore.mu.Unlock()
+	if pending != 0 {
+		t.Fatalf("expected pending unref to flush at outer End, got %d", pending)
+	}
+	if !env.blockExists(t, ref) {
+		t.Fatal("expected block to persist")
+	}
+}
+
 // TestGCStoreOps_RecordRefsRemovesUnrefEdge tests that recording refs
 // removes the unreferenced edge from the target.
 func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
@@ -124,10 +161,7 @@ func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
 	}
 
 	// Record a->b ref: b's unreferenced edge should be removed.
-	err = env.gcStore.RecordBlockRefs(env.ctx, aRef, []*block.BlockRef{bRef})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(aRef, []*block.BlockRef{bRef})
 	env.flush(t)
 
 	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
@@ -183,14 +217,11 @@ func TestGCStoreOps_RmBlockCleansGraph(t *testing.T) {
 	bRef := env.putBlock(t, "block-b")
 
 	// Record a->b, removing b's unreferenced edge.
-	err := env.gcStore.RecordBlockRefs(env.ctx, aRef, []*block.BlockRef{bRef})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(aRef, []*block.BlockRef{bRef})
 	env.flush(t)
 
 	// RmBlock on a should clean its outgoing edges and cascade.
-	err = env.gcStore.RmBlock(env.ctx, aRef)
+	err := env.gcStore.RmBlock(env.ctx, aRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -579,9 +610,7 @@ func TestGCStoreOps_PutBlockBatch_TombstoneCleansGraph(t *testing.T) {
 	bRef := env.putBlock(t, "batch-tomb-b")
 
 	// Record a->b ref.
-	if err := env.gcStore.RecordBlockRefs(env.ctx, aRef, []*block.BlockRef{bRef}); err != nil {
-		t.Fatal(err.Error())
-	}
+	env.recordRefs(aRef, []*block.BlockRef{bRef})
 	env.flush(t)
 
 	// b should not be unreferenced (a references it).

@@ -87,6 +87,21 @@ func (b *BlockRef) Clone() *BlockRef {
 	}
 }
 
+// CloneBlockRefs returns a deep copy of refs, preserving nil entries.
+// Returns nil for empty input.
+func CloneBlockRefs(refs []*BlockRef) []*BlockRef {
+	if len(refs) == 0 {
+		return nil
+	}
+	cloned := make([]*BlockRef, len(refs))
+	for i, ref := range refs {
+		if ref != nil {
+			cloned[i] = ref.Clone()
+		}
+	}
+	return cloned
+}
+
 // Validate validates the block ref.
 func (b *BlockRef) Validate(allowEmpty bool) error {
 	if !allowEmpty && b.GetEmpty() {

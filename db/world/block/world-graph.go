@@ -126,6 +126,10 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	return t.deleteGraphQuad(ctx, q, true)
+}
+
+func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, validate bool) error {
 	if q == nil {
 		return world.ErrNilQuad
 	}
@@ -160,7 +164,7 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 		}
 	}
 
-	cq, err := world.GraphQuadToCayleyQuad(q, true)
+	cq, err := world.GraphQuadToCayleyQuad(q, validate)
 	if err != nil {
 		return err
 	}
@@ -220,12 +224,12 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	// decNodes in one pass can delete shared node log entries that
 	// subsequent passes need to resolve quads.
 	for _, q := range subjQuads {
-		if err := t.DeleteGraphQuad(ctx, q); err != nil {
+		if err := t.deleteGraphQuad(ctx, q, false); err != nil {
 			return err
 		}
 	}
 	for _, q := range objQuads {
-		if err := t.DeleteGraphQuad(ctx, q); err != nil {
+		if err := t.deleteGraphQuad(ctx, q, false); err != nil {
 			return err
 		}
 	}

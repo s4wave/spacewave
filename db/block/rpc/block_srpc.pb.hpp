@@ -29,14 +29,32 @@ class SRPCBlockStoreClient {
   // SRPCClient returns the underlying SRPC client.
   virtual starpc::Client* SRPCClient() = 0;
 
+  // GetHashType
+  virtual starpc::Error GetHashType(const block::rpc::GetHashTypeRequest& in, block::rpc::GetHashTypeResponse* out) = 0;
+  // GetSupportedFeatures
+  virtual starpc::Error GetSupportedFeatures(const block::rpc::GetSupportedFeaturesRequest& in, block::rpc::GetSupportedFeaturesResponse* out) = 0;
   // PutBlock
   virtual starpc::Error PutBlock(const block::rpc::PutBlockRequest& in, block::rpc::PutBlockResponse* out) = 0;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const block::rpc::PutBlockBatchRequest& in, block::rpc::PutBlockBatchResponse* out) = 0;
+  // PutBlockBackground
+  virtual starpc::Error PutBlockBackground(const block::rpc::PutBlockBackgroundRequest& in, block::rpc::PutBlockBackgroundResponse* out) = 0;
   // GetBlock
   virtual starpc::Error GetBlock(const block::rpc::GetBlockRequest& in, block::rpc::GetBlockResponse* out) = 0;
   // GetBlockExists
   virtual starpc::Error GetBlockExists(const block::rpc::GetBlockExistsRequest& in, block::rpc::GetBlockExistsResponse* out) = 0;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const block::rpc::GetBlockExistsBatchRequest& in, block::rpc::GetBlockExistsBatchResponse* out) = 0;
   // RmBlock
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& in, block::rpc::RmBlockResponse* out) = 0;
+  // StatBlock
+  virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& in, block::rpc::StatBlockResponse* out) = 0;
+  // Flush
+  virtual starpc::Error Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) = 0;
+  // BeginDeferFlush
+  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) = 0;
+  // EndDeferFlush
+  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) = 0;
 };
 
 // SRPCBlockStoreClientImpl implements SRPCBlockStoreClient.
@@ -47,14 +65,32 @@ class SRPCBlockStoreClientImpl : public SRPCBlockStoreClient {
 
   starpc::Client* SRPCClient() override { return cc_; }
 
+  // GetHashType
+  virtual starpc::Error GetHashType(const block::rpc::GetHashTypeRequest& in, block::rpc::GetHashTypeResponse* out) override;
+  // GetSupportedFeatures
+  virtual starpc::Error GetSupportedFeatures(const block::rpc::GetSupportedFeaturesRequest& in, block::rpc::GetSupportedFeaturesResponse* out) override;
   // PutBlock
   virtual starpc::Error PutBlock(const block::rpc::PutBlockRequest& in, block::rpc::PutBlockResponse* out) override;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const block::rpc::PutBlockBatchRequest& in, block::rpc::PutBlockBatchResponse* out) override;
+  // PutBlockBackground
+  virtual starpc::Error PutBlockBackground(const block::rpc::PutBlockBackgroundRequest& in, block::rpc::PutBlockBackgroundResponse* out) override;
   // GetBlock
   virtual starpc::Error GetBlock(const block::rpc::GetBlockRequest& in, block::rpc::GetBlockResponse* out) override;
   // GetBlockExists
   virtual starpc::Error GetBlockExists(const block::rpc::GetBlockExistsRequest& in, block::rpc::GetBlockExistsResponse* out) override;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const block::rpc::GetBlockExistsBatchRequest& in, block::rpc::GetBlockExistsBatchResponse* out) override;
   // RmBlock
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& in, block::rpc::RmBlockResponse* out) override;
+  // StatBlock
+  virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& in, block::rpc::StatBlockResponse* out) override;
+  // Flush
+  virtual starpc::Error Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) override;
+  // BeginDeferFlush
+  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) override;
+  // EndDeferFlush
+  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -71,14 +107,32 @@ class SRPCBlockStoreServer {
  public:
   virtual ~SRPCBlockStoreServer() = default;
 
+  // GetHashType
+  virtual starpc::Error GetHashType(const block::rpc::GetHashTypeRequest& req, block::rpc::GetHashTypeResponse* resp) = 0;
+  // GetSupportedFeatures
+  virtual starpc::Error GetSupportedFeatures(const block::rpc::GetSupportedFeaturesRequest& req, block::rpc::GetSupportedFeaturesResponse* resp) = 0;
   // PutBlock
   virtual starpc::Error PutBlock(const block::rpc::PutBlockRequest& req, block::rpc::PutBlockResponse* resp) = 0;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const block::rpc::PutBlockBatchRequest& req, block::rpc::PutBlockBatchResponse* resp) = 0;
+  // PutBlockBackground
+  virtual starpc::Error PutBlockBackground(const block::rpc::PutBlockBackgroundRequest& req, block::rpc::PutBlockBackgroundResponse* resp) = 0;
   // GetBlock
   virtual starpc::Error GetBlock(const block::rpc::GetBlockRequest& req, block::rpc::GetBlockResponse* resp) = 0;
   // GetBlockExists
   virtual starpc::Error GetBlockExists(const block::rpc::GetBlockExistsRequest& req, block::rpc::GetBlockExistsResponse* resp) = 0;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const block::rpc::GetBlockExistsBatchRequest& req, block::rpc::GetBlockExistsBatchResponse* resp) = 0;
   // RmBlock
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& req, block::rpc::RmBlockResponse* resp) = 0;
+  // StatBlock
+  virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& req, block::rpc::StatBlockResponse* resp) = 0;
+  // Flush
+  virtual starpc::Error Flush(const block::rpc::FlushRequest& req, block::rpc::FlushResponse* resp) = 0;
+  // BeginDeferFlush
+  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& req, block::rpc::BeginDeferFlushResponse* resp) = 0;
+  // EndDeferFlush
+  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& req, block::rpc::EndDeferFlushResponse* resp) = 0;
 };
 
 // SRPCBlockStoreHandler implements starpc::Handler for BlockStore.

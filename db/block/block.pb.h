@@ -59,6 +59,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace block {
 enum OverlayMode : int;
 extern const uint32_t OverlayMode_internal_data_[];
+enum StoreFeature : int;
+extern const uint32_t StoreFeature_internal_data_[];
 class BlockRef;
 struct BlockRefDefaultTypeInternal;
 extern BlockRefDefaultTypeInternal _BlockRef_default_instance_;
@@ -73,10 +75,48 @@ namespace protobuf {
 template <>
 internal::EnumTraitsT<::block::OverlayMode_internal_data_>
     internal::EnumTraitsImpl::value<::block::OverlayMode>;
+template <>
+internal::EnumTraitsT<::block::StoreFeature_internal_data_>
+    internal::EnumTraitsImpl::value<::block::StoreFeature>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace block {
+enum StoreFeature : int {
+  STORE_FEATURE_UNKNOWN = 0,
+  STORE_FEATURE_NATIVE_BATCH_PUT = 1,
+  STORE_FEATURE_NATIVE_BATCH_EXISTS = 2,
+  STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4,
+  STORE_FEATURE_NATIVE_FLUSH = 8,
+  STORE_FEATURE_NATIVE_DEFER_FLUSH = 16,
+  StoreFeature_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  StoreFeature_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t StoreFeature_internal_data_[];
+inline constexpr StoreFeature StoreFeature_MIN =
+    static_cast<StoreFeature>(0);
+inline constexpr StoreFeature StoreFeature_MAX =
+    static_cast<StoreFeature>(16);
+inline bool StoreFeature_IsValid(int value) {
+  return 0 <= value && value <= 16 && ((65815u >> value) & 1) != 0;
+}
+inline constexpr int StoreFeature_ARRAYSIZE = 16 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StoreFeature_descriptor();
+template <typename T>
+const ::std::string& StoreFeature_Name(T value) {
+  static_assert(::std::is_same<T, StoreFeature>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to StoreFeature_Name().");
+  return ::google::protobuf::internal::NameOfEnum(StoreFeature_descriptor(), value);
+}
+inline bool StoreFeature_Parse(
+    ::absl::string_view name, StoreFeature* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<StoreFeature>(StoreFeature_descriptor(), name,
+                                           value);
+}
 enum OverlayMode : int {
   UPPER_ONLY = 0,
   LOWER_ONLY = 1,
@@ -463,9 +503,27 @@ class PutOpts final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kRefsFieldNumber = 3,
     kForceBlockRefFieldNumber = 2,
     kHashTypeFieldNumber = 1,
   };
+  // repeated .block.BlockRef refs = 3;
+  int refs_size() const;
+  private:
+  int _internal_refs_size() const;
+
+  public:
+  void clear_refs() ;
+  ::block::BlockRef* PROTOBUF_NONNULL mutable_refs(int index);
+  ::google::protobuf::RepeatedPtrField<::block::BlockRef>* PROTOBUF_NONNULL mutable_refs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::block::BlockRef>& _internal_refs() const;
+  ::google::protobuf::RepeatedPtrField<::block::BlockRef>* PROTOBUF_NONNULL _internal_mutable_refs();
+  public:
+  const ::block::BlockRef& refs(int index) const;
+  ::block::BlockRef* PROTOBUF_NONNULL add_refs();
+  const ::google::protobuf::RepeatedPtrField<::block::BlockRef>& refs() const;
   // .block.BlockRef force_block_ref = 2;
   bool has_force_block_ref() const;
   void clear_force_block_ref() ;
@@ -495,8 +553,8 @@ class PutOpts final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   2, 0,
                                    2>
       _table_;
 
@@ -517,6 +575,7 @@ class PutOpts final : public ::google::protobuf::Message
         const PutOpts& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::block::BlockRef > refs_;
     ::block::BlockRef* PROTOBUF_NULLABLE force_block_ref_;
     int hash_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -645,7 +704,7 @@ inline void PutOpts::clear_hash_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.hash_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline ::hash::HashType PutOpts::hash_type() const {
   // @@protoc_insertion_point(field_get:block.PutOpts.hash_type)
@@ -653,7 +712,7 @@ inline ::hash::HashType PutOpts::hash_type() const {
 }
 inline void PutOpts::set_hash_type(::hash::HashType value) {
   _internal_set_hash_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:block.PutOpts.hash_type)
 }
 inline ::hash::HashType PutOpts::_internal_hash_type() const {
@@ -667,7 +726,7 @@ inline void PutOpts::_internal_set_hash_type(::hash::HashType value) {
 
 // .block.BlockRef force_block_ref = 2;
 inline bool PutOpts::has_force_block_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.force_block_ref_ != nullptr);
   return value;
 }
@@ -675,7 +734,7 @@ inline void PutOpts::clear_force_block_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.force_block_ref_ != nullptr) _impl_.force_block_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 inline const ::block::BlockRef& PutOpts::_internal_force_block_ref() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -694,16 +753,16 @@ inline void PutOpts::unsafe_arena_set_allocated_force_block_ref(
   }
   _impl_.force_block_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:block.PutOpts.force_block_ref)
 }
 inline ::block::BlockRef* PROTOBUF_NULLABLE PutOpts::release_force_block_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::BlockRef* released = _impl_.force_block_ref_;
   _impl_.force_block_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -723,7 +782,7 @@ inline ::block::BlockRef* PROTOBUF_NULLABLE PutOpts::unsafe_arena_release_force_
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:block.PutOpts.force_block_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::BlockRef* temp = _impl_.force_block_ref_;
   _impl_.force_block_ref_ = nullptr;
   return temp;
@@ -738,7 +797,7 @@ inline ::block::BlockRef* PROTOBUF_NONNULL PutOpts::_internal_mutable_force_bloc
 }
 inline ::block::BlockRef* PROTOBUF_NONNULL PutOpts::mutable_force_block_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::block::BlockRef* _msg = _internal_mutable_force_block_ref();
   // @@protoc_insertion_point(field_mutable:block.PutOpts.force_block_ref)
   return _msg;
@@ -755,13 +814,69 @@ inline void PutOpts::set_allocated_force_block_ref(::block::BlockRef* PROTOBUF_N
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.force_block_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   // @@protoc_insertion_point(field_set_allocated:block.PutOpts.force_block_ref)
+}
+
+// repeated .block.BlockRef refs = 3;
+inline int PutOpts::_internal_refs_size() const {
+  return _internal_refs().size();
+}
+inline int PutOpts::refs_size() const {
+  return _internal_refs_size();
+}
+inline void PutOpts::clear_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.refs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::block::BlockRef* PROTOBUF_NONNULL PutOpts::mutable_refs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:block.PutOpts.refs)
+  return _internal_mutable_refs()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::block::BlockRef>* PROTOBUF_NONNULL PutOpts::mutable_refs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:block.PutOpts.refs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_refs();
+}
+inline const ::block::BlockRef& PutOpts::refs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:block.PutOpts.refs)
+  return _internal_refs().Get(index);
+}
+inline ::block::BlockRef* PROTOBUF_NONNULL PutOpts::add_refs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::block::BlockRef* _add =
+      _internal_mutable_refs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:block.PutOpts.refs)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::block::BlockRef>& PutOpts::refs() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:block.PutOpts.refs)
+  return _internal_refs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::block::BlockRef>&
+PutOpts::_internal_refs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.refs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::block::BlockRef>* PROTOBUF_NONNULL
+PutOpts::_internal_mutable_refs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.refs_;
 }
 
 #ifdef __GNUC__
@@ -775,6 +890,12 @@ inline void PutOpts::set_allocated_force_block_ref(::block::BlockRef* PROTOBUF_N
 namespace google {
 namespace protobuf {
 
+template <>
+struct is_proto_enum<::block::StoreFeature> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::block::StoreFeature>() {
+  return ::block::StoreFeature_descriptor();
+}
 template <>
 struct is_proto_enum<::block::OverlayMode> : std::true_type {};
 template <>

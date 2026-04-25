@@ -16,6 +16,60 @@ import (
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
+// StoreFeature is a bitmask of native block store capabilities.
+// Each non-zero enum value is a single bit and values are combined with
+// bitwise OR. The values are intentionally not sequential.
+type StoreFeature int32
+
+const (
+	// STORE_FEATURE_UNKNOWN indicates no native capabilities are reported.
+	StoreFeature_STORE_FEATURE_UNKNOWN StoreFeature = 0
+	// STORE_FEATURE_NATIVE_BATCH_PUT means PutBlockBatch is implemented natively.
+	StoreFeature_STORE_FEATURE_NATIVE_BATCH_PUT StoreFeature = 1
+	// STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
+	StoreFeature_STORE_FEATURE_NATIVE_BATCH_EXISTS StoreFeature = 2
+	// STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
+	StoreFeature_STORE_FEATURE_NATIVE_BACKGROUND_PUT StoreFeature = 4
+	// STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
+	StoreFeature_STORE_FEATURE_NATIVE_FLUSH StoreFeature = 8
+	// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
+	StoreFeature_STORE_FEATURE_NATIVE_DEFER_FLUSH StoreFeature = 16
+)
+
+// Enum value maps for StoreFeature.
+var (
+	StoreFeature_name = map[int32]string{
+		0:  "STORE_FEATURE_UNKNOWN",
+		1:  "STORE_FEATURE_NATIVE_BATCH_PUT",
+		2:  "STORE_FEATURE_NATIVE_BATCH_EXISTS",
+		4:  "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
+		8:  "STORE_FEATURE_NATIVE_FLUSH",
+		16: "STORE_FEATURE_NATIVE_DEFER_FLUSH",
+	}
+	StoreFeature_value = map[string]int32{
+		"STORE_FEATURE_UNKNOWN":               0,
+		"STORE_FEATURE_NATIVE_BATCH_PUT":      1,
+		"STORE_FEATURE_NATIVE_BATCH_EXISTS":   2,
+		"STORE_FEATURE_NATIVE_BACKGROUND_PUT": 4,
+		"STORE_FEATURE_NATIVE_FLUSH":          8,
+		"STORE_FEATURE_NATIVE_DEFER_FLUSH":    16,
+	}
+)
+
+func (x StoreFeature) Enum() *StoreFeature {
+	p := new(StoreFeature)
+	*p = x
+	return p
+}
+
+func (x StoreFeature) String() string {
+	name, valid := StoreFeature_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // OverlayMode controls the mode for the block store overlay.
 type OverlayMode int32
 
@@ -152,6 +206,10 @@ type PutOpts struct {
 	// If the generated BlockRef does not match, the storage operation is aborted
 	// and returns block.ErrBlockRefMismatch.
 	ForceBlockRef *BlockRef `protobuf:"bytes,2,opt,name=force_block_ref,json=forceBlockRef,proto3" json:"forceBlockRef,omitempty"`
+	// Refs are outgoing block references recorded with this write.
+	// GC-aware stores consume these refs as part of the put. Stores that do not
+	// participate in GC ignore this field.
+	Refs []*BlockRef `protobuf:"bytes,3,rep,name=refs,proto3" json:"refs,omitempty"`
 }
 
 func (x *PutOpts) Reset() {
@@ -170,6 +228,13 @@ func (x *PutOpts) GetHashType() hash.HashType {
 func (x *PutOpts) GetForceBlockRef() *BlockRef {
 	if x != nil {
 		return x.ForceBlockRef
+	}
+	return nil
+}
+
+func (x *PutOpts) GetRefs() []*BlockRef {
+	if x != nil {
+		return x.Refs
 	}
 	return nil
 }
@@ -197,6 +262,12 @@ func (m *PutOpts) CloneVT() *PutOpts {
 	r := new(PutOpts)
 	r.HashType = m.HashType
 	r.ForceBlockRef = m.ForceBlockRef.CloneVT()
+	if rhs := m.Refs; rhs != nil {
+		r.Refs = make([]*BlockRef, len(rhs))
+		for k, v := range rhs {
+			r.Refs[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -239,6 +310,23 @@ func (this *PutOpts) EqualVT(that *PutOpts) bool {
 	if !this.ForceBlockRef.EqualVT(that.ForceBlockRef) {
 		return false
 	}
+	if len(this.Refs) != len(that.Refs) {
+		return false
+	}
+	for i, vx := range this.Refs {
+		vy := that.Refs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &BlockRef{}
+			}
+			if q == nil {
+				q = &BlockRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -248,6 +336,46 @@ func (this *PutOpts) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the StoreFeature to JSON.
+func (x StoreFeature) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), StoreFeature_name)
+}
+
+// MarshalText marshals the StoreFeature to text.
+func (x StoreFeature) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), StoreFeature_name)), nil
+}
+
+// MarshalJSON marshals the StoreFeature to JSON.
+func (x StoreFeature) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the StoreFeature from JSON.
+func (x *StoreFeature) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(StoreFeature_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read StoreFeature enum: %v", err)
+		return
+	}
+	*x = StoreFeature(v)
+}
+
+// UnmarshalText unmarshals the StoreFeature from text.
+func (x *StoreFeature) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), StoreFeature_value)
+	if err != nil {
+		return err
+	}
+	*x = StoreFeature(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the StoreFeature from JSON.
+func (x *StoreFeature) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the OverlayMode to JSON.
@@ -308,6 +436,17 @@ func (x *PutOpts) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("forceBlockRef")
 		x.ForceBlockRef.MarshalProtoJSON(s.WithField("forceBlockRef"))
 	}
+	if len(x.Refs) > 0 || s.HasField("refs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refs"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -335,6 +474,24 @@ func (x *PutOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ForceBlockRef = &BlockRef{}
 			x.ForceBlockRef.UnmarshalProtoJSON(s.WithField("force_block_ref", true))
+		case "refs":
+			s.AddField("refs")
+			if s.ReadNil() {
+				x.Refs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refs = append(x.Refs, nil)
+					return
+				}
+				v := &BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refs = append(x.Refs, v)
+			})
 		}
 	})
 }
@@ -417,6 +574,18 @@ func (m *PutOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Refs) > 0 {
+		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.ForceBlockRef != nil {
 		size, err := m.ForceBlockRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -462,8 +631,18 @@ func (m *PutOpts) SizeVT() (n int) {
 		l = m.ForceBlockRef.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.Refs) > 0 {
+		for _, e := range m.Refs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x StoreFeature) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x OverlayMode) MarshalProtoText() string {
@@ -506,6 +685,19 @@ func (x *PutOpts) MarshalProtoText() string {
 		}
 		sb.WriteString("force_block_ref: ")
 		sb.WriteString(x.ForceBlockRef.MarshalProtoText())
+	}
+	if len(x.Refs) > 0 {
+		if sb.Len() > 9 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("refs: [")
+		for i, v := range x.Refs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -642,6 +834,32 @@ func (m *PutOpts) UnmarshalVT(dAtA []byte) error {
 				m.ForceBlockRef = &BlockRef{}
 			}
 			if err := m.ForceBlockRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Refs = append(m.Refs, &BlockRef{})
+			if err := m.Refs[len(m.Refs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -10,7 +10,7 @@ pub struct BlockRef {
     pub hash: ::core::option::Option<super::hash::Hash>,
 }
 /// PutOpts are options that can be passed to PutBlock.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PutOpts {
     /// HashType is the hash type to use.
     /// If unset (0 value) will use default for the store.
@@ -23,6 +23,58 @@ pub struct PutOpts {
     /// and returns block.ErrBlockRefMismatch.
     #[prost(message, optional, tag="2")]
     pub force_block_ref: ::core::option::Option<BlockRef>,
+    /// Refs are outgoing block references recorded with this write.
+    /// GC-aware stores consume these refs as part of the put. Stores that do not
+    /// participate in GC ignore this field.
+    #[prost(message, repeated, tag="3")]
+    pub refs: ::prost::alloc::vec::Vec<BlockRef>,
+}
+/// StoreFeature is a bitmask of native block store capabilities.
+/// Each non-zero enum value is a single bit and values are combined with
+/// bitwise OR. The values are intentionally not sequential.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum StoreFeature {
+    /// STORE_FEATURE_UNKNOWN indicates no native capabilities are reported.
+    Unknown = 0,
+    /// STORE_FEATURE_NATIVE_BATCH_PUT means PutBlockBatch is implemented natively.
+    NativeBatchPut = 1,
+    /// STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
+    NativeBatchExists = 2,
+    /// STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
+    NativeBackgroundPut = 4,
+    /// STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
+    NativeFlush = 8,
+    /// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
+    NativeDeferFlush = 16,
+}
+impl StoreFeature {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "STORE_FEATURE_UNKNOWN",
+            Self::NativeBatchPut => "STORE_FEATURE_NATIVE_BATCH_PUT",
+            Self::NativeBatchExists => "STORE_FEATURE_NATIVE_BATCH_EXISTS",
+            Self::NativeBackgroundPut => "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
+            Self::NativeFlush => "STORE_FEATURE_NATIVE_FLUSH",
+            Self::NativeDeferFlush => "STORE_FEATURE_NATIVE_DEFER_FLUSH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "STORE_FEATURE_UNKNOWN" => Some(Self::Unknown),
+            "STORE_FEATURE_NATIVE_BATCH_PUT" => Some(Self::NativeBatchPut),
+            "STORE_FEATURE_NATIVE_BATCH_EXISTS" => Some(Self::NativeBatchExists),
+            "STORE_FEATURE_NATIVE_BACKGROUND_PUT" => Some(Self::NativeBackgroundPut),
+            "STORE_FEATURE_NATIVE_FLUSH" => Some(Self::NativeFlush),
+            "STORE_FEATURE_NATIVE_DEFER_FLUSH" => Some(Self::NativeDeferFlush),
+            _ => None,
+        }
+    }
 }
 /// OverlayMode controls the mode for the block store overlay.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

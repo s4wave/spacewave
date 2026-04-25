@@ -14,16 +14,34 @@ type SRPCBlockStoreClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// GetHashType requests the preferred hash type for the store.
+	GetHashType(ctx context.Context, in *GetHashTypeRequest) (*GetHashTypeResponse, error)
+	// GetSupportedFeatures requests the native feature bitmask for the store.
+	GetSupportedFeatures(ctx context.Context, in *GetSupportedFeaturesRequest) (*GetSupportedFeaturesResponse, error)
 	// PutBlock requests to put a block into the store.
 	PutBlock(ctx context.Context, in *PutBlockRequest) (*PutBlockResponse, error)
+	// PutBlockBatch requests to put blocks into the store as a batch.
+	PutBlockBatch(ctx context.Context, in *PutBlockBatchRequest) (*PutBlockBatchResponse, error)
+	// PutBlockBackground requests to put a block in the background.
+	PutBlockBackground(ctx context.Context, in *PutBlockBackgroundRequest) (*PutBlockBackgroundResponse, error)
 	// GetBlock requests to lookup a block from the store.
 	GetBlock(ctx context.Context, in *GetBlockRequest) (*GetBlockResponse, error)
 	// GetBlockExists requests to check if a block exists in the store.
 	GetBlockExists(ctx context.Context, in *GetBlockExistsRequest) (*GetBlockExistsResponse, error)
+	// GetBlockExistsBatch requests to check if blocks exist in the store.
+	GetBlockExistsBatch(ctx context.Context, in *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error)
 	// RmBlock requests to remove a block from the store.
 	// Does not return an error if the block was not present.
 	// In some cases, will return before confirming delete.
 	RmBlock(ctx context.Context, in *RmBlockRequest) (*RmBlockResponse, error)
+	// StatBlock requests block metadata without reading block data.
+	StatBlock(ctx context.Context, in *StatBlockRequest) (*StatBlockResponse, error)
+	// Flush requests that buffered writes are published.
+	Flush(ctx context.Context, in *FlushRequest) (*FlushResponse, error)
+	// BeginDeferFlush opens a defer-flush scope.
+	BeginDeferFlush(ctx context.Context, in *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error)
+	// EndDeferFlush closes a defer-flush scope.
+	EndDeferFlush(ctx context.Context, in *EndDeferFlushRequest) (*EndDeferFlushResponse, error)
 }
 
 type srpcBlockStoreClient struct {
@@ -44,9 +62,45 @@ func NewSRPCBlockStoreClientWithServiceID(cc srpc.Client, serviceID string) SRPC
 
 func (c *srpcBlockStoreClient) SRPCClient() srpc.Client { return c.cc }
 
+func (c *srpcBlockStoreClient) GetHashType(ctx context.Context, in *GetHashTypeRequest) (*GetHashTypeResponse, error) {
+	out := new(GetHashTypeResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetHashType", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) GetSupportedFeatures(ctx context.Context, in *GetSupportedFeaturesRequest) (*GetSupportedFeaturesResponse, error) {
+	out := new(GetSupportedFeaturesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetSupportedFeatures", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcBlockStoreClient) PutBlock(ctx context.Context, in *PutBlockRequest) (*PutBlockResponse, error) {
 	out := new(PutBlockResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "PutBlock", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) PutBlockBatch(ctx context.Context, in *PutBlockBatchRequest) (*PutBlockBatchResponse, error) {
+	out := new(PutBlockBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PutBlockBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) PutBlockBackground(ctx context.Context, in *PutBlockBackgroundRequest) (*PutBlockBackgroundResponse, error) {
+	out := new(PutBlockBackgroundResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PutBlockBackground", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +125,15 @@ func (c *srpcBlockStoreClient) GetBlockExists(ctx context.Context, in *GetBlockE
 	return out, nil
 }
 
+func (c *srpcBlockStoreClient) GetBlockExistsBatch(ctx context.Context, in *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error) {
+	out := new(GetBlockExistsBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetBlockExistsBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcBlockStoreClient) RmBlock(ctx context.Context, in *RmBlockRequest) (*RmBlockResponse, error) {
 	out := new(RmBlockResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "RmBlock", in, out)
@@ -80,17 +143,71 @@ func (c *srpcBlockStoreClient) RmBlock(ctx context.Context, in *RmBlockRequest) 
 	return out, nil
 }
 
+func (c *srpcBlockStoreClient) StatBlock(ctx context.Context, in *StatBlockRequest) (*StatBlockResponse, error) {
+	out := new(StatBlockResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "StatBlock", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) Flush(ctx context.Context, in *FlushRequest) (*FlushResponse, error) {
+	out := new(FlushResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Flush", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) BeginDeferFlush(ctx context.Context, in *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error) {
+	out := new(BeginDeferFlushResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BeginDeferFlush", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBlockStoreClient) EndDeferFlush(ctx context.Context, in *EndDeferFlushRequest) (*EndDeferFlushResponse, error) {
+	out := new(EndDeferFlushResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "EndDeferFlush", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCBlockStoreServer interface {
+	// GetHashType requests the preferred hash type for the store.
+	GetHashType(context.Context, *GetHashTypeRequest) (*GetHashTypeResponse, error)
+	// GetSupportedFeatures requests the native feature bitmask for the store.
+	GetSupportedFeatures(context.Context, *GetSupportedFeaturesRequest) (*GetSupportedFeaturesResponse, error)
 	// PutBlock requests to put a block into the store.
 	PutBlock(context.Context, *PutBlockRequest) (*PutBlockResponse, error)
+	// PutBlockBatch requests to put blocks into the store as a batch.
+	PutBlockBatch(context.Context, *PutBlockBatchRequest) (*PutBlockBatchResponse, error)
+	// PutBlockBackground requests to put a block in the background.
+	PutBlockBackground(context.Context, *PutBlockBackgroundRequest) (*PutBlockBackgroundResponse, error)
 	// GetBlock requests to lookup a block from the store.
 	GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error)
 	// GetBlockExists requests to check if a block exists in the store.
 	GetBlockExists(context.Context, *GetBlockExistsRequest) (*GetBlockExistsResponse, error)
+	// GetBlockExistsBatch requests to check if blocks exist in the store.
+	GetBlockExistsBatch(context.Context, *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error)
 	// RmBlock requests to remove a block from the store.
 	// Does not return an error if the block was not present.
 	// In some cases, will return before confirming delete.
 	RmBlock(context.Context, *RmBlockRequest) (*RmBlockResponse, error)
+	// StatBlock requests block metadata without reading block data.
+	StatBlock(context.Context, *StatBlockRequest) (*StatBlockResponse, error)
+	// Flush requests that buffered writes are published.
+	Flush(context.Context, *FlushRequest) (*FlushResponse, error)
+	// BeginDeferFlush opens a defer-flush scope.
+	BeginDeferFlush(context.Context, *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error)
+	// EndDeferFlush closes a defer-flush scope.
+	EndDeferFlush(context.Context, *EndDeferFlushRequest) (*EndDeferFlushResponse, error)
 }
 
 const SRPCBlockStoreServiceID = "block.rpc.BlockStore"
@@ -119,10 +236,19 @@ func (d *SRPCBlockStoreHandler) GetServiceID() string { return d.serviceID }
 
 func (SRPCBlockStoreHandler) GetMethodIDs() []string {
 	return []string{
+		"GetHashType",
+		"GetSupportedFeatures",
 		"PutBlock",
+		"PutBlockBatch",
+		"PutBlockBackground",
 		"GetBlock",
 		"GetBlockExists",
+		"GetBlockExistsBatch",
 		"RmBlock",
+		"StatBlock",
+		"Flush",
+		"BeginDeferFlush",
+		"EndDeferFlush",
 	}
 }
 
@@ -135,17 +261,59 @@ func (d *SRPCBlockStoreHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "GetHashType":
+		return true, d.InvokeMethod_GetHashType(d.impl, strm)
+	case "GetSupportedFeatures":
+		return true, d.InvokeMethod_GetSupportedFeatures(d.impl, strm)
 	case "PutBlock":
 		return true, d.InvokeMethod_PutBlock(d.impl, strm)
+	case "PutBlockBatch":
+		return true, d.InvokeMethod_PutBlockBatch(d.impl, strm)
+	case "PutBlockBackground":
+		return true, d.InvokeMethod_PutBlockBackground(d.impl, strm)
 	case "GetBlock":
 		return true, d.InvokeMethod_GetBlock(d.impl, strm)
 	case "GetBlockExists":
 		return true, d.InvokeMethod_GetBlockExists(d.impl, strm)
+	case "GetBlockExistsBatch":
+		return true, d.InvokeMethod_GetBlockExistsBatch(d.impl, strm)
 	case "RmBlock":
 		return true, d.InvokeMethod_RmBlock(d.impl, strm)
+	case "StatBlock":
+		return true, d.InvokeMethod_StatBlock(d.impl, strm)
+	case "Flush":
+		return true, d.InvokeMethod_Flush(d.impl, strm)
+	case "BeginDeferFlush":
+		return true, d.InvokeMethod_BeginDeferFlush(d.impl, strm)
+	case "EndDeferFlush":
+		return true, d.InvokeMethod_EndDeferFlush(d.impl, strm)
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_GetHashType(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(GetHashTypeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetHashType(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_GetSupportedFeatures(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(GetSupportedFeaturesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetSupportedFeatures(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCBlockStoreHandler) InvokeMethod_PutBlock(impl SRPCBlockStoreServer, strm srpc.Stream) error {
@@ -154,6 +322,30 @@ func (SRPCBlockStoreHandler) InvokeMethod_PutBlock(impl SRPCBlockStoreServer, st
 		return err
 	}
 	out, err := impl.PutBlock(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_PutBlockBatch(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(PutBlockBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PutBlockBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_PutBlockBackground(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(PutBlockBackgroundRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PutBlockBackground(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -184,6 +376,18 @@ func (SRPCBlockStoreHandler) InvokeMethod_GetBlockExists(impl SRPCBlockStoreServ
 	return strm.MsgSend(out)
 }
 
+func (SRPCBlockStoreHandler) InvokeMethod_GetBlockExistsBatch(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(GetBlockExistsBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetBlockExistsBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCBlockStoreHandler) InvokeMethod_RmBlock(impl SRPCBlockStoreServer, strm srpc.Stream) error {
 	req := new(RmBlockRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -196,11 +400,91 @@ func (SRPCBlockStoreHandler) InvokeMethod_RmBlock(impl SRPCBlockStoreServer, str
 	return strm.MsgSend(out)
 }
 
+func (SRPCBlockStoreHandler) InvokeMethod_StatBlock(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(StatBlockRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.StatBlock(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_Flush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(FlushRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Flush(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_BeginDeferFlush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(BeginDeferFlushRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BeginDeferFlush(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBlockStoreHandler) InvokeMethod_EndDeferFlush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(EndDeferFlushRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.EndDeferFlush(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCBlockStore_GetHashTypeStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_GetHashTypeStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_GetSupportedFeaturesStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_GetSupportedFeaturesStream struct {
+	srpc.Stream
+}
+
 type SRPCBlockStore_PutBlockStream interface {
 	srpc.Stream
 }
 
 type srpcBlockStore_PutBlockStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_PutBlockBatchStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_PutBlockBatchStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_PutBlockBackgroundStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_PutBlockBackgroundStream struct {
 	srpc.Stream
 }
 
@@ -220,10 +504,50 @@ type srpcBlockStore_GetBlockExistsStream struct {
 	srpc.Stream
 }
 
+type SRPCBlockStore_GetBlockExistsBatchStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_GetBlockExistsBatchStream struct {
+	srpc.Stream
+}
+
 type SRPCBlockStore_RmBlockStream interface {
 	srpc.Stream
 }
 
 type srpcBlockStore_RmBlockStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_StatBlockStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_StatBlockStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_FlushStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_FlushStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_BeginDeferFlushStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_BeginDeferFlushStream struct {
+	srpc.Stream
+}
+
+type SRPCBlockStore_EndDeferFlushStream interface {
+	srpc.Stream
+}
+
+type srpcBlockStore_EndDeferFlushStream struct {
 	srpc.Stream
 }

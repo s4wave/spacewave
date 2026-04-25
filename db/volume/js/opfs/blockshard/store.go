@@ -242,12 +242,3 @@ func encodeRef(ref *block.BlockRef) (string, error) {
 
 // _ is a type assertion.
 var _ block.StoreOps = (*BlockStore)(nil)
-
-// _ is a type assertion.
-var _ block.BatchExistsStore = (*BlockStore)(nil)
-
-// _ is a type assertion.
-var _ block.BatchPutStore = (*BlockStore)(nil)
-
-// _ is a type assertion.
-var _ block.BackgroundPutStore = (*BlockStore)(nil)

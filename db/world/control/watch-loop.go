@@ -25,7 +25,8 @@ type WatchLoop struct {
 	mtx sync.Mutex
 	// wake can be called to force re-scan
 	// may be nil
-	wake func()
+	wake        func()
+	pendingWake bool
 }
 
 // WatchLoopHandler is the callback function for the WatchLoop.
@@ -88,7 +89,10 @@ func (c *WatchLoop) Wake() {
 	if wake := c.wake; wake != nil {
 		wake()
 		c.wake = nil
+		c.mtx.Unlock()
+		return
 	}
+	c.pendingWake = true
 	c.mtx.Unlock()
 }
 
@@ -155,6 +159,12 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 
 		wakeCtx, wakeCtxCancel := context.WithCancel(ctx)
 		c.mtx.Lock()
+		if c.pendingWake {
+			c.pendingWake = false
+			c.mtx.Unlock()
+			wakeCtxCancel()
+			continue
+		}
 		c.wake = wakeCtxCancel
 		c.mtx.Unlock()
 
@@ -169,6 +179,9 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			_, err = ws.WaitSeqno(wakeCtx, seqno+1)
 		}
 		wakeCtxCancel()
+		c.mtx.Lock()
+		c.wake = nil
+		c.mtx.Unlock()
 		if err != nil && err != context.Canceled {
 			return err
 		}

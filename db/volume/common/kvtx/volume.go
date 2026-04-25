@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -12,7 +13,6 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 // StatsFn returns storage usage statistics for a volume.
@@ -259,63 +259,27 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if batcher, ok := v.Store.(block.BatchPutStore); ok {
-		return batcher.PutBlockBatch(ctx, entries)
-	}
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := v.RmBlock(ctx, entry.Ref); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, _, err := v.PutBlock(ctx, entry.Data, &block.PutOpts{
-			ForceBlockRef: entry.Ref.Clone(),
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return v.Store.PutBlockBatch(ctx, entries)
 }
 
 // GetBlockExistsBatch forwards batched existence probes to the embedded store when supported.
 func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if batcher, ok := v.Store.(block.BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := v.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
+	return v.Store.GetBlockExistsBatch(ctx, refs)
 }
 
 // PutBlockBackground forwards background writes to the embedded store when supported.
 func (v *Volume) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	if bg, ok := v.Store.(block.BackgroundPutStore); ok {
-		return bg.PutBlockBackground(ctx, data, opts)
-	}
-	return v.PutBlock(ctx, data, opts)
+	return v.Store.PutBlockBackground(ctx, data, opts)
 }
 
 // BeginDeferFlush forwards deferred-flush scope entry to the embedded store when supported.
 func (v *Volume) BeginDeferFlush() {
-	if df, ok := v.Store.(block.DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	v.Store.BeginDeferFlush()
 }
 
 // EndDeferFlush forwards deferred-flush scope exit to the embedded store when supported.
 func (v *Volume) EndDeferFlush(ctx context.Context) error {
-	if df, ok := v.Store.(block.DeferFlushable); ok {
-		return df.EndDeferFlush(ctx)
-	}
-	return nil
+	return v.Store.EndDeferFlush(ctx)
 }
 
 // GetWALAppender returns the volume's WAL appender, if any.
@@ -373,9 +337,6 @@ func (v *Volume) Delete() error {
 
 // _ is a type assertion
 var (
-	_ volume.Volume            = ((*Volume)(nil))
-	_ KvtxVolume               = ((*Volume)(nil))
-	_ block.BatchPutStore      = ((*Volume)(nil))
-	_ block.BackgroundPutStore = ((*Volume)(nil))
-	_ block.DeferFlushable     = ((*Volume)(nil))
+	_ volume.Volume = ((*Volume)(nil))
+	_ KvtxVolume    = ((*Volume)(nil))
 )

@@ -38,10 +38,11 @@ func NewBolt(
 		return nil, err
 	}
 
-	// set defaults for performance with single writer on db
+	// bbolt multi-process access requires a synced freelist. Keeping the
+	// freelist in memory only is unsafe once another process opens the same DB.
 	bdbOpts := &bdb.Options{
 		Timeout:        0,
-		NoFreelistSync: !conf.GetFreelistSync(),
+		NoFreelistSync: false,
 		NoGrowSync:     false,
 		FreelistType:   bdb.FreelistMapType,
 		NoSync:         !conf.GetSync(),

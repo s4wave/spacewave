@@ -11,14 +11,32 @@ pub const BLOCK_STORE_SERVICE_ID: &str = "block.rpc.BlockStore";
 /// Client trait for BlockStore.
 #[starpc::async_trait]
 pub trait BlockStoreClient: Send + Sync {
+    /// GetHashType.
+    async fn get_hash_type(&self, request: &GetHashTypeRequest) -> starpc::Result<GetHashTypeResponse>;
+    /// GetSupportedFeatures.
+    async fn get_supported_features(&self, request: &GetSupportedFeaturesRequest) -> starpc::Result<GetSupportedFeaturesResponse>;
     /// PutBlock.
     async fn put_block(&self, request: &PutBlockRequest) -> starpc::Result<PutBlockResponse>;
+    /// PutBlockBatch.
+    async fn put_block_batch(&self, request: &PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse>;
+    /// PutBlockBackground.
+    async fn put_block_background(&self, request: &PutBlockBackgroundRequest) -> starpc::Result<PutBlockBackgroundResponse>;
     /// GetBlock.
     async fn get_block(&self, request: &GetBlockRequest) -> starpc::Result<GetBlockResponse>;
     /// GetBlockExists.
     async fn get_block_exists(&self, request: &GetBlockExistsRequest) -> starpc::Result<GetBlockExistsResponse>;
+    /// GetBlockExistsBatch.
+    async fn get_block_exists_batch(&self, request: &GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse>;
     /// RmBlock.
     async fn rm_block(&self, request: &RmBlockRequest) -> starpc::Result<RmBlockResponse>;
+    /// StatBlock.
+    async fn stat_block(&self, request: &StatBlockRequest) -> starpc::Result<StatBlockResponse>;
+    /// Flush.
+    async fn flush(&self, request: &FlushRequest) -> starpc::Result<FlushResponse>;
+    /// BeginDeferFlush.
+    async fn begin_defer_flush(&self, request: &BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse>;
+    /// EndDeferFlush.
+    async fn end_defer_flush(&self, request: &EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse>;
 }
 
 /// Client implementation for BlockStore.
@@ -35,8 +53,20 @@ impl<C: starpc::Client> BlockStoreClientImpl<C> {
 
 #[starpc::async_trait]
 impl<C: starpc::Client + 'static> BlockStoreClient for BlockStoreClientImpl<C> {
+    async fn get_hash_type(&self, request: &GetHashTypeRequest) -> starpc::Result<GetHashTypeResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "GetHashType", request).await
+    }
+    async fn get_supported_features(&self, request: &GetSupportedFeaturesRequest) -> starpc::Result<GetSupportedFeaturesResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "GetSupportedFeatures", request).await
+    }
     async fn put_block(&self, request: &PutBlockRequest) -> starpc::Result<PutBlockResponse> {
         self.client.exec_call("block.rpc.BlockStore", "PutBlock", request).await
+    }
+    async fn put_block_batch(&self, request: &PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "PutBlockBatch", request).await
+    }
+    async fn put_block_background(&self, request: &PutBlockBackgroundRequest) -> starpc::Result<PutBlockBackgroundResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "PutBlockBackground", request).await
     }
     async fn get_block(&self, request: &GetBlockRequest) -> starpc::Result<GetBlockResponse> {
         self.client.exec_call("block.rpc.BlockStore", "GetBlock", request).await
@@ -44,29 +74,71 @@ impl<C: starpc::Client + 'static> BlockStoreClient for BlockStoreClientImpl<C> {
     async fn get_block_exists(&self, request: &GetBlockExistsRequest) -> starpc::Result<GetBlockExistsResponse> {
         self.client.exec_call("block.rpc.BlockStore", "GetBlockExists", request).await
     }
+    async fn get_block_exists_batch(&self, request: &GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "GetBlockExistsBatch", request).await
+    }
     async fn rm_block(&self, request: &RmBlockRequest) -> starpc::Result<RmBlockResponse> {
         self.client.exec_call("block.rpc.BlockStore", "RmBlock", request).await
+    }
+    async fn stat_block(&self, request: &StatBlockRequest) -> starpc::Result<StatBlockResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "StatBlock", request).await
+    }
+    async fn flush(&self, request: &FlushRequest) -> starpc::Result<FlushResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "Flush", request).await
+    }
+    async fn begin_defer_flush(&self, request: &BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "BeginDeferFlush", request).await
+    }
+    async fn end_defer_flush(&self, request: &EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "EndDeferFlush", request).await
     }
 }
 
 /// Server trait for BlockStore.
 #[starpc::async_trait]
 pub trait BlockStoreServer: Send + Sync {
+    /// GetHashType.
+    async fn get_hash_type(&self, request: GetHashTypeRequest) -> starpc::Result<GetHashTypeResponse>;
+    /// GetSupportedFeatures.
+    async fn get_supported_features(&self, request: GetSupportedFeaturesRequest) -> starpc::Result<GetSupportedFeaturesResponse>;
     /// PutBlock.
     async fn put_block(&self, request: PutBlockRequest) -> starpc::Result<PutBlockResponse>;
+    /// PutBlockBatch.
+    async fn put_block_batch(&self, request: PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse>;
+    /// PutBlockBackground.
+    async fn put_block_background(&self, request: PutBlockBackgroundRequest) -> starpc::Result<PutBlockBackgroundResponse>;
     /// GetBlock.
     async fn get_block(&self, request: GetBlockRequest) -> starpc::Result<GetBlockResponse>;
     /// GetBlockExists.
     async fn get_block_exists(&self, request: GetBlockExistsRequest) -> starpc::Result<GetBlockExistsResponse>;
+    /// GetBlockExistsBatch.
+    async fn get_block_exists_batch(&self, request: GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse>;
     /// RmBlock.
     async fn rm_block(&self, request: RmBlockRequest) -> starpc::Result<RmBlockResponse>;
+    /// StatBlock.
+    async fn stat_block(&self, request: StatBlockRequest) -> starpc::Result<StatBlockResponse>;
+    /// Flush.
+    async fn flush(&self, request: FlushRequest) -> starpc::Result<FlushResponse>;
+    /// BeginDeferFlush.
+    async fn begin_defer_flush(&self, request: BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse>;
+    /// EndDeferFlush.
+    async fn end_defer_flush(&self, request: EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse>;
 }
 
 const BLOCK_STORE_METHOD_IDS: &[&str] = &[
+    "GetHashType",
+    "GetSupportedFeatures",
     "PutBlock",
+    "PutBlockBatch",
+    "PutBlockBackground",
     "GetBlock",
     "GetBlockExists",
+    "GetBlockExistsBatch",
     "RmBlock",
+    "StatBlock",
+    "Flush",
+    "BeginDeferFlush",
+    "EndDeferFlush",
 ];
 
 /// Handler for BlockStore.
@@ -95,12 +167,72 @@ impl<S: BlockStoreServer + 'static> starpc::Invoker for BlockStoreHandler<S> {
         stream: Box<dyn starpc::Stream>,
     ) -> (bool, starpc::Result<()>) {
         match method_id {
+            "GetHashType" => {
+                let request: GetHashTypeRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_hash_type(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetSupportedFeatures" => {
+                let request: GetSupportedFeaturesRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_supported_features(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "PutBlock" => {
                 let request: PutBlockRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.put_block(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "PutBlockBatch" => {
+                let request: PutBlockBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.put_block_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "PutBlockBackground" => {
+                let request: PutBlockBackgroundRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.put_block_background(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));
@@ -140,12 +272,87 @@ impl<S: BlockStoreServer + 'static> starpc::Invoker for BlockStoreHandler<S> {
                     Err(e) => (true, Err(e)),
                 }
             }
+            "GetBlockExistsBatch" => {
+                let request: GetBlockExistsBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_block_exists_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "RmBlock" => {
                 let request: RmBlockRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.rm_block(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "StatBlock" => {
+                let request: StatBlockRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.stat_block(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "Flush" => {
+                let request: FlushRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.flush(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "BeginDeferFlush" => {
+                let request: BeginDeferFlushRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.begin_defer_flush(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "EndDeferFlush" => {
+                let request: EndDeferFlushRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.end_defer_flush(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

@@ -2,6 +2,8 @@ package world_block_tx
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/s4wave/spacewave/db/bucket"
@@ -179,14 +181,9 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 }
 
 // RenameObject renames an object key and updates associated graph quads.
-func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (world.ObjectState, error) {
+func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	if !w.write {
 		return nil, tx.ErrNotWrite
-	}
-
-	t, err := NewTxRenameObject(oldKey, newKey)
-	if err != nil {
-		return nil, err
 	}
 
 	w.mtx.Lock()
@@ -196,13 +193,65 @@ func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string) (w
 		return nil, tx.ErrDiscarded
 	}
 
-	obj, err := w.world.RenameObject(ctx, oldKey, newKey)
+	renames, err := collectObjectRenames(ctx, w.world, oldKey, newKey, descendants)
 	if err != nil {
 		return nil, err
 	}
 
-	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	obj, err := w.world.RenameObject(ctx, oldKey, newKey, descendants)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rename := range renames {
+		t, err := NewTxRenameObject(rename.oldKey, rename.newKey)
+		if err != nil {
+			return nil, err
+		}
+		w.txBatch.Txs = append(w.txBatch.Txs, t)
+	}
 	return NewObjectState(w, newKey, obj), nil
+}
+
+func collectObjectRenames(ctx context.Context, ws world.WorldStateObject, oldKey, newKey string, descendants bool) ([]objectRename, error) {
+	renames := []objectRename{{oldKey: oldKey, newKey: newKey}}
+	if !descendants || oldKey == newKey {
+		return renames, nil
+	}
+
+	iter := ws.IterateObjects(ctx, oldKey+"/", false)
+	defer iter.Close()
+	for iter.Next() {
+		key := iter.Key()
+		next, ok := rewriteObjectKeyPrefix(key, oldKey, newKey)
+		if !ok {
+			continue
+		}
+		renames = append(renames, objectRename{oldKey: key, newKey: next})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+	slices.SortFunc(renames, func(a, b objectRename) int {
+		return len(a.oldKey) - len(b.oldKey)
+	})
+	return renames, nil
+}
+
+func rewriteObjectKeyPrefix(key, oldKey, newKey string) (string, bool) {
+	if key == oldKey {
+		return newKey, true
+	}
+	prefix := oldKey + "/"
+	if !strings.HasPrefix(key, prefix) {
+		return key, false
+	}
+	return newKey + key[len(oldKey):], true
+}
+
+type objectRename struct {
+	oldKey string
+	newKey string
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

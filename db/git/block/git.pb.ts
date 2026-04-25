@@ -216,6 +216,12 @@ export interface EncodedObjectStore {
    * @generated from field: blob.ChunkerArgs chunker_args = 2;
    */
   chunkerArgs?: ChunkerArgs
+  /**
+   * PackfileKvtxRoot is the root of the packfile metadata tree.
+   *
+   * @generated from field: kvtx.block.KeyValueStore packfile_kvtx_root = 3;
+   */
+  packfileKvtxRoot?: KeyValueStore
 }
 
 // EncodedObjectStore contains the message type declaration for EncodedObjectStore.
@@ -225,6 +231,12 @@ export const EncodedObjectStore: MessageType<EncodedObjectStore> =
     fields: [
       { no: 1, name: 'kvtx_root', kind: 'message', T: () => KeyValueStore },
       { no: 2, name: 'chunker_args', kind: 'message', T: () => ChunkerArgs },
+      {
+        no: 3,
+        name: 'packfile_kvtx_root',
+        kind: 'message',
+        T: () => KeyValueStore,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -298,6 +310,65 @@ export const Repo: MessageType<Repo> = createMessageType({
       T: () => BlockRef,
     },
     { no: 5, name: 'git_config', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * Packfile contains a Git packfile and its index.
+ *
+ * @generated from message git.block.Packfile
+ */
+export interface Packfile {
+  /**
+   * PackHash contains the packfile checksum.
+   * Note: currently, this is enforced to hash type SHA1.
+   *
+   * @generated from field: hash.Hash pack_hash = 1;
+   */
+  packHash?: Hash
+  /**
+   * PackBlob contains the raw Git packfile bytes.
+   *
+   * @generated from field: blob.Blob pack_blob = 2;
+   */
+  packBlob?: Blob
+  /**
+   * IdxBlob contains the Git pack index bytes.
+   *
+   * @generated from field: blob.Blob idx_blob = 3;
+   */
+  idxBlob?: Blob
+  /**
+   * ObjectCount is the number of objects in the pack index.
+   *
+   * @generated from field: uint64 object_count = 4;
+   */
+  objectCount?: bigint
+  /**
+   * PackSize is the byte size of the packfile.
+   *
+   * @generated from field: uint64 pack_size = 5;
+   */
+  packSize?: bigint
+  /**
+   * IdxSize is the byte size of the index file.
+   *
+   * @generated from field: uint64 idx_size = 6;
+   */
+  idxSize?: bigint
+}
+
+// Packfile contains the message type declaration for Packfile.
+export const Packfile: MessageType<Packfile> = createMessageType({
+  typeName: 'git.block.Packfile',
+  fields: [
+    { no: 1, name: 'pack_hash', kind: 'message', T: () => Hash },
+    { no: 2, name: 'pack_blob', kind: 'message', T: () => Blob },
+    { no: 3, name: 'idx_blob', kind: 'message', T: () => Blob },
+    { no: 4, name: 'object_count', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 5, name: 'pack_size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 6, name: 'idx_size', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

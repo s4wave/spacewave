@@ -38,6 +38,22 @@ func (b *StoreRW) GetHashType() hash.HashType {
 	return 0
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (b *StoreRW) GetSupportedFeatures() StoreFeature {
+	var out StoreFeature
+	if b.writeHandle != nil {
+		features := b.writeHandle.GetSupportedFeatures()
+		out |= features & StoreFeatureNativeBatchPut
+		out |= features & StoreFeatureNativeBackgroundPut
+		out |= features & StoreFeatureNativeFlush
+		out |= features & StoreFeatureNativeDeferFlush
+	}
+	if b.readHandle != nil {
+		out |= b.readHandle.GetSupportedFeatures() & StoreFeatureNativeBatchExists
+	}
+	return out
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *StoreRW) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
@@ -60,19 +76,7 @@ func (b *StoreRW) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, erro
 
 // GetBlockExistsBatch forwards batched existence probes to the read handle when supported.
 func (b *StoreRW) GetBlockExistsBatch(ctx context.Context, refs []*BlockRef) ([]bool, error) {
-	if batcher, ok := b.readHandle.(BatchExistsStore); ok {
-		return batcher.GetBlockExistsBatch(ctx, refs)
-	}
-
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := b.readHandle.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
+	return b.readHandle.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -90,53 +94,30 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 
 // PutBlockBatch forwards to the write handle if it supports batched writes.
 func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
-	if batcher, ok := b.writeHandle.(BatchPutStore); ok {
-		return batcher.PutBlockBatch(ctx, entries)
-	}
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := b.writeHandle.RmBlock(ctx, entry.Ref); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, _, err := b.writeHandle.PutBlock(ctx, entry.Data, &PutOpts{
-			ForceBlockRef: entry.Ref.Clone(),
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return b.writeHandle.PutBlockBatch(ctx, entries)
 }
 
 // PutBlockBackground forwards to the write handle if it supports background writes.
 func (b *StoreRW) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	if bg, ok := b.writeHandle.(BackgroundPutStore); ok {
-		return bg.PutBlockBackground(ctx, data, opts)
-	}
-	return b.writeHandle.PutBlock(ctx, data, opts)
+	return b.writeHandle.PutBlockBackground(ctx, data, opts)
+}
+
+// Flush forwards the durability boundary to the write handle.
+func (b *StoreRW) Flush(ctx context.Context) error {
+	return b.writeHandle.Flush(ctx)
 }
 
 // BeginDeferFlush forwards to the write handle if it supports deferred flushing.
 func (b *StoreRW) BeginDeferFlush() {
-	if df, ok := b.writeHandle.(DeferFlushable); ok {
-		df.BeginDeferFlush()
-	}
+	b.writeHandle.BeginDeferFlush()
 }
 
 // EndDeferFlush forwards to the write handle if it supports deferred flushing.
 func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
-	if df, ok := b.writeHandle.(DeferFlushable); ok {
-		return df.EndDeferFlush(ctx)
-	}
-	return nil
+	return b.writeHandle.EndDeferFlush(ctx)
 }
 
 // _ is a type assertion
 var (
-	_ StoreOps           = ((*StoreRW)(nil))
-	_ BatchExistsStore   = ((*StoreRW)(nil))
-	_ BatchPutStore      = ((*StoreRW)(nil))
-	_ BackgroundPutStore = ((*StoreRW)(nil))
-	_ DeferFlushable     = ((*StoreRW)(nil))
+	_ StoreOps = ((*StoreRW)(nil))
 )
