@@ -155,3 +155,7 @@ export function useLocalSessionOnboardingContext(): LocalSessionOnboardingContex
   }
   return context
 }
+
+export function useOptionalLocalSessionOnboardingContext(): LocalSessionOnboardingContextValue | null {
+  return useContext(Context)
+}

@@ -35,7 +35,7 @@ vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
 }))
 
 vi.mock('@s4wave/app/session/setup/LocalSessionOnboardingContext.js', () => ({
-  useLocalSessionOnboardingContext: vi.fn(() => ({
+  useOptionalLocalSessionOnboardingContext: vi.fn(() => ({
     markProviderChoiceComplete: vi.fn(),
   })),
 }))
@@ -72,7 +72,7 @@ describe('LinkDeviceWizard', () => {
     cleanup()
   })
 
-  it('renders the local-session-only guard for non-local providers', () => {
+  it('renders cloud relay pairing options for spacewave providers', () => {
     mockUseSessionInfo.mockReturnValue({
       error: null,
       loading: false,
@@ -81,10 +81,9 @@ describe('LinkDeviceWizard', () => {
 
     render(<LinkDeviceWizard />)
 
-    expect(screen.getByText('Device linking unavailable')).toBeDefined()
-    expect(
-      screen.getByText('Device linking is available from local sessions only.'),
-    ).toBeDefined()
-    expect(screen.queryByText('Generate code for another device')).toBeNull()
+    expect(screen.getByText('Generate code for another device')).toBeDefined()
+    expect(screen.getByText('Enter a code from another device')).toBeDefined()
+    expect(screen.queryByText('Direct connection (show QR)')).toBeNull()
+    expect(screen.queryByText('Direct connection (scan QR)')).toBeNull()
   })
 })

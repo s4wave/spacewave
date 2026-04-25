@@ -30,7 +30,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import QRCode from 'qrcode'
@@ -71,7 +71,7 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
   const path = usePath()
   const fallbackExitPath = parentPaths[parentPaths.length - 1] ?? path
   const resolvedExitPath = exitPath ?? fallbackExitPath
-  const onboarding = useLocalSessionOnboardingContext()
+  const onboarding = useOptionalLocalSessionOnboardingContext()
 
   const generateCodeCallback = useCallback(
     (signal: AbortSignal) => {
@@ -104,13 +104,14 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
   }, [])
 
   const handleDone = useCallback(() => {
-    onboarding.markProviderChoiceComplete()
+    onboarding?.markProviderChoiceComplete()
     navigate({ path: resolvedExitPath })
   }, [navigate, onboarding, resolvedExitPath])
   const handleExit = useCallback(() => {
     navigate({ path: resolvedExitPath })
   }, [navigate, resolvedExitPath])
-  const pairingSupported = providerId === 'local'
+  const pairingSupported = providerId === 'local' || providerId === 'spacewave'
+  const directPairingSupported = providerId === 'local'
 
   return (
     <SetupPageLayout title="Link My Device" topLeft={topLeft}>
@@ -148,8 +149,16 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
                 onDownload={() => setStep('download')}
                 onGenerate={() => setStep('pairing')}
                 onEnterCode={() => setStep('enter_code')}
-                onDirectOffer={() => setStep('direct_offer')}
-                onDirectAnswer={() => setStep('direct_answer')}
+                onDirectOffer={
+                  directPairingSupported ?
+                    () => setStep('direct_offer')
+                  : undefined
+                }
+                onDirectAnswer={
+                  directPairingSupported ?
+                    () => setStep('direct_answer')
+                  : undefined
+                }
                 onSkip={handleSkip}
               />
             )}
@@ -290,8 +299,8 @@ interface ChooseStepProps {
   onDownload?: () => void
   onGenerate: () => void
   onEnterCode: () => void
-  onDirectOffer: () => void
-  onDirectAnswer: () => void
+  onDirectOffer?: () => void
+  onDirectAnswer?: () => void
   onSkip: () => void
 }
 
@@ -324,18 +333,22 @@ function ChooseStep({
           description="Type a code shown on your other device"
           onClick={onEnterCode}
         />
-        <ChooseOption
-          icon={LuWifi}
-          label="Direct connection (show QR)"
-          description="Generate a QR code for another device to scan"
-          onClick={onDirectOffer}
-        />
-        <ChooseOption
-          icon={LuCamera}
-          label="Direct connection (scan QR)"
-          description="Scan a QR code from another device"
-          onClick={onDirectAnswer}
-        />
+        {onDirectOffer && (
+          <ChooseOption
+            icon={LuWifi}
+            label="Direct connection (show QR)"
+            description="Generate a QR code for another device to scan"
+            onClick={onDirectOffer}
+          />
+        )}
+        {onDirectAnswer && (
+          <ChooseOption
+            icon={LuCamera}
+            label="Direct connection (scan QR)"
+            description="Scan a QR code from another device"
+            onClick={onDirectAnswer}
+          />
+        )}
         {!isDesktop && onDownload && (
           <ChooseOption
             icon={LuMonitor}
