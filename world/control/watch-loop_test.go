@@ -97,3 +97,40 @@ func TestWatchLoop(t *testing.T) {
 		t.Fatalf("expected new rev %d to be equal to old %d", nrev, outRev)
 	}
 }
+
+func TestWatchLoopWakeBeforeWaitIsSticky(t *testing.T) {
+	ctx := t.Context()
+
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	revCh := make(chan uint64, 2)
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		"",
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			rev uint64,
+		) (bool, error) {
+			revCh <- rev
+			return true, nil
+		}),
+	)
+	loop.Wake()
+	go func() {
+		_ = loop.Execute(ctx, tb.WorldState)
+	}()
+
+	for i := range 2 {
+		select {
+		case <-revCh:
+		case <-time.After(time.Second):
+			t.Fatalf("expected sticky wake iteration %d", i+1)
+		}
+	}
+}
