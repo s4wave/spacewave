@@ -27,12 +27,7 @@ type SSOWaitState =
   | { step: 'waiting' }
   | { step: 'logging_in' }
   | { step: 'redirecting' }
-  | {
-      step: 'pin_prompt'
-      encryptedBlob: string
-      username: string
-      email: string
-    }
+  | { step: 'pin_prompt'; encryptedBlob: string; username: string }
   | { step: 'error'; message: string }
 
 // SSOWaitPage handles the SSO in-progress state.
@@ -82,7 +77,6 @@ export function SSOWaitPage() {
                 step: 'pin_prompt',
                 encryptedBlob: bytesToBase64(pemPrivateKey),
                 username: result?.username ?? '',
-                email: result?.email ?? '',
               })
               return
             }
@@ -160,7 +154,6 @@ export function SSOWaitPage() {
         step: 'pin_prompt',
         encryptedBlob: state.encryptedBlob,
         username: state.username,
-        email: state.email,
       })
     }
   }, [navigate, pin, root, state])
@@ -228,7 +221,6 @@ export function SSOWaitPage() {
       >
         <SSOUnlockCard
           provider={provider}
-          email={state.email}
           username={state.username}
           pin={pin}
           pinError={pinError}
