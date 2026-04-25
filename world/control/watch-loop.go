@@ -89,9 +89,10 @@ func (c *WatchLoop) Wake() {
 	if wake := c.wake; wake != nil {
 		wake()
 		c.wake = nil
-	} else {
-		c.pendingWake = true
+		c.mtx.Unlock()
+		return
 	}
+	c.pendingWake = true
 	c.mtx.Unlock()
 }
 
