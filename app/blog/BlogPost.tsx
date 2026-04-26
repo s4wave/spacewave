@@ -6,6 +6,7 @@ import { BlogLayout } from './BlogLayout.js'
 import { BlogCta } from './BlogCta.js'
 import { BlogMarkdown } from './BlogMarkdown.js'
 import { TagChip } from './TagChip.js'
+import { safeHref } from './safe-href.js'
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import type { BlogPost as BlogPostType } from './types.js'
 import './blog-prose.css'
@@ -99,7 +100,7 @@ export function BlogPostPage({
               loading="lazy"
             />
             <a
-              href={post.author.url}
+              href={safeHref(post.author.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground-alt/70 text-xs font-medium hover:underline"

@@ -62,19 +62,6 @@ export const annotations: Record<string, DependencyAnnotation> = {
     internal: true,
     repo: 'https://github.com/aperturerobotics/controllerbus',
   },
-  'github.com/s4wave/spacewave/net': {
-    category: 'internal',
-    purpose: 'Peer-to-peer network routing engine with pluggable transports',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/net',
-  },
-  'github.com/s4wave/spacewave/db': {
-    category: 'internal',
-    purpose:
-      'Block-DAG storage engine with SQL, graph, file, and KV interfaces',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/db',
-  },
   'github.com/aperturerobotics/starpc': {
     category: 'internal',
     purpose: 'Streaming bidirectional RPC framework over any transport',
@@ -87,41 +74,11 @@ export const annotations: Record<string, DependencyAnnotation> = {
     internal: true,
     repo: 'https://github.com/aperturerobotics/protobuf-go-lite',
   },
-  'github.com/s4wave/spacewave/forge': {
-    category: 'internal',
-    purpose: 'Task orchestration engine with state machine workflows',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/forge',
-  },
   'github.com/aperturerobotics/cayley': {
     category: 'internal',
     purpose: 'Graph database with quad-based predicate queries',
     internal: true,
     repo: 'https://github.com/aperturerobotics/cayley',
-  },
-  'github.com/s4wave/spacewave/bldr': {
-    category: 'internal',
-    purpose: 'Application build system with Go/TS/WASM compilation',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/bldr',
-  },
-  'github.com/s4wave/spacewave/auth': {
-    category: 'internal',
-    purpose: 'Authentication and authorization framework',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/auth',
-  },
-  'github.com/s4wave/spacewave/identity': {
-    category: 'internal',
-    purpose: 'Cryptographic identity management and key derivation',
-    internal: true,
-    repo: 'https://github.com/s4wave/spacewave/identity',
-  },
-  'github.com/aperturerobotics/entitygraph': {
-    category: 'internal',
-    purpose: 'Entity-relationship graph layer for structured data',
-    internal: true,
-    repo: 'https://github.com/aperturerobotics/entitygraph',
   },
   'github.com/aperturerobotics/util': {
     category: 'internal',
@@ -186,11 +143,6 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'React DOM rendering and hydration',
     internal: false,
   },
-  'react-router': {
-    category: 'ui-framework',
-    purpose: 'Client-side routing for React applications',
-    internal: false,
-  },
 
   // UI components (JS)
   sonner: {
@@ -233,11 +185,6 @@ export const annotations: Record<string, DependencyAnnotation> = {
   },
 
   // Networking (JS)
-  'it-length-prefixed': {
-    category: 'networking',
-    purpose: 'Length-prefixed message framing for async iterators',
-    internal: false,
-  },
   'it-pipe': {
     category: 'networking',
     purpose: 'Async iterator pipeline composition',
@@ -294,33 +241,11 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'Extended cryptographic algorithms (chacha20, curve25519, nacl)',
     internal: false,
   },
-  'github.com/libp2p/go-libp2p-crypto': {
-    category: 'go-crypto',
-    purpose: 'Cryptographic key types for peer-to-peer identity',
-    internal: false,
-  },
-
-  // Go storage
-  'github.com/dgraph-io/badger': {
-    category: 'go-storage',
-    purpose: 'High-performance key-value store with LSM tree',
-    internal: false,
-  },
-  'github.com/ipfs/go-datastore': {
-    category: 'go-storage',
-    purpose: 'Datastore interface for content-addressed storage',
-    internal: false,
-  },
 
   // Go networking
   'github.com/aperturerobotics/go-multiaddr': {
     category: 'go-networking',
     purpose: 'Self-describing network address format',
-    internal: true,
-  },
-  'github.com/aperturerobotics/go-multistream': {
-    category: 'go-networking',
-    purpose: 'Protocol multiplexing over streams',
     internal: true,
   },
   'github.com/aperturerobotics/go-websocket': {
@@ -357,21 +282,6 @@ export const annotations: Record<string, DependencyAnnotation> = {
   },
 
   // Go multiformat forks
-  'github.com/aperturerobotics/go-multicodec': {
-    category: 'go-networking',
-    purpose: 'Self-describing codec identifiers',
-    internal: true,
-  },
-  'github.com/aperturerobotics/go-multihash': {
-    category: 'go-crypto',
-    purpose: 'Self-describing hash function identifiers',
-    internal: true,
-  },
-  'github.com/aperturerobotics/go-varint': {
-    category: 'go-networking',
-    purpose: 'Variable-length integer encoding for protocols',
-    internal: true,
-  },
   'github.com/aperturerobotics/fsnotify': {
     category: 'go-infra',
     purpose: 'Filesystem event notification (fork for WASM compatibility)',
