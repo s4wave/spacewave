@@ -417,6 +417,7 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 		Path:     "/",
 		MaxAge:   int(webCapabilityTTL.Seconds()),
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 	})
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
