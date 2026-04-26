@@ -97,7 +97,7 @@ jobs:
           node-version: 25.x
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Cache spacewave-builder zig stubs
         uses: actions/cache@v5
