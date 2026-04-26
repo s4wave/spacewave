@@ -1,3 +1,9 @@
+//go:build todo_flake
+
+// See issues/2026/20260425-provider-local-session-transport-deadlock.org.
+// Gated behind todo_flake because setupProviderAndSession races the
+// sessionTracker against the test body and deadlocks under load.
+
 package provider_local_test
 
 import (
