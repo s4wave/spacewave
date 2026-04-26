@@ -257,7 +257,7 @@ All dependencies are [verified] to be equally permissive, one of:
 
 All of these licenses support commercial use, modification, and redistribution with attribution.
 
-[verified]: https://github.com/s4wave/spacewave/actions/runs/24950883963/job/73060637767
+[verified]: https://github.com/s4wave/spacewave/actions/runs/24951306003/job/73061745956#step:8:1
 
 ## Support and Community
 
