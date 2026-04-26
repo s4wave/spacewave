@@ -67,7 +67,7 @@ describe('HandoffPage', () => {
   beforeEach(() => {
     cleanup()
     window.location.hash =
-      '#/auth/link/payload-123?intent=signup&username=SpaceWave'
+      '#/auth/link/payload-123?intent=signup&username=Spacewave'
     mockNavigate.mockReset()
   })
 

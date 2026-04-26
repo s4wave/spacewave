@@ -178,7 +178,7 @@ describe('PasskeyPage', () => {
   })
 
   it('prefills the username from the hash query', () => {
-    window.location.hash = '#/auth/passkey?username=SpaceWave'
+    window.location.hash = '#/auth/passkey?username=Spacewave'
 
     render(<PasskeyPage />)
 

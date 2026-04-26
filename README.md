@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://spacewave.app" target="_blank" rel="noopener noreferrer">
-    <img width="324" src="./doc/img/spacewave-github.png" alt="SpaceWave">
+    <img width="324" src="./doc/img/spacewave-github.png" alt="Spacewave">
   </a>
 
   <h3>Lightning-fast local-first workspaces with peer-to-peer sync</h3>
@@ -25,13 +25,13 @@
 
 ## Overview
 
-**SpaceWave** is a full-stack for [local-first] apps with Go and WebAssembly.
+**Spacewave** is a full-stack for [local-first] apps with Go and WebAssembly.
 
-The SpaceWave app is a cross-platform workspace with multiplayer p2p sync. It
+The Spacewave app is a cross-platform workspace with multiplayer p2p sync. It
 can run fully offline in the web browser or desktop app and optionally uses the
 cloud for storage and networking with end-to-end encryption.
 
-In practical terms: SpaceWave enables you to store and collaborate on your data
+In practical terms: Spacewave enables you to store and collaborate on your data
 with fully open-source software. It combines the convenience of cloud apps with
 the flexibility and freedom of desktop apps.
 
@@ -41,7 +41,7 @@ Features:
 - **Local-First**: Works offline, sync when online
 - **End-to-End Encrypted**: Private and secure
 
-SpaceWave brings several advantages compared to server/client apps:
+Spacewave brings several advantages compared to server/client apps:
 
 - **Pluggable Storage**: Store data in any storage backend
 - **Self-Hosted**: No servers or configuration required
@@ -55,31 +55,31 @@ SpaceWave brings several advantages compared to server/client apps:
   - [SkiffOS] for running and managing Linux hosts
   - ...and more!
 
-[SpaceWave App]: https://spacewave.app
+[Spacewave App]: https://spacewave.app
 [SkiffOS]: https://skiffos.com
 
 Most collaborative apps store your data in someone else's database, limiting
-what you can do with it. SpaceWave runs the database and applications locally,
+what you can do with it. Spacewave runs the database and applications locally,
 giving you true data ownership and snappier performance.
 
 ## Getting Started
 
 Where would you like to start?
 
-- I want to use or self-host SpaceWave: [Open SpaceWave to get started]!
-- I want to modify SpaceWave or build my own plugins: see [running from source](#-running-from-source)
-- I want to develop my own app with SpaceWave Stack: see [Bldr]
+- I want to use or self-host Spacewave: [Open Spacewave to get started]!
+- I want to modify Spacewave or build my own plugins: see [running from source](#-running-from-source)
+- I want to develop my own app with Spacewave Stack: see [Bldr]
 
-[Open SpaceWave to get started]: https://spacewave.app
+[Open Spacewave to get started]: https://spacewave.app
 [Bldr]: ./bldr
 
-You can try SpaceWave instantly in your web browser, just [click here].
+You can try Spacewave instantly in your web browser, just [click here].
 
 [click here]: https://spacewave.app
 
 ## Running from source
 
-To start the SpaceWave app:
+To start the Spacewave app:
 
 ```bash
 # Install dependencies
@@ -111,7 +111,7 @@ bun run lint
 bun run typecheck
 ```
 
-SpaceWave uses [Protobuf](https://protobuf.dev/) for message encoding.
+Spacewave uses [Protobuf](https://protobuf.dev/) for message encoding.
 
 You should re-generate the protobufs after changing any `.proto` file:
 
@@ -120,7 +120,7 @@ You should re-generate the protobufs after changing any `.proto` file:
 bun run gen
 ```
 
-## Why SpaceWave?
+## Why Spacewave?
 
 Traditional web-apps store and process data on servers and cloud infrastructure.
 Developers write API calls to access the user data, and the frontend just
@@ -139,7 +139,7 @@ Modern web browsers come with WebAssembly, WebWorkers, ServiceWorkers,
 SharedWorkers, IndexedDB, and WebRTC. These features enable building **fully
 self-sufficient** apps running fully on the client side.
 
-SpaceWave utilizes these features to provide resources to apps with an
+Spacewave utilizes these features to provide resources to apps with an
 abstraction layer smoothing the differences between platforms. For example, an
 app can allocate a SQL database and store it in Redis, BadgerDB, or IndexedDB,
 all without changing a single line of code when switching backends.
@@ -152,7 +152,7 @@ and manage their own servers.
 
 The goal is to build software that runs anywhere with any storage backend.
 
-SpaceWave runs the app logic in WebWorkers/SharedWorkers in the web browser and
+Spacewave runs the app logic in WebWorkers/SharedWorkers in the web browser and
 as native processes on desktop. This brings the entire Go ecosystem to the
 browser while enabling true [local-first] apps.
 
@@ -207,9 +207,9 @@ All components are designed to be used in multiple ways:
 
 - As an application: each component has its own CLI
 - As a library: all Go packages are documented as libraries
-- As part of SpaceWave: controller configuration with YAML/JSON
+- As part of Spacewave: controller configuration with YAML/JSON
 
-SpaceWave can be extended with custom plugins or modifications to the client,
+Spacewave can be extended with custom plugins or modifications to the client,
 and custom apps can use the libraries to directly access the data stored in your
 workspaces.
 
@@ -222,7 +222,7 @@ component directories:
 - `forge/` - Forge
 - `auth/` - Auth
 - `identity/` - Identity
-- `app/`, `core/`, `sdk/`, `web/`, `cmd/` - the SpaceWave application layer
+- `app/`, `core/`, `sdk/`, `web/`, `cmd/` - the Spacewave application layer
 
 ## Space: The Final Frontier
 
@@ -235,7 +235,7 @@ minutes. HTTPs does not work with this much latency, and even begins to break
 with round-trip times over one second, let alone two minutes. Our existing
 internet apps would not work in this environment.
 
-SpaceWave solves this problem with a local-first p2p architecture. Regardless of
+Spacewave solves this problem with a local-first p2p architecture. Regardless of
 internet latency or equipment failure, users can access their workspaces and
 apps, without the need for cloud, servers, or on-call engineers.
 
@@ -247,7 +247,7 @@ apps, without the need for cloud, servers, or on-call engineers.
 
 </div>
 
-SpaceWave is a community project to build the most powerful collaborative
+Spacewave is a community project to build the most powerful collaborative
 workspace and self-hosting tool.
 
 We welcome contributions in the form of GitHub issues and pull requests.
