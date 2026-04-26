@@ -2,7 +2,6 @@ syntax = "proto3";
 package s4wave.session;
 
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
-import "github.com/s4wave/spacewave/sdk/session/shared-object-self-enrollment.proto";
 
 service SpacewaveSessionResourceService {
   rpc WatchOnboardingStatus(.s4wave.provider.spacewave.WatchOnboardingStatusRequest) returns (stream .s4wave.provider.spacewave.WatchOnboardingStatusResponse);
