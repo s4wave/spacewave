@@ -4,6 +4,7 @@ package bldr_cli_compiler
 
 import (
 	"context"
+	"go/types"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -123,12 +125,29 @@ func (c *Controller) BuildManifest(
 	}
 
 	// build factory imports from analyzed packages
-	factoryImports := make(map[string]string)
+	factoryImports := make(map[string]FactoryImport)
 	for _, pkg := range analysis.GetLoadedPackages() {
-		if pkg.Types.Scope().Lookup("NewFactory") == nil {
+		newFactoryObj := pkg.Types.Scope().Lookup("NewFactory")
+		if newFactoryObj == nil {
 			continue
 		}
-		factoryImports[pkg.PkgPath] = plugin_compiler_go.BuildPackageName(pkg.Types)
+		sig, ok := newFactoryObj.Type().(*types.Signature)
+		if !ok {
+			return nil, errors.Errorf("package %s NewFactory is not a function", pkg.PkgPath)
+		}
+		var passBus bool
+		switch sig.Params().Len() {
+		case 0:
+			passBus = false
+		case 1:
+			passBus = true
+		default:
+			return nil, errors.Errorf("package %s NewFactory has unsupported arity %d", pkg.PkgPath, sig.Params().Len())
+		}
+		factoryImports[pkg.PkgPath] = FactoryImport{
+			Alias:   plugin_compiler_go.BuildPackageName(pkg.Types),
+			PassBus: passBus,
+		}
 	}
 
 	// resolve cli package paths

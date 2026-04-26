@@ -13,18 +13,29 @@ import (
 	"strings"
 )
 
+// FactoryImport describes a discovered NewFactory in a Go package.
+type FactoryImport struct {
+	// Alias is the import alias for the package.
+	Alias string
+	// PassBus is true when NewFactory takes a single bus.Bus argument.
+	// When false, NewFactory takes no arguments.
+	PassBus bool
+}
+
 // FormatCliEntrypoint formats the generated CLI entrypoint code.
 func FormatCliEntrypoint(
 	appName string,
 	projectID string,
-	factoryImports map[string]string,
+	factoryImports map[string]FactoryImport,
 	cliImports map[string]string,
 ) ([]byte, error) {
 	var allDecls []gast.Decl
 
 	// merge and sort all dynamic imports
 	allImports := make(map[string]string)
-	maps.Copy(allImports, factoryImports)
+	for pkg, fi := range factoryImports {
+		allImports[pkg] = fi.Alias
+	}
 	maps.Copy(allImports, cliImports)
 
 	importPkgs := make([]string, 0, len(allImports))
@@ -92,14 +103,25 @@ func FormatCliEntrypoint(
 	})
 
 	// build factory func lit elements
-	factoryAliases := make([]string, 0, len(factoryImports))
-	for _, alias := range factoryImports {
-		factoryAliases = append(factoryAliases, alias)
+	factories := make([]FactoryImport, 0, len(factoryImports))
+	for _, fi := range factoryImports {
+		factories = append(factories, fi)
 	}
-	slices.Sort(factoryAliases)
+	slices.SortFunc(factories, func(a, b FactoryImport) int {
+		return strings.Compare(a.Alias, b.Alias)
+	})
 
 	var factoryElts []gast.Expr
-	for _, alias := range factoryAliases {
+	for _, fi := range factories {
+		call := &gast.CallExpr{
+			Fun: &gast.SelectorExpr{
+				X:   gast.NewIdent(fi.Alias),
+				Sel: gast.NewIdent("NewFactory"),
+			},
+		}
+		if fi.PassBus {
+			call.Args = []gast.Expr{gast.NewIdent("b")}
+		}
 		factoryElts = append(factoryElts, &gast.FuncLit{
 			Type: &gast.FuncType{
 				Params: &gast.FieldList{
@@ -126,15 +148,7 @@ func FormatCliEntrypoint(
 								X:   gast.NewIdent("controller"),
 								Sel: gast.NewIdent("Factory"),
 							}},
-							Elts: []gast.Expr{
-								&gast.CallExpr{
-									Fun: &gast.SelectorExpr{
-										X:   gast.NewIdent(alias),
-										Sel: gast.NewIdent("NewFactory"),
-									},
-									Args: []gast.Expr{gast.NewIdent("b")},
-								},
-							},
+							Elts: []gast.Expr{call},
 						},
 					},
 				},

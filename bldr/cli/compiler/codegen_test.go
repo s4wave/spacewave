@@ -75,6 +75,39 @@ var cliCommands = []cli_entrypoint.BuildCommandsFunc{alpha_cli.NewCliCommands, b
 func main() { cli_entrypoint.Main("multi-app", "", factories, configSets, cliCommands) }
 `
 
+const expectedCodegenNoBus = `package main
+
+import (
+	"embed"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	example_factory "github.com/example/factory"
+	no_bus_fc "github.com/example/no-bus/fc"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+)
+
+// configSetFS contains the embedded configset.
+//
+//go:embed configset.bin
+var configSetFS embed.FS
+
+// factories are the factories included in the binary.
+var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{example_factory.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{no_bus_fc.NewFactory()}
+}}
+
+// configSets are the configuration sets to apply on startup.
+var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFuncFromFS(configSetFS, "configset.bin")}
+
+// cliCommands are the CLI command builders.
+var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
+
+// main is the main entrypoint.
+func main() { cli_entrypoint.Main("no-bus-app", "", factories, configSets, cliCommands) }
+`
+
 const expectedCodegenEmpty = `package main
 
 import (
@@ -107,7 +140,7 @@ func TestFormatCliEntrypoint(t *testing.T) {
 		name           string
 		appName        string
 		projectID      string
-		factoryImports map[string]string
+		factoryImports map[string]FactoryImport
 		cliImports     map[string]string
 		expected       string
 	}
@@ -116,8 +149,8 @@ func TestFormatCliEntrypoint(t *testing.T) {
 			name:      "with imports",
 			appName:   "my-app",
 			projectID: "",
-			factoryImports: map[string]string{
-				"github.com/example/factory": "example_factory",
+			factoryImports: map[string]FactoryImport{
+				"github.com/example/factory": {Alias: "example_factory", PassBus: true},
 			},
 			cliImports: map[string]string{
 				"github.com/example/cli-cmds": "example_cli",
@@ -128,9 +161,9 @@ func TestFormatCliEntrypoint(t *testing.T) {
 			name:      "multiple",
 			appName:   "multi-app",
 			projectID: "",
-			factoryImports: map[string]string{
-				"github.com/example/beta/factory":  "beta_factory",
-				"github.com/example/alpha/factory": "alpha_factory",
+			factoryImports: map[string]FactoryImport{
+				"github.com/example/beta/factory":  {Alias: "beta_factory", PassBus: true},
+				"github.com/example/alpha/factory": {Alias: "alpha_factory", PassBus: true},
 			},
 			cliImports: map[string]string{
 				"github.com/example/beta/cli":  "beta_cli",
@@ -139,10 +172,21 @@ func TestFormatCliEntrypoint(t *testing.T) {
 			expected: expectedCodegenMultiple,
 		},
 		{
+			name:      "no-bus",
+			appName:   "no-bus-app",
+			projectID: "",
+			factoryImports: map[string]FactoryImport{
+				"github.com/example/factory":   {Alias: "example_factory", PassBus: true},
+				"github.com/example/no-bus/fc": {Alias: "no_bus_fc", PassBus: false},
+			},
+			cliImports: map[string]string{},
+			expected:   expectedCodegenNoBus,
+		},
+		{
 			name:           "empty",
 			appName:        "test-empty",
 			projectID:      "",
-			factoryImports: map[string]string{},
+			factoryImports: map[string]FactoryImport{},
 			cliImports:     map[string]string{},
 			expected:       expectedCodegenEmpty,
 		},

@@ -98,7 +98,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Build Linux and browser handoff slice
         shell: bash
@@ -170,7 +171,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Download Windows release inputs
         uses: actions/download-artifact@v8
@@ -292,7 +294,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Import macOS signing certificate
         shell: bash

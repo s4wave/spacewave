@@ -76,7 +76,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Build browser plugin channel manifests
         shell: bash
@@ -127,7 +128,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Import macOS signing certificate
         shell: bash
@@ -233,7 +235,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Login to Azure with OIDC
         uses: azure/login@v3
@@ -328,7 +331,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
 
       - name: Build Linux native plugin manifests
         shell: bash
