@@ -235,7 +235,6 @@
     "@lexical/selection": "^0.43.0",
     "@lexical/table": "^0.43.0",
     "@lexical/utils": "^0.43.0",
-    "@libp2p/logger": "^6.2.6",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-progress": "^1.1.8",
@@ -285,9 +284,5 @@
     "uint8arraylist": "^2.4.9",
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.0"
-  },
-  "resolutions": {
-    "@aptre/protobuf-es-lite": "1.0.2",
-    "@libp2p/interface": "^3.0.0"
   }
 }
