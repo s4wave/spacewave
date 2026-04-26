@@ -171,7 +171,7 @@ jobs:
             if file "${path}" | grep -q "Mach-O"; then
               codesign --verify --strict "${path}"
             fi
-          done < <(find .bldr/build/native/darwin -type f)
+          done < <(find .bldr/build/desktop/darwin -type f)
 
       - name: Upload plugin world state
         uses: actions/upload-artifact@v7
@@ -185,16 +185,16 @@ jobs:
         with:
           name: plugin-native-darwin
           path: |
-            .bldr/build/native/darwin/arm64/spacewave-core/dist/*
-            .bldr/build/native/darwin/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/darwin/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/darwin/amd64/spacewave-core/dist/*
           if-no-files-found: error
 
       - name: Attest native plugin artifacts
         uses: actions/attest@v4
         with:
           subject-path: |
-            .bldr/build/native/darwin/arm64/spacewave-core/dist/*
-            .bldr/build/native/darwin/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/darwin/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/darwin/amd64/spacewave-core/dist/*
 
   native-windows:
     needs:
@@ -261,7 +261,7 @@ jobs:
       - name: Verify Windows signatures
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path .bldr/build/native/windows -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
+          $files = Get-ChildItem -Path .bldr/build/desktop/windows -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
           foreach ($file in $files) {
             $sig = Get-AuthenticodeSignature -FilePath $file.FullName
             if ($sig.Status -ne "Valid") {
@@ -281,16 +281,16 @@ jobs:
         with:
           name: plugin-native-windows
           path: |
-            .bldr/build/native/windows/arm64/spacewave-core/dist/*
-            .bldr/build/native/windows/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/windows/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/windows/amd64/spacewave-core/dist/*
           if-no-files-found: error
 
       - name: Attest native plugin artifacts
         uses: actions/attest@v4
         with:
           subject-path: |
-            .bldr/build/native/windows/arm64/spacewave-core/dist/*
-            .bldr/build/native/windows/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/windows/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/windows/amd64/spacewave-core/dist/*
 
   native-linux:
     needs:
@@ -348,16 +348,16 @@ jobs:
         with:
           name: plugin-native-linux
           path: |
-            .bldr/build/native/linux/arm64/spacewave-core/dist/*
-            .bldr/build/native/linux/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/linux/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/linux/amd64/spacewave-core/dist/*
           if-no-files-found: error
 
       - name: Attest native plugin artifacts
         uses: actions/attest@v4
         with:
           subject-path: |
-            .bldr/build/native/linux/arm64/spacewave-core/dist/*
-            .bldr/build/native/linux/amd64/spacewave-core/dist/*
+            .bldr/build/desktop/linux/arm64/spacewave-core/dist/*
+            .bldr/build/desktop/linux/amd64/spacewave-core/dist/*
 
   handoff:
     needs:
