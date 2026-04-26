@@ -255,8 +255,7 @@ All dependencies are [verified] to be equally permissive, one of:
 - MIT
 - MPL-2.0
 
-All of these licenses support commercial use, modification, and
-redistribution, with attribution as the only meaningful requirement.
+All of these licenses support commercial use, modification, and redistribution with attribution.
 
 [verified]: https://github.com/s4wave/spacewave/actions/runs/24950883963/job/73060637767
 
