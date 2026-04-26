@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -26,7 +27,6 @@ import (
 	inproc "github.com/s4wave/spacewave/net/transport/inproc"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/aperturerobotics/cli"
 )
 
 var username, password string

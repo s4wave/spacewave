@@ -320,10 +320,9 @@ class EngineWorldStateObject implements IObjectState {
     ref?: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor> {
-    const tx = await this.engineState.getEngine().newTransaction(
-      false,
-      abortSignal,
-    )
+    const tx = await this.engineState
+      .getEngine()
+      .newTransaction(false, abortSignal)
     try {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
@@ -409,8 +408,11 @@ class TxOwnedBucketLookupCursor extends BucketLookupCursor {
     if (this.releasedCursor) return
     this.releasedCursor = true
     this.cursor.release(abortSignal)
-    void this.tx.discard(abortSignal).catch(() => {}).finally(() => {
-      this.tx.release()
-    })
+    void this.tx
+      .discard(abortSignal)
+      .catch(() => {})
+      .finally(() => {
+        this.tx.release()
+      })
   }
 }

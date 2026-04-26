@@ -4,7 +4,14 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactCompiler from 'eslint-plugin-react-compiler'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
-const alphaFiles = ['app/**/*.{js,mjs,ts,tsx}', 'web/**/*.{js,mjs,ts,tsx}', 'core/**/*.{js,mjs,ts,tsx}', 'sdk/**/*.{js,mjs,ts,tsx}', 'plugin/**/*.{js,mjs,ts,tsx}', 'cmd/**/*.{js,mjs,ts,tsx}']
+const alphaFiles = [
+  'app/**/*.{js,mjs,ts,tsx}',
+  'web/**/*.{js,mjs,ts,tsx}',
+  'core/**/*.{js,mjs,ts,tsx}',
+  'sdk/**/*.{js,mjs,ts,tsx}',
+  'plugin/**/*.{js,mjs,ts,tsx}',
+  'cmd/**/*.{js,mjs,ts,tsx}',
+]
 
 export default tseslint.config(
   {
@@ -65,7 +72,10 @@ export default tseslint.config(
     files: alphaFiles,
     rules: {
       ...Object.fromEntries(
-        Object.entries(reactHooks.configs.recommended.rules).map(([k]) => [k, 'warn']),
+        Object.entries(reactHooks.configs.recommended.rules).map(([k]) => [
+          k,
+          'warn',
+        ]),
       ),
       'react-compiler/react-compiler': 'warn',
       '@typescript-eslint/no-unused-vars': [

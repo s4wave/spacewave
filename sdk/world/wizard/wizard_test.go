@@ -613,7 +613,6 @@ func TestForgeWizardChain(t *testing.T) {
 	if len(jobTaskQuads) == 0 {
 		t.Fatal("missing job-to-task graph edge")
 	}
-
 }
 
 // TestGitRepoWizardOp verifies the CreateGitRepoWizardOp validation and

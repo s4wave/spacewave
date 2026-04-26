@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/aperturerobotics/cli"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/auth/examples/common"
 	auth_method "github.com/s4wave/spacewave/auth/method"
@@ -11,7 +12,6 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/aperturerobotics/cli"
 )
 
 func main() {

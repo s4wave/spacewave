@@ -20,8 +20,8 @@ import (
 	space_http_export "github.com/s4wave/spacewave/core/space/http/export"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
-	object_peer "github.com/s4wave/spacewave/db/object/peer"
 	blocktype_controller_factory "github.com/s4wave/spacewave/db/blocktype/controller-factory"
+	object_peer "github.com/s4wave/spacewave/db/object/peer"
 )
 
 // configSetFS contains the embedded configset.

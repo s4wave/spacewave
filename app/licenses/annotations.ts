@@ -267,11 +267,6 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'Structured logging',
     internal: false,
   },
-  'github.com/aperturerobotics/cli': {
-    category: 'go-infra',
-    purpose: 'CLI application framework',
-    internal: false,
-  },
   'github.com/Jeffail/gabs/v2': {
     category: 'go-infra',
     purpose: 'JSON path manipulation and parsing',
