@@ -3,7 +3,14 @@ import path from 'node:path'
 import url from 'node:url'
 import fs from 'node:fs'
 
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
+function getModuleDir(): string {
+  if (import.meta.url.startsWith('file:')) {
+    return path.dirname(url.fileURLToPath(import.meta.url))
+  }
+  return path.resolve(process.cwd(), 'forge/lib/v86/bun')
+}
+
+const __dirname = getModuleDir()
 
 interface V86Emulator {
   add_listener(

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/playwright-community/playwright-go"
@@ -97,6 +98,14 @@ func browserType(name string) playwright.BrowserType {
 	}
 }
 
+func shouldSkipBrowserLaunch(browserName string, err error) bool {
+	if err == nil || browserName != "webkit" {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "Host system is missing dependencies to run browsers")
+}
+
 // runFixture opens a fixture page in the given browser, waits for "DONE" in
 // #log, and returns window.__results as a map.
 func runFixture(t *testing.T, browserName, fixture string) map[string]any {
@@ -107,6 +116,9 @@ func runFixture(t *testing.T, browserName, fixture string) map[string]any {
 		Headless: new(true),
 	})
 	if err != nil {
+		if shouldSkipBrowserLaunch(browserName, err) {
+			t.Skipf("skip %s: %v", browserName, err)
+		}
 		t.Fatalf("launch %s: %v", browserName, err)
 	}
 	defer browser.Close()

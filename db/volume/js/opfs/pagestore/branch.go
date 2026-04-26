@@ -27,7 +27,7 @@ func EncodeBranchPage(buf []byte, entries []BranchEntry) int {
 		count++
 	}
 
-	h := PageHeader{Type: PageTypeBranch, Count: uint16(count)}
+	h := PageHeader{Type: PageTypeBranch, Count: mustUint16Len(count)}
 	EncodePageHeader(buf, &h)
 	crc := ComputePageChecksum(buf)
 	binary.BigEndian.PutUint32(buf[3:7], crc)

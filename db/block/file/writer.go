@@ -358,7 +358,8 @@ func (w *Writer) Truncate(size uint64) error {
 		// - create a new range filled with zeros over the portion of the range that
 		//   extends past the end of the new file length.
 		// alternatively: reduce the len of the ranges using the same code as above
-		zeroFrom, zeroTo := -1, -1
+		var zeroFrom, zeroTo uint64
+		var zeroRange bool
 		if len(w.root.Ranges) == 0 {
 			// ensure that the root blob is shorter than total size
 			rootBlob := w.root.GetRootBlob()
@@ -381,14 +382,15 @@ func (w *Writer) Truncate(size uint64) error {
 				if oldSize > math.MaxInt || lastRangeEnd > math.MaxInt {
 					return errors.New("file size exceeds maximum")
 				}
-				zeroFrom = int(oldSize)
-				zeroTo = int(lastRangeEnd)
+				zeroFrom = oldSize
+				zeroTo = lastRangeEnd
+				zeroRange = true
 			}
 		}
 
-		if zeroFrom >= 0 && zeroTo > zeroFrom {
+		if zeroRange && zeroTo > zeroFrom {
 			// write a zeroed range
-			err := w.WriteBlob(uint64(zeroFrom), uint64(zeroTo-zeroFrom), nil) //nolint:gosec
+			err := w.WriteBlob(zeroFrom, zeroTo-zeroFrom, nil)
 			if err != nil {
 				return err
 			}

@@ -204,7 +204,7 @@ func (w *Writer) encodeDataBlockWithIndex() ([]byte, []IndexEntry) {
 		if i%w.indexInterval == 0 {
 			index = append(index, IndexEntry{
 				Key:        w.entries[i].Key,
-				DataOffset: uint32(off),
+				DataOffset: mustUint32Len(off),
 			})
 		}
 

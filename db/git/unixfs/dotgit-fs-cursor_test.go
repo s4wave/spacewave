@@ -135,7 +135,7 @@ func TestDotGitFSCursorRootLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	buf := make([]byte, size)
-	if n, err := headOps.ReadAt(ctx, 0, buf); uint64(n) != size || err != nil {
+	if n, err := headOps.ReadAt(ctx, 0, buf); n != int64(len(buf)) || err != nil {
 		t.Fatalf("expected full HEAD read, n=%d size=%d err=%v", n, size, err)
 	}
 	if string(buf) != "ref: refs/heads/master\n" {
@@ -1032,7 +1032,7 @@ func readHandleContent(t *testing.T, ctx context.Context, handle *unixfs.FSHandl
 	}
 	buf := make([]byte, size)
 	n, err := handle.ReadAt(ctx, 0, buf)
-	if uint64(n) != size || err != nil {
+	if n != int64(len(buf)) || err != nil {
 		t.Fatalf("expected full read, n=%d size=%d err=%v", n, size, err)
 	}
 	return buf

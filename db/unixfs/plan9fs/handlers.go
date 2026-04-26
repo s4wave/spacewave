@@ -2,8 +2,10 @@ package plan9fs
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
+	"math"
 	"strings"
 	"time"
 
@@ -280,7 +282,10 @@ func (s *Server) handleRead(ctx context.Context, tag uint16, payload []byte) ([]
 	}
 
 	resp := NewWriteBuffer(4 + int(n))
-	resp.WriteU32(uint32(n))
+	if n > math.MaxUint32 {
+		return nil, errors.New("read count exceeds uint32")
+	}
+	resp.WriteU32(uint32(n)) // #nosec G115 -- bounded above.
 	resp.WriteBytes(data[:n])
 	return buildMessage(RREAD, tag, resp.Bytes()), nil
 }

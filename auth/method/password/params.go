@@ -44,15 +44,15 @@ func BuildParametersWithUsernamePassword(username string, password []byte) (*Par
 
 // buildParametersWithUsernamePassword builds Parameters with explicit scrypt
 // settings and derives an Ed25519 private key from a username and password.
-func buildParametersWithUsernamePassword(username string, password []byte, n, r, p int32) (*Parameters, crypto.PrivKey, error) {
+func buildParametersWithUsernamePassword(username string, password []byte, n, r, p uint32) (*Parameters, crypto.PrivKey, error) {
 	var salt [saltLen]byte
 	blake3.DeriveKey(saltContext, []byte(username), salt[:])
 
 	params := &Parameters{
 		Salt:    salt[:],
-		ScryptN: uint32(n),
-		ScryptR: uint32(r),
-		ScryptP: uint32(p),
+		ScryptN: n,
+		ScryptR: r,
+		ScryptP: p,
 	}
 
 	privKey, err := deriveKey(params, password)

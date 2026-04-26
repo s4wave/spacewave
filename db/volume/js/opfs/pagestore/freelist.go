@@ -25,7 +25,7 @@ func EncodeFreelistPage(buf []byte, nextPage PageID, ids []PageID) int {
 		count++
 	}
 
-	h := PageHeader{Type: PageTypeFreelist, Count: uint16(count)}
+	h := PageHeader{Type: PageTypeFreelist, Count: mustUint16Len(count)}
 	EncodePageHeader(buf, &h)
 	crc := ComputePageChecksum(buf)
 	binary.BigEndian.PutUint32(buf[3:7], crc)

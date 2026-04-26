@@ -66,10 +66,11 @@ func BuildTableColumn(
 			return nil, err
 		}
 	case time.Time:
+		nanos := v.Nanosecond()
 		ntc.Value = &TableColumn_TimestampValue{
 			TimestampValue: &TableTimestamp{
 				UnixSeconds: v.Unix(),
-				Nanos:       int32(v.Nanosecond()),
+				Nanos:       int32(nanos), // #nosec G115 -- Nanosecond is in [0, 999999999].
 			},
 		}
 	case types.Timespan:

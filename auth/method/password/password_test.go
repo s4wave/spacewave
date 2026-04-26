@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-const testScryptN = 14
+const testScryptN uint32 = 14
 
 func buildTestParametersWithUsernamePassword(username string, password []byte) (*Parameters, crypto.PrivKey, error) {
 	return buildParametersWithUsernamePassword(

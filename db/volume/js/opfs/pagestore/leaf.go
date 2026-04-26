@@ -45,7 +45,7 @@ func EncodeLeafPage(buf []byte, entries []LeafEntry) int {
 	}
 
 	// Write header.
-	h := PageHeader{Type: PageTypeLeaf, Count: uint16(count)}
+	h := PageHeader{Type: PageTypeLeaf, Count: mustUint16Len(count)}
 	EncodePageHeader(buf, &h)
 	// Compute and store checksum.
 	crc := ComputePageChecksum(buf)

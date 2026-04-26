@@ -138,7 +138,7 @@ func mustGCJournalUint32Len(v int) uint32 {
 	if v < 0 || uint64(v) > 0xffffffff {
 		panic("world-block: gc journal length overflows uint32")
 	}
-	return uint32(v)
+	return uint32(v) // #nosec G115 -- bounded above.
 }
 
 // decodeRefBatch deserializes a binary batch into adds and removes.
