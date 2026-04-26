@@ -484,7 +484,7 @@ async function buildWebPkg(
         emptyOutDir: true,
         manifest: true,
         cssCodeSplit: true,
-        minify: isRelease ? 'esbuild' : false,
+        minify: isRelease ? 'oxc' : false,
         sourcemap: isRelease ? false : 'inline',
         write: true,
 
