@@ -3,30 +3,47 @@
 * v0.50.0 Public Launch
 <2026-04-18 Fri>
 
-Launch release of Spacewave with encrypted local-first storage, peer-to-peer
-sync, desktop and web clients, collaborative Spaces, and an extensible plugin
-platform.
+Spacewave is open-source, private, self-hosted, multiplayer Spaces (apps) that
+store data wherever you want, work offline through peer-to-peer networking, and
+sync instantly with real-time streaming multiplayer. v0.50 is the public launch:
+a suite of first-party Spaces, a plugin SDK to build your own, and desktop, web,
+and CLI clients, all Apache-2.0 licensed. Try it at
+[[https://spacewave.app][spacewave.app]] in one click with no account required,
+read the [[https://spacewave.app/blog/2026/04/launch][launch announcement]],
+grab the code at
+[[https://github.com/s4wave/spacewave][github.com/s4wave/spacewave]], or
+[[https://discord.gg/KJutMESRsT][join the community on Discord]] and let us know
+what you want added next.
 
 ** Features
 
-- Drive: encrypted file storage and sync with drag-and-drop upload, projected
-  downloads, zip export, and real-time file watching.
-- Notes: offline-first markdown editing for notebooks, blog posts, and
-  documentation.
-- Chat: end-to-end encrypted messaging synced across linked devices.
-- Canvas: an infinite 2D workspace for visual thinking with embedded live
-  objects.
-- Git Viewer: repository browsing with branches, tags, commit history, and tree
-  views.
-- Media viewing: photo gallery support and inline image previews inside the app.
-- Session and account management: unified session details, account lifecycle
-  flows, recovery flows, passkey support, and session self-rejoin.
-- Organizations and collaboration: shared Spaces, invite flows, and role-based
-  access control.
-- System status dashboard: live application status surfaced from watched runtime
-  state.
-- Plugins and SDK: custom applications in TypeScript or Go with live reload
-  support.
-- CLI: command-line tools for managing Spaces, syncing files, and automating
-  workflows.
-- Desktop, web, and CLI builds from the same codebase.
+- Spaces: shared multiplayer workspaces. Add your friends or coworkers and
+  collaborate live, with role-based access and invite flows.
+- Drive: store and access your files. Drag-and-drop upload, projected downloads,
+  zip export, and live file watching across linked devices.
+- Notes: write and collaborate with Markdown text files. Offline-first, with
+  inline previews and live editing.
+- Chat: communicate securely with humans or robots. End-to-end encrypted and
+  synced across linked devices, online or offline.
+- Canvas: an infinite 2D workspace for visual thinking, with embedded live
+  objects from any other Space.
+- Git: browse repositories with branches, tags, commit history, and tree views.
+  No clone or terminal needed.
+- Media: photo gallery and inline image previews wherever files appear in the
+  app.
+- Plugin SDK: write your own Spaces in TypeScript or Go with hot reload, or
+  install plugins from any Git repo. Same APIs the first-party plugins use.
+- Cross-platform: desktop apps for macOS, Windows, and Linux, a one-click web
+  app, and a CLI, all built from a single Go and TypeScript codebase.
+- Account and session management: passkeys, account recovery, multi-device
+  session linking, and session self-rejoin.
+- Spacewave Cloud (optional): encrypted 100GB backup for $8/mo. Private, secure,
+  fast (via Cloudflare), and dead simple. The app works fine without it.
+
+** Security
+
+- End-to-end encrypted storage and messaging across all linked devices. Keys
+  live on your devices and never leave them unless you explicitly export a
+  backup.
+- Spacewave Cloud backups are encrypted on your device before they are uploaded.
+  The cloud only ever sees encrypted data.
