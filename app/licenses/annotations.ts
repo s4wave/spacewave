@@ -267,7 +267,7 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'Structured logging',
     internal: false,
   },
-  'github.com/urfave/cli/v2': {
+  'github.com/aperturerobotics/cli': {
     category: 'go-infra',
     purpose: 'CLI application framework',
     internal: false,

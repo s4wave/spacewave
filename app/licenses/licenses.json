@@ -948,14 +948,6 @@
       "fullText": "Copyright (c) 2019 Cloudflare. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n   * Redistributions of source code must retain the above copyright\nnotice, this list of conditions and the following disclaimer.\n   * Redistributions in binary form must reproduce the above\ncopyright notice, this list of conditions and the following disclaimer\nin the documentation and/or other materials provided with the\ndistribution.\n   * Neither the name of Cloudflare nor the names of its\ncontributors may be used to endorse or promote products derived from\nthis software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nOWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\n========================================================================\n\nCopyright (c) 2009 The Go Authors. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n   * Redistributions of source code must retain the above copyright\nnotice, this list of conditions and the following disclaimer.\n   * Redistributions in binary form must reproduce the above\ncopyright notice, this list of conditions and the following disclaimer\nin the documentation and/or other materials provided with the\ndistribution.\n   * Neither the name of Google Inc. nor the names of its\ncontributors may be used to endorse or promote products derived from\nthis software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nOWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
-      "name": "github.com/cpuguy83/go-md2man/v2",
-      "version": "v2.0.7",
-      "spdx": "MIT",
-      "source": "go",
-      "repo": "https://github.com/cpuguy83/go-md2man",
-      "copyrightNotice": "Copyright (c) 2014 Brian Goff"
-    },
-    {
       "name": "github.com/cyphar/filepath-securejoin",
       "version": "v0.6.1",
       "spdx": "MPL-2.0",
@@ -1555,14 +1547,6 @@
       "copyrightNotice": "Copyright (c) 2015 Olivier Poitrey <rs@dailymotion.com>"
     },
     {
-      "name": "github.com/russross/blackfriday/v2",
-      "version": "v2.1.0",
-      "spdx": "BSD-2-Clause",
-      "source": "go",
-      "repo": "https://github.com/russross/blackfriday",
-      "fullText": "Blackfriday is distributed under the Simplified BSD License:\n\n> Copyright © 2011 Russ Ross\n> All rights reserved.\n>\n> Redistribution and use in source and binary forms, with or without\n> modification, are permitted provided that the following conditions\n> are met:\n>\n> 1.  Redistributions of source code must retain the above copyright\n>     notice, this list of conditions and the following disclaimer.\n>\n> 2.  Redistributions in binary form must reproduce the above\n>     copyright notice, this list of conditions and the following\n>     disclaimer in the documentation and/or other materials provided with\n>     the distribution.\n>\n> THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n> \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\n> LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS\n> FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE\n> COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,\n> INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,\n> BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n> LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\n> CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT\n> LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN\n> ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n> POSSIBILITY OF SUCH DAMAGE.\n"
-    },
-    {
       "name": "github.com/sasha-s/go-deadlock",
       "version": "v0.3.9",
       "spdx": "Apache-2.0",
@@ -1641,14 +1625,6 @@
       "source": "go",
       "repo": "https://github.com/tidwall/btree",
       "copyrightNotice": "Copyright (c) 2020 Josh Baker"
-    },
-    {
-      "name": "github.com/urfave/cli/v2",
-      "version": "v2.27.7",
-      "spdx": "MIT",
-      "source": "go",
-      "repo": "https://github.com/urfave/cli",
-      "copyrightNotice": "Copyright (c) 2022 urfave/cli maintainers"
     },
     {
       "name": "github.com/vmihailenco/msgpack/v5",

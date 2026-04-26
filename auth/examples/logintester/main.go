@@ -26,7 +26,7 @@ import (
 	inproc "github.com/s4wave/spacewave/net/transport/inproc"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/aperturerobotics/cli"
 )
 
 var username, password string

@@ -11,7 +11,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/aperturerobotics/cli"
 )
 
 func main() {

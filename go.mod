@@ -2,7 +2,23 @@ module github.com/s4wave/spacewave
 
 go 1.26.2
 
+// aperture: use ext-engines forks
+replace (
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260422233706-e1850c2f41f0 // aperture-5
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260422234131-9045b4bf3daa // aperture
+	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
+)
+
+// aperture: use compatibility forks
+// https://github.com/dgraph-io/badger/pull/2048
+replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
+
+// https://github.com/wazero/wazero/pull/2479
+// https://github.com/wazero/wazero/pull/2481
+replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
+
 require (
+	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260423202023-7ebe1503eea2
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.0 // latest
@@ -17,12 +33,17 @@ require (
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
 	github.com/aperturerobotics/go-multiaddr v0.17.0
+	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
+	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
+	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.12.2-0.20260216043809-e2be8a854e6e
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260216043809-e2be8a854e6e
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260223122953-12a7c334f634 // latest
+	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
+	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.7 // latest
 	github.com/aperturerobotics/util v1.34.3 // latest
 )
@@ -99,7 +120,6 @@ require (
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.11.0
 	github.com/tidwall/btree v1.8.1
-	github.com/urfave/cli/v2 v2.27.7
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
 	github.com/zeebo/blake3 v0.2.4
@@ -109,16 +129,9 @@ require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
-	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
-	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
-	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
-	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
@@ -170,7 +183,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
@@ -193,18 +205,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-// aperture: use ext-engines forks
-replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260422233706-e1850c2f41f0 // aperture-5
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260422234131-9045b4bf3daa // aperture
-	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
-)
-
-// aperture: use compatibility forks
-// https://github.com/dgraph-io/badger/pull/2048
-replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
-
-// https://github.com/wazero/wazero/pull/2479
-// https://github.com/wazero/wazero/pull/2481
-replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
