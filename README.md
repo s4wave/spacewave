@@ -239,16 +239,31 @@ Spacewave solves this problem with a local-first p2p architecture. Regardless of
 internet latency or equipment failure, users can access their workspaces and
 apps, without the need for cloud, servers, or on-call engineers.
 
+## License
+
+Spacewave is licensed under the permissive Apache-2.0 license.
+
+All dependencies are [verified] to be equally permissive, one of:
+
+- 0BSD
+- Apache-2.0
+- Apache-2.0 OR MIT
+- BSD-2-Clause
+- BSD-3-Clause
+- CC0-1.0
+- ISC
+- MIT
+- MPL-2.0
+
+All of these licenses support commercial use, modification, and
+redistribution, with attribution as the only meaningful requirement.
+
+[verified]: https://github.com/s4wave/spacewave/actions/runs/24950883963/job/73060637767
+
 ## Support and Community
 
-<div align="center">
-
-[![Discord](https://img.shields.io/discord/803825858599059487.svg?label=Discord&logo=Discord&colorB=7289da&style=for-the-badge)](https://discord.gg/EKVkdVmvwT)
-
-</div>
-
-Spacewave is a community project to build the most powerful collaborative
-workspace and self-hosting tool.
+Spacewave is a community project to build the **most powerful** collaborative
+workspace and **self-hosting** tool.
 
 We welcome contributions in the form of GitHub issues and pull requests.
 
