@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-import { goTsResolver } from '../../.bldr/src/web/bundler/vite/go-ts-resolver.js'
+import {
+  buildGoAliases,
+  goTsResolver,
+} from '../../.bldr/src/web/bundler/vite/go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
@@ -86,10 +89,7 @@ export default defineConfig({
         find: /^@aptre\/bldr-sdk\/(.*)$/,
         replacement: resolve(projectRoot, './.bldr/src/sdk/$1'),
       },
-      {
-        find: /^@go\/(.*)$/,
-        replacement: resolve(projectRoot, './vendor/$1'),
-      },
+      ...buildGoAliases(projectRoot),
       {
         find: /^@s4wave\/core\/(.*)$/,
         replacement: resolve(projectRoot, './core/$1'),

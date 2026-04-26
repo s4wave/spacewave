@@ -18,6 +18,12 @@ describe('goTsResolver', () => {
     await writeFile(join(pkgDir, 'hasjs.js'), 'export const y = 2')
     await writeFile(join(pkgDir, 'hasjs.ts'), 'export const y: number = 2')
     await writeFile(join(localDir, 'volume.pb.ts'), 'export const v = 1')
+    // Resolver reads the local module path from go.mod so it can map
+    // @go/<module>/... imports to project sources instead of vendor.
+    await writeFile(
+      join(tmpDir, 'go.mod'),
+      'module github.com/s4wave/spacewave\n\ngo 1.26\n',
+    )
   })
 
   afterAll(async () => {
