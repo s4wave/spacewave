@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bytecodealliance/wasmtime-go/v17"
+	"github.com/bytecodealliance/wasmtime-go/v25"
 )
 
 func main() {
