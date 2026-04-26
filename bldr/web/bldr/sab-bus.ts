@@ -14,7 +14,17 @@
 //     [4..19]   readerIdxs    Per-reader read positions (max 16, -1 = free)
 //   Data region (after CTRL_BYTES):
 //     numSlots * slotSize bytes
-//     Each slot: [uint16 targetId][uint16 sourceId][uint32 payloadLen][payload]
+//     Each slot:
+//       [int32 seq][uint16 targetId][uint16 sourceId][uint32 payloadLen][payload]
+//
+// Slot seq is a commit fence that closes the publication race between
+// claiming a slot (advancing CTRL_WRITE_IDX) and writing its contents.
+// Slots start with seq = 0. The writer that claims slot N (i.e. CAS bumps
+// CTRL_WRITE_IDX from N to N+1) writes the header and payload, then
+// atomically stores seq = N+1 and notifies. Readers expecting readPos = R
+// only consume slot R once seq[R % numSlots] == R+1; otherwise they
+// Atomics.waitAsync on the slot seq, which avoids reading a half-written
+// slot when CTRL_WRITE_IDX has advanced but the slot is still being filled.
 
 import type { Sink, Source, Duplex } from 'it-stream-types'
 import { pushable } from 'it-pushable'
@@ -31,8 +41,13 @@ const CTRL_BYTES = CTRL_INT32S * 4
 const READER_SLOT_FREE = -1
 const READER_SLOTS = Array.from({ length: MAX_READERS }, (_, i) => i)
 
-// Message header: [2B target][2B source][4B length] = 8 bytes.
-const MSG_HEADER = 8
+// Slot header: [4B seq][2B target][2B source][4B length] = 12 bytes.
+// seq is the commit sequence number: 0 (initial / "not yet committed")
+// until the writer that claimed slot N stamps it with N+1. Readers expecting
+// readPos R consume the slot only once seq == R+1.
+const SLOT_SEQ_OFF = 0
+const SLOT_HDR_OFF = 4
+const MSG_HEADER = 12
 
 const STATE_OPEN = 0
 const STATE_CLOSED = 1
@@ -163,14 +178,20 @@ export class SabBusEndpoint {
     }
 
     const slotOff = CTRL_BYTES + (claimedIdx! % this.numSlots) * this.slotSize
-    const hdr = new DataView(this.sab, slotOff, MSG_HEADER)
+    const hdr = new DataView(this.sab, slotOff + SLOT_HDR_OFF, MSG_HEADER - SLOT_HDR_OFF)
     hdr.setUint16(0, targetId, true)
     hdr.setUint16(2, this.pluginId, true)
     hdr.setUint32(4, data.byteLength, true)
 
     new Uint8Array(this.sab, slotOff + MSG_HEADER, data.byteLength).set(data)
 
-    // Wake all readers.
+    // Publish: stamp the slot's seq with claimedIdx+1 to commit the write,
+    // then wake any reader that observed CTRL_WRITE_IDX advance and is now
+    // waiting on this slot's seq, plus any reader that was sleeping on
+    // CTRL_WRITE_IDX before we claimed.
+    const slotSeq = new Int32Array(this.sab, slotOff + SLOT_SEQ_OFF, 1)
+    Atomics.store(slotSeq, 0, claimedIdx! + 1)
+    Atomics.notify(slotSeq, 0)
     Atomics.notify(this.ctrl, CTRL_WRITE_IDX)
   }
 
@@ -193,7 +214,35 @@ export class SabBusEndpoint {
       if (readPos < writePos) {
         const slotOff =
           CTRL_BYTES + (readPos % this.numSlots) * this.slotSize
-        const hdr = new DataView(this.sab, slotOff, MSG_HEADER)
+        const slotSeq = new Int32Array(this.sab, slotOff + SLOT_SEQ_OFF, 1)
+        const expectedSeq = readPos + 1
+
+        // Wait for the writer that claimed this slot to publish (stamp
+        // seq = readPos+1). Without this fence the reader would race the
+        // writer between CTRL_WRITE_IDX advance and slot data write, and
+        // skip a half-written slot whose header still reads as zeros.
+        let cur = Atomics.load(slotSeq, 0)
+        while (cur !== expectedSeq) {
+          if (this.closed) {
+            return null
+          }
+          if (Atomics.load(this.ctrl, CTRL_STATE) !== STATE_OPEN) {
+            return null
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const atomics = Atomics as any
+          if (typeof atomics.waitAsync === 'function') {
+            const result = atomics.waitAsync(slotSeq, 0, cur)
+            if (result.async) {
+              await result.value
+            }
+          } else {
+            await new Promise<void>((r) => setTimeout(r, 1))
+          }
+          cur = Atomics.load(slotSeq, 0)
+        }
+
+        const hdr = new DataView(this.sab, slotOff + SLOT_HDR_OFF, MSG_HEADER - SLOT_HDR_OFF)
         const targetId = hdr.getUint16(0, true)
         const sourceId = hdr.getUint16(2, true)
         const length = hdr.getUint32(4, true)
@@ -241,10 +290,16 @@ export class SabBusEndpoint {
     this.unregister()
   }
 
-  // closeAll signals the bus as closed, waking all readers.
+  // closeAll signals the bus as closed, waking all readers, including
+  // readers blocked on a per-slot seq fence.
   closeAll(): void {
     Atomics.store(this.ctrl, CTRL_STATE, STATE_CLOSED)
     Atomics.notify(this.ctrl, CTRL_WRITE_IDX)
+    for (let k = 0; k < this.numSlots; k++) {
+      const slotOff = CTRL_BYTES + k * this.slotSize
+      const slotSeq = new Int32Array(this.sab, slotOff + SLOT_SEQ_OFF, 1)
+      Atomics.notify(slotSeq, 0)
+    }
     this.close()
   }
 
