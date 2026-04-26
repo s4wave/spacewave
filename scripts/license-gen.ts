@@ -145,20 +145,26 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   // constraints (e.g. bazil.org/fuse on linux/darwin, syscall/js on
   // js/wasm, windows-only registry packages) are missed depending on the
   // host. The module-level dedup loop below merges duplicates across runs.
-  const platforms: Array<{ goos: string; goarch: string }> = [
-    { goos: 'linux', goarch: 'amd64' },
-    { goos: 'darwin', goarch: 'amd64' },
-    { goos: 'windows', goarch: 'amd64' },
-    { goos: 'js', goarch: 'wasm' },
+  //
+  // CGO_ENABLED is pinned per platform so the package set is host-
+  // independent. On macOS, GOOS=linux defaults to CGO_ENABLED=0 (cross
+  // compile) which silently drops cgo-only packages like
+  // github.com/mattn/go-sqlite3; CI's native Linux defaults to 1 and
+  // includes them. js/wasm does not support cgo.
+  const platforms: Array<{ goos: string; goarch: string; cgo: '0' | '1' }> = [
+    { goos: 'linux', goarch: 'amd64', cgo: '1' },
+    { goos: 'darwin', goarch: 'amd64', cgo: '1' },
+    { goos: 'windows', goarch: 'amd64', cgo: '1' },
+    { goos: 'js', goarch: 'wasm', cgo: '0' },
   ]
 
   const raw: GoLicenseEntry[] = []
-  for (const { goos, goarch } of platforms) {
+  for (const { goos, goarch, cgo } of platforms) {
     const result = await run(
       binPath,
       ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
       rootDir,
-      { GOOS: goos, GOARCH: goarch },
+      { GOOS: goos, GOARCH: goarch, CGO_ENABLED: cgo },
     )
 
     if (result.code !== 0 && !result.stdout.trim()) {
