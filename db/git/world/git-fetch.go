@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing/client"
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
-	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -25,11 +25,13 @@ func GitFetch(
 	ws world.WorldState,
 	objKey string,
 	fetchOpts *git_block.FetchOpts,
-	authMethod transport.AuthMethod,
+	authMethod client.SSHAuth,
 	progress sideband.Progress,
 ) error {
 	fetchArgs := fetchOpts.BuildFetchOpts()
-	fetchArgs.Auth = authMethod
+	if authMethod != nil {
+		fetchArgs.ClientOptions = append(fetchArgs.ClientOptions, client.WithSSHAuth(authMethod))
+	}
 	fetchArgs.Progress = progress
 
 	_, _, err := AccessWorldObjectRepo(

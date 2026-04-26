@@ -6,8 +6,8 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing/client"
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
-	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -30,7 +30,7 @@ func GitClone(
 	objKey string,
 	sender peer.ID,
 	cloneOpts *git_block.CloneOpts,
-	authMethod transport.AuthMethod,
+	authMethod client.SSHAuth,
 	progress sideband.Progress,
 	worktreeArgs *GitCreateWorktreeOp,
 	ts *timestamppb.Timestamp,
@@ -46,7 +46,9 @@ func GitClone(
 	// write progress if necessary
 	cloneArgs.Progress = progress
 	// override auth method
-	cloneArgs.Auth = authMethod
+	if authMethod != nil {
+		cloneArgs.ClientOptions = append(cloneArgs.ClientOptions, client.WithSSHAuth(authMethod))
+	}
 
 	// Clone directly into hydra storage under world write lock.
 	// The bulk-mode Store streams objects to KV via mini-transactions,

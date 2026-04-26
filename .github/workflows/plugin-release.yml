@@ -61,10 +61,10 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -79,7 +79,7 @@ jobs:
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-browser
 
       - name: Upload plugin world state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-world-browser
           path: .bldr/devtool.s4wave
@@ -93,10 +93,10 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plugin world state
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-world-browser
           path: .tmp/plugin-world-browser
@@ -109,7 +109,7 @@ jobs:
           cp .tmp/plugin-world-browser/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -162,14 +162,14 @@ jobs:
           done < <(find .bldr/build/native/darwin -type f)
 
       - name: Upload plugin world state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-world-macos
           path: .bldr/devtool.s4wave
           if-no-files-found: error
 
       - name: Upload native plugin artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-native-darwin
           path: |
@@ -194,10 +194,10 @@ jobs:
       AZURE_CORE_OUTPUT: none
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plugin world state
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-world-macos
           path: .tmp/plugin-world-macos
@@ -209,7 +209,7 @@ jobs:
           Copy-Item .tmp/plugin-world-macos/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -252,14 +252,14 @@ jobs:
           }
 
       - name: Upload plugin world state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-world-windows
           path: .bldr/devtool.s4wave
           if-no-files-found: error
 
       - name: Upload native plugin artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-native-windows
           path: |
@@ -282,10 +282,10 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plugin world state
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-world-windows
           path: .tmp/plugin-world-windows
@@ -298,7 +298,7 @@ jobs:
           cp .tmp/plugin-world-windows/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -313,14 +313,14 @@ jobs:
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-linux-arm64,plugin-release-desktop-linux-amd64
 
       - name: Upload plugin world state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-world-linux
           path: .bldr/devtool.s4wave
           if-no-files-found: error
 
       - name: Upload native plugin artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-native-linux
           path: |
@@ -343,10 +343,10 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plugin world state
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-world-linux
           path: .tmp/plugin-world-linux
@@ -359,19 +359,19 @@ jobs:
           cp .tmp/plugin-world-linux/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Download macOS native plugin artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-native-darwin
           path: .tmp/native-artifacts/darwin
 
       - name: Download Windows native plugin artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-native-windows
           path: .tmp/native-artifacts/windows
 
       - name: Download Linux native plugin artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-native-linux
           path: .tmp/native-artifacts/linux
@@ -450,7 +450,7 @@ jobs:
           tar -cf .tmp/plugin-handoff.tar -C .tmp/plugin-handoff .
 
       - name: Upload plugin handoff artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.plugin_rev }}
           path: .tmp/plugin-handoff.tar

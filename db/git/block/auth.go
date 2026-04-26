@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/go-git/go-git/v6/plumbing/transport"
+	"github.com/go-git/go-git/v6/plumbing/client"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_ssh "github.com/s4wave/spacewave/net/peer/ssh"
@@ -13,7 +13,7 @@ import (
 
 // ResolveAuth resolves authentication on a bus from the config.
 // Returns nil, nil if auth not configured.
-func (a *AuthOpts) ResolveAuth(ctx context.Context, b bus.Bus) (transport.AuthMethod, error) {
+func (a *AuthOpts) ResolveAuth(ctx context.Context, b bus.Bus) (client.SSHAuth, error) {
 	// ssh authentication
 	sshAuth := &transport_ssh.PublicKeys{
 		User: a.GetUsername(),

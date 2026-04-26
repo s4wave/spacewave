@@ -78,10 +78,10 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -119,14 +119,14 @@ jobs:
             --out-dir .tmp/windows-release-inputs
 
       - name: Upload Linux handoff part
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/linux
           if-no-files-found: error
 
       - name: Upload Windows release inputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/windows-release-inputs
@@ -145,10 +145,10 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -163,7 +163,7 @@ jobs:
           bun install --frozen-lockfile
 
       - name: Download Windows release inputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .
@@ -246,7 +246,7 @@ jobs:
           cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
 
       - name: Upload Windows handoff part
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/windows
@@ -262,10 +262,10 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -350,7 +350,7 @@ jobs:
             --out-dir .tmp/entrypoint-handoff/macos
 
       - name: Upload macOS handoff part
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff/macos
@@ -369,19 +369,19 @@ jobs:
       attestations: write
     steps:
       - name: Download Linux handoff part
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-parts/linux
 
       - name: Download macOS handoff part
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-parts/macos
 
       - name: Download Windows handoff part
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-parts/windows
@@ -516,7 +516,7 @@ jobs:
           tar -cf .tmp/entrypoint-handoff.tar -C .tmp/entrypoint-handoff .
 
       - name: Upload entrypoint handoff artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: entrypoint-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff.tar

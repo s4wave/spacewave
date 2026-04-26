@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing/client"
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
-	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -25,12 +25,14 @@ func CloneGitRepoToRef(
 	ctx context.Context,
 	ws worldStorageAccessor,
 	cloneOpts *git_block.CloneOpts,
-	authMethod transport.AuthMethod,
+	authMethod client.SSHAuth,
 	progress sideband.Progress,
 ) (*bucket.ObjectRef, error) {
 	cloneArgs := cloneOpts.BuildCloneOpts()
 	cloneArgs.NoCheckout = true
-	cloneArgs.Auth = authMethod
+	if authMethod != nil {
+		cloneArgs.ClientOptions = append(cloneArgs.ClientOptions, client.WithSSHAuth(authMethod))
+	}
 	cloneArgs.Progress = progress
 
 	return world.AccessObject(

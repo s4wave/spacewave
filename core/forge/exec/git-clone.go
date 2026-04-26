@@ -3,7 +3,7 @@ package space_exec
 import (
 	"context"
 
-	"github.com/go-git/go-git/v6/plumbing/transport"
+	"github.com/go-git/go-git/v6/plumbing/client"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -105,7 +105,7 @@ func (h *gitCloneHandler) Execute(ctx context.Context) error {
 // resolveAuthWithoutBus resolves auth from AuthOpts without bus access.
 // Supports username-only SSH auth for public repos. Peer-ID-based private key
 // auth requires the caller to provide a pre-resolved key and is not yet wired.
-func resolveAuthWithoutBus(a *git_block.AuthOpts) (transport.AuthMethod, error) {
+func resolveAuthWithoutBus(a *git_block.AuthOpts) (client.SSHAuth, error) {
 	if a == nil {
 		return nil, nil
 	}
