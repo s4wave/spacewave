@@ -33,9 +33,9 @@ describe('Licenses', () => {
 
     render(<Licenses />)
 
-    expect(screen.getAllByText('@radix-ui/react-primitive')).toHaveLength(2)
-    expect(screen.getByText('2.1.3')).toBeTruthy()
-    expect(screen.getByText('2.1.4')).toBeTruthy()
+    expect(screen.getAllByText('@radix-ui/react-slot')).toHaveLength(2)
+    expect(screen.getAllByText('1.2.3').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('1.2.4')).toBeTruthy()
 
     const duplicateKeyWarnings = errorSpy.mock.calls.filter(
       ([message]) =>
@@ -50,7 +50,7 @@ describe('Licenses', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Show details for @radix-ui/react-primitive 2.1.3',
+        name: 'Show details for @radix-ui/react-slot 1.2.3',
       }),
     )
 

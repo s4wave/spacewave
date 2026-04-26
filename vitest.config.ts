@@ -9,7 +9,7 @@ export default mergeConfig(
     test: {
       environment: 'happy-dom',
       setupFiles: ['./web/test/setup.ts'],
-      include: ['{app,web,core,sdk,plugin,cmd}/**/*.test.{ts,tsx}'],
+      include: ['{app,web,core,sdk,plugin,cmd,forge}/**/*.test.{ts,tsx}'],
       exclude: [
         ...configDefaults.exclude,
         'dist/**',
