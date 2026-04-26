@@ -179,6 +179,11 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
     raw.push(...entries)
   }
 
+  // Sort raw entries by package name in byte order so the dedup loop's
+  // "first non-empty wins" choice for licenseText is deterministic across
+  // machines and unaffected by per-platform output ordering.
+  raw.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+
   // Parse vendor/modules.txt for version mapping
   const versions: Record<string, string> = {}
   const modulesTxt = readFileSync(join(rootDir, 'vendor', 'modules.txt'), 'utf-8')
@@ -220,7 +225,9 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
     }
   }
 
-  const goLicenses = Object.values(modules).sort((a, b) => a.name.localeCompare(b.name))
+  const goLicenses = Object.values(modules).sort((a, b) =>
+    a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+  )
 
   mkdirSync(outDir, { recursive: true })
   writeFileSync(join(outDir, 'go-licenses.json'), JSON.stringify(goLicenses, null, 2) + '\n')
@@ -257,6 +264,9 @@ async function generateJsLicenses(): Promise<JsLicenseEntry[]> {
   }
 
   rmSync(tmpDir, { recursive: true, force: true })
+
+  // Sort by name in byte order so downstream merge sees deterministic input.
+  jsLicenses.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
 
   mkdirSync(outDir, { recursive: true })
   writeFileSync(join(outDir, 'js-licenses.json'), JSON.stringify(jsLicenses, null, 2) + '\n')
@@ -361,12 +371,16 @@ function extractBases(
   }
 
   const bases: Record<string, string> = {}
-  for (const [spdx, counts] of Object.entries(bodyGroups)) {
-    // Pick the most common body as the canonical base
+  // Iterate SPDX keys in sorted order so insertion order in the result
+  // object is stable.
+  for (const spdx of Object.keys(bodyGroups).sort()) {
+    const counts = bodyGroups[spdx]
+    // Pick the most common body as the canonical base. Ties broken by
+    // lexicographically smallest body for determinism across runs.
     let best = ''
     let bestCount = 0
     for (const [body, count] of counts) {
-      if (count > bestCount) {
+      if (count > bestCount || (count === bestCount && body < best)) {
         best = body
         bestCount = count
       }
@@ -436,7 +450,7 @@ function mergeLicenses(goData: GoLicenseEntry[], jsData: JsLicenseEntry[]): Lice
   // Second pass: dedup against bases
   let deduped = 0
   const entries: LicenseEntry[] = rawEntries
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     .map((raw) => {
       const entry: LicenseEntry = {
         name: raw.name,
