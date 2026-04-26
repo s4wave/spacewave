@@ -14,7 +14,7 @@ import {
   isLinux,
   isWindows,
 } from '@aptre/bldr'
-import { Home, Settings, User } from 'lucide-react'
+import { LuHouse, LuSettings, LuUser } from 'react-icons/lu'
 
 import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 import { ExampleProps } from './example.pb.js'
@@ -64,9 +64,9 @@ const Example: React.FC<ExampleProps> = (props) => {
       <div className="example-message">
         <p>The following message comes from an RPC call to Go:</p>
         <p>{message || 'Loading...'}</p>
-        <Home className="h-4 w-4" />
-        <Settings className="h-4 w-4" />
-        <User className="h-4 w-4" />
+        <LuHouse className="h-4 w-4" />
+        <LuSettings className="h-4 w-4" />
+        <LuUser className="h-4 w-4" />
         <img src={bldrLogo} width={256} />
       </div>
     </div>

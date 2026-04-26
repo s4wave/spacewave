@@ -140,29 +140,43 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   const tplPath = join(rootDir, 'scripts', 'go-license-template.tpl')
   const binPath = await buildGoLicenses()
 
-  // Pin GOOS=linux so the package set seen by go-licenses is identical
-  // across host platforms. Without this, packages behind //go:build linux
-  // (e.g. bazil.org/fuse) appear only when generating on Linux, causing
-  // app/licenses/ to drift between local (often darwin) and CI.
-  const result = await run(
-    binPath,
-    ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
-    rootDir,
-    { GOOS: 'linux' },
-  )
+  // Run go-licenses once per supported (GOOS, GOARCH) pair and union the
+  // results. Without iterating over platforms, packages behind build
+  // constraints (e.g. bazil.org/fuse on linux/darwin, syscall/js on
+  // js/wasm, windows-only registry packages) are missed depending on the
+  // host. The module-level dedup loop below merges duplicates across runs.
+  const platforms: Array<{ goos: string; goarch: string }> = [
+    { goos: 'linux', goarch: 'amd64' },
+    { goos: 'darwin', goarch: 'amd64' },
+    { goos: 'windows', goarch: 'amd64' },
+    { goos: 'js', goarch: 'wasm' },
+  ]
 
-  if (result.code !== 0 && !result.stdout.trim()) {
-    console.error('go-licenses failed:', result.stderr)
-    process.exit(1)
-  }
+  const raw: GoLicenseEntry[] = []
+  for (const { goos, goarch } of platforms) {
+    const result = await run(
+      binPath,
+      ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
+      rootDir,
+      { GOOS: goos, GOARCH: goarch },
+    )
 
-  let raw: GoLicenseEntry[]
-  try {
-    raw = JSON.parse(result.stdout)
-  } catch {
-    console.error('Failed to parse go-licenses JSON output')
-    console.error('stdout (first 500 chars):', result.stdout.slice(0, 500))
-    process.exit(1)
+    if (result.code !== 0 && !result.stdout.trim()) {
+      console.error(`go-licenses failed for ${goos}/${goarch}:`, result.stderr)
+      process.exit(1)
+    }
+
+    let entries: GoLicenseEntry[]
+    try {
+      entries = JSON.parse(result.stdout)
+    } catch {
+      console.error(`Failed to parse go-licenses JSON output for ${goos}/${goarch}`)
+      console.error('stdout (first 500 chars):', result.stdout.slice(0, 500))
+      process.exit(1)
+    }
+
+    console.log(`  ${goos}/${goarch}: ${entries.length} packages`)
+    raw.push(...entries)
   }
 
   // Parse vendor/modules.txt for version mapping

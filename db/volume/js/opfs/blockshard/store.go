@@ -231,6 +231,24 @@ func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 	return &block.BlockStat{Ref: ref, Size: int64(len(val))}, nil
 }
 
+// GetSupportedFeatures returns the native feature bitmask for the store.
+func (s *BlockStore) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
+// Flush publishes buffered writes; the shard engine has no durability boundary.
+func (s *BlockStore) Flush(ctx context.Context) error {
+	return nil
+}
+
+// BeginDeferFlush opens a no-op defer-flush scope.
+func (s *BlockStore) BeginDeferFlush() {}
+
+// EndDeferFlush closes a no-op defer-flush scope.
+func (s *BlockStore) EndDeferFlush(ctx context.Context) error {
+	return nil
+}
+
 // encodeRef encodes a BlockRef as a base58 string key.
 func encodeRef(ref *block.BlockRef) (string, error) {
 	rm, err := ref.MarshalKey()

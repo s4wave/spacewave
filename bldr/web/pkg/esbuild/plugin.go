@@ -1,3 +1,5 @@
+//go:build !js
+
 package web_pkg_esbuild
 
 import (

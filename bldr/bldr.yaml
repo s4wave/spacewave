@@ -89,7 +89,7 @@ manifests:
 
         # webPkgs externalizes packages
         webPkgs:
-          - id: lucide-react
+          - id: react-icons
 
         # configure the configset to apply on startup
         configSet:
