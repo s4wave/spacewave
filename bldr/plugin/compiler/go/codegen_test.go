@@ -30,6 +30,7 @@ import (
 	bldr_example "github.com/s4wave/spacewave/bldr/example"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	bldr_values "github.com/s4wave/spacewave/bldr/values"
+	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +50,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b), link_solicit_controller.NewFactory()}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
@@ -82,6 +83,7 @@ import (
 	bldr_example "github.com/s4wave/spacewave/bldr/example"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	bldr_values "github.com/s4wave/spacewave/bldr/values"
+	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,7 +103,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b), link_solicit_controller.NewFactory()}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
@@ -134,6 +136,7 @@ func TestCodegen(t *testing.T) {
 	packagePaths := []string{
 		"github.com/aperturerobotics/controllerbus/example/boilerplate/controller",
 		"github.com/s4wave/spacewave/bldr/example",
+		"github.com/s4wave/spacewave/net/link/solicit/controller",
 	}
 
 	workDir, _ := os.Getwd()

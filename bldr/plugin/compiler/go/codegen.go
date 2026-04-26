@@ -36,6 +36,32 @@ func BuildPackageName(pkg *types.Package) string {
 	return pkg.Name()
 }
 
+func buildFactoryCall(pkgName string, pkg *types.Package) (gast.Expr, error) {
+	newFactoryObj := pkg.Scope().Lookup("NewFactory")
+	if newFactoryObj == nil {
+		return nil, errors.Errorf("package %s has no NewFactory", pkg.Path())
+	}
+	sig, ok := newFactoryObj.Type().(*types.Signature)
+	if !ok {
+		return nil, errors.Errorf("package %s NewFactory is not a function", pkg.Path())
+	}
+	call := &gast.CallExpr{
+		Fun: &gast.SelectorExpr{
+			X:   gast.NewIdent(pkgName),
+			Sel: gast.NewIdent("NewFactory"),
+		},
+	}
+	switch sig.Params().Len() {
+	case 0:
+		return call, nil
+	case 1:
+		call.Args = []gast.Expr{gast.NewIdent("b")}
+		return call, nil
+	default:
+		return nil, errors.Errorf("package %s NewFactory has unsupported arity %d", pkg.Path(), sig.Params().Len())
+	}
+}
+
 // CodegenPluginWrapperFromAnalysis codegens a plugin wrapper from analysis.
 //
 // configSetFiles will be embedded in the binary and parsed as a ConfigSet.
@@ -120,15 +146,12 @@ func CodegenPluginWrapperFromAnalysis(
 	}
 	slices.Sort(controllerFactoriesPackages)
 	for _, fpkg := range controllerFactoriesPackages {
-		buildControllersElts = append(buildControllersElts, &gast.CallExpr{
-			Args: []gast.Expr{
-				gast.NewIdent("b"),
-			},
-			Fun: &gast.SelectorExpr{
-				Sel: gast.NewIdent("NewFactory"),
-				X:   gast.NewIdent(fpkg),
-			},
-		})
+		factoryPkg := a.controllerFactories[fpkg]
+		factoryCall, err := buildFactoryCall(fpkg, factoryPkg.Types)
+		if err != nil {
+			return nil, err
+		}
+		buildControllersElts = append(buildControllersElts, factoryCall)
 	}
 
 	// PluginStartInfo contains the plugin instance id from the environment.
