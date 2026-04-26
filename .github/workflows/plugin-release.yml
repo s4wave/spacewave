@@ -245,19 +245,32 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Install Artifact Signing Azure CLI extension
+      - name: Resolve TrustedSigning module path
+        id: trusted_signing_paths
         shell: pwsh
         run: |
-          az config set extension.use_dynamic_install=yes_without_prompt
-          az extension add --name artifact-signing --upgrade
-          az sign -h | Out-Null
+          $defaultPath = $env:PSModulePath -split ';' | Select-Object -First 1
+          "psmodulepath=$defaultPath" >> $env:GITHUB_OUTPUT
+
+      - name: Cache TrustedSigning PowerShell module
+        id: cache_trusted_signing
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.trusted_signing_paths.outputs.psmodulepath }}\TrustedSigning\0.5.8
+          key: TrustedSigning-0.5.8
+
+      - name: Install TrustedSigning PowerShell module
+        if: steps.cache_trusted_signing.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
 
       - name: Build signed Windows native plugin manifests
         shell: pwsh
         env:
           BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
           BLDR_WINDOWS_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          BLDR_WINDOWS_SIGN_PUBLISHER: ${{ vars.BLDR_WINDOWS_SIGN_PUBLISHER }}
+          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ vars.BLDR_WINDOWS_SIGN_ENDPOINT }}
         run: |
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-windows-arm64,plugin-release-desktop-windows-amd64
 

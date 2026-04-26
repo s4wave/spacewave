@@ -35,6 +35,19 @@ smoke_test() {
 
 rebuild_image() {
   echo "=== building $IMAGE image ==="
+  # CI sets BLDR_BUILDER_USE_BUILDX_GHA=1 so the slow apt + zig + appimagetool
+  # layers in desktop/Dockerfile are cached across workflow runs via the
+  # GitHub Actions cache backend. --load is required because subsequent steps
+  # (smoke test, build-helper.sh) shell out to plain `docker run` and need
+  # the image present in the local docker engine.
+  if [ "${BLDR_BUILDER_USE_BUILDX_GHA:-0}" = "1" ]; then
+    docker buildx build --platform linux/amd64 \
+        --cache-from=type=gha,scope=spacewave-builder \
+        --cache-to=type=gha,mode=max,scope=spacewave-builder \
+        --load \
+        -t "$IMAGE" "$REPO_ROOT/desktop/"
+    return
+  fi
   docker build --platform linux/amd64 -t "$IMAGE" "$REPO_ROOT/desktop/"
 }
 

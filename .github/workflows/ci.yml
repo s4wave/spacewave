@@ -81,15 +81,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Install Bun dependencies
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          go mod vendor
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Cache aptre tools
         uses: actions/cache@v5
         with:
           path: ./.tools
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: |
+          go mod vendor
+          bun run setup
 
       - name: Build Javascript
         if: ${{ matrix.member.build_script != '' }}
@@ -131,15 +134,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Install Bun dependencies
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          go mod vendor
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Cache aptre tools
         uses: actions/cache@v5
         with:
           path: ./.tools
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: |
+          go mod vendor
+          bun run setup
 
       - name: Generate licenses
         run: bun run licenses
@@ -204,9 +210,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Install Bun dependencies
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          go mod vendor
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
         if: ${{ matrix.suite.needs_playwright }}
@@ -217,6 +221,11 @@ jobs:
         with:
           path: ./.tools
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: |
+          go mod vendor
+          bun run setup
 
       - name: Run E2E suite
         run: bun run ${{ matrix.suite.script }}

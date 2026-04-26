@@ -518,7 +518,15 @@ func (c *Controller) BuildPlugin(
 	// analyze go packages
 	le.Info("analyzing go packages")
 	buildTagsForAnalyze := gocompiler.NewBuildTags(buildType, enableCgo)
-	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTagsForAnalyze)
+	// Match analysis GOOS/GOARCH to the target so factories gated on
+	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
+	// are excluded from the generated factory list when targeting js/wasm.
+	var analyzeGOOS, analyzeGOARCH string
+	if native, ok := buildPlatform.(*bldr_platform.NativePlatform); ok {
+		analyzeGOOS = native.GetGOOS()
+		analyzeGOARCH = native.GetGOARCH()
+	}
+	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTagsForAnalyze, analyzeGOOS, analyzeGOARCH)
 	if err != nil {
 		return nil, nil, err
 	}

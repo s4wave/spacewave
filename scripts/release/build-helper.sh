@@ -43,12 +43,19 @@ build_via_docker() {
   fi
 
   echo "=== [$label] start container ==="
-  # Persistent named volume for Zig's per-target stub cache. Surviving across
-  # runs means only the first build per target pays the extraction cost; every
-  # subsequent build reuses /root/.cache/zig from the volume.
+  # Persistent cache for Zig's per-target stub extraction so only the first
+  # build per target pays the cost; every subsequent build reuses
+  # /root/.cache/zig. Defaults to a docker named volume for local iteration.
+  # CI sets BLDR_BUILDER_ZIG_CACHE_DIR to a host path so GitHub Actions cache
+  # can persist it across workflow runs.
+  local zig_cache_mount="type=volume,source=spacewave-builder-zig-cache,target=/root/.cache/zig"
+  if [ -n "${BLDR_BUILDER_ZIG_CACHE_DIR:-}" ]; then
+    mkdir -p "$BLDR_BUILDER_ZIG_CACHE_DIR"
+    zig_cache_mount="type=bind,source=$BLDR_BUILDER_ZIG_CACHE_DIR,target=/root/.cache/zig"
+  fi
   local cid
   cid="$(docker create --platform linux/amd64 --rm \
-      --mount type=volume,source=spacewave-builder-zig-cache,target=/root/.cache/zig \
+      --mount "$zig_cache_mount" \
       "$image" tail -f /dev/null)"
   # Double-quoted trap expands $cid at setup so cleanup still works after the
   # function returns and the local goes out of scope.

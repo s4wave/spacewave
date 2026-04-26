@@ -8,7 +8,7 @@ import (
 )
 
 // TestSignWindowsNoOpWhenUnset verifies that SignWindows returns nil without
-// invoking az when BLDR_WINDOWS_SIGN_PROFILE is unset.
+// invoking pwsh when BLDR_WINDOWS_SIGN_PROFILE is unset.
 func TestSignWindowsNoOpWhenUnset(t *testing.T) {
 	t.Setenv(WindowsSignProfileEnv, "")
 	le := logrus.NewEntry(logrus.New())

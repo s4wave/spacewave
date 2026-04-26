@@ -53,12 +53,19 @@ type Analysis struct {
 // AnalyzePackages analyzes code packages using Go module package resolution.
 //
 // packagePaths can start with ./ to be relative to the root module path.
+//
+// goos and goarch select the build environment used to evaluate per-file
+// build tags during analysis. Pass the target platform's GOOS/GOARCH so
+// factories gated on platform-specific tags (e.g. "//go:build !js") match
+// the target compile rather than the analysis host. Empty strings fall
+// back to linux/amd64.
 func AnalyzePackages(
 	ctx context.Context,
 	le *logrus.Entry,
 	workDir string,
 	packagePaths []string,
 	buildTags []string,
+	goos, goarch string,
 ) (*Analysis, error) {
 	// expect go.mod go.sum in the work dir for base module
 	baseGoModPath := filepath.Join(workDir, "go.mod")
@@ -135,9 +142,18 @@ func AnalyzePackages(
 	}
 	conf.BuildFlags = append(conf.BuildFlags, "-mod=vendor")
 
-	// for analysis purposes, use a constant GOOS / GOARCH
+	// Use the target platform's GOOS / GOARCH so build-tag gating during
+	// analysis matches the target compile. Empty inputs fall back to
+	// linux/amd64 for backwards compatibility with callers that have no
+	// concrete target (e.g. unit tests).
+	if goos == "" {
+		goos = "linux"
+	}
+	if goarch == "" {
+		goarch = "amd64"
+	}
 	conf.Env = append(os.Environ(), gocompiler.GetDefaultEnv()...)
-	conf.Env = append(conf.Env, "GOOS=linux", "GOARCH=amd64")
+	conf.Env = append(conf.Env, "GOOS="+goos, "GOARCH="+goarch)
 
 	// Add values packages to the packages to load for type comparison
 	packagesToLoad := append([]string{EsbuildOutputPkgPath}, packagePaths...)

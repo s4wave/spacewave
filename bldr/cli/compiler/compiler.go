@@ -117,8 +117,16 @@ func (c *Controller) BuildManifest(
 	// analyze go packages for factory discovery
 	// AnalyzePackages handles ./ relative path resolution internally
 	le.Debug("analyzing packages for factory discovery")
+	// Match analysis GOOS/GOARCH to the target so factories gated on
+	// platform-specific build tags are excluded from the generated factory
+	// list when targeting js/wasm or another non-host platform.
+	var analyzeGOOS, analyzeGOARCH string
+	if native, ok := buildPlatform.(*bldr_platform.NativePlatform); ok {
+		analyzeGOOS = native.GetGOOS()
+		analyzeGOARCH = native.GetGOARCH()
+	}
 	analysis, err := plugin_compiler_go.AnalyzePackages(
-		ctx, le, sourcePath, conf.GetGoPkgs(), nil,
+		ctx, le, sourcePath, conf.GetGoPkgs(), nil, analyzeGOOS, analyzeGOARCH,
 	)
 	if err != nil {
 		return nil, err

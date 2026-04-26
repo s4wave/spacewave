@@ -76,6 +76,8 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+      BLDR_BUILDER_USE_BUILDX_GHA: "1"
+      BLDR_BUILDER_ZIG_CACHE_DIR: ${{ github.workspace }}/.tmp/zig-cache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -93,6 +95,17 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache spacewave-builder zig stubs
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.BLDR_BUILDER_ZIG_CACHE_DIR }}
+          key: spacewave-builder-zig-${{ hashFiles('desktop/Dockerfile', 'desktop/cross/toolchains/*.cmake') }}
+          restore-keys: |
+            spacewave-builder-zig-
 
       - name: Install Bun dependencies
         shell: bash

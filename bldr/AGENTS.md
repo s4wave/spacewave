@@ -28,15 +28,19 @@ Either non-zero exit fails the build.
 
 | Env var | Meaning |
 |---|---|
-| `BLDR_WINDOWS_SIGN_PROFILE` | Azure Trusted Signing cert profile name. Unset = skip signing. |
-| `BLDR_WINDOWS_SIGN_ACCOUNT` | Azure Trusted Signing account name. Required when profile is set. |
-| `BLDR_WINDOWS_SIGN_PUBLISHER` | Publisher name. Defaults to `Aperture Robotics LLC`. |
+| `BLDR_WINDOWS_SIGN_PROFILE` | Trusted Signing certificate profile name. Unset = skip signing. |
+| `BLDR_WINDOWS_SIGN_ACCOUNT` | Trusted Signing signing-account name. Required when profile is set. |
+| `BLDR_WINDOWS_SIGN_ENDPOINT` | Regional endpoint URL. Defaults to `https://wus.codesigning.azure.net/` when unset. |
+| `BLDR_WINDOWS_SIGN_DESCRIPTION` | Authenticode signature description. Defaults to `Spacewave`. |
 
 When set and GOOS=windows, bldr shells out to:
 ```
-az sign --file <binary> --publisher-name "$PUBLISHER" --description "Spacewave" --trusted-signing-account "$ACCOUNT" --trusted-signing-cert-profile "$PROFILE"
+pwsh -NoProfile -NonInteractive -Command "Invoke-TrustedSigning -Endpoint $env:BLDR_SIGN_ENDPOINT -CodeSigningAccountName $env:BLDR_SIGN_ACCOUNT -CertificateProfileName $env:BLDR_SIGN_PROFILE -Files $env:BLDR_SIGN_FILE -Description $env:BLDR_SIGN_DESCRIPTION -FileDigest SHA256 -TimestampRfc3161 'http://timestamp.acs.microsoft.com' -TimestampDigest SHA256"
 ```
-Non-zero exit fails the build.
+Requires the `TrustedSigning` PowerShell module
+(`Install-Module -Name TrustedSigning`) and a prior `az login` (or
+`azure/login@v3` in CI) so that `DefaultAzureCredential` can authenticate
+via `AzureCliCredential`. Non-zero exit fails the build.
 
 ## File Logging
 
