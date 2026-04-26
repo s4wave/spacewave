@@ -10,7 +10,7 @@ b
 resource/listener6{"listenerSocketPath":"git:.spacewave/spacewave.sock"}
 $
 	blocktype
-hydra-exp/blocktype
+db/blocktype
 $
 provider-local
 provider/local

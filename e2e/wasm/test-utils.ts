@@ -1,5 +1,5 @@
 // Shared test utility functions for typed e2e test scripts.
-// Used by both alpha and spacewave-cloud e2e/wasm/*.ts files.
+// Used by both spacewave and spacewave-cloud e2e/wasm/*.ts files.
 
 // Disposable is any object with a Symbol.dispose method.
 interface Disposable {

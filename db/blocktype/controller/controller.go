@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
-	"github.com/s4wave/spacewave/hydra-exp/blocktype"
+	"github.com/s4wave/spacewave/db/blocktype"
 )
 
 // LookupBlockTypeFunc looks up a BlockType by its type ID.

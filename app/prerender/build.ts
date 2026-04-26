@@ -35,7 +35,7 @@ import { getMetadata, type PageMetadata } from './metadata.js'
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? 'https://spacewave.app'
 
 // When built as an SSR bundle, import.meta.url points to the output
-// file. Use process.cwd() which is always the alpha project root.
+// file. Use process.cwd() which is always the spacewave project root.
 const projectRoot = process.cwd()
 const prerenderDir = resolve(projectRoot, 'app/prerender')
 
@@ -46,7 +46,7 @@ function getDistDir(): string {
   }
   return join(
     projectRoot,
-    '.bldr-dist/build/native/js/wasm/aperture-alpha-release/dist',
+    '.bldr-dist/build/desktop/js/wasm/spacewave-dist/dist',
   )
 }
 

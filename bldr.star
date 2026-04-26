@@ -15,7 +15,7 @@ CORE_GO_PKGS = [
     "./core/plugin/space",
     "./core/space/http/download",
     "./core/space/http/export",
-    "./hydra-exp/blocktype/controller-factory",
+    "./db/blocktype/controller-factory",
     "github.com/s4wave/spacewave/db/object/peer",
 ]
 
@@ -47,7 +47,7 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
         }),
         "space-sobject": config_entry("space/sobject", 1, {"verbose": False}),
         "space-world-ops": config_entry("space/world/ops", 1),
-        "blocktype": config_entry("hydra-exp/blocktype", 1),
+        "blocktype": config_entry("db/blocktype", 1),
         "download": config_entry("space/http/download", 1),
         "export": config_entry("space/http/export", 1),
         "resource-listener": config_entry("resource/listener", 1, {

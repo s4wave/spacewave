@@ -15,7 +15,7 @@ The prerender pipeline runs as a post-build step after bldr produces the applica
 
 The build script lives at `app/prerender/build.ts`. It accepts two flags:
 
-- `--dist-dir <path>` overrides the bldr dist output directory (defaults to `.bldr-dist/build/native/js/wasm/aperture-alpha-release/dist`).
+- `--dist-dir <path>` overrides the bldr dist output directory (defaults to `.bldr-dist/build/desktop/js/wasm/spacewave-dist/dist`).
 - `--quiet` suppresses verbose logging.
 
 The site origin defaults to `https://spacewave.app` and can be overridden via the `SITE_ORIGIN` environment variable.

@@ -20,7 +20,7 @@ b
 space/http/export
 $
 	blocktype
-hydra-exp/blocktype
+db/blocktype
 &
 space-world-ops
 space/world/ops

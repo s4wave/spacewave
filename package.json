@@ -41,7 +41,7 @@
     "go:aptre": "cross-env GOFLAGS=-mod=mod -tags=purego go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
     "start": "bun run start:web",
     "start:desktop": "bun run bldr -- start desktop",
-    "start:desktop:release": "bun run build:release:desktop && cd ./.bldr/build/desktop/$(go env GOOS)/$(go env GOARCH)/spacewave-dist/dist && ./aperture-alpha",
+    "start:desktop:release": "bun run build:release:desktop && cd ./.bldr/build/desktop/$(go env GOOS)/$(go env GOARCH)/spacewave-dist/dist && ./spacewave",
     "start:web": "bun run bldr -- --minify-entrypoint=false start web",
     "start:web:wasm": "bun run bldr -- --log-level debug --minify-entrypoint=false start web --wasm",
     "start:web:wasm:browser": "bun scripts/start-web-wasm-browser.js",

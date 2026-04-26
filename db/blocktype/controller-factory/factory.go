@@ -8,11 +8,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver/v4"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	blocktype_controller "github.com/s4wave/spacewave/hydra-exp/blocktype/controller"
+	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 )
 
 // ControllerID is the controller id.
-const ControllerID = "hydra-exp/blocktype"
+const ControllerID = "db/blocktype"
 
 // Version is the component version.
 var Version = semver.MustParse("1.0.0")

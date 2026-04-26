@@ -1,6 +1,6 @@
 //go:build deps_only
 
-package aperture_alpha
+package spacewave
 
 import (
 	// _ imports common

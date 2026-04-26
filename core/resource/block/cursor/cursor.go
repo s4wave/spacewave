@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/hydra-exp/blocktype"
+	"github.com/s4wave/spacewave/db/blocktype"
 	s4wave_block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
 	"github.com/sirupsen/logrus"
 )

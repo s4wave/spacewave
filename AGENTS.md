@@ -1,7 +1,7 @@
-## Alpha Agent Guide
+## Spacewave Agent Guide
 
-This file contains rules specific to `repos/alpha`. Follow the shared company
-AGENTS rules first, then apply these Alpha-specific rules.
+This file contains rules specific to `repos/spacewave`. Follow the shared
+company AGENTS rules first, then apply these Spacewave-specific rules.
 
 ## Repository Basics
 
@@ -199,10 +199,11 @@ Forbidden in cloud client code:
 - `doPostJSON` (removed; previous proto-JSON helper)
 - `aperturerobotics/fastjson` for cloud requests or responses
 - `MarshalJSON` / `UnmarshalJSON` / `MarshalProtoJSON` / `UnmarshalProtoJSON`
-  on proto types crossing the alpha <-> cloud boundary
+  on proto types crossing the spacewave <-> cloud boundary
 - hand-rolled JSON request bodies, hand-parsed JSON response bodies
 
-WebSocket frames received from the cloud on the alpha <-> cloud boundary are
+WebSocket frames received from the cloud on the spacewave <-> cloud boundary
+are
 binary frames carrying a per-endpoint envelope proto with a oneof body case
 (`WsAuthSessionServerFrame`, `WsBillingCheckoutServerFrame`). Parse with
 `UnmarshalVT` and switch on the oneof. Do NOT call `UnmarshalJSON` on cloud

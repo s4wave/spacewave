@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/testbed"
-	"github.com/s4wave/spacewave/hydra-exp/blocktype"
+	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/sirupsen/logrus"
 )
 

@@ -21,7 +21,7 @@ import (
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	object_peer "github.com/s4wave/spacewave/db/object/peer"
-	blocktype_controller_factory "github.com/s4wave/spacewave/hydra-exp/blocktype/controller-factory"
+	blocktype_controller_factory "github.com/s4wave/spacewave/db/blocktype/controller-factory"
 )
 
 // configSetFS contains the embedded configset.

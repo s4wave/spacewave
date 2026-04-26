@@ -3,7 +3,7 @@ package space_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/hydra-exp/blocktype"
+	"github.com/s4wave/spacewave/db/blocktype"
 )
 
 // LookupBlockType looks up a block type by ID.
