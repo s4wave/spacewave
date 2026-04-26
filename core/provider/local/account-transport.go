@@ -135,7 +135,7 @@ func (a *ProviderAccount) lookupCloudEndpoint(ctx context.Context) string {
 	type endpointProvider interface {
 		GetEndpoint() string
 	}
-	swProv, swProvRef, err := provider.ExLookupProvider(ctx, a.t.p.b, "spacewave", false, nil)
+	swProv, swProvRef, err := provider.ExLookupProvider(ctx, a.t.p.b, "spacewave", true, nil)
 	if err != nil || swProv == nil {
 		a.le.Debug("no spacewave provider found, transport will run without signaling")
 		return ""
