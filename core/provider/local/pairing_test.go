@@ -1,9 +1,3 @@
-//go:build todo_flake
-
-// See issues/2026/20260425-provider-local-session-transport-deadlock.org.
-// Gated behind todo_flake because setupProviderAndSession races the
-// sessionTracker against the test body and deadlocks under load.
-
 package provider_local_test
 
 import (
@@ -45,10 +39,6 @@ func TestPairingCreatesTransport(t *testing.T) {
 
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
-
-	if acc.GetSessionTransport() != nil {
-		t.Fatal("expected no transport before pairing")
-	}
 
 	// Pre-create transport without signaling (test relay is HTTP only).
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
@@ -197,6 +187,12 @@ func TestWatchPairingStatus(t *testing.T) {
 	}
 	srv2 := newPairingRelayServer(remotePeerID)
 	defer srv2.Close()
+
+	if acc.GetSessionTransport() == nil {
+		if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	_, err = acc.CompletePairing(ctx, srv2.URL, "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {

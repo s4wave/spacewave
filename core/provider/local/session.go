@@ -428,8 +428,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 
 	// Always start the session transport so this peer is reachable on signaling.
 	signalingURL := t.a.lookupCloudEndpoint(ctx)
-	defer t.a.StopSessionTransport()
-	if err := t.a.CreateSessionTransport(ctx, sessionPriv, signalingURL); err != nil {
+	sts, err := t.a.createSessionTransport(ctx, sessionPriv, signalingURL)
+	defer t.a.stopSessionTransportState(sts)
+	if err != nil {
 		le.WithError(err).Warn("failed to start session transport")
 	}
 	if st := t.a.GetSessionTransport(); st != nil {

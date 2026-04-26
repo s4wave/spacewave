@@ -7,6 +7,11 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+import {
+  buildGoAliases,
+  goTsResolver,
+} from './bldr/web/bundler/vite/go-ts-resolver.js'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 function resolveBldrAliasPath(...segments: string[]) {
@@ -34,6 +39,7 @@ export default defineConfig({
 
   resolve: {
     alias: [
+      ...buildGoAliases(__dirname),
       {
         find: '@aptre/bldr',
         replacement: resolveBldrAliasPath('web/bldr/index.js'),
@@ -45,10 +51,6 @@ export default defineConfig({
       {
         find: /^@aptre\/bldr-sdk\/(.*)$/,
         replacement: resolve(__dirname, './.bldr/src/sdk/$1'),
-      },
-      {
-        find: /^@go\/(.*)$/,
-        replacement: resolve(__dirname, './vendor/$1'),
       },
       {
         find: /^@s4wave\/app\/(.*)$/,
@@ -84,6 +86,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // goTsResolver is injected by bldr's vite-base.config.ts during builds.
+    goTsResolver(__dirname),
   ],
 })

@@ -26,16 +26,32 @@ type sessionTransportState struct {
 // The transport runs via a RoutineContainer. On post-Ready failures, the
 // exit callback clears sessionTransport and broadcasts.
 func (a *ProviderAccount) CreateSessionTransport(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) error {
-	a.StopSessionTransport()
+	_, err := a.createSessionTransport(ctx, sessionKey, signalingURL)
+	return err
+}
+
+func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) (*sessionTransportState, error) {
+	rel, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rel()
+
+	return a.createSessionTransportLocked(ctx, sessionKey, signalingURL)
+}
+
+func (a *ProviderAccount) createSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) (*sessionTransportState, error) {
+	a.stopSessionTransportLocked()
 
 	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, "")
 	if err != nil {
-		return errors.Wrap(err, "create session transport")
+		return nil, errors.Wrap(err, "create session transport")
 	}
 
 	// exitedCh signals startup failure (Execute returned before Ready).
 	exitedCh := make(chan struct{}, 1)
 	var exitErr error
+	var sts *sessionTransportState
 
 	rc := routine.NewRoutineContainerWithLogger(
 		a.le.WithField("routine", "session-transport"),
@@ -51,32 +67,35 @@ func (a *ProviderAccount) CreateSessionTransport(ctx context.Context, sessionKey
 				a.SetPairingSignalingFailed(err.Error())
 			}
 			a.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-				a.sessionTransport = nil
-				bcast()
+				if a.sessionTransport == sts {
+					a.sessionTransport = nil
+					bcast()
+				}
 			})
 		}),
 	)
+	sts = &sessionTransportState{
+		transport: st,
+		rc:        rc,
+	}
 
 	rc.SetRoutine(st.Execute)
 	rc.SetContext(ctx, false)
 
 	a.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		a.sessionTransport = &sessionTransportState{
-			transport: st,
-			rc:        rc,
-		}
+		a.sessionTransport = sts
 		bcast()
 	})
 
 	// Wait for ready or startup failure.
 	select {
 	case <-ctx.Done():
-		a.StopSessionTransport()
-		return ctx.Err()
+		a.stopSessionTransportLocked()
+		return nil, ctx.Err()
 	case <-exitedCh:
-		return errors.Wrap(exitErr, "session transport failed to start")
+		return nil, errors.Wrap(exitErr, "session transport failed to start")
 	case <-st.Ready():
-		return nil
+		return sts, nil
 	}
 }
 
@@ -109,10 +128,37 @@ func (a *ProviderAccount) GetTransportSnapshotWithWait() (bool, <-chan struct{})
 
 // StopSessionTransport stops the running session transport if any.
 func (a *ProviderAccount) StopSessionTransport() {
+	rel, err := a.mtx.Lock(context.Background())
+	if err != nil {
+		return
+	}
+	defer rel()
+
+	a.stopSessionTransportLocked()
+}
+
+func (a *ProviderAccount) stopSessionTransportState(sts *sessionTransportState) {
+	rel, err := a.mtx.Lock(context.Background())
+	if err != nil {
+		return
+	}
+	defer rel()
+
+	a.stopSessionTransportStateLocked(sts)
+}
+
+func (a *ProviderAccount) stopSessionTransportLocked() {
 	var sts *sessionTransportState
 	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		sts = a.sessionTransport
 	})
+	if sts == nil {
+		return
+	}
+	a.stopSessionTransportStateLocked(sts)
+}
+
+func (a *ProviderAccount) stopSessionTransportStateLocked(sts *sessionTransportState) {
 	if sts == nil {
 		return
 	}
@@ -157,11 +203,19 @@ func (a *ProviderAccount) EnsureSessionTransport(
 	sessionPriv crypto.PrivKey,
 	relayURL string,
 ) error {
-	if a.GetSessionTransport() != nil {
-		a.le.Debug("session transport already exists, skipping creation")
-		return nil
+	rel, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return err
 	}
-	return a.CreateSessionTransport(ctx, sessionPriv, relayURL)
+	defer rel()
+
+	st := a.GetSessionTransport()
+	if st != nil {
+		a.le.Debug("session transport already exists, skipping creation")
+		return st.AwaitReady(ctx)
+	}
+	_, err = a.createSessionTransportLocked(ctx, sessionPriv, relayURL)
+	return err
 }
 
 // GetOnlinePeerIDs returns the base58 peer IDs of paired devices that

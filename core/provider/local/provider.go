@@ -7,11 +7,13 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/ulid"
+	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -137,9 +139,44 @@ func (p *Provider) CreateLocalAccountAndSession(ctx context.Context, cloudAccoun
 		tkrRef.Release()
 		return nil, err
 	}
+	if cloudAccountID != "" {
+		if err := localAcc.writeLinkedCloudAccountID(ctx, localSessionID, cloudAccountID); err != nil {
+			tkrRef.Release()
+			return nil, err
+		}
+	}
 	tkrRef.Release()
 
 	return sessRef, nil
+}
+
+func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, sessionID, cloudAccountID string) error {
+	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
+		ctx,
+		a.t.p.b,
+		false,
+		SessionObjectStoreID(a.GetProviderID(), a.GetAccountID()),
+		a.vol.GetID(),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "mount session object store")
+	}
+	defer diRef.Release()
+
+	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open session object store transaction")
+	}
+	defer otx.Discard()
+
+	if err := otx.Set(ctx, LinkedCloudKey(sessionID), []byte(cloudAccountID)); err != nil {
+		return errors.Wrap(err, "set linked cloud account id")
+	}
+	if err := otx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit linked cloud account id")
+	}
+	return nil
 }
 
 // AccessProviderAccount accesses a provider account.
