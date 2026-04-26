@@ -312,7 +312,7 @@ func (h *Handle) Write(
 		// copy data to writeBuf until it is at most optimalWriteSize
 		maxInt := int(^uint(0) >> 1)
 		writeBufCap := maxInt
-		if optimalWriteSize <= uint64(maxInt) {
+		if optimalWriteSize <= uint64(maxInt) { //nolint:gosec // maxInt is non-negative by construction
 			writeBufCap = int(optimalWriteSize) //nolint:gosec // bounded by the maxInt guard above
 		}
 		extendWb := writeBufCap - len(h.writeBuf.buf)
@@ -483,11 +483,11 @@ func (h *Handle) getOptimalWriteSize(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if optWriteSize == 0 {
+	if optWriteSize <= 0 {
 		optWriteSize = unixfs_block_fs.OptimalWriteSize
 	}
-	h.writeSize = uint64(optWriteSize)
-	return uint64(optWriteSize), nil
+	h.writeSize = uint64(optWriteSize) //nolint:gosec // guarded above
+	return h.writeSize, nil
 }
 
 // _ is a type assertion
