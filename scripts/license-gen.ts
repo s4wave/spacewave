@@ -88,11 +88,17 @@ interface RunResult {
   stderr: string
 }
 
-function run(command: string, cmdArgs: string[], cwd?: string): Promise<RunResult> {
+function run(
+  command: string,
+  cmdArgs: string[],
+  cwd?: string,
+  env?: NodeJS.ProcessEnv,
+): Promise<RunResult> {
   return new Promise((res) => {
     const proc = spawn(command, cmdArgs, {
       cwd: cwd || rootDir,
       stdio: ['inherit', 'pipe', 'pipe'],
+      env: env ? { ...process.env, ...env } : process.env,
     })
     let stdout = ''
     let stderr = ''
@@ -134,10 +140,15 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   const tplPath = join(rootDir, 'scripts', 'go-license-template.tpl')
   const binPath = await buildGoLicenses()
 
+  // Pin GOOS=linux so the package set seen by go-licenses is identical
+  // across host platforms. Without this, packages behind //go:build linux
+  // (e.g. bazil.org/fuse) appear only when generating on Linux, causing
+  // app/licenses/ to drift between local (often darwin) and CI.
   const result = await run(
     binPath,
     ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
     rootDir,
+    { GOOS: 'linux' },
   )
 
   if (result.code !== 0 && !result.stdout.trim()) {
