@@ -5,13 +5,11 @@ import (
 	"context"
 	"io"
 	"math"
-	"runtime"
 	"sort"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/conc"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -40,18 +38,6 @@ const (
 	// defaultWritebackWindow is the default semantic co-block window.
 	defaultWritebackWindow = 128 * 1024
 )
-
-// defaultVerifyConcurrency returns the default verify/persist worker count.
-func defaultVerifyConcurrency() int {
-	n := runtime.GOMAXPROCS(0)
-	if n <= 0 {
-		return 1
-	}
-	if n > 8 {
-		return 8
-	}
-	return n
-}
 
 // PackReader is the per-pack access engine.
 //
@@ -131,7 +117,7 @@ type PackReader struct {
 	indexCache      IndexCache
 	writebackCtx    context.Context
 	writebackTarget block.StoreOps
-	verifyQueue     *conc.ConcurrentQueue
+	verifyQueue     verifyExecutor
 	ownVerifyQueue  bool
 	verifyQueued    int
 	verifyRunning   int
@@ -210,8 +196,9 @@ func (e *PackReader) SetIndexCache(cache IndexCache) {
 //
 // Callers may share one queue across multiple engines to bound total verify
 // concurrency. When not set, the engine lazily creates its own pool at the
-// default concurrency the first time work is enqueued.
-func (e *PackReader) SetVerifyQueue(q *conc.ConcurrentQueue) {
+// default concurrency the first time work is enqueued. *conc.ConcurrentQueue
+// satisfies the verifyExecutor interface.
+func (e *PackReader) SetVerifyQueue(q verifyExecutor) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		e.verifyQueue = q
 		e.ownVerifyQueue = false
@@ -241,7 +228,7 @@ func (e *PackReader) enqueueVerifyLocked(jobs ...func()) {
 		return
 	}
 	if e.verifyQueue == nil {
-		e.verifyQueue = conc.NewConcurrentQueue(defaultVerifyConcurrency())
+		e.verifyQueue = newDefaultVerifyExecutor(defaultVerifyConcurrency())
 		e.ownVerifyQueue = true
 	}
 	e.verifyQueued += len(jobs)

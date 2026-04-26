@@ -6,7 +6,6 @@ import (
 	"weak"
 
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/conc"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/pkg/errors"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
@@ -57,7 +56,7 @@ type bloomNode struct {
 type PackfileStore struct {
 	opener      Opener
 	cache       IndexCache
-	verifyQueue *conc.ConcurrentQueue
+	verifyQueue verifyExecutor
 
 	mu      sync.Mutex
 	engines map[string]*PackReader
@@ -90,7 +89,7 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 	s := &PackfileStore{
 		opener:          opener,
 		cache:           cache,
-		verifyQueue:     conc.NewConcurrentQueue(defaultVerifyConcurrency()),
+		verifyQueue:     newDefaultVerifyExecutor(defaultVerifyConcurrency()),
 		engines:         make(map[string]*PackReader),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
@@ -149,7 +148,7 @@ func (s *PackfileStore) SetVerifyConcurrency(maxConcurrency int) error {
 		s.mu.Unlock()
 		return errors.New("SetVerifyConcurrency must be called before reads begin")
 	}
-	s.verifyQueue = conc.NewConcurrentQueue(maxConcurrency)
+	s.verifyQueue = newDefaultVerifyExecutor(maxConcurrency)
 	s.mu.Unlock()
 	return nil
 }
