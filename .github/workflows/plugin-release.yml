@@ -72,6 +72,12 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+
       - name: Build browser plugin channel manifests
         shell: bash
         run: |
@@ -116,6 +122,12 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
 
       - name: Import macOS signing certificate
         shell: bash
@@ -217,6 +229,12 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+
       - name: Login to Azure with OIDC
         uses: azure/login@v3
         with:
@@ -305,6 +323,12 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
 
       - name: Build Linux native plugin manifests
         shell: bash
