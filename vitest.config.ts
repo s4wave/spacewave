@@ -9,15 +9,18 @@ export default mergeConfig(
     test: {
       environment: 'happy-dom',
       setupFiles: ['./web/test/setup.ts'],
+      include: ['{app,web,core,sdk,plugin,cmd}/**/*.test.{ts,tsx}'],
       exclude: [
         ...configDefaults.exclude,
         'dist/**',
         'vendor/**',
         '**/.bldr/**',
         '.tmp/**',
-        'prototypes/**',
+        '**/prototypes/**',
         // E2E tests require browser environment, run separately via test:browser
         '**/*.e2e.test.{ts,tsx}',
+        '**/*.e2e.spec.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
         // Go-based end-to-end harnesses live under e2e/ and run separately.
         'e2e/**',
       ],
