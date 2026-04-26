@@ -1,6 +1,6 @@
 #+TITLE: Spacewave Changelog
 
-* v0.1.0 Alpha Launch
+* v0.50.0 Public Launch
 <2026-04-18 Fri>
 
 Launch release of Spacewave with encrypted local-first storage, peer-to-peer
@@ -30,4 +30,3 @@ platform.
 - CLI: command-line tools for managing Spaces, syncing files, and automating
   workflows.
 - Desktop, web, and CLI builds from the same codebase.
-

@@ -108,14 +108,34 @@ function run(command: string, cmdArgs: string[], cwd?: string): Promise<RunResul
   })
 }
 
+// Builds the go-licenses binary from scripts/licenses/ into .tools/.
+// The sub-module pins go-licenses v2 via a `tool` directive so the working
+// version is reproducible and isolated from spacewave's own dependency graph.
+async function buildGoLicenses(): Promise<string> {
+  const binPath = join(rootDir, '.tools', 'go-licenses')
+  if (existsSync(binPath)) return binPath
+  mkdirSync(dirname(binPath), { recursive: true })
+  const result = await run(
+    'go',
+    ['-C', 'scripts/licenses', 'build', '-o', binPath, 'github.com/google/go-licenses/v2'],
+    rootDir,
+  )
+  if (result.code !== 0) {
+    console.error('failed to build go-licenses:', result.stderr)
+    process.exit(1)
+  }
+  return binPath
+}
+
 // Go license generation: runs go-licenses with a template, deduplicates
 // sub-packages to module level, enriches versions from vendor/modules.txt.
 async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   console.log('Generating Go licenses...')
   const tplPath = join(rootDir, 'scripts', 'go-license-template.tpl')
+  const binPath = await buildGoLicenses()
 
   const result = await run(
-    'go-licenses',
+    binPath,
     ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
     rootDir,
   )

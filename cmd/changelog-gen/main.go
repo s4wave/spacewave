@@ -54,10 +54,10 @@ func repoDir(args []string) (string, error) {
 		return os.Getwd()
 	case 2:
 		if args[0] != "--repo" {
-			return "", errors.New("usage: changelog-gen [--repo /path/to/alpha]")
+			return "", errors.New("usage: changelog-gen [--repo /path/to/spacewave]")
 		}
 		return filepath.Clean(args[1]), nil
 	default:
-		return "", errors.New("usage: changelog-gen [--repo /path/to/alpha]")
+		return "", errors.New("usage: changelog-gen [--repo /path/to/spacewave]")
 	}
 }
