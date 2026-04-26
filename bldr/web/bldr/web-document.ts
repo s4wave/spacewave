@@ -603,14 +603,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.workerCommsDetect.then((result) => {
       const desc = configDescription(result.config)
       console.log(
-        '%cbldr%c ' +
-          this.webDocumentUuid +
-          ' config ' +
-          result.config +
-          ' ' +
-          desc,
+        '%cbldr%c %s config %s %s',
         'color:#ff3838;font-weight:bold',
         'color:inherit',
+        this.webDocumentUuid,
+        result.config,
+        desc,
       )
     })
 
