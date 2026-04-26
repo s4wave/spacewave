@@ -1,6 +1,9 @@
+// Mock service methods satisfy async interface contracts and never await.
+/* eslint-disable @typescript-eslint/require-await */
 import { describe, it, expect, vi } from 'vitest'
 import type { FSCursorService } from '../rpc_srpc.pb.js'
 import type { FSCursorClientResponse } from '../rpc.pb.js'
+import type { FSCursorChange } from '../../fs-cursor.js'
 import { NodeType } from '../../block/fstree.pb.js'
 import { FSCursorClient } from './fs-cursor-client.js'
 import { RemoteFSCursor } from './fs-cursor-remote.js'
@@ -280,7 +283,7 @@ describe('FSCursorClient', () => {
 
   describe('cursor change events', () => {
     it('routes cursor change to the correct cursor callbacks', async () => {
-      const changeCb = vi.fn(() => true)
+      const changeCb = vi.fn((_ch: FSCursorChange) => true)
 
       const { iterable, push, end } =
         createControllableIterable<FSCursorClientResponse>()
@@ -322,13 +325,7 @@ describe('FSCursorClient', () => {
       await new Promise((r) => setTimeout(r, 50))
 
       expect(changeCb).toHaveBeenCalledTimes(1)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (changeCb.mock.calls as any)[0][0] as {
-        cursor: unknown
-        released: boolean
-        offset: bigint
-        size: bigint
-      }
+      const call = changeCb.mock.calls[0][0]
       expect(call.cursor).toBe(fsc.rootCursor)
       expect(call.released).toBe(false)
       expect(call.offset).toBe(10n)

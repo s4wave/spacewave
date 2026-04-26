@@ -3,7 +3,6 @@ package target_json
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -120,15 +119,13 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 		c.underlying = &target.Target{}
 	}
 	var changed bool
-	obj := v.GetObject("exec", "controller")
-	if obj != nil {
-		// re-marshal just that portion of the object
-		execControllerData := obj.MarshalTo(nil)
-		// push it into the parser
-		c.execControllerConfig = &configset_json.ControllerConfig{}
-		if err := json.Unmarshal(execControllerData, c.execControllerConfig); err != nil {
+	controllerVal := v.Get("exec", "controller")
+	if controllerVal != nil && controllerVal.Type() == fastjson.TypeObject {
+		cc, err := parseControllerConfigValue(controllerVal)
+		if err != nil {
 			return err
 		}
+		c.execControllerConfig = cc
 		c.underlying.Exec = &target.Exec{
 			Disable: v.GetBool("exec", "disable"),
 		}
@@ -186,12 +183,13 @@ func (c *Target) MarshalJSON() ([]byte, error) {
 
 	// marshal the exec.controller config, if set
 	if c.execControllerConfig != nil {
-		dat, err := json.Marshal(c.execControllerConfig)
+		var arena fastjson.Arena
+		cv, err := marshalControllerConfigValue(&arena, c.execControllerConfig)
 		if err != nil {
 			return nil, err
 		}
 		// parse the json to gabs format
-		gv, err := gabs.ParseJSON(dat)
+		gv, err := gabs.ParseJSON(cv.MarshalTo(nil))
 		if err != nil {
 			return nil, err
 		}
@@ -205,9 +203,3 @@ func (c *Target) MarshalJSON() ([]byte, error) {
 	// finalize the json
 	return v.EncodeJSON(), nil
 }
-
-// _ is a type assertion
-var _ json.Unmarshaler = ((*Target)(nil))
-
-// _ is a type assertion
-var _ json.Marshaler = ((*Target)(nil))

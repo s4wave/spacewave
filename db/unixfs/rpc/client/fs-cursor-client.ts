@@ -77,7 +77,7 @@ export class FSCursorClient {
     const rootCursor = new RemoteFSCursor(fsc, rootId)
     fsc.rootCursor = rootCursor
     fsc.cursors.set(rootId, rootCursor)
-    fsc.execute(iter)
+    void fsc.execute(iter)
     return fsc
   }
 
@@ -87,12 +87,12 @@ export class FSCursorClient {
   ): Promise<void> {
     try {
       for (;;) {
-        const { done, value } = await iter.next()
-        if (done) {
+        const next = await iter.next()
+        if (next.done) {
           break
         }
-        if (value.body?.case === 'cursorChange') {
-          this.handleCursorChange(value.body.value)
+        if (next.value.body?.case === 'cursorChange') {
+          this.handleCursorChange(next.value.body.value)
         }
       }
     } finally {

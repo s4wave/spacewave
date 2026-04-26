@@ -50,7 +50,7 @@ describe('UnixFSError', () => {
     })
 
     it('returns OTHER error for empty proto (undefined errorType defaults to OTHER)', () => {
-      const err = UnixFSError.fromProto({} as { errorType: UnixFSErrorType })
+      const err = UnixFSError.fromProto({})
       expect(err).toBeInstanceOf(UnixFSError)
       expect(err!.type).toBe(UnixFSErrorType.OTHER)
     })

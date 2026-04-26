@@ -610,7 +610,7 @@ export class RemoteFSCursorOps implements FSCursorOps {
   }
 
   // mknodWithContent returns ErrReadOnly (RPC support not yet implemented).
-  async mknodWithContent(
+  mknodWithContent(
     _name: string,
     _nodeType: FSCursorNodeType,
     _dataLen: bigint,
@@ -620,9 +620,9 @@ export class RemoteFSCursorOps implements FSCursorOps {
     _signal?: AbortSignal,
   ): Promise<void> {
     if (this.checkReleased()) {
-      throw ErrReleased
+      return Promise.reject(ErrReleased)
     }
-    throw ErrReadOnly
+    return Promise.reject(ErrReadOnly)
   }
 
   // markReleasedIfError marks this ops as released if the error is RELEASED.

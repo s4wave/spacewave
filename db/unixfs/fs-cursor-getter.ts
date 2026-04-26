@@ -22,11 +22,11 @@ export class FSCursorGetter implements FSCursor {
   }
 
   // getCursorOps always returns null (this cursor always proxies).
-  async getCursorOps(_signal?: AbortSignal): Promise<FSCursorOps | null> {
+  getCursorOps(_signal?: AbortSignal): Promise<FSCursorOps | null> {
     if (this.released) {
-      throw ErrReleased
+      return Promise.reject(ErrReleased)
     }
-    return null
+    return Promise.resolve(null)
   }
 
   // getProxyCursor returns the value from the getter, if set.
@@ -61,11 +61,13 @@ export class FSCursorGetter implements FSCursor {
 // newFSCursorGetterWithHandle returns a new FSCursorGetter backed by a FSHandle.
 // Constructs a FSCursor from the FSHandle when the cursor is accessed.
 export function newFSCursorGetterWithHandle(handle: FSHandle): FSCursorGetter {
-  return new FSCursorGetter(async (_signal?: AbortSignal) => {
+  return new FSCursorGetter((_signal?: AbortSignal) => {
     if (handle.checkReleased()) {
-      throw new Error('fs cursor getter handle: cursor or inode released')
+      return Promise.reject(
+        new Error('fs cursor getter handle: cursor or inode released'),
+      )
     }
     // The "false" here indicates to not release the handle.
-    return new FSHandleCursor(handle, false, null)
+    return Promise.resolve(new FSHandleCursor(handle, false, null))
   })
 }

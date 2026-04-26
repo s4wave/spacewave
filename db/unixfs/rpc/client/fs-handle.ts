@@ -10,7 +10,7 @@ export type FSHandleBuilder = (
 
 // buildFSHandle constructs a root FSHandle from a FSCursorService client.
 // The signal must remain active for the duration of the FSHandle's lifetime.
-export async function buildFSHandle(
+export function buildFSHandle(
   svcClient: FSCursorService,
   signal?: AbortSignal,
 ): Promise<FSHandle> {
@@ -19,7 +19,7 @@ export async function buildFSHandle(
     svcClient,
   )
   try {
-    return await FSHandle.create(cursor)
+    return Promise.resolve(FSHandle.create(cursor))
   } catch (e) {
     cursor.release()
     throw e

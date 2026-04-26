@@ -1,19 +1,6 @@
 import type { Database, Sqlite3Static, SqlValue } from '@sqlite.org/sqlite-wasm'
-
-interface SharedDatabaseEntry {
-  path: string
-  db: Database
-  refCount: number
-  logicalIds: Set<number>
-}
-
-interface DatabaseHandleEntry {
-  path: string
-  db: Database
-  cacheKey: string | null
-}
-import type { Message } from '@aptre/protobuf-es-lite'
 import type { MessageStream } from 'starpc'
+
 import type {
   CloseDbRequest,
   CloseDbResponse,
@@ -29,8 +16,21 @@ import type {
 } from './sqlite-bridge.pb.js'
 import type { SqliteBridge } from './sqlite-bridge_srpc.pb.js'
 
+interface SharedDatabaseEntry {
+  path: string
+  db: Database
+  refCount: number
+  logicalIds: Set<number>
+}
+
+interface DatabaseHandleEntry {
+  path: string
+  db: Database
+  cacheKey: string | null
+}
+
 // sqlValueToProto converts a sqlite.wasm SqlValue to a proto SqlValue.
-function sqlValueToProto(v: SqlValue): Message<ProtoSqlValue> {
+function sqlValueToProto(v: SqlValue): ProtoSqlValue {
   if (v === null) {
     return { value: { case: undefined } }
   }
@@ -61,7 +61,7 @@ function sqlValueToProto(v: SqlValue): Message<ProtoSqlValue> {
 }
 
 // protoToBindable converts proto SqlValue params to a sqlite.wasm BindingSpec.
-function protoToBindable(params: Message<ProtoSqlValue>[]): SqlValue[] {
+function protoToBindable(params: ProtoSqlValue[]): SqlValue[] {
   return params.map((p) => {
     const v = p.value
     if (!v || v.case === undefined) {
@@ -107,7 +107,7 @@ export class SqliteBridgeServer implements SqliteBridge {
   }
 
   // dispose closes all open physical databases owned by this bridge instance.
-  async dispose(): Promise<void> {
+  dispose(): Promise<void> {
     for (const shared of this.databasesByPath.values()) {
       shared.db.close()
     }
@@ -118,10 +118,11 @@ export class SqliteBridgeServer implements SqliteBridge {
     }
     this.handles.clear()
     this.databasesByPath.clear()
+    return Promise.resolve()
   }
 
   // OpenDb opens or creates a logical database handle for the given path.
-  async OpenDb(request: OpenDbRequest): Promise<Message<OpenDbResponse>> {
+  OpenDb(request: OpenDbRequest): Promise<OpenDbResponse> {
     const path = request.path || ':memory:'
     const cacheKey = this.getCacheKey(path)
     const id = this.nextId++
@@ -144,7 +145,7 @@ export class SqliteBridgeServer implements SqliteBridge {
       shared.refCount += 1
       shared.logicalIds.add(id)
       this.handles.set(id, { path, db: shared.db, cacheKey })
-      return { dbId: id }
+      return Promise.resolve({ dbId: id })
     }
 
     const db = new this.sqlite3.oo1.DB({
@@ -153,7 +154,7 @@ export class SqliteBridgeServer implements SqliteBridge {
       vfs: this.vfsName,
     })
     this.handles.set(id, { path, db, cacheKey: null })
-    return { dbId: id }
+    return Promise.resolve({ dbId: id })
   }
 
   // closeHandle closes a logical database handle and releases the underlying
@@ -184,9 +185,9 @@ export class SqliteBridgeServer implements SqliteBridge {
   }
 
   // CloseDb closes a logical database handle.
-  async CloseDb(request: CloseDbRequest): Promise<Message<CloseDbResponse>> {
+  CloseDb(request: CloseDbRequest): Promise<CloseDbResponse> {
     this.closeHandle(request.dbId)
-    return {}
+    return Promise.resolve({})
   }
 
   // getDb returns the database for the given ID or throws.
@@ -199,7 +200,7 @@ export class SqliteBridgeServer implements SqliteBridge {
   }
 
   // Exec executes a DDL/DML statement.
-  async Exec(request: ExecRequest): Promise<Message<ExecResponse>> {
+  Exec(request: ExecRequest): Promise<ExecResponse> {
     const db = this.getDb(request.dbId)
     const sql = request.sql || ''
     const bind = request.params?.length
@@ -207,15 +208,16 @@ export class SqliteBridgeServer implements SqliteBridge {
       : undefined
     db.exec({ sql, bind })
     const ptr = db.pointer
-    return {
+    return Promise.resolve({
       changes: BigInt(db.changes()),
       lastInsertRowId: ptr
         ? BigInt(this.sqlite3.capi.sqlite3_last_insert_rowid(ptr))
         : 0n,
-    }
+    })
   }
 
   // Query executes a SELECT and streams rows lazily as the driver consumes them.
+  // eslint-disable-next-line @typescript-eslint/require-await
   async *Query(request: QueryRequest): MessageStream<QueryResponse> {
     const db = this.getDb(request.dbId)
     const sql = request.sql || ''
@@ -237,9 +239,9 @@ export class SqliteBridgeServer implements SqliteBridge {
       yield { columnNames, row: [] }
 
       while (stmt.step()) {
-        const row: SqlValue[] = new Array(colCount)
+        const row = new Array<SqlValue>(colCount)
         for (let i = 0; i < colCount; i++) {
-          row[i] = stmt.get(i) as SqlValue
+          row[i] = stmt.get(i)
         }
         yield { columnNames: [], row: row.map(sqlValueToProto) }
       }
@@ -249,7 +251,7 @@ export class SqliteBridgeServer implements SqliteBridge {
   }
 
   // DeleteDb deletes a database file.
-  async DeleteDb(request: DeleteDbRequest): Promise<Message<DeleteDbResponse>> {
+  DeleteDb(request: DeleteDbRequest): Promise<DeleteDbResponse> {
     const path = request.path || ''
     const cacheKey = this.getCacheKey(path)
 
@@ -279,6 +281,6 @@ export class SqliteBridgeServer implements SqliteBridge {
     if (unlink) {
       unlink(this.vfsName, path)
     }
-    return {}
+    return Promise.resolve({})
   }
 }

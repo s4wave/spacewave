@@ -1,3 +1,5 @@
+// Mock implementations satisfy async interface contracts and never await.
+/* eslint-disable @typescript-eslint/require-await */
 import { describe, it, expect, vi } from 'vitest'
 import { FSHandle, FsInode } from './fs-handle.js'
 import type {

@@ -30,8 +30,8 @@ export class RpcFSCursor implements FSCursor {
   }
 
   // getCursorOps always returns null; delegates via getProxyCursor.
-  async getCursorOps(_signal?: AbortSignal): Promise<FSCursorOps | null> {
-    return null
+  getCursorOps(_signal?: AbortSignal): Promise<FSCursorOps | null> {
+    return Promise.resolve(null)
   }
 
   // addChangeCb is not applicable to the root client FSCursor.

@@ -64,8 +64,8 @@ export class FSHandleCursor implements FSCursor {
   addChangeCb(_cb: FSCursorChangeCb): void {}
 
   // getProxyCursor is not applicable to a FSHandle cursor.
-  async getProxyCursor(_signal?: AbortSignal): Promise<FSCursor | null> {
-    return null
+  getProxyCursor(_signal?: AbortSignal): Promise<FSCursor | null> {
+    return Promise.resolve(null)
   }
 
   // Symbol.dispose enables using-based cleanup.

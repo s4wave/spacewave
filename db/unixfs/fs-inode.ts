@@ -26,13 +26,22 @@ export type AccessInodeCb = (
   ops: FSCursorOps,
 ) => Promise<void>
 
+// abortReason coerces a signal reason into an Error.
+function abortReason(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason
+  if (reason instanceof Error) {
+    return reason
+  }
+  return new Error(typeof reason === 'string' ? reason : 'aborted')
+}
+
 // abortPromise returns a promise that rejects when the signal aborts.
 function abortPromise(signal: AbortSignal): Promise<never> {
   if (signal.aborted) {
-    return Promise.reject(signal.reason)
+    return Promise.reject(abortReason(signal))
   }
   return new Promise<never>((_, reject) => {
-    signal.addEventListener('abort', () => reject(signal.reason), {
+    signal.addEventListener('abort', () => reject(abortReason(signal)), {
       once: true,
     })
   })
@@ -233,11 +242,11 @@ export class FsInode {
       }
 
       if (!isUnixFSError(err, UnixFSErrorType.RELEASED)) {
-        return err as Error
+        return err
       }
 
       // Return null to indicate retry.
-      lastErr = err as Error
+      lastErr = err
       return null
     }
 
@@ -288,7 +297,13 @@ export class FsInode {
       }
     }
 
-    if (lastErr && !isUnixFSError(lastErr, UnixFSErrorType.RELEASED)) {
+    if (
+      lastErr !== null &&
+      !isUnixFSError(lastErr, UnixFSErrorType.RELEASED)
+    ) {
+      // lastErr is mutated inside handleErr's closure, so eslint cannot
+      // narrow its type past null even after the !== null guard above.
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw lastErr
     }
     throw ErrInodeUnresolvable
@@ -368,16 +383,19 @@ export class FsInode {
     lock.release()
 
     // Async portion.
-    this.resolveOpsRoutineAsync(signal, cursorStack, iparent, iname).finally(
-      () => {
-        if (this.fsWait === fsWait) {
-          fsWait.resolve()
-          this.fsWait = null
-        } else {
-          fsWait.resolve()
-        }
-      },
-    )
+    void this.resolveOpsRoutineAsync(
+      signal,
+      cursorStack,
+      iparent,
+      iname,
+    ).finally(() => {
+      if (this.fsWait === fsWait) {
+        fsWait.resolve()
+        this.fsWait = null
+      } else {
+        fsWait.resolve()
+      }
+    })
   }
 
   // resolveOpsRoutineAsync is the async resolution logic extracted for clarity.
@@ -811,12 +829,13 @@ export class FSHandle {
   ): Promise<{ cursor: FSCursor; ops: FSCursorOps }> {
     let cursor: FSCursor | null = null
     let ops: FSCursorOps | null = null
-    await this.accessOps(signal, async (c, o) => {
+    await this.accessOps(signal, (c, o) => {
       if (o.checkReleased() || c.checkReleased()) {
-        throw ErrReleased
+        return Promise.reject(ErrReleased)
       }
       cursor = c
       ops = o
+      return Promise.resolve()
     })
     return { cursor: cursor!, ops: ops! }
   }
@@ -863,12 +882,13 @@ export class FSHandle {
       getIsFile(): boolean
       getIsSymlink(): boolean
     }
-    await this._inode.accessInode(signal, async (_cursor, ops) => {
+    await this._inode.accessInode(signal, (_cursor, ops) => {
       nt = {
         getIsDirectory: () => ops.getIsDirectory(),
         getIsFile: () => ops.getIsFile(),
         getIsSymlink: () => ops.getIsSymlink(),
       }
+      return Promise.resolve()
     })
     return nt
   }

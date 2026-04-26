@@ -2,7 +2,6 @@ package target_json
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/fastjson"
@@ -126,9 +125,3 @@ func (c *TargetMap) MarshalJSON() ([]byte, error) {
 	}
 	return obj.MarshalTo(nil), nil
 }
-
-// _ is a type assertion
-var _ json.Unmarshaler = ((*TargetMap)(nil))
-
-// _ is a type assertion
-var _ json.Marshaler = ((*TargetMap)(nil))
