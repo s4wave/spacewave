@@ -196,6 +196,9 @@ jobs:
           name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/windows-release-inputs
           if-no-files-found: error
+          # Stage tree is .tmp/dist/<platform>/spacewave.exe etc.; the .tmp/
+          # subdirectory is treated as hidden and would otherwise be excluded.
+          include-hidden-files: true
 
   windows:
     needs:
