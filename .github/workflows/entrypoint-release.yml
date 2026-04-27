@@ -133,77 +133,8 @@ jobs:
           path: .tmp/entrypoint-handoff/linux
           if-no-files-found: error
 
-  windows-inputs:
-    needs: prep
-    runs-on: ubuntu-latest
-    # No environment: this job only cross-compiles Windows binaries on Linux
-    # via zig+docker. It uses no environment secrets or vars, so it can start
-    # immediately after prep without blocking on approval.
-    env:
-      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
-      BLDR_BUILDER_USE_BUILDX_GHA: "1"
-      BLDR_BUILDER_ZIG_CACHE_DIR: ${{ github.workspace }}/.tmp/zig-cache
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Setup Node.JS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 25.x
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Cache spacewave-builder zig stubs
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.BLDR_BUILDER_ZIG_CACHE_DIR }}
-          key: spacewave-builder-zig-${{ hashFiles('desktop/Dockerfile', 'desktop/cross/toolchains/*.cmake') }}
-          restore-keys: |
-            spacewave-builder-zig-
-
-      - name: Install Bun dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          bun install --frozen-lockfile --ignore-scripts
-          go mod vendor
-
-      - name: Build Windows release inputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          go run ./cmd/entrypoint-handoff \
-            --version "${{ needs.prep.outputs.version }}" \
-            --platforms "windows-amd64,windows-arm64" \
-            --skip-package \
-            --stage-build-inputs \
-            --out-dir .tmp/windows-release-inputs
-
-      - name: Upload Windows release inputs
-        uses: actions/upload-artifact@v7
-        with:
-          name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/windows-release-inputs
-          if-no-files-found: error
-          # Stage tree is .tmp/dist/<platform>/spacewave.exe etc.; the .tmp/
-          # subdirectory is treated as hidden and would otherwise be excluded.
-          include-hidden-files: true
-
   windows:
-    needs:
-      - prep
-      - windows-inputs
+    needs: prep
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
@@ -236,12 +167,6 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Download Windows release inputs
-        uses: actions/download-artifact@v8
-        with:
-          name: windows-release-inputs-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .
-
       - name: Azure login with OIDC
         uses: azure/login@v3
         with:
@@ -249,75 +174,124 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Collect Windows binaries to sign
-        id: windows_binary_files
+      - name: Resolve TrustedSigning module path
+        id: trusted_signing_paths
         shell: pwsh
         run: |
-          $files = @(
-            (Resolve-Path ".tmp/dist/windows-amd64/spacewave.exe").Path
-            (Resolve-Path ".tmp/dist/windows-arm64/spacewave.exe").Path
-            (Resolve-Path ".tmp/dist-cli/windows-amd64/spacewave.exe").Path
-            (Resolve-Path ".tmp/dist-cli/windows-arm64/spacewave.exe").Path
-            (Resolve-Path "dist/helper/windows-amd64/spacewave-helper.exe").Path
-            (Resolve-Path "dist/helper/windows-arm64/spacewave-helper.exe").Path
-          )
-          "files<<EOF" >> $env:GITHUB_OUTPUT
-          $files | ForEach-Object { $_ >> $env:GITHUB_OUTPUT }
-          "EOF" >> $env:GITHUB_OUTPUT
+          $defaultPath = $env:PSModulePath -split ';' | Select-Object -First 1
+          "psmodulepath=$defaultPath" >> $env:GITHUB_OUTPUT
 
-      - name: Sign Windows binaries
-        uses: azure/artifact-signing-action@v1
+      - name: Cache TrustedSigning PowerShell module
+        id: cache_trusted_signing
+        uses: actions/cache@v5
         with:
-          endpoint: https://wus.codesigning.azure.net/
-          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          files: ${{ steps.windows_binary_files.outputs.files }}
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          description: Spacewave
+          path: ${{ steps.trusted_signing_paths.outputs.psmodulepath }}\TrustedSigning\0.5.8
+          key: TrustedSigning-0.5.8
 
-      - name: Build Windows handoff slice
+      - name: Install TrustedSigning PowerShell module
+        if: steps.cache_trusted_signing.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
+
+      - name: Cache Microsoft.Windows.SDK.BuildTools nuget
+        id: cache_buildtools
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\Microsoft.Windows.SDK.BuildTools\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188
+          key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
+
+      - name: Cache Microsoft.Trusted.Signing.Client nuget
+        id: cache_tsclient
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\Microsoft.Trusted.Signing.Client\Microsoft.Trusted.Signing.Client.1.0.95
+          key: Microsoft.Trusted.Signing.Client-1.0.95
+
+      - name: Cache sign dotnet tool
+        id: cache_signcli
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\sign\sign.0.9.1-beta.24469.1
+          key: SignCli-0.9.1-beta.24469.1
+
+      - name: Install Microsoft.Windows.SDK.BuildTools nuget
+        if: steps.cache_buildtools.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "Microsoft.Windows.SDK.BuildTools"
+          $version = "10.0.26100.4188"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          if (-Not (Get-PackageSource -Location "https://www.nuget.org/api/v2/" -ErrorAction Ignore)) {
+            Register-PackageSource -Name trusted-signing-ps -Location "https://www.nuget.org/api/v2/" -ProviderName NuGet -Trusted -Force | Out-Null
+          }
+          Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
+
+      - name: Install Microsoft.Trusted.Signing.Client nuget
+        if: steps.cache_tsclient.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "Microsoft.Trusted.Signing.Client"
+          $version = "1.0.95"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          if (-Not (Get-PackageSource -Location "https://www.nuget.org/api/v2/" -ErrorAction Ignore)) {
+            Register-PackageSource -Name trusted-signing-ps -Location "https://www.nuget.org/api/v2/" -ProviderName NuGet -Trusted -Force | Out-Null
+          }
+          Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
+
+      - name: Install sign dotnet tool
+        if: steps.cache_signcli.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "sign"
+          $version = "0.9.1-beta.24469.1"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          dotnet tool install $name `
+            --version $version `
+            --tool-path $root `
+            --add-source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw "dotnet tool install $name $version failed: $LASTEXITCODE" }
+          $storePath = Join-Path $root ".store\$name\$version\$name\$version"
+          $packagePath = Join-Path $root "$name.$version"
+          Move-Item -Path $storePath -Destination $packagePath -Force
+          Remove-Item -Path (Join-Path $root ".store") -Recurse -Force
+          Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
+
+      - name: Build signed Windows handoff slice
         shell: bash
+        env:
+          BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ vars.BLDR_WINDOWS_SIGN_ENDPOINT }}
         run: |
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "windows-amd64,windows-arm64" \
-            --skip-build \
             --out-dir .tmp/entrypoint-handoff/windows
 
-      - name: Collect Windows MSIX installers
-        id: windows_msix_files
+      - name: Verify Windows signatures
         shell: pwsh
         run: |
           $files = @(
-            (Resolve-Path "dist/installers/spacewave-windows-amd64.msix").Path
-            (Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path
+            ".tmp/dist/windows-amd64/spacewave.exe"
+            ".tmp/dist/windows-arm64/spacewave.exe"
+            ".tmp/dist-cli/windows-amd64/spacewave.exe"
+            ".tmp/dist-cli/windows-arm64/spacewave.exe"
+            "dist/helper/windows-amd64/spacewave-helper.exe"
+            "dist/helper/windows-arm64/spacewave-helper.exe"
+            "dist/installers/spacewave-windows-amd64.msix"
+            "dist/installers/spacewave-windows-arm64.msix"
           )
-          "files<<EOF" >> $env:GITHUB_OUTPUT
-          $files | ForEach-Object { $_ >> $env:GITHUB_OUTPUT }
-          "EOF" >> $env:GITHUB_OUTPUT
-
-      - name: Sign Windows MSIX installers
-        uses: azure/artifact-signing-action@v1
-        with:
-          endpoint: https://wus.codesigning.azure.net/
-          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          files: ${{ steps.windows_msix_files.outputs.files }}
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          description: Spacewave
-
-      - name: Refresh staged Windows installers after MSIX signing
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf .tmp/entrypoint-handoff/windows/installers
-          mkdir -p .tmp/entrypoint-handoff/windows/installers
-          cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
+          foreach ($path in $files) {
+            $sig = Get-AuthenticodeSignature -FilePath $path
+            if ($sig.Status -ne "Valid") {
+              throw "signature verification failed for ${path}: $($sig.Status)"
+            }
+          }
 
       - name: Upload Windows handoff part
         uses: actions/upload-artifact@v7

@@ -103,11 +103,36 @@ build_via_docker() {
   trap - EXIT
 }
 
+build_windows_native() {
+  local arch="$1"
+  local scratch="$SCRATCH_ROOT/cmake/windows-${arch}"
+  local cmake_configure_extra=""
+  local build_flags=""
+  local vs_arch=""
+
+  if [ "$VERBOSE" != "0" ]; then
+    cmake_configure_extra="-DCMAKE_VERBOSE_MAKEFILE=ON"
+    build_flags="--verbose"
+  fi
+
+  case "$arch" in
+    amd64) vs_arch="x64" ;;
+    arm64) vs_arch="ARM64" ;;
+    *) echo "ERROR: unsupported windows helper ARCH: $arch" >&2; exit 1 ;;
+  esac
+
+  cmake -S "$REPO_ROOT/desktop/cross" -B "$scratch" \
+    -G "Visual Studio 17 2022" -A "$vs_arch" \
+    -DCMAKE_BUILD_TYPE=Release $cmake_configure_extra
+  cmake --build "$scratch" --config Release $build_flags
+  cp "$scratch/Release/spacewave-helper.exe" "$OUT/windows-${arch}/spacewave-helper.exe"
+}
+
 # sign_windows_helper signs the extracted Windows helper .exe via Azure
-# Trusted Signing. Mirrors the pattern in scripts/build-msix.sh so one env
-# export covers the inner bldr-signed .exe, the MSIX container, and now the
-# C++ helper .exe. Unset profile = warn and skip (local iteration only;
-# release runs must set it).
+# Trusted Signing. Mirrors the bldr Windows signing hook so one env export
+# covers the inner bldr-signed .exe, the MSIX container, and now the C++ helper
+# .exe. Unset profile = warn and skip (local iteration only; release runs must
+# set it).
 sign_windows_helper() {
   local exe="$1"
   local profile="${BLDR_WINDOWS_SIGN_PROFILE:-}"
@@ -121,14 +146,16 @@ sign_windows_helper() {
     exit 1
   fi
   local publisher="${BLDR_WINDOWS_SIGN_PUBLISHER:-Aperture Robotics, LLC.}"
+  local endpoint="${BLDR_WINDOWS_SIGN_ENDPOINT:-https://wus.codesigning.azure.net/}"
 
   echo "=== [sign] $exe ==="
-  az sign \
-    --file "$exe" \
-    --publisher-name "$publisher" \
-    --description "Spacewave Helper" \
-    --trusted-signing-account "$account" \
-    --trusted-signing-cert-profile "$profile"
+  BLDR_SIGN_ENDPOINT="$endpoint" \
+    BLDR_SIGN_ACCOUNT="$account" \
+    BLDR_SIGN_PROFILE="$profile" \
+    BLDR_SIGN_FILE="$exe" \
+    BLDR_SIGN_DESCRIPTION="Spacewave Helper" \
+    pwsh -NoProfile -NonInteractive -Command \
+      "Invoke-TrustedSigning -Endpoint \$env:BLDR_SIGN_ENDPOINT -CodeSigningAccountName \$env:BLDR_SIGN_ACCOUNT -CertificateProfileName \$env:BLDR_SIGN_PROFILE -Files \$env:BLDR_SIGN_FILE -Description \$env:BLDR_SIGN_DESCRIPTION -FileDigest SHA256 -TimestampRfc3161 'http://timestamp.acs.microsoft.com' -TimestampDigest SHA256"
 }
 
 # Per-platform output is namespaced under <goos>-<goarch>/ so darwin, linux,
@@ -170,9 +197,16 @@ case "$PLATFORM" in
       *) echo "ERROR: unsupported windows helper ARCH: $ARCH" >&2; exit 1 ;;
     esac
     mkdir -p "$OUT/windows-${ARCH}"
-    build_via_docker "windows/$ARCH" "$TRIPLE" "windows-${ARCH}.cmake" \
-        "/build/spacewave-helper.exe" \
-        "$OUT/windows-${ARCH}/spacewave-helper.exe"
+    case "$(uname -s)" in
+      MINGW*|MSYS*|CYGWIN*)
+        build_windows_native "$ARCH"
+        ;;
+      *)
+        build_via_docker "windows/$ARCH" "$TRIPLE" "windows-${ARCH}.cmake" \
+            "/build/spacewave-helper.exe" \
+            "$OUT/windows-${ARCH}/spacewave-helper.exe"
+        ;;
+    esac
     sign_windows_helper "$OUT/windows-${ARCH}/spacewave-helper.exe"
     echo "Built Windows helper ($ARCH) in $OUT/windows-${ARCH}/"
     ;;

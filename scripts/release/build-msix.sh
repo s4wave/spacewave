@@ -109,12 +109,14 @@ if [ -z "$SIGN_ACCOUNT" ]; then
   exit 1
 fi
 SIGN_PUBLISHER="${BLDR_WINDOWS_SIGN_PUBLISHER:-Aperture Robotics, LLC.}"
+SIGN_ENDPOINT="${BLDR_WINDOWS_SIGN_ENDPOINT:-https://wus.codesigning.azure.net/}"
 
-az sign \
-  --file "$MSIX" \
-  --publisher-name "$SIGN_PUBLISHER" \
-  --description "Spacewave" \
-  --trusted-signing-account "$SIGN_ACCOUNT" \
-  --trusted-signing-cert-profile "$SIGN_PROFILE"
+BLDR_SIGN_ENDPOINT="$SIGN_ENDPOINT" \
+  BLDR_SIGN_ACCOUNT="$SIGN_ACCOUNT" \
+  BLDR_SIGN_PROFILE="$SIGN_PROFILE" \
+  BLDR_SIGN_FILE="$MSIX" \
+  BLDR_SIGN_DESCRIPTION="Spacewave" \
+  pwsh -NoProfile -NonInteractive -Command \
+    "Invoke-TrustedSigning -Endpoint \$env:BLDR_SIGN_ENDPOINT -CodeSigningAccountName \$env:BLDR_SIGN_ACCOUNT -CertificateProfileName \$env:BLDR_SIGN_PROFILE -Files \$env:BLDR_SIGN_FILE -Description \$env:BLDR_SIGN_DESCRIPTION -FileDigest SHA256 -TimestampRfc3161 'http://timestamp.acs.microsoft.com' -TimestampDigest SHA256"
 
 echo "Built and signed: $MSIX"
