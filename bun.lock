@@ -38,7 +38,7 @@
         "@types/qrcode": "^1.5.6",
         "@uidotdev/usehooks": "^2.4.1",
         "@use-gesture/react": "^10.3.1",
-        "@videojs/react": "10.0.0-beta.22",
+        "@videojs/react": "10.0.0-beta.23",
         "@xterm/addon-fit": "^0.11.0",
         "@xterm/xterm": "^6.0.0",
         "cmdk": "^1.1.1",
@@ -628,15 +628,15 @@
 
     "@use-gesture/react": ["@use-gesture/react@10.3.1", "", { "dependencies": { "@use-gesture/core": "10.3.1" }, "peerDependencies": { "react": ">= 16.8.0" } }, "sha512-Yy19y6O2GJq8f7CHf7L0nxL8bf4PZCPaVOCgJrusOeFHY1LvHgYXnmnXg6N5iwAnbgbZCDjo60SiM6IPJi9C5g=="],
 
-    "@videojs/core": ["@videojs/core@10.0.0-beta.22", "", { "dependencies": { "@videojs/spf": "10.0.0-beta.22", "@videojs/store": "10.0.0-beta.22", "@videojs/utils": "10.0.0-beta.22", "dashjs": "^5.0.0", "hls.js": "^1.6.7", "mux-embed": "^5.17.10" } }, "sha512-JMXSRyAZbgSpMbCkGgaJlJGBjg5MsoEdpG//uXyCHMuHYCjxvan4WUK80Tm0W5Xz0UsI8gi6IR2+dtuqDfCgTg=="],
+    "@videojs/core": ["@videojs/core@10.0.0-beta.23", "", { "dependencies": { "@videojs/spf": "10.0.0-beta.23", "@videojs/store": "10.0.0-beta.23", "@videojs/utils": "10.0.0-beta.23", "dashjs": "^5.0.0", "hls.js": "^1.6.7", "mux-embed": "^5.17.10" } }, "sha512-skod5ZtEMwm9nCH/1lNlXPoSbqV+Q1INDB5x+cDxvGNPQ622LnEsS40jSzaS5+nHoNSowjoJdLYc9MjaBaoz0w=="],
 
-    "@videojs/react": ["@videojs/react@10.0.0-beta.22", "", { "dependencies": { "@videojs/core": "10.0.0-beta.22", "@videojs/spf": "10.0.0-beta.22", "@videojs/store": "10.0.0-beta.22", "@videojs/utils": "10.0.0-beta.22" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-bOEwIDAPQB+gv8Hfz/xGW0uh6+TiERNF0IztXX801RWWSlGauhPYgQ/D54NnJZmGjSCLDUqjR3dRWpaX+8HqAQ=="],
+    "@videojs/react": ["@videojs/react@10.0.0-beta.23", "", { "dependencies": { "@videojs/core": "10.0.0-beta.23", "@videojs/spf": "10.0.0-beta.23", "@videojs/store": "10.0.0-beta.23", "@videojs/utils": "10.0.0-beta.23" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-CWPrBNW7P0fK+DtsbSHdtKYedD9bQqqbw6CFaIJNmO6DJo/W//dNWAEOPql9hlUyqINnUbujpB1AUReyju7vCQ=="],
 
-    "@videojs/spf": ["@videojs/spf@10.0.0-beta.22", "", { "dependencies": { "@videojs/utils": "10.0.0-beta.22", "signal-polyfill": "^0.2.2" } }, "sha512-doojb+SVgqjgYN4+b3eK6y4dwol4KPEuUKT/O8A1XZGLau3c9fo6O3v7xIPR5vJbnjcvPLj80epNiZD4q1DeAg=="],
+    "@videojs/spf": ["@videojs/spf@10.0.0-beta.23", "", { "dependencies": { "@videojs/utils": "10.0.0-beta.23", "signal-polyfill": "^0.2.2" } }, "sha512-2D92vBeDwfeCk1Wj8HgVrBHMmiW4uzKu6cKz7kv1SR+aDPT4FFQM9bqNgEyadZUU0QB5L1iuBvPF0fwv3/boNA=="],
 
-    "@videojs/store": ["@videojs/store@10.0.0-beta.22", "", { "dependencies": { "@videojs/utils": "10.0.0-beta.22" }, "peerDependencies": { "@videojs/element": "10.0.0-beta.22", "react": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@videojs/element", "react"] }, "sha512-Fwbwnbhjp/BJa4Id55ufu34Eqhg01FRuAg+z4+abz2ZyMg8/QATqCO9M6ki0DmJsNSLZ1/Q+2rlWoRXEmVA0xQ=="],
+    "@videojs/store": ["@videojs/store@10.0.0-beta.23", "", { "dependencies": { "@videojs/utils": "10.0.0-beta.23" }, "peerDependencies": { "@videojs/element": "10.0.0-beta.23", "react": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@videojs/element", "react"] }, "sha512-g9mmqgTuiVzesgL1OZB9UEoJlqltlOzpl/Ckvtj5anpuouGqf4Itfwh0NKLcnspRcS2Xz6KrOAtGEGpjsev97g=="],
 
-    "@videojs/utils": ["@videojs/utils@10.0.0-beta.22", "", {}, "sha512-FVX5rIkyXcPRJH4lQF75uolmVe27XFD44pLXgtTTDUbNo7HdK/8yejE7fqNc/jTY4p7xjWa7gDVaiAn1/DfT8Q=="],
+    "@videojs/utils": ["@videojs/utils@10.0.0-beta.23", "", {}, "sha512-3frIhyOSIT2jGy5sAyLoeg5SMI39ixqguapgQxA9PbDCvRaCZX2YPD2ZyeNppx6KstweX/foiF/YAbEba9xgig=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.0.1", "", { "dependencies": { "@rolldown/pluginutils": "1.0.0-rc.7" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler"] }, "sha512-l9X/E3cDb+xY3SWzlG1MOGt2usfEHGMNIaegaUGFsLkb3RCn/k8/TOXBcab+OndDI4TBtktT8/9BwwW8Vi9KUQ=="],
 
