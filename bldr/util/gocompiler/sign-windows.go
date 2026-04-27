@@ -3,6 +3,7 @@ package gocompiler
 import (
 	"context"
 	"os"
+	"sync"
 
 	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
@@ -37,6 +38,8 @@ const WindowsSignDescriptionEnv = "BLDR_WINDOWS_SIGN_DESCRIPTION"
 // defaultWindowsSignDescription is the default Authenticode description
 // when WindowsSignDescriptionEnv is unset.
 const defaultWindowsSignDescription = "Spacewave"
+
+var signWindowsMu sync.Mutex
 
 // signWindowsScript is the PowerShell script driving the signing call.
 // Values flow in via env vars to avoid PowerShell quoting hazards.
@@ -86,6 +89,8 @@ func SignWindows(ctx context.Context, le *logrus.Entry, binPath string) error {
 		"BLDR_SIGN_FILE="+binPath,
 		"BLDR_SIGN_DESCRIPTION="+description,
 	)
+	signWindowsMu.Lock()
+	defer signWindowsMu.Unlock()
 	if err := uexec.ExecCmd(le, cmd); err != nil {
 		return errors.Wrapf(err, "Invoke-TrustedSigning (profile=%q, account=%q)", profile, account)
 	}
