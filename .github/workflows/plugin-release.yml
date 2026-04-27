@@ -265,6 +265,77 @@ jobs:
         run: |
           Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
 
+      # The TrustedSigning module's lazy dependency installer (Get-EveryDependency
+      # in NugetInstall.psm1) installs three NuGet packages on first invocation,
+      # silently swallowing dotnet tool stdout. Pre-install them here so the
+      # module's Test-Path checks short-circuit and intermittent install
+      # failures surface in dedicated steps.
+      - name: Cache Microsoft.Windows.SDK.BuildTools nuget
+        id: cache_buildtools
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\Microsoft.Windows.SDK.BuildTools\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188
+          key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
+
+      - name: Cache Microsoft.Trusted.Signing.Client nuget
+        id: cache_tsclient
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\Microsoft.Trusted.Signing.Client\Microsoft.Trusted.Signing.Client.1.0.95
+          key: Microsoft.Trusted.Signing.Client-1.0.95
+
+      - name: Cache sign dotnet tool
+        id: cache_signcli
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\TrustedSigning\sign\sign.0.9.1-beta.24469.1
+          key: SignCli-0.9.1-beta.24469.1
+
+      - name: Install Microsoft.Windows.SDK.BuildTools nuget
+        if: steps.cache_buildtools.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "Microsoft.Windows.SDK.BuildTools"
+          $version = "10.0.26100.4188"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          if (-Not (Get-PackageSource -Location "https://www.nuget.org/api/v2/" -ErrorAction Ignore)) {
+            Register-PackageSource -Name trusted-signing-ps -Location "https://www.nuget.org/api/v2/" -ProviderName NuGet -Trusted -Force | Out-Null
+          }
+          Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
+
+      - name: Install Microsoft.Trusted.Signing.Client nuget
+        if: steps.cache_tsclient.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "Microsoft.Trusted.Signing.Client"
+          $version = "1.0.95"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          if (-Not (Get-PackageSource -Location "https://www.nuget.org/api/v2/" -ErrorAction Ignore)) {
+            Register-PackageSource -Name trusted-signing-ps -Location "https://www.nuget.org/api/v2/" -ProviderName NuGet -Trusted -Force | Out-Null
+          }
+          Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
+
+      - name: Install sign dotnet tool
+        if: steps.cache_signcli.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $name = "sign"
+          $version = "0.9.1-beta.24469.1"
+          $root = Join-Path $env:LOCALAPPDATA "TrustedSigning\$name"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          dotnet tool install $name `
+            --version $version `
+            --tool-path $root `
+            --add-source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw "dotnet tool install $name $version failed: $LASTEXITCODE" }
+          $storePath = Join-Path $root ".store\$name\$version\$name\$version"
+          $packagePath = Join-Path $root "$name.$version"
+          Move-Item -Path $storePath -Destination $packagePath -Force
+          Remove-Item -Path (Join-Path $root ".store") -Recurse -Force
+          Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
+
       - name: Build signed Windows native plugin manifests
         shell: pwsh
         env:
