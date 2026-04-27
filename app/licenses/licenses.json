@@ -68,7 +68,7 @@
     },
     {
       "name": "@lexical/clipboard",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -76,7 +76,7 @@
     },
     {
       "name": "@lexical/code",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -84,7 +84,7 @@
     },
     {
       "name": "@lexical/code-core",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -92,7 +92,7 @@
     },
     {
       "name": "@lexical/code-prism",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -100,7 +100,7 @@
     },
     {
       "name": "@lexical/code-shiki",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -108,7 +108,7 @@
     },
     {
       "name": "@lexical/dragon",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -116,7 +116,7 @@
     },
     {
       "name": "@lexical/extension",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -124,7 +124,7 @@
     },
     {
       "name": "@lexical/history",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -132,7 +132,7 @@
     },
     {
       "name": "@lexical/html",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -140,7 +140,7 @@
     },
     {
       "name": "@lexical/link",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -148,7 +148,7 @@
     },
     {
       "name": "@lexical/list",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -156,7 +156,7 @@
     },
     {
       "name": "@lexical/markdown",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -164,7 +164,7 @@
     },
     {
       "name": "@lexical/react",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -172,7 +172,7 @@
     },
     {
       "name": "@lexical/rich-text",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -180,7 +180,7 @@
     },
     {
       "name": "@lexical/selection",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -188,7 +188,7 @@
     },
     {
       "name": "@lexical/table",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -196,7 +196,7 @@
     },
     {
       "name": "@lexical/text",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -204,7 +204,7 @@
     },
     {
       "name": "@lexical/utils",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -1292,7 +1292,7 @@
     },
     {
       "name": "github.com/mattn/go-isatty",
-      "version": "v0.0.21",
+      "version": "v0.0.22",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/mattn/go-isatty",
@@ -1322,7 +1322,7 @@
     },
     {
       "name": "github.com/minio/minio-go/v7",
-      "version": "v7.0.100",
+      "version": "v7.1.0",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/minio/minio-go"
@@ -1640,7 +1640,7 @@
     },
     {
       "name": "github.com/sirupsen/logrus",
-      "version": "v1.9.5-0.20260425215443-dc545927723d",
+      "version": "v1.9.5-0.20260426203557-6878cb36b029",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/sirupsen/logrus",
@@ -1741,6 +1741,14 @@
       "source": "go",
       "repo": "https://github.com/zeebo/blake3",
       "fullText": "This work is released into the public domain with CC0 1.0.\n\n-------------------------------------------------------------------------------\n\nCreative Commons Legal Code\n\nCC0 1.0 Universal\n\n    CREATIVE COMMONS CORPORATION IS NOT A LAW FIRM AND DOES NOT PROVIDE\n    LEGAL SERVICES. DISTRIBUTION OF THIS DOCUMENT DOES NOT CREATE AN\n    ATTORNEY-CLIENT RELATIONSHIP. CREATIVE COMMONS PROVIDES THIS\n    INFORMATION ON AN \"AS-IS\" BASIS. CREATIVE COMMONS MAKES NO WARRANTIES\n    REGARDING THE USE OF THIS DOCUMENT OR THE INFORMATION OR WORKS\n    PROVIDED HEREUNDER, AND DISCLAIMS LIABILITY FOR DAMAGES RESULTING FROM\n    THE USE OF THIS DOCUMENT OR THE INFORMATION OR WORKS PROVIDED\n    HEREUNDER.\n\nStatement of Purpose\n\nThe laws of most jurisdictions throughout the world automatically confer\nexclusive Copyright and Related Rights (defined below) upon the creator\nand subsequent owner(s) (each and all, an \"owner\") of an original work of\nauthorship and/or a database (each, a \"Work\").\n\nCertain owners wish to permanently relinquish those rights to a Work for\nthe purpose of contributing to a commons of creative, cultural and\nscientific works (\"Commons\") that the public can reliably and without fear\nof later claims of infringement build upon, modify, incorporate in other\nworks, reuse and redistribute as freely as possible in any form whatsoever\nand for any purposes, including without limitation commercial purposes.\nThese owners may contribute to the Commons to promote the ideal of a free\nculture and the further production of creative, cultural and scientific\nworks, or to gain reputation or greater distribution for their Work in\npart through the use and efforts of others.\n\nFor these and/or other purposes and motivations, and without any\nexpectation of additional consideration or compensation, the person\nassociating CC0 with a Work (the \"Affirmer\"), to the extent that he or she\nis an owner of Copyright and Related Rights in the Work, voluntarily\nelects to apply CC0 to the Work and publicly distribute the Work under its\nterms, with knowledge of his or her Copyright and Related Rights in the\nWork and the meaning and intended legal effect of CC0 on those rights.\n\n1. Copyright and Related Rights. A Work made available under CC0 may be\nprotected by copyright and related or neighboring rights (\"Copyright and\nRelated Rights\"). Copyright and Related Rights include, but are not\nlimited to, the following:\n\n  i. the right to reproduce, adapt, distribute, perform, display,\n     communicate, and translate a Work;\n ii. moral rights retained by the original author(s) and/or performer(s);\niii. publicity and privacy rights pertaining to a person's image or\n     likeness depicted in a Work;\n iv. rights protecting against unfair competition in regards to a Work,\n     subject to the limitations in paragraph 4(a), below;\n  v. rights protecting the extraction, dissemination, use and reuse of data\n     in a Work;\n vi. database rights (such as those arising under Directive 96/9/EC of the\n     European Parliament and of the Council of 11 March 1996 on the legal\n     protection of databases, and under any national implementation\n     thereof, including any amended or successor version of such\n     directive); and\nvii. other similar, equivalent or corresponding rights throughout the\n     world based on applicable law or treaty, and any national\n     implementations thereof.\n\n2. Waiver. To the greatest extent permitted by, but not in contravention\nof, applicable law, Affirmer hereby overtly, fully, permanently,\nirrevocably and unconditionally waives, abandons, and surrenders all of\nAffirmer's Copyright and Related Rights and associated claims and causes\nof action, whether now known or unknown (including existing as well as\nfuture claims and causes of action), in the Work (i) in all territories\nworldwide, (ii) for the maximum duration provided by applicable law or\ntreaty (including future time extensions), (iii) in any current or future\nmedium and for any number of copies, and (iv) for any purpose whatsoever,\nincluding without limitation commercial, advertising or promotional\npurposes (the \"Waiver\"). Affirmer makes the Waiver for the benefit of each\nmember of the public at large and to the detriment of Affirmer's heirs and\nsuccessors, fully intending that such Waiver shall not be subject to\nrevocation, rescission, cancellation, termination, or any other legal or\nequitable action to disrupt the quiet enjoyment of the Work by the public\nas contemplated by Affirmer's express Statement of Purpose.\n\n3. Public License Fallback. Should any part of the Waiver for any reason\nbe judged legally invalid or ineffective under applicable law, then the\nWaiver shall be preserved to the maximum extent permitted taking into\naccount Affirmer's express Statement of Purpose. In addition, to the\nextent the Waiver is so judged Affirmer hereby grants to each affected\nperson a royalty-free, non transferable, non sublicensable, non exclusive,\nirrevocable and unconditional license to exercise Affirmer's Copyright and\nRelated Rights in the Work (i) in all territories worldwide, (ii) for the\nmaximum duration provided by applicable law or treaty (including future\ntime extensions), (iii) in any current or future medium and for any number\nof copies, and (iv) for any purpose whatsoever, including without\nlimitation commercial, advertising or promotional purposes (the\n\"License\"). The License shall be deemed effective as of the date CC0 was\napplied by Affirmer to the Work. Should any part of the License for any\nreason be judged legally invalid or ineffective under applicable law, such\npartial invalidity or ineffectiveness shall not invalidate the remainder\nof the License, and in such case Affirmer hereby affirms that he or she\nwill not (i) exercise any of his or her remaining Copyright and Related\nRights in the Work or (ii) assert any associated claims and causes of\naction with respect to the Work, in either case contrary to Affirmer's\nexpress Statement of Purpose.\n\n4. Limitations and Disclaimers.\n\n a. No trademark or patent rights held by Affirmer are waived, abandoned,\n    surrendered, licensed or otherwise affected by this document.\n b. Affirmer offers the Work as-is and makes no representations or\n    warranties of any kind concerning the Work, express, implied,\n    statutory or otherwise, including without limitation warranties of\n    title, merchantability, fitness for a particular purpose, non\n    infringement, or the absence of latent or other defects, accuracy, or\n    the present or absence of errors, whether or not discoverable, all to\n    the greatest extent permissible under applicable law.\n c. Affirmer disclaims responsibility for clearing rights of other persons\n    that may apply to the Work or any use thereof, including without\n    limitation any person's Copyright and Related Rights in the Work.\n    Further, Affirmer disclaims responsibility for obtaining any necessary\n    consents, permissions or other rights required for any use of the\n    Work.\n d. Affirmer understands and acknowledges that Creative Commons is not a\n    party to this document and has no duty or obligation with respect to\n    this CC0 or use of the Work.\n"
+    },
+    {
+      "name": "github.com/zeebo/xxh3",
+      "version": "v1.1.0",
+      "spdx": "BSD-2-Clause",
+      "source": "go",
+      "repo": "https://github.com/zeebo/xxh3",
+      "fullText": "BSD 2-Clause License\n\nCopyright (c) 2012-2014, Yann Collet\nCopyright (c) 2019, Jeff Wendling\nAll rights reserved.\n\nxxHash Library\n\nRedistribution and use in source and binary forms, with or without modification,\nare permitted provided that the following conditions are met:\n\n* Redistributions of source code must retain the above copyright notice, this\n  list of conditions and the following disclaimer.\n\n* Redistributions in binary form must reproduce the above copyright notice, this\n  list of conditions and the following disclaimer in the documentation and/or\n  other materials provided with the distribution.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\nANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\nWARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR\nANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\nLOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON\nANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
       "name": "go.opencensus.io",
@@ -1989,7 +1997,7 @@
     },
     {
       "name": "lexical",
-      "version": "0.43.0",
+      "version": "0.44.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
