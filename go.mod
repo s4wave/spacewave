@@ -97,9 +97,9 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.18.5
 	github.com/manifoldco/promptui v0.9.0
-	github.com/mattn/go-isatty v0.0.21
+	github.com/mattn/go-isatty v0.0.22
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/minio/minio-go/v7 v7.0.100
+	github.com/minio/minio-go/v7 v7.1.0
 	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.34.0
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
@@ -115,7 +115,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.9.5-0.20260425215443-dc545927723d
+	github.com/sirupsen/logrus v1.9.5-0.20260426203557-6878cb36b029
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.11.0
@@ -193,6 +193,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
+	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
