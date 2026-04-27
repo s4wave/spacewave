@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -104,7 +105,7 @@ func run(ctx context.Context, args []string) error {
 	if err := prepareSupportFiles(ctx, repoDir, platforms); err != nil {
 		return err
 	}
-	if !skipBuild && needsBuilderImage(platforms) {
+	if !skipBuild && needsBuilderImage(runtime.GOOS, platforms) {
 		if err := runScript(repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh")); err != nil {
 			return errors.Wrap(err, "ensure builder image")
 		}
@@ -166,10 +167,13 @@ func splitCSV(v string) []string {
 	return out
 }
 
-func needsBuilderImage(platforms []string) bool {
+func needsBuilderImage(hostGOOS string, platforms []string) bool {
 	for _, platform := range platforms {
 		goos, _ := splitPlatform(platform)
-		if goos != "darwin" {
+		if goos == "linux" {
+			return true
+		}
+		if goos == "windows" && hostGOOS != "windows" {
 			return true
 		}
 	}
