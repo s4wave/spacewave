@@ -147,6 +147,12 @@ jobs:
           go mod vendor
           bun run setup
 
+      - name: Snapshot committed dependencies
+        run: |
+          mkdir -p .tmp
+          jq '[.entries[] | {name, source}] | unique' \
+            app/licenses/licenses.json > .tmp/committed-tuples.json
+
       - name: Generate licenses
         run: bun run licenses
 
@@ -165,13 +171,23 @@ jobs:
             exit 1
           fi
 
-      - name: Check generated licenses are committed
+      - name: Validate no new dependencies
         run: |
-          if ! git diff --exit-code -- app/licenses/; then
+          jq '[.entries[] | {name, source}] | unique' \
+            app/licenses/licenses.json > .tmp/generated-tuples.json
+          additions=$(jq -r --slurpfile c .tmp/committed-tuples.json \
+            '. - $c[0] | .[] | "  \(.source)/\(.name)"' \
+            .tmp/generated-tuples.json)
+          if [ -n "$additions" ]; then
+            echo "New dependencies present in generated app/licenses/licenses.json but not in the committed file:"
+            echo "$additions"
             echo
-            echo "app/licenses/ is dirty after 'bun run licenses'."
-            echo "Run 'bun run licenses' locally and commit the updated files."
+            echo "Run 'bun run licenses' locally and commit the updated app/licenses/."
             exit 1
+          fi
+          if ! git diff --quiet -- app/licenses/; then
+            echo "app/licenses/ is dirty after 'bun run licenses' but no new dependencies were added."
+            echo "The licenses-update job on master will reconcile removals."
           fi
 
   e2e-go:
