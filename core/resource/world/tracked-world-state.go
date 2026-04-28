@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/util/routine"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -44,6 +45,10 @@ func NewTrackedWorldState(ws world.WorldState, initialSeqno uint64, ctx context.
 	// Set the state routine function that watches for changes
 	t.stateRoutine.SetStateRoutine(func(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot) error {
 		err := watchTrackedChanges(ctx, snapshot, ws)
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
+
 		// Write result to channel (nil = changes detected, error = watch failed)
 		select {
 		case t.changeResultCh <- err:

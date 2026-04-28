@@ -3,6 +3,7 @@ package resource_testbed
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -18,6 +19,8 @@ import (
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
+
+var nextTestbedEngineId atomic.Int64
 
 // StateAtomObjectStoreID is the object store ID for testbed state atoms.
 const StateAtomObjectStoreID = "testbed-state-atoms"
@@ -37,8 +40,6 @@ type TestbedResourceServer struct {
 	ctx context.Context
 	// testResult handles test result broadcasting
 	testResult broadcast.Broadcast
-	// nextEngineId is the counter for generating engine IDs
-	nextEngineId int
 	// testSuccess stores whether the test passed
 	testSuccess bool
 	// testError stores the test error message
@@ -67,11 +68,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 	// Generate engine ID if not provided
 	engineID := req.EngineId
 	if engineID == "" {
-		var nextID int
-		s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			s.nextEngineId++
-			nextID = s.nextEngineId
-		})
+		nextID := nextTestbedEngineId.Add(1)
 		engineID = fmt.Sprintf("%s-engine-%d", s.bucketID, nextID)
 	}
 
