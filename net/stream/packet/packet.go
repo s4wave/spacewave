@@ -31,21 +31,16 @@ func NewSession(
 
 // SendMsg tries to send a message on the wire.
 func (s *Session) SendMsg(msg protobuf_go_lite.Message) error {
-	data, err := msg.MarshalVT()
-	if err != nil {
-		return err
-	}
-
-	pktBuf := make([]byte, len(data)+4)
-	copy(pktBuf[4:], data)
-
-	dataLen := len(data)
-	if dataLen > math.MaxInt32 {
+	size := msg.SizeVT()
+	if size > math.MaxInt32 {
 		return errors.New("message too large: exceeds maximum uint32 value")
 	}
 
-	msgLen := uint32(dataLen)
-	binary.LittleEndian.PutUint32(pktBuf, msgLen)
+	pktBuf := make([]byte, size+4)
+	binary.LittleEndian.PutUint32(pktBuf[:4], uint32(size))
+	if _, err := msg.MarshalToSizedBufferVT(pktBuf[4:]); err != nil {
+		return err
+	}
 
 	s.sendMtx.Lock()
 	defer s.sendMtx.Unlock()
@@ -58,21 +53,21 @@ func (s *Session) SendMsg(msg protobuf_go_lite.Message) error {
 
 // RecvMsg tries to receive a message on the wire.
 func (s *Session) RecvMsg(msg protobuf_go_lite.Message) error {
-	data := make([]byte, 4)
+	var hdr [4]byte
 	s.readMtx.Lock()
 	defer s.readMtx.Unlock()
 
-	if _, err := io.ReadFull(s.ReadWriteCloser, data); err != nil {
+	if _, err := io.ReadFull(s.ReadWriteCloser, hdr[:]); err != nil {
 		return err
 	}
 
-	messageLen := binary.LittleEndian.Uint32(data)
+	messageLen := binary.LittleEndian.Uint32(hdr[:])
 	if messageLen > 0 {
 		if messageLen > s.maxMessageSize {
 			return errors.Errorf("invalid message len: %d", messageLen)
 		}
 
-		data = make([]byte, messageLen)
+		data := make([]byte, messageLen)
 		if _, err := io.ReadFull(s.ReadWriteCloser, data); err != nil {
 			return err
 		}
