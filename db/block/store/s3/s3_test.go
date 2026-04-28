@@ -33,7 +33,7 @@ func TestBlockStoreS3(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	client := NewS3Block(ctx, true, minioClient, bucketName, objectPrefix, 0)
+	client := NewS3Block(true, minioClient, bucketName, objectPrefix, 0)
 	if err := block_store_test.TestAll(ctx, client, 0); err != nil {
 		t.Fatal(err.Error())
 	}

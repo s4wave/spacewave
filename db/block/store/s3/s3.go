@@ -3,23 +3,21 @@
 package block_store_s3
 
 import (
-	"bytes"
 	"context"
 	"io"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// S3Block is a block store on top of a S3 client and base URL prefix.
+// S3Block is a block store on top of an S3 client and base URL prefix.
 // Supports any s3-compatible API.
 // Stores blocks at {objectPrefix}/{block ref}
 type S3Block struct {
 	write        bool
-	client       *minio.Client
+	client       *Client
 	bucketName   string
 	objectPrefix string
 	hashType     hash.HashType
@@ -32,7 +30,7 @@ type S3Block struct {
 // if write=false, supports read operations only.
 func NewS3Block(
 	write bool,
-	client *minio.Client,
+	client *Client,
 	bucketName,
 	objectPrefix string,
 	hashType hash.HashType,
@@ -86,10 +84,10 @@ func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts
 	}
 
 	// create object
-	_, err = b.client.PutObject(ctx, b.bucketName, objectKey, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
-		ContentType: "application/octet-stream",
-	})
-	return ref, false, err
+	if err := b.client.PutObject(ctx, b.bucketName, objectKey, data, "application/octet-stream"); err != nil {
+		return ref, false, err
+	}
+	return ref, false, nil
 }
 
 // PutBlockBatch loops calling PutBlock or RmBlock per entry.
@@ -130,17 +128,17 @@ func (b *S3Block) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bo
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
 
-	obj, err := b.client.GetObject(ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
+	body, err := b.client.GetObject(ctx, b.bucketName, objectKey)
 	if err != nil {
-		return nil, false, err
-	}
-
-	data, err := io.ReadAll(obj)
-	_ = obj.Close()
-	if err != nil {
-		if isNotFoundErr(err) {
+		if errors.Is(err, ErrNotFound) {
 			return nil, false, nil
 		}
+		return nil, false, err
+	}
+	data, err := io.ReadAll(body)
+	_ = body.Close()
+	if err != nil {
+		return nil, false, err
 	}
 
 	// Verify the data matches the block ref.
@@ -193,15 +191,14 @@ func (b *S3Block) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bl
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
 
-	info, err := b.client.StatObject(ctx, b.bucketName, objectKey, minio.StatObjectOptions{})
+	size, err := b.client.HeadObject(ctx, b.bucketName, objectKey)
 	if err != nil {
-		if isNotFoundErr(err) {
+		if errors.Is(err, ErrNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return &block.BlockStat{Ref: ref, Size: info.Size}, nil
+	return &block.BlockStat{Ref: ref, Size: size}, nil
 }
 
 // RmBlock deletes a block from the store.
@@ -216,8 +213,8 @@ func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
-	err := b.client.RemoveObject(ctx, b.bucketName, objectKey, minio.RemoveObjectOptions{})
-	if err != nil && isNotFoundErr(err) {
+	err := b.client.DeleteObject(ctx, b.bucketName, objectKey)
+	if err != nil && errors.Is(err, ErrNotFound) {
 		return nil
 	}
 	return err
@@ -238,33 +235,14 @@ func (b *S3Block) EndDeferFlush(context.Context) error {
 
 // getKeyExists checks if the given object key exists.
 func (b *S3Block) getKeyExists(ctx context.Context, objectKey string) (bool, error) {
-	obj, err := b.client.GetObject(ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
+	_, err := b.client.HeadObject(ctx, b.bucketName, objectKey)
 	if err != nil {
-		return false, err
-	}
-	defer obj.Close()
-
-	_, err = obj.Stat()
-	if err != nil {
-		if isNotFoundErr(err) {
+		if errors.Is(err, ErrNotFound) {
 			return false, nil
 		}
 		return false, err
 	}
-
 	return true, nil
-}
-
-// isNotFoundErr returns if the error is not found.
-func isNotFoundErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	minioErr, ok := err.(minio.ErrorResponse)
-	if ok && minioErr.Code == "NoSuchKey" {
-		return true
-	}
-	return false
 }
 
 // _ is a type assertion
