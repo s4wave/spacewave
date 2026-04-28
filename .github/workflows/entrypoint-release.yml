@@ -275,24 +275,31 @@ jobs:
             --out-dir .tmp/entrypoint-handoff/windows
 
       - name: Collect Windows MSIX installers
-        id: windows_msix_files
+        id: windows_msix_paths
         shell: pwsh
         run: |
-          $files = @(
-            (Resolve-Path "dist/installers/spacewave-windows-amd64.msix").Path
-            (Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path
-          )
-          "files<<EOF" >> $env:GITHUB_OUTPUT
-          $files | ForEach-Object { $_ >> $env:GITHUB_OUTPUT }
-          "EOF" >> $env:GITHUB_OUTPUT
+          "amd64=$((Resolve-Path "dist/installers/spacewave-windows-amd64.msix").Path)" >> $env:GITHUB_OUTPUT
+          "arm64=$((Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path)" >> $env:GITHUB_OUTPUT
 
-      - name: Sign Windows MSIX installers
+      - name: Sign Windows amd64 MSIX installer
         uses: azure/artifact-signing-action@v1
         with:
           endpoint: https://wus.codesigning.azure.net/
           signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
           certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          files: ${{ steps.windows_msix_files.outputs.files }}
+          files: ${{ steps.windows_msix_paths.outputs.amd64 }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: Spacewave
+
+      - name: Sign Windows arm64 MSIX installer
+        uses: azure/artifact-signing-action@v1
+        with:
+          endpoint: https://wus.codesigning.azure.net/
+          signing-account-name: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
+          certificate-profile-name: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
+          files: ${{ steps.windows_msix_paths.outputs.arm64 }}
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
