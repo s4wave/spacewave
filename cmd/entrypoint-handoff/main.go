@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -102,56 +103,98 @@ func run(ctx context.Context, args []string) error {
 		}
 	}
 
-	if err := prepareSupportFiles(ctx, repoDir, platforms); err != nil {
+	if err := runPhase(le, "prepare-support-files", func() error {
+		return prepareSupportFiles(ctx, repoDir, platforms)
+	}); err != nil {
 		return err
 	}
 	if !skipBuild && needsBuilderImage(runtime.GOOS, platforms) {
-		if err := runScript(repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh")); err != nil {
+		if err := runPhase(le, "ensure-builder-image", func() error {
+			return runScript(repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh"))
+		}); err != nil {
 			return errors.Wrap(err, "ensure builder image")
 		}
 	}
 	if !skipBuild {
-		if err := buildHelpers(repoDir, platforms); err != nil {
+		if err := runPhase(le, "build-helpers", func() error {
+			return buildHelpers(repoDir, platforms)
+		}); err != nil {
 			return err
 		}
-		if err := buildEntrypoints(ctx, repoDir, platforms); err != nil {
+		if err := runPhase(le, "build-entrypoints", func() error {
+			return buildEntrypoints(ctx, repoDir, platforms)
+		}); err != nil {
 			return err
 		}
-		if err := buildCliEntrypoints(ctx, repoDir, platforms); err != nil {
+		if err := runPhase(le, "build-cli-entrypoints", func() error {
+			return buildCliEntrypoints(ctx, repoDir, platforms)
+		}); err != nil {
 			return err
 		}
-		if err := signMacOSCliEntrypoints(ctx, repoDir, platforms); err != nil {
+		if err := runPhase(le, "sign-macos-cli-entrypoints", func() error {
+			return signMacOSCliEntrypoints(ctx, repoDir, platforms)
+		}); err != nil {
 			return err
 		}
 	}
 	if stageBuildInputs {
-		if err := stageBuildInputsTree(repoDir, outDir, platforms); err != nil {
+		if err := runPhase(le, "stage-build-inputs", func() error {
+			return stageBuildInputsTree(repoDir, outDir, platforms)
+		}); err != nil {
 			return err
 		}
 	}
 	if skipPackage {
 		return nil
 	}
-	if err := buildBundles(repoDir, platforms); err != nil {
+	if err := runPhase(le, "build-bundles", func() error {
+		return buildBundles(repoDir, platforms)
+	}); err != nil {
 		return err
 	}
-	if err := packageInstallers(repoDir, version, platforms, skipNotarize); err != nil {
+	if err := runPhase(le, "package-installers", func() error {
+		return packageInstallers(repoDir, version, platforms, skipNotarize)
+	}); err != nil {
 		return err
 	}
-	if err := packageCliArtifacts(repoDir, platforms); err != nil {
+	if err := runPhase(le, "package-cli-artifacts", func() error {
+		return packageCliArtifacts(repoDir, platforms)
+	}); err != nil {
 		return err
 	}
-	if err := notarizeMacOSCliArchives(ctx, repoDir, platforms, skipNotarize); err != nil {
+	if err := runPhase(le, "notarize-macos-cli-archives", func() error {
+		return notarizeMacOSCliArchives(ctx, repoDir, platforms, skipNotarize)
+	}); err != nil {
 		return err
 	}
 	if includeBrowser {
-		if err := buildBrowser(ctx, repoDir, reactDev); err != nil {
+		if err := runPhase(le, "build-browser", func() error {
+			return buildBrowser(ctx, repoDir, reactDev)
+		}); err != nil {
 			return err
 		}
 	}
-	if err := stageOutputs(repoDir, outDir, includeBrowser); err != nil {
+	if err := runPhase(le, "stage-outputs", func() error {
+		return stageOutputs(repoDir, outDir, includeBrowser)
+	}); err != nil {
 		return err
 	}
+	return nil
+}
+
+func runPhase(le *logrus.Entry, name string, fn func() error) error {
+	start := time.Now()
+	le.WithField("phase", name).Info("entrypoint handoff phase started")
+	if err := fn(); err != nil {
+		le.WithField("phase", name).
+			WithField("duration", time.Since(start).String()).
+			WithError(err).
+			Error("entrypoint handoff phase failed")
+		return err
+	}
+	le.WithField("phase", name).
+		WithField("duration", time.Since(start).String()).
+		Info("entrypoint handoff phase completed")
 	return nil
 }
 
@@ -676,31 +719,61 @@ func stageBuildInputsTree(repoDir, outDir string, platforms []string) error {
 }
 
 func runScript(repoDir, script string, args ...string) error {
-	cmd := exec.Command("bash", append([]string{script}, args...)...)
+	cmdArgs := append([]string{script}, args...)
+	logCommandStart("script", append([]string{"bash"}, cmdArgs...))
+	start := time.Now()
+	cmd := exec.Command("bash", cmdArgs...)
 	cmd.Dir = repoDir
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	err := cmd.Run()
+	logCommandFinish("script", append([]string{"bash"}, cmdArgs...), start, err)
+	return err
 }
 
 func runBldr(ctx context.Context, repoDir string, args ...string) error {
 	cmdArgs := append([]string{"run", "github.com/s4wave/spacewave/bldr/cmd/bldr"}, args...)
+	logCommandStart("bldr", append([]string{"go"}, cmdArgs...))
+	start := time.Now()
 	cmd := exec.CommandContext(ctx, "go", cmdArgs...)
 	cmd.Dir = repoDir
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	err := cmd.Run()
+	logCommandFinish("bldr", append([]string{"go"}, cmdArgs...), start, err)
+	return err
 }
 
 func runBun(ctx context.Context, repoDir string, args ...string) error {
+	logCommandStart("bun", append([]string{"bun"}, args...))
+	start := time.Now()
 	cmd := exec.CommandContext(ctx, "bun", args...)
 	cmd.Dir = repoDir
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	err := cmd.Run()
+	logCommandFinish("bun", append([]string{"bun"}, args...), start, err)
+	return err
+}
+
+func logCommandStart(kind string, args []string) {
+	logrus.WithField("kind", kind).
+		WithField("cmd", strings.Join(args, " ")).
+		Info("entrypoint handoff command started")
+}
+
+func logCommandFinish(kind string, args []string, start time.Time, err error) {
+	ent := logrus.WithField("kind", kind).
+		WithField("cmd", strings.Join(args, " ")).
+		WithField("duration", time.Since(start).String())
+	if err != nil {
+		ent.WithError(err).Error("entrypoint handoff command failed")
+		return
+	}
+	ent.Info("entrypoint handoff command completed")
 }
 
 func itoa(v int) string { return strconv.Itoa(v) }
