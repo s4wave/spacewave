@@ -512,6 +512,11 @@ jobs:
       id-token: write
       attestations: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
       - name: Download Linux handoff part
         uses: actions/download-artifact@v8
         with:
@@ -665,6 +670,12 @@ jobs:
           name: entrypoint-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff.tar
           if-no-files-found: error
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - name: Write release notes
         shell: bash
