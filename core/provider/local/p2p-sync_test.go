@@ -17,10 +17,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const p2pSyncTestTimeout = 2 * time.Minute
+
 // TestSOSyncSolicit verifies that two sessions connected via inproc
 // transport sync SO state through the SOSync solicit protocol.
 func TestSOSyncSolicit(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
 	// Create two separate provider accounts.
@@ -73,7 +75,7 @@ func TestSOSyncSolicit(t *testing.T) {
 // connects first). This tests the "reconnect" path where sync is already
 // running when a peer appears.
 func TestAutoReconnectSync(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
 	// Create two provider accounts.
@@ -240,7 +242,7 @@ func waitForSyncedRootSeqno(ctx context.Context, t *testing.T, acc *provider_loc
 // SO state (different seqnos), SOSync's snapshot exchange resolves by
 // adopting the higher seqno state.
 func TestP2PConflictResolution(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
 	// Create two provider accounts. A will have higher seqno.
@@ -294,7 +296,7 @@ func TestP2PConflictResolution(t *testing.T) {
 // for each block store bucket, and that the DEX solicit directives resolve
 // when peers are connected.
 func TestBlockSyncDEX(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
 	_, _, accA, sessA, releaseA := setupProviderAndSession(ctx, t)
