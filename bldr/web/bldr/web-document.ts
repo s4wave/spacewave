@@ -1479,16 +1479,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       if (this.closed) {
         return
       }
-      this.webRuntimeClient.waitConn().catch((err) => {
-        if (this.closed) return
-        console.warn('WebDocument: failed to connect to WebRuntime', err)
-        setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
-      }).then(() => {
-        if (this.closed) {
-          return
-        }
-        this.emit('runtimeconnected')
-      })
+      this.webRuntimeClient.waitConn().then(
+        () => {
+          if (this.closed) {
+            return
+          }
+          this.emit('runtimeconnected')
+        },
+        (err) => {
+          if (this.closed) return
+          console.warn('WebDocument: failed to connect to WebRuntime', err)
+          setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
+        },
+      )
     })
   }
 

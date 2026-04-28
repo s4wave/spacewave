@@ -268,24 +268,22 @@ DIST_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-manifest("spacewave-dist",
-    builder="bldr/dist/compiler",
-    config=dist_compiler_config(
+def dist_release_config(embed_manifests):
+    return dist_compiler_config(
         cliPkgs=["./cmd/spacewave-cli/cli"],
-        # Minimal embed: only spacewave-launcher + spacewave-loader ship
-        # inside the binary via //go:embed assets.kvfile. Everything else is
-        # mounted lazily from the remote world at runtime via
-        # launcher_config_set. First launch requires network.
-        #
-        # embedManifests is empty in the static manifest because every
-        # release-<host> build supplies its own per-host (manifestId,
-        # platformId) tuples via manifestOverrides (REPLACE semantics). This
-        # keeps the static config host-agnostic and makes the build target the
-        # single source of truth for what ships in each host's binary.
-        embedManifests=[],
+        embedManifests=embed_manifests,
         loadPlugins=DIST_LOAD_PLUGINS,
         loadWebStartup=WEB_STARTUP,
-    ),
+    )
+
+manifest("spacewave-dist",
+    builder="bldr/dist/compiler",
+    # embedManifests is empty in the static manifest because every release
+    # build supplies its own (manifestId, platformId) tuples via
+    # manifestOverrides (REPLACE semantics). This keeps the static config
+    # host-agnostic and makes the build target the single source of truth for
+    # what ships in each bundle.
+    config=dist_release_config([]),
 )
 
 # -- Build targets --
@@ -306,10 +304,30 @@ RELEASE_MANIFESTS = [
 REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
+BROWSER_RELEASE_EMBED_MANIFESTS = [
+    {"manifestId": "spacewave-launcher",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "spacewave-loader",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "spacewave-core",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "web",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "spacewave-web",
+     "platformId": "js"},
+    {"manifestId": "spacewave-app",
+     "platformId": "js"},
+]
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
-build("release-web", manifests=RELEASE_MANIFESTS, targets=["browser"])
+build("release-web",
+    manifests=RELEASE_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-dist": dist_release_config(BROWSER_RELEASE_EMBED_MANIFESTS),
+    },
+)
 build("cli",         manifests=["spacewave", "spacewave-cli"])
 
 # plugin-release-browser builds the browser-side plugin channel surface: the
@@ -339,17 +357,12 @@ def define_release_build(host_key, platform_id):
         manifests=RELEASE_MANIFESTS,
         platform_ids=[platform_id],
         manifestOverrides={
-            "spacewave-dist": dist_compiler_config(
-                cliPkgs=["./cmd/spacewave-cli/cli"],
-                embedManifests=[
-                    {"manifestId": "spacewave-launcher",
-                     "platformId": platform_id},
-                    {"manifestId": "spacewave-loader",
-                     "platformId": platform_id},
-                ],
-                loadPlugins=DIST_LOAD_PLUGINS,
-                loadWebStartup=WEB_STARTUP,
-            ),
+            "spacewave-dist": dist_release_config([
+                {"manifestId": "spacewave-launcher",
+                 "platformId": platform_id},
+                {"manifestId": "spacewave-loader",
+                 "platformId": platform_id},
+            ]),
         },
     )
 
