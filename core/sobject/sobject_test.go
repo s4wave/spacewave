@@ -27,6 +27,7 @@ func TestSharedObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 
 	le := tb.Logger
 	vol := tb.Volume
@@ -57,7 +58,7 @@ func TestSharedObject(t *testing.T) {
 	_ = provInfo
 
 	// Acquire a provider account handle.
-	accountID := "test-account"
+	accountID := "test-account-" + sobject.NewSOOperationLocalID()
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, accountID, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -71,7 +72,7 @@ func TestSharedObject(t *testing.T) {
 	}
 
 	// Create the shared object.
-	sobjectID := "test-shared-object"
+	sobjectID := "test-shared-object-" + sobject.NewSOOperationLocalID()
 	createdSoRef, err := wsProv.CreateSharedObject(ctx, sobjectID, &sobject.SharedObjectMeta{
 		BodyType: "test",
 	}, "", "")
@@ -218,7 +219,7 @@ func TestSharedObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if !bytes.Equal(afterRootInner.GetStateData(), []byte("mock operation")) {
-		t.Fatal("unexpected after state data")
+		t.Fatalf("unexpected after state data: %q", string(afterRootInner.GetStateData()))
 	}
 
 	// TODO test op queue, multi-validator, etc.
