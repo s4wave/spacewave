@@ -157,6 +157,44 @@ build("release-desktop-darwin-arm64",
 	}
 }
 
+func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
+	starPath := "../../../bldr.star"
+	if _, err := os.Stat(starPath); err != nil {
+		t.Skipf("bldr.star not found at %s: %v", starPath, err)
+	}
+
+	result, err := Evaluate(starPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bc := result.Config.GetBuild()["release-desktop-darwin-arm64"]
+	if bc == nil {
+		t.Fatal("build target 'release-desktop-darwin-arm64' not found")
+	}
+	platformIDs := bc.GetPlatformIds()
+	if len(platformIDs) != 2 || platformIDs[0] != "desktop/darwin/arm64" || platformIDs[1] != "js" {
+		t.Fatalf("release desktop platform ids: got %v, want [desktop/darwin/arm64 js]", platformIDs)
+	}
+
+	override := bc.GetManifestOverrides()["spacewave-dist"]
+	if override == nil {
+		t.Fatal("override for 'spacewave-dist' not found")
+	}
+	cfg := string(override.GetConfig())
+	for _, want := range []string{
+		`"spacewave-core"`,
+		`"web"`,
+		`"spacewave-web"`,
+		`"spacewave-app"`,
+		`"platformId":"js"`,
+	} {
+		if !strings.Contains(cfg, want) {
+			t.Fatalf("release desktop override config missing %s: %s", want, cfg)
+		}
+	}
+}
+
 func TestEvaluateManifestOverridesRejectsNonDict(t *testing.T) {
 	dir := t.TempDir()
 	starFile := filepath.Join(dir, "bldr.star")

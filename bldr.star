@@ -369,7 +369,7 @@ def define_release_build(host_key, platform_id):
     ]
     build("release-" + host_key,
         manifests=RELEASE_MANIFESTS,
-        platform_ids=[platform_id],
+        platform_ids=[platform_id, "js"],
         manifestOverrides={
             "spacewave-dist": dist_release_config(desktop_embed_manifests),
         },

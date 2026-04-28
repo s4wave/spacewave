@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: false
+      sign_artifacts:
+        description: sign release artifacts with production identities
+        required: false
+        type: boolean
+        default: true
       react_dev:
         description: build browser entrypoint in dev mode
         required: false
@@ -165,7 +170,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .tmp/entrypoint-handoff/windows
-          key: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          key: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-sign${{ inputs.sign_artifacts }}
 
       - name: Setup Go
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
@@ -193,7 +198,7 @@ jobs:
           go mod vendor
 
       - name: Azure login with OIDC
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -201,7 +206,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Resolve TrustedSigning module path
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: trusted_signing_paths
         shell: pwsh
         run: |
@@ -209,7 +214,7 @@ jobs:
           "psmodulepath=$defaultPath" >> $env:GITHUB_OUTPUT
 
       - name: Cache TrustedSigning PowerShell module
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_trusted_signing
         uses: actions/cache@v5
         with:
@@ -217,13 +222,13 @@ jobs:
           key: TrustedSigning-0.5.8
 
       - name: Install TrustedSigning PowerShell module
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_trusted_signing.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_trusted_signing.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
 
       - name: Cache Microsoft.Windows.SDK.BuildTools nuget
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_buildtools
         uses: actions/cache@v5
         with:
@@ -231,7 +236,7 @@ jobs:
           key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
 
       - name: Cache Microsoft.Trusted.Signing.Client nuget
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_tsclient
         uses: actions/cache@v5
         with:
@@ -239,7 +244,7 @@ jobs:
           key: Microsoft.Trusted.Signing.Client-1.0.95
 
       - name: Cache sign dotnet tool
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_signcli
         uses: actions/cache@v5
         with:
@@ -247,7 +252,7 @@ jobs:
           key: SignCli-0.9.1-beta.24469.1
 
       - name: Install Microsoft.Windows.SDK.BuildTools nuget
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_buildtools.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_buildtools.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           $name = "Microsoft.Windows.SDK.BuildTools"
@@ -260,7 +265,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install Microsoft.Trusted.Signing.Client nuget
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_tsclient.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_tsclient.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           $name = "Microsoft.Trusted.Signing.Client"
@@ -273,7 +278,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install sign dotnet tool
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_signcli.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_signcli.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           $name = "sign"
@@ -295,9 +300,9 @@ jobs:
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
-          BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ vars.BLDR_WINDOWS_SIGN_ENDPOINT }}
+          BLDR_WINDOWS_SIGN_PROFILE: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_PROFILE || '' }}
+          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ACCOUNT || '' }}
+          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ENDPOINT || '' }}
           BLDR_WINDOWS_SIGN_MSIX: "0"
         run: |
           set -euo pipefail
@@ -315,7 +320,7 @@ jobs:
           "arm64=$((Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path)" >> $env:GITHUB_OUTPUT
 
       - name: Sign Windows amd64 MSIX installer
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         uses: azure/artifact-signing-action@v1
         with:
           endpoint: https://wus.codesigning.azure.net/
@@ -328,7 +333,7 @@ jobs:
           description: Spacewave
 
       - name: Sign Windows arm64 MSIX installer
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         uses: azure/artifact-signing-action@v1
         with:
           endpoint: https://wus.codesigning.azure.net/
@@ -341,7 +346,7 @@ jobs:
           description: Spacewave
 
       - name: Refresh staged Windows installers after MSIX signing
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -350,7 +355,7 @@ jobs:
           cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
 
       - name: Verify Windows signatures
-        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         shell: pwsh
         run: |
           $files = @(
@@ -394,7 +399,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .tmp/entrypoint-handoff/macos
-          key: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-skipnotarize${{ inputs.skip_notarize }}
+          key: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-sign${{ inputs.sign_artifacts }}-skipnotarize${{ inputs.skip_notarize }}
 
       - name: Setup Go
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
@@ -422,7 +427,7 @@ jobs:
           go mod vendor
 
       - name: Import macOS signing certificate
-        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
+        if: ${{ inputs.sign_artifacts && steps.macos_handoff_cache.outputs.cache-hit != 'true' }}
         shell: bash
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
@@ -443,7 +448,7 @@ jobs:
           rm -f "${CERT_PATH}"
 
       - name: Bootstrap macOS notarization credentials
-        if: ${{ !inputs.skip_notarize && steps.macos_handoff_cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.sign_artifacts && !inputs.skip_notarize && steps.macos_handoff_cache.outputs.cache-hit != 'true' }}
         shell: bash
         env:
           BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
@@ -481,16 +486,17 @@ jobs:
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
-          BLDR_MACOS_SIGN_IDENTITY: ${{ vars.BLDR_MACOS_SIGN_IDENTITY }}
+          BLDR_MACOS_SIGN_IDENTITY: ${{ inputs.sign_artifacts && vars.BLDR_MACOS_SIGN_IDENTITY || '-' }}
           BLDR_MACOS_SIGN_ENTITLEMENTS: ${{ vars.BLDR_MACOS_SIGN_ENTITLEMENTS }}
           BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
           BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
+          BLDR_MACOS_ADHOC_SIGN: ${{ inputs.sign_artifacts && '0' || '1' }}
         run: |
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "darwin-amd64,darwin-arm64" \
-            --skip-notarize=${{ inputs.skip_notarize }} \
+            --skip-notarize=${{ !inputs.sign_artifacts || inputs.skip_notarize }} \
             --out-dir .tmp/entrypoint-handoff/macos
 
       - name: Upload macOS handoff part

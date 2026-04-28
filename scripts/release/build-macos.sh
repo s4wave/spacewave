@@ -17,6 +17,7 @@ if [ -z "$SIGNING_ID" ]; then
   echo "Example: export BLDR_MACOS_SIGN_IDENTITY='Developer ID Application: Your Team (TEAMID)'" >&2
   exit 1
 fi
+ADHOC_SIGN="${BLDR_MACOS_ADHOC_SIGN:-0}"
 
 # Notarization keychain profile. Bootstrap once with:
 #   xcrun notarytool store-credentials "$BLDR_MACOS_NOTARIZE_PROFILE" --key ~/path/to/AuthKey_KEYID.p8 --key-id KEYID --issuer ISSUERID
@@ -44,6 +45,9 @@ APP_ZIP="$REPO_ROOT/.tmp/Spacewave-${ARCH}.zip"
 # parenthesized tail of the signing identity, e.g. "Developer ID
 # Application: Aperture Robotics LLC (ABCDE12345)" -> "ABCDE12345".
 TEAM_ID="$(printf '%s' "$SIGNING_ID" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+if [ -z "$TEAM_ID" ] && [ "$ADHOC_SIGN" = "1" ]; then
+  TEAM_ID="${BLDR_MACOS_SIGN_TEAM_ID:-ADHOCSPACE}"
+fi
 if [ -z "$TEAM_ID" ]; then
   echo "ERROR: could not extract team id from BLDR_MACOS_SIGN_IDENTITY: $SIGNING_ID" >&2
   exit 1
@@ -149,7 +153,11 @@ fi
 # string embedded in the main app's SMPrivilegedExecutables entry, so sign
 # the tool with a literal =--requirements= matching that entry. The team
 # id must match =$TEAM_ID= extracted above.
-PRIV_REQ="designated => anchor apple generic and identifier \"$HELPER_LABEL\" and certificate leaf[subject.OU] = \"$TEAM_ID\""
+if [ "$ADHOC_SIGN" = "1" ]; then
+  PRIV_REQ="designated => identifier \"$HELPER_LABEL\""
+else
+  PRIV_REQ="designated => anchor apple generic and identifier \"$HELPER_LABEL\" and certificate leaf[subject.OU] = \"$TEAM_ID\""
+fi
 codesign --force \
   --sign "$SIGNING_ID" \
   --options runtime \
@@ -244,6 +252,9 @@ if [ "$SKIP_NOTARIZE" = "--skip-notarize" ]; then
   # Unticketed DMG path for iteration / local dev only.
   build_installer_dmg
   codesign --sign "$SIGNING_ID" "$DMG"
+  if [ "$ADHOC_SIGN" = "1" ]; then
+    echo "Ad-hoc signing enabled; skipping notarization."
+  fi
   echo "Skipping notarization (--skip-notarize)."
   echo "Built: $DMG"
   exit 0
