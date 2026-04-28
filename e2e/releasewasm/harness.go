@@ -111,6 +111,15 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		return nil, errors.Wrap(err, "wait for release server")
 	}
 
+	le.Info("installing playwright chromium driver")
+	if err := playwright.Install(&playwright.RunOptions{
+		Browsers: []string{"chromium"},
+		Stdout:   os.Stdout,
+		Stderr:   os.Stderr,
+	}); err != nil {
+		return nil, errors.Wrap(err, "install playwright")
+	}
+
 	pw, err := playwright.Run()
 	if err != nil {
 		return nil, errors.Wrap(err, "start playwright")
