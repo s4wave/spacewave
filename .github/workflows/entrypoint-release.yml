@@ -687,7 +687,8 @@ jobs:
           else
             gh release edit "${tag}" \
               --title "${tag}" \
-              --notes-file .tmp/release-notes.md
+              --notes-file .tmp/release-notes.md \
+              --draft
           fi
           upload_args=(
             .tmp/entrypoint-handoff/checksums.txt

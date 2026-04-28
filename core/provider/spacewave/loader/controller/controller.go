@@ -30,6 +30,8 @@ var Version = semver.MustParse("0.0.1")
 // defaultHelperBinaryName is the default helper binary name on non-Windows.
 const defaultHelperBinaryName = "spacewave-helper"
 
+const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
+
 // Controller spawns the spacewave-helper in --loading mode and drives its
 // progress bar by observing LoadPlugin directive state for each configured
 // watch plugin. The helper is terminated on context cancellation.
@@ -71,7 +73,7 @@ func (c *Controller) Close() error {
 func (c *Controller) Execute(ctx context.Context) error {
 	helperPath, ok := resolveHelperPath(c.conf.GetHelperBinaryName())
 	if !ok {
-		c.le.Warn("spacewave-helper binary not found next to entrypoint; skipping loader UI")
+		c.le.Warn("spacewave-helper binary not found next to entrypoint or host executable; skipping loader UI")
 		return nil
 	}
 	projectID := c.conf.ResolvedProjectID()
@@ -378,13 +380,31 @@ func formatRetryMessage(nextRetryAt time.Time) string {
 }
 
 // resolveHelperPath looks for the helper binary adjacent to the running
-// executable. Returns false when no binary exists at the expected path.
+// executable, then beside the host executable when the loader runs as a
+// downloaded plugin. Returns false when no binary exists at the expected path.
 func resolveHelperPath(overrideName string) (string, bool) {
 	exe, err := os.Executable()
 	if err != nil {
 		return "", false
 	}
-	return resolveHelperPathIn(filepath.Dir(exe), overrideName, runtime.GOOS)
+	return resolveHelperPathFromDirs(
+		[]string{filepath.Dir(exe), os.Getenv(hostExecutableDirEnv)},
+		overrideName,
+		runtime.GOOS,
+	)
+}
+
+func resolveHelperPathFromDirs(baseDirs []string, overrideName, goos string) (string, bool) {
+	for _, baseDir := range baseDirs {
+		if baseDir == "" {
+			continue
+		}
+		path, ok := resolveHelperPathIn(baseDir, overrideName, goos)
+		if ok {
+			return path, true
+		}
+	}
+	return "", false
 }
 
 // resolveHelperPathIn resolves the helper binary path within baseDir using the

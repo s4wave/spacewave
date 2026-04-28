@@ -111,3 +111,20 @@ func TestResolveHelperPath(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveHelperPathFromDirsFallback(t *testing.T) {
+	pluginDir := t.TempDir()
+	hostDir := t.TempDir()
+	helperPath := filepath.Join(hostDir, "spacewave-helper")
+	if err := os.WriteFile(helperPath, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := resolveHelperPathFromDirs([]string{pluginDir, hostDir}, "", "darwin")
+	if !ok {
+		t.Fatal("expected helper fallback to host executable dir")
+	}
+	if got != helperPath {
+		t.Fatalf("path = %q, want %q", got, helperPath)
+	}
+}

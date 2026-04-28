@@ -26,6 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
+
 // Controller is the plugin host controller tytpe.
 type Controller = host_controller.Controller
 
@@ -197,6 +199,9 @@ func (h *ProcessHost) ExecutePlugin(
 		"BLDR_PLUGIN_START_INFO="+pluginStartInfoJsonB64,
 		"BLDR_PLUGIN_STATE_PATH="+pluginStateDir,
 	)
+	if exe, err := os.Executable(); err == nil {
+		entrypointProc.Env = append(entrypointProc.Env, hostExecutableDirEnv+"="+filepath.Dir(exe))
+	}
 
 	// write start info to a file as well
 	instanceDetailsPath := filepath.Join(pluginDistDir, ".plugin-start-info")

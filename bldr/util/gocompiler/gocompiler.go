@@ -83,6 +83,9 @@ func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
 // NOTE: ExecBuildEntrypoint calls this automatically.
 func NewBuildTags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := []string{"build_type_" + buildType.String()}
+	if buildType.IsRelease() && os.Getenv("SPACEWAVE_RELEASE_ENV") == "prod" {
+		buildTags = append(buildTags, "prod_signing")
+	}
 	if !enableCgo {
 		buildTags = append(buildTags, "purego")
 	}

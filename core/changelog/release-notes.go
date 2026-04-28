@@ -22,14 +22,7 @@ func RenderReleaseMarkdown(cl *Changelog, version string) (string, error) {
 
 func renderReleaseMarkdown(rel *Release) string {
 	var b strings.Builder
-	b.WriteString("# v")
-	b.WriteString(rel.GetVersion())
-	if rel.GetDate() != "" {
-		b.WriteString("\n\n")
-		b.WriteString(rel.GetDate())
-	}
 	if rel.GetSummaryMarkdown() != "" {
-		b.WriteString("\n\n")
 		b.WriteString(rel.GetSummaryMarkdown())
 	}
 	writeChangeSection(&b, "Features", rel.GetFeatures())
@@ -44,10 +37,13 @@ func writeChangeSection(b *strings.Builder, name string, entries []*ChangeEntry)
 	if len(entries) == 0 {
 		return
 	}
-	b.WriteString("\n\n## ")
+	if b.Len() != 0 {
+		b.WriteString("\n\n")
+	}
+	b.WriteString("## ")
 	b.WriteString(name)
 	for _, entry := range entries {
-		b.WriteString("\n\n- ")
+		b.WriteString("\n- ")
 		if entry.GetDescriptionMarkdown() != "" {
 			b.WriteString(entry.GetDescriptionMarkdown())
 			continue
