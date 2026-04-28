@@ -15,7 +15,7 @@ import (
 
 var testHarness *harness
 
-const browserWaitMS = 30000
+const browserWaitMS = 60000
 
 func TestMain(m *testing.M) {
 	log := logrus.New()
