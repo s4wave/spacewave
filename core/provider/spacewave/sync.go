@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -397,34 +396,38 @@ type preparedSyncChunk struct {
 	bodyHash []byte
 }
 
+// syncPushProgressReader wraps an io.Reader and fires a progress callback at
+// most once per syncPushProgressInterval, plus a final callback at EOF.
+// io.Reader is not safe for concurrent goroutine use, and this type inherits
+// that contract: Read must be invoked from a single goroutine, which is why
+// sent and next are plain int64 rather than atomic.Int64.
 type syncPushProgressReader struct {
 	reader io.Reader
-	sent   atomic.Int64
-	next   atomic.Int64
+	sent   int64
+	next   int64
 	cb     func(int64)
 }
 
 func newSyncPushProgressReader(reader io.Reader, cb func(int64)) *syncPushProgressReader {
-	p := &syncPushProgressReader{
+	return &syncPushProgressReader{
 		reader: reader,
 		cb:     cb,
+		next:   time.Now().Add(syncPushProgressInterval).UnixNano(),
 	}
-	p.next.Store(time.Now().Add(syncPushProgressInterval).UnixNano())
-	return p
 }
 
 func (p *syncPushProgressReader) Read(buf []byte) (int, error) {
 	n, err := p.reader.Read(buf)
 	if n > 0 {
-		sent := p.sent.Add(int64(n))
+		p.sent += int64(n)
 		now := time.Now().UnixNano()
-		next := p.next.Load()
-		if now >= next && p.next.CompareAndSwap(next, now+int64(syncPushProgressInterval)) {
-			p.cb(sent)
+		if now >= p.next {
+			p.next = now + int64(syncPushProgressInterval)
+			p.cb(p.sent)
 		}
 	}
 	if err == io.EOF {
-		p.cb(p.sent.Load())
+		p.cb(p.sent)
 	}
 	return n, err
 }
