@@ -37,6 +37,8 @@ func run() error {
 	switch os.Args[1] {
 	case "export-kvfile":
 		return runExportKVFile(os.Args[2:])
+	case "consolidate-world":
+		return runConsolidateWorld(os.Args[2:])
 	default:
 		return errors.Errorf("unknown command %q", os.Args[1])
 	}

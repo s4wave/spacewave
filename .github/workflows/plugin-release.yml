@@ -93,27 +93,12 @@ jobs:
           if-no-files-found: error
 
   native-macos:
-    needs:
-      - prep
-      - browser
+    needs: prep
     runs-on: macos-15
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Download plugin world state
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-world-browser
-          path: .tmp/plugin-world-browser
-
-      - name: Restore plugin world state
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .bldr
-          cp .tmp/plugin-world-browser/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -199,9 +184,7 @@ jobs:
             .bldr/build/desktop/darwin/amd64/spacewave-core/dist/*
 
   native-windows:
-    needs:
-      - prep
-      - native-macos
+    needs: prep
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
@@ -209,18 +192,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Download plugin world state
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-world-macos
-          path: .tmp/plugin-world-macos
-
-      - name: Restore plugin world state
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path .bldr | Out-Null
-          Copy-Item .tmp/plugin-world-macos/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -380,27 +351,12 @@ jobs:
             .bldr/build/desktop/windows/amd64/spacewave-core/dist/*
 
   native-linux:
-    needs:
-      - prep
-      - native-windows
+    needs: prep
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Download plugin world state
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-world-windows
-          path: .tmp/plugin-world-windows
-
-      - name: Restore plugin world state
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .bldr
-          cp .tmp/plugin-world-windows/devtool.s4wave .bldr/devtool.s4wave
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -450,6 +406,9 @@ jobs:
   handoff:
     needs:
       - prep
+      - browser
+      - native-macos
+      - native-windows
       - native-linux
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
@@ -457,18 +416,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download plugin world state
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download browser plugin world state
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-world-browser
+          path: .tmp/plugin-worlds/browser
+
+      - name: Download macOS plugin world state
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-world-macos
+          path: .tmp/plugin-worlds/macos
+
+      - name: Download Windows plugin world state
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-world-windows
+          path: .tmp/plugin-worlds/windows
+
+      - name: Download Linux plugin world state
         uses: actions/download-artifact@v8
         with:
           name: plugin-world-linux
-          path: .tmp/plugin-world-linux
+          path: .tmp/plugin-worlds/linux
 
-      - name: Restore plugin world state
+      - name: Consolidate plugin world state
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .bldr
-          cp .tmp/plugin-world-linux/devtool.s4wave .bldr/devtool.s4wave
+          go run ./cmd/plugin-release consolidate-world \
+            --out .bldr/devtool.s4wave \
+            --world .tmp/plugin-worlds/browser/devtool.s4wave \
+            --world .tmp/plugin-worlds/macos/devtool.s4wave \
+            --world .tmp/plugin-worlds/windows/devtool.s4wave \
+            --world .tmp/plugin-worlds/linux/devtool.s4wave
 
       - name: Download macOS native plugin artifacts
         uses: actions/download-artifact@v8
@@ -494,7 +482,7 @@ jobs:
           set -euo pipefail
           rm -rf .tmp/plugin-handoff
           mkdir -p .tmp/plugin-handoff/native
-          cp .tmp/plugin-world-linux/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
+          cp .bldr/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
           cp -R .tmp/native-artifacts/darwin .tmp/plugin-handoff/native/darwin
           cp -R .tmp/native-artifacts/windows .tmp/plugin-handoff/native/windows
           cp -R .tmp/native-artifacts/linux .tmp/plugin-handoff/native/linux
