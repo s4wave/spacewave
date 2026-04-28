@@ -276,6 +276,9 @@ func buildHelpers(repoDir string, platforms []string) error {
 }
 
 func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-js"); err != nil {
+		return errors.Wrap(err, "run bldr release-remote-js")
+	}
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
 		buildID := "release-desktop-" + goos + "-" + goarch

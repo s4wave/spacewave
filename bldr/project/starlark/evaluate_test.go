@@ -173,8 +173,8 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		t.Fatal("build target 'release-desktop-darwin-arm64' not found")
 	}
 	platformIDs := bc.GetPlatformIds()
-	if len(platformIDs) != 2 || platformIDs[0] != "desktop/darwin/arm64" || platformIDs[1] != "js" {
-		t.Fatalf("release desktop platform ids: got %v, want [desktop/darwin/arm64 js]", platformIDs)
+	if len(platformIDs) != 1 || platformIDs[0] != "desktop/darwin/arm64" {
+		t.Fatalf("release desktop platform ids: got %v, want [desktop/darwin/arm64]", platformIDs)
 	}
 
 	override := bc.GetManifestOverrides()["spacewave-dist"]
@@ -191,6 +191,21 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Fatalf("release desktop override config missing %s: %s", want, cfg)
+		}
+	}
+
+	jsBuild := result.Config.GetBuild()["release-remote-js"]
+	if jsBuild == nil {
+		t.Fatal("build target 'release-remote-js' not found")
+	}
+	jsPlatformIDs := jsBuild.GetPlatformIds()
+	if len(jsPlatformIDs) != 1 || jsPlatformIDs[0] != "js" {
+		t.Fatalf("release remote js platform ids: got %v, want [js]", jsPlatformIDs)
+	}
+	jsManifests := strings.Join(jsBuild.GetManifests(), ",")
+	for _, want := range []string{"web", "spacewave-web", "spacewave-app"} {
+		if !strings.Contains(jsManifests, want) {
+			t.Fatalf("release remote js manifests missing %s: %v", want, jsBuild.GetManifests())
 		}
 	}
 }

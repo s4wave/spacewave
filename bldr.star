@@ -369,7 +369,7 @@ def define_release_build(host_key, platform_id):
     ]
     build("release-" + host_key,
         manifests=RELEASE_MANIFESTS,
-        platform_ids=[platform_id, "js"],
+        platform_ids=[platform_id],
         manifestOverrides={
             "spacewave-dist": dist_release_config(desktop_embed_manifests),
         },
@@ -409,8 +409,8 @@ for host_key, platform_id in RELEASE_HOSTS:
 # per-host release targets stay native-only so they do not try to build
 # spacewave-dist for JS.
 build("release-remote-js",
-    manifests=["spacewave-web", "spacewave-app"],
-    targets=["browser"],
+    manifests=["web", "spacewave-web", "spacewave-app"],
+    platform_ids=["js"],
 )
 
 # -- Publish --
