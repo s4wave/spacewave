@@ -205,6 +205,10 @@ jobs:
             script: test:go:e2e:browser
             needs_playwright: true
             playwright_browsers: chromium
+          - name: release-wasm
+            script: test:go:e2e:release-wasm
+            needs_playwright: true
+            playwright_browsers: chromium
           - name: trace-service
             script: test:go:e2e:trace
             needs_playwright: false

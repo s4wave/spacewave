@@ -73,6 +73,7 @@
     "test:go:e2e:bldr-comms": "cross-env RUN_NO_COI_E2E=1 go test -timeout=30m -v ./bldr/e2e/comms",
     "test:go:e2e:core": "cross-env RUN_CORE_E2E=1 go test -timeout=30m -v ./core/e2e/... -run TestSpacewaveCoreE2E",
     "test:go:e2e:browser": "cross-env RUN_BROWSER_E2E=1 go test -timeout=30m -v ./core/e2e/browser/... -run TestBrowserE2EWithBldr",
+    "test:go:e2e:release-wasm": "cross-env ENABLE_E2E_RELEASE_WASM=true go test -timeout=30m -v ./e2e/releasewasm",
     "test:go:e2e:trace": "cross-env RUN_TRACE_E2E=1 go test -timeout=30m -v ./core/trace/service -run 'TestTraceServiceDiscovery|TestTraceServiceAllPlugins'",
     "format": "bun run format:js && bun run format:go && bun run format:config",
     "format:js": "prettier --write './{app,web,core,sdk,net}/**/(*.ts|*.tsx|*.js|*.html|*.css|*.scss)' && bun run format:config",
