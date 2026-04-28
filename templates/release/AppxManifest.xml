@@ -5,7 +5,7 @@
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap uap10 rescap">
   <Identity Name="ApertureRobotics.Spacewave"
-            Publisher="CN=Aperture Robotics, LLC."
+            Publisher="CN=&quot;Aperture Robotics, LLC.&quot;"
             Version="{{VERSION}}"
             ProcessorArchitecture="{{ARCH}}" />
   <Properties>
