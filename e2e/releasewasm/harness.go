@@ -127,7 +127,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	h.pw = pw
 
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(true),
+		Headless: new(true),
 		Args: []string{
 			"--allow-loopback-in-peer-connection",
 			"--disable-features=WebRtcHideLocalIpsWithMdns",
@@ -278,8 +278,8 @@ func releaseHandler(distDir, staticDir string) http.Handler {
 			rw.Header().Set("Content-Encoding", "gzip")
 			rw.Header().Set("Content-Type", "application/wasm")
 		}
-		if strings.HasPrefix(req.URL.Path, "/static/") {
-			http.ServeFile(rw, req, filepath.Join(staticDir, strings.TrimPrefix(req.URL.Path, "/static/")))
+		if after, ok := strings.CutPrefix(req.URL.Path, "/static/"); ok {
+			http.ServeFile(rw, req, filepath.Join(staticDir, after))
 			return
 		}
 		if staticPath, ok := resolveStaticHTML(staticDir, req.URL.Path); ok {
