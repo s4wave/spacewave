@@ -32,6 +32,8 @@ const defaultHelperBinaryName = "spacewave-helper"
 
 const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
 
+const defaultAppIconPath = "../Resources/app.icns"
+
 // Controller spawns the spacewave-helper in --loading mode and drives its
 // progress bar by observing LoadPlugin directive state for each configured
 // watch plugin. The helper is terminated on context cancellation.
@@ -85,9 +87,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "create storage root")
 	}
 
-	client, err := launcher_helper.NewLoadingClient(
-		ctx, c.le, rootDir, helperPath, c.conf.GetIconPath(),
-	)
+	iconPath := resolveIconPath(c.conf.GetIconPath())
+	client, err := launcher_helper.NewLoadingClient(ctx, c.le, rootDir, helperPath, iconPath)
 	if err != nil {
 		return errors.Wrap(err, "start loader helper")
 	}
@@ -405,6 +406,33 @@ func resolveHelperPathFromDirs(baseDirs []string, overrideName, goos string) (st
 		}
 	}
 	return "", false
+}
+
+func resolveIconPath(overridePath string) string {
+	if overridePath != "" {
+		return overridePath
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	return resolveIconPathFromDirs([]string{
+		filepath.Dir(exe),
+		os.Getenv(hostExecutableDirEnv),
+	})
+}
+
+func resolveIconPathFromDirs(baseDirs []string) string {
+	for _, baseDir := range baseDirs {
+		if baseDir == "" {
+			continue
+		}
+		path := filepath.Clean(filepath.Join(baseDir, defaultAppIconPath))
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
 }
 
 // resolveHelperPathIn resolves the helper binary path within baseDir using the

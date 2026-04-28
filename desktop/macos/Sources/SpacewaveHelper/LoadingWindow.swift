@@ -15,6 +15,7 @@ class LoadingWindow: NSObject, NSWindowDelegate {
 
     var onRetry: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onDismiss: (() -> Void)?
 
     init(iconPath: String?) {
         let width: CGFloat = 400
@@ -149,6 +150,7 @@ class LoadingWindow: NSObject, NSWindowDelegate {
         }
 
         if msg.dismiss {
+            onDismiss?()
             NSApp.terminate(nil)
         }
 

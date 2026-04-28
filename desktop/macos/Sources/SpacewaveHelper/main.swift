@@ -16,6 +16,18 @@ struct Args {
     var pid: Int32 = 0
 }
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var onTerminate: (() -> Void)?
+    var shouldSendCancel = true
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if shouldSendCancel {
+            onTerminate?()
+        }
+        return .terminateNow
+    }
+}
+
 func parseArgs() -> Args {
     var args = Args()
     let argv = CommandLine.arguments
@@ -52,6 +64,22 @@ func parseArgs() -> Args {
     return args
 }
 
+func installQuitMenu() {
+    let mainMenu = NSMenu()
+    let appMenuItem = NSMenuItem()
+    mainMenu.addItem(appMenuItem)
+
+    let appMenu = NSMenu()
+    let quitItem = NSMenuItem(
+        title: "Quit Spacewave",
+        action: #selector(NSApplication.terminate(_:)),
+        keyEquivalent: "q"
+    )
+    appMenu.addItem(quitItem)
+    appMenuItem.submenu = appMenu
+    NSApplication.shared.mainMenu = mainMenu
+}
+
 let parsedArgs = parseArgs()
 
 // Build pipe path from pipesock conventions: <rootDir>/.pipe-<uuid>
@@ -65,6 +93,7 @@ if parsedArgs.loading {
     // Loading screen mode.
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
+    installQuitMenu()
 
     let pipe = PipeClient(pipePath: pipePath)
     do {
@@ -83,6 +112,17 @@ if parsedArgs.loading {
     }
 
     let loadingWindow = LoadingWindow(iconPath: parsedArgs.iconPath)
+    var sentCancel = false
+    let sendCancel = {
+        if sentCancel {
+            return
+        }
+        sentCancel = true
+        try? pipe.sendEvent(HelperEvent(type_: .cancel))
+    }
+    let appDelegate = AppDelegate()
+    appDelegate.onTerminate = sendCancel
+    app.delegate = appDelegate
 
     // Wire pipe messages to window.
     pipe.onMessage = { msg in
@@ -94,8 +134,11 @@ if parsedArgs.loading {
         try? pipe.sendEvent(HelperEvent(type_: .retry))
     }
     loadingWindow.onCancel = {
-        try? pipe.sendEvent(HelperEvent(type_: .cancel))
+        sendCancel()
         NSApp.terminate(nil)
+    }
+    loadingWindow.onDismiss = {
+        appDelegate.shouldSendCancel = false
     }
 
     loadingWindow.show()

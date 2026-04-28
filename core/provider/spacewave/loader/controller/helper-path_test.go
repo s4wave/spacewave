@@ -128,3 +128,27 @@ func TestResolveHelperPathFromDirsFallback(t *testing.T) {
 		t.Fatalf("path = %q, want %q", got, helperPath)
 	}
 }
+
+func TestResolveIconPathFromDirsFallback(t *testing.T) {
+	pluginDir := t.TempDir()
+	hostDir := t.TempDir()
+	iconPath := filepath.Clean(filepath.Join(hostDir, "../Resources/app.icns"))
+	if err := os.MkdirAll(filepath.Dir(iconPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(iconPath, []byte("stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveIconPathFromDirs([]string{pluginDir, hostDir})
+	if got != iconPath {
+		t.Fatalf("path = %q, want %q", got, iconPath)
+	}
+}
+
+func TestResolveIconPathFromDirsMissing(t *testing.T) {
+	got := resolveIconPathFromDirs([]string{t.TempDir()})
+	if got != "" {
+		t.Fatalf("path = %q, want empty on miss", got)
+	}
+}
