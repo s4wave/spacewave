@@ -199,6 +199,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Add output mount to v86fs server.
 		v86fsSrv.AddMount("output", outputDir, outputHandle)
 
+		if rootfsTarPath == "" {
+			if _, ok := c.inputVals["rootfs"]; ok {
+				rootfsHandle, err := c.resolveInputMount(ctx, cs, "rootfs")
+				if err != nil {
+					return errors.Wrap(err, "resolve rootfs input")
+				}
+				defer rootfsHandle.Release()
+				v86fsSrv.AddMount("", "/", rootfsHandle)
+				c.le.Debug("added rootfs mount from input")
+			}
+		}
+
 		// Resolve input mounts from config and add to v86fs server.
 		// Each mount maps a guest path to a forge Input name providing a UnixFS tree.
 		var inputHandles []*unixfs.FSHandle
