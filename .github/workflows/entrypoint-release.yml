@@ -670,10 +670,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > .tmp/release-notes.md <<'EOF'
-          Automated draft release assembled by the entrypoint-release workflow.
-          Publication to R2 and Worker deploy happen from the private promotion workflow.
-          EOF
+          go run ./cmd/changelog-notes --version "${{ needs.prep.outputs.version }}" > .tmp/release-notes.md
 
       - name: Create or update draft GitHub release
         shell: bash
