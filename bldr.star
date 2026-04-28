@@ -297,10 +297,10 @@ RELEASE_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
     "spacewave-dist",
 ]
-# REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted remote
-# world and are fetched lazily by spacewave-launcher at runtime. Embedded
-# manifests (launcher, loader, dist) live in the binary and are intentionally
-# NOT copied to the remote world.
+# REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted plugin
+# world. Desktop entrypoints still embed the startup app manifests for a
+# reliable first boot; plugin-promote can replace them after launch by updating
+# the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
@@ -353,16 +353,25 @@ RELEASE_HOSTS = [
 ]
 
 def define_release_build(host_key, platform_id):
+    desktop_embed_manifests = [
+        {"manifestId": "spacewave-launcher",
+         "platformId": platform_id},
+        {"manifestId": "spacewave-loader",
+         "platformId": platform_id},
+        {"manifestId": "spacewave-core",
+         "platformId": platform_id},
+        {"manifestId": "web",
+         "platformId": "js"},
+        {"manifestId": "spacewave-web",
+         "platformId": "js"},
+        {"manifestId": "spacewave-app",
+         "platformId": "js"},
+    ]
     build("release-" + host_key,
         manifests=RELEASE_MANIFESTS,
         platform_ids=[platform_id],
         manifestOverrides={
-            "spacewave-dist": dist_release_config([
-                {"manifestId": "spacewave-launcher",
-                 "platformId": platform_id},
-                {"manifestId": "spacewave-loader",
-                 "platformId": platform_id},
-            ]),
+            "spacewave-dist": dist_release_config(desktop_embed_manifests),
         },
     )
 
