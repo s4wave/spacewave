@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/refcount"
@@ -406,6 +407,9 @@ func TestProviderAccountRefreshWriteTicketAudienceSingleflight(t *testing.T) {
 	go runRefresh()
 	<-refreshStarted
 	go runRefresh()
+	// Give the second goroutine a tick to park on the in-flight singleflight
+	// promise before letting the owner finish.
+	time.Sleep(20 * time.Millisecond)
 	close(allowRefresh)
 
 	first := <-results
