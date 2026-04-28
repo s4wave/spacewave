@@ -19,6 +19,11 @@ ICON="$REPO_ROOT/.tmp/icons/icon-256.png"
 OUT="$REPO_ROOT/dist/installers"
 LAYOUT="$REPO_ROOT/.tmp/msix-layout-${ARCH}"
 MSIX="$OUT/spacewave-windows-${ARCH}.msix"
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  echo "ERROR: python3 or python is required to render AppxManifest.xml" >&2
+  exit 1
+fi
 
 rm -rf "$LAYOUT"
 mkdir -p "$OUT" "$LAYOUT/Assets"
@@ -28,6 +33,27 @@ if [ ! -f "$BINARY" ]; then
   echo "ERROR: missing entrypoint binary: $BINARY" >&2
   exit 1
 fi
+
+MSIX_PUBLISHER="${BLDR_WINDOWS_MSIX_PUBLISHER:-}"
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    if [ -z "$MSIX_PUBLISHER" ]; then
+      BINARY_WIN="$(cygpath -w "$BINARY")"
+      MSIX_PUBLISHER="$(powershell.exe -NoProfile -Command "\$sig = Get-AuthenticodeSignature -FilePath '$BINARY_WIN'; if (-Not \$sig.SignerCertificate) { throw 'entrypoint binary is not signed' }; \$sig.SignerCertificate.Subject" | tr -d '\r')"
+    fi
+    ;;
+esac
+if [ -z "$MSIX_PUBLISHER" ]; then
+  MSIX_PUBLISHER='CN="Aperture Robotics, LLC."'
+fi
+MSIX_PUBLISHER_XML="$(
+  MSIX_PUBLISHER="$MSIX_PUBLISHER" "$PYTHON_BIN" - <<'PY'
+import os
+import xml.sax.saxutils
+
+print(xml.sax.saxutils.escape(os.environ["MSIX_PUBLISHER"], {'"': "&quot;"}))
+PY
+)"
 
 # 1. Copy entrypoint binary.
 cp "$BINARY" "$LAYOUT/Spacewave.exe"
@@ -42,10 +68,19 @@ for size in 48 128 256; do
   cp ".tmp/icons/icon-${size}.png" "$LAYOUT/Assets/Square${size}x${size}Logo.png"
 done
 
-# 4. Generate AppxManifest.xml with version + arch templated.
-sed -e "s/{{VERSION}}/$VERSION.0/g" \
-    -e "s/{{ARCH}}/$MSIX_ARCH/g" \
-    "$TEMPLATES_DIR/AppxManifest.xml" > "$LAYOUT/AppxManifest.xml"
+# 4. Generate AppxManifest.xml with version, arch, and publisher templated.
+VERSION="$VERSION" MSIX_ARCH="$MSIX_ARCH" MSIX_PUBLISHER_XML="$MSIX_PUBLISHER_XML" \
+  TEMPLATE_PATH="$TEMPLATES_DIR/AppxManifest.xml" OUT_PATH="$LAYOUT/AppxManifest.xml" \
+  "$PYTHON_BIN" - <<'PY'
+import os
+from pathlib import Path
+
+text = Path(os.environ["TEMPLATE_PATH"]).read_text(encoding="utf-8")
+text = text.replace("{{VERSION}}", os.environ["VERSION"] + ".0")
+text = text.replace("{{ARCH}}", os.environ["MSIX_ARCH"])
+text = text.replace("{{PUBLISHER}}", os.environ["MSIX_PUBLISHER_XML"])
+Path(os.environ["OUT_PATH"]).write_text(text, encoding="utf-8")
+PY
 
 case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*)
