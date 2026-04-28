@@ -82,24 +82,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Cache Linux handoff part
+        id: linux_handoff_cache
+        uses: actions/cache@v5
+        with:
+          path: .tmp/entrypoint-handoff/linux
+          key: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-reactdev${{ inputs.react_dev }}
+
       - name: Setup Go
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Setup Bun
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.JS
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
 
       - name: Set up Docker Buildx
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Cache spacewave-builder zig stubs
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/cache@v5
         with:
           path: ${{ env.BLDR_BUILDER_ZIG_CACHE_DIR }}
@@ -108,6 +120,7 @@ jobs:
             spacewave-builder-zig-
 
       - name: Install Bun dependencies
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -115,6 +128,7 @@ jobs:
           go mod vendor
 
       - name: Build Linux and browser handoff slice
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -146,21 +160,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Cache Windows handoff part
+        id: windows_handoff_cache
+        uses: actions/cache@v5
+        with:
+          path: .tmp/entrypoint-handoff/windows
+          key: entrypoint-part-windows-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+
       - name: Setup Go
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Setup Bun
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.JS
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
 
       - name: Install Bun dependencies
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -168,6 +193,7 @@ jobs:
           go mod vendor
 
       - name: Azure login with OIDC
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -175,6 +201,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Resolve TrustedSigning module path
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: trusted_signing_paths
         shell: pwsh
         run: |
@@ -182,6 +209,7 @@ jobs:
           "psmodulepath=$defaultPath" >> $env:GITHUB_OUTPUT
 
       - name: Cache TrustedSigning PowerShell module
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: cache_trusted_signing
         uses: actions/cache@v5
         with:
@@ -189,12 +217,13 @@ jobs:
           key: TrustedSigning-0.5.8
 
       - name: Install TrustedSigning PowerShell module
-        if: steps.cache_trusted_signing.outputs.cache-hit != 'true'
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_trusted_signing.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
 
       - name: Cache Microsoft.Windows.SDK.BuildTools nuget
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: cache_buildtools
         uses: actions/cache@v5
         with:
@@ -202,6 +231,7 @@ jobs:
           key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
 
       - name: Cache Microsoft.Trusted.Signing.Client nuget
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: cache_tsclient
         uses: actions/cache@v5
         with:
@@ -209,6 +239,7 @@ jobs:
           key: Microsoft.Trusted.Signing.Client-1.0.95
 
       - name: Cache sign dotnet tool
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: cache_signcli
         uses: actions/cache@v5
         with:
@@ -216,7 +247,7 @@ jobs:
           key: SignCli-0.9.1-beta.24469.1
 
       - name: Install Microsoft.Windows.SDK.BuildTools nuget
-        if: steps.cache_buildtools.outputs.cache-hit != 'true'
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_buildtools.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "Microsoft.Windows.SDK.BuildTools"
@@ -229,7 +260,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install Microsoft.Trusted.Signing.Client nuget
-        if: steps.cache_tsclient.outputs.cache-hit != 'true'
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_tsclient.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "Microsoft.Trusted.Signing.Client"
@@ -242,7 +273,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install sign dotnet tool
-        if: steps.cache_signcli.outputs.cache-hit != 'true'
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true' && steps.cache_signcli.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "sign"
@@ -261,6 +292,7 @@ jobs:
           Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
 
       - name: Build signed Windows handoff slice
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
           BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
@@ -275,6 +307,7 @@ jobs:
             --out-dir .tmp/entrypoint-handoff/windows
 
       - name: Collect Windows MSIX installers
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: windows_msix_paths
         shell: pwsh
         run: |
@@ -282,6 +315,7 @@ jobs:
           "arm64=$((Resolve-Path "dist/installers/spacewave-windows-arm64.msix").Path)" >> $env:GITHUB_OUTPUT
 
       - name: Sign Windows amd64 MSIX installer
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: azure/artifact-signing-action@v1
         with:
           endpoint: https://wus.codesigning.azure.net/
@@ -294,6 +328,7 @@ jobs:
           description: Spacewave
 
       - name: Sign Windows arm64 MSIX installer
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         uses: azure/artifact-signing-action@v1
         with:
           endpoint: https://wus.codesigning.azure.net/
@@ -306,6 +341,7 @@ jobs:
           description: Spacewave
 
       - name: Refresh staged Windows installers after MSIX signing
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -314,6 +350,7 @@ jobs:
           cp -R dist/installers/. .tmp/entrypoint-handoff/windows/installers/
 
       - name: Verify Windows signatures
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $files = @(
@@ -352,21 +389,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Cache macOS handoff part
+        id: macos_handoff_cache
+        uses: actions/cache@v5
+        with:
+          path: .tmp/entrypoint-handoff/macos
+          key: entrypoint-part-macos-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-skipnotarize${{ inputs.skip_notarize }}
+
       - name: Setup Go
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Setup Bun
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.JS
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
 
       - name: Install Bun dependencies
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -374,6 +422,7 @@ jobs:
           go mod vendor
 
       - name: Import macOS signing certificate
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
@@ -394,7 +443,7 @@ jobs:
           rm -f "${CERT_PATH}"
 
       - name: Bootstrap macOS notarization credentials
-        if: ${{ !inputs.skip_notarize }}
+        if: ${{ !inputs.skip_notarize && steps.macos_handoff_cache.outputs.cache-hit != 'true' }}
         shell: bash
         env:
           BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
@@ -429,6 +478,7 @@ jobs:
           rm -f "${KEY_PATH}"
 
       - name: Build macOS handoff slice
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         env:
           BLDR_MACOS_SIGN_IDENTITY: ${{ vars.BLDR_MACOS_SIGN_IDENTITY }}
