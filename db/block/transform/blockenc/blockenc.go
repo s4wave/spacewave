@@ -9,15 +9,19 @@ import (
 
 // BlockEnc is the BlockEnc encryption step.
 type BlockEnc struct {
-	// contains blockenc.Method
+	// cryptArena pools blockenc.Method instances. The pool is populated
+	// lazily by its New func on the first Get that finds the pool empty.
+	// sync.Pool may discard pooled items at any GC tick, so the pool floor
+	// is best-effort; New must always be able to build a fresh Method.
 	cryptArena sync.Pool
 	alloc      blockenc.AllocFn
 }
 
 // NewBlockEnc constructs the block enc step.
 func NewBlockEnc(c *Config) (*BlockEnc, error) {
-	crypt, err := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey())
-	if err != nil {
+	// Validate the config eagerly so the pool's New func can safely
+	// discard the build error on subsequent calls.
+	if _, err := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey()); err != nil {
 		return nil, err
 	}
 	enc := &BlockEnc{alloc: blockenc.DefaultAllocFn()}
@@ -28,7 +32,6 @@ func NewBlockEnc(c *Config) (*BlockEnc, error) {
 			return crypt
 		},
 	}
-	enc.cryptArena.Put(crypt)
 	return enc, nil
 }
 
