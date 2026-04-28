@@ -217,8 +217,14 @@ build_installer_dmg() {
   cp "$TEMPLATES_DIR/dmg/DS_Store" "$STAGE/.DS_Store"
   ln -s /Applications "$STAGE/Applications"
 
-  # Build a writable image sized generously so the .app + overhead fits.
-  hdiutil create -quiet -size 300m -fs HFS+ -volname "Spacewave" \
+  # Build a writable image sized from the staged payload so arch-specific app
+  # size differences do not overflow a fixed image. Add 96 MiB for HFS+
+  # overhead, Finder metadata, and compression staging slack.
+  local STAGE_KB
+  local DMG_SIZE_MB
+  STAGE_KB="$(du -sk "$STAGE" | awk '{print $1}')"
+  DMG_SIZE_MB="$(( (STAGE_KB + 98304 + 1023) / 1024 ))"
+  hdiutil create -quiet -size "${DMG_SIZE_MB}m" -fs HFS+ -volname "Spacewave" \
     -srcfolder "$STAGE" -format UDRW "$RWDMG"
 
   # Compress to final read-only UDZO. hdiutil preserves .DS_Store and the
