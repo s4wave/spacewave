@@ -5,11 +5,13 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
 	"github.com/sirupsen/logrus"
 )
 
@@ -89,7 +91,11 @@ func defaultPluginExecClientLoader(
 		}
 		return nil, nil, err
 	}
-	return NewSRPCPluginExecServiceClient(client), ref, nil
+	accessClient := bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client)
+	req := bifrost_rpc_access.NewLookupRpcServiceRequest(SRPCPluginExecServiceServiceID, "")
+	invoker := bifrost_rpc_access.NewProxyInvoker(accessClient, req, true)
+	proxyClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+	return NewSRPCPluginExecServiceClient(proxyClient), ref, nil
 }
 
 // NewPluginExecHandler constructs a plugin bridge handler factory.
