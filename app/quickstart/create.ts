@@ -59,6 +59,112 @@ import {
 
 import { type QuickstartSpaceCreateId } from './options.js'
 
+export interface QuickstartPhaseTiming {
+  name: string
+  startedMs: number
+  finishedMs?: number
+  elapsedMs?: number
+  error?: string
+}
+
+export interface QuickstartSetupTiming {
+  quickstartId: QuickstartSpaceCreateId
+  startedMs: number
+  finishedMs?: number
+  elapsedMs?: number
+  error?: string
+  phases: QuickstartPhaseTiming[]
+}
+
+declare global {
+  var __s4waveQuickstartTiming: QuickstartSetupTiming | undefined
+  var __s4waveLogQuickstartTiming: boolean | undefined
+  var __s4wave_debug: { quickstartTiming?: QuickstartSetupTiming } | undefined
+}
+
+function nowMs(): number {
+  return Math.round(performance.now())
+}
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+function startQuickstartTiming(
+  quickstartId: QuickstartSpaceCreateId,
+): QuickstartSetupTiming {
+  const timing: QuickstartSetupTiming = {
+    quickstartId,
+    startedMs: nowMs(),
+    phases: [],
+  }
+  publishQuickstartTiming(timing)
+  return timing
+}
+
+function publishQuickstartTiming(timing: QuickstartSetupTiming): void {
+  globalThis.__s4waveQuickstartTiming = timing
+  if (globalThis.__s4wave_debug) {
+    globalThis.__s4wave_debug.quickstartTiming = timing
+  }
+}
+
+function finishQuickstartTiming(
+  timing: QuickstartSetupTiming,
+  err?: unknown,
+): void {
+  const finishedMs = nowMs()
+  timing.finishedMs = finishedMs
+  timing.elapsedMs = finishedMs - timing.startedMs
+  if (err) {
+    timing.error = getErrorMessage(err)
+  }
+  publishQuickstartTiming(timing)
+  if (globalThis.__s4waveLogQuickstartTiming) {
+    console.log('quickstart timing: ' + JSON.stringify(timing))
+  }
+}
+
+async function timeQuickstartPhase<T>(
+  timing: QuickstartSetupTiming | undefined,
+  name: string,
+  cb: () => Promise<T>,
+): Promise<T> {
+  if (!timing) {
+    return cb()
+  }
+
+  const startedMs = nowMs()
+  const phase: QuickstartPhaseTiming = { name, startedMs }
+  timing.phases.push(phase)
+  publishQuickstartTiming(timing)
+  if (globalThis.__s4waveLogQuickstartTiming) {
+    console.log('quickstart phase started: ' + name)
+  }
+
+  try {
+    const result = await cb()
+    const finishedMs = nowMs()
+    phase.finishedMs = finishedMs
+    phase.elapsedMs = finishedMs - startedMs
+    publishQuickstartTiming(timing)
+    if (globalThis.__s4waveLogQuickstartTiming) {
+      console.log('quickstart phase finished: ' + JSON.stringify(phase))
+    }
+    return result
+  } catch (err) {
+    const finishedMs = nowMs()
+    phase.finishedMs = finishedMs
+    phase.elapsedMs = finishedMs - startedMs
+    phase.error = getErrorMessage(err)
+    publishQuickstartTiming(timing)
+    if (globalThis.__s4waveLogQuickstartTiming) {
+      console.log('quickstart phase failed: ' + JSON.stringify(phase))
+    }
+    throw err
+  }
+}
+
 // findMostRecentLocalSession returns the most recent local session from the
 // current session list, or undefined if none exist.
 async function findMostRecentLocalSession(
@@ -123,15 +229,19 @@ export async function createLocalSession(
   abortSignal: AbortSignal,
   cleanup: RegisterCleanup,
   forceNew?: boolean,
+  timing?: QuickstartSetupTiming,
 ): Promise<LocalSessionSetup> {
   // Check for an existing local session to reuse.
   if (!forceNew) {
-    const existing = await findMostRecentLocalSession(root, abortSignal)
+    const existing = await timeQuickstartPhase(
+      timing,
+      'find-existing-local-session',
+      () => findMostRecentLocalSession(root, abortSignal),
+    )
     if (existing) {
       const session = cleanup(
-        await root.mountSession(
-          { sessionRef: existing.sessionRef },
-          abortSignal,
+        await timeQuickstartPhase(timing, 'mount-existing-local-session', () =>
+          root.mountSession({ sessionRef: existing.sessionRef }, abortSignal),
         ),
       )
       markInteracted()
@@ -140,16 +250,26 @@ export async function createLocalSession(
   }
 
   // No existing local session (or forceNew): create a new account.
-  using provider = await root.lookupProvider('local')
+  using provider = await timeQuickstartPhase(
+    timing,
+    'lookup-local-provider',
+    () => root.lookupProvider('local'),
+  )
   const lp = new LocalProvider(provider.resourceRef)
-  const accountResp = await lp.createAccount(abortSignal)
+  const accountResp = await timeQuickstartPhase(
+    timing,
+    'create-local-account',
+    () => lp.createAccount(abortSignal),
+  )
   const sessionIndex = accountResp.sessionListEntry?.sessionIndex ?? 1
 
   // Mount the session using the account's session reference.
   const session = cleanup(
-    await root.mountSession(
-      { sessionRef: accountResp.sessionListEntry?.sessionRef },
-      abortSignal,
+    await timeQuickstartPhase(timing, 'mount-new-local-session', () =>
+      root.mountSession(
+        { sessionRef: accountResp.sessionListEntry?.sessionRef },
+        abortSignal,
+      ),
     ),
   )
 
@@ -182,6 +302,7 @@ export interface QuickstartSetupParams {
   spaceResp: CreateSpaceResponse
   abortSignal: AbortSignal
   cleanup: RegisterCleanup
+  timing?: QuickstartSetupTiming
 }
 
 // createQuickstartSetupFromSession creates a quickstart setup from an existing session and space response.
@@ -193,23 +314,35 @@ export async function createQuickstartSetupFromSession(
     'accountResp' | 'sessionIndex' | 'session' | 'spaceResp'
   >
 > {
-  const { session, spaceResp, abortSignal, cleanup } = params
+  const { session, spaceResp, abortSignal, cleanup, timing } = params
 
   // Mount the space from the response.
-  const space = await mountSpace({
-    session,
-    spaceResp,
-    abortSignal,
-    cleanup,
-  })
+  const space = await timeQuickstartPhase(timing, 'mount-space', () =>
+    mountSpace({
+      session,
+      spaceResp,
+      abortSignal,
+      cleanup,
+    }),
+  )
 
   // Access the World associated with the space as a WorldState.
-  const spaceWorld = await space.accessWorldState(true, abortSignal)
-  const spaceContents = cleanup(await space.mountSpaceContents(abortSignal))
+  const spaceWorld = await timeQuickstartPhase(
+    timing,
+    'access-space-world',
+    () => space.accessWorldState(true, abortSignal),
+  )
+  const spaceContents = cleanup(
+    await timeQuickstartPhase(timing, 'mount-space-contents', () =>
+      space.mountSpaceContents(abortSignal),
+    ),
+  )
 
   // Access the world state bucket storage.
   const spaceWorldState = cleanup(
-    await spaceWorld.accessWorldState(undefined, abortSignal),
+    await timeQuickstartPhase(timing, 'access-space-world-state', () =>
+      spaceWorld.accessWorldState(undefined, abortSignal),
+    ),
   )
 
   return {
@@ -226,40 +359,54 @@ export async function createQuickstartSetup(
   abortSignal: AbortSignal,
   cleanup: RegisterCleanup,
 ): Promise<QuickstartSetup> {
-  // Reuse existing local session or create a new one.
-  const { accountResp, sessionIndex, session } = await createLocalSession(
-    root,
-    abortSignal,
-    cleanup,
-  )
+  const timing = startQuickstartTiming(quickstartId)
+  try {
+    // Reuse existing local session or create a new one.
+    const { accountResp, sessionIndex, session } = await createLocalSession(
+      root,
+      abortSignal,
+      cleanup,
+      undefined,
+      timing,
+    )
 
-  // Create a new space with the quickstart ID as the name.
-  const spaceResp = await session.createSpace(
-    { spaceName: getQuickstartSpaceName(quickstartId) },
-    abortSignal,
-  )
+    // Create a new space with the quickstart ID as the name.
+    const spaceResp = await timeQuickstartPhase(timing, 'create-space', () =>
+      session.createSpace(
+        { spaceName: getQuickstartSpaceName(quickstartId) },
+        abortSignal,
+      ),
+    )
 
-  // Create the setup from the session and space response.
-  const setup = await createQuickstartSetupFromSession({
-    session,
-    spaceResp,
-    abortSignal,
-    cleanup,
-  })
+    // Create the setup from the session and space response.
+    const setup = await createQuickstartSetupFromSession({
+      session,
+      spaceResp,
+      abortSignal,
+      cleanup,
+      timing,
+    })
 
-  // Construct the result
-  const result = {
-    accountResp,
-    sessionIndex,
-    session,
-    spaceResp,
-    ...setup,
+    // Construct the result
+    const result = {
+      accountResp,
+      sessionIndex,
+      session,
+      spaceResp,
+      ...setup,
+    }
+
+    // Populate the space with quickstart-specific content.
+    await timeQuickstartPhase(timing, 'populate-space', () =>
+      populateSpace(quickstartId, result, abortSignal, timing),
+    )
+
+    finishQuickstartTiming(timing)
+    return result
+  } catch (err) {
+    finishQuickstartTiming(timing, err)
+    throw err
   }
-
-  // Populate the space with quickstart-specific content.
-  await populateSpace(quickstartId, result, abortSignal)
-
-  return result
 }
 
 // createSpaceSettingsObject creates the SpaceSettings object in the world.
@@ -365,9 +512,7 @@ async function runQuickstartStep<T>(
   try {
     return await cb()
   } catch (err) {
-    throw new Error(
-      label + ': ' + (err instanceof Error ? err.message : String(err)),
-    )
+    throw new Error(label + ': ' + getErrorMessage(err), { cause: err })
   }
 }
 
@@ -426,13 +571,14 @@ export async function populateSpace(
   quickstartId: QuickstartSpaceCreateId,
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
 ): Promise<void> {
   switch (quickstartId) {
     case 'space':
       await createSpaceSettingsObject(setup.spaceWorld, abortSignal)
       break
     case 'drive':
-      await createDrive(setup.spaceWorld, abortSignal)
+      await createDrive(setup.spaceWorld, abortSignal, timing)
       break
     case 'git':
       await initGitQuickstart(setup, abortSignal)
@@ -492,9 +638,14 @@ async function initNotebookQuickstart(
 export async function createDrive(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  await createSpaceSettingsObject(spaceWorld, abortSignal, UNIXFS_OBJECT_KEY)
-  await initUnixFS(spaceWorld, abortSignal)
+  await timeQuickstartPhase(timing, 'create-drive-settings', () =>
+    createSpaceSettingsObject(spaceWorld, abortSignal, UNIXFS_OBJECT_KEY),
+  )
+  await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
+    initUnixFS(spaceWorld, abortSignal),
+  )
 }
 
 // initGitQuickstart seeds a persistent git/repo wizard and indexes the Space to it.

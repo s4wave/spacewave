@@ -94,6 +94,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	if _, err := page.Goto(testHarness.getBaseURL() + "/quickstart/drive"); err != nil {
 		t.Fatalf("goto quickstart drive: %v", err)
 	}
+	enableQuickstartTimingLogs(t, page)
 
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
@@ -114,6 +115,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart drive shell: %v", err)
 	}
+	logQuickstartTiming(t, page)
 }
 
 func waitForLiveApp(t *testing.T, page playwright.Page) {
@@ -182,10 +184,38 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 		title: document.title,
 		text: document.body?.innerText?.slice(0, 4000) ?? '',
 		rootHtml: document.querySelector('#bldr-root')?.outerHTML?.slice(0, 4000) ?? '',
+		hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+		quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
+		testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+			testid: el.getAttribute('data-testid'),
+			text: el.textContent?.slice(0, 200) ?? '',
+		})),
 	})`)
 	if err != nil {
 		t.Logf("dump page state: %v", err)
 		return
 	}
 	t.Logf("page state: %#v", state)
+}
+
+func enableQuickstartTimingLogs(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`() => {
+		globalThis.__s4waveLogQuickstartTiming = true
+	}`)
+	if err != nil {
+		t.Fatalf("enable quickstart timing logs: %v", err)
+	}
+}
+
+func logQuickstartTiming(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	timing, err := page.Evaluate(`() => JSON.stringify(globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null)`)
+	if err != nil {
+		t.Logf("quickstart timing: %v", err)
+		return
+	}
+	t.Logf("quickstart timing: %v", timing)
 }
