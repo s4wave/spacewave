@@ -122,6 +122,9 @@ func TestDefaultRegistryAndBridgeFactories(t *testing.T) {
 	if r.Lookup(GitCloneConfigID) == nil {
 		t.Fatal("git/clone not in default registry")
 	}
+	if r.Lookup(PluginExecConfigID) == nil {
+		t.Fatal("plugin exec not in default registry")
+	}
 
 	// BridgeFactories returns a factory for every handler in the registry.
 	factories := BridgeFactories(r)

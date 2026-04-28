@@ -1,0 +1,50 @@
+syntax = "proto3";
+package space.exec;
+
+import "github.com/s4wave/spacewave/forge/value/value.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/forge/exec;space_exec";
+
+// PluginExecConfig configures the generic plugin execution bridge.
+message PluginExecConfig {
+  // PluginId is the plugin to load before executing.
+  string plugin_id = 1;
+  // ControllerId is the plugin-owned execution controller id to invoke.
+  string controller_id = 2;
+  // ControllerConfig is opaque config bytes for the plugin-owned controller.
+  bytes controller_config = 3;
+}
+
+// PluginExecRequest asks a loaded plugin to execute a controller.
+message PluginExecRequest {
+  // ControllerId is the plugin-owned execution controller id to invoke.
+  string controller_id = 1;
+  // ControllerConfig is opaque config bytes for the plugin-owned controller.
+  bytes controller_config = 2;
+  // Inputs are the Forge execution inputs.
+  repeated forge.value.Value inputs = 3;
+}
+
+// PluginExecLog is a log entry emitted by a plugin execution controller.
+message PluginExecLog {
+  // Level is the log severity.
+  string level = 1;
+  // Message is the log message.
+  string message = 2;
+}
+
+// PluginExecResponse contains controller logs, outputs, and optional failure.
+message PluginExecResponse {
+  // Logs are execution logs to append to the Forge execution.
+  repeated PluginExecLog logs = 1;
+  // Outputs are Forge execution outputs to set.
+  repeated forge.value.Value outputs = 2;
+  // Error is the plugin execution failure message, if any.
+  string error = 3;
+}
+
+// PluginExecService executes plugin-owned Forge execution controllers.
+service PluginExecService {
+  // Execute runs a plugin-owned execution controller.
+  rpc Execute(PluginExecRequest) returns (PluginExecResponse);
+}

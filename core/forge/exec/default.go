@@ -1,6 +1,7 @@
 package space_exec
 
 import (
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	forge_target "github.com/s4wave/spacewave/forge/target"
@@ -8,6 +9,12 @@ import (
 
 // NewDefaultRegistry creates a registry with all built-in space exec handlers.
 func NewDefaultRegistry() *Registry {
+	return NewDefaultRegistryWithBus(nil)
+}
+
+// NewDefaultRegistryWithBus creates a registry with all built-in space exec
+// handlers, including handlers that need the controller bus.
+func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
 	r := NewRegistry()
 	RegisterNoop(r)
 	RegisterKvtx(r)
@@ -15,6 +22,7 @@ func NewDefaultRegistry() *Registry {
 	RegisterUnixfsRead(r)
 	RegisterFileHash(r)
 	RegisterExportZip(r)
+	RegisterPluginExec(r, b)
 	return r
 }
 

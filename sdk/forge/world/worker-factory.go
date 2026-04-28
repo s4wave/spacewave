@@ -141,9 +141,9 @@ func (r *forgeWorkerResource) Execute(
 	// them via LoadControllerWithConfig directives.
 	//
 	// Space-aware exec handler bridge factories are included so the execution
-	// controller dispatches to SpaceExecRegistry handlers (no bus.Bus access)
-	// instead of the global bus-based exec handler factories.
-	execRegistry := space_exec.NewDefaultRegistry()
+	// controller dispatches to SpaceExecRegistry handlers. The plugin bridge
+	// receives the bus so it can load plugin-owned exec services.
+	execRegistry := space_exec.NewDefaultRegistryWithBus(r.b)
 	bridgeFactories := space_exec.BridgeFactories(execRegistry)
 	forgeFactories := []controller.Factory{
 		cluster_controller.NewFactory(r.b),
