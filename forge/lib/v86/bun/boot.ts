@@ -177,7 +177,7 @@ function waitForSerial(
 async function runCommand(
   emulator: V86Emulator,
   cmd: string,
-  prompt = ':/#',
+  prompt = '# ',
   timeoutMs = 30_000,
 ): Promise<string> {
   const p = waitForSerial(emulator, prompt, timeoutMs)
@@ -277,7 +277,7 @@ async function main() {
   if (useV86fsRoot) {
     // v86fs root: rootfs.tar served through the v86fs SRPC server.
     cmdline =
-      'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs console=ttyS0'
+      'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs rootflags= console=ttyS0'
     console.error('[forge-v86] booting with v86fs root')
   } else {
     // 9p root: load rootfs from local fs.json + flat/ files.
@@ -303,6 +303,10 @@ async function main() {
     filesystem: handle9p ? { handle9p } : {},
     virtio_v86fs: useV86fs,
     virtio_v86fs_adapter: v86fsBridge?.adapter,
+    net_device: {
+      type: 'virtio',
+      relay_url: 'fetch',
+    },
     autostart: true,
   })
 
@@ -319,7 +323,7 @@ async function main() {
   })
 
   // Wait for shell prompt
-  const prompt = ':/#'
+  const prompt = '# '
   await waitForSerial(emulator, prompt)
   console.error('[forge-v86] shell ready')
 
