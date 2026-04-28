@@ -16,6 +16,10 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
+	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
+	unixfs_tar "github.com/s4wave/spacewave/db/unixfs/tar"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_json "github.com/s4wave/spacewave/forge/target/json"
 	"github.com/s4wave/spacewave/forge/testbed"
@@ -85,7 +89,14 @@ func TestV86Execution(t *testing.T) {
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
 	rootfsTar := v86fsDir + "/rootfs.tar"
+	t.Setenv("V86FS_DIR", "")
+	rootfsObj := importV86RootfsTarForTest(t, ctx, tb, rootfsTar, "v86-test/rootfs")
 	yaml := `
+inputs:
+  - name: rootfs
+    inputType: InputType_WORLD_OBJECT
+    worldObject:
+      objectKey: "v86-test/rootfs"
 outputs:
   - name: output
     outputType: OutputType_EXEC
@@ -98,7 +109,6 @@ exec:
         - "echo hello-from-v86 > /tmp/output/test.txt"
       output_dir: "/tmp/output"
       script_dir: "` + sdir + `"
-      rootfs_tar_path: "` + rootfsTar + `"
       memory_mb: 256
 `
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, []byte(yaml))
@@ -107,7 +117,15 @@ exec:
 	}
 
 	ts := timestamp.Now()
-	valueSet := &forge_target.ValueSet{}
+	rootfsSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, rootfsObj, tb.WorldState)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	valueSet := &forge_target.ValueSet{
+		Inputs: forge_value.ValueSlice{
+			forge_value.NewValueWithWorldObjectSnapshot("rootfs", rootfsSnapshot),
+		},
+	}
 
 	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, ts)
 	if err != nil {
@@ -127,6 +145,51 @@ exec:
 	}
 
 	verifyUnixFSOutput(t, ctx, tb, outVal, "test.txt", []byte("hello-from-v86\n"))
+}
+
+func importV86RootfsTarForTest(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	tarPath string,
+	objKey string,
+) world.ObjectState {
+	t.Helper()
+	file, err := os.Open(tarPath)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer file.Close()
+
+	cursor, err := unixfs_tar.NewTarFSCursorFromReader(file)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer cursor.Release()
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handle.Release()
+
+	fsType := unixfs_world.FSType_FSType_FS_NODE
+	if _, _, err := unixfs_world.FsInit(ctx, tb.WorldState, tb.Volume.GetPeerID(), objKey, fsType, nil, true, time.Now()); err != nil {
+		t.Fatal(err.Error())
+	}
+	b := unixfs_world.NewBatchFSWriter(tb.WorldState, objKey, fsType, tb.Volume.GetPeerID())
+	defer b.Release()
+	if err := unixfs_sync.SyncToUnixfsBatch(ctx, b, handle, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	obj, found, err := tb.WorldState.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatalf("imported rootfs object %q not found", objKey)
+	}
+	return obj
 }
 
 // TestV86ExecutionChain runs two v86 executions in sequence. The first
