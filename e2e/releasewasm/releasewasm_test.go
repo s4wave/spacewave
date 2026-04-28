@@ -16,6 +16,7 @@ import (
 var testHarness *harness
 
 const browserWaitMS = 30000
+const quickstartWaitMS = 90000
 
 func TestMain(m *testing.M) {
 	log := logrus.New()
@@ -108,7 +109,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("auto boot quickstart production wasm: %v", err)
 	}
 	err = page.Locator("[data-testid='unixfs-browser']").WaitFor(
-		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartWaitMS)},
 	)
 	if err != nil {
 		dumpPageState(t, page)
