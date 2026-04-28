@@ -90,9 +90,7 @@ jobs:
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
 
       - name: Setup aptre tools and vendor
-        run: |
-          go mod vendor
-          bun run setup
+        run: bun run prepare
 
       - name: Build Javascript
         if: ${{ matrix.member.build_script != '' }}
@@ -143,9 +141,7 @@ jobs:
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
 
       - name: Setup aptre tools and vendor
-        run: |
-          go mod vendor
-          bun run setup
+        run: bun run prepare
 
       - name: Snapshot committed dependencies
         run: |
@@ -239,9 +235,7 @@ jobs:
           key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
 
       - name: Setup aptre tools and vendor
-        run: |
-          go mod vendor
-          bun run setup
+        run: bun run prepare
 
       - name: Run E2E suite
         run: bun run ${{ matrix.suite.script }}

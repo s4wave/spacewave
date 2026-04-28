@@ -29,7 +29,7 @@ func TestSignV4GetObject(t *testing.T) {
 	now := time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC)
 	c.signV4(req, emptyPayloadHash, now)
 
-	want := "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41"
+	want := "AWS4-HMAC-SHA256 Credential=" + c.accessKey + "/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41"
 	got := req.Header.Get("Authorization")
 	if got != want {
 		t.Fatalf("Authorization mismatch:\n want: %s\n  got: %s", want, got)

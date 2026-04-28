@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var nextTestbedEngineId atomic.Int64
+var nextTestbedEngineID atomic.Int64
 
 // StateAtomObjectStoreID is the object store ID for testbed state atoms.
 const StateAtomObjectStoreID = "testbed-state-atoms"
@@ -68,7 +68,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 	// Generate engine ID if not provided
 	engineID := req.EngineId
 	if engineID == "" {
-		nextID := nextTestbedEngineId.Add(1)
+		nextID := nextTestbedEngineID.Add(1)
 		engineID = fmt.Sprintf("%s-engine-%d", s.bucketID, nextID)
 	}
 
