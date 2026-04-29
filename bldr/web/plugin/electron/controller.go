@@ -179,13 +179,10 @@ func shouldExitWithoutRestart(
 	processErr error,
 	quitPolicy QuitPolicy,
 ) bool {
-	if runtimeErr != io.EOF {
-		return false
-	}
 	if quitPolicy != QuitPolicy_QUIT_POLICY_EXIT {
 		return false
 	}
-	return processErr == nil
+	return processErr == nil && runtimeErr != nil
 }
 
 // WaitElectron waits for the Electron object to be ready and returns it.
