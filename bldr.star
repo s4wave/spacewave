@@ -378,7 +378,7 @@ def define_release_build(host_key, platform_id):
         {"manifestId": "spacewave-core",
          "platformId": platform_id},
         {"manifestId": "web",
-         "platformId": "web/js/wasm"},
+         "platformId": platform_id},
         {"manifestId": "spacewave-web",
          "platformId": "js"},
         {"manifestId": "spacewave-app",
