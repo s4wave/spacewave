@@ -258,7 +258,7 @@ export class BldrElectronApp {
       },
     })
 
-    if (init.devTools || isDebug) {
+    if (isDebug && init.devTools) {
       nwindow.webContents.openDevTools()
     }
 

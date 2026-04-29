@@ -130,6 +130,7 @@ vi.mock('@go/github.com/aperturerobotics/util/pipesock/pipesock.js', () => ({
 
 describe('BldrElectronApp', () => {
   beforeEach(() => {
+    Reflect.set(globalThis, 'BLDR_DEBUG', false)
     browserWindows.length = 0
     webRuntimeInstances.length = 0
     vi.clearAllMocks()
@@ -204,6 +205,32 @@ describe('BldrElectronApp', () => {
     win.emit('closed')
 
     expect(getBrowserWindow(app, 'electron-init')).toBeUndefined()
+  })
+
+  it('does not open DevTools from release config alone', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      { devTools: true },
+    ])
+    await createWebDocument(app, 'electron-init')
+
+    expect(browserWindows[0]?.webContents.openDevTools).not.toHaveBeenCalled()
+  })
+
+  it('opens DevTools only when debug build enables them', async () => {
+    Reflect.set(globalThis, 'BLDR_DEBUG', true)
+    vi.resetModules()
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      { devTools: true },
+    ])
+    await createWebDocument(app, 'electron-init')
+
+    expect(browserWindows[0]?.webContents.openDevTools).toHaveBeenCalledTimes(1)
   })
 })
 

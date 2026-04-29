@@ -294,6 +294,7 @@ func (c *Controller) BundleElectronHook(
 		ElectronPath:  filepath.Join("electron", electronBinName),
 		RendererPath:  "app.asar/index.mjs",
 		ElectronFlags: extraElectronFlags,
+		DevTools:      buildType.IsDev(),
 		QuitPolicy:    getElectronQuitPolicy(buildType, c.GetConfig().GetNativeApp()),
 	}
 
@@ -303,7 +304,9 @@ func (c *Controller) BundleElectronHook(
 		electronConf.WindowTitle = nativeApp.GetWindowTitle()
 		electronConf.WindowWidth = nativeApp.GetWindowWidth()
 		electronConf.WindowHeight = nativeApp.GetWindowHeight()
-		electronConf.DevTools = nativeApp.GetDevTools()
+		if buildType.IsDev() && nativeApp.GetDevTools() {
+			electronConf.DevTools = true
+		}
 		electronConf.ThemeSource = nativeApp.GetThemeSource()
 	}
 
