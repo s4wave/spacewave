@@ -102,12 +102,9 @@ export class BldrElectronApp {
       nativeTheme.themeSource = init.themeSource as 'dark' | 'light' | 'system'
     }
 
-    /*
     app.on('window-all-closed', () => {
-      // TODO: notify web runtime that all windows were closed
       app.quit()
     })
-    */
   }
 
   // serviceWorkerFetch performs a request as if it was sent from the ServiceWorker.

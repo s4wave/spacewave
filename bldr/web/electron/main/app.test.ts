@@ -10,6 +10,7 @@ const mockElectronApp = {
     return '/app'
   },
   on: vi.fn(),
+  quit: vi.fn(),
   setName: vi.fn(),
 }
 
@@ -257,6 +258,21 @@ describe('BldrElectronApp', () => {
 
     expect(browserWindows[0]?.webContents.openDevTools).toHaveBeenCalledTimes(1)
   })
+
+  it('quits the Electron main process when all windows are closed', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    const handler = getAppHandler('window-all-closed')
+    handler()
+
+    expect(mockElectronApp.quit).toHaveBeenCalledTimes(1)
+  })
 })
 
 async function createWebDocument(app: object, id: string) {
@@ -273,4 +289,13 @@ function getBrowserWindow(app: object, id: string) {
     throw new Error('browserWindows not found')
   }
   return Reflect.get(windows, id)
+}
+
+function getAppHandler(event: string) {
+  const match = mockElectronApp.on.mock.calls.find(([name]) => name === event)
+  const handler = match?.[1]
+  if (typeof handler !== 'function') {
+    throw new Error(`${event} handler not found`)
+  }
+  return handler
 }
