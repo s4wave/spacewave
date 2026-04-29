@@ -16,7 +16,7 @@ import {
   readdirSync,
   writeFileSync,
 } from 'fs'
-import { dirname, extname, join, relative, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 
 import { RouterProvider } from '@s4wave/web/router/router.js'
 import {
@@ -28,6 +28,7 @@ import { buildBlog, collectBlogPaths } from '../blog/blog-build.js'
 import { buildBrowserReleaseDescriptor } from './browser-release.js'
 import { buildBootstrapScript } from './bootstrap.js'
 import { buildPageHtml } from './html-template.js'
+import { collectRequiredStaticAssetUrls } from './static-assets.js'
 import { StaticProvider } from './StaticContext.js'
 import { STATIC_PAGES } from './static-pages.js'
 import { getMetadata, type PageMetadata } from './metadata.js'
@@ -220,40 +221,6 @@ function extractViteCss(log: (msg: string) => void): {
     cssUrl: '/static/' + cssFile,
     iconUrl: STATIC_ASSET_PREFIX + iconFile,
   }
-}
-
-function collectRequiredStaticAssetUrls(dir: string): string[] {
-  const assets: string[] = []
-  const requiredStaticExtensions = new Set([
-    '.css',
-    '.js',
-    '.woff2',
-    '.png',
-    '.svg',
-    '.ico',
-  ])
-
-  function walk(curr: string) {
-    for (const entry of readdirSync(curr, { withFileTypes: true })) {
-      const entryPath = join(curr, entry.name)
-      if (entry.isDirectory()) {
-        walk(entryPath)
-        continue
-      }
-      if (!entry.isFile()) {
-        continue
-      }
-
-      if (!requiredStaticExtensions.has(extname(entry.name))) {
-        continue
-      }
-
-      assets.push('/static/' + relative(dir, entryPath).replaceAll('\\', '/'))
-    }
-  }
-
-  walk(dir)
-  return assets
 }
 
 // buildPrerenderContext reads bldr manifest, extracts CSS, importmap,

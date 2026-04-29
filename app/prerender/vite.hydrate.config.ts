@@ -40,7 +40,7 @@ export default defineConfig({
 
   build: {
     outDir: resolve(__dirname, 'dist'),
-    emptyOutDir: false,
+    emptyOutDir: true,
     // Externalize React packages so they resolve via the importmap
     // shared with the bldr entrypoint. This keeps the hydration bundle
     // small and avoids duplicate React instances.
@@ -62,6 +62,7 @@ export default defineConfig({
       output: {
         format: 'es',
         entryFileNames: 'hydrate-[hash].js',
+        codeSplitting: false,
       },
     },
   },
