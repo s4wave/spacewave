@@ -122,6 +122,35 @@ func (x *PluginExecLog) GetMessage() string {
 	return ""
 }
 
+// PluginExecOutputFile is one captured output file from a plugin controller.
+type PluginExecOutputFile struct {
+	unknownFields []byte
+	// Path is the slash-separated path relative to the output root.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Data is the file contents.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *PluginExecOutputFile) Reset() {
+	*x = PluginExecOutputFile{}
+}
+
+func (*PluginExecOutputFile) ProtoMessage() {}
+
+func (x *PluginExecOutputFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *PluginExecOutputFile) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 // PluginExecResponse contains controller logs, outputs, and optional failure.
 type PluginExecResponse struct {
 	unknownFields []byte
@@ -131,6 +160,8 @@ type PluginExecResponse struct {
 	Outputs []*value.Value `protobuf:"bytes,2,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	// Error is the plugin execution failure message, if any.
 	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// OutputFiles are files to import as the default UnixFS "output" value.
+	OutputFiles []*PluginExecOutputFile `protobuf:"bytes,4,rep,name=output_files,json=outputFiles,proto3" json:"outputFiles,omitempty"`
 }
 
 func (x *PluginExecResponse) Reset() {
@@ -158,6 +189,13 @@ func (x *PluginExecResponse) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *PluginExecResponse) GetOutputFiles() []*PluginExecOutputFile {
+	if x != nil {
+		return x.OutputFiles
+	}
+	return nil
 }
 
 func (m *PluginExecConfig) CloneVT() *PluginExecConfig {
@@ -222,6 +260,25 @@ func (m *PluginExecLog) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *PluginExecOutputFile) CloneVT() *PluginExecOutputFile {
+	if m == nil {
+		return (*PluginExecOutputFile)(nil)
+	}
+	r := new(PluginExecOutputFile)
+	r.Path = m.Path
+	if rhs := m.Data; rhs != nil {
+		r.Data = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginExecOutputFile) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PluginExecResponse) CloneVT() *PluginExecResponse {
 	if m == nil {
 		return (*PluginExecResponse)(nil)
@@ -238,6 +295,12 @@ func (m *PluginExecResponse) CloneVT() *PluginExecResponse {
 		r.Outputs = make([]*value.Value, len(rhs))
 		for k, v := range rhs {
 			r.Outputs[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.OutputFiles; rhs != nil {
+		r.OutputFiles = make([]*PluginExecOutputFile, len(rhs))
+		for k, v := range rhs {
+			r.OutputFiles[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -339,6 +402,29 @@ func (this *PluginExecLog) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *PluginExecOutputFile) EqualVT(that *PluginExecOutputFile) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if string(this.Data) != string(that.Data) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginExecOutputFile) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginExecOutputFile)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *PluginExecResponse) EqualVT(that *PluginExecResponse) bool {
 	if this == that {
 		return true
@@ -381,6 +467,23 @@ func (this *PluginExecResponse) EqualVT(that *PluginExecResponse) bool {
 	}
 	if this.Error != that.Error {
 		return false
+	}
+	if len(this.OutputFiles) != len(that.OutputFiles) {
+		return false
+	}
+	for i, vx := range this.OutputFiles {
+		vy := that.OutputFiles[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PluginExecOutputFile{}
+			}
+			if q == nil {
+				q = &PluginExecOutputFile{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -580,6 +683,56 @@ func (x *PluginExecLog) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the PluginExecOutputFile message to JSON.
+func (x *PluginExecOutputFile) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if len(x.Data) > 0 || s.HasField("data") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("data")
+		s.WriteBytes(x.Data)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginExecOutputFile to JSON.
+func (x *PluginExecOutputFile) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginExecOutputFile message from JSON.
+func (x *PluginExecOutputFile) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "data":
+			s.AddField("data")
+			x.Data = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginExecOutputFile from JSON.
+func (x *PluginExecOutputFile) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PluginExecResponse message to JSON.
 func (x *PluginExecResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -614,6 +767,17 @@ func (x *PluginExecResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
+	}
+	if len(x.OutputFiles) > 0 || s.HasField("outputFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outputFiles")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.OutputFiles {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("outputFiles"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -671,6 +835,24 @@ func (x *PluginExecResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "output_files", "outputFiles":
+			s.AddField("output_files")
+			if s.ReadNil() {
+				x.OutputFiles = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.OutputFiles = append(x.OutputFiles, nil)
+					return
+				}
+				v := &PluginExecOutputFile{}
+				v.UnmarshalProtoJSON(s.WithField("output_files", false))
+				if s.Err() != nil {
+					return
+				}
+				x.OutputFiles = append(x.OutputFiles, v)
+			})
 		}
 	})
 }
@@ -840,6 +1022,53 @@ func (m *PluginExecLog) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PluginExecOutputFile) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginExecOutputFile) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginExecOutputFile) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PluginExecResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -869,6 +1098,18 @@ func (m *PluginExecResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OutputFiles) > 0 {
+		for iNdEx := len(m.OutputFiles) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.OutputFiles[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
@@ -968,6 +1209,24 @@ func (m *PluginExecLog) SizeVT() (n int) {
 	return n
 }
 
+func (m *PluginExecOutputFile) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PluginExecResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -989,6 +1248,12 @@ func (m *PluginExecResponse) SizeVT() (n int) {
 	l = len(m.Error)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.OutputFiles) > 0 {
+		for _, e := range m.OutputFiles {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1093,6 +1358,33 @@ func (x *PluginExecLog) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *PluginExecOutputFile) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PluginExecOutputFile {")
+	if x.Path != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	if x.Data != nil {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("data: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Data))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PluginExecOutputFile) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *PluginExecResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginExecResponse {")
@@ -1128,6 +1420,19 @@ func (x *PluginExecResponse) MarshalProtoText() string {
 		}
 		sb.WriteString("error: ")
 		sb.WriteString(strconv.Quote(x.Error))
+	}
+	if len(x.OutputFiles) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("output_files: [")
+		for i, v := range x.OutputFiles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1454,6 +1759,97 @@ func (m *PluginExecLog) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *PluginExecOutputFile) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginExecOutputFile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginExecOutputFile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *PluginExecResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1547,6 +1943,32 @@ func (m *PluginExecResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutputFiles", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OutputFiles = append(m.OutputFiles, &PluginExecOutputFile{})
+			if err := m.OutputFiles[len(m.OutputFiles)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

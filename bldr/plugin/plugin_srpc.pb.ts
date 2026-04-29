@@ -69,7 +69,7 @@ export const PluginHostDefinition = {
     /**
      * PluginRpc forwards an RPC call to a remote plugin.
      * The plugin will remain loaded as long as the RPC is active.
-     * Component ID: plugin id
+     * Component ID: plugin id, or plugin id / instance key for instanced plugins.
      *
      * @generated from rpc bldr.plugin.PluginHost.PluginRpc
      */
@@ -139,7 +139,7 @@ export interface PluginHost {
   /**
    * PluginRpc forwards an RPC call to a remote plugin.
    * The plugin will remain loaded as long as the RPC is active.
-   * Component ID: plugin id
+   * Component ID: plugin id, or plugin id / instance key for instanced plugins.
    *
    * @generated from rpc bldr.plugin.PluginHost.PluginRpc
    */
@@ -238,7 +238,7 @@ export class PluginHostClient implements PluginHost {
   /**
    * PluginRpc forwards an RPC call to a remote plugin.
    * The plugin will remain loaded as long as the RPC is active.
-   * Component ID: plugin id
+   * Component ID: plugin id, or plugin id / instance key for instanced plugins.
    *
    * @generated from rpc bldr.plugin.PluginHost.PluginRpc
    */

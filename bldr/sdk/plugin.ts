@@ -46,7 +46,7 @@ export interface BackendAPI {
   readonly resourceClient: ResourceClient
 
   // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
-  buildPluginOpenStream(pluginID: string): OpenStreamFunc
+  buildPluginOpenStream(pluginID: string, instanceKey?: string): OpenStreamFunc
 
   // protos contains the protobuf objects used by the BackendAPI.
   readonly protos: {

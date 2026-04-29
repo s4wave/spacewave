@@ -92,6 +92,26 @@ func ExPluginLoadWaitClient(
 	valDisposeCb func(),
 ) (srpc.Client, directive.Reference, error) {
 	rp, _, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, valDisposeCb)
+	return waitRunningPluginClient(rp, rpRef, err)
+}
+
+// ExPluginLoadInstancedWaitClient calls LoadPlugin with an instance key and
+// returns the rpc client to be set.
+func ExPluginLoadInstancedWaitClient(
+	ctx context.Context,
+	b bus.Bus,
+	pluginID, instanceKey string,
+	valDisposeCb func(),
+) (srpc.Client, directive.Reference, error) {
+	rp, _, rpRef, err := ExLoadPluginInstanced(ctx, b, false, pluginID, instanceKey, valDisposeCb)
+	return waitRunningPluginClient(rp, rpRef, err)
+}
+
+func waitRunningPluginClient(
+	rp RunningPlugin,
+	rpRef directive.Reference,
+	err error,
+) (srpc.Client, directive.Reference, error) {
 	if err != nil || rp == nil {
 		if rpRef != nil {
 			rpRef.Release()

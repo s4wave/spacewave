@@ -204,7 +204,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin": {
-      "hash": "2d2f23c26fda67a374fab5285e983392bb3ea5b67ecdf8af6e10603fbfc5952b",
+      "hash": "5cdc47e300707cbdbb929a4d1a2cf67c85d78213fcdf924f5317d33064847280",
       "generatedFiles": [
         "bldr/plugin/plugin.pb.cc",
         "bldr/plugin/plugin.pb.go",
@@ -1212,7 +1212,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/forge/exec": {
-      "hash": "b9d38508e07002576c6a4f28222555807212e4fa58c4c8abbbb1f2889e78cf32",
+      "hash": "cf08c3cb38cae3692e75172dcbd8ee31af9a9936ce03421a78e56da843f3627a",
       "generatedFiles": [
         "core/forge/exec/plugin.pb.cc",
         "core/forge/exec/plugin.pb.go",
@@ -4812,7 +4812,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/vm": {
-      "hash": "fa4fdabeec6ad99c27ade26611bd5cdcd8cfa53da9b36fc9e0e11d8efd42b1d4",
+      "hash": "b9e3dbd0fc847210053c2ea453cf7b4679e5480be17b3a7dd51cdce5c0befed9",
       "generatedFiles": [
         "sdk/vm/v86-wizard.pb.cc",
         "sdk/vm/v86-wizard.pb.go",

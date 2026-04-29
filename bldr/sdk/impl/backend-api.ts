@@ -115,7 +115,14 @@ export class BackendApiImpl implements BackendAPI {
   }
 
   // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
-  public buildPluginOpenStream(pluginID: string): OpenStreamFunc {
-    return buildRpcStreamOpenStream(pluginID, this.pluginHost.PluginRpc)
+  public buildPluginOpenStream(
+    pluginID: string,
+    instanceKey?: string,
+  ): OpenStreamFunc {
+    let componentID = pluginID
+    if (instanceKey) {
+      componentID += '/' + instanceKey
+    }
+    return buildRpcStreamOpenStream(componentID, this.pluginHost.PluginRpc)
   }
 }

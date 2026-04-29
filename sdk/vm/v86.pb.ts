@@ -142,6 +142,13 @@ export interface V86Config {
    * @generated from field: repeated s4wave.vm.VmMount mounts = 6;
    */
   mounts?: VmMount[]
+  /**
+   * RuntimePluginId is the plugin that hosts the instanced V86 runtime.
+   * Empty defaults to spacewave-app.
+   *
+   * @generated from field: string runtime_plugin_id = 7;
+   */
+  runtimePluginId?: string
 }
 
 // V86Config contains the message type declaration for V86Config.
@@ -160,6 +167,7 @@ export const V86Config: MessageType<V86Config> = createMessageType({
       T: () => VmMount,
       repeated: true,
     },
+    { no: 7, name: 'runtime_plugin_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

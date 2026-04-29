@@ -85,6 +85,10 @@ pub struct V86Config {
     /// Mounts lists workspace/home/other v86fs mounts to attach after boot.
     #[prost(message, repeated, tag="6")]
     pub mounts: ::prost::alloc::vec::Vec<VmMount>,
+    /// RuntimePluginId is the plugin that hosts the instanced V86 runtime.
+    /// Empty defaults to spacewave-app.
+    #[prost(string, tag="7")]
+    pub runtime_plugin_id: ::prost::alloc::string::String,
 }
 /// VmMount is a v86fs mount bound to a UnixFS object in the Space.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

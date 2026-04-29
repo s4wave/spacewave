@@ -79,6 +79,9 @@ type V86Config struct {
 	BootArgs string `protobuf:"bytes,5,opt,name=boot_args,json=bootArgs,proto3" json:"bootArgs,omitempty"`
 	// Mounts lists workspace/home/other v86fs mounts to attach after boot.
 	Mounts []*VmMount `protobuf:"bytes,6,rep,name=mounts,proto3" json:"mounts,omitempty"`
+	// RuntimePluginId is the plugin that hosts the instanced V86 runtime.
+	// Empty defaults to spacewave-app.
+	RuntimePluginId string `protobuf:"bytes,7,opt,name=runtime_plugin_id,json=runtimePluginId,proto3" json:"runtimePluginId,omitempty"`
 }
 
 func (x *V86Config) Reset() {
@@ -127,6 +130,13 @@ func (x *V86Config) GetMounts() []*VmMount {
 		return x.Mounts
 	}
 	return nil
+}
+
+func (x *V86Config) GetRuntimePluginId() string {
+	if x != nil {
+		return x.RuntimePluginId
+	}
+	return ""
 }
 
 // VmMount is a v86fs mount bound to a UnixFS object in the Space.
@@ -562,6 +572,7 @@ func (m *V86Config) CloneVT() *V86Config {
 	r.Networking = m.Networking
 	r.SerialEnabled = m.SerialEnabled
 	r.BootArgs = m.BootArgs
+	r.RuntimePluginId = m.RuntimePluginId
 	if rhs := m.Mounts; rhs != nil {
 		r.Mounts = make([]*VmMount, len(rhs))
 		for k, v := range rhs {
@@ -780,6 +791,9 @@ func (this *V86Config) EqualVT(that *V86Config) bool {
 				return false
 			}
 		}
+	}
+	if this.RuntimePluginId != that.RuntimePluginId {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1123,6 +1137,11 @@ func (x *V86Config) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.RuntimePluginId != "" || s.HasField("runtimePluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runtimePluginId")
+		s.WriteString(x.RuntimePluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1173,6 +1192,9 @@ func (x *V86Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Mounts = append(x.Mounts, v)
 			})
+		case "runtime_plugin_id", "runtimePluginId":
+			s.AddField("runtime_plugin_id")
+			x.RuntimePluginId = s.ReadString()
 		}
 	})
 }
@@ -1804,6 +1826,13 @@ func (m *V86Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RuntimePluginId) > 0 {
+		i -= len(m.RuntimePluginId)
+		copy(dAtA[i:], m.RuntimePluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RuntimePluginId)))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.Mounts) > 0 {
 		for iNdEx := len(m.Mounts) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Mounts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2421,6 +2450,10 @@ func (m *V86Config) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	l = len(m.RuntimePluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2698,6 +2731,13 @@ func (x *V86Config) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
+	}
+	if x.RuntimePluginId != "" {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("runtime_plugin_id: ")
+		sb.WriteString(strconv.Quote(x.RuntimePluginId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3159,6 +3199,28 @@ func (m *V86Config) UnmarshalVT(dAtA []byte) error {
 			if err := m.Mounts[len(m.Mounts)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimePluginId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuntimePluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

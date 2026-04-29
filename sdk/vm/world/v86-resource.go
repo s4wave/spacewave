@@ -13,10 +13,10 @@ import (
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
-// vmPluginID is the plugin ID that hosts the v86 backend. The vm backend is
+// defaultVmPluginID is the plugin ID that hosts the default v86 backend. The vm backend is
 // folded into spacewave-app; each VmV86 object gets its own SharedWorker
 // instance of spacewave-app keyed by the object key.
-const vmPluginID = "spacewave-app"
+const defaultVmPluginID = "spacewave-app"
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
@@ -91,6 +91,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 		}
 
 		storedState := s4wave_vm.VmState_VmState_STOPPED
+		runtimePluginID := defaultVmPluginID
 		_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 			vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
 				return &s4wave_vm.VmV86{}
@@ -100,6 +101,9 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 			}
 			if vm != nil {
 				storedState = vm.GetState()
+				if pluginID := vm.GetConfig().GetRuntimePluginId(); pluginID != "" {
+					runtimePluginID = pluginID
+				}
 			}
 			return nil
 		})
@@ -126,7 +130,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				} else {
 					// returnIfIdle=true so missing plugin hosts surface as a
 					// nil value rather than blocking the handler forever.
-					plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, vmPluginID, r.objectKey, nil)
+					plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, runtimePluginID, r.objectKey, nil)
 					if loadErr != nil || plugin == nil {
 						if newRef != nil {
 							newRef.Release()

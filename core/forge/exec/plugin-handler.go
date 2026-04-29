@@ -1,13 +1,21 @@
 package space_exec
 
 import (
+	"bytes"
 	"context"
+	"path"
+	"strings"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
@@ -65,8 +73,16 @@ func (h *pluginExecHandler) applyResponse(ctx context.Context, resp *PluginExecR
 			return err
 		}
 	}
-	if len(resp.GetOutputs()) != 0 {
-		if err := h.handle.SetOutputs(ctx, forge_value.ValueSlice(resp.GetOutputs()), true); err != nil {
+	outputs := forge_value.ValueSlice(resp.GetOutputs()).Clone()
+	if len(resp.GetOutputFiles()) != 0 {
+		fileOutputs, err := h.importOutputFiles(ctx, resp.GetOutputFiles())
+		if err != nil {
+			return errors.Wrap(err, "import plugin output files")
+		}
+		outputs = append(outputs, fileOutputs...)
+	}
+	if len(outputs) != 0 {
+		if err := h.handle.SetOutputs(ctx, outputs, true); err != nil {
 			return err
 		}
 	}
@@ -74,6 +90,95 @@ func (h *pluginExecHandler) applyResponse(ctx context.Context, resp *PluginExecR
 		return errors.New(resp.GetError())
 	}
 	return nil
+}
+
+func (h *pluginExecHandler) importOutputFiles(
+	ctx context.Context,
+	files []*PluginExecOutputFile,
+) (forge_value.ValueSlice, error) {
+	var outputs forge_value.ValueSlice
+	err := h.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
+		outputHandle, err := initPluginOutputMount(ctx, cs)
+		if err != nil {
+			return err
+		}
+		defer outputHandle.Release()
+
+		ts := time.Now()
+		for _, file := range files {
+			parts, err := cleanOutputFilePath(file.GetPath())
+			if err != nil {
+				return err
+			}
+			dir := outputHandle
+			if len(parts) > 1 {
+				dir, err = outputHandle.MkdirAllLookup(ctx, parts[:len(parts)-1], 0o755, ts)
+				if err != nil {
+					return err
+				}
+				defer dir.Release()
+			}
+			if err := dir.MknodWithContent(
+				ctx,
+				parts[len(parts)-1],
+				unixfs.NewFSCursorNodeType_File(),
+				int64(len(file.GetData())),
+				bytes.NewReader(file.GetData()),
+				0o644,
+				ts,
+			); err != nil {
+				return err
+			}
+		}
+
+		outputRef := cs.GetRefWithOpArgs()
+		if outputRef == nil || outputRef.GetRootRef().GetEmpty() {
+			return nil
+		}
+		outputs = forge_value.ValueSlice{
+			forge_value.NewValueWithBucketRef("output", outputRef),
+		}
+		return nil
+	})
+	return outputs, err
+}
+
+func cleanOutputFilePath(filePath string) ([]string, error) {
+	cleaned := path.Clean(strings.TrimPrefix(filePath, "/"))
+	if cleaned == "." || strings.HasPrefix(cleaned, "../") || cleaned == ".." {
+		return nil, errors.Errorf("invalid output file path: %s", filePath)
+	}
+	parts := strings.Split(cleaned, "/")
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." {
+			return nil, errors.Errorf("invalid output file path: %s", filePath)
+		}
+	}
+	return parts, nil
+}
+
+func initPluginOutputMount(ctx context.Context, cs *bucket_lookup.Cursor) (*unixfs.FSHandle, error) {
+	btx, bcs := cs.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+	if _, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY); err != nil {
+		return nil, errors.Wrap(err, "create root fstree")
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "write root block")
+	}
+	cs.SetRootRef(rootRef)
+
+	wr := unixfs_block_fs.NewFSWriter()
+	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, wr)
+	wr.SetFS(fs)
+
+	handle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		fs.Release()
+		return nil, errors.Wrap(err, "create fshandle")
+	}
+	return handle, nil
 }
 
 func defaultPluginExecClientLoader(

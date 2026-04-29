@@ -33,6 +33,14 @@ message PluginExecLog {
   string message = 2;
 }
 
+// PluginExecOutputFile is one captured output file from a plugin controller.
+message PluginExecOutputFile {
+  // Path is the slash-separated path relative to the output root.
+  string path = 1;
+  // Data is the file contents.
+  bytes data = 2;
+}
+
 // PluginExecResponse contains controller logs, outputs, and optional failure.
 message PluginExecResponse {
   // Logs are execution logs to append to the Forge execution.
@@ -41,6 +49,8 @@ message PluginExecResponse {
   repeated forge.value.Value outputs = 2;
   // Error is the plugin execution failure message, if any.
   string error = 3;
+  // OutputFiles are files to import as the default UnixFS "output" value.
+  repeated PluginExecOutputFile output_files = 4;
 }
 
 // PluginExecService executes plugin-owned Forge execution controllers.

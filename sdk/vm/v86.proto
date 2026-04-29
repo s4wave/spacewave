@@ -33,6 +33,9 @@ message V86Config {
   string boot_args = 5;
   // Mounts lists workspace/home/other v86fs mounts to attach after boot.
   repeated VmMount mounts = 6;
+  // RuntimePluginId is the plugin that hosts the instanced V86 runtime.
+  // Empty defaults to spacewave-app.
+  string runtime_plugin_id = 7;
 }
 
 // VmMount is a v86fs mount bound to a UnixFS object in the Space.

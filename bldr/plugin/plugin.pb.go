@@ -299,8 +299,12 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	}
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
-	r.ManifestRef = m.ManifestRef.CloneVT()
-	r.HostVolumeInfo = m.HostVolumeInfo.CloneVT()
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
+	if rhs := m.HostVolumeInfo; rhs != nil {
+		r.HostVolumeInfo = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

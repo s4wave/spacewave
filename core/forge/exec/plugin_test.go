@@ -1,15 +1,23 @@
 package space_exec
 
 import (
+	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
+	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -37,6 +45,7 @@ func (s *pluginExecClientStub) Execute(
 type pluginExecHandleStub struct {
 	logs    []*PluginExecLog
 	outputs forge_value.ValueSlice
+	cursor  *bucket_lookup.Cursor
 }
 
 func (h *pluginExecHandleStub) GetExecutionUniqueId() string {
@@ -56,7 +65,15 @@ func (h *pluginExecHandleStub) AccessStorage(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return nil
+	if h.cursor == nil {
+		return nil
+	}
+	if ref != nil && !ref.GetRootRef().GetEmpty() {
+		cs := h.cursor.Clone()
+		cs.SetRootRef(ref.GetRootRef())
+		return cb(cs)
+	}
+	return cb(h.cursor)
 }
 
 func (h *pluginExecHandleStub) SetOutputs(
@@ -66,6 +83,55 @@ func (h *pluginExecHandleStub) SetOutputs(
 ) error {
 	h.outputs = outputs.Clone()
 	return nil
+}
+
+func TestPluginExecHandlerImportsOutputFiles(t *testing.T) {
+	ctx := context.Background()
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.StandardLogger()))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	handle := &pluginExecHandleStub{cursor: cursor}
+	handler := &pluginExecHandler{handle: handle}
+
+	resp := &PluginExecResponse{
+		OutputFiles: []*PluginExecOutputFile{{
+			Path: "nested/result.txt",
+			Data: []byte("hello output"),
+		}},
+	}
+	if err := handler.applyResponse(ctx, resp); err != nil {
+		t.Fatal(err)
+	}
+	if len(handle.outputs) != 1 {
+		t.Fatalf("outputs: %#v", handle.outputs)
+	}
+	out := handle.outputs[0]
+	if out.GetName() != "output" || out.GetBucketRef().GetRootRef().GetEmpty() {
+		t.Fatalf("output value: %#v", out)
+	}
+
+	cs := cursor.Clone()
+	cs.SetRootRef(out.GetBucketRef().GetRootRef())
+	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, nil)
+	defer fs.Release()
+	fh, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fh.Release()
+	bfs := unixfs_billy.NewBillyFS(ctx, fh, "", time.Now())
+	data, err := billy_util.ReadFile(bfs, "nested/result.txt")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte("hello output")) {
+		t.Fatalf("file data: %q", string(data))
+	}
 }
 
 func (h *pluginExecHandleStub) WriteLog(ctx context.Context, level, message string) error {

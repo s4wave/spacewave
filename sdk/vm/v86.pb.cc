@@ -142,6 +142,9 @@ inline constexpr V86Config::Impl_::Impl_(
         boot_args_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        runtime_plugin_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         memory_mb_{0u},
         vga_memory_mb_{0u},
         networking_{false},
@@ -342,19 +345,21 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.memory_mb_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.vga_memory_mb_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.networking_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.serial_enabled_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.boot_args_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.mounts_),
-        2,
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Config, _impl_.runtime_plugin_id_),
         3,
         4,
         5,
+        6,
         1,
         0,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmMount, _impl_._has_bits_),
         6, // hasbit index offset
@@ -454,14 +459,14 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::vm::V86Config)},
-        {15, sizeof(::s4wave::vm::VmMount)},
-        {24, sizeof(::s4wave::vm::VmV86)},
-        {37, sizeof(::s4wave::vm::CreateVmV86Op)},
-        {58, sizeof(::s4wave::vm::SetV86ConfigOp)},
-        {65, sizeof(::s4wave::vm::SetV86StateOp)},
-        {74, sizeof(::s4wave::vm::VmImage)},
-        {93, sizeof(::s4wave::vm::CreateVmImageOp)},
-        {102, sizeof(::s4wave::vm::SetVmImageMetadataOp)},
+        {17, sizeof(::s4wave::vm::VmMount)},
+        {26, sizeof(::s4wave::vm::VmV86)},
+        {39, sizeof(::s4wave::vm::CreateVmV86Op)},
+        {60, sizeof(::s4wave::vm::SetV86ConfigOp)},
+        {67, sizeof(::s4wave::vm::SetV86StateOp)},
+        {76, sizeof(::s4wave::vm::VmImage)},
+        {95, sizeof(::s4wave::vm::CreateVmImageOp)},
+        {104, sizeof(::s4wave::vm::SetVmImageMetadataOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::vm::_V86Config_default_instance_._instance,
@@ -478,42 +483,43 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fv
     protodesc_cold) = {
     "\n,github.com/s4wave/spacewave/sdk/vm/v86"
     ".proto\022\ts4wave.vm\032\037google/protobuf/times"
-    "tamp.proto\"\230\001\n\tV86Config\022\021\n\tmemory_mb\030\001 "
+    "tamp.proto\"\263\001\n\tV86Config\022\021\n\tmemory_mb\030\001 "
     "\001(\r\022\025\n\rvga_memory_mb\030\002 \001(\r\022\022\n\nnetworking"
     "\030\003 \001(\010\022\026\n\016serial_enabled\030\004 \001(\010\022\021\n\tboot_a"
     "rgs\030\005 \001(\t\022\"\n\006mounts\030\006 \003(\0132\022.s4wave.vm.Vm"
-    "Mount\"=\n\007VmMount\022\014\n\004path\030\001 \001(\t\022\022\n\nobject"
-    "_key\030\002 \001(\t\022\020\n\010writable\030\003 \001(\010\"\245\001\n\005VmV86\022!"
-    "\n\005state\030\001 \001(\0162\022.s4wave.vm.VmState\022\014\n\004nam"
-    "e\030\002 \001(\t\022$\n\006config\030\003 \001(\0132\024.s4wave.vm.V86C"
-    "onfig\022.\n\ncreated_at\030\004 \001(\0132\032.google.proto"
-    "buf.Timestamp\022\025\n\rerror_message\030\005 \001(\t\"\254\002\n"
-    "\rCreateVmV86Op\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004na"
-    "me\030\002 \001(\t\022$\n\006config\030\003 \001(\0132\024.s4wave.vm.V86"
-    "Config\022-\n\ttimestamp\030\004 \001(\0132\032.google.proto"
-    "buf.Timestamp\022\030\n\020image_object_key\030\005 \001(\t\022"
-    "\"\n\032kernel_override_object_key\030\006 \001(\t\022\"\n\032r"
-    "ootfs_override_object_key\030\007 \001(\t\022 \n\030bios_"
-    "override_object_key\030\010 \001(\t\022 \n\030wasm_overri"
-    "de_object_key\030\t \001(\t\"J\n\016SetV86ConfigOp\022\022\n"
-    "\nobject_key\030\001 \001(\t\022$\n\006config\030\002 \001(\0132\024.s4wa"
-    "ve.vm.V86Config\"]\n\rSetV86StateOp\022\022\n\nobje"
-    "ct_key\030\001 \001(\t\022!\n\005state\030\002 \001(\0162\022.s4wave.vm."
-    "VmState\022\025\n\rerror_message\030\003 \001(\t\"\265\001\n\007VmIma"
-    "ge\022\014\n\004name\030\001 \001(\t\022\017\n\007version\030\002 \001(\t\022\020\n\010pla"
-    "tform\030\003 \001(\t\022\016\n\006distro\030\004 \001(\t\022\026\n\016kernel_ve"
-    "rsion\030\005 \001(\t\022\023\n\013description\030\006 \001(\t\022\014\n\004tags"
-    "\030\007 \003(\t\022.\n\ncreated_at\030\010 \001(\0132\032.google.prot"
-    "obuf.Timestamp\"w\n\017CreateVmImageOp\022\022\n\nobj"
-    "ect_key\030\001 \001(\t\022!\n\005image\030\002 \001(\0132\022.s4wave.vm"
-    ".VmImage\022-\n\ttimestamp\030\003 \001(\0132\032.google.pro"
-    "tobuf.Timestamp\"M\n\024SetVmImageMetadataOp\022"
-    "\022\n\nobject_key\030\001 \001(\t\022!\n\005image\030\002 \001(\0132\022.s4w"
-    "ave.vm.VmImage*r\n\007VmState\022\023\n\017VmState_STO"
-    "PPED\020\000\022\024\n\020VmState_STARTING\020\001\022\023\n\017VmState_"
-    "RUNNING\020\002\022\024\n\020VmState_STOPPING\020\003\022\021\n\rVmSta"
-    "te_ERROR\020\004B.Z,github.com/s4wave/spacewav"
-    "e/sdk/vm;s4wave_vmb\006proto3"
+    "Mount\022\031\n\021runtime_plugin_id\030\007 \001(\t\"=\n\007VmMo"
+    "unt\022\014\n\004path\030\001 \001(\t\022\022\n\nobject_key\030\002 \001(\t\022\020\n"
+    "\010writable\030\003 \001(\010\"\245\001\n\005VmV86\022!\n\005state\030\001 \001(\016"
+    "2\022.s4wave.vm.VmState\022\014\n\004name\030\002 \001(\t\022$\n\006co"
+    "nfig\030\003 \001(\0132\024.s4wave.vm.V86Config\022.\n\ncrea"
+    "ted_at\030\004 \001(\0132\032.google.protobuf.Timestamp"
+    "\022\025\n\rerror_message\030\005 \001(\t\"\254\002\n\rCreateVmV86O"
+    "p\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022$\n\006c"
+    "onfig\030\003 \001(\0132\024.s4wave.vm.V86Config\022-\n\ttim"
+    "estamp\030\004 \001(\0132\032.google.protobuf.Timestamp"
+    "\022\030\n\020image_object_key\030\005 \001(\t\022\"\n\032kernel_ove"
+    "rride_object_key\030\006 \001(\t\022\"\n\032rootfs_overrid"
+    "e_object_key\030\007 \001(\t\022 \n\030bios_override_obje"
+    "ct_key\030\010 \001(\t\022 \n\030wasm_override_object_key"
+    "\030\t \001(\t\"J\n\016SetV86ConfigOp\022\022\n\nobject_key\030\001"
+    " \001(\t\022$\n\006config\030\002 \001(\0132\024.s4wave.vm.V86Conf"
+    "ig\"]\n\rSetV86StateOp\022\022\n\nobject_key\030\001 \001(\t\022"
+    "!\n\005state\030\002 \001(\0162\022.s4wave.vm.VmState\022\025\n\rer"
+    "ror_message\030\003 \001(\t\"\265\001\n\007VmImage\022\014\n\004name\030\001 "
+    "\001(\t\022\017\n\007version\030\002 \001(\t\022\020\n\010platform\030\003 \001(\t\022\016"
+    "\n\006distro\030\004 \001(\t\022\026\n\016kernel_version\030\005 \001(\t\022\023"
+    "\n\013description\030\006 \001(\t\022\014\n\004tags\030\007 \003(\t\022.\n\ncre"
+    "ated_at\030\010 \001(\0132\032.google.protobuf.Timestam"
+    "p\"w\n\017CreateVmImageOp\022\022\n\nobject_key\030\001 \001(\t"
+    "\022!\n\005image\030\002 \001(\0132\022.s4wave.vm.VmImage\022-\n\tt"
+    "imestamp\030\003 \001(\0132\032.google.protobuf.Timesta"
+    "mp\"M\n\024SetVmImageMetadataOp\022\022\n\nobject_key"
+    "\030\001 \001(\t\022!\n\005image\030\002 \001(\0132\022.s4wave.vm.VmImag"
+    "e*r\n\007VmState\022\023\n\017VmState_STOPPED\020\000\022\024\n\020VmS"
+    "tate_STARTING\020\001\022\023\n\017VmState_RUNNING\020\002\022\024\n\020"
+    "VmState_STOPPING\020\003\022\021\n\rVmState_ERROR\020\004B.Z"
+    ",github.com/s4wave/spacewave/sdk/vm;s4wa"
+    "ve_vmb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_deps[1] = {
@@ -523,7 +529,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto = {
     false,
     false,
-    1506,
+    1533,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
     "github.com/s4wave/spacewave/sdk/vm/v86.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_once,
@@ -570,7 +576,8 @@ PROTOBUF_NDEBUG_INLINE V86Config::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         mounts_{visibility, arena, from.mounts_},
-        boot_args_(arena, from.boot_args_) {}
+        boot_args_(arena, from.boot_args_),
+        runtime_plugin_id_(arena, from.runtime_plugin_id_) {}
 
 V86Config::V86Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -600,7 +607,8 @@ PROTOBUF_NDEBUG_INLINE V86Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         mounts_{visibility, arena},
-        boot_args_(arena) {}
+        boot_args_(arena),
+        runtime_plugin_id_(arena) {}
 
 inline void V86Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -623,6 +631,7 @@ inline void V86Config::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.boot_args_.Destroy();
+  this_._impl_.runtime_plugin_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -681,16 +690,16 @@ V86Config::GetClassData() const {
   return V86Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 1, 37, 2>
+const ::_pbi::TcParseTable<3, 7, 1, 54, 2>
 V86Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(V86Config, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    7,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     V86Config_class_data_.base(),
@@ -702,20 +711,20 @@ V86Config::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // uint32 memory_mb = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(V86Config, _impl_.memory_mb_), 2>(),
-     {8, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(V86Config, _impl_.memory_mb_), 3>(),
+     {8, 3, 0,
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.memory_mb_)}},
     // uint32 vga_memory_mb = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(V86Config, _impl_.vga_memory_mb_), 3>(),
-     {16, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(V86Config, _impl_.vga_memory_mb_), 4>(),
+     {16, 4, 0,
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.vga_memory_mb_)}},
     // bool networking = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(V86Config, _impl_.networking_), 4>(),
-     {24, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(V86Config, _impl_.networking_), 5>(),
+     {24, 5, 0,
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.networking_)}},
     // bool serial_enabled = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(V86Config, _impl_.serial_enabled_), 5>(),
-     {32, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(V86Config, _impl_.serial_enabled_), 6>(),
+     {32, 6, 0,
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.serial_enabled_)}},
     // string boot_args = 5;
     {::_pbi::TcParser::FastUS1,
@@ -725,30 +734,36 @@ V86Config::_table_ = {
     {::_pbi::TcParser::FastMtR1,
      {50, 0, 0,
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.mounts_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string runtime_plugin_id = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 2, 0,
+      PROTOBUF_FIELD_OFFSET(V86Config, _impl_.runtime_plugin_id_)}},
   }}, {{
     65535, 65535
   }}, {{
     // uint32 memory_mb = 1;
-    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.memory_mb_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.memory_mb_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 vga_memory_mb = 2;
-    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.vga_memory_mb_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.vga_memory_mb_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // bool networking = 3;
-    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.networking_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.networking_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool serial_enabled = 4;
-    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.serial_enabled_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.serial_enabled_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string boot_args = 5;
     {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.boot_args_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated .s4wave.vm.VmMount mounts = 6;
     {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.mounts_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string runtime_plugin_id = 7;
+    {PROTOBUF_FIELD_OFFSET(V86Config, _impl_.runtime_plugin_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::vm::VmMount>()},
   }},
   {{
-    "\23\0\0\0\0\11\0\0"
+    "\23\0\0\0\0\11\0\21"
     "s4wave.vm.V86Config"
     "boot_args"
+    "runtime_plugin_id"
   }},
 };
 PROTOBUF_NOINLINE void V86Config::Clear() {
@@ -759,15 +774,18 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.mounts_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.boot_args_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.runtime_plugin_id_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003cU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000078U)) {
     ::memset(&_impl_.memory_mb_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.serial_enabled_) -
         reinterpret_cast<char*>(&_impl_.memory_mb_)) + sizeof(_impl_.serial_enabled_));
@@ -796,7 +814,7 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // uint32 memory_mb = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_memory_mb() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -805,7 +823,7 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
   }
 
   // uint32 vga_memory_mb = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_vga_memory_mb() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -814,7 +832,7 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
   }
 
   // bool networking = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_networking() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -823,7 +841,7 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
   }
 
   // bool serial_enabled = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_serial_enabled() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -854,6 +872,16 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
     }
   }
 
+  // string runtime_plugin_id = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_runtime_plugin_id().empty()) {
+      const ::std::string& _s = this_._internal_runtime_plugin_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.V86Config.runtime_plugin_id");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -879,7 +907,7 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // repeated .s4wave.vm.VmMount mounts = 6;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_mounts_size();
@@ -894,28 +922,35 @@ PROTOBUF_NOINLINE void V86Config::Clear() {
                                         this_._internal_boot_args());
       }
     }
-    // uint32 memory_mb = 1;
+    // string runtime_plugin_id = 7;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_runtime_plugin_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_runtime_plugin_id());
+      }
+    }
+    // uint32 memory_mb = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_memory_mb() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_memory_mb());
       }
     }
     // uint32 vga_memory_mb = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_vga_memory_mb() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_vga_memory_mb());
       }
     }
     // bool networking = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_networking() != 0) {
         total_size += 2;
       }
     }
     // bool serial_enabled = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_serial_enabled() != 0) {
         total_size += 2;
       }
@@ -940,7 +975,7 @@ void V86Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_mounts()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -956,21 +991,30 @@ void V86Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_runtime_plugin_id().empty()) {
+        _this->_internal_set_runtime_plugin_id(from._internal_runtime_plugin_id());
+      } else {
+        if (_this->_impl_.runtime_plugin_id_.IsDefault()) {
+          _this->_internal_set_runtime_plugin_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_memory_mb() != 0) {
         _this->_impl_.memory_mb_ = from._impl_.memory_mb_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_vga_memory_mb() != 0) {
         _this->_impl_.vga_memory_mb_ = from._impl_.vga_memory_mb_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_networking() != 0) {
         _this->_impl_.networking_ = from._impl_.networking_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_serial_enabled() != 0) {
         _this->_impl_.serial_enabled_ = from._impl_.serial_enabled_;
       }
@@ -997,6 +1041,7 @@ void V86Config::InternalSwap(V86Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.mounts_.InternalSwap(&other->_impl_.mounts_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.boot_args_, &other->_impl_.boot_args_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.runtime_plugin_id_, &other->_impl_.runtime_plugin_id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(V86Config, _impl_.serial_enabled_)
       + sizeof(V86Config::_impl_.serial_enabled_)

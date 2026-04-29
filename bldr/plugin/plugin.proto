@@ -31,7 +31,7 @@ service PluginHost {
 
   // PluginRpc forwards an RPC call to a remote plugin.
   // The plugin will remain loaded as long as the RPC is active.
-  // Component ID: plugin id
+  // Component ID: plugin id, or plugin id / instance key for instanced plugins.
   rpc PluginRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 
   // PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.

@@ -65,6 +65,10 @@ class PluginExecLog;
 struct PluginExecLogDefaultTypeInternal;
 extern PluginExecLogDefaultTypeInternal _PluginExecLog_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull PluginExecLog_class_data_;
+class PluginExecOutputFile;
+struct PluginExecOutputFileDefaultTypeInternal;
+extern PluginExecOutputFileDefaultTypeInternal _PluginExecOutputFile_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull PluginExecOutputFile_class_data_;
 class PluginExecRequest;
 struct PluginExecRequestDefaultTypeInternal;
 extern PluginExecRequestDefaultTypeInternal _PluginExecRequest_default_instance_;
@@ -86,6 +90,218 @@ namespace exec {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class PluginExecOutputFile final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:space.exec.PluginExecOutputFile) */ {
+ public:
+  inline PluginExecOutputFile() : PluginExecOutputFile(nullptr) {}
+  ~PluginExecOutputFile() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(PluginExecOutputFile* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(PluginExecOutputFile));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR PluginExecOutputFile(::google::protobuf::internal::ConstantInitialized);
+
+  inline PluginExecOutputFile(const PluginExecOutputFile& from) : PluginExecOutputFile(nullptr, from) {}
+  inline PluginExecOutputFile(PluginExecOutputFile&& from) noexcept
+      : PluginExecOutputFile(nullptr, ::std::move(from)) {}
+  inline PluginExecOutputFile& operator=(const PluginExecOutputFile& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PluginExecOutputFile& operator=(PluginExecOutputFile&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const PluginExecOutputFile& default_instance() {
+    return *reinterpret_cast<const PluginExecOutputFile*>(
+        &_PluginExecOutputFile_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(PluginExecOutputFile& a, PluginExecOutputFile& b) { a.Swap(&b); }
+  inline void Swap(PluginExecOutputFile* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PluginExecOutputFile* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PluginExecOutputFile* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<PluginExecOutputFile>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const PluginExecOutputFile& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const PluginExecOutputFile& from) { PluginExecOutputFile::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(PluginExecOutputFile* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "space.exec.PluginExecOutputFile"; }
+
+  explicit PluginExecOutputFile(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  PluginExecOutputFile(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const PluginExecOutputFile& from);
+  PluginExecOutputFile(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, PluginExecOutputFile&& from) noexcept
+      : PluginExecOutputFile(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathFieldNumber = 1,
+    kDataFieldNumber = 2,
+  };
+  // string path = 1;
+  void clear_path() ;
+  const ::std::string& path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // bytes data = 2;
+  void clear_data() ;
+  const ::std::string& data() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_data(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_data();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_data();
+  void set_allocated_data(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_data() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_data(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_data();
+
+  public:
+  // @@protoc_insertion_point(class_scope:space.exec.PluginExecOutputFile)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 44,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const PluginExecOutputFile& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
+    ::google::protobuf::internal::ArenaStringPtr data_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fforge_2fexec_2fplugin_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull PluginExecOutputFile_class_data_;
 // -------------------------------------------------------------------
 
 class PluginExecLog final : public ::google::protobuf::Message
@@ -584,7 +800,7 @@ class PluginExecResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PluginExecResponse*>(
         &_PluginExecResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(PluginExecResponse& a, PluginExecResponse& b) { a.Swap(&b); }
   inline void Swap(PluginExecResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -673,6 +889,7 @@ class PluginExecResponse final : public ::google::protobuf::Message
   enum : int {
     kLogsFieldNumber = 1,
     kOutputsFieldNumber = 2,
+    kOutputFilesFieldNumber = 4,
     kErrorFieldNumber = 3,
   };
   // repeated .space.exec.PluginExecLog logs = 1;
@@ -709,6 +926,23 @@ class PluginExecResponse final : public ::google::protobuf::Message
   const ::forge::value::Value& outputs(int index) const;
   ::forge::value::Value* PROTOBUF_NONNULL add_outputs();
   const ::google::protobuf::RepeatedPtrField<::forge::value::Value>& outputs() const;
+  // repeated .space.exec.PluginExecOutputFile output_files = 4;
+  int output_files_size() const;
+  private:
+  int _internal_output_files_size() const;
+
+  public:
+  void clear_output_files() ;
+  ::space::exec::PluginExecOutputFile* PROTOBUF_NONNULL mutable_output_files(int index);
+  ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>* PROTOBUF_NONNULL mutable_output_files();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>& _internal_output_files() const;
+  ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>* PROTOBUF_NONNULL _internal_mutable_output_files();
+  public:
+  const ::space::exec::PluginExecOutputFile& output_files(int index) const;
+  ::space::exec::PluginExecOutputFile* PROTOBUF_NONNULL add_output_files();
+  const ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>& output_files() const;
   // string error = 3;
   void clear_error() ;
   const ::std::string& error() const;
@@ -728,8 +962,8 @@ class PluginExecResponse final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   2, 43,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   3, 43,
                                    2>
       _table_;
 
@@ -752,6 +986,7 @@ class PluginExecResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::space::exec::PluginExecLog > logs_;
     ::google::protobuf::RepeatedPtrField< ::forge::value::Value > outputs_;
+    ::google::protobuf::RepeatedPtrField< ::space::exec::PluginExecOutputFile > output_files_;
     ::google::protobuf::internal::ArenaStringPtr error_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1523,6 +1758,140 @@ inline void PluginExecLog::set_allocated_message(::std::string* PROTOBUF_NULLABL
 
 // -------------------------------------------------------------------
 
+// PluginExecOutputFile
+
+// string path = 1;
+inline void PluginExecOutputFile::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& PluginExecOutputFile::path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:space.exec.PluginExecOutputFile.path)
+  return _internal_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginExecOutputFile::set_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:space.exec.PluginExecOutputFile.path)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginExecOutputFile::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:space.exec.PluginExecOutputFile.path)
+  return _s;
+}
+inline const ::std::string& PluginExecOutputFile::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_.Get();
+}
+inline void PluginExecOutputFile::_internal_set_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginExecOutputFile::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginExecOutputFile::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:space.exec.PluginExecOutputFile.path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginExecOutputFile::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:space.exec.PluginExecOutputFile.path)
+}
+
+// bytes data = 2;
+inline void PluginExecOutputFile::clear_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.data_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& PluginExecOutputFile::data() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:space.exec.PluginExecOutputFile.data)
+  return _internal_data();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginExecOutputFile::set_data(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.data_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:space.exec.PluginExecOutputFile.data)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginExecOutputFile::mutable_data()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_data();
+  // @@protoc_insertion_point(field_mutable:space.exec.PluginExecOutputFile.data)
+  return _s;
+}
+inline const ::std::string& PluginExecOutputFile::_internal_data() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.data_.Get();
+}
+inline void PluginExecOutputFile::_internal_set_data(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.data_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginExecOutputFile::_internal_mutable_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.data_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginExecOutputFile::release_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:space.exec.PluginExecOutputFile.data)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.data_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.data_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginExecOutputFile::set_allocated_data(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.data_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.data_.IsDefault()) {
+    _impl_.data_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:space.exec.PluginExecOutputFile.data)
+}
+
+// -------------------------------------------------------------------
+
 // PluginExecResponse
 
 // repeated .space.exec.PluginExecLog logs = 1;
@@ -1636,7 +2005,7 @@ inline void PluginExecResponse::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& PluginExecResponse::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1646,13 +2015,13 @@ inline const ::std::string& PluginExecResponse::error() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void PluginExecResponse::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:space.exec.PluginExecResponse.error)
 }
 inline ::std::string* PROTOBUF_NONNULL PluginExecResponse::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_error();
   // @@protoc_insertion_point(field_mutable:space.exec.PluginExecResponse.error)
   return _s;
@@ -1672,10 +2041,10 @@ inline ::std::string* PROTOBUF_NONNULL PluginExecResponse::_internal_mutable_err
 inline ::std::string* PROTOBUF_NULLABLE PluginExecResponse::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:space.exec.PluginExecResponse.error)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.error_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.error_.Set("", GetArena());
@@ -1685,15 +2054,71 @@ inline ::std::string* PROTOBUF_NULLABLE PluginExecResponse::release_error() {
 inline void PluginExecResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.error_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:space.exec.PluginExecResponse.error)
+}
+
+// repeated .space.exec.PluginExecOutputFile output_files = 4;
+inline int PluginExecResponse::_internal_output_files_size() const {
+  return _internal_output_files().size();
+}
+inline int PluginExecResponse::output_files_size() const {
+  return _internal_output_files_size();
+}
+inline void PluginExecResponse::clear_output_files() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.output_files_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::space::exec::PluginExecOutputFile* PROTOBUF_NONNULL PluginExecResponse::mutable_output_files(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:space.exec.PluginExecResponse.output_files)
+  return _internal_mutable_output_files()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>* PROTOBUF_NONNULL PluginExecResponse::mutable_output_files()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:space.exec.PluginExecResponse.output_files)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_output_files();
+}
+inline const ::space::exec::PluginExecOutputFile& PluginExecResponse::output_files(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:space.exec.PluginExecResponse.output_files)
+  return _internal_output_files().Get(index);
+}
+inline ::space::exec::PluginExecOutputFile* PROTOBUF_NONNULL PluginExecResponse::add_output_files()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::space::exec::PluginExecOutputFile* _add =
+      _internal_mutable_output_files()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:space.exec.PluginExecResponse.output_files)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>& PluginExecResponse::output_files() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:space.exec.PluginExecResponse.output_files)
+  return _internal_output_files();
+}
+inline const ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>&
+PluginExecResponse::_internal_output_files() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.output_files_;
+}
+inline ::google::protobuf::RepeatedPtrField<::space::exec::PluginExecOutputFile>* PROTOBUF_NONNULL
+PluginExecResponse::_internal_mutable_output_files() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.output_files_;
 }
 
 #ifdef __GNUC__

@@ -1066,6 +1066,7 @@ class V86Config final : public ::google::protobuf::Message
   enum : int {
     kMountsFieldNumber = 6,
     kBootArgsFieldNumber = 5,
+    kRuntimePluginIdFieldNumber = 7,
     kMemoryMbFieldNumber = 1,
     kVgaMemoryMbFieldNumber = 2,
     kNetworkingFieldNumber = 3,
@@ -1101,6 +1102,21 @@ class V86Config final : public ::google::protobuf::Message
   const ::std::string& _internal_boot_args() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_boot_args(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_boot_args();
+
+  public:
+  // string runtime_plugin_id = 7;
+  void clear_runtime_plugin_id() ;
+  const ::std::string& runtime_plugin_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_runtime_plugin_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_runtime_plugin_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_runtime_plugin_id();
+  void set_allocated_runtime_plugin_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_runtime_plugin_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_runtime_plugin_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_runtime_plugin_id();
 
   public:
   // uint32 memory_mb = 1;
@@ -1147,8 +1163,8 @@ class V86Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   1, 37,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   1, 54,
                                    2>
       _table_;
 
@@ -1171,6 +1187,7 @@ class V86Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::s4wave::vm::VmMount > mounts_;
     ::google::protobuf::internal::ArenaStringPtr boot_args_;
+    ::google::protobuf::internal::ArenaStringPtr runtime_plugin_id_;
     ::uint32_t memory_mb_;
     ::uint32_t vga_memory_mb_;
     bool networking_;
@@ -2446,7 +2463,7 @@ inline void V86Config::clear_memory_mb() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.memory_mb_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline ::uint32_t V86Config::memory_mb() const {
   // @@protoc_insertion_point(field_get:s4wave.vm.V86Config.memory_mb)
@@ -2454,7 +2471,7 @@ inline ::uint32_t V86Config::memory_mb() const {
 }
 inline void V86Config::set_memory_mb(::uint32_t value) {
   _internal_set_memory_mb(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:s4wave.vm.V86Config.memory_mb)
 }
 inline ::uint32_t V86Config::_internal_memory_mb() const {
@@ -2471,7 +2488,7 @@ inline void V86Config::clear_vga_memory_mb() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.vga_memory_mb_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline ::uint32_t V86Config::vga_memory_mb() const {
   // @@protoc_insertion_point(field_get:s4wave.vm.V86Config.vga_memory_mb)
@@ -2479,7 +2496,7 @@ inline ::uint32_t V86Config::vga_memory_mb() const {
 }
 inline void V86Config::set_vga_memory_mb(::uint32_t value) {
   _internal_set_vga_memory_mb(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:s4wave.vm.V86Config.vga_memory_mb)
 }
 inline ::uint32_t V86Config::_internal_vga_memory_mb() const {
@@ -2496,7 +2513,7 @@ inline void V86Config::clear_networking() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.networking_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline bool V86Config::networking() const {
   // @@protoc_insertion_point(field_get:s4wave.vm.V86Config.networking)
@@ -2504,7 +2521,7 @@ inline bool V86Config::networking() const {
 }
 inline void V86Config::set_networking(bool value) {
   _internal_set_networking(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:s4wave.vm.V86Config.networking)
 }
 inline bool V86Config::_internal_networking() const {
@@ -2521,7 +2538,7 @@ inline void V86Config::clear_serial_enabled() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.serial_enabled_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline bool V86Config::serial_enabled() const {
   // @@protoc_insertion_point(field_get:s4wave.vm.V86Config.serial_enabled)
@@ -2529,7 +2546,7 @@ inline bool V86Config::serial_enabled() const {
 }
 inline void V86Config::set_serial_enabled(bool value) {
   _internal_set_serial_enabled(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:s4wave.vm.V86Config.serial_enabled)
 }
 inline bool V86Config::_internal_serial_enabled() const {
@@ -2660,6 +2677,71 @@ inline ::google::protobuf::RepeatedPtrField<::s4wave::vm::VmMount>* PROTOBUF_NON
 V86Config::_internal_mutable_mounts() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.mounts_;
+}
+
+// string runtime_plugin_id = 7;
+inline void V86Config::clear_runtime_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.runtime_plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& V86Config::runtime_plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.V86Config.runtime_plugin_id)
+  return _internal_runtime_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void V86Config::set_runtime_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.runtime_plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.vm.V86Config.runtime_plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL V86Config::mutable_runtime_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_runtime_plugin_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.V86Config.runtime_plugin_id)
+  return _s;
+}
+inline const ::std::string& V86Config::_internal_runtime_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.runtime_plugin_id_.Get();
+}
+inline void V86Config::_internal_set_runtime_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.runtime_plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL V86Config::_internal_mutable_runtime_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.runtime_plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE V86Config::release_runtime_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.vm.V86Config.runtime_plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.runtime_plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.runtime_plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void V86Config::set_allocated_runtime_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.runtime_plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.runtime_plugin_id_.IsDefault()) {
+    _impl_.runtime_plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.V86Config.runtime_plugin_id)
 }
 
 // -------------------------------------------------------------------

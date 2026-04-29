@@ -93,8 +93,12 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // BuildRemotePluginClient builds a client for the remote plugin.
-func (c *Controller) BuildRemotePluginClient(pluginID string, waitAck bool) srpc.Client {
-	return rpcstream.NewRpcStreamClient(c.srv.PluginRpc, pluginID, waitAck)
+func (c *Controller) BuildRemotePluginClient(pluginID, instanceKey string, waitAck bool) srpc.Client {
+	return rpcstream.NewRpcStreamClient(
+		c.srv.PluginRpc,
+		bldr_plugin.BuildPluginRpcComponentID(pluginID, instanceKey),
+		waitAck,
+	)
 }
 
 // WaitPluginHostClient waits for an RPC client for the plugin host.

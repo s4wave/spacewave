@@ -121,6 +121,37 @@ export const PluginExecLog: MessageType<PluginExecLog> = createMessageType({
 })
 
 /**
+ * PluginExecOutputFile is one captured output file from a plugin controller.
+ *
+ * @generated from message space.exec.PluginExecOutputFile
+ */
+export interface PluginExecOutputFile {
+  /**
+   * Path is the slash-separated path relative to the output root.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+  /**
+   * Data is the file contents.
+   *
+   * @generated from field: bytes data = 2;
+   */
+  data?: Uint8Array
+}
+
+// PluginExecOutputFile contains the message type declaration for PluginExecOutputFile.
+export const PluginExecOutputFile: MessageType<PluginExecOutputFile> =
+  createMessageType({
+    typeName: 'space.exec.PluginExecOutputFile',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * PluginExecResponse contains controller logs, outputs, and optional failure.
  *
  * @generated from message space.exec.PluginExecResponse
@@ -144,6 +175,12 @@ export interface PluginExecResponse {
    * @generated from field: string error = 3;
    */
   error?: string
+  /**
+   * OutputFiles are files to import as the default UnixFS "output" value.
+   *
+   * @generated from field: repeated space.exec.PluginExecOutputFile output_files = 4;
+   */
+  outputFiles?: PluginExecOutputFile[]
 }
 
 // PluginExecResponse contains the message type declaration for PluginExecResponse.
@@ -166,6 +203,13 @@ export const PluginExecResponse: MessageType<PluginExecResponse> =
         repeated: true,
       },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'output_files',
+        kind: 'message',
+        T: () => PluginExecOutputFile,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -26,7 +26,7 @@ type SRPCPluginHostClient interface {
 	LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error)
 	// PluginRpc forwards an RPC call to a remote plugin.
 	// The plugin will remain loaded as long as the RPC is active.
-	// Component ID: plugin id
+	// Component ID: plugin id, or plugin id / instance key for instanced plugins.
 	PluginRpc(ctx context.Context) (SRPCPluginHost_PluginRpcClient, error)
 	// PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
 	// The plugin will remain loaded as long as the RPC is active.
@@ -219,7 +219,7 @@ type SRPCPluginHostServer interface {
 	LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error
 	// PluginRpc forwards an RPC call to a remote plugin.
 	// The plugin will remain loaded as long as the RPC is active.
-	// Component ID: plugin id
+	// Component ID: plugin id, or plugin id / instance key for instanced plugins.
 	PluginRpc(SRPCPluginHost_PluginRpcStream) error
 	// PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
 	// The plugin will remain loaded as long as the RPC is active.

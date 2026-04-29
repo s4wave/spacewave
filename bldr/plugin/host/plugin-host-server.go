@@ -91,18 +91,19 @@ func (s *PluginHostServer) LoadPlugin(
 
 // PluginRpc forwards an RPC call to a remote plugin.
 // The plugin will remain loaded as long as the RPC is active.
-// Component ID: plugin id
+// Component ID: plugin id, or plugin id / instance key for instanced plugins.
 func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcStream) error {
 	return rpcstream.HandleProxyRpcStream(
 		strm,
-		func(ctx context.Context, pluginID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
+		func(ctx context.Context, componentID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
+			pluginID, instanceKey := bldr_plugin.ParsePluginRpcComponentID(componentID)
 			if pluginID == "" {
 				return nil, "", nil, bldr_plugin.ErrEmptyPluginID
 			}
-			if pluginID == s.pluginID {
+			if pluginID == s.pluginID && instanceKey == "" {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
 			}
-			client, clientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, s.b, pluginID, nil)
+			client, clientRef, err := bldr_plugin.ExPluginLoadInstancedWaitClient(ctx, s.b, pluginID, instanceKey, nil)
 			if err != nil {
 				return nil, "", nil, err
 			}

@@ -19,6 +19,7 @@ func (c *Controller) resolveLoadPlugin(
 	return &loadPluginResolver{
 		c:                c,
 		pluginID:         dir.LoadPluginID(),
+		instanceKey:      dir.LoadPluginInstanceKey(),
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 		bo:               buildBackoff(),
 	}, nil
@@ -30,6 +31,8 @@ type loadPluginResolver struct {
 	c *Controller
 	// pluginID is the plugin identifier
 	pluginID string
+	// instanceKey is the plugin instance key
+	instanceKey string
 	// runningPluginCtr contains the running plugin when the plugin is running
 	// nil otherwise
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
@@ -40,6 +43,9 @@ type loadPluginResolver struct {
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	le := r.c.le.WithField("load-plugin-id", r.pluginID)
+	if r.instanceKey != "" {
+		le = le.WithField("instance-key", r.instanceKey)
+	}
 	le.Debug("loading plugin via plugin host")
 
 	return retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
@@ -47,7 +53,8 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		_ = handler.ClearValues()
 
 		strm, err := r.c.srv.LoadPlugin(ctx, &bldr_plugin.LoadPluginRequest{
-			PluginId: r.pluginID,
+			PluginId:    r.pluginID,
+			InstanceKey: r.instanceKey,
 		})
 		if err != nil {
 			return err
@@ -78,7 +85,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 
 			// construct the rpc stream client
 			le.Debug("plugin loaded")
-			rpcClient := r.c.BuildRemotePluginClient(r.pluginID, false)
+			rpcClient := r.c.BuildRemotePluginClient(r.pluginID, r.instanceKey, false)
 			val := bldr_plugin.NewRunningPlugin(rpcClient)
 			r.runningPluginCtr.SetValue(val)
 			_, _ = handler.AddValue(val)

@@ -36,6 +36,16 @@ pub struct PluginExecLog {
     #[prost(string, tag="2")]
     pub message: ::prost::alloc::string::String,
 }
+/// PluginExecOutputFile is one captured output file from a plugin controller.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PluginExecOutputFile {
+    /// Path is the slash-separated path relative to the output root.
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    /// Data is the file contents.
+    #[prost(bytes="vec", tag="2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
 /// PluginExecResponse contains controller logs, outputs, and optional failure.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PluginExecResponse {
@@ -48,5 +58,8 @@ pub struct PluginExecResponse {
     /// Error is the plugin execution failure message, if any.
     #[prost(string, tag="3")]
     pub error: ::prost::alloc::string::String,
+    /// OutputFiles are files to import as the default UnixFS "output" value.
+    #[prost(message, repeated, tag="4")]
+    pub output_files: ::prost::alloc::vec::Vec<PluginExecOutputFile>,
 }
 // @@protoc_insertion_point(module)
