@@ -50,7 +50,7 @@ func TestAlphaStarCompleteness(t *testing.T) {
 	expectedBuilds := map[string]int{
 		"app":                                 5,
 		"web":                                 5,
-		"release-web":                         7,
+		"release-web":                         6,
 		"cli":                                 2,
 		"plugin-release-browser":              4,
 		"release-desktop-darwin-arm64":        7,

@@ -263,16 +263,24 @@ js_plugin("spacewave-app", rev=221, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/vm/backend.ts"),
 ])
 
-DIST_LOAD_PLUGINS = [
+DESKTOP_RELEASE_LOAD_PLUGINS = [
     "spacewave-launcher", "spacewave-loader",
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests):
+BROWSER_RELEASE_LOAD_PLUGINS = [
+    # spacewave-loader is intentionally omitted in browser release builds. It
+    # exists only to spawn the native spacewave-helper loading window; in WASM
+    # it has no helper binary to launch and just creates a no-op plugin worker.
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+]
+
+def dist_release_config(embed_manifests, load_plugins):
     return dist_compiler_config(
         cliPkgs=["./cmd/spacewave-cli/cli"],
         embedManifests=embed_manifests,
-        loadPlugins=DIST_LOAD_PLUGINS,
+        loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
     )
 
@@ -283,7 +291,7 @@ manifest("spacewave-dist",
     # manifestOverrides (REPLACE semantics). This keeps the static config
     # host-agnostic and makes the build target the single source of truth for
     # what ships in each bundle.
-    config=dist_release_config([]),
+    config=dist_release_config([], DESKTOP_RELEASE_LOAD_PLUGINS),
 )
 
 # -- Build targets --
@@ -292,7 +300,15 @@ DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web",
     "spacewave-app", "spacewave-debug",
 ]
-RELEASE_MANIFESTS = [
+BROWSER_RELEASE_MANIFESTS = [
+    # The browser release should not even build spacewave-loader: it is a
+    # native helper-window plugin, and loading it in WASM shows up as an
+    # extra shared worker that exits after helper lookup fails.
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-dist",
+]
+DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
     "spacewave-dist",
@@ -307,8 +323,6 @@ REMOTE_WORLD_MANIFESTS = [
 BROWSER_RELEASE_EMBED_MANIFESTS = [
     {"manifestId": "spacewave-launcher",
      "platformId": "web/js/wasm"},
-    {"manifestId": "spacewave-loader",
-     "platformId": "web/js/wasm"},
     {"manifestId": "spacewave-core",
      "platformId": "web/js/wasm"},
     {"manifestId": "web",
@@ -322,10 +336,13 @@ BROWSER_RELEASE_EMBED_MANIFESTS = [
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
 build("release-web",
-    manifests=RELEASE_MANIFESTS,
+    manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-dist": dist_release_config(BROWSER_RELEASE_EMBED_MANIFESTS),
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_EMBED_MANIFESTS,
+            BROWSER_RELEASE_LOAD_PLUGINS,
+        ),
     },
 )
 build("cli",         manifests=["spacewave", "spacewave-cli"])
@@ -368,10 +385,13 @@ def define_release_build(host_key, platform_id):
          "platformId": "js"},
     ]
     build("release-" + host_key,
-        manifests=RELEASE_MANIFESTS,
+        manifests=DESKTOP_RELEASE_MANIFESTS,
         platform_ids=[platform_id],
         manifestOverrides={
-            "spacewave-dist": dist_release_config(desktop_embed_manifests),
+            "spacewave-dist": dist_release_config(
+                desktop_embed_manifests,
+                DESKTOP_RELEASE_LOAD_PLUGINS,
+            ),
         },
     )
 

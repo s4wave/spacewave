@@ -183,6 +183,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	}
 	cfg := string(override.GetConfig())
 	for _, want := range []string{
+		`"spacewave-loader"`,
 		`"spacewave-core"`,
 		`"web"`,
 		`"platformId":"web/js/wasm"`,
@@ -192,6 +193,34 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Fatalf("release desktop override config missing %s: %s", want, cfg)
+		}
+	}
+
+	browserRelease := result.Config.GetBuild()["release-web"]
+	if browserRelease == nil {
+		t.Fatal("build target 'release-web' not found")
+	}
+	browserManifests := strings.Join(browserRelease.GetManifests(), ",")
+	if strings.Contains(browserManifests, "spacewave-loader") {
+		t.Fatalf("browser release manifests unexpectedly include spacewave-loader: %v", browserRelease.GetManifests())
+	}
+	browserOverride := browserRelease.GetManifestOverrides()["spacewave-dist"]
+	if browserOverride == nil {
+		t.Fatal("override for browser 'spacewave-dist' not found")
+	}
+	browserCfg := string(browserOverride.GetConfig())
+	if strings.Contains(browserCfg, `"spacewave-loader"`) {
+		t.Fatalf("browser release override unexpectedly includes spacewave-loader: %s", browserCfg)
+	}
+	for _, want := range []string{
+		`"spacewave-launcher"`,
+		`"spacewave-core"`,
+		`"spacewave-web"`,
+		`"spacewave-app"`,
+		`"web"`,
+	} {
+		if !strings.Contains(browserCfg, want) {
+			t.Fatalf("browser release override config missing %s: %s", want, browserCfg)
 		}
 	}
 
