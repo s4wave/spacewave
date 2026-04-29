@@ -30,29 +30,11 @@ message ReleaseMetadata {
   string channel_key = 4;
   // ManifestRefs are existing bldr app/plugin manifests resolved by clients.
   repeated .bldr.manifest.ManifestRef manifest_refs = 5;
-  // DesktopArchives maps platform keys to native self-update archives.
-  map<string, DesktopArchive> desktop_archives = 6;
   // BrowserShell is the browser shell/cache metadata.
-  BrowserShellMetadata browser_shell = 7;
+  BrowserShellMetadata browser_shell = 6;
   // MinimumLauncherVersion is the minimum launcher version that can read this
   // release.
-  string minimum_launcher_version = 8;
-}
-
-// DesktopArchive describes a native entrypoint update archive.
-message DesktopArchive {
-  // Platform is the GOOS/GOARCH platform key.
-  string platform = 1;
-  // Version is the archive version.
-  string version = 2;
-  // ArchiveRef references the archive bytes in the release world.
-  .block.BlockRef archive_ref = 3;
-  // Size is the archive size in bytes.
-  uint64 size = 4;
-  // Sha256 is the SHA-256 digest of the archive bytes.
-  bytes sha256 = 5;
-  // ArchiveName is the release archive filename.
-  string archive_name = 6;
+  string minimum_launcher_version = 7;
 }
 
 // BrowserShellMetadata describes the browser entrypoint shell for a release.

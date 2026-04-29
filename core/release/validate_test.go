@@ -53,23 +53,6 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name:      "desktop archive",
-			marshal:   func() ([]byte, error) { return testDesktopArchive(ref).MarshalVT() },
-			unmarshal: func(data []byte) error { return (&DesktopArchive{}).UnmarshalVT(data) },
-			equal: func() bool {
-				msg := testDesktopArchive(ref)
-				data, err := msg.MarshalVT()
-				if err != nil {
-					t.Fatalf("MarshalVT() error = %v", err)
-				}
-				got := &DesktopArchive{}
-				if err := got.UnmarshalVT(data); err != nil {
-					t.Fatalf("UnmarshalVT() error = %v", err)
-				}
-				return msg.EqualVT(got)
-			},
-		},
-		{
 			name:      "browser shell metadata",
 			marshal:   func() ([]byte, error) { return testBrowserShellMetadata(ref).MarshalVT() },
 			unmarshal: func(data []byte) error { return (&BrowserShellMetadata{}).UnmarshalVT(data) },
@@ -159,36 +142,12 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{
 			name: "missing bldr manifest refs",
 			err: (&ReleaseMetadata{
-				ProjectId:       "spacewave",
-				ChannelKey:      "stable",
-				Version:         "0.1.0",
-				DesktopArchives: map[string]*DesktopArchive{"darwin/arm64": testDesktopArchive(ref)},
-				BrowserShell:    testBrowserShellMetadata(ref),
+				ProjectId:    "spacewave",
+				ChannelKey:   "stable",
+				Version:      "0.1.0",
+				BrowserShell: testBrowserShellMetadata(ref),
 			}).Validate(),
 			wantErr: "no bldr manifest refs",
-		},
-		{
-			name: "desktop archive key mismatch",
-			err: (&ReleaseMetadata{
-				ProjectId:       "spacewave",
-				ChannelKey:      "stable",
-				Version:         "0.1.0",
-				ManifestRefs:    []*bldr_manifest.ManifestRef{testManifestRef(ref)},
-				DesktopArchives: map[string]*DesktopArchive{"linux/arm64": testDesktopArchive(ref)},
-				BrowserShell:    testBrowserShellMetadata(ref),
-			}).Validate(),
-			wantErr: "desktop archive platform key mismatch",
-		},
-		{
-			name: "desktop archive nil ref",
-			err: (&DesktopArchive{
-				Platform:    "darwin/arm64",
-				Version:     "0.1.0",
-				Size:        1,
-				Sha256:      testSHA256(),
-				ArchiveName: "spacewave-darwin-arm64.tar.gz",
-			}).Validate(),
-			wantErr: "invalid archive ref",
 		},
 		{
 			name: "browser asset nil ref",
@@ -219,7 +178,6 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{name: "channel directory", err: testChannelDirectory(ref).Validate()},
 		{name: "channel refs", err: testChannelDirectory(ref).ValidateReleaseMetadataRefs(func(*block.BlockRef) bool { return true })},
 		{name: "release metadata", err: testReleaseMetadata(ref).Validate()},
-		{name: "desktop archive", err: testDesktopArchive(ref).Validate()},
 		{name: "browser shell metadata", err: testBrowserShellMetadata(ref).Validate()},
 		{name: "browser asset", err: testBrowserAsset(ref).Validate()},
 		{name: "update notification", err: testUpdateNotification().Validate()},
@@ -249,9 +207,6 @@ func testReleaseMetadata(ref *block.BlockRef) *ReleaseMetadata {
 		Version:      "0.1.0",
 		ChannelKey:   "stable",
 		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef(ref)},
-		DesktopArchives: map[string]*DesktopArchive{
-			"darwin/arm64": testDesktopArchive(ref),
-		},
 		BrowserShell:           testBrowserShellMetadata(ref),
 		MinimumLauncherVersion: "0.1.0",
 	}
@@ -266,17 +221,6 @@ func testManifestRef(ref *block.BlockRef) *bldr_manifest.ManifestRef {
 			Rev:        1,
 		},
 		ManifestRef: &bucket.ObjectRef{RootRef: ref},
-	}
-}
-
-func testDesktopArchive(ref *block.BlockRef) *DesktopArchive {
-	return &DesktopArchive{
-		Platform:    "darwin/arm64",
-		Version:     "0.1.0",
-		ArchiveRef:  ref,
-		Size:        1,
-		Sha256:      testSHA256(),
-		ArchiveName: "spacewave-darwin-arm64.tar.gz",
 	}
 }
 

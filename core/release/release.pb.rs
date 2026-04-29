@@ -35,38 +35,13 @@ pub struct ReleaseMetadata {
     /// ManifestRefs are existing bldr app/plugin manifests resolved by clients.
     #[prost(message, repeated, tag="5")]
     pub manifest_refs: ::prost::alloc::vec::Vec<super::bldr::manifest::ManifestRef>,
-    /// DesktopArchives maps platform keys to native self-update archives.
-    #[prost(map="string, message", tag="6")]
-    pub desktop_archives: ::std::collections::HashMap<::prost::alloc::string::String, DesktopArchive>,
     /// BrowserShell is the browser shell/cache metadata.
-    #[prost(message, optional, tag="7")]
+    #[prost(message, optional, tag="6")]
     pub browser_shell: ::core::option::Option<BrowserShellMetadata>,
     /// MinimumLauncherVersion is the minimum launcher version that can read this
     /// release.
-    #[prost(string, tag="8")]
+    #[prost(string, tag="7")]
     pub minimum_launcher_version: ::prost::alloc::string::String,
-}
-/// DesktopArchive describes a native entrypoint update archive.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DesktopArchive {
-    /// Platform is the GOOS/GOARCH platform key.
-    #[prost(string, tag="1")]
-    pub platform: ::prost::alloc::string::String,
-    /// Version is the archive version.
-    #[prost(string, tag="2")]
-    pub version: ::prost::alloc::string::String,
-    /// ArchiveRef references the archive bytes in the release world.
-    #[prost(message, optional, tag="3")]
-    pub archive_ref: ::core::option::Option<super::block::BlockRef>,
-    /// Size is the archive size in bytes.
-    #[prost(uint64, tag="4")]
-    pub size: u64,
-    /// Sha256 is the SHA-256 digest of the archive bytes.
-    #[prost(bytes="vec", tag="5")]
-    pub sha256: ::prost::alloc::vec::Vec<u8>,
-    /// ArchiveName is the release archive filename.
-    #[prost(string, tag="6")]
-    pub archive_name: ::prost::alloc::string::String,
 }
 /// BrowserShellMetadata describes the browser entrypoint shell for a release.
 #[derive(Clone, PartialEq, ::prost::Message)]

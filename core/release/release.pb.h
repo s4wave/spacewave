@@ -30,10 +30,6 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
-#include "google/protobuf/map.h"  // IWYU pragma: export
-#include "google/protobuf/map_type_handler.h"  // IWYU pragma: export
-#include "google/protobuf/map_entry.h"
-#include "google/protobuf/map_field.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../bldr/manifest/manifest.pb.h"
 #include "../../db/block/block.pb.h"
@@ -77,18 +73,10 @@ class ChannelEntry;
 struct ChannelEntryDefaultTypeInternal;
 extern ChannelEntryDefaultTypeInternal _ChannelEntry_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ChannelEntry_class_data_;
-class DesktopArchive;
-struct DesktopArchiveDefaultTypeInternal;
-extern DesktopArchiveDefaultTypeInternal _DesktopArchive_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DesktopArchive_class_data_;
 class ReleaseMetadata;
 struct ReleaseMetadataDefaultTypeInternal;
 extern ReleaseMetadataDefaultTypeInternal _ReleaseMetadata_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ReleaseMetadata_class_data_;
-class ReleaseMetadata_DesktopArchivesEntry_DoNotUse;
-struct ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal;
-extern ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal _ReleaseMetadata_DesktopArchivesEntry_DoNotUse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_;
 class UpdateNotification;
 struct UpdateNotificationDefaultTypeInternal;
 extern UpdateNotificationDefaultTypeInternal _UpdateNotification_default_instance_;
@@ -161,7 +149,7 @@ class UpdateNotification final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateNotification*>(
         &_UpdateNotification_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(UpdateNotification& a, UpdateNotification& b) { a.Swap(&b); }
   inline void Swap(UpdateNotification* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -328,281 +316,6 @@ class UpdateNotification final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull UpdateNotification_class_data_;
-// -------------------------------------------------------------------
-
-class DesktopArchive final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:release.DesktopArchive) */ {
- public:
-  inline DesktopArchive() : DesktopArchive(nullptr) {}
-  ~DesktopArchive() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DesktopArchive* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopArchive));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DesktopArchive(::google::protobuf::internal::ConstantInitialized);
-
-  inline DesktopArchive(const DesktopArchive& from) : DesktopArchive(nullptr, from) {}
-  inline DesktopArchive(DesktopArchive&& from) noexcept
-      : DesktopArchive(nullptr, ::std::move(from)) {}
-  inline DesktopArchive& operator=(const DesktopArchive& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline DesktopArchive& operator=(DesktopArchive&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const DesktopArchive& default_instance() {
-    return *reinterpret_cast<const DesktopArchive*>(
-        &_DesktopArchive_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 4;
-  friend void swap(DesktopArchive& a, DesktopArchive& b) { a.Swap(&b); }
-  inline void Swap(DesktopArchive* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(DesktopArchive* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  DesktopArchive* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DesktopArchive>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DesktopArchive& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DesktopArchive& from) { DesktopArchive::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(DesktopArchive* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "release.DesktopArchive"; }
-
-  explicit DesktopArchive(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DesktopArchive(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopArchive& from);
-  DesktopArchive(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopArchive&& from) noexcept
-      : DesktopArchive(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPlatformFieldNumber = 1,
-    kVersionFieldNumber = 2,
-    kSha256FieldNumber = 5,
-    kArchiveNameFieldNumber = 6,
-    kArchiveRefFieldNumber = 3,
-    kSizeFieldNumber = 4,
-  };
-  // string platform = 1;
-  void clear_platform() ;
-  const ::std::string& platform() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_platform(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_platform();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_platform();
-  void set_allocated_platform(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_platform() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_platform(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_platform();
-
-  public:
-  // string version = 2;
-  void clear_version() ;
-  const ::std::string& version() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_version(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_version();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_version();
-  void set_allocated_version(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_version() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_version(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_version();
-
-  public:
-  // bytes sha256 = 5;
-  void clear_sha256() ;
-  const ::std::string& sha256() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_sha256(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_sha256();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sha256();
-  void set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_sha256() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_sha256(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_sha256();
-
-  public:
-  // string archive_name = 6;
-  void clear_archive_name() ;
-  const ::std::string& archive_name() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_archive_name(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_archive_name();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_archive_name();
-  void set_allocated_archive_name(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_archive_name() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_archive_name(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_archive_name();
-
-  public:
-  // .block.BlockRef archive_ref = 3;
-  bool has_archive_ref() const;
-  void clear_archive_ref() ;
-  const ::block::BlockRef& archive_ref() const;
-  [[nodiscard]] ::block::BlockRef* PROTOBUF_NULLABLE release_archive_ref();
-  ::block::BlockRef* PROTOBUF_NONNULL mutable_archive_ref();
-  void set_allocated_archive_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_archive_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
-  ::block::BlockRef* PROTOBUF_NULLABLE unsafe_arena_release_archive_ref();
-
-  private:
-  const ::block::BlockRef& _internal_archive_ref() const;
-  ::block::BlockRef* PROTOBUF_NONNULL _internal_mutable_archive_ref();
-
-  public:
-  // uint64 size = 4;
-  void clear_size() ;
-  ::uint64_t size() const;
-  void set_size(::uint64_t value);
-
-  private:
-  ::uint64_t _internal_size() const;
-  void _internal_set_size(::uint64_t value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:release.DesktopArchive)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   1, 58,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DesktopArchive& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr platform_;
-    ::google::protobuf::internal::ArenaStringPtr version_;
-    ::google::protobuf::internal::ArenaStringPtr sha256_;
-    ::google::protobuf::internal::ArenaStringPtr archive_name_;
-    ::block::BlockRef* PROTOBUF_NULLABLE archive_ref_;
-    ::uint64_t size_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull DesktopArchive_class_data_;
 // -------------------------------------------------------------------
 
 class ChannelEntry final : public ::google::protobuf::Message
@@ -872,7 +585,7 @@ class BrowserAsset final : public ::google::protobuf::Message
     return *reinterpret_cast<const BrowserAsset*>(
         &_BrowserAsset_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(BrowserAsset& a, BrowserAsset& b) { a.Swap(&b); }
   inline void Swap(BrowserAsset* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1090,45 +803,6 @@ class BrowserAsset final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BrowserAsset_class_data_;
-// -------------------------------------------------------------------
-
-class ReleaseMetadata_DesktopArchivesEntry_DoNotUse final
-    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
- public:
-  using SuperType =
-      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
-  ReleaseMetadata_DesktopArchivesEntry_DoNotUse();
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR ReleaseMetadata_DesktopArchivesEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
-  explicit ReleaseMetadata_DesktopArchivesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
-    return &_ReleaseMetadata_DesktopArchivesEntry_DoNotUse_default_instance_;
-  }
-
-
-  static constexpr auto InternalGenerateClassData_();
-
- private:
-  friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto;
-
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 56,
-                                   2>
-      _table_;
-
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-};
-extern const ::google::protobuf::internal::ClassDataFull ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
 class ChannelDirectory final : public ::google::protobuf::Message
@@ -1383,7 +1057,7 @@ class BrowserShellMetadata final : public ::google::protobuf::Message
     return *reinterpret_cast<const BrowserShellMetadata*>(
         &_BrowserShellMetadata_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(BrowserShellMetadata& a, BrowserShellMetadata& b) { a.Swap(&b); }
   inline void Swap(BrowserShellMetadata* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1682,7 +1356,7 @@ class ReleaseMetadata final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReleaseMetadata*>(
         &_ReleaseMetadata_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(ReleaseMetadata& a, ReleaseMetadata& b) { a.Swap(&b); }
   inline void Swap(ReleaseMetadata* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1773,10 +1447,9 @@ class ReleaseMetadata final : public ::google::protobuf::Message
     kProjectIdFieldNumber = 1,
     kVersionFieldNumber = 3,
     kChannelKeyFieldNumber = 4,
-    kMinimumLauncherVersionFieldNumber = 8,
-    kBrowserShellFieldNumber = 7,
+    kMinimumLauncherVersionFieldNumber = 7,
+    kBrowserShellFieldNumber = 6,
     kRevFieldNumber = 2,
-    kDesktopArchivesFieldNumber = 6,
   };
   // repeated .bldr.manifest.ManifestRef manifest_refs = 5;
   int manifest_refs_size() const;
@@ -1840,7 +1513,7 @@ class ReleaseMetadata final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
 
   public:
-  // string minimum_launcher_version = 8;
+  // string minimum_launcher_version = 7;
   void clear_minimum_launcher_version() ;
   const ::std::string& minimum_launcher_version() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
@@ -1855,7 +1528,7 @@ class ReleaseMetadata final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_minimum_launcher_version();
 
   public:
-  // .release.BrowserShellMetadata browser_shell = 7;
+  // .release.BrowserShellMetadata browser_shell = 6;
   bool has_browser_shell() const;
   void clear_browser_shell() ;
   const ::release::BrowserShellMetadata& browser_shell() const;
@@ -1880,27 +1553,12 @@ class ReleaseMetadata final : public ::google::protobuf::Message
   void _internal_set_rev(::uint64_t value);
 
   public:
-  // map<string, .release.DesktopArchive> desktop_archives = 6;
-  int desktop_archives_size() const;
-  private:
-  int _internal_desktop_archives_size() const;
-
-  public:
-  void clear_desktop_archives() ;
-  const ::google::protobuf::Map<::std::string, ::release::DesktopArchive>& desktop_archives() const;
-  ::google::protobuf::Map<::std::string, ::release::DesktopArchive>* PROTOBUF_NONNULL mutable_desktop_archives();
-
-  private:
-  const ::google::protobuf::Map<::std::string, ::release::DesktopArchive>& _internal_desktop_archives() const;
-  ::google::protobuf::Map<::std::string, ::release::DesktopArchive>* PROTOBUF_NONNULL _internal_mutable_desktop_archives();
-
-  public:
   // @@protoc_insertion_point(class_scope:release.ReleaseMetadata)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   4, 108,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   2, 84,
                                    2>
       _table_;
 
@@ -1928,10 +1586,6 @@ class ReleaseMetadata final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr minimum_launcher_version_;
     ::release::BrowserShellMetadata* PROTOBUF_NULLABLE browser_shell_;
     ::uint64_t rev_;
-    ::google::protobuf::internal::MapField<ReleaseMetadata_DesktopArchivesEntry_DoNotUse, ::std::string, ::release::DesktopArchive,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
-        desktop_archives_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2173,8 +1827,6 @@ inline void ChannelEntry::set_allocated_release_metadata_ref(::block::BlockRef* 
   _impl_.release_metadata_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   // @@protoc_insertion_point(field_set_allocated:release.ChannelEntry.release_metadata_ref)
 }
-
-// -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
 
@@ -2450,39 +2102,7 @@ ReleaseMetadata::_internal_mutable_manifest_refs() {
   return &_impl_.manifest_refs_;
 }
 
-// map<string, .release.DesktopArchive> desktop_archives = 6;
-inline int ReleaseMetadata::_internal_desktop_archives_size() const {
-  return _internal_desktop_archives().size();
-}
-inline int ReleaseMetadata::desktop_archives_size() const {
-  return _internal_desktop_archives_size();
-}
-inline void ReleaseMetadata::clear_desktop_archives() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.desktop_archives_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000080U);
-}
-inline const ::google::protobuf::Map<::std::string, ::release::DesktopArchive>& ReleaseMetadata::_internal_desktop_archives() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.desktop_archives_.GetMap();
-}
-inline const ::google::protobuf::Map<::std::string, ::release::DesktopArchive>& ReleaseMetadata::desktop_archives() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_map:release.ReleaseMetadata.desktop_archives)
-  return _internal_desktop_archives();
-}
-inline ::google::protobuf::Map<::std::string, ::release::DesktopArchive>* PROTOBUF_NONNULL ReleaseMetadata::_internal_mutable_desktop_archives() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.desktop_archives_.MutableMap();
-}
-inline ::google::protobuf::Map<::std::string, ::release::DesktopArchive>* PROTOBUF_NONNULL ReleaseMetadata::mutable_desktop_archives()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000080U);
-  // @@protoc_insertion_point(field_mutable_map:release.ReleaseMetadata.desktop_archives)
-  return _internal_mutable_desktop_archives();
-}
-
-// .release.BrowserShellMetadata browser_shell = 7;
+// .release.BrowserShellMetadata browser_shell = 6;
 inline bool ReleaseMetadata::has_browser_shell() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.browser_shell_ != nullptr);
@@ -2581,7 +2201,7 @@ inline void ReleaseMetadata::set_allocated_browser_shell(::release::BrowserShell
   // @@protoc_insertion_point(field_set_allocated:release.ReleaseMetadata.browser_shell)
 }
 
-// string minimum_launcher_version = 8;
+// string minimum_launcher_version = 7;
 inline void ReleaseMetadata::clear_minimum_launcher_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.minimum_launcher_version_.ClearToEmpty();
@@ -2644,388 +2264,6 @@ inline void ReleaseMetadata::set_allocated_minimum_launcher_version(::std::strin
     _impl_.minimum_launcher_version_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:release.ReleaseMetadata.minimum_launcher_version)
-}
-
-// -------------------------------------------------------------------
-
-// DesktopArchive
-
-// string platform = 1;
-inline void DesktopArchive::clear_platform() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& DesktopArchive::platform() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.platform)
-  return _internal_platform();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DesktopArchive::set_platform(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.platform_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:release.DesktopArchive.platform)
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::mutable_platform()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_platform();
-  // @@protoc_insertion_point(field_mutable:release.DesktopArchive.platform)
-  return _s;
-}
-inline const ::std::string& DesktopArchive::_internal_platform() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.platform_.Get();
-}
-inline void DesktopArchive::_internal_set_platform(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::_internal_mutable_platform() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.platform_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DesktopArchive::release_platform() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:release.DesktopArchive.platform)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.platform_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.platform_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DesktopArchive::set_allocated_platform(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.platform_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_.IsDefault()) {
-    _impl_.platform_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:release.DesktopArchive.platform)
-}
-
-// string version = 2;
-inline void DesktopArchive::clear_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.version_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& DesktopArchive::version() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.version)
-  return _internal_version();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DesktopArchive::set_version(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:release.DesktopArchive.version)
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::mutable_version()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_version();
-  // @@protoc_insertion_point(field_mutable:release.DesktopArchive.version)
-  return _s;
-}
-inline const ::std::string& DesktopArchive::_internal_version() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.version_.Get();
-}
-inline void DesktopArchive::_internal_set_version(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.version_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::_internal_mutable_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.version_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DesktopArchive::release_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:release.DesktopArchive.version)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.version_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.version_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DesktopArchive::set_allocated_version(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.version_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.version_.IsDefault()) {
-    _impl_.version_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:release.DesktopArchive.version)
-}
-
-// .block.BlockRef archive_ref = 3;
-inline bool DesktopArchive::has_archive_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
-  PROTOBUF_ASSUME(!value || _impl_.archive_ref_ != nullptr);
-  return value;
-}
-inline const ::block::BlockRef& DesktopArchive::_internal_archive_ref() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::block::BlockRef* p = _impl_.archive_ref_;
-  return p != nullptr ? *p : reinterpret_cast<const ::block::BlockRef&>(::block::_BlockRef_default_instance_);
-}
-inline const ::block::BlockRef& DesktopArchive::archive_ref() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.archive_ref)
-  return _internal_archive_ref();
-}
-inline void DesktopArchive::unsafe_arena_set_allocated_archive_ref(
-    ::block::BlockRef* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.archive_ref_);
-  }
-  _impl_.archive_ref_ = reinterpret_cast<::block::BlockRef*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:release.DesktopArchive.archive_ref)
-}
-inline ::block::BlockRef* PROTOBUF_NULLABLE DesktopArchive::release_archive_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::block::BlockRef* released = _impl_.archive_ref_;
-  _impl_.archive_ref_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::block::BlockRef* PROTOBUF_NULLABLE DesktopArchive::unsafe_arena_release_archive_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:release.DesktopArchive.archive_ref)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::block::BlockRef* temp = _impl_.archive_ref_;
-  _impl_.archive_ref_ = nullptr;
-  return temp;
-}
-inline ::block::BlockRef* PROTOBUF_NONNULL DesktopArchive::_internal_mutable_archive_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.archive_ref_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::block::BlockRef>(GetArena());
-    _impl_.archive_ref_ = reinterpret_cast<::block::BlockRef*>(p);
-  }
-  return _impl_.archive_ref_;
-}
-inline ::block::BlockRef* PROTOBUF_NONNULL DesktopArchive::mutable_archive_ref()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::block::BlockRef* _msg = _internal_mutable_archive_ref();
-  // @@protoc_insertion_point(field_mutable:release.DesktopArchive.archive_ref)
-  return _msg;
-}
-inline void DesktopArchive::set_allocated_archive_ref(::block::BlockRef* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.archive_ref_);
-  }
-
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  }
-
-  _impl_.archive_ref_ = reinterpret_cast<::block::BlockRef*>(value);
-  // @@protoc_insertion_point(field_set_allocated:release.DesktopArchive.archive_ref)
-}
-
-// uint64 size = 4;
-inline void DesktopArchive::clear_size() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.size_ = ::uint64_t{0u};
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
-}
-inline ::uint64_t DesktopArchive::size() const {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.size)
-  return _internal_size();
-}
-inline void DesktopArchive::set_size(::uint64_t value) {
-  _internal_set_size(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  // @@protoc_insertion_point(field_set:release.DesktopArchive.size)
-}
-inline ::uint64_t DesktopArchive::_internal_size() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.size_;
-}
-inline void DesktopArchive::_internal_set_size(::uint64_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.size_ = value;
-}
-
-// bytes sha256 = 5;
-inline void DesktopArchive::clear_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.sha256_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& DesktopArchive::sha256() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.sha256)
-  return _internal_sha256();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DesktopArchive::set_sha256(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.sha256_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:release.DesktopArchive.sha256)
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::mutable_sha256()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_sha256();
-  // @@protoc_insertion_point(field_mutable:release.DesktopArchive.sha256)
-  return _s;
-}
-inline const ::std::string& DesktopArchive::_internal_sha256() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.sha256_.Get();
-}
-inline void DesktopArchive::_internal_set_sha256(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.sha256_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::_internal_mutable_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.sha256_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DesktopArchive::release_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:release.DesktopArchive.sha256)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.sha256_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.sha256_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DesktopArchive::set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.sha256_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.sha256_.IsDefault()) {
-    _impl_.sha256_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:release.DesktopArchive.sha256)
-}
-
-// string archive_name = 6;
-inline void DesktopArchive::clear_archive_name() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.archive_name_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
-}
-inline const ::std::string& DesktopArchive::archive_name() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:release.DesktopArchive.archive_name)
-  return _internal_archive_name();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DesktopArchive::set_archive_name(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.archive_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:release.DesktopArchive.archive_name)
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::mutable_archive_name()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_archive_name();
-  // @@protoc_insertion_point(field_mutable:release.DesktopArchive.archive_name)
-  return _s;
-}
-inline const ::std::string& DesktopArchive::_internal_archive_name() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.archive_name_.Get();
-}
-inline void DesktopArchive::_internal_set_archive_name(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.archive_name_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DesktopArchive::_internal_mutable_archive_name() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.archive_name_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DesktopArchive::release_archive_name() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:release.DesktopArchive.archive_name)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.archive_name_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.archive_name_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DesktopArchive::set_allocated_archive_name(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  }
-  _impl_.archive_name_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.archive_name_.IsDefault()) {
-    _impl_.archive_name_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:release.DesktopArchive.archive_name)
 }
 
 // -------------------------------------------------------------------

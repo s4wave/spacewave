@@ -81,45 +81,8 @@ func (m *ReleaseMetadata) Validate() error {
 			return errors.Wrapf(err, "validate manifest ref %d", i)
 		}
 	}
-	if len(m.GetDesktopArchives()) == 0 {
-		return errors.New("no desktop archives")
-	}
-	for platform, archive := range m.GetDesktopArchives() {
-		if platform != archive.GetPlatform() {
-			return errors.Errorf("desktop archive platform key mismatch %q != %q", platform, archive.GetPlatform())
-		}
-		if err := archive.Validate(); err != nil {
-			return errors.Wrapf(err, "validate desktop archive %q", platform)
-		}
-	}
 	if err := m.GetBrowserShell().Validate(); err != nil {
 		return errors.Wrap(err, "validate browser shell")
-	}
-	return nil
-}
-
-// Validate checks the desktop archive for required artifact metadata.
-func (a *DesktopArchive) Validate() error {
-	if a == nil {
-		return errors.New("nil desktop archive")
-	}
-	if !isPlatformKey(a.GetPlatform()) {
-		return errors.Errorf("unknown platform key %q", a.GetPlatform())
-	}
-	if strings.TrimSpace(a.GetVersion()) == "" {
-		return errors.New("missing version")
-	}
-	if err := validateBlockRef(a.GetArchiveRef()); err != nil {
-		return errors.Wrap(err, "invalid archive ref")
-	}
-	if a.GetSize() == 0 {
-		return errors.New("missing archive size")
-	}
-	if len(a.GetSha256()) != 32 {
-		return errors.New("invalid archive sha256")
-	}
-	if strings.TrimSpace(a.GetArchiveName()) == "" {
-		return errors.New("missing archive name")
 	}
 	return nil
 }

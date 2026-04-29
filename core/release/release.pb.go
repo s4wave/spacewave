@@ -8,7 +8,6 @@ import (
 	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
-	maps "maps"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
@@ -81,13 +80,11 @@ type ReleaseMetadata struct {
 	ChannelKey string `protobuf:"bytes,4,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
 	// ManifestRefs are existing bldr app/plugin manifests resolved by clients.
 	ManifestRefs []*manifest.ManifestRef `protobuf:"bytes,5,rep,name=manifest_refs,json=manifestRefs,proto3" json:"manifestRefs,omitempty"`
-	// DesktopArchives maps platform keys to native self-update archives.
-	DesktopArchives map[string]*DesktopArchive `protobuf:"bytes,6,rep,name=desktop_archives,json=desktopArchives,proto3" json:"desktopArchives,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// BrowserShell is the browser shell/cache metadata.
-	BrowserShell *BrowserShellMetadata `protobuf:"bytes,7,opt,name=browser_shell,json=browserShell,proto3" json:"browserShell,omitempty"`
+	BrowserShell *BrowserShellMetadata `protobuf:"bytes,6,opt,name=browser_shell,json=browserShell,proto3" json:"browserShell,omitempty"`
 	// MinimumLauncherVersion is the minimum launcher version that can read this
 	// release.
-	MinimumLauncherVersion string `protobuf:"bytes,8,opt,name=minimum_launcher_version,json=minimumLauncherVersion,proto3" json:"minimumLauncherVersion,omitempty"`
+	MinimumLauncherVersion string `protobuf:"bytes,7,opt,name=minimum_launcher_version,json=minimumLauncherVersion,proto3" json:"minimumLauncherVersion,omitempty"`
 }
 
 func (x *ReleaseMetadata) Reset() {
@@ -131,13 +128,6 @@ func (x *ReleaseMetadata) GetManifestRefs() []*manifest.ManifestRef {
 	return nil
 }
 
-func (x *ReleaseMetadata) GetDesktopArchives() map[string]*DesktopArchive {
-	if x != nil {
-		return x.DesktopArchives
-	}
-	return nil
-}
-
 func (x *ReleaseMetadata) GetBrowserShell() *BrowserShellMetadata {
 	if x != nil {
 		return x.BrowserShell
@@ -148,71 +138,6 @@ func (x *ReleaseMetadata) GetBrowserShell() *BrowserShellMetadata {
 func (x *ReleaseMetadata) GetMinimumLauncherVersion() string {
 	if x != nil {
 		return x.MinimumLauncherVersion
-	}
-	return ""
-}
-
-// DesktopArchive describes a native entrypoint update archive.
-type DesktopArchive struct {
-	unknownFields []byte
-	// Platform is the GOOS/GOARCH platform key.
-	Platform string `protobuf:"bytes,1,opt,name=platform,proto3" json:"platform,omitempty"`
-	// Version is the archive version.
-	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	// ArchiveRef references the archive bytes in the release world.
-	ArchiveRef *block.BlockRef `protobuf:"bytes,3,opt,name=archive_ref,json=archiveRef,proto3" json:"archiveRef,omitempty"`
-	// Size is the archive size in bytes.
-	Size uint64 `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
-	// Sha256 is the SHA-256 digest of the archive bytes.
-	Sha256 []byte `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"`
-	// ArchiveName is the release archive filename.
-	ArchiveName string `protobuf:"bytes,6,opt,name=archive_name,json=archiveName,proto3" json:"archiveName,omitempty"`
-}
-
-func (x *DesktopArchive) Reset() {
-	*x = DesktopArchive{}
-}
-
-func (*DesktopArchive) ProtoMessage() {}
-
-func (x *DesktopArchive) GetPlatform() string {
-	if x != nil {
-		return x.Platform
-	}
-	return ""
-}
-
-func (x *DesktopArchive) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *DesktopArchive) GetArchiveRef() *block.BlockRef {
-	if x != nil {
-		return x.ArchiveRef
-	}
-	return nil
-}
-
-func (x *DesktopArchive) GetSize() uint64 {
-	if x != nil {
-		return x.Size
-	}
-	return 0
-}
-
-func (x *DesktopArchive) GetSha256() []byte {
-	if x != nil {
-		return x.Sha256
-	}
-	return nil
-}
-
-func (x *DesktopArchive) GetArchiveName() string {
-	if x != nil {
-		return x.ArchiveName
 	}
 	return ""
 }
@@ -395,32 +320,6 @@ func (x *UpdateNotification) GetRootPointerUrl() string {
 	return ""
 }
 
-type ReleaseMetadata_DesktopArchivesEntry struct {
-	unknownFields []byte
-	Key           string          `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *DesktopArchive `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *ReleaseMetadata_DesktopArchivesEntry) Reset() {
-	*x = ReleaseMetadata_DesktopArchivesEntry{}
-}
-
-func (*ReleaseMetadata_DesktopArchivesEntry) ProtoMessage() {}
-
-func (x *ReleaseMetadata_DesktopArchivesEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *ReleaseMetadata_DesktopArchivesEntry) GetValue() *DesktopArchive {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
 func (m *ChannelDirectory) CloneVT() *ChannelDirectory {
 	if m == nil {
 		return (*ChannelDirectory)(nil)
@@ -478,12 +377,6 @@ func (m *ReleaseMetadata) CloneVT() *ReleaseMetadata {
 			r.ManifestRefs[k] = v.CloneVT()
 		}
 	}
-	if rhs := m.DesktopArchives; rhs != nil {
-		r.DesktopArchives = make(map[string]*DesktopArchive, len(rhs))
-		for k, v := range rhs {
-			r.DesktopArchives[k] = v.CloneVT()
-		}
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -491,31 +384,6 @@ func (m *ReleaseMetadata) CloneVT() *ReleaseMetadata {
 }
 
 func (m *ReleaseMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *DesktopArchive) CloneVT() *DesktopArchive {
-	if m == nil {
-		return (*DesktopArchive)(nil)
-	}
-	r := new(DesktopArchive)
-	r.Platform = m.Platform
-	r.Version = m.Version
-	r.Size = m.Size
-	r.ArchiveName = m.ArchiveName
-	if rhs := m.ArchiveRef; rhs != nil {
-		r.ArchiveRef = rhs.CloneVT()
-	}
-	if rhs := m.Sha256; rhs != nil {
-		r.Sha256 = slices.Clone(rhs)
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *DesktopArchive) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -681,26 +549,6 @@ func (this *ReleaseMetadata) EqualVT(that *ReleaseMetadata) bool {
 			}
 		}
 	}
-	if len(this.DesktopArchives) != len(that.DesktopArchives) {
-		return false
-	}
-	for i, vx := range this.DesktopArchives {
-		vy, ok := that.DesktopArchives[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &DesktopArchive{}
-			}
-			if q == nil {
-				q = &DesktopArchive{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
 	if !this.BrowserShell.EqualVT(that.BrowserShell) {
 		return false
 	}
@@ -712,41 +560,6 @@ func (this *ReleaseMetadata) EqualVT(that *ReleaseMetadata) bool {
 
 func (this *ReleaseMetadata) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReleaseMetadata)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *DesktopArchive) EqualVT(that *DesktopArchive) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Platform != that.Platform {
-		return false
-	}
-	if this.Version != that.Version {
-		return false
-	}
-	if !this.ArchiveRef.EqualVT(that.ArchiveRef) {
-		return false
-	}
-	if this.Size != that.Size {
-		return false
-	}
-	if string(this.Sha256) != string(that.Sha256) {
-		return false
-	}
-	if this.ArchiveName != that.ArchiveName {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *DesktopArchive) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DesktopArchive)
 	if !ok {
 		return false
 	}
@@ -983,60 +796,6 @@ func (x *ChannelEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ReleaseMetadata_DesktopArchivesEntry message to JSON.
-func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ReleaseMetadata_DesktopArchivesEntry to JSON.
-func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ReleaseMetadata_DesktopArchivesEntry message from JSON.
-func (x *ReleaseMetadata_DesktopArchivesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &DesktopArchive{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ReleaseMetadata_DesktopArchivesEntry from JSON.
-func (x *ReleaseMetadata_DesktopArchivesEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the ReleaseMetadata message to JSON.
 func (x *ReleaseMetadata) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1075,18 +834,6 @@ func (x *ReleaseMetadata) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("manifestRefs"))
 		}
 		s.WriteArrayEnd()
-	}
-	if x.DesktopArchives != nil || s.HasField("desktopArchives") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("desktopArchives")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.DesktopArchives {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("desktopArchives"))
-		}
-		s.WriteObjectEnd()
 	}
 	if x.BrowserShell != nil || s.HasField("browserShell") {
 		s.WriteMoreIf(&wroteField)
@@ -1145,18 +892,6 @@ func (x *ReleaseMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.ManifestRefs = append(x.ManifestRefs, v)
 			})
-		case "desktop_archives", "desktopArchives":
-			s.AddField("desktop_archives")
-			if s.ReadNil() {
-				x.DesktopArchives = nil
-				return
-			}
-			x.DesktopArchives = make(map[string]*DesktopArchive)
-			s.ReadStringMap(func(key string) {
-				var v DesktopArchive
-				v.UnmarshalProtoJSON(s)
-				x.DesktopArchives[key] = &v
-			})
 		case "browser_shell", "browserShell":
 			if s.ReadNil() {
 				x.BrowserShell = nil
@@ -1173,92 +908,6 @@ func (x *ReleaseMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the ReleaseMetadata from JSON.
 func (x *ReleaseMetadata) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the DesktopArchive message to JSON.
-func (x *DesktopArchive) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Platform != "" || s.HasField("platform") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("platform")
-		s.WriteString(x.Platform)
-	}
-	if x.Version != "" || s.HasField("version") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("version")
-		s.WriteString(x.Version)
-	}
-	if x.ArchiveRef != nil || s.HasField("archiveRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("archiveRef")
-		x.ArchiveRef.MarshalProtoJSON(s.WithField("archiveRef"))
-	}
-	if x.Size != 0 || s.HasField("size") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("size")
-		s.WriteUint64(x.Size)
-	}
-	if len(x.Sha256) > 0 || s.HasField("sha256") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sha256")
-		s.WriteBytes(x.Sha256)
-	}
-	if x.ArchiveName != "" || s.HasField("archiveName") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("archiveName")
-		s.WriteString(x.ArchiveName)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the DesktopArchive to JSON.
-func (x *DesktopArchive) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the DesktopArchive message from JSON.
-func (x *DesktopArchive) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "platform":
-			s.AddField("platform")
-			x.Platform = s.ReadString()
-		case "version":
-			s.AddField("version")
-			x.Version = s.ReadString()
-		case "archive_ref", "archiveRef":
-			if s.ReadNil() {
-				x.ArchiveRef = nil
-				return
-			}
-			x.ArchiveRef = &block.BlockRef{}
-			x.ArchiveRef.UnmarshalProtoJSON(s.WithField("archive_ref", true))
-		case "size":
-			s.AddField("size")
-			x.Size = s.ReadUint64()
-		case "sha256":
-			s.AddField("sha256")
-			x.Sha256 = s.ReadBytes()
-		case "archive_name", "archiveName":
-			s.AddField("archive_name")
-			x.ArchiveName = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the DesktopArchive from JSON.
-func (x *DesktopArchive) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1647,7 +1296,7 @@ func (m *ReleaseMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.MinimumLauncherVersion)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MinimumLauncherVersion)))
 		i--
-		dAtA[i] = 0x42
+		dAtA[i] = 0x3a
 	}
 	if m.BrowserShell != nil {
 		size, err := m.BrowserShell.MarshalToSizedBufferVT(dAtA[:i])
@@ -1657,29 +1306,7 @@ func (m *ReleaseMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.DesktopArchives) > 0 {
-		for k := range m.DesktopArchives {
-			v := m.DesktopArchives[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
-		}
+		dAtA[i] = 0x32
 	}
 	if len(m.ManifestRefs) > 0 {
 		for iNdEx := len(m.ManifestRefs) - 1; iNdEx >= 0; iNdEx-- {
@@ -1716,82 +1343,6 @@ func (m *ReleaseMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.ProjectId)
 		copy(dAtA[i:], m.ProjectId)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *DesktopArchive) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DesktopArchive) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *DesktopArchive) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.ArchiveName) > 0 {
-		i -= len(m.ArchiveName)
-		copy(dAtA[i:], m.ArchiveName)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ArchiveName)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.Sha256) > 0 {
-		i -= len(m.Sha256)
-		copy(dAtA[i:], m.Sha256)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Sha256)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Size != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Size))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.ArchiveRef != nil {
-		size, err := m.ArchiveRef.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Version) > 0 {
-		i -= len(m.Version)
-		copy(dAtA[i:], m.Version)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Version)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Platform) > 0 {
-		i -= len(m.Platform)
-		copy(dAtA[i:], m.Platform)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Platform)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -2074,57 +1625,11 @@ func (m *ReleaseMetadata) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	if len(m.DesktopArchives) > 0 {
-		for k, v := range m.DesktopArchives {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
-		}
-	}
 	if m.BrowserShell != nil {
 		l = m.BrowserShell.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.MinimumLauncherVersion)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *DesktopArchive) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Platform)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Version)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.ArchiveRef != nil {
-		l = m.ArchiveRef.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Size != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Size))
-	}
-	l = len(m.Sha256)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.ArchiveName)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2275,31 +1780,6 @@ func (x *ChannelEntry) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("DesktopArchivesEntry {")
-	if x.Key != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *ReleaseMetadata_DesktopArchivesEntry) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *ReleaseMetadata) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ReleaseMetadata {")
@@ -2344,20 +1824,6 @@ func (x *ReleaseMetadata) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
-	if len(x.DesktopArchives) > 0 {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("desktop_archives: {")
-		for _, k := range slices.Sorted(maps.Keys(x.DesktopArchives)) {
-			v := x.DesktopArchives[k]
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString(" }")
-	}
 	if x.BrowserShell != nil {
 		if sb.Len() > 17 {
 			sb.WriteString(" ")
@@ -2377,61 +1843,6 @@ func (x *ReleaseMetadata) MarshalProtoText() string {
 }
 
 func (x *ReleaseMetadata) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *DesktopArchive) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("DesktopArchive {")
-	if x.Platform != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("platform: ")
-		sb.WriteString(strconv.Quote(x.Platform))
-	}
-	if x.Version != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("version: ")
-		sb.WriteString(strconv.Quote(x.Version))
-	}
-	if x.ArchiveRef != nil {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("archive_ref: ")
-		sb.WriteString(x.ArchiveRef.MarshalProtoText())
-	}
-	if x.Size != 0 {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("size: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.Size), 10))
-	}
-	if x.Sha256 != nil {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("sha256: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.Sha256))
-		sb.WriteString("\"")
-	}
-	if x.ArchiveName != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("archive_name: ")
-		sb.WriteString(strconv.Quote(x.ArchiveName))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *DesktopArchive) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2873,99 +2284,6 @@ func (m *ReleaseMetadata) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DesktopArchives", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.DesktopArchives == nil {
-				m.DesktopArchives = make(map[string]*DesktopArchive)
-			}
-			var mapkey string
-			var mapvalue *DesktopArchive
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-				if err != nil {
-					return err
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					if err != nil {
-						return err
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					var _v uint64
-					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					mapmsglen = int(_v)
-					if err != nil {
-						return err
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &DesktopArchive{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.DesktopArchives[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BrowserShell", wireType)
 			}
 			var msglen int
@@ -2992,7 +2310,7 @@ func (m *ReleaseMetadata) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinimumLauncherVersion", wireType)
 			}
@@ -3013,178 +2331,6 @@ func (m *ReleaseMetadata) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.MinimumLauncherVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *DesktopArchive) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DesktopArchive: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DesktopArchive: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Platform", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Platform = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Version = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ArchiveRef", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ArchiveRef == nil {
-				m.ArchiveRef = &block.BlockRef{}
-			}
-			if err := m.ArchiveRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
-			}
-			m.Size = 0
-			m.Size, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sha256", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Sha256 = append(m.Sha256[:0], dAtA[iNdEx:postIndex]...)
-			if m.Sha256 == nil {
-				m.Sha256 = []byte{}
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ArchiveName", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ArchiveName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

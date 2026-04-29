@@ -70,64 +70,6 @@ export const ChannelDirectory: MessageType<ChannelDirectory> =
   })
 
 /**
- * DesktopArchive describes a native entrypoint update archive.
- *
- * @generated from message release.DesktopArchive
- */
-export interface DesktopArchive {
-  /**
-   * Platform is the GOOS/GOARCH platform key.
-   *
-   * @generated from field: string platform = 1;
-   */
-  platform?: string
-  /**
-   * Version is the archive version.
-   *
-   * @generated from field: string version = 2;
-   */
-  version?: string
-  /**
-   * ArchiveRef references the archive bytes in the release world.
-   *
-   * @generated from field: block.BlockRef archive_ref = 3;
-   */
-  archiveRef?: BlockRef
-  /**
-   * Size is the archive size in bytes.
-   *
-   * @generated from field: uint64 size = 4;
-   */
-  size?: bigint
-  /**
-   * Sha256 is the SHA-256 digest of the archive bytes.
-   *
-   * @generated from field: bytes sha256 = 5;
-   */
-  sha256?: Uint8Array
-  /**
-   * ArchiveName is the release archive filename.
-   *
-   * @generated from field: string archive_name = 6;
-   */
-  archiveName?: string
-}
-
-// DesktopArchive contains the message type declaration for DesktopArchive.
-export const DesktopArchive: MessageType<DesktopArchive> = createMessageType({
-  typeName: 'release.DesktopArchive',
-  fields: [
-    { no: 1, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'archive_ref', kind: 'message', T: () => BlockRef },
-    { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 5, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 6, name: 'archive_name', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
  * BrowserAsset describes one browser shell asset.
  *
  * @generated from message release.BrowserAsset
@@ -304,22 +246,16 @@ export interface ReleaseMetadata {
    */
   manifestRefs?: ManifestRef[]
   /**
-   * DesktopArchives maps platform keys to native self-update archives.
-   *
-   * @generated from field: map<string, release.DesktopArchive> desktop_archives = 6;
-   */
-  desktopArchives?: { [key: string]: DesktopArchive }
-  /**
    * BrowserShell is the browser shell/cache metadata.
    *
-   * @generated from field: release.BrowserShellMetadata browser_shell = 7;
+   * @generated from field: release.BrowserShellMetadata browser_shell = 6;
    */
   browserShell?: BrowserShellMetadata
   /**
    * MinimumLauncherVersion is the minimum launcher version that can read this
    * release.
    *
-   * @generated from field: string minimum_launcher_version = 8;
+   * @generated from field: string minimum_launcher_version = 7;
    */
   minimumLauncherVersion?: string
 }
@@ -341,19 +277,12 @@ export const ReleaseMetadata: MessageType<ReleaseMetadata> = createMessageType({
     },
     {
       no: 6,
-      name: 'desktop_archives',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => DesktopArchive },
-    },
-    {
-      no: 7,
       name: 'browser_shell',
       kind: 'message',
       T: () => BrowserShellMetadata,
     },
     {
-      no: 8,
+      no: 7,
       name: 'minimum_launcher_version',
       kind: 'scalar',
       T: ScalarType.STRING,

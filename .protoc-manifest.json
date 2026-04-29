@@ -1493,7 +1493,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/release": {
-      "hash": "15cb2b9769a36f76990e27e16461fbd1e1a092f6367c131ff779d5969157bdbf",
+      "hash": "89cb531b0664465e4f6a0b33222f5b2a85256907fde741f4165cc10d4f276080",
       "generatedFiles": [
         "core/release/release.pb.cc",
         "core/release/release.pb.go",
