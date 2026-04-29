@@ -60,12 +60,23 @@ function summarizeMessages(worker: TrackedWorker): string {
   return JSON.stringify(tail)
 }
 
+function findWorkerMsg(
+  tracked: TrackedWorker,
+  type: string,
+): WorkerMessage | undefined {
+  return tracked.messages.find((msg) => msg.type === type)
+}
+
 async function waitWorkerMsg(
   tracked: TrackedWorker,
   stage: string,
   type: string,
   timeoutMs: number,
 ): Promise<WorkerMessage> {
+  const existing = findWorkerMsg(tracked, type)
+  if (existing) {
+    return existing
+  }
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
       () =>
