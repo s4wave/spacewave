@@ -2,7 +2,7 @@ package electron
 
 import (
 	"context"
-	"io"
+	"os"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -151,7 +151,8 @@ func (r *Controller) Execute(ctx context.Context) error {
 
 	err = r.bus.ExecuteController(ctx, rc)
 	if r.shouldExitWithoutRestart(err, e) {
-		r.le.Info("electron exited cleanly; stopping without restart")
+		r.le.Info("electron exited cleanly; requesting host exit")
+		requestHostExit(r.le)
 		return nil
 	}
 	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
@@ -164,25 +165,38 @@ func (r *Controller) Execute(ctx context.Context) error {
 }
 
 func (r *Controller) shouldExitWithoutRestart(err error, e *Electron) bool {
-	if err != io.EOF {
-		return false
-	}
-
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
 	defer waitCancel()
 	waitErr := e.Wait(waitCtx)
-	return shouldExitWithoutRestart(err, waitErr, r.electronInit.GetQuitPolicy())
+	return shouldExitWithoutRestart(waitErr, r.electronInit.GetQuitPolicy())
 }
 
 func shouldExitWithoutRestart(
-	runtimeErr error,
 	processErr error,
 	quitPolicy QuitPolicy,
 ) bool {
 	if quitPolicy != QuitPolicy_QUIT_POLICY_EXIT {
 		return false
 	}
-	return processErr == nil && runtimeErr != nil
+	return processErr == nil
+}
+
+func requestHostExit(le *logrus.Entry) {
+	ppid := os.Getppid()
+	if ppid <= 1 {
+		return
+	}
+	proc, err := os.FindProcess(ppid)
+	if err != nil {
+		le.WithError(err).Warn("failed to find host process")
+		return
+	}
+	if err := proc.Signal(os.Interrupt); err == nil {
+		return
+	}
+	if err := proc.Signal(os.Kill); err != nil {
+		le.WithError(err).Warn("failed to terminate host process")
+	}
 }
 
 // WaitElectron waits for the Electron object to be ready and returns it.
