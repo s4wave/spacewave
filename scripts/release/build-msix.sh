@@ -39,7 +39,7 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*)
     if [ -z "$MSIX_PUBLISHER" ]; then
       BINARY_WIN="$(cygpath -w "$BINARY")"
-      MSIX_PUBLISHER="$(powershell.exe -NoProfile -Command "\$sig = Get-AuthenticodeSignature -FilePath '$BINARY_WIN'; if (-Not \$sig.SignerCertificate) { throw 'entrypoint binary is not signed' }; \$sig.SignerCertificate.Subject" | tr -d '\r')"
+      MSIX_PUBLISHER="$(powershell.exe -NoProfile -Command "\$sig = Get-AuthenticodeSignature -FilePath '$BINARY_WIN'; if (\$sig.SignerCertificate) { \$sig.SignerCertificate.Subject }" | tr -d '\r')"
     fi
     ;;
 esac
