@@ -149,16 +149,6 @@ func TestReleaseMetadataValidation(t *testing.T) {
 			}).Validate(),
 			wantErr: "no bldr manifest refs",
 		},
-		{
-			name: "browser asset nil ref",
-			err: (&BrowserAsset{
-				Path:        "/b/entrypoint/boot.mjs",
-				Size:        1,
-				Sha256:      testSHA256(),
-				ContentType: "text/javascript",
-			}).Validate(),
-			wantErr: "invalid content ref",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -180,6 +170,7 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{name: "release metadata", err: testReleaseMetadata(ref).Validate()},
 		{name: "browser shell metadata", err: testBrowserShellMetadata(ref).Validate()},
 		{name: "browser asset", err: testBrowserAsset(ref).Validate()},
+		{name: "browser asset without content ref", err: testBrowserAsset(nil).Validate()},
 		{name: "update notification", err: testUpdateNotification().Validate()},
 	}
 	for _, tt := range valid {

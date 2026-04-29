@@ -129,8 +129,10 @@ func (a *BrowserAsset) Validate() error {
 	if strings.TrimSpace(a.GetPath()) == "" {
 		return errors.New("missing path")
 	}
-	if err := validateBlockRef(a.GetContentRef()); err != nil {
-		return errors.Wrap(err, "invalid content ref")
+	if ref := a.GetContentRef(); ref != nil {
+		if err := validateBlockRef(ref); err != nil {
+			return errors.Wrap(err, "invalid content ref")
+		}
 	}
 	if a.GetSize() == 0 {
 		return errors.New("missing content size")
