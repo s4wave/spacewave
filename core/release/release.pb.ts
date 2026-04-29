@@ -5,11 +5,12 @@
 import { BlockRef } from '../../db/block/block.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { ManifestRef } from '../../bldr/manifest/manifest.pb.js'
 
 export const protobufPackage = 'release'
 
 /**
- * ChannelEntry points one channel key at a release manifest.
+ * ChannelEntry points one channel key at release metadata.
  *
  * @generated from message release.ChannelEntry
  */
@@ -21,11 +22,11 @@ export interface ChannelEntry {
    */
   channelKey?: string
   /**
-   * ReleaseManifestRef references the ReleaseManifest for this channel.
+   * ReleaseMetadataRef references the ReleaseMetadata for this channel.
    *
-   * @generated from field: block.BlockRef release_manifest_ref = 2;
+   * @generated from field: block.BlockRef release_metadata_ref = 2;
    */
-  releaseManifestRef?: BlockRef
+  releaseMetadataRef?: BlockRef
 }
 
 // ChannelEntry contains the message type declaration for ChannelEntry.
@@ -33,7 +34,7 @@ export const ChannelEntry: MessageType<ChannelEntry> = createMessageType({
   typeName: 'release.ChannelEntry',
   fields: [
     { no: 1, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'release_manifest_ref', kind: 'message', T: () => BlockRef },
+    { no: 2, name: 'release_metadata_ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -69,117 +70,11 @@ export const ChannelDirectory: MessageType<ChannelDirectory> =
   })
 
 /**
- * ManifestRef identifies a manifest object by content ref.
+ * DesktopArchive describes a native entrypoint update archive.
  *
- * @generated from message release.ManifestRef
+ * @generated from message release.DesktopArchive
  */
-export interface ManifestRef {
-  /**
-   * Ref is the manifest object's block ref.
-   *
-   * @generated from field: block.BlockRef ref = 1;
-   */
-  ref?: BlockRef
-}
-
-// ManifestRef contains the message type declaration for ManifestRef.
-export const ManifestRef: MessageType<ManifestRef> = createMessageType({
-  typeName: 'release.ManifestRef',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * ReleaseManifest describes one promoted application release.
- *
- * @generated from message release.ReleaseManifest
- */
-export interface ReleaseManifest {
-  /**
-   * ProjectId is the project identifier this release belongs to.
-   *
-   * @generated from field: string project_id = 1;
-   */
-  projectId?: string
-  /**
-   * Rev is the monotonic release revision.
-   *
-   * @generated from field: uint64 rev = 2;
-   */
-  rev?: bigint
-  /**
-   * Version is the human-readable application version.
-   *
-   * @generated from field: string version = 3;
-   */
-  version?: string
-  /**
-   * Entrypoints maps platform keys to entrypoint manifest refs.
-   *
-   * @generated from field: map<string, release.ManifestRef> entrypoints = 4;
-   */
-  entrypoints?: { [key: string]: ManifestRef }
-  /**
-   * Plugins maps plugin IDs to plugin manifest refs.
-   *
-   * @generated from field: map<string, release.ManifestRef> plugins = 5;
-   */
-  plugins?: { [key: string]: ManifestRef }
-  /**
-   * BrowserShell references the browser shell manifest.
-   *
-   * @generated from field: release.ManifestRef browser_shell = 6;
-   */
-  browserShell?: ManifestRef
-  /**
-   * MinimumLauncherVersion is the minimum launcher version that can read this
-   * release.
-   *
-   * @generated from field: string minimum_launcher_version = 7;
-   */
-  minimumLauncherVersion?: string
-}
-
-// ReleaseManifest contains the message type declaration for ReleaseManifest.
-export const ReleaseManifest: MessageType<ReleaseManifest> = createMessageType({
-  typeName: 'release.ReleaseManifest',
-  fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 4,
-      name: 'entrypoints',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ManifestRef },
-    },
-    {
-      no: 5,
-      name: 'plugins',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ManifestRef },
-    },
-    { no: 6, name: 'browser_shell', kind: 'message', T: () => ManifestRef },
-    {
-      no: 7,
-      name: 'minimum_launcher_version',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * EntrypointManifest describes a native entrypoint update artifact.
- *
- * @generated from message release.EntrypointManifest
- */
-export interface EntrypointManifest {
+export interface DesktopArchive {
   /**
    * Platform is the GOOS/GOARCH platform key.
    *
@@ -187,7 +82,7 @@ export interface EntrypointManifest {
    */
   platform?: string
   /**
-   * Version is the entrypoint version.
+   * Version is the archive version.
    *
    * @generated from field: string version = 2;
    */
@@ -218,61 +113,16 @@ export interface EntrypointManifest {
   archiveName?: string
 }
 
-// EntrypointManifest contains the message type declaration for EntrypointManifest.
-export const EntrypointManifest: MessageType<EntrypointManifest> =
-  createMessageType({
-    typeName: 'release.EntrypointManifest',
-    fields: [
-      { no: 1, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'archive_ref', kind: 'message', T: () => BlockRef },
-      { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 5, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 6, name: 'archive_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * PluginManifest describes a plugin release artifact.
- *
- * @generated from message release.PluginManifest
- */
-export interface PluginManifest {
-  /**
-   * PluginId is the released plugin identifier.
-   *
-   * @generated from field: string plugin_id = 1;
-   */
-  pluginId?: string
-  /**
-   * Version is the plugin release version.
-   *
-   * @generated from field: string version = 2;
-   */
-  version?: string
-  /**
-   * ManifestRef references the plugin's bldr manifest object.
-   *
-   * @generated from field: block.BlockRef manifest_ref = 3;
-   */
-  manifestRef?: BlockRef
-  /**
-   * ArtifactRef references an optional plugin artifact bundle.
-   *
-   * @generated from field: block.BlockRef artifact_ref = 4;
-   */
-  artifactRef?: BlockRef
-}
-
-// PluginManifest contains the message type declaration for PluginManifest.
-export const PluginManifest: MessageType<PluginManifest> = createMessageType({
-  typeName: 'release.PluginManifest',
+// DesktopArchive contains the message type declaration for DesktopArchive.
+export const DesktopArchive: MessageType<DesktopArchive> = createMessageType({
+  typeName: 'release.DesktopArchive',
   fields: [
-    { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 1, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'manifest_ref', kind: 'message', T: () => BlockRef },
-    { no: 4, name: 'artifact_ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'archive_ref', kind: 'message', T: () => BlockRef },
+    { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 5, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 6, name: 'archive_name', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -336,11 +186,11 @@ export const BrowserAsset: MessageType<BrowserAsset> = createMessageType({
 })
 
 /**
- * BrowserShellManifest describes the browser entrypoint shell for a release.
+ * BrowserShellMetadata describes the browser entrypoint shell for a release.
  *
- * @generated from message release.BrowserShellManifest
+ * @generated from message release.BrowserShellMetadata
  */
-export interface BrowserShellManifest {
+export interface BrowserShellMetadata {
   /**
    * Version is the browser shell version.
    *
@@ -385,10 +235,10 @@ export interface BrowserShellManifest {
   assets?: BrowserAsset[]
 }
 
-// BrowserShellManifest contains the message type declaration for BrowserShellManifest.
-export const BrowserShellManifest: MessageType<BrowserShellManifest> =
+// BrowserShellMetadata contains the message type declaration for BrowserShellMetadata.
+export const BrowserShellMetadata: MessageType<BrowserShellMetadata> =
   createMessageType({
-    typeName: 'release.BrowserShellManifest',
+    typeName: 'release.BrowserShellMetadata',
     fields: [
       { no: 1, name: 'version', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'generation_id', kind: 'scalar', T: ScalarType.STRING },
@@ -416,6 +266,101 @@ export const BrowserShellManifest: MessageType<BrowserShellManifest> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * ReleaseMetadata describes release-only metadata around bldr manifests.
+ *
+ * @generated from message release.ReleaseMetadata
+ */
+export interface ReleaseMetadata {
+  /**
+   * ProjectId is the project identifier this release belongs to.
+   *
+   * @generated from field: string project_id = 1;
+   */
+  projectId?: string
+  /**
+   * Rev is the monotonic release revision.
+   *
+   * @generated from field: uint64 rev = 2;
+   */
+  rev?: bigint
+  /**
+   * Version is the human-readable application version.
+   *
+   * @generated from field: string version = 3;
+   */
+  version?: string
+  /**
+   * ChannelKey is the release channel this metadata belongs to.
+   *
+   * @generated from field: string channel_key = 4;
+   */
+  channelKey?: string
+  /**
+   * ManifestRefs are existing bldr app/plugin manifests resolved by clients.
+   *
+   * @generated from field: repeated bldr.manifest.ManifestRef manifest_refs = 5;
+   */
+  manifestRefs?: ManifestRef[]
+  /**
+   * DesktopArchives maps platform keys to native self-update archives.
+   *
+   * @generated from field: map<string, release.DesktopArchive> desktop_archives = 6;
+   */
+  desktopArchives?: { [key: string]: DesktopArchive }
+  /**
+   * BrowserShell is the browser shell/cache metadata.
+   *
+   * @generated from field: release.BrowserShellMetadata browser_shell = 7;
+   */
+  browserShell?: BrowserShellMetadata
+  /**
+   * MinimumLauncherVersion is the minimum launcher version that can read this
+   * release.
+   *
+   * @generated from field: string minimum_launcher_version = 8;
+   */
+  minimumLauncherVersion?: string
+}
+
+// ReleaseMetadata contains the message type declaration for ReleaseMetadata.
+export const ReleaseMetadata: MessageType<ReleaseMetadata> = createMessageType({
+  typeName: 'release.ReleaseMetadata',
+  fields: [
+    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 5,
+      name: 'manifest_refs',
+      kind: 'message',
+      T: () => ManifestRef,
+      repeated: true,
+    },
+    {
+      no: 6,
+      name: 'desktop_archives',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => DesktopArchive },
+    },
+    {
+      no: 7,
+      name: 'browser_shell',
+      kind: 'message',
+      T: () => BrowserShellMetadata,
+    },
+    {
+      no: 8,
+      name: 'minimum_launcher_version',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * UpdateNotification describes a newly available release root.

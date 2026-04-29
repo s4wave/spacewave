@@ -7,19 +7,19 @@ pub struct ChannelDirectory {
     #[prost(message, repeated, tag="1")]
     pub channels: ::prost::alloc::vec::Vec<ChannelEntry>,
 }
-/// ChannelEntry points one channel key at a release manifest.
+/// ChannelEntry points one channel key at release metadata.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ChannelEntry {
     /// ChannelKey is the stable channel identifier, such as stable or canary.
     #[prost(string, tag="1")]
     pub channel_key: ::prost::alloc::string::String,
-    /// ReleaseManifestRef references the ReleaseManifest for this channel.
+    /// ReleaseMetadataRef references the ReleaseMetadata for this channel.
     #[prost(message, optional, tag="2")]
-    pub release_manifest_ref: ::core::option::Option<super::block::BlockRef>,
+    pub release_metadata_ref: ::core::option::Option<super::block::BlockRef>,
 }
-/// ReleaseManifest describes one promoted application release.
+/// ReleaseMetadata describes release-only metadata around bldr manifests.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ReleaseManifest {
+pub struct ReleaseMetadata {
     /// ProjectId is the project identifier this release belongs to.
     #[prost(string, tag="1")]
     pub project_id: ::prost::alloc::string::String,
@@ -29,34 +29,30 @@ pub struct ReleaseManifest {
     /// Version is the human-readable application version.
     #[prost(string, tag="3")]
     pub version: ::prost::alloc::string::String,
-    /// Entrypoints maps platform keys to entrypoint manifest refs.
-    #[prost(map="string, message", tag="4")]
-    pub entrypoints: ::std::collections::HashMap<::prost::alloc::string::String, ManifestRef>,
-    /// Plugins maps plugin IDs to plugin manifest refs.
-    #[prost(map="string, message", tag="5")]
-    pub plugins: ::std::collections::HashMap<::prost::alloc::string::String, ManifestRef>,
-    /// BrowserShell references the browser shell manifest.
-    #[prost(message, optional, tag="6")]
-    pub browser_shell: ::core::option::Option<ManifestRef>,
+    /// ChannelKey is the release channel this metadata belongs to.
+    #[prost(string, tag="4")]
+    pub channel_key: ::prost::alloc::string::String,
+    /// ManifestRefs are existing bldr app/plugin manifests resolved by clients.
+    #[prost(message, repeated, tag="5")]
+    pub manifest_refs: ::prost::alloc::vec::Vec<super::bldr::manifest::ManifestRef>,
+    /// DesktopArchives maps platform keys to native self-update archives.
+    #[prost(map="string, message", tag="6")]
+    pub desktop_archives: ::std::collections::HashMap<::prost::alloc::string::String, DesktopArchive>,
+    /// BrowserShell is the browser shell/cache metadata.
+    #[prost(message, optional, tag="7")]
+    pub browser_shell: ::core::option::Option<BrowserShellMetadata>,
     /// MinimumLauncherVersion is the minimum launcher version that can read this
     /// release.
-    #[prost(string, tag="7")]
+    #[prost(string, tag="8")]
     pub minimum_launcher_version: ::prost::alloc::string::String,
 }
-/// ManifestRef identifies a manifest object by content ref.
+/// DesktopArchive describes a native entrypoint update archive.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ManifestRef {
-    /// Ref is the manifest object's block ref.
-    #[prost(message, optional, tag="1")]
-    pub r#ref: ::core::option::Option<super::block::BlockRef>,
-}
-/// EntrypointManifest describes a native entrypoint update artifact.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EntrypointManifest {
+pub struct DesktopArchive {
     /// Platform is the GOOS/GOARCH platform key.
     #[prost(string, tag="1")]
     pub platform: ::prost::alloc::string::String,
-    /// Version is the entrypoint version.
+    /// Version is the archive version.
     #[prost(string, tag="2")]
     pub version: ::prost::alloc::string::String,
     /// ArchiveRef references the archive bytes in the release world.
@@ -72,25 +68,9 @@ pub struct EntrypointManifest {
     #[prost(string, tag="6")]
     pub archive_name: ::prost::alloc::string::String,
 }
-/// PluginManifest describes a plugin release artifact.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PluginManifest {
-    /// PluginId is the released plugin identifier.
-    #[prost(string, tag="1")]
-    pub plugin_id: ::prost::alloc::string::String,
-    /// Version is the plugin release version.
-    #[prost(string, tag="2")]
-    pub version: ::prost::alloc::string::String,
-    /// ManifestRef references the plugin's bldr manifest object.
-    #[prost(message, optional, tag="3")]
-    pub manifest_ref: ::core::option::Option<super::block::BlockRef>,
-    /// ArtifactRef references an optional plugin artifact bundle.
-    #[prost(message, optional, tag="4")]
-    pub artifact_ref: ::core::option::Option<super::block::BlockRef>,
-}
-/// BrowserShellManifest describes the browser entrypoint shell for a release.
+/// BrowserShellMetadata describes the browser entrypoint shell for a release.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BrowserShellManifest {
+pub struct BrowserShellMetadata {
     /// Version is the browser shell version.
     #[prost(string, tag="1")]
     pub version: ::prost::alloc::string::String,

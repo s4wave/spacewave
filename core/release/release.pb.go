@@ -15,6 +15,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	block "github.com/s4wave/spacewave/db/block"
 )
 
@@ -38,13 +39,13 @@ func (x *ChannelDirectory) GetChannels() []*ChannelEntry {
 	return nil
 }
 
-// ChannelEntry points one channel key at a release manifest.
+// ChannelEntry points one channel key at release metadata.
 type ChannelEntry struct {
 	unknownFields []byte
 	// ChannelKey is the stable channel identifier, such as stable or canary.
 	ChannelKey string `protobuf:"bytes,1,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
-	// ReleaseManifestRef references the ReleaseManifest for this channel.
-	ReleaseManifestRef *block.BlockRef `protobuf:"bytes,2,opt,name=release_manifest_ref,json=releaseManifestRef,proto3" json:"releaseManifestRef,omitempty"`
+	// ReleaseMetadataRef references the ReleaseMetadata for this channel.
+	ReleaseMetadataRef *block.BlockRef `protobuf:"bytes,2,opt,name=release_metadata_ref,json=releaseMetadataRef,proto3" json:"releaseMetadataRef,omitempty"`
 }
 
 func (x *ChannelEntry) Reset() {
@@ -60,15 +61,15 @@ func (x *ChannelEntry) GetChannelKey() string {
 	return ""
 }
 
-func (x *ChannelEntry) GetReleaseManifestRef() *block.BlockRef {
+func (x *ChannelEntry) GetReleaseMetadataRef() *block.BlockRef {
 	if x != nil {
-		return x.ReleaseManifestRef
+		return x.ReleaseMetadataRef
 	}
 	return nil
 }
 
-// ReleaseManifest describes one promoted application release.
-type ReleaseManifest struct {
+// ReleaseMetadata describes release-only metadata around bldr manifests.
+type ReleaseMetadata struct {
 	unknownFields []byte
 	// ProjectId is the project identifier this release belongs to.
 	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
@@ -76,98 +77,87 @@ type ReleaseManifest struct {
 	Rev uint64 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
 	// Version is the human-readable application version.
 	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	// Entrypoints maps platform keys to entrypoint manifest refs.
-	Entrypoints map[string]*ManifestRef `protobuf:"bytes,4,rep,name=entrypoints,proto3" json:"entrypoints,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Plugins maps plugin IDs to plugin manifest refs.
-	Plugins map[string]*ManifestRef `protobuf:"bytes,5,rep,name=plugins,proto3" json:"plugins,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// BrowserShell references the browser shell manifest.
-	BrowserShell *ManifestRef `protobuf:"bytes,6,opt,name=browser_shell,json=browserShell,proto3" json:"browserShell,omitempty"`
+	// ChannelKey is the release channel this metadata belongs to.
+	ChannelKey string `protobuf:"bytes,4,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
+	// ManifestRefs are existing bldr app/plugin manifests resolved by clients.
+	ManifestRefs []*manifest.ManifestRef `protobuf:"bytes,5,rep,name=manifest_refs,json=manifestRefs,proto3" json:"manifestRefs,omitempty"`
+	// DesktopArchives maps platform keys to native self-update archives.
+	DesktopArchives map[string]*DesktopArchive `protobuf:"bytes,6,rep,name=desktop_archives,json=desktopArchives,proto3" json:"desktopArchives,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// BrowserShell is the browser shell/cache metadata.
+	BrowserShell *BrowserShellMetadata `protobuf:"bytes,7,opt,name=browser_shell,json=browserShell,proto3" json:"browserShell,omitempty"`
 	// MinimumLauncherVersion is the minimum launcher version that can read this
 	// release.
-	MinimumLauncherVersion string `protobuf:"bytes,7,opt,name=minimum_launcher_version,json=minimumLauncherVersion,proto3" json:"minimumLauncherVersion,omitempty"`
+	MinimumLauncherVersion string `protobuf:"bytes,8,opt,name=minimum_launcher_version,json=minimumLauncherVersion,proto3" json:"minimumLauncherVersion,omitempty"`
 }
 
-func (x *ReleaseManifest) Reset() {
-	*x = ReleaseManifest{}
+func (x *ReleaseMetadata) Reset() {
+	*x = ReleaseMetadata{}
 }
 
-func (*ReleaseManifest) ProtoMessage() {}
+func (*ReleaseMetadata) ProtoMessage() {}
 
-func (x *ReleaseManifest) GetProjectId() string {
+func (x *ReleaseMetadata) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *ReleaseManifest) GetRev() uint64 {
+func (x *ReleaseMetadata) GetRev() uint64 {
 	if x != nil {
 		return x.Rev
 	}
 	return 0
 }
 
-func (x *ReleaseManifest) GetVersion() string {
+func (x *ReleaseMetadata) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
 	return ""
 }
 
-func (x *ReleaseManifest) GetEntrypoints() map[string]*ManifestRef {
+func (x *ReleaseMetadata) GetChannelKey() string {
 	if x != nil {
-		return x.Entrypoints
+		return x.ChannelKey
+	}
+	return ""
+}
+
+func (x *ReleaseMetadata) GetManifestRefs() []*manifest.ManifestRef {
+	if x != nil {
+		return x.ManifestRefs
 	}
 	return nil
 }
 
-func (x *ReleaseManifest) GetPlugins() map[string]*ManifestRef {
+func (x *ReleaseMetadata) GetDesktopArchives() map[string]*DesktopArchive {
 	if x != nil {
-		return x.Plugins
+		return x.DesktopArchives
 	}
 	return nil
 }
 
-func (x *ReleaseManifest) GetBrowserShell() *ManifestRef {
+func (x *ReleaseMetadata) GetBrowserShell() *BrowserShellMetadata {
 	if x != nil {
 		return x.BrowserShell
 	}
 	return nil
 }
 
-func (x *ReleaseManifest) GetMinimumLauncherVersion() string {
+func (x *ReleaseMetadata) GetMinimumLauncherVersion() string {
 	if x != nil {
 		return x.MinimumLauncherVersion
 	}
 	return ""
 }
 
-// ManifestRef identifies a manifest object by content ref.
-type ManifestRef struct {
-	unknownFields []byte
-	// Ref is the manifest object's block ref.
-	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
-}
-
-func (x *ManifestRef) Reset() {
-	*x = ManifestRef{}
-}
-
-func (*ManifestRef) ProtoMessage() {}
-
-func (x *ManifestRef) GetRef() *block.BlockRef {
-	if x != nil {
-		return x.Ref
-	}
-	return nil
-}
-
-// EntrypointManifest describes a native entrypoint update artifact.
-type EntrypointManifest struct {
+// DesktopArchive describes a native entrypoint update archive.
+type DesktopArchive struct {
 	unknownFields []byte
 	// Platform is the GOOS/GOARCH platform key.
 	Platform string `protobuf:"bytes,1,opt,name=platform,proto3" json:"platform,omitempty"`
-	// Version is the entrypoint version.
+	// Version is the archive version.
 	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	// ArchiveRef references the archive bytes in the release world.
 	ArchiveRef *block.BlockRef `protobuf:"bytes,3,opt,name=archive_ref,json=archiveRef,proto3" json:"archiveRef,omitempty"`
@@ -179,103 +169,56 @@ type EntrypointManifest struct {
 	ArchiveName string `protobuf:"bytes,6,opt,name=archive_name,json=archiveName,proto3" json:"archiveName,omitempty"`
 }
 
-func (x *EntrypointManifest) Reset() {
-	*x = EntrypointManifest{}
+func (x *DesktopArchive) Reset() {
+	*x = DesktopArchive{}
 }
 
-func (*EntrypointManifest) ProtoMessage() {}
+func (*DesktopArchive) ProtoMessage() {}
 
-func (x *EntrypointManifest) GetPlatform() string {
+func (x *DesktopArchive) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
 	return ""
 }
 
-func (x *EntrypointManifest) GetVersion() string {
+func (x *DesktopArchive) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
 	return ""
 }
 
-func (x *EntrypointManifest) GetArchiveRef() *block.BlockRef {
+func (x *DesktopArchive) GetArchiveRef() *block.BlockRef {
 	if x != nil {
 		return x.ArchiveRef
 	}
 	return nil
 }
 
-func (x *EntrypointManifest) GetSize() uint64 {
+func (x *DesktopArchive) GetSize() uint64 {
 	if x != nil {
 		return x.Size
 	}
 	return 0
 }
 
-func (x *EntrypointManifest) GetSha256() []byte {
+func (x *DesktopArchive) GetSha256() []byte {
 	if x != nil {
 		return x.Sha256
 	}
 	return nil
 }
 
-func (x *EntrypointManifest) GetArchiveName() string {
+func (x *DesktopArchive) GetArchiveName() string {
 	if x != nil {
 		return x.ArchiveName
 	}
 	return ""
 }
 
-// PluginManifest describes a plugin release artifact.
-type PluginManifest struct {
-	unknownFields []byte
-	// PluginId is the released plugin identifier.
-	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// Version is the plugin release version.
-	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	// ManifestRef references the plugin's bldr manifest object.
-	ManifestRef *block.BlockRef `protobuf:"bytes,3,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
-	// ArtifactRef references an optional plugin artifact bundle.
-	ArtifactRef *block.BlockRef `protobuf:"bytes,4,opt,name=artifact_ref,json=artifactRef,proto3" json:"artifactRef,omitempty"`
-}
-
-func (x *PluginManifest) Reset() {
-	*x = PluginManifest{}
-}
-
-func (*PluginManifest) ProtoMessage() {}
-
-func (x *PluginManifest) GetPluginId() string {
-	if x != nil {
-		return x.PluginId
-	}
-	return ""
-}
-
-func (x *PluginManifest) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *PluginManifest) GetManifestRef() *block.BlockRef {
-	if x != nil {
-		return x.ManifestRef
-	}
-	return nil
-}
-
-func (x *PluginManifest) GetArtifactRef() *block.BlockRef {
-	if x != nil {
-		return x.ArtifactRef
-	}
-	return nil
-}
-
-// BrowserShellManifest describes the browser entrypoint shell for a release.
-type BrowserShellManifest struct {
+// BrowserShellMetadata describes the browser entrypoint shell for a release.
+type BrowserShellMetadata struct {
 	unknownFields []byte
 	// Version is the browser shell version.
 	Version string `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
@@ -293,55 +236,55 @@ type BrowserShellManifest struct {
 	Assets []*BrowserAsset `protobuf:"bytes,7,rep,name=assets,proto3" json:"assets,omitempty"`
 }
 
-func (x *BrowserShellManifest) Reset() {
-	*x = BrowserShellManifest{}
+func (x *BrowserShellMetadata) Reset() {
+	*x = BrowserShellMetadata{}
 }
 
-func (*BrowserShellManifest) ProtoMessage() {}
+func (*BrowserShellMetadata) ProtoMessage() {}
 
-func (x *BrowserShellManifest) GetVersion() string {
+func (x *BrowserShellMetadata) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetGenerationId() string {
+func (x *BrowserShellMetadata) GetGenerationId() string {
 	if x != nil {
 		return x.GenerationId
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetEntrypointPath() string {
+func (x *BrowserShellMetadata) GetEntrypointPath() string {
 	if x != nil {
 		return x.EntrypointPath
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetServiceWorkerPath() string {
+func (x *BrowserShellMetadata) GetServiceWorkerPath() string {
 	if x != nil {
 		return x.ServiceWorkerPath
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetSharedWorkerPath() string {
+func (x *BrowserShellMetadata) GetSharedWorkerPath() string {
 	if x != nil {
 		return x.SharedWorkerPath
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetWasmPath() string {
+func (x *BrowserShellMetadata) GetWasmPath() string {
 	if x != nil {
 		return x.WasmPath
 	}
 	return ""
 }
 
-func (x *BrowserShellManifest) GetAssets() []*BrowserAsset {
+func (x *BrowserShellMetadata) GetAssets() []*BrowserAsset {
 	if x != nil {
 		return x.Assets
 	}
@@ -452,52 +395,26 @@ func (x *UpdateNotification) GetRootPointerUrl() string {
 	return ""
 }
 
-type ReleaseManifest_EntrypointsEntry struct {
+type ReleaseMetadata_DesktopArchivesEntry struct {
 	unknownFields []byte
-	Key           string       `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *ManifestRef `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Key           string          `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *DesktopArchive `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
-func (x *ReleaseManifest_EntrypointsEntry) Reset() {
-	*x = ReleaseManifest_EntrypointsEntry{}
+func (x *ReleaseMetadata_DesktopArchivesEntry) Reset() {
+	*x = ReleaseMetadata_DesktopArchivesEntry{}
 }
 
-func (*ReleaseManifest_EntrypointsEntry) ProtoMessage() {}
+func (*ReleaseMetadata_DesktopArchivesEntry) ProtoMessage() {}
 
-func (x *ReleaseManifest_EntrypointsEntry) GetKey() string {
+func (x *ReleaseMetadata_DesktopArchivesEntry) GetKey() string {
 	if x != nil {
 		return x.Key
 	}
 	return ""
 }
 
-func (x *ReleaseManifest_EntrypointsEntry) GetValue() *ManifestRef {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
-type ReleaseManifest_PluginsEntry struct {
-	unknownFields []byte
-	Key           string       `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *ManifestRef `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *ReleaseManifest_PluginsEntry) Reset() {
-	*x = ReleaseManifest_PluginsEntry{}
-}
-
-func (*ReleaseManifest_PluginsEntry) ProtoMessage() {}
-
-func (x *ReleaseManifest_PluginsEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *ReleaseManifest_PluginsEntry) GetValue() *ManifestRef {
+func (x *ReleaseMetadata_DesktopArchivesEntry) GetValue() *DesktopArchive {
 	if x != nil {
 		return x.Value
 	}
@@ -531,8 +448,8 @@ func (m *ChannelEntry) CloneVT() *ChannelEntry {
 	}
 	r := new(ChannelEntry)
 	r.ChannelKey = m.ChannelKey
-	if rhs := m.ReleaseManifestRef; rhs != nil {
-		r.ReleaseManifestRef = rhs.CloneVT()
+	if rhs := m.ReleaseMetadataRef; rhs != nil {
+		r.ReleaseMetadataRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -544,26 +461,27 @@ func (m *ChannelEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *ReleaseManifest) CloneVT() *ReleaseManifest {
+func (m *ReleaseMetadata) CloneVT() *ReleaseMetadata {
 	if m == nil {
-		return (*ReleaseManifest)(nil)
+		return (*ReleaseMetadata)(nil)
 	}
-	r := new(ReleaseManifest)
+	r := new(ReleaseMetadata)
 	r.ProjectId = m.ProjectId
 	r.Rev = m.Rev
 	r.Version = m.Version
+	r.ChannelKey = m.ChannelKey
 	r.BrowserShell = m.BrowserShell.CloneVT()
 	r.MinimumLauncherVersion = m.MinimumLauncherVersion
-	if rhs := m.Entrypoints; rhs != nil {
-		r.Entrypoints = make(map[string]*ManifestRef, len(rhs))
+	if rhs := m.ManifestRefs; rhs != nil {
+		r.ManifestRefs = make([]*manifest.ManifestRef, len(rhs))
 		for k, v := range rhs {
-			r.Entrypoints[k] = v.CloneVT()
+			r.ManifestRefs[k] = v.CloneVT()
 		}
 	}
-	if rhs := m.Plugins; rhs != nil {
-		r.Plugins = make(map[string]*ManifestRef, len(rhs))
+	if rhs := m.DesktopArchives; rhs != nil {
+		r.DesktopArchives = make(map[string]*DesktopArchive, len(rhs))
 		for k, v := range rhs {
-			r.Plugins[k] = v.CloneVT()
+			r.DesktopArchives[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -572,33 +490,15 @@ func (m *ReleaseManifest) CloneVT() *ReleaseManifest {
 	return r
 }
 
-func (m *ReleaseManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *ReleaseMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *ManifestRef) CloneVT() *ManifestRef {
+func (m *DesktopArchive) CloneVT() *DesktopArchive {
 	if m == nil {
-		return (*ManifestRef)(nil)
+		return (*DesktopArchive)(nil)
 	}
-	r := new(ManifestRef)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ManifestRef) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *EntrypointManifest) CloneVT() *EntrypointManifest {
-	if m == nil {
-		return (*EntrypointManifest)(nil)
-	}
-	r := new(EntrypointManifest)
+	r := new(DesktopArchive)
 	r.Platform = m.Platform
 	r.Version = m.Version
 	r.Size = m.Size
@@ -615,38 +515,15 @@ func (m *EntrypointManifest) CloneVT() *EntrypointManifest {
 	return r
 }
 
-func (m *EntrypointManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DesktopArchive) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *PluginManifest) CloneVT() *PluginManifest {
+func (m *BrowserShellMetadata) CloneVT() *BrowserShellMetadata {
 	if m == nil {
-		return (*PluginManifest)(nil)
+		return (*BrowserShellMetadata)(nil)
 	}
-	r := new(PluginManifest)
-	r.PluginId = m.PluginId
-	r.Version = m.Version
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
-	if rhs := m.ArtifactRef; rhs != nil {
-		r.ArtifactRef = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *PluginManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *BrowserShellManifest) CloneVT() *BrowserShellManifest {
-	if m == nil {
-		return (*BrowserShellManifest)(nil)
-	}
-	r := new(BrowserShellManifest)
+	r := new(BrowserShellMetadata)
 	r.Version = m.Version
 	r.GenerationId = m.GenerationId
 	r.EntrypointPath = m.EntrypointPath
@@ -665,7 +542,7 @@ func (m *BrowserShellManifest) CloneVT() *BrowserShellManifest {
 	return r
 }
 
-func (m *BrowserShellManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *BrowserShellMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -755,7 +632,7 @@ func (this *ChannelEntry) EqualVT(that *ChannelEntry) bool {
 	if this.ChannelKey != that.ChannelKey {
 		return false
 	}
-	if !this.ReleaseManifestRef.EqualVT(that.ReleaseManifestRef) {
+	if !this.ReleaseMetadataRef.EqualVT(that.ReleaseMetadataRef) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -769,7 +646,7 @@ func (this *ChannelEntry) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *ReleaseManifest) EqualVT(that *ReleaseManifest) bool {
+func (this *ReleaseMetadata) EqualVT(that *ReleaseMetadata) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -784,40 +661,40 @@ func (this *ReleaseManifest) EqualVT(that *ReleaseManifest) bool {
 	if this.Version != that.Version {
 		return false
 	}
-	if len(this.Entrypoints) != len(that.Entrypoints) {
+	if this.ChannelKey != that.ChannelKey {
 		return false
 	}
-	for i, vx := range this.Entrypoints {
-		vy, ok := that.Entrypoints[i]
-		if !ok {
-			return false
-		}
+	if len(this.ManifestRefs) != len(that.ManifestRefs) {
+		return false
+	}
+	for i, vx := range this.ManifestRefs {
+		vy := that.ManifestRefs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ManifestRef{}
+				p = &manifest.ManifestRef{}
 			}
 			if q == nil {
-				q = &ManifestRef{}
+				q = &manifest.ManifestRef{}
 			}
 			if !p.EqualVT(q) {
 				return false
 			}
 		}
 	}
-	if len(this.Plugins) != len(that.Plugins) {
+	if len(this.DesktopArchives) != len(that.DesktopArchives) {
 		return false
 	}
-	for i, vx := range this.Plugins {
-		vy, ok := that.Plugins[i]
+	for i, vx := range this.DesktopArchives {
+		vy, ok := that.DesktopArchives[i]
 		if !ok {
 			return false
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ManifestRef{}
+				p = &DesktopArchive{}
 			}
 			if q == nil {
-				q = &ManifestRef{}
+				q = &DesktopArchive{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -833,35 +710,15 @@ func (this *ReleaseManifest) EqualVT(that *ReleaseManifest) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ReleaseManifest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ReleaseManifest)
+func (this *ReleaseMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseMetadata)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *ManifestRef) EqualVT(that *ManifestRef) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !this.Ref.EqualVT(that.Ref) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ManifestRef) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ManifestRef)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *EntrypointManifest) EqualVT(that *EntrypointManifest) bool {
+func (this *DesktopArchive) EqualVT(that *DesktopArchive) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -888,44 +745,15 @@ func (this *EntrypointManifest) EqualVT(that *EntrypointManifest) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *EntrypointManifest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EntrypointManifest)
+func (this *DesktopArchive) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopArchive)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *PluginManifest) EqualVT(that *PluginManifest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.PluginId != that.PluginId {
-		return false
-	}
-	if this.Version != that.Version {
-		return false
-	}
-	if !this.ManifestRef.EqualVT(that.ManifestRef) {
-		return false
-	}
-	if !this.ArtifactRef.EqualVT(that.ArtifactRef) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *PluginManifest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*PluginManifest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *BrowserShellManifest) EqualVT(that *BrowserShellManifest) bool {
+func (this *BrowserShellMetadata) EqualVT(that *BrowserShellMetadata) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -969,8 +797,8 @@ func (this *BrowserShellManifest) EqualVT(that *BrowserShellManifest) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *BrowserShellManifest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*BrowserShellManifest)
+func (this *BrowserShellMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BrowserShellMetadata)
 	if !ok {
 		return false
 	}
@@ -1114,10 +942,10 @@ func (x *ChannelEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("channelKey")
 		s.WriteString(x.ChannelKey)
 	}
-	if x.ReleaseManifestRef != nil || s.HasField("releaseManifestRef") {
+	if x.ReleaseMetadataRef != nil || s.HasField("releaseMetadataRef") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("releaseManifestRef")
-		x.ReleaseManifestRef.MarshalProtoJSON(s.WithField("releaseManifestRef"))
+		s.WriteObjectField("releaseMetadataRef")
+		x.ReleaseMetadataRef.MarshalProtoJSON(s.WithField("releaseMetadataRef"))
 	}
 	s.WriteObjectEnd()
 }
@@ -1139,13 +967,13 @@ func (x *ChannelEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "channel_key", "channelKey":
 			s.AddField("channel_key")
 			x.ChannelKey = s.ReadString()
-		case "release_manifest_ref", "releaseManifestRef":
+		case "release_metadata_ref", "releaseMetadataRef":
 			if s.ReadNil() {
-				x.ReleaseManifestRef = nil
+				x.ReleaseMetadataRef = nil
 				return
 			}
-			x.ReleaseManifestRef = &block.BlockRef{}
-			x.ReleaseManifestRef.UnmarshalProtoJSON(s.WithField("release_manifest_ref", true))
+			x.ReleaseMetadataRef = &block.BlockRef{}
+			x.ReleaseMetadataRef.UnmarshalProtoJSON(s.WithField("release_metadata_ref", true))
 		}
 	})
 }
@@ -1155,8 +983,8 @@ func (x *ChannelEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ReleaseManifest_EntrypointsEntry message to JSON.
-func (x *ReleaseManifest_EntrypointsEntry) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the ReleaseMetadata_DesktopArchivesEntry message to JSON.
+func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1176,13 +1004,13 @@ func (x *ReleaseManifest_EntrypointsEntry) MarshalProtoJSON(s *json.MarshalState
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the ReleaseManifest_EntrypointsEntry to JSON.
-func (x *ReleaseManifest_EntrypointsEntry) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the ReleaseMetadata_DesktopArchivesEntry to JSON.
+func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the ReleaseManifest_EntrypointsEntry message from JSON.
-func (x *ReleaseManifest_EntrypointsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the ReleaseMetadata_DesktopArchivesEntry message from JSON.
+func (x *ReleaseMetadata_DesktopArchivesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1198,73 +1026,19 @@ func (x *ReleaseManifest_EntrypointsEntry) UnmarshalProtoJSON(s *json.UnmarshalS
 				x.Value = nil
 				return
 			}
-			x.Value = &ManifestRef{}
+			x.Value = &DesktopArchive{}
 			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the ReleaseManifest_EntrypointsEntry from JSON.
-func (x *ReleaseManifest_EntrypointsEntry) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the ReleaseMetadata_DesktopArchivesEntry from JSON.
+func (x *ReleaseMetadata_DesktopArchivesEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ReleaseManifest_PluginsEntry message to JSON.
-func (x *ReleaseManifest_PluginsEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ReleaseManifest_PluginsEntry to JSON.
-func (x *ReleaseManifest_PluginsEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ReleaseManifest_PluginsEntry message from JSON.
-func (x *ReleaseManifest_PluginsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &ManifestRef{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ReleaseManifest_PluginsEntry from JSON.
-func (x *ReleaseManifest_PluginsEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ReleaseManifest message to JSON.
-func (x *ReleaseManifest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the ReleaseMetadata message to JSON.
+func (x *ReleaseMetadata) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1286,27 +1060,31 @@ func (x *ReleaseManifest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("version")
 		s.WriteString(x.Version)
 	}
-	if x.Entrypoints != nil || s.HasField("entrypoints") {
+	if x.ChannelKey != "" || s.HasField("channelKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("entrypoints")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.Entrypoints {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("entrypoints"))
-		}
-		s.WriteObjectEnd()
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
 	}
-	if x.Plugins != nil || s.HasField("plugins") {
+	if len(x.ManifestRefs) > 0 || s.HasField("manifestRefs") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("plugins")
+		s.WriteObjectField("manifestRefs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ManifestRefs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("manifestRefs"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.DesktopArchives != nil || s.HasField("desktopArchives") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("desktopArchives")
 		s.WriteObjectStart()
 		var wroteElement bool
-		for k, v := range x.Plugins {
+		for k, v := range x.DesktopArchives {
 			s.WriteMoreIf(&wroteElement)
 			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("plugins"))
+			v.MarshalProtoJSON(s.WithField("desktopArchives"))
 		}
 		s.WriteObjectEnd()
 	}
@@ -1323,13 +1101,13 @@ func (x *ReleaseManifest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the ReleaseManifest to JSON.
-func (x *ReleaseManifest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the ReleaseMetadata to JSON.
+func (x *ReleaseMetadata) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the ReleaseManifest message from JSON.
-func (x *ReleaseManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the ReleaseMetadata message from JSON.
+func (x *ReleaseMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1346,36 +1124,45 @@ func (x *ReleaseManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "version":
 			s.AddField("version")
 			x.Version = s.ReadString()
-		case "entrypoints":
-			s.AddField("entrypoints")
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
+		case "manifest_refs", "manifestRefs":
+			s.AddField("manifest_refs")
 			if s.ReadNil() {
-				x.Entrypoints = nil
+				x.ManifestRefs = nil
 				return
 			}
-			x.Entrypoints = make(map[string]*ManifestRef)
-			s.ReadStringMap(func(key string) {
-				var v ManifestRef
-				v.UnmarshalProtoJSON(s)
-				x.Entrypoints[key] = &v
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ManifestRefs = append(x.ManifestRefs, nil)
+					return
+				}
+				v := &manifest.ManifestRef{}
+				v.UnmarshalProtoJSON(s.WithField("manifest_refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ManifestRefs = append(x.ManifestRefs, v)
 			})
-		case "plugins":
-			s.AddField("plugins")
+		case "desktop_archives", "desktopArchives":
+			s.AddField("desktop_archives")
 			if s.ReadNil() {
-				x.Plugins = nil
+				x.DesktopArchives = nil
 				return
 			}
-			x.Plugins = make(map[string]*ManifestRef)
+			x.DesktopArchives = make(map[string]*DesktopArchive)
 			s.ReadStringMap(func(key string) {
-				var v ManifestRef
+				var v DesktopArchive
 				v.UnmarshalProtoJSON(s)
-				x.Plugins[key] = &v
+				x.DesktopArchives[key] = &v
 			})
 		case "browser_shell", "browserShell":
 			if s.ReadNil() {
 				x.BrowserShell = nil
 				return
 			}
-			x.BrowserShell = &ManifestRef{}
+			x.BrowserShell = &BrowserShellMetadata{}
 			x.BrowserShell.UnmarshalProtoJSON(s.WithField("browser_shell", true))
 		case "minimum_launcher_version", "minimumLauncherVersion":
 			s.AddField("minimum_launcher_version")
@@ -1384,59 +1171,13 @@ func (x *ReleaseManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the ReleaseManifest from JSON.
-func (x *ReleaseManifest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the ReleaseMetadata from JSON.
+func (x *ReleaseMetadata) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ManifestRef message to JSON.
-func (x *ManifestRef) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Ref != nil || s.HasField("ref") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ref")
-		x.Ref.MarshalProtoJSON(s.WithField("ref"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ManifestRef to JSON.
-func (x *ManifestRef) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ManifestRef message from JSON.
-func (x *ManifestRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "ref":
-			if s.ReadNil() {
-				x.Ref = nil
-				return
-			}
-			x.Ref = &block.BlockRef{}
-			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ManifestRef from JSON.
-func (x *ManifestRef) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the EntrypointManifest message to JSON.
-func (x *EntrypointManifest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DesktopArchive message to JSON.
+func (x *DesktopArchive) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1476,13 +1217,13 @@ func (x *EntrypointManifest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the EntrypointManifest to JSON.
-func (x *EntrypointManifest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DesktopArchive to JSON.
+func (x *DesktopArchive) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the EntrypointManifest message from JSON.
-func (x *EntrypointManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DesktopArchive message from JSON.
+func (x *DesktopArchive) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1516,87 +1257,13 @@ func (x *EntrypointManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the EntrypointManifest from JSON.
-func (x *EntrypointManifest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DesktopArchive from JSON.
+func (x *DesktopArchive) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the PluginManifest message to JSON.
-func (x *PluginManifest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.PluginId != "" || s.HasField("pluginId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("pluginId")
-		s.WriteString(x.PluginId)
-	}
-	if x.Version != "" || s.HasField("version") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("version")
-		s.WriteString(x.Version)
-	}
-	if x.ManifestRef != nil || s.HasField("manifestRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestRef")
-		x.ManifestRef.MarshalProtoJSON(s.WithField("manifestRef"))
-	}
-	if x.ArtifactRef != nil || s.HasField("artifactRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("artifactRef")
-		x.ArtifactRef.MarshalProtoJSON(s.WithField("artifactRef"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the PluginManifest to JSON.
-func (x *PluginManifest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the PluginManifest message from JSON.
-func (x *PluginManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "plugin_id", "pluginId":
-			s.AddField("plugin_id")
-			x.PluginId = s.ReadString()
-		case "version":
-			s.AddField("version")
-			x.Version = s.ReadString()
-		case "manifest_ref", "manifestRef":
-			if s.ReadNil() {
-				x.ManifestRef = nil
-				return
-			}
-			x.ManifestRef = &block.BlockRef{}
-			x.ManifestRef.UnmarshalProtoJSON(s.WithField("manifest_ref", true))
-		case "artifact_ref", "artifactRef":
-			if s.ReadNil() {
-				x.ArtifactRef = nil
-				return
-			}
-			x.ArtifactRef = &block.BlockRef{}
-			x.ArtifactRef.UnmarshalProtoJSON(s.WithField("artifact_ref", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the PluginManifest from JSON.
-func (x *PluginManifest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the BrowserShellManifest message to JSON.
-func (x *BrowserShellManifest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the BrowserShellMetadata message to JSON.
+func (x *BrowserShellMetadata) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1647,13 +1314,13 @@ func (x *BrowserShellManifest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the BrowserShellManifest to JSON.
-func (x *BrowserShellManifest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the BrowserShellMetadata to JSON.
+func (x *BrowserShellMetadata) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the BrowserShellManifest message from JSON.
-func (x *BrowserShellManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the BrowserShellMetadata message from JSON.
+func (x *BrowserShellMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1701,8 +1368,8 @@ func (x *BrowserShellManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the BrowserShellManifest from JSON.
-func (x *BrowserShellManifest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the BrowserShellMetadata from JSON.
+func (x *BrowserShellMetadata) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1925,8 +1592,8 @@ func (m *ChannelEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ReleaseManifestRef != nil {
-		size, err := m.ReleaseManifestRef.MarshalToSizedBufferVT(dAtA[:i])
+	if m.ReleaseMetadataRef != nil {
+		size, err := m.ReleaseMetadataRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -1945,7 +1612,7 @@ func (m *ChannelEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ReleaseManifest) MarshalVT() (dAtA []byte, err error) {
+func (m *ReleaseMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -1958,12 +1625,12 @@ func (m *ReleaseManifest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReleaseManifest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ReleaseMetadata) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ReleaseManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ReleaseMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -1980,7 +1647,7 @@ func (m *ReleaseManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.MinimumLauncherVersion)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MinimumLauncherVersion)))
 		i--
-		dAtA[i] = 0x3a
+		dAtA[i] = 0x42
 	}
 	if m.BrowserShell != nil {
 		size, err := m.BrowserShell.MarshalToSizedBufferVT(dAtA[:i])
@@ -1990,11 +1657,11 @@ func (m *ReleaseManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x3a
 	}
-	if len(m.Plugins) > 0 {
-		for k := range m.Plugins {
-			v := m.Plugins[k]
+	if len(m.DesktopArchives) > 0 {
+		for k := range m.DesktopArchives {
+			v := m.DesktopArchives[k]
 			baseI := i
 			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
@@ -2010,31 +1677,28 @@ func (m *ReleaseManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.ManifestRefs) > 0 {
+		for iNdEx := len(m.ManifestRefs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ManifestRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x2a
 		}
 	}
-	if len(m.Entrypoints) > 0 {
-		for k := range m.Entrypoints {
-			v := m.Entrypoints[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x22
-		}
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.Version) > 0 {
 		i -= len(m.Version)
@@ -2058,7 +1722,7 @@ func (m *ReleaseManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ManifestRef) MarshalVT() (dAtA []byte, err error) {
+func (m *DesktopArchive) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2071,55 +1735,12 @@ func (m *ManifestRef) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ManifestRef) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DesktopArchive) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ManifestRef) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.Ref != nil {
-		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EntrypointManifest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EntrypointManifest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *EntrypointManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DesktopArchive) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2177,7 +1798,7 @@ func (m *EntrypointManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *PluginManifest) MarshalVT() (dAtA []byte, err error) {
+func (m *BrowserShellMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2190,79 +1811,12 @@ func (m *PluginManifest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PluginManifest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *BrowserShellMetadata) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.ArtifactRef != nil {
-		size, err := m.ArtifactRef.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.ManifestRef != nil {
-		size, err := m.ManifestRef.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Version) > 0 {
-		i -= len(m.Version)
-		copy(dAtA[i:], m.Version)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Version)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.PluginId) > 0 {
-		i -= len(m.PluginId)
-		copy(dAtA[i:], m.PluginId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *BrowserShellManifest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *BrowserShellManifest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *BrowserShellManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *BrowserShellMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2485,15 +2039,15 @@ func (m *ChannelEntry) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.ReleaseManifestRef != nil {
-		l = m.ReleaseManifestRef.SizeVT()
+	if m.ReleaseMetadataRef != nil {
+		l = m.ReleaseMetadataRef.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *ReleaseManifest) SizeVT() (n int) {
+func (m *ReleaseMetadata) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2510,21 +2064,18 @@ func (m *ReleaseManifest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if len(m.Entrypoints) > 0 {
-		for k, v := range m.Entrypoints {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+	l = len(m.ChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.ManifestRefs) > 0 {
+		for _, e := range m.ManifestRefs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	if len(m.Plugins) > 0 {
-		for k, v := range m.Plugins {
+	if len(m.DesktopArchives) > 0 {
+		for k, v := range m.DesktopArchives {
 			_ = k
 			_ = v
 			l = 0
@@ -2548,21 +2099,7 @@ func (m *ReleaseManifest) SizeVT() (n int) {
 	return n
 }
 
-func (m *ManifestRef) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Ref != nil {
-		l = m.Ref.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *EntrypointManifest) SizeVT() (n int) {
+func (m *DesktopArchive) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2595,33 +2132,7 @@ func (m *EntrypointManifest) SizeVT() (n int) {
 	return n
 }
 
-func (m *PluginManifest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.PluginId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Version)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.ManifestRef != nil {
-		l = m.ManifestRef.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.ArtifactRef != nil {
-		l = m.ArtifactRef.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *BrowserShellManifest) SizeVT() (n int) {
+func (m *BrowserShellMetadata) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2749,12 +2260,12 @@ func (x *ChannelEntry) MarshalProtoText() string {
 		sb.WriteString("channel_key: ")
 		sb.WriteString(strconv.Quote(x.ChannelKey))
 	}
-	if x.ReleaseManifestRef != nil {
+	if x.ReleaseMetadataRef != nil {
 		if sb.Len() > 14 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("release_manifest_ref: ")
-		sb.WriteString(x.ReleaseManifestRef.MarshalProtoText())
+		sb.WriteString("release_metadata_ref: ")
+		sb.WriteString(x.ReleaseMetadataRef.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2764,18 +2275,18 @@ func (x *ChannelEntry) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *ReleaseManifest_EntrypointsEntry) MarshalProtoText() string {
+func (x *ReleaseMetadata_DesktopArchivesEntry) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("EntrypointsEntry {")
+	sb.WriteString("DesktopArchivesEntry {")
 	if x.Key != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 22 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("key: ")
 		sb.WriteString(strconv.Quote(x.Key))
 	}
 	if x.Value != nil {
-		if sb.Len() > 18 {
+		if sb.Len() > 22 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("value: ")
@@ -2785,38 +2296,13 @@ func (x *ReleaseManifest_EntrypointsEntry) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *ReleaseManifest_EntrypointsEntry) String() string {
+func (x *ReleaseMetadata_DesktopArchivesEntry) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *ReleaseManifest_PluginsEntry) MarshalProtoText() string {
+func (x *ReleaseMetadata) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("PluginsEntry {")
-	if x.Key != "" {
-		if sb.Len() > 14 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 14 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *ReleaseManifest_PluginsEntry) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ReleaseManifest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("ReleaseManifest {")
+	sb.WriteString("ReleaseMetadata {")
 	if x.ProjectId != "" {
 		if sb.Len() > 17 {
 			sb.WriteString(" ")
@@ -2838,27 +2324,33 @@ func (x *ReleaseManifest) MarshalProtoText() string {
 		sb.WriteString("version: ")
 		sb.WriteString(strconv.Quote(x.Version))
 	}
-	if len(x.Entrypoints) > 0 {
+	if x.ChannelKey != "" {
 		if sb.Len() > 17 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("entrypoints: {")
-		for _, k := range slices.Sorted(maps.Keys(x.Entrypoints)) {
-			v := x.Entrypoints[k]
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
+	}
+	if len(x.ManifestRefs) > 0 {
+		if sb.Len() > 17 {
 			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
+		}
+		sb.WriteString("manifest_refs: [")
+		for i, v := range x.ManifestRefs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
 			sb.WriteString(v.MarshalProtoText())
 		}
-		sb.WriteString(" }")
+		sb.WriteString("]")
 	}
-	if len(x.Plugins) > 0 {
+	if len(x.DesktopArchives) > 0 {
 		if sb.Len() > 17 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("plugins: {")
-		for _, k := range slices.Sorted(maps.Keys(x.Plugins)) {
-			v := x.Plugins[k]
+		sb.WriteString("desktop_archives: {")
+		for _, k := range slices.Sorted(maps.Keys(x.DesktopArchives)) {
+			v := x.DesktopArchives[k]
 			sb.WriteString(" ")
 			sb.WriteString(strconv.Quote(k))
 			sb.WriteString(": ")
@@ -2884,61 +2376,43 @@ func (x *ReleaseManifest) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *ReleaseManifest) String() string {
+func (x *ReleaseMetadata) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *ManifestRef) MarshalProtoText() string {
+func (x *DesktopArchive) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("ManifestRef {")
-	if x.Ref != nil {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("ref: ")
-		sb.WriteString(x.Ref.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *ManifestRef) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *EntrypointManifest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("EntrypointManifest {")
+	sb.WriteString("DesktopArchive {")
 	if x.Platform != "" {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("platform: ")
 		sb.WriteString(strconv.Quote(x.Platform))
 	}
 	if x.Version != "" {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("version: ")
 		sb.WriteString(strconv.Quote(x.Version))
 	}
 	if x.ArchiveRef != nil {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("archive_ref: ")
 		sb.WriteString(x.ArchiveRef.MarshalProtoText())
 	}
 	if x.Size != 0 {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("size: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.Size), 10))
 	}
 	if x.Sha256 != nil {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("sha256: ")
@@ -2947,7 +2421,7 @@ func (x *EntrypointManifest) MarshalProtoText() string {
 		sb.WriteString("\"")
 	}
 	if x.ArchiveName != "" {
-		if sb.Len() > 20 {
+		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("archive_name: ")
@@ -2957,52 +2431,13 @@ func (x *EntrypointManifest) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *EntrypointManifest) String() string {
+func (x *DesktopArchive) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *PluginManifest) MarshalProtoText() string {
+func (x *BrowserShellMetadata) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("PluginManifest {")
-	if x.PluginId != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("plugin_id: ")
-		sb.WriteString(strconv.Quote(x.PluginId))
-	}
-	if x.Version != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("version: ")
-		sb.WriteString(strconv.Quote(x.Version))
-	}
-	if x.ManifestRef != nil {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("manifest_ref: ")
-		sb.WriteString(x.ManifestRef.MarshalProtoText())
-	}
-	if x.ArtifactRef != nil {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("artifact_ref: ")
-		sb.WriteString(x.ArtifactRef.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *PluginManifest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *BrowserShellManifest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("BrowserShellManifest {")
+	sb.WriteString("BrowserShellMetadata {")
 	if x.Version != "" {
 		if sb.Len() > 22 {
 			sb.WriteString(" ")
@@ -3062,7 +2497,7 @@ func (x *BrowserShellManifest) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *BrowserShellManifest) String() string {
+func (x *BrowserShellMetadata) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3266,7 +2701,7 @@ func (m *ChannelEntry) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseManifestRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseMetadataRef", wireType)
 			}
 			var msglen int
 			var _v uint64
@@ -3285,10 +2720,10 @@ func (m *ChannelEntry) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.ReleaseManifestRef == nil {
-				m.ReleaseManifestRef = &block.BlockRef{}
+			if m.ReleaseMetadataRef == nil {
+				m.ReleaseMetadataRef = &block.BlockRef{}
 			}
-			if err := m.ReleaseManifestRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.ReleaseMetadataRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3315,7 +2750,7 @@ func (m *ChannelEntry) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
+func (m *ReleaseMetadata) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -3329,10 +2764,10 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReleaseManifest: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReleaseMetadata: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReleaseManifest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReleaseMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3390,100 +2825,29 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoints", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
 			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			if msglen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Entrypoints == nil {
-				m.Entrypoints = make(map[string]*ManifestRef)
-			}
-			var mapkey string
-			var mapvalue *ManifestRef
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-				if err != nil {
-					return err
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					if err != nil {
-						return err
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					var _v uint64
-					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					mapmsglen = int(_v)
-					if err != nil {
-						return err
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &ManifestRef{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.Entrypoints[mapkey] = mapvalue
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRefs", wireType)
 			}
 			var msglen int
 			var _v uint64
@@ -3502,11 +2866,37 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Plugins == nil {
-				m.Plugins = make(map[string]*ManifestRef)
+			m.ManifestRefs = append(m.ManifestRefs, &manifest.ManifestRef{})
+			if err := m.ManifestRefs[len(m.ManifestRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DesktopArchives", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DesktopArchives == nil {
+				m.DesktopArchives = make(map[string]*DesktopArchive)
 			}
 			var mapkey string
-			var mapvalue *ManifestRef
+			var mapvalue *DesktopArchive
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -3552,7 +2942,7 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &ManifestRef{}
+					mapvalue = &DesktopArchive{}
 					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
 						return err
 					}
@@ -3572,9 +2962,9 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Plugins[mapkey] = mapvalue
+			m.DesktopArchives[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 6:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BrowserShell", wireType)
 			}
@@ -3596,13 +2986,13 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.BrowserShell == nil {
-				m.BrowserShell = &ManifestRef{}
+				m.BrowserShell = &BrowserShellMetadata{}
 			}
 			if err := m.BrowserShell.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		case 7:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinimumLauncherVersion", wireType)
 			}
@@ -3647,7 +3037,7 @@ func (m *ReleaseManifest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *ManifestRef) UnmarshalVT(dAtA []byte) error {
+func (m *DesktopArchive) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -3661,81 +3051,10 @@ func (m *ManifestRef) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ManifestRef: wiretype end group for non-group")
+			return fmt.Errorf("proto: DesktopArchive: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ManifestRef: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Ref == nil {
-				m.Ref = &block.BlockRef{}
-			}
-			if err := m.Ref.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *EntrypointManifest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: EntrypointManifest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EntrypointManifest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DesktopArchive: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3890,7 +3209,7 @@ func (m *EntrypointManifest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
+func (m *BrowserShellMetadata) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -3904,153 +3223,10 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PluginManifest: wiretype end group for non-group")
+			return fmt.Errorf("proto: BrowserShellMetadata: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PluginManifest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Version = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRef", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ManifestRef == nil {
-				m.ManifestRef = &block.BlockRef{}
-			}
-			if err := m.ManifestRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ArtifactRef", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ArtifactRef == nil {
-				m.ArtifactRef = &block.BlockRef{}
-			}
-			if err := m.ArtifactRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *BrowserShellManifest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: BrowserShellManifest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BrowserShellManifest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: BrowserShellMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

@@ -29,23 +29,23 @@ func (d *ChannelDirectory) Validate() error {
 	return nil
 }
 
-// ValidateReleaseManifestRefs checks that every channel points at an available release manifest.
-func (d *ChannelDirectory) ValidateReleaseManifestRefs(hasRef func(*block.BlockRef) bool) error {
+// ValidateReleaseMetadataRefs checks that every channel points at available release metadata.
+func (d *ChannelDirectory) ValidateReleaseMetadataRefs(hasRef func(*block.BlockRef) bool) error {
 	if err := d.Validate(); err != nil {
 		return err
 	}
 	if hasRef == nil {
-		return errors.New("nil manifest ref checker")
+		return errors.New("nil metadata ref checker")
 	}
 	for _, entry := range d.GetChannels() {
-		if !hasRef(entry.GetReleaseManifestRef()) {
-			return errors.Errorf("missing release manifest for channel %q", entry.GetChannelKey())
+		if !hasRef(entry.GetReleaseMetadataRef()) {
+			return errors.Errorf("missing release metadata for channel %q", entry.GetChannelKey())
 		}
 	}
 	return nil
 }
 
-// Validate checks the channel entry for a channel key and release manifest ref.
+// Validate checks the channel entry for a channel key and release metadata ref.
 func (e *ChannelEntry) Validate() error {
 	if e == nil {
 		return errors.New("nil channel entry")
@@ -53,16 +53,16 @@ func (e *ChannelEntry) Validate() error {
 	if strings.TrimSpace(e.GetChannelKey()) == "" {
 		return errors.New("missing channel key")
 	}
-	if err := validateBlockRef(e.GetReleaseManifestRef()); err != nil {
-		return errors.Wrap(err, "invalid release manifest ref")
+	if err := validateBlockRef(e.GetReleaseMetadataRef()); err != nil {
+		return errors.Wrap(err, "invalid release metadata ref")
 	}
 	return nil
 }
 
-// Validate checks the release manifest for required release graph refs.
-func (m *ReleaseManifest) Validate() error {
+// Validate checks the release metadata for required release-only fields.
+func (m *ReleaseMetadata) Validate() error {
 	if m == nil {
-		return errors.New("nil release manifest")
+		return errors.New("nil release metadata")
 	}
 	if strings.TrimSpace(m.GetProjectId()) == "" {
 		return errors.New("missing project id")
@@ -70,23 +70,26 @@ func (m *ReleaseManifest) Validate() error {
 	if strings.TrimSpace(m.GetVersion()) == "" {
 		return errors.New("missing version")
 	}
-	if len(m.GetEntrypoints()) == 0 {
-		return errors.New("no entrypoints")
+	if strings.TrimSpace(m.GetChannelKey()) == "" {
+		return errors.New("missing channel key")
 	}
-	for platform, ref := range m.GetEntrypoints() {
-		if !isPlatformKey(platform) {
-			return errors.Errorf("unknown platform key %q", platform)
-		}
+	if len(m.GetManifestRefs()) == 0 {
+		return errors.New("no bldr manifest refs")
+	}
+	for i, ref := range m.GetManifestRefs() {
 		if err := ref.Validate(); err != nil {
-			return errors.Wrapf(err, "validate entrypoint %q", platform)
+			return errors.Wrapf(err, "validate manifest ref %d", i)
 		}
 	}
-	for plugin, ref := range m.GetPlugins() {
-		if strings.TrimSpace(plugin) == "" {
-			return errors.New("missing plugin id")
+	if len(m.GetDesktopArchives()) == 0 {
+		return errors.New("no desktop archives")
+	}
+	for platform, archive := range m.GetDesktopArchives() {
+		if platform != archive.GetPlatform() {
+			return errors.Errorf("desktop archive platform key mismatch %q != %q", platform, archive.GetPlatform())
 		}
-		if err := ref.Validate(); err != nil {
-			return errors.Wrapf(err, "validate plugin %q", plugin)
+		if err := archive.Validate(); err != nil {
+			return errors.Wrapf(err, "validate desktop archive %q", platform)
 		}
 	}
 	if err := m.GetBrowserShell().Validate(); err != nil {
@@ -95,69 +98,36 @@ func (m *ReleaseManifest) Validate() error {
 	return nil
 }
 
-// Validate checks the manifest ref for a block ref.
-func (r *ManifestRef) Validate() error {
-	if r == nil {
-		return errors.New("nil manifest ref")
+// Validate checks the desktop archive for required artifact metadata.
+func (a *DesktopArchive) Validate() error {
+	if a == nil {
+		return errors.New("nil desktop archive")
 	}
-	if err := validateBlockRef(r.GetRef()); err != nil {
-		return errors.Wrap(err, "invalid block ref")
+	if !isPlatformKey(a.GetPlatform()) {
+		return errors.Errorf("unknown platform key %q", a.GetPlatform())
 	}
-	return nil
-}
-
-// Validate checks the entrypoint manifest for required artifact metadata.
-func (m *EntrypointManifest) Validate() error {
-	if m == nil {
-		return errors.New("nil entrypoint manifest")
-	}
-	if !isPlatformKey(m.GetPlatform()) {
-		return errors.Errorf("unknown platform key %q", m.GetPlatform())
-	}
-	if strings.TrimSpace(m.GetVersion()) == "" {
+	if strings.TrimSpace(a.GetVersion()) == "" {
 		return errors.New("missing version")
 	}
-	if err := validateBlockRef(m.GetArchiveRef()); err != nil {
+	if err := validateBlockRef(a.GetArchiveRef()); err != nil {
 		return errors.Wrap(err, "invalid archive ref")
 	}
-	if m.GetSize() == 0 {
+	if a.GetSize() == 0 {
 		return errors.New("missing archive size")
 	}
-	if len(m.GetSha256()) != 32 {
+	if len(a.GetSha256()) != 32 {
 		return errors.New("invalid archive sha256")
 	}
-	if strings.TrimSpace(m.GetArchiveName()) == "" {
+	if strings.TrimSpace(a.GetArchiveName()) == "" {
 		return errors.New("missing archive name")
 	}
 	return nil
 }
 
-// Validate checks the plugin manifest for required refs.
-func (m *PluginManifest) Validate() error {
+// Validate checks the browser shell metadata for required paths and assets.
+func (m *BrowserShellMetadata) Validate() error {
 	if m == nil {
-		return errors.New("nil plugin manifest")
-	}
-	if strings.TrimSpace(m.GetPluginId()) == "" {
-		return errors.New("missing plugin id")
-	}
-	if strings.TrimSpace(m.GetVersion()) == "" {
-		return errors.New("missing version")
-	}
-	if err := validateBlockRef(m.GetManifestRef()); err != nil {
-		return errors.Wrap(err, "invalid manifest ref")
-	}
-	if m.GetArtifactRef() != nil {
-		if err := validateBlockRef(m.GetArtifactRef()); err != nil {
-			return errors.Wrap(err, "invalid artifact ref")
-		}
-	}
-	return nil
-}
-
-// Validate checks the browser shell manifest for required paths and assets.
-func (m *BrowserShellManifest) Validate() error {
-	if m == nil {
-		return errors.New("nil browser shell manifest")
+		return errors.New("nil browser shell metadata")
 	}
 	if strings.TrimSpace(m.GetVersion()) == "" {
 		return errors.New("missing version")

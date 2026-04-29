@@ -59,64 +59,7 @@ struct UpdateNotificationDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpdateNotificationDefaultTypeInternal _UpdateNotification_default_instance_;
 
-inline constexpr PluginManifest::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        plugin_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        version_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        manifest_ref_{nullptr},
-        artifact_ref_{nullptr} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR PluginManifest::PluginManifest(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(PluginManifest_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct PluginManifestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR PluginManifestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~PluginManifestDefaultTypeInternal() {}
-  union {
-    PluginManifest _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PluginManifestDefaultTypeInternal _PluginManifest_default_instance_;
-
-inline constexpr ManifestRef::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        ref_{nullptr} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR ManifestRef::ManifestRef(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(ManifestRef_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct ManifestRefDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ManifestRefDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ManifestRefDefaultTypeInternal() {}
-  union {
-    ManifestRef _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ManifestRefDefaultTypeInternal _ManifestRef_default_instance_;
-
-inline constexpr EntrypointManifest::Impl_::Impl_(
+inline constexpr DesktopArchive::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         platform_(
@@ -135,24 +78,24 @@ inline constexpr EntrypointManifest::Impl_::Impl_(
         size_{::uint64_t{0u}} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR EntrypointManifest::EntrypointManifest(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DesktopArchive::DesktopArchive(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(EntrypointManifest_class_data_.base()),
+    : ::google::protobuf::Message(DesktopArchive_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct EntrypointManifestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR EntrypointManifestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~EntrypointManifestDefaultTypeInternal() {}
+struct DesktopArchiveDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopArchiveDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopArchiveDefaultTypeInternal() {}
   union {
-    EntrypointManifest _instance;
+    DesktopArchive _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EntrypointManifestDefaultTypeInternal _EntrypointManifest_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopArchiveDefaultTypeInternal _DesktopArchive_default_instance_;
 
 inline constexpr ChannelEntry::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -160,7 +103,7 @@ inline constexpr ChannelEntry::Impl_::Impl_(
         channel_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        release_manifest_ref_{nullptr} {}
+        release_metadata_ref_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ChannelEntry::ChannelEntry(::_pbi::ConstantInitialized)
@@ -220,41 +163,23 @@ struct BrowserAssetDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BrowserAssetDefaultTypeInternal _BrowserAsset_default_instance_;
 template <typename>
-PROTOBUF_CONSTEXPR ReleaseManifest_PluginsEntry_DoNotUse::ReleaseManifest_PluginsEntry_DoNotUse(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ReleaseMetadata_DesktopArchivesEntry_DoNotUse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ReleaseManifest_PluginsEntry_DoNotUse::MapEntry(ReleaseManifest_PluginsEntry_DoNotUse_class_data_.base()){}
+    : ReleaseMetadata_DesktopArchivesEntry_DoNotUse::MapEntry(ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.base()){}
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ReleaseManifest_PluginsEntry_DoNotUse::MapEntry() {
+    : ReleaseMetadata_DesktopArchivesEntry_DoNotUse::MapEntry() {
 }
 #endif  // PROTOBUF_CUSTOM_VTABLE
-struct ReleaseManifest_PluginsEntry_DoNotUseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ReleaseManifest_PluginsEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ReleaseManifest_PluginsEntry_DoNotUseDefaultTypeInternal() {}
+struct ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal() {}
   union {
-    ReleaseManifest_PluginsEntry_DoNotUse _instance;
+    ReleaseMetadata_DesktopArchivesEntry_DoNotUse _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseManifest_PluginsEntry_DoNotUseDefaultTypeInternal _ReleaseManifest_PluginsEntry_DoNotUse_default_instance_;
-template <typename>
-PROTOBUF_CONSTEXPR ReleaseManifest_EntrypointsEntry_DoNotUse::ReleaseManifest_EntrypointsEntry_DoNotUse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ReleaseManifest_EntrypointsEntry_DoNotUse::MapEntry(ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.base()){}
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ReleaseManifest_EntrypointsEntry_DoNotUse::MapEntry() {
-}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-struct ReleaseManifest_EntrypointsEntry_DoNotUseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ReleaseManifest_EntrypointsEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ReleaseManifest_EntrypointsEntry_DoNotUseDefaultTypeInternal() {}
-  union {
-    ReleaseManifest_EntrypointsEntry_DoNotUse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseManifest_EntrypointsEntry_DoNotUseDefaultTypeInternal _ReleaseManifest_EntrypointsEntry_DoNotUse_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseMetadata_DesktopArchivesEntry_DoNotUseDefaultTypeInternal _ReleaseMetadata_DesktopArchivesEntry_DoNotUse_default_instance_;
 
 inline constexpr ChannelDirectory::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -281,7 +206,7 @@ struct ChannelDirectoryDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ChannelDirectoryDefaultTypeInternal _ChannelDirectory_default_instance_;
 
-inline constexpr BrowserShellManifest::Impl_::Impl_(
+inline constexpr BrowserShellMetadata::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         assets_{},
@@ -305,32 +230,36 @@ inline constexpr BrowserShellManifest::Impl_::Impl_(
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
-PROTOBUF_CONSTEXPR BrowserShellManifest::BrowserShellManifest(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR BrowserShellMetadata::BrowserShellMetadata(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(BrowserShellManifest_class_data_.base()),
+    : ::google::protobuf::Message(BrowserShellMetadata_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct BrowserShellManifestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR BrowserShellManifestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~BrowserShellManifestDefaultTypeInternal() {}
+struct BrowserShellMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BrowserShellMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BrowserShellMetadataDefaultTypeInternal() {}
   union {
-    BrowserShellManifest _instance;
+    BrowserShellMetadata _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BrowserShellManifestDefaultTypeInternal _BrowserShellManifest_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BrowserShellMetadataDefaultTypeInternal _BrowserShellMetadata_default_instance_;
 
-inline constexpr ReleaseManifest::Impl_::Impl_(
+inline constexpr ReleaseMetadata::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        manifest_refs_{},
         project_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         version_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        channel_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         minimum_launcher_version_(
@@ -338,28 +267,27 @@ inline constexpr ReleaseManifest::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         browser_shell_{nullptr},
         rev_{::uint64_t{0u}},
-        entrypoints_{},
-        plugins_{} {}
+        desktop_archives_{} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR ReleaseManifest::ReleaseManifest(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR ReleaseMetadata::ReleaseMetadata(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(ReleaseManifest_class_data_.base()),
+    : ::google::protobuf::Message(ReleaseMetadata_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct ReleaseManifestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ReleaseManifestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ReleaseManifestDefaultTypeInternal() {}
+struct ReleaseMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReleaseMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReleaseMetadataDefaultTypeInternal() {}
   union {
-    ReleaseManifest _instance;
+    ReleaseMetadata _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseManifestDefaultTypeInternal _ReleaseManifest_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseMetadataDefaultTypeInternal _ReleaseMetadata_default_instance_;
 }  // namespace release
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto = nullptr;
@@ -377,54 +305,44 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::release::ChannelEntry, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::release::ChannelEntry, _impl_.channel_key_),
-        PROTOBUF_FIELD_OFFSET(::release::ChannelEntry, _impl_.release_manifest_ref_),
+        PROTOBUF_FIELD_OFFSET(::release::ChannelEntry, _impl_.release_metadata_ref_),
         0,
         1,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_._has_bits_),
         5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.key_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.value_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.value_),
         0,
         1,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_PluginsEntry_DoNotUse, _impl_._has_bits_),
-        5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_PluginsEntry_DoNotUse, _impl_.key_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest_PluginsEntry_DoNotUse, _impl_.value_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.project_id_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.rev_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.channel_key_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.manifest_refs_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.desktop_archives_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.browser_shell_),
+        PROTOBUF_FIELD_OFFSET(::release::ReleaseMetadata, _impl_.minimum_launcher_version_),
         1,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_._has_bits_),
-        10, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.project_id_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.rev_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.version_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.entrypoints_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.plugins_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.browser_shell_),
-        PROTOBUF_FIELD_OFFSET(::release::ReleaseManifest, _impl_.minimum_launcher_version_),
-        0,
-        4,
-        1,
-        5,
         6,
-        3,
         2,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::ManifestRef, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::ManifestRef, _impl_.ref_),
+        3,
         0,
+        7,
+        5,
+        4,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_._has_bits_),
         9, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.platform_),
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.version_),
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.archive_ref_),
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.size_),
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.sha256_),
-        PROTOBUF_FIELD_OFFSET(::release::EntrypointManifest, _impl_.archive_name_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.platform_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.archive_ref_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.size_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.sha256_),
+        PROTOBUF_FIELD_OFFSET(::release::DesktopArchive, _impl_.archive_name_),
         0,
         1,
         4,
@@ -432,26 +350,15 @@ const ::uint32_t
         2,
         3,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::PluginManifest, _impl_._has_bits_),
-        7, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::PluginManifest, _impl_.plugin_id_),
-        PROTOBUF_FIELD_OFFSET(::release::PluginManifest, _impl_.version_),
-        PROTOBUF_FIELD_OFFSET(::release::PluginManifest, _impl_.manifest_ref_),
-        PROTOBUF_FIELD_OFFSET(::release::PluginManifest, _impl_.artifact_ref_),
-        0,
-        1,
-        2,
-        3,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_._has_bits_),
         10, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.version_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.generation_id_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.entrypoint_path_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.service_worker_path_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.shared_worker_path_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.wasm_path_),
-        PROTOBUF_FIELD_OFFSET(::release::BrowserShellManifest, _impl_.assets_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.generation_id_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.entrypoint_path_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.service_worker_path_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.shared_worker_path_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.wasm_path_),
+        PROTOBUF_FIELD_OFFSET(::release::BrowserShellMetadata, _impl_.assets_),
         1,
         2,
         3,
@@ -489,84 +396,75 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::release::ChannelDirectory)},
         {5, sizeof(::release::ChannelEntry)},
-        {12, sizeof(::release::ReleaseManifest_EntrypointsEntry_DoNotUse)},
-        {19, sizeof(::release::ReleaseManifest_PluginsEntry_DoNotUse)},
-        {26, sizeof(::release::ReleaseManifest)},
-        {43, sizeof(::release::ManifestRef)},
-        {48, sizeof(::release::EntrypointManifest)},
-        {63, sizeof(::release::PluginManifest)},
-        {74, sizeof(::release::BrowserShellManifest)},
-        {91, sizeof(::release::BrowserAsset)},
-        {106, sizeof(::release::UpdateNotification)},
+        {12, sizeof(::release::ReleaseMetadata_DesktopArchivesEntry_DoNotUse)},
+        {19, sizeof(::release::ReleaseMetadata)},
+        {38, sizeof(::release::DesktopArchive)},
+        {53, sizeof(::release::BrowserShellMetadata)},
+        {70, sizeof(::release::BrowserAsset)},
+        {85, sizeof(::release::UpdateNotification)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::release::_ChannelDirectory_default_instance_._instance,
     &::release::_ChannelEntry_default_instance_._instance,
-    &::release::_ReleaseManifest_EntrypointsEntry_DoNotUse_default_instance_._instance,
-    &::release::_ReleaseManifest_PluginsEntry_DoNotUse_default_instance_._instance,
-    &::release::_ReleaseManifest_default_instance_._instance,
-    &::release::_ManifestRef_default_instance_._instance,
-    &::release::_EntrypointManifest_default_instance_._instance,
-    &::release::_PluginManifest_default_instance_._instance,
-    &::release::_BrowserShellManifest_default_instance_._instance,
+    &::release::_ReleaseMetadata_DesktopArchivesEntry_DoNotUse_default_instance_._instance,
+    &::release::_ReleaseMetadata_default_instance_._instance,
+    &::release::_DesktopArchive_default_instance_._instance,
+    &::release::_BrowserShellMetadata_default_instance_._instance,
     &::release::_BrowserAsset_default_instance_._instance,
     &::release::_UpdateNotification_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n6github.com/s4wave/spacewave/core/relea"
-    "se/release.proto\022\007release\0320github.com/s4"
-    "wave/spacewave/db/block/block.proto\";\n\020C"
-    "hannelDirectory\022\'\n\010channels\030\001 \003(\0132\025.rele"
-    "ase.ChannelEntry\"R\n\014ChannelEntry\022\023\n\013chan"
-    "nel_key\030\001 \001(\t\022-\n\024release_manifest_ref\030\002 "
-    "\001(\0132\017.block.BlockRef\"\232\003\n\017ReleaseManifest"
-    "\022\022\n\nproject_id\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\022\017\n\007ver"
-    "sion\030\003 \001(\t\022>\n\013entrypoints\030\004 \003(\0132).releas"
-    "e.ReleaseManifest.EntrypointsEntry\0226\n\007pl"
-    "ugins\030\005 \003(\0132%.release.ReleaseManifest.Pl"
-    "uginsEntry\022+\n\rbrowser_shell\030\006 \001(\0132\024.rele"
-    "ase.ManifestRef\022 \n\030minimum_launcher_vers"
-    "ion\030\007 \001(\t\032H\n\020EntrypointsEntry\022\013\n\003key\030\001 \001"
-    "(\t\022#\n\005value\030\002 \001(\0132\024.release.ManifestRef:"
-    "\0028\001\032D\n\014PluginsEntry\022\013\n\003key\030\001 \001(\t\022#\n\005valu"
-    "e\030\002 \001(\0132\024.release.ManifestRef:\0028\001\"+\n\013Man"
-    "ifestRef\022\034\n\003ref\030\001 \001(\0132\017.block.BlockRef\"\221"
-    "\001\n\022EntrypointManifest\022\020\n\010platform\030\001 \001(\t\022"
-    "\017\n\007version\030\002 \001(\t\022$\n\013archive_ref\030\003 \001(\0132\017."
-    "block.BlockRef\022\014\n\004size\030\004 \001(\004\022\016\n\006sha256\030\005"
-    " \001(\014\022\024\n\014archive_name\030\006 \001(\t\"\202\001\n\016PluginMan"
-    "ifest\022\021\n\tplugin_id\030\001 \001(\t\022\017\n\007version\030\002 \001("
-    "\t\022%\n\014manifest_ref\030\003 \001(\0132\017.block.BlockRef"
-    "\022%\n\014artifact_ref\030\004 \001(\0132\017.block.BlockRef\""
-    "\312\001\n\024BrowserShellManifest\022\017\n\007version\030\001 \001("
-    "\t\022\025\n\rgeneration_id\030\002 \001(\t\022\027\n\017entrypoint_p"
-    "ath\030\003 \001(\t\022\033\n\023service_worker_path\030\004 \001(\t\022\032"
-    "\n\022shared_worker_path\030\005 \001(\t\022\021\n\twasm_path\030"
-    "\006 \001(\t\022%\n\006assets\030\007 \003(\0132\025.release.BrowserA"
-    "sset\"\215\001\n\014BrowserAsset\022\014\n\004path\030\001 \001(\t\022$\n\013c"
-    "ontent_ref\030\002 \001(\0132\017.block.BlockRef\022\014\n\004siz"
-    "e\030\003 \001(\004\022\016\n\006sha256\030\004 \001(\014\022\024\n\014content_type\030"
-    "\005 \001(\t\022\025\n\rcache_control\030\006 \001(\t\"X\n\022UpdateNo"
-    "tification\022\023\n\013channel_key\030\001 \001(\t\022\023\n\013inner"
-    "_seqno\030\002 \001(\004\022\030\n\020root_pointer_url\030\003 \001(\tb\006"
-    "proto3"
+    "se/release.proto\022\007release\0328github.com/s4"
+    "wave/spacewave/bldr/manifest/manifest.pr"
+    "oto\0320github.com/s4wave/spacewave/db/bloc"
+    "k/block.proto\";\n\020ChannelDirectory\022\'\n\010cha"
+    "nnels\030\001 \003(\0132\025.release.ChannelEntry\"R\n\014Ch"
+    "annelEntry\022\023\n\013channel_key\030\001 \001(\t\022-\n\024relea"
+    "se_metadata_ref\030\002 \001(\0132\017.block.BlockRef\"\375"
+    "\002\n\017ReleaseMetadata\022\022\n\nproject_id\030\001 \001(\t\022\013"
+    "\n\003rev\030\002 \001(\004\022\017\n\007version\030\003 \001(\t\022\023\n\013channel_"
+    "key\030\004 \001(\t\0221\n\rmanifest_refs\030\005 \003(\0132\032.bldr."
+    "manifest.ManifestRef\022G\n\020desktop_archives"
+    "\030\006 \003(\0132-.release.ReleaseMetadata.Desktop"
+    "ArchivesEntry\0224\n\rbrowser_shell\030\007 \001(\0132\035.r"
+    "elease.BrowserShellMetadata\022 \n\030minimum_l"
+    "auncher_version\030\010 \001(\t\032O\n\024DesktopArchives"
+    "Entry\022\013\n\003key\030\001 \001(\t\022&\n\005value\030\002 \001(\0132\027.rele"
+    "ase.DesktopArchive:\0028\001\"\215\001\n\016DesktopArchiv"
+    "e\022\020\n\010platform\030\001 \001(\t\022\017\n\007version\030\002 \001(\t\022$\n\013"
+    "archive_ref\030\003 \001(\0132\017.block.BlockRef\022\014\n\004si"
+    "ze\030\004 \001(\004\022\016\n\006sha256\030\005 \001(\014\022\024\n\014archive_name"
+    "\030\006 \001(\t\"\312\001\n\024BrowserShellMetadata\022\017\n\007versi"
+    "on\030\001 \001(\t\022\025\n\rgeneration_id\030\002 \001(\t\022\027\n\017entry"
+    "point_path\030\003 \001(\t\022\033\n\023service_worker_path\030"
+    "\004 \001(\t\022\032\n\022shared_worker_path\030\005 \001(\t\022\021\n\twas"
+    "m_path\030\006 \001(\t\022%\n\006assets\030\007 \003(\0132\025.release.B"
+    "rowserAsset\"\215\001\n\014BrowserAsset\022\014\n\004path\030\001 \001"
+    "(\t\022$\n\013content_ref\030\002 \001(\0132\017.block.BlockRef"
+    "\022\014\n\004size\030\003 \001(\004\022\016\n\006sha256\030\004 \001(\014\022\024\n\014conten"
+    "t_type\030\005 \001(\t\022\025\n\rcache_control\030\006 \001(\t\"X\n\022U"
+    "pdateNotification\022\023\n\013channel_key\030\001 \001(\t\022\023"
+    "\n\013inner_seqno\030\002 \001(\004\022\030\n\020root_pointer_url\030"
+    "\003 \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto_deps[1] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto_deps[2] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto = {
     false,
     false,
-    1446,
+    1293,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
     "github.com/s4wave/spacewave/core/release/release.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto_deps,
-    1,
-    11,
+    2,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto::offsets,
@@ -868,9 +766,9 @@ class ChannelEntry::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_._has_bits_);
 };
 
-void ChannelEntry::clear_release_manifest_ref() {
+void ChannelEntry::clear_release_metadata_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.release_manifest_ref_ != nullptr) _impl_.release_manifest_ref_->Clear();
+  if (_impl_.release_metadata_ref_ != nullptr) _impl_.release_metadata_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
@@ -905,8 +803,8 @@ ChannelEntry::ChannelEntry(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.release_manifest_ref_ = (CheckHasBit(cached_has_bits, 0x00000002U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.release_manifest_ref_)
+  _impl_.release_metadata_ref_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.release_metadata_ref_)
                 : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:release.ChannelEntry)
@@ -919,7 +817,7 @@ PROTOBUF_NDEBUG_INLINE ChannelEntry::Impl_::Impl_(
 
 inline void ChannelEntry::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.release_manifest_ref_ = {};
+  _impl_.release_metadata_ref_ = {};
 }
 ChannelEntry::~ChannelEntry() {
   // @@protoc_insertion_point(destructor:release.ChannelEntry)
@@ -933,7 +831,7 @@ inline void ChannelEntry::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.channel_key_.Destroy();
-  delete this_._impl_.release_manifest_ref_;
+  delete this_._impl_.release_metadata_ref_;
   this_._impl_.~Impl_();
 }
 
@@ -999,10 +897,10 @@ ChannelEntry::_table_ = {
     ::_pbi::TcParser::GetTable<::release::ChannelEntry>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .block.BlockRef release_manifest_ref = 2;
+    // .block.BlockRef release_metadata_ref = 2;
     {::_pbi::TcParser::FastMtS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_.release_manifest_ref_)}},
+      PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_.release_metadata_ref_)}},
     // string channel_key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -1012,8 +910,8 @@ ChannelEntry::_table_ = {
   }}, {{
     // string channel_key = 1;
     {PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_.channel_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .block.BlockRef release_manifest_ref = 2;
-    {PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_.release_manifest_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .block.BlockRef release_metadata_ref = 2;
+    {PROTOBUF_FIELD_OFFSET(ChannelEntry, _impl_.release_metadata_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::block::BlockRef>()},
@@ -1037,8 +935,8 @@ PROTOBUF_NOINLINE void ChannelEntry::Clear() {
       _impl_.channel_key_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      ABSL_DCHECK(_impl_.release_manifest_ref_ != nullptr);
-      _impl_.release_manifest_ref_->Clear();
+      ABSL_DCHECK(_impl_.release_metadata_ref_ != nullptr);
+      _impl_.release_metadata_ref_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1074,10 +972,10 @@ PROTOBUF_NOINLINE void ChannelEntry::Clear() {
     }
   }
 
-  // .block.BlockRef release_manifest_ref = 2;
+  // .block.BlockRef release_metadata_ref = 2;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        2, *this_._impl_.release_manifest_ref_, this_._impl_.release_manifest_ref_->GetCachedSize(), target,
+        2, *this_._impl_.release_metadata_ref_, this_._impl_.release_metadata_ref_->GetCachedSize(), target,
         stream);
   }
 
@@ -1114,10 +1012,10 @@ PROTOBUF_NOINLINE void ChannelEntry::Clear() {
                                         this_._internal_channel_key());
       }
     }
-    // .block.BlockRef release_manifest_ref = 2;
+    // .block.BlockRef release_metadata_ref = 2;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.release_manifest_ref_);
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.release_metadata_ref_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1150,11 +1048,11 @@ void ChannelEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      ABSL_DCHECK(from._impl_.release_manifest_ref_ != nullptr);
-      if (_this->_impl_.release_manifest_ref_ == nullptr) {
-        _this->_impl_.release_manifest_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.release_manifest_ref_);
+      ABSL_DCHECK(from._impl_.release_metadata_ref_ != nullptr);
+      if (_this->_impl_.release_metadata_ref_ == nullptr) {
+        _this->_impl_.release_metadata_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.release_metadata_ref_);
       } else {
-        _this->_impl_.release_manifest_ref_->MergeFrom(*from._impl_.release_manifest_ref_);
+        _this->_impl_.release_metadata_ref_->MergeFrom(*from._impl_.release_metadata_ref_);
       }
     }
   }
@@ -1178,7 +1076,7 @@ void ChannelEntry::InternalSwap(ChannelEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.channel_key_, &other->_impl_.channel_key_, arena);
-  swap(_impl_.release_manifest_ref_, other->_impl_.release_manifest_ref_);
+  swap(_impl_.release_metadata_ref_, other->_impl_.release_metadata_ref_);
 }
 
 ::google::protobuf::Metadata ChannelEntry::GetMetadata() const {
@@ -1187,62 +1085,62 @@ void ChannelEntry::InternalSwap(ChannelEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL
 // ===================================================================
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-ReleaseManifest_EntrypointsEntry_DoNotUse::ReleaseManifest_EntrypointsEntry_DoNotUse()
-    : SuperType(ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.base()) {}
-ReleaseManifest_EntrypointsEntry_DoNotUse::ReleaseManifest_EntrypointsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-    : SuperType(arena, ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.base()) {}
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ReleaseMetadata_DesktopArchivesEntry_DoNotUse()
+    : SuperType(ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.base()) {}
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ReleaseMetadata_DesktopArchivesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.base()) {}
 #else   // PROTOBUF_CUSTOM_VTABLE
-ReleaseManifest_EntrypointsEntry_DoNotUse::ReleaseManifest_EntrypointsEntry_DoNotUse() : SuperType() {}
-ReleaseManifest_EntrypointsEntry_DoNotUse::ReleaseManifest_EntrypointsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ReleaseMetadata_DesktopArchivesEntry_DoNotUse() : SuperType() {}
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ReleaseMetadata_DesktopArchivesEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
 #endif  // PROTOBUF_CUSTOM_VTABLE
-inline void* PROTOBUF_NONNULL ReleaseManifest_EntrypointsEntry_DoNotUse::PlacementNew_(
+inline void* PROTOBUF_NONNULL ReleaseMetadata_DesktopArchivesEntry_DoNotUse::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ReleaseManifest_EntrypointsEntry_DoNotUse(arena);
+  return ::new (mem) ReleaseMetadata_DesktopArchivesEntry_DoNotUse(arena);
 }
-constexpr auto ReleaseManifest_EntrypointsEntry_DoNotUse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReleaseManifest_EntrypointsEntry_DoNotUse),
-                                            alignof(ReleaseManifest_EntrypointsEntry_DoNotUse));
+constexpr auto ReleaseMetadata_DesktopArchivesEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReleaseMetadata_DesktopArchivesEntry_DoNotUse),
+                                            alignof(ReleaseMetadata_DesktopArchivesEntry_DoNotUse));
 }
-constexpr auto ReleaseManifest_EntrypointsEntry_DoNotUse::InternalGenerateClassData_() {
+constexpr auto ReleaseMetadata_DesktopArchivesEntry_DoNotUse::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_ReleaseManifest_EntrypointsEntry_DoNotUse_default_instance_._instance,
+          &_ReleaseMetadata_DesktopArchivesEntry_DoNotUse_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &ReleaseManifest_EntrypointsEntry_DoNotUse::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ReleaseManifest_EntrypointsEntry_DoNotUse>(),
+          &ReleaseMetadata_DesktopArchivesEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReleaseMetadata_DesktopArchivesEntry_DoNotUse>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ReleaseManifest_EntrypointsEntry_DoNotUse::SharedDtor,
-          static_cast<void (::google::protobuf::MessageLite::*)()>(&ReleaseManifest_EntrypointsEntry_DoNotUse::ClearImpl),
+          &ReleaseMetadata_DesktopArchivesEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&ReleaseMetadata_DesktopArchivesEntry_DoNotUse::ClearImpl),
               ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
               ,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_._cached_size_),
           false,
       },
-      &ReleaseManifest_EntrypointsEntry_DoNotUse::kDescriptorMethods,
+      &ReleaseMetadata_DesktopArchivesEntry_DoNotUse::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_ =
-        ReleaseManifest_EntrypointsEntry_DoNotUse::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_ =
+        ReleaseMetadata_DesktopArchivesEntry_DoNotUse::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ReleaseManifest_EntrypointsEntry_DoNotUse::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.tc_table);
-  return ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.base();
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.tc_table);
+  return ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 52, 2>
-ReleaseManifest_EntrypointsEntry_DoNotUse::_table_ = {
+const ::_pbi::TcParseTable<1, 2, 1, 56, 2>
+ReleaseMetadata_DesktopArchivesEntry_DoNotUse::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_._has_bits_),
     0, // no _extensions_
     2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -1251,200 +1149,109 @@ ReleaseManifest_EntrypointsEntry_DoNotUse::_table_ = {
     2,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    ReleaseManifest_EntrypointsEntry_DoNotUse_class_data_.base(),
+    ReleaseMetadata_DesktopArchivesEntry_DoNotUse_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::ReleaseManifest_EntrypointsEntry_DoNotUse>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::release::ReleaseMetadata_DesktopArchivesEntry_DoNotUse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .release.ManifestRef value = 2;
+    // .release.DesktopArchive value = 2;
     {::_pbi::TcParser::FastMtS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.value_)}},
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.value_)}},
     // string key = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.key_)}},
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.key_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string key = 1;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .release.ManifestRef value = 2;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest_EntrypointsEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .release.DesktopArchive value = 2;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata_DesktopArchivesEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::release::ManifestRef>()},
+      {::_pbi::TcParser::GetTable<::release::DesktopArchive>()},
   }},
   {{
-    "\50\3\0\0\0\0\0\0"
-    "release.ReleaseManifest.EntrypointsEntry"
+    "\54\3\0\0\0\0\0\0"
+    "release.ReleaseMetadata.DesktopArchivesEntry"
     "key"
   }},
 };
 // ===================================================================
 
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-ReleaseManifest_PluginsEntry_DoNotUse::ReleaseManifest_PluginsEntry_DoNotUse()
-    : SuperType(ReleaseManifest_PluginsEntry_DoNotUse_class_data_.base()) {}
-ReleaseManifest_PluginsEntry_DoNotUse::ReleaseManifest_PluginsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-    : SuperType(arena, ReleaseManifest_PluginsEntry_DoNotUse_class_data_.base()) {}
-#else   // PROTOBUF_CUSTOM_VTABLE
-ReleaseManifest_PluginsEntry_DoNotUse::ReleaseManifest_PluginsEntry_DoNotUse() : SuperType() {}
-ReleaseManifest_PluginsEntry_DoNotUse::ReleaseManifest_PluginsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-inline void* PROTOBUF_NONNULL ReleaseManifest_PluginsEntry_DoNotUse::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ReleaseManifest_PluginsEntry_DoNotUse(arena);
-}
-constexpr auto ReleaseManifest_PluginsEntry_DoNotUse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReleaseManifest_PluginsEntry_DoNotUse),
-                                            alignof(ReleaseManifest_PluginsEntry_DoNotUse));
-}
-constexpr auto ReleaseManifest_PluginsEntry_DoNotUse::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_ReleaseManifest_PluginsEntry_DoNotUse_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &ReleaseManifest_PluginsEntry_DoNotUse::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ReleaseManifest_PluginsEntry_DoNotUse>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ReleaseManifest_PluginsEntry_DoNotUse::SharedDtor,
-          static_cast<void (::google::protobuf::MessageLite::*)()>(&ReleaseManifest_PluginsEntry_DoNotUse::ClearImpl),
-              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
-              ,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_._cached_size_),
-          false,
-      },
-      &ReleaseManifest_PluginsEntry_DoNotUse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ReleaseManifest_PluginsEntry_DoNotUse_class_data_ =
-        ReleaseManifest_PluginsEntry_DoNotUse::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ReleaseManifest_PluginsEntry_DoNotUse::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseManifest_PluginsEntry_DoNotUse_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseManifest_PluginsEntry_DoNotUse_class_data_.tc_table);
-  return ReleaseManifest_PluginsEntry_DoNotUse_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 48, 2>
-ReleaseManifest_PluginsEntry_DoNotUse::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_._has_bits_),
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    ReleaseManifest_PluginsEntry_DoNotUse_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::ReleaseManifest_PluginsEntry_DoNotUse>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // .release.ManifestRef value = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_.value_)}},
-    // string key = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_.key_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string key = 1;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .release.ManifestRef value = 2;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest_PluginsEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-  }},
-  {{
-      {::_pbi::TcParser::GetTable<::release::ManifestRef>()},
-  }},
-  {{
-    "\44\3\0\0\0\0\0\0"
-    "release.ReleaseManifest.PluginsEntry"
-    "key"
-  }},
-};
-// ===================================================================
-
-class ReleaseManifest::_Internal {
+class ReleaseMetadata::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<ReleaseManifest>()._impl_._has_bits_);
+      decltype(::std::declval<ReleaseMetadata>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_._has_bits_);
 };
 
-ReleaseManifest::ReleaseManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+void ReleaseMetadata::clear_manifest_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_refs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+ReleaseMetadata::ReleaseMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ReleaseManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ReleaseMetadata_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:release.ReleaseManifest)
+  // @@protoc_insertion_point(arena_constructor:release.ReleaseMetadata)
 }
-PROTOBUF_NDEBUG_INLINE ReleaseManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE ReleaseMetadata::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::release::ReleaseManifest& from_msg)
+    [[maybe_unused]] const ::release::ReleaseMetadata& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        manifest_refs_{visibility, arena, from.manifest_refs_},
         project_id_(arena, from.project_id_),
         version_(arena, from.version_),
+        channel_key_(arena, from.channel_key_),
         minimum_launcher_version_(arena, from.minimum_launcher_version_),
-        entrypoints_{visibility, arena, from.entrypoints_},
-        plugins_{visibility, arena, from.plugins_} {}
+        desktop_archives_{visibility, arena, from.desktop_archives_} {}
 
-ReleaseManifest::ReleaseManifest(
+ReleaseMetadata::ReleaseMetadata(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ReleaseManifest& from)
+    const ReleaseMetadata& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ReleaseManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ReleaseMetadata_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  ReleaseManifest* const _this = this;
+  ReleaseMetadata* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.browser_shell_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.browser_shell_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.browser_shell_)
                 : nullptr;
   _impl_.rev_ = from._impl_.rev_;
 
-  // @@protoc_insertion_point(copy_constructor:release.ReleaseManifest)
+  // @@protoc_insertion_point(copy_constructor:release.ReleaseMetadata)
 }
-PROTOBUF_NDEBUG_INLINE ReleaseManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE ReleaseMetadata::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        manifest_refs_{visibility, arena},
         project_id_(arena),
         version_(arena),
+        channel_key_(arena),
         minimum_launcher_version_(arena),
-        entrypoints_{visibility, arena},
-        plugins_{visibility, arena} {}
+        desktop_archives_{visibility, arena} {}
 
-inline void ReleaseManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void ReleaseMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, browser_shell_),
@@ -1453,12 +1260,12 @@ inline void ReleaseManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
                offsetof(Impl_, browser_shell_) +
                sizeof(Impl_::rev_));
 }
-ReleaseManifest::~ReleaseManifest() {
-  // @@protoc_insertion_point(destructor:release.ReleaseManifest)
+ReleaseMetadata::~ReleaseMetadata() {
+  // @@protoc_insertion_point(destructor:release.ReleaseMetadata)
   SharedDtor(*this);
 }
-inline void ReleaseManifest::SharedDtor(MessageLite& self) {
-  ReleaseManifest& this_ = static_cast<ReleaseManifest&>(self);
+inline void ReleaseMetadata::SharedDtor(MessageLite& self) {
+  ReleaseMetadata& this_ = static_cast<ReleaseMetadata&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -1466,179 +1273,189 @@ inline void ReleaseManifest::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.project_id_.Destroy();
   this_._impl_.version_.Destroy();
+  this_._impl_.channel_key_.Destroy();
   this_._impl_.minimum_launcher_version_.Destroy();
   delete this_._impl_.browser_shell_;
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL ReleaseManifest::PlacementNew_(
+inline void* PROTOBUF_NONNULL ReleaseMetadata::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ReleaseManifest(arena);
+  return ::new (mem) ReleaseMetadata(arena);
 }
-constexpr auto ReleaseManifest::InternalNewImpl_() {
+constexpr auto ReleaseMetadata::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.entrypoints_) +
-          decltype(ReleaseManifest::_impl_.entrypoints_)::
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.manifest_refs_) +
+          decltype(ReleaseMetadata::_impl_.manifest_refs_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.plugins_) +
-          decltype(ReleaseManifest::_impl_.plugins_)::
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.desktop_archives_) +
+          decltype(ReleaseMetadata::_impl_.desktop_archives_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
     return ::google::protobuf::internal::MessageCreator::CopyInit(
-        sizeof(ReleaseManifest), alignof(ReleaseManifest), *arena_bits);
+        sizeof(ReleaseMetadata), alignof(ReleaseMetadata), *arena_bits);
   } else {
-    return ::google::protobuf::internal::MessageCreator(&ReleaseManifest::PlacementNew_,
-                                 sizeof(ReleaseManifest),
-                                 alignof(ReleaseManifest));
+    return ::google::protobuf::internal::MessageCreator(&ReleaseMetadata::PlacementNew_,
+                                 sizeof(ReleaseMetadata),
+                                 alignof(ReleaseMetadata));
   }
 }
-constexpr auto ReleaseManifest::InternalGenerateClassData_() {
+constexpr auto ReleaseMetadata::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_ReleaseManifest_default_instance_._instance,
+          &_ReleaseMetadata_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &ReleaseManifest::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ReleaseManifest>(),
+          &ReleaseMetadata::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReleaseMetadata>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ReleaseManifest::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<ReleaseManifest>(), &ReleaseManifest::ByteSizeLong,
-              &ReleaseManifest::_InternalSerialize,
+          &ReleaseMetadata::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReleaseMetadata>(), &ReleaseMetadata::ByteSizeLong,
+              &ReleaseMetadata::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_._cached_size_),
           false,
       },
-      &ReleaseManifest::kDescriptorMethods,
+      &ReleaseMetadata::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ReleaseManifest_class_data_ =
-        ReleaseManifest::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull ReleaseMetadata_class_data_ =
+        ReleaseMetadata::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ReleaseManifest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseManifest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseManifest_class_data_.tc_table);
-  return ReleaseManifest_class_data_.base();
+ReleaseMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseMetadata_class_data_.tc_table);
+  return ReleaseMetadata_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 5, 91, 2>
-ReleaseManifest::_table_ = {
+const ::_pbi::TcParseTable<3, 8, 4, 108, 2>
+ReleaseMetadata::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294967040,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
-    5,  // num_aux_entries
+    8,  // num_field_entries
+    4,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    ReleaseManifest_class_data_.base(),
+    ReleaseMetadata_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::ReleaseManifest>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::release::ReleaseMetadata>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // string minimum_launcher_version = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.minimum_launcher_version_)}},
     // string project_id = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.project_id_)}},
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.project_id_)}},
     // uint64 rev = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ReleaseManifest, _impl_.rev_), 4>(),
-     {16, 4, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.rev_)}},
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ReleaseMetadata, _impl_.rev_), 6>(),
+     {16, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.rev_)}},
     // string version = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.version_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    // .release.ManifestRef browser_shell = 6;
-    {::_pbi::TcParser::FastMtS1,
-     {50, 3, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.browser_shell_)}},
-    // string minimum_launcher_version = 7;
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.version_)}},
+    // string channel_key = 4;
     {::_pbi::TcParser::FastUS1,
-     {58, 2, 0,
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.minimum_launcher_version_)}},
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.channel_key_)}},
+    // repeated .bldr.manifest.ManifestRef manifest_refs = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.manifest_refs_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // .release.BrowserShellMetadata browser_shell = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 5, 1,
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.browser_shell_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string project_id = 1;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.project_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.project_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint64 rev = 2;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.rev_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.rev_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // string version = 3;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // map<string, .release.ManifestRef> entrypoints = 4;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.entrypoints_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
-    // map<string, .release.ManifestRef> plugins = 5;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.plugins_), _Internal::kHasBitsOffset + 6, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
-    // .release.ManifestRef browser_shell = 6;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.browser_shell_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // string minimum_launcher_version = 7;
-    {PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.minimum_launcher_version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string channel_key = 4;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.channel_key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .bldr.manifest.ManifestRef manifest_refs = 5;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.manifest_refs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // map<string, .release.DesktopArchive> desktop_archives = 6;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.desktop_archives_), _Internal::kHasBitsOffset + 7, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // .release.BrowserShellMetadata browser_shell = 7;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.browser_shell_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string minimum_launcher_version = 8;
+    {PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.minimum_launcher_version_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::release::ManifestRef>()},
+      {::_pbi::TcParser::GetTable<::bldr::manifest::ManifestRef>()},
+      {::_pbi::TcParser::GetTable<::release::BrowserShellMetadata>()},
       {::_pbi::TcParser::GetMapAuxInfo(
           1, 0, 9, 11, 0)},
-      {::_pbi::TcParser::GetTable<::release::ManifestRef>()},
-      {::_pbi::TcParser::GetMapAuxInfo(
-          1, 0, 9, 11, 0)},
-      {::_pbi::TcParser::GetTable<::release::ManifestRef>()},
+      {::_pbi::TcParser::GetTable<::release::DesktopArchive>()},
   }},
   {{
-    "\27\12\0\7\13\7\0\30"
-    "release.ReleaseManifest"
+    "\27\12\0\7\13\0\20\0\30\0\0\0\0\0\0\0"
+    "release.ReleaseMetadata"
     "project_id"
     "version"
-    "entrypoints"
-    "plugins"
+    "channel_key"
+    "desktop_archives"
     "minimum_launcher_version"
   }},
 };
-PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
-// @@protoc_insertion_point(message_clear_start:release.ReleaseManifest)
+PROTOBUF_NOINLINE void ReleaseMetadata::Clear() {
+// @@protoc_insertion_point(message_clear_start:release.ReleaseMetadata)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.project_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.manifest_refs_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.version_.ClearNonDefaultToEmpty();
+      _impl_.project_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.minimum_launcher_version_.ClearNonDefaultToEmpty();
+      _impl_.version_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.channel_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.minimum_launcher_version_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.browser_shell_ != nullptr);
       _impl_.browser_shell_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
     _impl_.rev_ = ::uint64_t{0u};
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
-      _impl_.entrypoints_.Clear();
-    }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-      _impl_.plugins_.Clear();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000080U)) {
+      _impl_.desktop_archives_.Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1646,36 +1463,36 @@ PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL ReleaseManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL ReleaseMetadata::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const ReleaseManifest& this_ = static_cast<const ReleaseManifest&>(base);
+  const ReleaseMetadata& this_ = static_cast<const ReleaseMetadata&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL ReleaseManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL ReleaseMetadata::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const ReleaseManifest& this_ = *this;
+  const ReleaseMetadata& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:release.ReleaseManifest)
+  // @@protoc_insertion_point(serialize_to_array_start:release.ReleaseMetadata)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string project_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_project_id().empty()) {
       const ::std::string& _s = this_._internal_project_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.project_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.project_id");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
   // uint64 rev = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -1684,87 +1501,81 @@ PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
   }
 
   // string version = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_version().empty()) {
       const ::std::string& _s = this_._internal_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.version");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.version");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
-  // map<string, .release.ManifestRef> entrypoints = 4;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
-    if (!this_._internal_entrypoints().empty()) {
-      using MapType = ::google::protobuf::Map<::std::string, ::release::ManifestRef>;
-      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::release::ManifestRef,
-                                     _pbi::WireFormatLite::TYPE_STRING,
-                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
-      const auto& field = this_._internal_entrypoints();
-
-      if (stream->IsSerializationDeterministic() && field.size() > 1) {
-        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
-          target = WireHelper::InternalSerialize(
-              4, entry.first, entry.second, target, stream);
-          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-              entry.first.data(), static_cast<int>(entry.first.length()),
- ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.entrypoints");
-        }
-      } else {
-        for (const auto& entry : field) {
-          target = WireHelper::InternalSerialize(
-              4, entry.first, entry.second, target, stream);
-          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-              entry.first.data(), static_cast<int>(entry.first.length()),
- ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.entrypoints");
-        }
-      }
-    }
-  }
-
-  // map<string, .release.ManifestRef> plugins = 5;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-    if (!this_._internal_plugins().empty()) {
-      using MapType = ::google::protobuf::Map<::std::string, ::release::ManifestRef>;
-      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::release::ManifestRef,
-                                     _pbi::WireFormatLite::TYPE_STRING,
-                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
-      const auto& field = this_._internal_plugins();
-
-      if (stream->IsSerializationDeterministic() && field.size() > 1) {
-        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
-          target = WireHelper::InternalSerialize(
-              5, entry.first, entry.second, target, stream);
-          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-              entry.first.data(), static_cast<int>(entry.first.length()),
- ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.plugins");
-        }
-      } else {
-        for (const auto& entry : field) {
-          target = WireHelper::InternalSerialize(
-              5, entry.first, entry.second, target, stream);
-          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-              entry.first.data(), static_cast<int>(entry.first.length()),
- ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.plugins");
-        }
-      }
-    }
-  }
-
-  // .release.ManifestRef browser_shell = 6;
+  // string channel_key = 4;
   if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_channel_key().empty()) {
+      const ::std::string& _s = this_._internal_channel_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.channel_key");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // repeated .bldr.manifest.ManifestRef manifest_refs = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_manifest_refs_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_manifest_refs().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              5, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // map<string, .release.DesktopArchive> desktop_archives = 6;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_desktop_archives().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::release::DesktopArchive>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::release::DesktopArchive,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_desktop_archives();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              6, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.desktop_archives");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              6, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.desktop_archives");
+        }
+      }
+    }
+  }
+
+  // .release.BrowserShellMetadata browser_shell = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        6, *this_._impl_.browser_shell_, this_._impl_.browser_shell_->GetCachedSize(), target,
+        7, *this_._impl_.browser_shell_, this_._impl_.browser_shell_->GetCachedSize(), target,
         stream);
   }
 
-  // string minimum_launcher_version = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  // string minimum_launcher_version = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_minimum_launcher_version().empty()) {
       const ::std::string& _s = this_._internal_minimum_launcher_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseManifest.minimum_launcher_version");
-      target = stream->WriteStringMaybeAliased(7, _s, target);
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.ReleaseMetadata.minimum_launcher_version");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
     }
   }
 
@@ -1773,18 +1584,18 @@ PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:release.ReleaseManifest)
+  // @@protoc_insertion_point(serialize_to_array_end:release.ReleaseMetadata)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t ReleaseManifest::ByteSizeLong(const MessageLite& base) {
-  const ReleaseManifest& this_ = static_cast<const ReleaseManifest&>(base);
+::size_t ReleaseMetadata::ByteSizeLong(const MessageLite& base) {
+  const ReleaseMetadata& this_ = static_cast<const ReleaseMetadata&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t ReleaseManifest::ByteSizeLong() const {
-  const ReleaseManifest& this_ = *this;
+::size_t ReleaseMetadata::ByteSizeLong() const {
+  const ReleaseMetadata& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:release.ReleaseManifest)
+  // @@protoc_insertion_point(message_byte_size_start:release.ReleaseMetadata)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -1793,56 +1604,60 @@ PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated .bldr.manifest.ManifestRef manifest_refs = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_manifest_refs_size();
+      for (const auto& msg : this_._internal_manifest_refs()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string project_id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_project_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_project_id());
       }
     }
     // string version = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!this_._internal_version().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_version());
       }
     }
-    // string minimum_launcher_version = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    // string channel_key = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_channel_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_channel_key());
+      }
+    }
+    // string minimum_launcher_version = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_minimum_launcher_version().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_minimum_launcher_version());
       }
     }
-    // .release.ManifestRef browser_shell = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    // .release.BrowserShellMetadata browser_shell = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.browser_shell_);
     }
     // uint64 rev = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_rev());
       }
     }
-    // map<string, .release.ManifestRef> entrypoints = 4;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
+    // map<string, .release.DesktopArchive> desktop_archives = 6;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000080U)) {
       total_size +=
-          1 * ::google::protobuf::internal::FromIntSize(this_._internal_entrypoints_size());
-      for (const auto& entry : this_._internal_entrypoints()) {
-        total_size += _pbi::MapEntryFuncs<::std::string, ::release::ManifestRef,
-                                       _pbi::WireFormatLite::TYPE_STRING,
-                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
-      }
-    }
-    // map<string, .release.ManifestRef> plugins = 5;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-      total_size +=
-          1 * ::google::protobuf::internal::FromIntSize(this_._internal_plugins_size());
-      for (const auto& entry : this_._internal_plugins()) {
-        total_size += _pbi::MapEntryFuncs<::std::string, ::release::ManifestRef,
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_desktop_archives_size());
+      for (const auto& entry : this_._internal_desktop_archives()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::release::DesktopArchive,
                                        _pbi::WireFormatLite::TYPE_STRING,
                                        _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
       }
@@ -1852,23 +1667,28 @@ PROTOBUF_NOINLINE void ReleaseManifest::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void ReleaseMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<ReleaseManifest*>(&to_msg);
-  auto& from = static_cast<const ReleaseManifest&>(from_msg);
+      static_cast<ReleaseMetadata*>(&to_msg);
+  auto& from = static_cast<const ReleaseMetadata&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:release.ReleaseManifest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:release.ReleaseMetadata)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_manifest_refs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_manifest_refs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_project_id().empty()) {
         _this->_internal_set_project_id(from._internal_project_id());
       } else {
@@ -1877,7 +1697,7 @@ void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!from._internal_version().empty()) {
         _this->_internal_set_version(from._internal_version());
       } else {
@@ -1886,7 +1706,16 @@ void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_channel_key().empty()) {
+        _this->_internal_set_channel_key(from._internal_channel_key());
+      } else {
+        if (_this->_impl_.channel_key_.IsDefault()) {
+          _this->_internal_set_channel_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_minimum_launcher_version().empty()) {
         _this->_internal_set_minimum_launcher_version(from._internal_minimum_launcher_version());
       } else {
@@ -1895,7 +1724,7 @@ void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(from._impl_.browser_shell_ != nullptr);
       if (_this->_impl_.browser_shell_ == nullptr) {
         _this->_impl_.browser_shell_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.browser_shell_);
@@ -1903,16 +1732,13 @@ void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.browser_shell_->MergeFrom(*from._impl_.browser_shell_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_rev() != 0) {
         _this->_impl_.rev_ = from._impl_.rev_;
       }
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000020U)) {
-      _this->_impl_.entrypoints_.MergeFrom(from._impl_.entrypoints_);
-    }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000040U)) {
-      _this->_impl_.plugins_.MergeFrom(from._impl_.plugins_);
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000080U)) {
+      _this->_impl_.desktop_archives_.MergeFrom(from._impl_.desktop_archives_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1920,342 +1746,66 @@ void ReleaseManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void ReleaseManifest::CopyFrom(const ReleaseManifest& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:release.ReleaseManifest)
+void ReleaseMetadata::CopyFrom(const ReleaseMetadata& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:release.ReleaseMetadata)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void ReleaseManifest::InternalSwap(ReleaseManifest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void ReleaseMetadata::InternalSwap(ReleaseMetadata* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.manifest_refs_.InternalSwap(&other->_impl_.manifest_refs_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.version_, &other->_impl_.version_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.channel_key_, &other->_impl_.channel_key_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.minimum_launcher_version_, &other->_impl_.minimum_launcher_version_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.rev_)
-      + sizeof(ReleaseManifest::_impl_.rev_)
-      - PROTOBUF_FIELD_OFFSET(ReleaseManifest, _impl_.browser_shell_)>(
+      PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.rev_)
+      + sizeof(ReleaseMetadata::_impl_.rev_)
+      - PROTOBUF_FIELD_OFFSET(ReleaseMetadata, _impl_.browser_shell_)>(
           reinterpret_cast<char*>(&_impl_.browser_shell_),
           reinterpret_cast<char*>(&other->_impl_.browser_shell_));
-  _impl_.entrypoints_.InternalSwap(&other->_impl_.entrypoints_);
-  _impl_.plugins_.InternalSwap(&other->_impl_.plugins_);
+  _impl_.desktop_archives_.InternalSwap(&other->_impl_.desktop_archives_);
 }
 
-::google::protobuf::Metadata ReleaseManifest::GetMetadata() const {
+::google::protobuf::Metadata ReleaseMetadata::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class ManifestRef::_Internal {
+class DesktopArchive::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<ManifestRef>()._impl_._has_bits_);
+      decltype(::std::declval<DesktopArchive>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(ManifestRef, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_._has_bits_);
 };
 
-void ManifestRef::clear_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.ref_ != nullptr) _impl_.ref_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-ManifestRef::ManifestRef(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ManifestRef_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:release.ManifestRef)
-}
-PROTOBUF_NDEBUG_INLINE ManifestRef::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::release::ManifestRef& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
-
-ManifestRef::ManifestRef(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ManifestRef& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ManifestRef_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  ManifestRef* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.ref_ = (CheckHasBit(cached_has_bits, 0x00000001U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_)
-                : nullptr;
-
-  // @@protoc_insertion_point(copy_constructor:release.ManifestRef)
-}
-PROTOBUF_NDEBUG_INLINE ManifestRef::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
-
-inline void ManifestRef::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.ref_ = {};
-}
-ManifestRef::~ManifestRef() {
-  // @@protoc_insertion_point(destructor:release.ManifestRef)
-  SharedDtor(*this);
-}
-inline void ManifestRef::SharedDtor(MessageLite& self) {
-  ManifestRef& this_ = static_cast<ManifestRef&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  delete this_._impl_.ref_;
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL ManifestRef::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ManifestRef(arena);
-}
-constexpr auto ManifestRef::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ManifestRef),
-                                            alignof(ManifestRef));
-}
-constexpr auto ManifestRef::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_ManifestRef_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &ManifestRef::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ManifestRef>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ManifestRef::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<ManifestRef>(), &ManifestRef::ByteSizeLong,
-              &ManifestRef::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ManifestRef, _impl_._cached_size_),
-          false,
-      },
-      &ManifestRef::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ManifestRef_class_data_ =
-        ManifestRef::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ManifestRef::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ManifestRef_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ManifestRef_class_data_.tc_table);
-  return ManifestRef_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
-ManifestRef::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(ManifestRef, _impl_._has_bits_),
-    0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    ManifestRef_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::ManifestRef>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // .block.BlockRef ref = 1;
-    {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ManifestRef, _impl_.ref_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // .block.BlockRef ref = 1;
-    {PROTOBUF_FIELD_OFFSET(ManifestRef, _impl_.ref_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-  }},
-  {{
-      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
-  }},
-  {{
-  }},
-};
-PROTOBUF_NOINLINE void ManifestRef::Clear() {
-// @@protoc_insertion_point(message_clear_start:release.ManifestRef)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.ref_ != nullptr);
-    _impl_.ref_->Clear();
-  }
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL ManifestRef::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const ManifestRef& this_ = static_cast<const ManifestRef&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL ManifestRef::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const ManifestRef& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:release.ManifestRef)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // .block.BlockRef ref = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        1, *this_._impl_.ref_, this_._impl_.ref_->GetCachedSize(), target,
-        stream);
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:release.ManifestRef)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t ManifestRef::ByteSizeLong(const MessageLite& base) {
-  const ManifestRef& this_ = static_cast<const ManifestRef&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t ManifestRef::ByteSizeLong() const {
-  const ManifestRef& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:release.ManifestRef)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-   {
-    // .block.BlockRef ref = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.ref_);
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void ManifestRef::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<ManifestRef*>(&to_msg);
-  auto& from = static_cast<const ManifestRef&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:release.ManifestRef)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(from._impl_.ref_ != nullptr);
-    if (_this->_impl_.ref_ == nullptr) {
-      _this->_impl_.ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_);
-    } else {
-      _this->_impl_.ref_->MergeFrom(*from._impl_.ref_);
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void ManifestRef::CopyFrom(const ManifestRef& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:release.ManifestRef)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void ManifestRef::InternalSwap(ManifestRef* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.ref_, other->_impl_.ref_);
-}
-
-::google::protobuf::Metadata ManifestRef::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class EntrypointManifest::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<EntrypointManifest>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_._has_bits_);
-};
-
-void EntrypointManifest::clear_archive_ref() {
+void DesktopArchive::clear_archive_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.archive_ref_ != nullptr) _impl_.archive_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-EntrypointManifest::EntrypointManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DesktopArchive::DesktopArchive(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, EntrypointManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DesktopArchive_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:release.EntrypointManifest)
+  // @@protoc_insertion_point(arena_constructor:release.DesktopArchive)
 }
-PROTOBUF_NDEBUG_INLINE EntrypointManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DesktopArchive::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::release::EntrypointManifest& from_msg)
+    [[maybe_unused]] const ::release::DesktopArchive& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         platform_(arena, from.platform_),
@@ -2263,15 +1813,15 @@ PROTOBUF_NDEBUG_INLINE EntrypointManifest::Impl_::Impl_(
         sha256_(arena, from.sha256_),
         archive_name_(arena, from.archive_name_) {}
 
-EntrypointManifest::EntrypointManifest(
+DesktopArchive::DesktopArchive(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const EntrypointManifest& from)
+    const DesktopArchive& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, EntrypointManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DesktopArchive_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  EntrypointManifest* const _this = this;
+  DesktopArchive* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -2282,9 +1832,9 @@ EntrypointManifest::EntrypointManifest(
                 : nullptr;
   _impl_.size_ = from._impl_.size_;
 
-  // @@protoc_insertion_point(copy_constructor:release.EntrypointManifest)
+  // @@protoc_insertion_point(copy_constructor:release.DesktopArchive)
 }
-PROTOBUF_NDEBUG_INLINE EntrypointManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DesktopArchive::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -2293,7 +1843,7 @@ PROTOBUF_NDEBUG_INLINE EntrypointManifest::Impl_::Impl_(
         sha256_(arena),
         archive_name_(arena) {}
 
-inline void EntrypointManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DesktopArchive::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, archive_ref_),
@@ -2302,12 +1852,12 @@ inline void EntrypointManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena
                offsetof(Impl_, archive_ref_) +
                sizeof(Impl_::size_));
 }
-EntrypointManifest::~EntrypointManifest() {
-  // @@protoc_insertion_point(destructor:release.EntrypointManifest)
+DesktopArchive::~DesktopArchive() {
+  // @@protoc_insertion_point(destructor:release.DesktopArchive)
   SharedDtor(*this);
 }
-inline void EntrypointManifest::SharedDtor(MessageLite& self) {
-  EntrypointManifest& this_ = static_cast<EntrypointManifest&>(self);
+inline void DesktopArchive::SharedDtor(MessageLite& self) {
+  DesktopArchive& this_ = static_cast<DesktopArchive&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -2321,53 +1871,53 @@ inline void EntrypointManifest::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL EntrypointManifest::PlacementNew_(
+inline void* PROTOBUF_NONNULL DesktopArchive::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) EntrypointManifest(arena);
+  return ::new (mem) DesktopArchive(arena);
 }
-constexpr auto EntrypointManifest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(EntrypointManifest),
-                                            alignof(EntrypointManifest));
+constexpr auto DesktopArchive::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopArchive),
+                                            alignof(DesktopArchive));
 }
-constexpr auto EntrypointManifest::InternalGenerateClassData_() {
+constexpr auto DesktopArchive::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_EntrypointManifest_default_instance_._instance,
+          &_DesktopArchive_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &EntrypointManifest::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<EntrypointManifest>(),
+          &DesktopArchive::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopArchive>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &EntrypointManifest::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<EntrypointManifest>(), &EntrypointManifest::ByteSizeLong,
-              &EntrypointManifest::_InternalSerialize,
+          &DesktopArchive::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopArchive>(), &DesktopArchive::ByteSizeLong,
+              &DesktopArchive::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_._cached_size_),
           false,
       },
-      &EntrypointManifest::kDescriptorMethods,
+      &DesktopArchive::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull EntrypointManifest_class_data_ =
-        EntrypointManifest::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DesktopArchive_class_data_ =
+        DesktopArchive::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-EntrypointManifest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&EntrypointManifest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(EntrypointManifest_class_data_.tc_table);
-  return EntrypointManifest_class_data_.base();
+DesktopArchive::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopArchive_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopArchive_class_data_.tc_table);
+  return DesktopArchive_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 1, 62, 2>
-EntrypointManifest::_table_ = {
+const ::_pbi::TcParseTable<3, 6, 1, 58, 2>
+DesktopArchive::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_._has_bits_),
     0, // no _extensions_
     6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -2376,68 +1926,68 @@ EntrypointManifest::_table_ = {
     6,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    EntrypointManifest_class_data_.base(),
+    DesktopArchive_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::EntrypointManifest>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::release::DesktopArchive>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string platform = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.platform_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.platform_)}},
     // string version = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.version_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.version_)}},
     // .block.BlockRef archive_ref = 3;
     {::_pbi::TcParser::FastMtS1,
      {26, 4, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.archive_ref_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.archive_ref_)}},
     // uint64 size = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(EntrypointManifest, _impl_.size_), 5>(),
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopArchive, _impl_.size_), 5>(),
      {32, 5, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.size_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.size_)}},
     // bytes sha256 = 5;
     {::_pbi::TcParser::FastBS1,
      {42, 2, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.sha256_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.sha256_)}},
     // string archive_name = 6;
     {::_pbi::TcParser::FastUS1,
      {50, 3, 0,
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.archive_name_)}},
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.archive_name_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string platform = 1;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.platform_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.platform_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string version = 2;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .block.BlockRef archive_ref = 3;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.archive_ref_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.archive_ref_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint64 size = 4;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.size_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.size_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // bytes sha256 = 5;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.sha256_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.sha256_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // string archive_name = 6;
-    {PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.archive_name_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.archive_name_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::block::BlockRef>()},
   }},
   {{
-    "\32\10\7\0\0\0\14\0"
-    "release.EntrypointManifest"
+    "\26\10\7\0\0\0\14\0"
+    "release.DesktopArchive"
     "platform"
     "version"
     "archive_name"
   }},
 };
-PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
-// @@protoc_insertion_point(message_clear_start:release.EntrypointManifest)
+PROTOBUF_NOINLINE void DesktopArchive::Clear() {
+// @@protoc_insertion_point(message_clear_start:release.DesktopArchive)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -2468,20 +2018,20 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL EntrypointManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DesktopArchive::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const EntrypointManifest& this_ = static_cast<const EntrypointManifest&>(base);
+  const DesktopArchive& this_ = static_cast<const DesktopArchive&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL EntrypointManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DesktopArchive::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const EntrypointManifest& this_ = *this;
+  const DesktopArchive& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:release.EntrypointManifest)
+  // @@protoc_insertion_point(serialize_to_array_start:release.DesktopArchive)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -2491,7 +2041,7 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
     if (!this_._internal_platform().empty()) {
       const ::std::string& _s = this_._internal_platform();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.EntrypointManifest.platform");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.DesktopArchive.platform");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
@@ -2501,7 +2051,7 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
     if (!this_._internal_version().empty()) {
       const ::std::string& _s = this_._internal_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.EntrypointManifest.version");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.DesktopArchive.version");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
@@ -2535,7 +2085,7 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
     if (!this_._internal_archive_name().empty()) {
       const ::std::string& _s = this_._internal_archive_name();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.EntrypointManifest.archive_name");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.DesktopArchive.archive_name");
       target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
@@ -2545,18 +2095,18 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:release.EntrypointManifest)
+  // @@protoc_insertion_point(serialize_to_array_end:release.DesktopArchive)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t EntrypointManifest::ByteSizeLong(const MessageLite& base) {
-  const EntrypointManifest& this_ = static_cast<const EntrypointManifest&>(base);
+::size_t DesktopArchive::ByteSizeLong(const MessageLite& base) {
+  const DesktopArchive& this_ = static_cast<const DesktopArchive&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t EntrypointManifest::ByteSizeLong() const {
-  const EntrypointManifest& this_ = *this;
+::size_t DesktopArchive::ByteSizeLong() const {
+  const DesktopArchive& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:release.EntrypointManifest)
+  // @@protoc_insertion_point(message_byte_size_start:release.DesktopArchive)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -2611,16 +2161,16 @@ PROTOBUF_NOINLINE void EntrypointManifest::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void EntrypointManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DesktopArchive::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<EntrypointManifest*>(&to_msg);
-  auto& from = static_cast<const EntrypointManifest&>(from_msg);
+      static_cast<DesktopArchive*>(&to_msg);
+  auto& from = static_cast<const DesktopArchive&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:release.EntrypointManifest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:release.DesktopArchive)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -2682,15 +2232,15 @@ void EntrypointManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void EntrypointManifest::CopyFrom(const EntrypointManifest& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:release.EntrypointManifest)
+void DesktopArchive::CopyFrom(const DesktopArchive& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:release.DesktopArchive)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void EntrypointManifest::InternalSwap(EntrypointManifest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DesktopArchive::InternalSwap(DesktopArchive* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -2701,456 +2251,39 @@ void EntrypointManifest::InternalSwap(EntrypointManifest* PROTOBUF_RESTRICT PROT
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.sha256_, &other->_impl_.sha256_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.archive_name_, &other->_impl_.archive_name_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.size_)
-      + sizeof(EntrypointManifest::_impl_.size_)
-      - PROTOBUF_FIELD_OFFSET(EntrypointManifest, _impl_.archive_ref_)>(
+      PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.size_)
+      + sizeof(DesktopArchive::_impl_.size_)
+      - PROTOBUF_FIELD_OFFSET(DesktopArchive, _impl_.archive_ref_)>(
           reinterpret_cast<char*>(&_impl_.archive_ref_),
           reinterpret_cast<char*>(&other->_impl_.archive_ref_));
 }
 
-::google::protobuf::Metadata EntrypointManifest::GetMetadata() const {
+::google::protobuf::Metadata DesktopArchive::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class PluginManifest::_Internal {
+class BrowserShellMetadata::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<PluginManifest>()._impl_._has_bits_);
+      decltype(::std::declval<BrowserShellMetadata>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_._has_bits_);
 };
 
-void PluginManifest::clear_manifest_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.manifest_ref_ != nullptr) _impl_.manifest_ref_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-void PluginManifest::clear_artifact_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.artifact_ref_ != nullptr) _impl_.artifact_ref_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
-}
-PluginManifest::PluginManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+BrowserShellMetadata::BrowserShellMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, PluginManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, BrowserShellMetadata_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:release.PluginManifest)
+  // @@protoc_insertion_point(arena_constructor:release.BrowserShellMetadata)
 }
-PROTOBUF_NDEBUG_INLINE PluginManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE BrowserShellMetadata::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::release::PluginManifest& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        plugin_id_(arena, from.plugin_id_),
-        version_(arena, from.version_) {}
-
-PluginManifest::PluginManifest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const PluginManifest& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, PluginManifest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  PluginManifest* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.manifest_ref_ = (CheckHasBit(cached_has_bits, 0x00000004U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.manifest_ref_)
-                : nullptr;
-  _impl_.artifact_ref_ = (CheckHasBit(cached_has_bits, 0x00000008U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.artifact_ref_)
-                : nullptr;
-
-  // @@protoc_insertion_point(copy_constructor:release.PluginManifest)
-}
-PROTOBUF_NDEBUG_INLINE PluginManifest::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        plugin_id_(arena),
-        version_(arena) {}
-
-inline void PluginManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, manifest_ref_),
-           0,
-           offsetof(Impl_, artifact_ref_) -
-               offsetof(Impl_, manifest_ref_) +
-               sizeof(Impl_::artifact_ref_));
-}
-PluginManifest::~PluginManifest() {
-  // @@protoc_insertion_point(destructor:release.PluginManifest)
-  SharedDtor(*this);
-}
-inline void PluginManifest::SharedDtor(MessageLite& self) {
-  PluginManifest& this_ = static_cast<PluginManifest&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.plugin_id_.Destroy();
-  this_._impl_.version_.Destroy();
-  delete this_._impl_.manifest_ref_;
-  delete this_._impl_.artifact_ref_;
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL PluginManifest::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) PluginManifest(arena);
-}
-constexpr auto PluginManifest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(PluginManifest),
-                                            alignof(PluginManifest));
-}
-constexpr auto PluginManifest::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_PluginManifest_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &PluginManifest::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<PluginManifest>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &PluginManifest::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<PluginManifest>(), &PluginManifest::ByteSizeLong,
-              &PluginManifest::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_._cached_size_),
-          false,
-      },
-      &PluginManifest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull PluginManifest_class_data_ =
-        PluginManifest::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-PluginManifest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&PluginManifest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(PluginManifest_class_data_.tc_table);
-  return PluginManifest_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 2, 47, 2>
-PluginManifest::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_._has_bits_),
-    0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    2,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    PluginManifest_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::PluginManifest>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // .block.BlockRef artifact_ref = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 3, 1,
-      PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.artifact_ref_)}},
-    // string plugin_id = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.plugin_id_)}},
-    // string version = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.version_)}},
-    // .block.BlockRef manifest_ref = 3;
-    {::_pbi::TcParser::FastMtS1,
-     {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.manifest_ref_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string plugin_id = 1;
-    {PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string version = 2;
-    {PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .block.BlockRef manifest_ref = 3;
-    {PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.manifest_ref_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // .block.BlockRef artifact_ref = 4;
-    {PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.artifact_ref_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-  }},
-  {{
-      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
-      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
-  }},
-  {{
-    "\26\11\7\0\0\0\0\0"
-    "release.PluginManifest"
-    "plugin_id"
-    "version"
-  }},
-};
-PROTOBUF_NOINLINE void PluginManifest::Clear() {
-// @@protoc_insertion_point(message_clear_start:release.PluginManifest)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.plugin_id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.version_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      ABSL_DCHECK(_impl_.manifest_ref_ != nullptr);
-      _impl_.manifest_ref_->Clear();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      ABSL_DCHECK(_impl_.artifact_ref_ != nullptr);
-      _impl_.artifact_ref_->Clear();
-    }
-  }
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL PluginManifest::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const PluginManifest& this_ = static_cast<const PluginManifest&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL PluginManifest::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const PluginManifest& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:release.PluginManifest)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string plugin_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_plugin_id().empty()) {
-      const ::std::string& _s = this_._internal_plugin_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.PluginManifest.plugin_id");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  // string version = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (!this_._internal_version().empty()) {
-      const ::std::string& _s = this_._internal_version();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.PluginManifest.version");
-      target = stream->WriteStringMaybeAliased(2, _s, target);
-    }
-  }
-
-  // .block.BlockRef manifest_ref = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        3, *this_._impl_.manifest_ref_, this_._impl_.manifest_ref_->GetCachedSize(), target,
-        stream);
-  }
-
-  // .block.BlockRef artifact_ref = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        4, *this_._impl_.artifact_ref_, this_._impl_.artifact_ref_->GetCachedSize(), target,
-        stream);
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:release.PluginManifest)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t PluginManifest::ByteSizeLong(const MessageLite& base) {
-  const PluginManifest& this_ = static_cast<const PluginManifest&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t PluginManifest::ByteSizeLong() const {
-  const PluginManifest& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:release.PluginManifest)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-  cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    // string plugin_id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_plugin_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_plugin_id());
-      }
-    }
-    // string version = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!this_._internal_version().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_version());
-      }
-    }
-    // .block.BlockRef manifest_ref = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.manifest_ref_);
-    }
-    // .block.BlockRef artifact_ref = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.artifact_ref_);
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void PluginManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<PluginManifest*>(&to_msg);
-  auto& from = static_cast<const PluginManifest&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:release.PluginManifest)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!from._internal_plugin_id().empty()) {
-        _this->_internal_set_plugin_id(from._internal_plugin_id());
-      } else {
-        if (_this->_impl_.plugin_id_.IsDefault()) {
-          _this->_internal_set_plugin_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!from._internal_version().empty()) {
-        _this->_internal_set_version(from._internal_version());
-      } else {
-        if (_this->_impl_.version_.IsDefault()) {
-          _this->_internal_set_version("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      ABSL_DCHECK(from._impl_.manifest_ref_ != nullptr);
-      if (_this->_impl_.manifest_ref_ == nullptr) {
-        _this->_impl_.manifest_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.manifest_ref_);
-      } else {
-        _this->_impl_.manifest_ref_->MergeFrom(*from._impl_.manifest_ref_);
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      ABSL_DCHECK(from._impl_.artifact_ref_ != nullptr);
-      if (_this->_impl_.artifact_ref_ == nullptr) {
-        _this->_impl_.artifact_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.artifact_ref_);
-      } else {
-        _this->_impl_.artifact_ref_->MergeFrom(*from._impl_.artifact_ref_);
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void PluginManifest::CopyFrom(const PluginManifest& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:release.PluginManifest)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void PluginManifest::InternalSwap(PluginManifest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.version_, &other->_impl_.version_, arena);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.artifact_ref_)
-      + sizeof(PluginManifest::_impl_.artifact_ref_)
-      - PROTOBUF_FIELD_OFFSET(PluginManifest, _impl_.manifest_ref_)>(
-          reinterpret_cast<char*>(&_impl_.manifest_ref_),
-          reinterpret_cast<char*>(&other->_impl_.manifest_ref_));
-}
-
-::google::protobuf::Metadata PluginManifest::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class BrowserShellManifest::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<BrowserShellManifest>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_._has_bits_);
-};
-
-BrowserShellManifest::BrowserShellManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, BrowserShellManifest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:release.BrowserShellManifest)
-}
-PROTOBUF_NDEBUG_INLINE BrowserShellManifest::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::release::BrowserShellManifest& from_msg)
+    [[maybe_unused]] const ::release::BrowserShellMetadata& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         assets_{visibility, arena, from.assets_},
@@ -3161,23 +2294,23 @@ PROTOBUF_NDEBUG_INLINE BrowserShellManifest::Impl_::Impl_(
         shared_worker_path_(arena, from.shared_worker_path_),
         wasm_path_(arena, from.wasm_path_) {}
 
-BrowserShellManifest::BrowserShellManifest(
+BrowserShellMetadata::BrowserShellMetadata(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const BrowserShellManifest& from)
+    const BrowserShellMetadata& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, BrowserShellManifest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, BrowserShellMetadata_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  BrowserShellManifest* const _this = this;
+  BrowserShellMetadata* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
 
-  // @@protoc_insertion_point(copy_constructor:release.BrowserShellManifest)
+  // @@protoc_insertion_point(copy_constructor:release.BrowserShellMetadata)
 }
-PROTOBUF_NDEBUG_INLINE BrowserShellManifest::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE BrowserShellMetadata::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -3189,15 +2322,15 @@ PROTOBUF_NDEBUG_INLINE BrowserShellManifest::Impl_::Impl_(
         shared_worker_path_(arena),
         wasm_path_(arena) {}
 
-inline void BrowserShellManifest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void BrowserShellMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
 }
-BrowserShellManifest::~BrowserShellManifest() {
-  // @@protoc_insertion_point(destructor:release.BrowserShellManifest)
+BrowserShellMetadata::~BrowserShellMetadata() {
+  // @@protoc_insertion_point(destructor:release.BrowserShellMetadata)
   SharedDtor(*this);
 }
-inline void BrowserShellManifest::SharedDtor(MessageLite& self) {
-  BrowserShellManifest& this_ = static_cast<BrowserShellManifest&>(self);
+inline void BrowserShellMetadata::SharedDtor(MessageLite& self) {
+  BrowserShellMetadata& this_ = static_cast<BrowserShellMetadata&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -3212,65 +2345,65 @@ inline void BrowserShellManifest::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL BrowserShellManifest::PlacementNew_(
+inline void* PROTOBUF_NONNULL BrowserShellMetadata::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) BrowserShellManifest(arena);
+  return ::new (mem) BrowserShellMetadata(arena);
 }
-constexpr auto BrowserShellManifest::InternalNewImpl_() {
+constexpr auto BrowserShellMetadata::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.assets_) +
-          decltype(BrowserShellManifest::_impl_.assets_)::
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.assets_) +
+          decltype(BrowserShellMetadata::_impl_.assets_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
     return ::google::protobuf::internal::MessageCreator::CopyInit(
-        sizeof(BrowserShellManifest), alignof(BrowserShellManifest), *arena_bits);
+        sizeof(BrowserShellMetadata), alignof(BrowserShellMetadata), *arena_bits);
   } else {
-    return ::google::protobuf::internal::MessageCreator(&BrowserShellManifest::PlacementNew_,
-                                 sizeof(BrowserShellManifest),
-                                 alignof(BrowserShellManifest));
+    return ::google::protobuf::internal::MessageCreator(&BrowserShellMetadata::PlacementNew_,
+                                 sizeof(BrowserShellMetadata),
+                                 alignof(BrowserShellMetadata));
   }
 }
-constexpr auto BrowserShellManifest::InternalGenerateClassData_() {
+constexpr auto BrowserShellMetadata::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_BrowserShellManifest_default_instance_._instance,
+          &_BrowserShellMetadata_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &BrowserShellManifest::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<BrowserShellManifest>(),
+          &BrowserShellMetadata::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BrowserShellMetadata>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &BrowserShellManifest::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<BrowserShellManifest>(), &BrowserShellManifest::ByteSizeLong,
-              &BrowserShellManifest::_InternalSerialize,
+          &BrowserShellMetadata::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BrowserShellMetadata>(), &BrowserShellMetadata::ByteSizeLong,
+              &BrowserShellMetadata::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_._cached_size_),
           false,
       },
-      &BrowserShellManifest::kDescriptorMethods,
+      &BrowserShellMetadata::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2frelease_2frelease_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull BrowserShellManifest_class_data_ =
-        BrowserShellManifest::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull BrowserShellMetadata_class_data_ =
+        BrowserShellMetadata::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-BrowserShellManifest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&BrowserShellManifest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(BrowserShellManifest_class_data_.tc_table);
-  return BrowserShellManifest_class_data_.base();
+BrowserShellMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BrowserShellMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BrowserShellMetadata_class_data_.tc_table);
+  return BrowserShellMetadata_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
 const ::_pbi::TcParseTable<3, 7, 1, 118, 2>
-BrowserShellManifest::_table_ = {
+BrowserShellMetadata::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_._has_bits_),
     0, // no _extensions_
     7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -3279,66 +2412,66 @@ BrowserShellManifest::_table_ = {
     7,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
-    BrowserShellManifest_class_data_.base(),
+    BrowserShellMetadata_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::release::BrowserShellManifest>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::release::BrowserShellMetadata>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string version = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 1, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.version_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.version_)}},
     // string generation_id = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 2, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.generation_id_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.generation_id_)}},
     // string entrypoint_path = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 3, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.entrypoint_path_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.entrypoint_path_)}},
     // string service_worker_path = 4;
     {::_pbi::TcParser::FastUS1,
      {34, 4, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.service_worker_path_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.service_worker_path_)}},
     // string shared_worker_path = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 5, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.shared_worker_path_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.shared_worker_path_)}},
     // string wasm_path = 6;
     {::_pbi::TcParser::FastUS1,
      {50, 6, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.wasm_path_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.wasm_path_)}},
     // repeated .release.BrowserAsset assets = 7;
     {::_pbi::TcParser::FastMtR1,
      {58, 0, 0,
-      PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.assets_)}},
+      PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.assets_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string version = 1;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string generation_id = 2;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.generation_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.generation_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string entrypoint_path = 3;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.entrypoint_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.entrypoint_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string service_worker_path = 4;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.service_worker_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.service_worker_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string shared_worker_path = 5;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.shared_worker_path_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.shared_worker_path_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string wasm_path = 6;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.wasm_path_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.wasm_path_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated .release.BrowserAsset assets = 7;
-    {PROTOBUF_FIELD_OFFSET(BrowserShellManifest, _impl_.assets_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(BrowserShellMetadata, _impl_.assets_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::release::BrowserAsset>()},
   }},
   {{
     "\34\7\15\17\23\22\11\0"
-    "release.BrowserShellManifest"
+    "release.BrowserShellMetadata"
     "version"
     "generation_id"
     "entrypoint_path"
@@ -3347,8 +2480,8 @@ BrowserShellManifest::_table_ = {
     "wasm_path"
   }},
 };
-PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
-// @@protoc_insertion_point(message_clear_start:release.BrowserShellManifest)
+PROTOBUF_NOINLINE void BrowserShellMetadata::Clear() {
+// @@protoc_insertion_point(message_clear_start:release.BrowserShellMetadata)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -3383,20 +2516,20 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL BrowserShellManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL BrowserShellMetadata::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const BrowserShellManifest& this_ = static_cast<const BrowserShellManifest&>(base);
+  const BrowserShellMetadata& this_ = static_cast<const BrowserShellMetadata&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL BrowserShellManifest::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL BrowserShellMetadata::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const BrowserShellManifest& this_ = *this;
+  const BrowserShellMetadata& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:release.BrowserShellManifest)
+  // @@protoc_insertion_point(serialize_to_array_start:release.BrowserShellMetadata)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -3406,7 +2539,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_version().empty()) {
       const ::std::string& _s = this_._internal_version();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.version");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.version");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
@@ -3416,7 +2549,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_generation_id().empty()) {
       const ::std::string& _s = this_._internal_generation_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.generation_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.generation_id");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
@@ -3426,7 +2559,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_entrypoint_path().empty()) {
       const ::std::string& _s = this_._internal_entrypoint_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.entrypoint_path");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.entrypoint_path");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
@@ -3436,7 +2569,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_service_worker_path().empty()) {
       const ::std::string& _s = this_._internal_service_worker_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.service_worker_path");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.service_worker_path");
       target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
@@ -3446,7 +2579,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_shared_worker_path().empty()) {
       const ::std::string& _s = this_._internal_shared_worker_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.shared_worker_path");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.shared_worker_path");
       target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
@@ -3456,7 +2589,7 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
     if (!this_._internal_wasm_path().empty()) {
       const ::std::string& _s = this_._internal_wasm_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellManifest.wasm_path");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "release.BrowserShellMetadata.wasm_path");
       target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
@@ -3479,18 +2612,18 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:release.BrowserShellManifest)
+  // @@protoc_insertion_point(serialize_to_array_end:release.BrowserShellMetadata)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t BrowserShellManifest::ByteSizeLong(const MessageLite& base) {
-  const BrowserShellManifest& this_ = static_cast<const BrowserShellManifest&>(base);
+::size_t BrowserShellMetadata::ByteSizeLong(const MessageLite& base) {
+  const BrowserShellMetadata& this_ = static_cast<const BrowserShellMetadata&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t BrowserShellManifest::ByteSizeLong() const {
-  const BrowserShellManifest& this_ = *this;
+::size_t BrowserShellMetadata::ByteSizeLong() const {
+  const BrowserShellMetadata& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:release.BrowserShellManifest)
+  // @@protoc_insertion_point(message_byte_size_start:release.BrowserShellMetadata)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -3554,16 +2687,16 @@ PROTOBUF_NOINLINE void BrowserShellManifest::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void BrowserShellManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void BrowserShellMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<BrowserShellManifest*>(&to_msg);
-  auto& from = static_cast<const BrowserShellManifest&>(from_msg);
+      static_cast<BrowserShellMetadata*>(&to_msg);
+  auto& from = static_cast<const BrowserShellMetadata&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:release.BrowserShellManifest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:release.BrowserShellMetadata)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -3635,15 +2768,15 @@ void BrowserShellManifest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void BrowserShellManifest::CopyFrom(const BrowserShellManifest& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:release.BrowserShellManifest)
+void BrowserShellMetadata::CopyFrom(const BrowserShellMetadata& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:release.BrowserShellMetadata)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void BrowserShellManifest::InternalSwap(BrowserShellManifest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void BrowserShellMetadata::InternalSwap(BrowserShellMetadata* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -3658,7 +2791,7 @@ void BrowserShellManifest::InternalSwap(BrowserShellManifest* PROTOBUF_RESTRICT 
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.wasm_path_, &other->_impl_.wasm_path_, arena);
 }
 
-::google::protobuf::Metadata BrowserShellManifest::GetMetadata() const {
+::google::protobuf::Metadata BrowserShellMetadata::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

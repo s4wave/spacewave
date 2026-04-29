@@ -4,13 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-func TestReleaseGraphRoundTrip(t *testing.T) {
+func TestReleaseMetadataRoundTrip(t *testing.T) {
 	ref := testBlockRef()
-	manifestRef := &ManifestRef{Ref: ref}
 	tests := []struct {
 		name      string
 		marshal   func() ([]byte, error)
@@ -35,16 +36,16 @@ func TestReleaseGraphRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name:      "release manifest",
-			marshal:   func() ([]byte, error) { return testReleaseManifest(manifestRef).MarshalVT() },
-			unmarshal: func(data []byte) error { return (&ReleaseManifest{}).UnmarshalVT(data) },
+			name:      "release metadata",
+			marshal:   func() ([]byte, error) { return testReleaseMetadata(ref).MarshalVT() },
+			unmarshal: func(data []byte) error { return (&ReleaseMetadata{}).UnmarshalVT(data) },
 			equal: func() bool {
-				msg := testReleaseManifest(manifestRef)
+				msg := testReleaseMetadata(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
-				got := &ReleaseManifest{}
+				got := &ReleaseMetadata{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
@@ -52,16 +53,16 @@ func TestReleaseGraphRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name:      "entrypoint manifest",
-			marshal:   func() ([]byte, error) { return testEntrypointManifest(ref).MarshalVT() },
-			unmarshal: func(data []byte) error { return (&EntrypointManifest{}).UnmarshalVT(data) },
+			name:      "desktop archive",
+			marshal:   func() ([]byte, error) { return testDesktopArchive(ref).MarshalVT() },
+			unmarshal: func(data []byte) error { return (&DesktopArchive{}).UnmarshalVT(data) },
 			equal: func() bool {
-				msg := testEntrypointManifest(ref)
+				msg := testDesktopArchive(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
-				got := &EntrypointManifest{}
+				got := &DesktopArchive{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
@@ -69,33 +70,16 @@ func TestReleaseGraphRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name:      "plugin manifest",
-			marshal:   func() ([]byte, error) { return testPluginManifest(ref).MarshalVT() },
-			unmarshal: func(data []byte) error { return (&PluginManifest{}).UnmarshalVT(data) },
+			name:      "browser shell metadata",
+			marshal:   func() ([]byte, error) { return testBrowserShellMetadata(ref).MarshalVT() },
+			unmarshal: func(data []byte) error { return (&BrowserShellMetadata{}).UnmarshalVT(data) },
 			equal: func() bool {
-				msg := testPluginManifest(ref)
+				msg := testBrowserShellMetadata(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
-				got := &PluginManifest{}
-				if err := got.UnmarshalVT(data); err != nil {
-					t.Fatalf("UnmarshalVT() error = %v", err)
-				}
-				return msg.EqualVT(got)
-			},
-		},
-		{
-			name:      "browser shell manifest",
-			marshal:   func() ([]byte, error) { return testBrowserShellManifest(ref).MarshalVT() },
-			unmarshal: func(data []byte) error { return (&BrowserShellManifest{}).UnmarshalVT(data) },
-			equal: func() bool {
-				msg := testBrowserShellManifest(ref)
-				data, err := msg.MarshalVT()
-				if err != nil {
-					t.Fatalf("MarshalVT() error = %v", err)
-				}
-				got := &BrowserShellManifest{}
+				got := &BrowserShellMetadata{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
@@ -153,9 +137,8 @@ func TestReleaseGraphRoundTrip(t *testing.T) {
 	}
 }
 
-func TestReleaseGraphValidation(t *testing.T) {
+func TestReleaseMetadataValidation(t *testing.T) {
 	ref := testBlockRef()
-	manifestRef := &ManifestRef{Ref: ref}
 	tests := []struct {
 		name    string
 		err     error
@@ -164,33 +147,41 @@ func TestReleaseGraphValidation(t *testing.T) {
 		{
 			name:    "channel directory nil ref",
 			err:     (&ChannelDirectory{Channels: []*ChannelEntry{{ChannelKey: "stable"}}}).Validate(),
-			wantErr: "invalid release manifest ref",
+			wantErr: "invalid release metadata ref",
 		},
 		{
-			name: "missing release manifest",
-			err: testChannelDirectory(ref).ValidateReleaseManifestRefs(func(*block.BlockRef) bool {
+			name: "missing release metadata",
+			err: testChannelDirectory(ref).ValidateReleaseMetadataRefs(func(*block.BlockRef) bool {
 				return false
 			}),
-			wantErr: "missing release manifest",
+			wantErr: "missing release metadata",
 		},
 		{
-			name: "unknown platform key",
-			err: (&ReleaseManifest{
-				ProjectId:    "spacewave",
-				Version:      "0.1.0",
-				Entrypoints:  map[string]*ManifestRef{"darwin": manifestRef},
-				BrowserShell: manifestRef,
+			name: "missing bldr manifest refs",
+			err: (&ReleaseMetadata{
+				ProjectId:       "spacewave",
+				ChannelKey:      "stable",
+				Version:         "0.1.0",
+				DesktopArchives: map[string]*DesktopArchive{"darwin/arm64": testDesktopArchive(ref)},
+				BrowserShell:    testBrowserShellMetadata(ref),
 			}).Validate(),
-			wantErr: `unknown platform key "darwin"`,
+			wantErr: "no bldr manifest refs",
 		},
 		{
-			name:    "manifest ref nil ref",
-			err:     (&ManifestRef{}).Validate(),
-			wantErr: "nil block ref",
+			name: "desktop archive key mismatch",
+			err: (&ReleaseMetadata{
+				ProjectId:       "spacewave",
+				ChannelKey:      "stable",
+				Version:         "0.1.0",
+				ManifestRefs:    []*bldr_manifest.ManifestRef{testManifestRef(ref)},
+				DesktopArchives: map[string]*DesktopArchive{"linux/arm64": testDesktopArchive(ref)},
+				BrowserShell:    testBrowserShellMetadata(ref),
+			}).Validate(),
+			wantErr: "desktop archive platform key mismatch",
 		},
 		{
-			name: "entrypoint nil ref",
-			err: (&EntrypointManifest{
+			name: "desktop archive nil ref",
+			err: (&DesktopArchive{
 				Platform:    "darwin/arm64",
 				Version:     "0.1.0",
 				Size:        1,
@@ -198,14 +189,6 @@ func TestReleaseGraphValidation(t *testing.T) {
 				ArchiveName: "spacewave-darwin-arm64.tar.gz",
 			}).Validate(),
 			wantErr: "invalid archive ref",
-		},
-		{
-			name: "plugin nil manifest ref",
-			err: (&PluginManifest{
-				PluginId: "spacewave-web",
-				Version:  "0.1.0",
-			}).Validate(),
-			wantErr: "invalid manifest ref",
 		},
 		{
 			name: "browser asset nil ref",
@@ -234,12 +217,10 @@ func TestReleaseGraphValidation(t *testing.T) {
 		err  error
 	}{
 		{name: "channel directory", err: testChannelDirectory(ref).Validate()},
-		{name: "channel refs", err: testChannelDirectory(ref).ValidateReleaseManifestRefs(func(*block.BlockRef) bool { return true })},
-		{name: "release manifest", err: testReleaseManifest(manifestRef).Validate()},
-		{name: "manifest ref", err: manifestRef.Validate()},
-		{name: "entrypoint manifest", err: testEntrypointManifest(ref).Validate()},
-		{name: "plugin manifest", err: testPluginManifest(ref).Validate()},
-		{name: "browser shell manifest", err: testBrowserShellManifest(ref).Validate()},
+		{name: "channel refs", err: testChannelDirectory(ref).ValidateReleaseMetadataRefs(func(*block.BlockRef) bool { return true })},
+		{name: "release metadata", err: testReleaseMetadata(ref).Validate()},
+		{name: "desktop archive", err: testDesktopArchive(ref).Validate()},
+		{name: "browser shell metadata", err: testBrowserShellMetadata(ref).Validate()},
 		{name: "browser asset", err: testBrowserAsset(ref).Validate()},
 		{name: "update notification", err: testUpdateNotification().Validate()},
 	}
@@ -256,29 +237,40 @@ func testChannelDirectory(ref *block.BlockRef) *ChannelDirectory {
 	return &ChannelDirectory{
 		Channels: []*ChannelEntry{{
 			ChannelKey:         "stable",
-			ReleaseManifestRef: ref,
+			ReleaseMetadataRef: ref,
 		}},
 	}
 }
 
-func testReleaseManifest(ref *ManifestRef) *ReleaseManifest {
-	return &ReleaseManifest{
-		ProjectId: "spacewave",
-		Rev:       1,
-		Version:   "0.1.0",
-		Entrypoints: map[string]*ManifestRef{
-			"darwin/arm64": ref,
+func testReleaseMetadata(ref *block.BlockRef) *ReleaseMetadata {
+	return &ReleaseMetadata{
+		ProjectId:    "spacewave",
+		Rev:          1,
+		Version:      "0.1.0",
+		ChannelKey:   "stable",
+		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef(ref)},
+		DesktopArchives: map[string]*DesktopArchive{
+			"darwin/arm64": testDesktopArchive(ref),
 		},
-		Plugins: map[string]*ManifestRef{
-			"spacewave-web": ref,
-		},
-		BrowserShell:           ref,
+		BrowserShell:           testBrowserShellMetadata(ref),
 		MinimumLauncherVersion: "0.1.0",
 	}
 }
 
-func testEntrypointManifest(ref *block.BlockRef) *EntrypointManifest {
-	return &EntrypointManifest{
+func testManifestRef(ref *block.BlockRef) *bldr_manifest.ManifestRef {
+	return &bldr_manifest.ManifestRef{
+		Meta: &bldr_manifest.ManifestMeta{
+			ManifestId: "spacewave-web",
+			BuildType:  "production",
+			PlatformId: "js",
+			Rev:        1,
+		},
+		ManifestRef: &bucket.ObjectRef{RootRef: ref},
+	}
+}
+
+func testDesktopArchive(ref *block.BlockRef) *DesktopArchive {
+	return &DesktopArchive{
 		Platform:    "darwin/arm64",
 		Version:     "0.1.0",
 		ArchiveRef:  ref,
@@ -288,17 +280,8 @@ func testEntrypointManifest(ref *block.BlockRef) *EntrypointManifest {
 	}
 }
 
-func testPluginManifest(ref *block.BlockRef) *PluginManifest {
-	return &PluginManifest{
-		PluginId:    "spacewave-web",
-		Version:     "0.1.0",
-		ManifestRef: ref,
-		ArtifactRef: ref,
-	}
-}
-
-func testBrowserShellManifest(ref *block.BlockRef) *BrowserShellManifest {
-	return &BrowserShellManifest{
+func testBrowserShellMetadata(ref *block.BlockRef) *BrowserShellMetadata {
+	return &BrowserShellMetadata{
 		Version:           "0.1.0",
 		GenerationId:      "gen-1",
 		EntrypointPath:    "/b/entrypoint/boot.mjs",
