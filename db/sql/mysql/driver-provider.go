@@ -6,7 +6,6 @@ import (
 
 	gdriver "github.com/dolthub/go-mysql-server/driver"
 	"github.com/dolthub/go-mysql-server/sql"
-	mysql2 "github.com/go-sql-driver/mysql"
 )
 
 // DriverProvider implements the Provider interface for the sql driver.
@@ -57,11 +56,11 @@ func (p *DriverProvider) NewContext(
 	dsn := conn.DSN()
 	var dbName string
 	if dsn != "" {
-		cfg, err := mysql2.ParseDSN(dsn)
+		parsed, err := parseDSN(dsn)
 		if err != nil {
 			return nil, err
 		}
-		dbName = cfg.DBName
+		dbName = parsed
 	}
 
 	sctx := sql.NewContext(ctx, opts...)
