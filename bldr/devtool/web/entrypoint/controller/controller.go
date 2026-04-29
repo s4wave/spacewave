@@ -360,7 +360,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		defer plugRef.Release()
 	}
 
-	le.Info("browser RPC server ready for BrowserProtocolID streams")
+	le.Debug("browser RPC server ready for BrowserProtocolID streams")
 
 	// wait to run all the defer calls until context cancels
 	<-ctx.Done()

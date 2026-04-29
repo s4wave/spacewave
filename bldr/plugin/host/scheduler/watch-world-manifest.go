@@ -94,7 +94,7 @@ func (t *pluginInstance) processManifestWorldState(
 			_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
 			_, changed2, _, _ := t.executePluginRoutine.SetState(nil)
 			if changed1 || changed2 || !t.loggedNotFound.Swap(true) {
-				le.Infof("no manifests for plugin found in world")
+				le.Debugf("no manifests for plugin found in world")
 			}
 		} else if !t.loggedNotFound.Swap(true) {
 			le.Debugf("no manifests for plugin in world (store disabled, fetch may provide)")
