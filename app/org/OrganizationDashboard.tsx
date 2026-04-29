@@ -23,12 +23,21 @@ import { VISIBLE_QUICKSTART_OPTIONS } from '@s4wave/app/quickstart/options.js'
 import { ShootingStars } from '@s4wave/web/ui/shooting-stars.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
+import { MissingBillingAccountBanner } from './MissingBillingAccountBanner.js'
 import { useOrgContainerState } from './OrgContainer.js'
 
 // OrganizationDashboard renders the main content area for an organization.
 // Mirrors SessionDashboard: command palette with space list and actions.
 export function OrganizationDashboard() {
-  const { orgId, orgName, degraded, spaces } = useOrgContainerState()
+  const {
+    orgId,
+    orgName,
+    orgState,
+    degraded,
+    isOwner,
+    spaces,
+    billingAccountId,
+  } = useOrgContainerState()
   const navigateSession = useSessionNavigate()
   const setOpenMenu = useBottomBarSetOpenMenu()
   const detailsNs = useStateNamespace(['org-details'])
@@ -60,6 +69,11 @@ export function OrganizationDashboard() {
     setOpenSection('recovery')
     setOpenMenu?.('organization')
   }, [setOpenMenu, setOpenSection])
+  const handleConfigureBilling = useCallback(() => {
+    navigateSession({ path: 'billing' })
+  }, [navigateSession])
+
+  const showMissingBillingBanner = !!orgState && !billingAccountId
 
   // Filter quickstart options to space-creating ones (no account/pair/local).
   const quickstartOptions = useMemo(
@@ -99,6 +113,13 @@ export function OrganizationDashboard() {
             <LuArrowRight className="text-foreground-alt group-hover:text-foreground h-3 w-3 shrink-0 transition-colors" />
           </div>
         </button>
+      )}
+
+      {showMissingBillingBanner && (
+        <MissingBillingAccountBanner
+          isOwner={isOwner}
+          onConfigureBilling={handleConfigureBilling}
+        />
       )}
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">

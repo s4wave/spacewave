@@ -42,6 +42,7 @@ export interface OrgContainerState {
   degraded: boolean
   isOwner: boolean
   spaces: OrgSpaceInfo[]
+  billingAccountId: string
 }
 
 const OrgContainerContext = createContext<OrgContainerState | null>(null)
@@ -98,6 +99,7 @@ export function OrgContainer() {
   const degraded = !orgState
   const isOwner = info?.role === ORG_ROLE_OWNER
   const orgName = info?.displayName || 'Organization'
+  const billingAccountId = info?.billingAccountId ?? ''
   const spaces = useMemo<OrgSpaceInfo[]>(() => {
     if (orgState?.spaces) {
       return orgState.spaces
@@ -182,8 +184,16 @@ export function OrgContainer() {
   )
 
   const containerState = useMemo<OrgContainerState>(
-    () => ({ orgId, orgState, orgName, degraded, isOwner, spaces }),
-    [orgId, orgState, orgName, degraded, isOwner, spaces],
+    () => ({
+      orgId,
+      orgState,
+      orgName,
+      degraded,
+      isOwner,
+      spaces,
+      billingAccountId,
+    }),
+    [orgId, orgState, orgName, degraded, isOwner, spaces, billingAccountId],
   )
 
   const buttonKey = `${orgName}|${roleLabel}`
