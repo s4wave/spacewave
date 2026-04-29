@@ -39,7 +39,7 @@ export const isSaucer =
  * Uses manual parsing instead of new URL() because bldr: is not a standard
  * scheme and URL parsing may fail or return empty searchParams.
  */
-export function getDocId(): string {
+function getDocId(): string {
   if (typeof window === 'undefined') return ''
   const search = window.location.search || ''
   const match = search.match(/[?&]webDocumentId=([^&]+)/)
@@ -95,14 +95,6 @@ export class SaucerRuntimeClient {
     return openRpcStream(
       docUuid,
       this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost),
-    )
-  }
-
-  // openWebWorkerHostStream opens a stream wrapped in WebRuntimeHost.WebWorkerRpc rpcstream.
-  public openWebWorkerHostStream(workerUuid: string) {
-    return openRpcStream(
-      workerUuid,
-      this.runtimeHost.WebWorkerRpc.bind(this.runtimeHost),
     )
   }
 

@@ -1,1 +1,1 @@
-export { isSaucer, getDocId, SaucerRuntimeClient } from './saucer.js'
+export { isSaucer, SaucerRuntimeClient } from './saucer.js'
