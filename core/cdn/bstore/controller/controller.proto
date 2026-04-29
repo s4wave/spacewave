@@ -1,0 +1,28 @@
+syntax = "proto3";
+package cdn.bstore.controller;
+
+// Config configures an anonymous CDN block store controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // SpaceId is the public CDN Space id.
+  string space_id = 2;
+  // CdnBaseUrl is the public CDN base URL.
+  string cdn_base_url = 3;
+  // PointerTtlDur is the cached root pointer TTL.
+  // Empty uses the CDN block store default. Negative disables expiry.
+  string pointer_ttl_dur = 4;
+  // CacheBlockStoreId optionally resolves a local block store for co-block
+  // writeback while reading remote pack ranges.
+  string cache_block_store_id = 5;
+  // WritebackWindowBytes sets the semantic co-block writeback window.
+  int64 writeback_window_bytes = 6;
+  // RangeCacheMaxBytes sets the resident range-cache budget per pack reader.
+  int64 range_cache_max_bytes = 7;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 8;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 9;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 10;
+}

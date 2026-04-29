@@ -91,6 +91,17 @@ func (s *CdnBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+// SetWriteback enables local co-block persistence through the underlying
+// packfile store.
+func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
+	s.pfs.SetWriteback(ctx, target, windowBytes)
+}
+
+// SetRangeCacheMaxBytes sets the resident range-cache budget per pack reader.
+func (s *CdnBlockStore) SetRangeCacheMaxBytes(maxBytes int64) {
+	s.pfs.SetRangeCacheMaxBytes(maxBytes)
+}
+
 // GetBlock reads a block by reference, refreshing the pointer if needed.
 func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if _, err := s.ensurePointer(ctx); err != nil {
