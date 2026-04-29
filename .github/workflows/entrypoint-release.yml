@@ -690,7 +690,6 @@ jobs:
           if ! go run ./cmd/changelog-notes --version "${{ needs.prep.outputs.version }}" > .tmp/release-notes.md; then
             cat > .tmp/release-notes.md <<'EOF'
           Automated draft release assembled by the entrypoint-release workflow.
-          Publication to R2 and Worker deploy happen from the private promotion workflow.
           EOF
           fi
 
