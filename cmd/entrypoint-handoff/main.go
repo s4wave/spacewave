@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const usageText = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser] --out-dir /path/to/out"
+const usageText = "usage: entrypoint-handoff --version X.Y.Z --platforms p1,p2 [--include-browser|--browser-only] --out-dir /path/to/out"
 
 func main() {
 	if err := run(context.Background(), os.Args[1:]); err != nil {
@@ -45,6 +45,7 @@ func run(ctx context.Context, args []string) error {
 	var reactDev bool
 	var skipNotarize bool
 	var includeBrowser bool
+	var browserOnly bool
 	var skipBuild bool
 	var skipPackage bool
 	var stageBuildInputs bool
@@ -55,6 +56,7 @@ func run(ctx context.Context, args []string) error {
 		fs.BoolVar(&reactDev, "react-dev", false, "build browser entrypoint in dev mode")
 		fs.BoolVar(&skipNotarize, "skip-notarize", false, "skip Apple notarization during packaging")
 		fs.BoolVar(&includeBrowser, "include-browser", false, "include browser staging tree and static-manifest.ts")
+		fs.BoolVar(&browserOnly, "browser-only", false, "build only browser staging tree and static-manifest.ts")
 		fs.BoolVar(&skipBuild, "skip-build", false, "skip helper and entrypoint builds and package existing artifacts")
 		fs.BoolVar(&skipPackage, "skip-package", false, "skip installer packaging")
 		fs.BoolVar(&stageBuildInputs, "stage-build-inputs", false, "stage raw dist/helper/icon inputs into out-dir")
@@ -62,8 +64,17 @@ func run(ctx context.Context, args []string) error {
 	}(); err != nil {
 		return errors.Wrap(err, "parse flags")
 	}
-	if version == "" || platformsCSV == "" || outDir == "" {
+	if version == "" || outDir == "" {
 		return errors.New(usageText)
+	}
+	if !browserOnly && platformsCSV == "" {
+		return errors.New(usageText)
+	}
+	if browserOnly && platformsCSV != "" {
+		return errors.New("--browser-only does not accept --platforms")
+	}
+	if browserOnly && includeBrowser {
+		return errors.New("--browser-only and --include-browser cannot be combined")
 	}
 
 	repoDir, err := os.Getwd()
@@ -71,7 +82,7 @@ func run(ctx context.Context, args []string) error {
 		return errors.Wrap(err, "resolve repo dir")
 	}
 	platforms := splitCSV(platformsCSV)
-	if len(platforms) == 0 {
+	if !browserOnly && len(platforms) == 0 {
 		return errors.New("at least one platform is required")
 	}
 
@@ -82,6 +93,19 @@ func run(ctx context.Context, args []string) error {
 
 	if err := os.RemoveAll(outDir); err != nil {
 		return errors.Wrap(err, "clean out dir")
+	}
+	if browserOnly {
+		if err := runPhase(le, "build-browser", func() error {
+			return buildBrowser(ctx, repoDir, reactDev)
+		}); err != nil {
+			return err
+		}
+		if err := runPhase(le, "stage-browser-outputs", func() error {
+			return stageBrowserOutputs(repoDir, outDir)
+		}); err != nil {
+			return err
+		}
+		return nil
 	}
 	for _, rel := range []string{
 		filepath.Join(".tmp", "dist"),
@@ -682,6 +706,10 @@ func stageOutputs(repoDir, outDir string, includeBrowser bool) error {
 	if !includeBrowser {
 		return nil
 	}
+	return stageBrowserOutputs(repoDir, outDir)
+}
+
+func stageBrowserOutputs(repoDir, outDir string) error {
 	if err := copyTree(filepath.Join(repoDir, "staging"), filepath.Join(outDir, "browser-staging")); err != nil {
 		return errors.Wrap(err, "stage browser tree")
 	}

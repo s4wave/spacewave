@@ -79,6 +79,12 @@ jobs:
     needs: prep
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
       BLDR_BUILDER_USE_BUILDX_GHA: "1"
@@ -91,8 +97,8 @@ jobs:
         id: linux_handoff_cache
         uses: actions/cache@v5
         with:
-          path: .tmp/entrypoint-handoff/linux
-          key: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-reactdev${{ inputs.react_dev }}
+          path: .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
+          key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
 
       - name: Setup Go
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
@@ -132,24 +138,82 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Build Linux and browser handoff slice
+      - name: Build Linux ${{ matrix.arch }} handoff slice
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
-            --platforms "linux-amd64,linux-arm64" \
-            --include-browser \
-            --react-dev=${{ inputs.react_dev }} \
+            --platforms "linux-${{ matrix.arch }}" \
             --skip-notarize \
-            --out-dir .tmp/entrypoint-handoff/linux
+            --out-dir .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
 
       - name: Upload Linux handoff part
         uses: actions/upload-artifact@v7
         with:
-          name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-handoff/linux
+          name: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
+          if-no-files-found: error
+
+  browser:
+    needs: prep
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache browser handoff part
+        id: browser_handoff_cache
+        uses: actions/cache@v5
+        with:
+          path: .tmp/entrypoint-handoff/browser
+          key: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-reactdev${{ inputs.react_dev }}
+
+      - name: Setup Go
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.JS
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 25.x
+
+      - name: Install Bun dependencies
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
+
+      - name: Build browser handoff slice
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --browser-only \
+            --react-dev=${{ inputs.react_dev }} \
+            --out-dir .tmp/entrypoint-handoff/browser
+
+      - name: Upload browser handoff part
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-handoff/browser
           if-no-files-found: error
 
   windows:
@@ -510,6 +574,7 @@ jobs:
     needs:
       - prep
       - linux
+      - browser
       - windows
       - macos
     runs-on: ubuntu-latest
@@ -523,11 +588,23 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Download Linux handoff part
+      - name: Download Linux amd64 handoff part
         uses: actions/download-artifact@v8
         with:
-          name: entrypoint-part-linux-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
-          path: .tmp/entrypoint-parts/linux
+          name: entrypoint-part-linux-amd64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/linux-amd64
+
+      - name: Download Linux arm64 handoff part
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-part-linux-arm64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/linux-arm64
+
+      - name: Download browser handoff part
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-parts/browser
 
       - name: Download macOS handoff part
         uses: actions/download-artifact@v8
@@ -549,11 +626,13 @@ jobs:
           mkdir -p .tmp/entrypoint-handoff/installers
           mkdir -p .tmp/entrypoint-handoff/bundles
           mkdir -p .tmp/entrypoint-handoff/cli
-          cp -R .tmp/entrypoint-parts/linux/installers/. .tmp/entrypoint-handoff/installers/
-          cp -R .tmp/entrypoint-parts/linux/bundles/. .tmp/entrypoint-handoff/bundles/
-          if [ -d .tmp/entrypoint-parts/linux/cli ]; then
-            cp -R .tmp/entrypoint-parts/linux/cli/. .tmp/entrypoint-handoff/cli/
-          fi
+          for arch in amd64 arm64; do
+            cp -R ".tmp/entrypoint-parts/linux-${arch}/installers/." .tmp/entrypoint-handoff/installers/
+            cp -R ".tmp/entrypoint-parts/linux-${arch}/bundles/." .tmp/entrypoint-handoff/bundles/
+            if [ -d ".tmp/entrypoint-parts/linux-${arch}/cli" ]; then
+              cp -R ".tmp/entrypoint-parts/linux-${arch}/cli/." .tmp/entrypoint-handoff/cli/
+            fi
+          done
           cp -R .tmp/entrypoint-parts/windows/installers/. .tmp/entrypoint-handoff/installers/
           cp -R .tmp/entrypoint-parts/windows/bundles/. .tmp/entrypoint-handoff/bundles/
           if [ -d .tmp/entrypoint-parts/windows/cli ]; then
@@ -564,8 +643,8 @@ jobs:
           if [ -d .tmp/entrypoint-parts/macos/cli ]; then
             cp -R .tmp/entrypoint-parts/macos/cli/. .tmp/entrypoint-handoff/cli/
           fi
-          cp -R .tmp/entrypoint-parts/linux/browser-staging .tmp/entrypoint-handoff/browser-staging
-          cp .tmp/entrypoint-parts/linux/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
+          cp -R .tmp/entrypoint-parts/browser/browser-staging .tmp/entrypoint-handoff/browser-staging
+          cp .tmp/entrypoint-parts/browser/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
 
       - name: Build checksums and handoff manifest
         shell: bash
