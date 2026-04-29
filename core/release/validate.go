@@ -129,7 +129,7 @@ func (a *BrowserAsset) Validate() error {
 	if strings.TrimSpace(a.GetPath()) == "" {
 		return errors.New("missing path")
 	}
-	if ref := a.GetContentRef(); ref != nil {
+	if ref := a.GetContentRef(); blockRefPresent(ref) {
 		if err := validateBlockRef(ref); err != nil {
 			return errors.Wrap(err, "invalid content ref")
 		}
@@ -167,17 +167,17 @@ func validateBlockRef(ref *block.BlockRef) error {
 	if ref == nil {
 		return errors.New("nil block ref")
 	}
-	h := ref.GetHash()
-	if h == nil {
-		return errors.New("nil hash")
+	if ref.GetEmpty() {
+		return errors.New("empty block ref")
 	}
-	if h.GetHashType() == 0 {
-		return errors.New("missing hash type")
-	}
-	if len(h.GetHash()) == 0 {
-		return errors.New("missing hash")
+	if err := ref.Validate(false); err != nil {
+		return err
 	}
 	return nil
+}
+
+func blockRefPresent(ref *block.BlockRef) bool {
+	return ref != nil && !ref.GetEmpty()
 }
 
 func isPlatformKey(key string) bool {

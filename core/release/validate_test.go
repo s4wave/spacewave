@@ -133,6 +133,11 @@ func TestReleaseMetadataValidation(t *testing.T) {
 			wantErr: "invalid release metadata ref",
 		},
 		{
+			name:    "channel directory empty ref",
+			err:     testChannelDirectory(&block.BlockRef{}).Validate(),
+			wantErr: "invalid release metadata ref",
+		},
+		{
 			name: "missing release metadata",
 			err: testChannelDirectory(ref).ValidateReleaseMetadataRefs(func(*block.BlockRef) bool {
 				return false
@@ -171,6 +176,7 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{name: "browser shell metadata", err: testBrowserShellMetadata(ref).Validate()},
 		{name: "browser asset", err: testBrowserAsset(ref).Validate()},
 		{name: "browser asset without content ref", err: testBrowserAsset(nil).Validate()},
+		{name: "browser asset with empty content ref", err: testBrowserAsset(&block.BlockRef{}).Validate()},
 		{name: "update notification", err: testUpdateNotification().Validate()},
 	}
 	for _, tt := range valid {

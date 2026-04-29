@@ -61,7 +61,7 @@ func (m *ReleaseMetadata) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
 func (m *ReleaseMetadata) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	refs := make(map[uint32]*block.BlockRef, len(m.GetBrowserShell().GetAssets()))
 	for i, asset := range m.GetBrowserShell().GetAssets() {
-		if ref := asset.GetContentRef(); ref != nil {
+		if ref := asset.GetContentRef(); blockRefPresent(ref) {
 			refs[uint32(releaseMetadataAssetBase+i)] = ref
 		}
 	}
@@ -92,7 +92,7 @@ func (m *BrowserShellMetadata) ApplyBlockRef(id uint32, ref *block.BlockRef) err
 func (m *BrowserShellMetadata) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	refs := make(map[uint32]*block.BlockRef, len(m.GetAssets()))
 	for i, asset := range m.GetAssets() {
-		if ref := asset.GetContentRef(); ref != nil {
+		if ref := asset.GetContentRef(); blockRefPresent(ref) {
 			refs[uint32(browserShellAssetRefBase+i)] = ref
 		}
 	}
@@ -120,7 +120,7 @@ func (m *BrowserAsset) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
 }
 
 func (m *BrowserAsset) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	if m.GetContentRef() == nil {
+	if !blockRefPresent(m.GetContentRef()) {
 		return nil, nil
 	}
 	return map[uint32]*block.BlockRef{browserAssetContentRef: m.GetContentRef()}, nil
