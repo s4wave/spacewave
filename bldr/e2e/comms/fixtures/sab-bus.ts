@@ -24,16 +24,56 @@ declare global {
 }
 
 type WorkerMessage = { type: string } & Record<string, unknown>
+interface TrackedWorker {
+  name: string
+  worker: Worker
+  messages: WorkerMessage[]
+  closed: boolean
+}
 
-// Wait for a specific message type from a worker.
-function waitWorkerMsg(
-  worker: Worker,
+function createTrackedWorker(name: string): TrackedWorker {
+  const worker = new Worker(new URL('./workers/bus-peer.js', import.meta.url), {
+    type: 'module',
+  })
+  const messages: WorkerMessage[] = []
+  worker.addEventListener('message', (ev: MessageEvent<unknown>) => {
+    if (typeof ev.data !== 'object' || ev.data === null) return
+    messages.push(ev.data as WorkerMessage)
+  })
+  worker.addEventListener('error', (ev) => {
+    messages.push({
+      type: 'worker-error',
+      message: ev.message,
+      filename: ev.filename,
+      lineno: ev.lineno,
+      colno: ev.colno,
+    })
+  })
+  return { name, worker, messages, closed: false }
+}
+
+function summarizeMessages(worker: TrackedWorker): string {
+  const tail = worker.messages.slice(-8)
+  if (tail.length === 0) {
+    return 'no worker messages'
+  }
+  return JSON.stringify(tail)
+}
+
+async function waitWorkerMsg(
+  tracked: TrackedWorker,
+  stage: string,
   type: string,
   timeoutMs: number,
 ): Promise<WorkerMessage> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error(`timeout waiting for ${type}`)),
+      () =>
+        reject(
+          new Error(
+            `${stage}: timeout waiting for ${tracked.name} ${type}; recent=${summarizeMessages(tracked)}`,
+          ),
+        ),
       timeoutMs,
     )
     const handler = (ev: MessageEvent<unknown>) => {
@@ -41,51 +81,82 @@ function waitWorkerMsg(
       const msg = ev.data as WorkerMessage
       if (msg.type === type) {
         clearTimeout(timer)
-        worker.removeEventListener('message', handler)
+        tracked.worker.removeEventListener('message', handler)
         resolve(msg)
       }
     }
-    worker.addEventListener('message', handler)
+    tracked.worker.addEventListener('message', handler)
   })
+}
+
+async function closeWorker(tracked: TrackedWorker): Promise<void> {
+  if (tracked.closed) {
+    return
+  }
+  tracked.closed = true
+  tracked.worker.postMessage({ type: 'close' })
+  try {
+    await waitWorkerMsg(tracked, 'cleanup', 'closed', 1000)
+  } catch (err) {
+    console.warn(`${tracked.name}: close ack failed`, err)
+  }
+  tracked.worker.terminate()
 }
 
 async function run() {
   const log = document.getElementById('log')!
   const errors: string[] = []
+  const workers: TrackedWorker[] = []
+  let mainEndpoint: SabBusEndpoint | undefined
+
+  function spawnWorker(name: string): TrackedWorker {
+    const worker = createTrackedWorker(name)
+    workers.push(worker)
+    return worker
+  }
 
   try {
     const busOpts = { slotSize: 256, numSlots: 32 }
     const busSab = createBusSab(busOpts)
 
     // Main thread endpoint (pluginId=0).
-    const mainEndpoint = new SabBusEndpoint(busSab, 0, busOpts)
+    mainEndpoint = new SabBusEndpoint(busSab, 0, busOpts)
     mainEndpoint.register()
 
     // Spawn worker A (pluginId=1) and worker B (pluginId=2).
-    const workerA = new Worker(new URL('./workers/bus-peer.js', import.meta.url), { type: 'module' })
-    const workerB = new Worker(new URL('./workers/bus-peer.js', import.meta.url), { type: 'module' })
+    const workerA = spawnWorker('workerA')
+    const workerB = spawnWorker('workerB')
 
     // Init worker A: register, then read one message.
-    workerA.postMessage({
+    workerA.worker.postMessage({
       busSab,
       pluginId: 1,
+      stage: 'unicast-worker-a',
       readOne: true,
     })
-    await waitWorkerMsg(workerA, 'registered', 5000)
+    await waitWorkerMsg(workerA, 'register-worker-a', 'registered', 5000)
+    await waitWorkerMsg(workerA, 'unicast-worker-a', 'read-started', 5000)
 
     // Init worker B: register, then read one message.
-    workerB.postMessage({
+    workerB.worker.postMessage({
       busSab,
       pluginId: 2,
+      stage: 'idle-worker-b',
       readOne: true,
     })
-    await waitWorkerMsg(workerB, 'registered', 5000)
+    await waitWorkerMsg(workerB, 'register-worker-b', 'registered', 5000)
+    await waitWorkerMsg(workerB, 'idle-worker-b', 'read-started', 5000)
 
     // Test 1: Unicast main(0) -> worker A(1).
     let unicast = false
     {
-      mainEndpoint.write(1, new Uint8Array([0xaa, 0x01]))
-      const msg = await waitWorkerMsg(workerA, 'received', 5000)
+      await mainEndpoint.write(1, new Uint8Array([0xaa, 0x01]))
+      const msg = await waitWorkerMsg(
+        workerA,
+        'unicast-main-to-worker-a',
+        'received',
+        5000,
+      )
       if (msg.sourceId === 0 && msg.data[0] === 0xaa && msg.data[1] === 0x01) {
         unicast = true
       } else {
@@ -97,44 +168,64 @@ async function run() {
     // Re-init worker A to send, worker B to read.
     let relay = false
     {
-      const workerA2 = new Worker(new URL('./workers/bus-peer.js', import.meta.url), { type: 'module' })
-      const workerB2 = new Worker(new URL('./workers/bus-peer.js', import.meta.url), { type: 'module' })
+      const workerA2 = spawnWorker('workerA2')
+      const workerB2 = spawnWorker('workerB2')
 
-      workerB2.postMessage({ busSab, pluginId: 12, readOne: true })
-      await waitWorkerMsg(workerB2, 'registered', 5000)
+      workerB2.worker.postMessage({
+        busSab,
+        pluginId: 12,
+        stage: 'relay-receiver',
+        readOne: true,
+      })
+      await waitWorkerMsg(
+        workerB2,
+        'register-relay-receiver',
+        'registered',
+        5000,
+      )
+      await waitWorkerMsg(workerB2, 'relay-receiver', 'read-started', 5000)
 
-      workerA2.postMessage({
+      workerA2.worker.postMessage({
         busSab,
         pluginId: 11,
+        stage: 'relay-sender',
         targetId: 12,
         payload: [0xbb, 0x02],
       })
-      await waitWorkerMsg(workerA2, 'registered', 5000)
-      await waitWorkerMsg(workerA2, 'sent', 5000)
+      await waitWorkerMsg(workerA2, 'register-relay-sender', 'registered', 5000)
+      await waitWorkerMsg(workerA2, 'relay-sender', 'sent', 5000)
 
-      const msg = await waitWorkerMsg(workerB2, 'received', 5000)
+      const msg = await waitWorkerMsg(
+        workerB2,
+        'relay-worker-a-to-worker-b',
+        'received',
+        5000,
+      )
       if (msg.sourceId === 11 && msg.data[0] === 0xbb && msg.data[1] === 0x02) {
         relay = true
       } else {
         errors.push(`relay: unexpected msg ${JSON.stringify(msg)}`)
       }
-
-      workerA2.terminate()
-      workerB2.terminate()
     }
 
     // Test 3: Broadcast from worker -> main.
     let broadcast = false
     {
-      const workerC = new Worker(new URL('./workers/bus-peer.js', import.meta.url), { type: 'module' })
-      workerC.postMessage({
+      const workerC = spawnWorker('workerC')
+      workerC.worker.postMessage({
         busSab,
         pluginId: 20,
+        stage: 'broadcast-sender',
         targetId: BROADCAST_ID,
         payload: [0xcc, 0x03],
       })
-      await waitWorkerMsg(workerC, 'registered', 5000)
-      await waitWorkerMsg(workerC, 'sent', 5000)
+      await waitWorkerMsg(
+        workerC,
+        'register-broadcast-sender',
+        'registered',
+        5000,
+      )
+      await waitWorkerMsg(workerC, 'broadcast-sender', 'sent', 5000)
 
       // Main endpoint reads the broadcast.
       const msg = await mainEndpoint.read()
@@ -148,13 +239,7 @@ async function run() {
       } else {
         errors.push(`broadcast: unexpected msg ${JSON.stringify(msg)}`)
       }
-
-      workerC.terminate()
     }
-
-    workerA.terminate()
-    workerB.terminate()
-    mainEndpoint.close()
 
     const pass = unicast && relay && broadcast && errors.length === 0
     window.__results = {
@@ -172,6 +257,9 @@ async function run() {
       relay: false,
       broadcast: false,
     }
+  } finally {
+    await Promise.all(workers.map((worker) => closeWorker(worker)))
+    mainEndpoint?.close()
   }
 
   log.textContent = 'DONE'
