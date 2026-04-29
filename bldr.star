@@ -361,7 +361,7 @@ def define_release_build(host_key, platform_id):
         {"manifestId": "spacewave-core",
          "platformId": platform_id},
         {"manifestId": "web",
-         "platformId": "js"},
+         "platformId": "web/js/wasm"},
         {"manifestId": "spacewave-web",
          "platformId": "js"},
         {"manifestId": "spacewave-app",
@@ -405,11 +405,14 @@ for host_key, platform_id in RELEASE_HOSTS:
         platform_ids=[platform_id],
     )
 
-# Build the JS-only remote-world plugin manifests once per release run. The
-# per-host release targets stay native-only so they do not try to build
-# spacewave-dist for JS.
+# Build browser-side manifests once per release run. The per-host release
+# targets stay native-only so they do not try to build spacewave-dist for JS.
+build("release-remote-web",
+    manifests=["web"],
+    platform_ids=["web/js/wasm"],
+)
 build("release-remote-js",
-    manifests=["web", "spacewave-web", "spacewave-app"],
+    manifests=["spacewave-web", "spacewave-app"],
     platform_ids=["js"],
 )
 

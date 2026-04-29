@@ -276,6 +276,9 @@ func buildHelpers(repoDir string, platforms []string) error {
 }
 
 func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-web"); err != nil {
+		return errors.Wrap(err, "run bldr release-remote-web")
+	}
 	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-js"); err != nil {
 		return errors.Wrap(err, "run bldr release-remote-js")
 	}
