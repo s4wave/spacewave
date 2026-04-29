@@ -128,6 +128,81 @@ func TestRunSelfRejoinSweepProcessesMailboxesWithoutMounting(t *testing.T) {
 	}
 }
 
+func TestRunSelfRejoinSweepCoalescesUnknownSONotifyDuringListFetch(t *testing.T) {
+	var (
+		mu        sync.Mutex
+		listCalls int
+		hits      = make(map[string]int)
+	)
+	firstListStarted := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hits[r.URL.Path]++
+		call := hits[r.URL.Path]
+		if r.URL.Path == "/api/sobject/list" {
+			listCalls++
+		}
+		mu.Unlock()
+
+		switch r.URL.Path {
+		case "/api/sobject/list":
+			if call == 1 {
+				close(firstListStarted)
+				<-r.Context().Done()
+				return
+			}
+			_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{
+				SharedObjects: []*sobject.SharedObjectListEntry{
+					{Ref: sobject.NewSharedObjectRef("spacewave", "test-account", "so-1", SobjectBlockStoreID("so-1"))},
+					{Ref: sobject.NewSharedObjectRef("spacewave", "test-account", "so-2", SobjectBlockStoreID("so-2"))},
+				},
+			}))
+		case "/api/sobject/so-1/invite-mailbox",
+			"/api/sobject/so-2/invite-mailbox":
+			_, _ = w.Write(mustMarshalVT(t, &api.GetMailboxResponse{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.syncSharedObjectListAccess(
+		s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+	)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- acc.runSelfRejoinSweep(context.Background(), &selfRejoinSweepState{
+			generation: 1,
+		})
+	}()
+	<-firstListStarted
+
+	acc.handleAccountSONotify("so-unknown-1", &api.SONotifyEventPayload{
+		ChangeType: "op",
+	})
+	acc.handleAccountSONotify("so-unknown-2", &api.SONotifyEventPayload{
+		ChangeType: "op",
+	})
+
+	if err := <-errCh; err != nil {
+		t.Fatalf("runSelfRejoinSweep: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if listCalls != 2 {
+		t.Fatalf("expected first canceled fetch plus one coalesced refetch, got %d", listCalls)
+	}
+	if hits["/api/sobject/so-1/invite-mailbox"] != 1 {
+		t.Fatalf("expected so-1 mailbox fetch, got %d", hits["/api/sobject/so-1/invite-mailbox"])
+	}
+	if hits["/api/sobject/so-2/invite-mailbox"] != 1 {
+		t.Fatalf("expected so-2 mailbox fetch, got %d", hits["/api/sobject/so-2/invite-mailbox"])
+	}
+}
+
 func TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger(t *testing.T) {
 	acc := &ProviderAccount{
 		sessionClient: &SessionClient{

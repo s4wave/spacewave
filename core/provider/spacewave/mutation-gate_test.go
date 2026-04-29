@@ -90,3 +90,44 @@ func TestBootstrapOrgSharedObjectsReadOnlySkipsCloudCalls(t *testing.T) {
 
 	acc.bootstrapOrgSharedObjects(context.Background())
 }
+
+func TestBootstrapOrgSharedObjectsConflictSkipsMount(t *testing.T) {
+	var createCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/org/org-1":
+			_, _ = w.Write(mustMarshalVT(t, &api.GetOrgResponse{
+				Id:          "org-1",
+				DisplayName: "Org One",
+				Members: []*api.OrgMember{{
+					SubjectId: "test-account",
+					RoleId:    "org:owner",
+				}},
+			}))
+		case "/api/sobject/org-1/create":
+			createCalls++
+			w.WriteHeader(http.StatusConflict)
+		default:
+			t.Fatalf("unexpected org bootstrap request: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_READY
+	acc.state.info = &api.AccountStateResponse{
+		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+	}
+	acc.orgListValid = true
+	acc.orgList = []*api.OrgResponse{{
+		Id:   "org-1",
+		Role: "org:owner",
+	}}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
+
+	acc.bootstrapOrgSharedObjects(context.Background())
+
+	if createCalls != 1 {
+		t.Fatalf("expected one create attempt, got %d", createCalls)
+	}
+}
