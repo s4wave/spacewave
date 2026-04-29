@@ -1,6 +1,7 @@
 syntax = "proto3";
 package release;
 
+import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
 import "github.com/s4wave/spacewave/db/block/block.proto";
 
 // ChannelDirectory lists the public release channels in a release Space.
@@ -13,40 +14,36 @@ message ChannelDirectory {
 message ChannelEntry {
   // ChannelKey is the stable channel identifier, such as stable or canary.
   string channel_key = 1;
-  // ReleaseManifestRef references the ReleaseManifest for this channel.
-  .block.BlockRef release_manifest_ref = 2;
+  // ReleaseMetadataRef references the ReleaseMetadata for this channel.
+  .block.BlockRef release_metadata_ref = 2;
 }
 
-// ReleaseManifest describes one promoted application release.
-message ReleaseManifest {
+// ReleaseMetadata describes release-only metadata around bldr manifests.
+message ReleaseMetadata {
   // ProjectId is the project identifier this release belongs to.
   string project_id = 1;
   // Rev is the monotonic release revision.
   uint64 rev = 2;
   // Version is the human-readable application version.
   string version = 3;
-  // Entrypoints maps platform keys to entrypoint manifest refs.
-  map<string, ManifestRef> entrypoints = 4;
-  // Plugins maps plugin IDs to plugin manifest refs.
-  map<string, ManifestRef> plugins = 5;
-  // BrowserShell references the browser shell manifest.
-  ManifestRef browser_shell = 6;
+  // ChannelKey is the release channel this metadata belongs to.
+  string channel_key = 4;
+  // ManifestRefs are existing bldr app/plugin manifests resolved by clients.
+  repeated .bldr.manifest.ManifestRef manifest_refs = 5;
+  // DesktopArchives maps platform keys to native self-update archives.
+  map<string, DesktopArchive> desktop_archives = 6;
+  // BrowserShell is the browser shell/cache metadata.
+  BrowserShellMetadata browser_shell = 7;
   // MinimumLauncherVersion is the minimum launcher version that can read this
   // release.
-  string minimum_launcher_version = 7;
+  string minimum_launcher_version = 8;
 }
 
-// ManifestRef identifies a manifest object by content ref.
-message ManifestRef {
-  // Ref is the manifest object's block ref.
-  .block.BlockRef ref = 1;
-}
-
-// EntrypointManifest describes a native entrypoint update artifact.
-message EntrypointManifest {
+// DesktopArchive describes a native entrypoint update archive.
+message DesktopArchive {
   // Platform is the GOOS/GOARCH platform key.
   string platform = 1;
-  // Version is the entrypoint version.
+  // Version is the archive version.
   string version = 2;
   // ArchiveRef references the archive bytes in the release world.
   .block.BlockRef archive_ref = 3;
@@ -58,20 +55,8 @@ message EntrypointManifest {
   string archive_name = 6;
 }
 
-// PluginManifest describes a plugin release artifact.
-message PluginManifest {
-  // PluginId is the released plugin identifier.
-  string plugin_id = 1;
-  // Version is the plugin release version.
-  string version = 2;
-  // ManifestRef references the plugin's bldr manifest object.
-  .block.BlockRef manifest_ref = 3;
-  // ArtifactRef references an optional plugin artifact bundle.
-  .block.BlockRef artifact_ref = 4;
-}
-
-// BrowserShellManifest describes the browser entrypoint shell for a release.
-message BrowserShellManifest {
+// BrowserShellMetadata describes the browser entrypoint shell for a release.
+message BrowserShellMetadata {
   // Version is the browser shell version.
   string version = 1;
   // GenerationId is the browser generation identifier.

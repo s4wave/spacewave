@@ -124,14 +124,12 @@ func (c *Controller) HandleWebViewViaPlugin(
 	}
 
 	ctrl := plugin_handle_web_view.NewController(c.le, c.bus, conf)
-
-	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
-		Body: &bldr_web_plugin.HandleWebViewViaPluginResponse_Ready{Ready: true},
-	}); err != nil {
-		return err
+	sendReady := func() error {
+		return strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
+			Body: &bldr_web_plugin.HandleWebViewViaPluginResponse_Ready{Ready: true},
+		})
 	}
-
-	return c.addControllerAndWait(strm.Context(), ctrl)
+	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
 // HandleWebPkgViaPlugin starts a controller to forward web pkgs to a plugin RPC.
@@ -162,13 +160,12 @@ func (c *Controller) HandleWebPkgViaPlugin(
 		return err
 	}
 
-	if err := strm.Send(&bldr_web_plugin.HandleWebPkgViaPluginResponse{
-		Body: &bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready{Ready: true},
-	}); err != nil {
-		return err
+	sendReady := func() error {
+		return strm.Send(&bldr_web_plugin.HandleWebPkgViaPluginResponse{
+			Body: &bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready{Ready: true},
+		})
 	}
-
-	return c.addControllerAndWait(strm.Context(), ctrl)
+	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
 // HandleRpcViaPlugin starts a controller to forward rpcs to a plugin.
@@ -193,13 +190,12 @@ func (c *Controller) HandleRpcViaPlugin(
 	ctx := strm.Context()
 	ctrl := plugin_forward_rpc_service.NewController(c.le, c.bus, conf)
 
-	if err := strm.Send(&bldr_web_plugin.HandleRpcViaPluginResponse{
-		Body: &bldr_web_plugin.HandleRpcViaPluginResponse_Ready{Ready: true},
-	}); err != nil {
-		return err
+	sendReady := func() error {
+		return strm.Send(&bldr_web_plugin.HandleRpcViaPluginResponse{
+			Body: &bldr_web_plugin.HandleRpcViaPluginResponse_Ready{Ready: true},
+		})
 	}
-
-	return c.addControllerAndWait(ctx, ctrl)
+	return c.addControllerSendReadyAndWait(ctx, ctrl, sendReady)
 }
 
 // HandleWebViewViaHandlers configures web view handlers with filtering.
@@ -220,14 +216,13 @@ func (c *Controller) HandleWebViewViaHandlers(
 		return err
 	}
 
-	c.le.Debug("sending web view handlers ready")
-	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaHandlersResponse{
-		Body: &bldr_web_plugin.HandleWebViewViaHandlersResponse_Ready{Ready: true},
-	}); err != nil {
-		return err
+	sendReady := func() error {
+		c.le.Debug("sending web view handlers ready")
+		return strm.Send(&bldr_web_plugin.HandleWebViewViaHandlersResponse{
+			Body: &bldr_web_plugin.HandleWebViewViaHandlersResponse_Ready{Ready: true},
+		})
 	}
-
-	return c.addControllerAndWait(strm.Context(), ctrl)
+	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
 // HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
@@ -248,12 +243,17 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 		return err
 	}
 
-	return c.addControllerAndWait(strm.Context(), ctrl)
+	sendReady := func() error {
+		return strm.Send(&bldr_web_plugin.HandleWebPkgsViaPluginAssetsResponse{
+			Body: &bldr_web_plugin.HandleWebPkgsViaPluginAssetsResponse_Ready{Ready: true},
+		})
+	}
+	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
-// addControllerAndWait adds a controller to the bus and waits for either context cancellation or controller exit.
+// addControllerSendReadyAndWait adds a controller, sends ready, and waits for context cancellation or controller exit.
 // Returns the exit error or context.Canceled if the context was cancelled.
-func (c *Controller) addControllerAndWait(ctx context.Context, ctrl controller.Controller) error {
+func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl controller.Controller, sendReady func() error) error {
 	exitErrCh := make(chan error, 1)
 	relCtrl, err := c.bus.AddController(ctx, ctrl, func(exitErr error) {
 		exitErrCh <- exitErr
@@ -262,6 +262,10 @@ func (c *Controller) addControllerAndWait(ctx context.Context, ctrl controller.C
 		return err
 	}
 	defer relCtrl()
+
+	if err := sendReady(); err != nil {
+		return err
+	}
 
 	select {
 	case <-ctx.Done():

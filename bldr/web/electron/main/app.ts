@@ -244,6 +244,7 @@ export class BldrElectronApp {
       title: init.windowTitle || init.appName || undefined,
       height: init.windowHeight || 680,
       width: init.windowWidth || 900,
+      show: false,
 
       webPreferences: {
         sandbox: true,
@@ -261,6 +262,11 @@ export class BldrElectronApp {
     if (isDebug && init.devTools) {
       nwindow.webContents.openDevTools()
     }
+    nwindow.webContents.once('did-finish-load', () => {
+      if (!nwindow.isDestroyed()) {
+        nwindow.show()
+      }
+    })
 
     // Build URL with optional hash
     let url =

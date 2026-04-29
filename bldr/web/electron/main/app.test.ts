@@ -30,9 +30,17 @@ class MockWebContents extends EventEmitter {
 
 class MockBrowserWindow extends EventEmitter {
   public readonly webContents = new MockWebContents()
+  public readonly show = vi.fn()
+  public readonly isDestroyed = vi.fn(() => false)
+  public readonly opts: object
   public readonly loadURL = vi.fn((url: string) => {
     this.webContents.setURL(url)
   })
+
+  constructor(opts: object = {}) {
+    super()
+    this.opts = opts
+  }
 }
 
 class MockWebRuntime {
@@ -68,8 +76,8 @@ vi.mock('electron', () => {
     themeSource: 'system',
   }
   class BrowserWindow extends MockBrowserWindow {
-    constructor() {
-      super()
+    constructor(opts: object = {}) {
+      super(opts)
       browserWindows.push(this)
     }
   }
@@ -217,6 +225,23 @@ describe('BldrElectronApp', () => {
     await createWebDocument(app, 'electron-init')
 
     expect(browserWindows[0]?.webContents.openDevTools).not.toHaveBeenCalled()
+  })
+
+  it('shows windows only after the renderer finishes loading', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    await createWebDocument(app, 'electron-init')
+
+    const win = browserWindows[0]
+    expect(win?.opts).toMatchObject({ show: false })
+    expect(win?.show).not.toHaveBeenCalled()
+
+    win?.webContents.emit('did-finish-load')
+    expect(win?.show).toHaveBeenCalledTimes(1)
   })
 
   it('opens DevTools only when debug build enables them', async () => {
