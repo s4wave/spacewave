@@ -89,7 +89,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-20260424211911-732291493fb8 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.2 // main
-	github.com/go-sql-driver/mysql v1.9.3
+	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
 	github.com/google/uuid v1.6.0
@@ -106,7 +106,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.26
 	github.com/pion/datachannel v1.6.0
 	github.com/pion/sdp/v3 v3.0.18
-	github.com/pion/webrtc/v4 v4.2.11
+	github.com/pion/webrtc/v4 v4.2.12
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.5700.1
 	github.com/quic-go/quic-go v0.59.0
@@ -163,18 +163,19 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
-	github.com/pion/ice/v4 v4.2.2 // indirect
+	github.com/pion/ice/v4 v4.2.5 // indirect
 	github.com/pion/interceptor v0.1.44 // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.16 // indirect
 	github.com/pion/rtp v1.10.1 // indirect
-	github.com/pion/sctp v1.9.4 // indirect
+	github.com/pion/sctp v1.9.5 // indirect
 	github.com/pion/srtp/v3 v3.0.10 // indirect
-	github.com/pion/stun/v3 v3.1.1 // indirect
+	github.com/pion/stun/v3 v3.1.2 // indirect
 	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/pion/turn/v4 v4.1.4 // indirect
+	github.com/pion/turn/v5 v5.0.3 // indirect
 	github.com/pjbgf/sha1cd v0.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -193,7 +194,7 @@ require (
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260409153401-be6f6cb8b1fa // indirect
 	golang.org/x/text v0.36.0 // indirect
-	golang.org/x/time v0.12.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
