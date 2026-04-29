@@ -152,9 +152,9 @@ func testPublishStateBytes(t *testing.T, headRef *bucket.ObjectRef) []byte {
 
 func testPublishPullBytes(t *testing.T, entries []*packfile.PackfileEntry) []byte {
 	t.Helper()
-	out, err := (&packfile.PullResponse{Entries: entries}).MarshalJSON()
+	out, err := (&packfile.PullResponse{Entries: entries}).MarshalVT()
 	if err != nil {
-		t.Fatalf("MarshalJSON() error = %v", err)
+		t.Fatalf("MarshalVT() error = %v", err)
 	}
 	return out
 }

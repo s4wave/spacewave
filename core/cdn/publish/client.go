@@ -23,7 +23,7 @@ func FetchPackEntries(ctx context.Context, client SessionClient, spaceID string)
 		return nil, nil
 	}
 	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalJSON(pullData); err != nil {
+	if err := resp.UnmarshalVT(pullData); err != nil {
 		return nil, errors.Wrap(err, "unmarshal pull response")
 	}
 	return resp.GetEntries(), nil

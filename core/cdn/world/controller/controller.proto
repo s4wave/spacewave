@@ -1,0 +1,15 @@
+syntax = "proto3";
+package cdn.world.controller;
+
+// Config configures a read-only CDN-backed world engine controller.
+message Config {
+  // EngineId is the world engine id exposed on the bus.
+  string engine_id = 1;
+  // SpaceId is the public CDN Space id.
+  string space_id = 2;
+  // CdnBaseUrl is the public CDN base URL.
+  string cdn_base_url = 3;
+  // PointerTtlDur is the cached root pointer TTL.
+  // Empty uses the CDN block store default. Negative disables expiry.
+  string pointer_ttl_dur = 4;
+}

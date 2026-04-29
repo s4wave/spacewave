@@ -81,10 +81,9 @@ manifest("web",
 )
 
 # spacewave-launcher is the minimal embedded plugin that drives the launcher
-# binary. It carries just enough to fetch a DistConfig, apply its
-# launcher_config_set, mount the remote world over HTTP, and resolve plugin
-# manifests from it. Everything else (spacewave-core, UI plugins) loads from
-# the remote world on first launch.
+# binary. It carries just enough to fetch a DistConfig, mount the public release
+# world from the CDN, and resolve plugin manifests from it. Everything else
+# (spacewave-core, UI plugins) loads from the release world on first launch.
 manifest("spacewave-launcher",
     builder="bldr/plugin/compiler/go",
     rev=1,
@@ -92,10 +91,10 @@ manifest("spacewave-launcher",
         "goPkgs": [
             "./core/provider/spacewave/launcher/controller",
             "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
-            "github.com/s4wave/spacewave/db/block/store/kvfile/http",
+            "github.com/s4wave/spacewave/core/cdn/world/controller",
+            "github.com/s4wave/spacewave/core/space/world/optypes",
             "github.com/s4wave/spacewave/db/block/store/overlay",
             "github.com/s4wave/spacewave/db/block/store/rpc/server",
-            "github.com/s4wave/spacewave/db/world/block/engine",
             "github.com/s4wave/spacewave/db/object/peer",
         ],
         "configSet": {
@@ -122,6 +121,18 @@ manifest("spacewave-launcher",
                         },
                     }],
                 },
+            }),
+            "release-world": config_entry("spacewave/cdn/world", 1, {
+                "engineId": "spacewave-release-world",
+                "spaceId": "01kqdabsd6m6npwr5dyzmt8t0e",
+                "cdnBaseUrl": "https://cdn.spacewave.app",
+            }),
+            "release-world-ops": config_entry("space/world/ops", 1, {
+                "engineId": "spacewave-release-world",
+            }),
+            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+                "engineId": "spacewave-release-world",
+                "objectKeys": ["spacewave/release/manifests"],
             }),
         },
     },
