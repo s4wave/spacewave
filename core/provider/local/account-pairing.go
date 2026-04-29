@@ -99,7 +99,7 @@ func (a *ProviderAccount) SetPairingCode(code string, sessionKey crypto.PrivKey)
 // EstablishLinkWithPeer directive on the session transport's child bus,
 // and sets status to WAITING_FOR_PEER. sessionKey is stored for SAS
 // emoji computation when the link establishes.
-func (a *ProviderAccount) SetPairingRemotePeer(remotePeerID peer.ID, sessionKey crypto.PrivKey) error {
+func (a *ProviderAccount) SetPairingRemotePeer(ctx context.Context, remotePeerID peer.ID, sessionKey crypto.PrivKey) error {
 	// Snapshot and release existing link directive outside lock.
 	var oldDiRef directive.Reference
 	a.pairingBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -116,6 +116,13 @@ func (a *ProviderAccount) SetPairingRemotePeer(remotePeerID peer.ID, sessionKey 
 	if st == nil {
 		return ErrNoSessionTransport
 	}
+	if err := st.AwaitReady(ctx); err != nil {
+		return err
+	}
+	childBus := st.GetChildBus()
+	if childBus == nil {
+		return ErrNoSessionTransport
+	}
 
 	linkCh := make(chan link.MountedLink, 1)
 	handler := directive.NewTypedCallbackHandler(
@@ -130,7 +137,7 @@ func (a *ProviderAccount) SetPairingRemotePeer(remotePeerID peer.ID, sessionKey 
 	)
 
 	// AddDirective outside lock (may block).
-	_, diRef, err := st.GetChildBus().AddDirective(
+	_, diRef, err := childBus.AddDirective(
 		link.NewEstablishLinkWithPeer(st.GetPeerID(), remotePeerID),
 		handler,
 	)

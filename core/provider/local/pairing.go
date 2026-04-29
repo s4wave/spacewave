@@ -142,8 +142,8 @@ func (a *ProviderAccount) CompletePairing(
 	}
 
 	// Watch for bifrost link with the remote peer on the child bus.
-	if err := a.SetPairingRemotePeer(remotePeerID, sessionPriv); err != nil {
-		a.le.WithError(err).Warn("failed to set up link watch for remote peer")
+	if err := a.SetPairingRemotePeer(ctx, remotePeerID, sessionPriv); err != nil {
+		return "", errors.Wrap(err, "set up link watch for remote peer")
 	}
 
 	return remotePeerID, nil

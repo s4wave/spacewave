@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
@@ -33,9 +34,12 @@ type p2pSyncState struct {
 // controllers run. The session transport must be running before
 // calling this method.
 func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *transport.SessionTransport) error {
+	if err := sessionTransport.AwaitReady(ctx); err != nil {
+		return err
+	}
 	childBus := sessionTransport.GetChildBus()
 	if childBus == nil {
-		return nil
+		return errors.New("session transport child bus is not ready")
 	}
 
 	a.p2pSyncMtx.Lock()
