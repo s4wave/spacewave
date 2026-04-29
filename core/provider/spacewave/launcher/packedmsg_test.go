@@ -25,8 +25,9 @@ func TestPackDistConfig(t *testing.T) {
 	signerPeerID := signerPeer.GetPeerID()
 
 	config := &DistConfig{
-		ProjectId: "bldr-test",
-		Rev:       42,
+		ProjectId:  "bldr-test",
+		Rev:        42,
+		ChannelKey: "stable",
 	}
 
 	signerPriv, err := signerPeer.GetPrivKey(context.Background())
@@ -61,5 +62,51 @@ func TestPackDistConfig(t *testing.T) {
 	}
 	if !conf.EqualMessageVT(config) {
 		t.Fail()
+	}
+}
+
+func TestParseDistConfigPackedMsgRejectsInvalidValidator(t *testing.T) {
+	signerPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &DistConfig{
+		ProjectId:  "bldr-test",
+		Rev:        42,
+		ChannelKey: "stable",
+	}
+	signerPriv, err := signerPeer.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := EncodeSignedDistConfig(signerPriv, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	packedMsg := packedmsg.EncodePackedMessage(encoded)
+	if _, _, _, err := ParseDistConfigPackedMsg(logrus.NewEntry(logrus.New()), []byte(packedMsg), []peer.ID{otherPeer.GetPeerID()}, config.GetProjectId()); err == nil {
+		t.Fatal("expected invalid validator to be rejected")
+	}
+}
+
+func TestParseDistConfigPackedMsgRejectsMissingChannelKey(t *testing.T) {
+	signerPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &DistConfig{
+		ProjectId: "bldr-test",
+		Rev:       42,
+	}
+	signerPriv, err := signerPeer.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EncodeSignedDistConfig(signerPriv, config); err == nil {
+		t.Fatal("expected missing channel_key to be rejected before signing")
 	}
 }

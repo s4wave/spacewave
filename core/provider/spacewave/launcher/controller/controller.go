@@ -50,10 +50,6 @@ type Controller struct {
 	// tries each endpoint in order until it finds a valid dist config
 	// stops after finding a valid config
 	confFetcherRoutine *routine.RoutineContainer
-	// configSetRoutine applies the latest config set from the launcher info
-	configSetRoutine *routine.RoutineContainer
-	// updaterRoutine checks for entrypoint updates and downloads them
-	updaterRoutine *routine.RoutineContainer
 	// mtx guards below fields
 	mtx sync.Mutex
 	// confFetcherRefetch is a timer to restart confFetcherRoutine on success
@@ -95,13 +91,6 @@ func NewController(
 		routine.WithExitCb(ctrl.confFetcherExited),
 	)
 	ctrl.confFetcherRoutine.SetRoutine(ctrl.fetchDistConfig)
-	ctrl.configSetRoutine = routine.NewRoutineContainer()
-	ctrl.configSetRoutine.SetRoutine(ctrl.applyDistConfigSet)
-	ctrl.updaterRoutine = routine.NewRoutineContainer(
-		routine.WithExitLogger(le.WithField("routine", "updater")),
-		routine.WithBackoff(fetcherBackoff),
-	)
-	ctrl.initUpdaterRoutine()
 	_ = spacewave_launcher.SRPCRegisterLauncher(ctrl.mux, NewLauncherServer(ctrl))
 	return ctrl
 }
@@ -196,8 +185,6 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// start the dist conf update fetcher
 	_ = c.confFetcherRoutine.SetContext(ctx, true)
-	_ = c.configSetRoutine.SetContext(ctx, true)
-	_ = c.updaterRoutine.SetContext(ctx, true)
 	return nil
 }
 

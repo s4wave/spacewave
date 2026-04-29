@@ -1423,7 +1423,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher": {
-      "hash": "a645fe95b258de85b2694e0612b885799a2df3fe819098228723ecf20e01db33",
+      "hash": "542a9503c4db06b026dd1569a44429984d8d3115a2d3a2b4be5f0169eb318709",
       "generatedFiles": [
         "core/provider/spacewave/launcher/launcher.pb.cc",
         "core/provider/spacewave/launcher/launcher.pb.go",

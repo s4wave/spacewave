@@ -5,16 +5,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChannelStable is the default release channel. A DistConfig with an empty
-// Channel field is treated as stable, so legacy configs and older signers
-// keep working without explicit upgrades.
+// ChannelStable is the default release channel.
 const ChannelStable = "stable"
 
-// ResolvedChannel returns the DistConfig channel with the empty-string
-// fallback already applied. Use this instead of reading GetChannel() directly
-// so the "empty == stable" rule lives in one place.
-func (c *DistConfig) ResolvedChannel() string {
-	if ch := c.GetChannel(); ch != "" {
+// ResolvedChannelKey returns the DistConfig channel key with the empty-string
+// fallback applied.
+func (c *DistConfig) ResolvedChannelKey() string {
+	if ch := c.GetChannelKey(); ch != "" {
 		return ch
 	}
 	return ChannelStable
@@ -27,6 +24,9 @@ func (c *DistConfig) Validate() error {
 	}
 	if c.GetRev() == 0 {
 		return errors.New("rev cannot be empty")
+	}
+	if c.GetChannelKey() == "" {
+		return errors.New("channel key cannot be empty")
 	}
 	return nil
 }

@@ -127,7 +127,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			WithField("prev-conf-rev", currRev).
 			WithField("conf-rev", rev).
 			WithField("conf-signer", updatedAppDistConfPeer.String()).
-			WithField("conf-channel", updatedAppDistConf.ResolvedChannel()).
+			WithField("conf-channel-key", updatedAppDistConf.ResolvedChannelKey()).
 			WithField("endpoint", endpURLStr).
 			Info("updated app dist config")
 		return nil

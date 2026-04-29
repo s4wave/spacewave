@@ -5,15 +5,12 @@
 package spacewave_launcher
 
 import (
-	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
-	maps "maps"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
 
-	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
@@ -79,21 +76,8 @@ type DistConfig struct {
 	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// Rev is the revision of this app config object.
 	Rev uint64 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
-	// LauncherConfigSet is a ConfigSet to apply to the launcher.
-	// This ConfigSet is applied to the launcher plugin bus.
-	// Note: the launcher configuration itself could be overridden by this.
-	// Note: the highest revision config is used in the configset controller.
-	LauncherConfigSet map[string]*proto.ControllerConfig `protobuf:"bytes,3,rep,name=launcher_config_set,json=launcherConfigSet,proto3" json:"launcherConfigSet,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// EntrypointVersion is the latest entrypoint binary version.
-	EntrypointVersion string `protobuf:"bytes,4,opt,name=entrypoint_version,json=entrypointVersion,proto3" json:"entrypointVersion,omitempty"`
-	// EntrypointAssets maps platform/arch (e.g. "darwin/arm64") to the
-	// download URL for the new entrypoint binary.
-	EntrypointAssets map[string]*EntrypointAsset `protobuf:"bytes,5,rep,name=entrypoint_assets,json=entrypointAssets,proto3" json:"entrypointAssets,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Channel selects the release channel this DistConfig targets.
-	// Empty means "stable"; alpha clients that do not know an advertised
-	// channel MUST treat the DistConfig as stable (forward-compat fallback).
-	// Reserved future values: "beta", "canary", "internal".
-	Channel string `protobuf:"bytes,8,opt,name=channel,proto3" json:"channel,omitempty"`
+	// ChannelKey selects the release channel this DistConfig targets.
+	ChannelKey string `protobuf:"bytes,8,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
 }
 
 func (x *DistConfig) Reset() {
@@ -116,70 +100,11 @@ func (x *DistConfig) GetRev() uint64 {
 	return 0
 }
 
-func (x *DistConfig) GetLauncherConfigSet() map[string]*proto.ControllerConfig {
+func (x *DistConfig) GetChannelKey() string {
 	if x != nil {
-		return x.LauncherConfigSet
-	}
-	return nil
-}
-
-func (x *DistConfig) GetEntrypointVersion() string {
-	if x != nil {
-		return x.EntrypointVersion
+		return x.ChannelKey
 	}
 	return ""
-}
-
-func (x *DistConfig) GetEntrypointAssets() map[string]*EntrypointAsset {
-	if x != nil {
-		return x.EntrypointAssets
-	}
-	return nil
-}
-
-func (x *DistConfig) GetChannel() string {
-	if x != nil {
-		return x.Channel
-	}
-	return ""
-}
-
-// EntrypointAsset describes a downloadable entrypoint binary for a platform.
-type EntrypointAsset struct {
-	unknownFields []byte
-	// Url is the download URL for the binary.
-	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Size is the expected file size in bytes.
-	Size uint64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
-	// Sha256 is the SHA-256 hash of the binary.
-	Sha256 []byte `protobuf:"bytes,3,opt,name=sha256,proto3" json:"sha256,omitempty"`
-}
-
-func (x *EntrypointAsset) Reset() {
-	*x = EntrypointAsset{}
-}
-
-func (*EntrypointAsset) ProtoMessage() {}
-
-func (x *EntrypointAsset) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
-func (x *EntrypointAsset) GetSize() uint64 {
-	if x != nil {
-		return x.Size
-	}
-	return 0
-}
-
-func (x *EntrypointAsset) GetSha256() []byte {
-	if x != nil {
-		return x.Sha256
-	}
-	return nil
 }
 
 // LauncherInfo contains information about the state of the launcher.
@@ -266,50 +191,6 @@ func (x *UpdateState) GetErrorMessage() string {
 		return x.ErrorMessage
 	}
 	return ""
-}
-
-// StagedManifest is a sidecar manifest written into the staging directory
-// after a .app bundle has been extracted and codesign-verified. The launcher
-// reads it at boot to decide whether the on-disk STAGED .app is still fresh
-// against the latest DistConfig. The manifest is binary-serialized proto
-// written to =manifest.binpb= in the staging dir.
-type StagedManifest struct {
-	unknownFields []byte
-	// Version is the entrypoint version of the staged .app.
-	Version string `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	// Path is the absolute path to the staged =Spacewave-<version>.app=.
-	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	// SignatureHash is the SHA-256 hash of the archive that produced the .app,
-	// copied from =EntrypointAsset.sha256=. Used to detect resumed-and-tampered
-	// staging trees where the archive was swapped out after extract.
-	SignatureHash []byte `protobuf:"bytes,3,opt,name=signature_hash,json=signatureHash,proto3" json:"signatureHash,omitempty"`
-}
-
-func (x *StagedManifest) Reset() {
-	*x = StagedManifest{}
-}
-
-func (*StagedManifest) ProtoMessage() {}
-
-func (x *StagedManifest) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *StagedManifest) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *StagedManifest) GetSignatureHash() []byte {
-	if x != nil {
-		return x.SignatureHash
-	}
-	return nil
 }
 
 // RecheckDistConfigRequest is a request to immediately recheck for updates.
@@ -438,58 +319,6 @@ func (x *ApplyUpdateResponse) Reset() {
 
 func (*ApplyUpdateResponse) ProtoMessage() {}
 
-type DistConfig_LauncherConfigSetEntry struct {
-	unknownFields []byte
-	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *proto.ControllerConfig `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *DistConfig_LauncherConfigSetEntry) Reset() {
-	*x = DistConfig_LauncherConfigSetEntry{}
-}
-
-func (*DistConfig_LauncherConfigSetEntry) ProtoMessage() {}
-
-func (x *DistConfig_LauncherConfigSetEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *DistConfig_LauncherConfigSetEntry) GetValue() *proto.ControllerConfig {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
-type DistConfig_EntrypointAssetsEntry struct {
-	unknownFields []byte
-	Key           string           `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *EntrypointAsset `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *DistConfig_EntrypointAssetsEntry) Reset() {
-	*x = DistConfig_EntrypointAssetsEntry{}
-}
-
-func (*DistConfig_EntrypointAssetsEntry) ProtoMessage() {}
-
-func (x *DistConfig_EntrypointAssetsEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *DistConfig_EntrypointAssetsEntry) GetValue() *EntrypointAsset {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
 func (m *DistConfig) CloneVT() *DistConfig {
 	if m == nil {
 		return (*DistConfig)(nil)
@@ -497,20 +326,7 @@ func (m *DistConfig) CloneVT() *DistConfig {
 	r := new(DistConfig)
 	r.ProjectId = m.ProjectId
 	r.Rev = m.Rev
-	r.EntrypointVersion = m.EntrypointVersion
-	r.Channel = m.Channel
-	if rhs := m.LauncherConfigSet; rhs != nil {
-		r.LauncherConfigSet = make(map[string]*proto.ControllerConfig, len(rhs))
-		for k, v := range rhs {
-			r.LauncherConfigSet[k] = v.CloneVT()
-		}
-	}
-	if rhs := m.EntrypointAssets; rhs != nil {
-		r.EntrypointAssets = make(map[string]*EntrypointAsset, len(rhs))
-		for k, v := range rhs {
-			r.EntrypointAssets[k] = v.CloneVT()
-		}
-	}
+	r.ChannelKey = m.ChannelKey
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -518,26 +334,6 @@ func (m *DistConfig) CloneVT() *DistConfig {
 }
 
 func (m *DistConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *EntrypointAsset) CloneVT() *EntrypointAsset {
-	if m == nil {
-		return (*EntrypointAsset)(nil)
-	}
-	r := new(EntrypointAsset)
-	r.Url = m.Url
-	r.Size = m.Size
-	if rhs := m.Sha256; rhs != nil {
-		r.Sha256 = slices.Clone(rhs)
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *EntrypointAsset) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -575,26 +371,6 @@ func (m *UpdateState) CloneVT() *UpdateState {
 }
 
 func (m *UpdateState) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *StagedManifest) CloneVT() *StagedManifest {
-	if m == nil {
-		return (*StagedManifest)(nil)
-	}
-	r := new(StagedManifest)
-	r.Version = m.Version
-	r.Path = m.Path
-	if rhs := m.SignatureHash; rhs != nil {
-		r.SignatureHash = slices.Clone(rhs)
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *StagedManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -720,50 +496,7 @@ func (this *DistConfig) EqualVT(that *DistConfig) bool {
 	if this.Rev != that.Rev {
 		return false
 	}
-	if len(this.LauncherConfigSet) != len(that.LauncherConfigSet) {
-		return false
-	}
-	for i, vx := range this.LauncherConfigSet {
-		vy, ok := that.LauncherConfigSet[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &proto.ControllerConfig{}
-			}
-			if q == nil {
-				q = &proto.ControllerConfig{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
-	if this.EntrypointVersion != that.EntrypointVersion {
-		return false
-	}
-	if len(this.EntrypointAssets) != len(that.EntrypointAssets) {
-		return false
-	}
-	for i, vx := range this.EntrypointAssets {
-		vy, ok := that.EntrypointAssets[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &EntrypointAsset{}
-			}
-			if q == nil {
-				q = &EntrypointAsset{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
-	if this.Channel != that.Channel {
+	if this.ChannelKey != that.ChannelKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -771,32 +504,6 @@ func (this *DistConfig) EqualVT(that *DistConfig) bool {
 
 func (this *DistConfig) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DistConfig)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *EntrypointAsset) EqualVT(that *EntrypointAsset) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Url != that.Url {
-		return false
-	}
-	if this.Size != that.Size {
-		return false
-	}
-	if string(this.Sha256) != string(that.Sha256) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *EntrypointAsset) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EntrypointAsset)
 	if !ok {
 		return false
 	}
@@ -852,32 +559,6 @@ func (this *UpdateState) EqualVT(that *UpdateState) bool {
 
 func (this *UpdateState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*UpdateState)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *StagedManifest) EqualVT(that *StagedManifest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Version != that.Version {
-		return false
-	}
-	if this.Path != that.Path {
-		return false
-	}
-	if string(this.SignatureHash) != string(that.SignatureHash) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *StagedManifest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*StagedManifest)
 	if !ok {
 		return false
 	}
@@ -1058,114 +739,6 @@ func (x *UpdatePhase) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DistConfig_LauncherConfigSetEntry message to JSON.
-func (x *DistConfig_LauncherConfigSetEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the DistConfig_LauncherConfigSetEntry to JSON.
-func (x *DistConfig_LauncherConfigSetEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the DistConfig_LauncherConfigSetEntry message from JSON.
-func (x *DistConfig_LauncherConfigSetEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &proto.ControllerConfig{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the DistConfig_LauncherConfigSetEntry from JSON.
-func (x *DistConfig_LauncherConfigSetEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the DistConfig_EntrypointAssetsEntry message to JSON.
-func (x *DistConfig_EntrypointAssetsEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the DistConfig_EntrypointAssetsEntry to JSON.
-func (x *DistConfig_EntrypointAssetsEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the DistConfig_EntrypointAssetsEntry message from JSON.
-func (x *DistConfig_EntrypointAssetsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &EntrypointAsset{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the DistConfig_EntrypointAssetsEntry from JSON.
-func (x *DistConfig_EntrypointAssetsEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the DistConfig message to JSON.
 func (x *DistConfig) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1184,39 +757,10 @@ func (x *DistConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rev")
 		s.WriteUint64(x.Rev)
 	}
-	if x.LauncherConfigSet != nil || s.HasField("launcherConfigSet") {
+	if x.ChannelKey != "" || s.HasField("channelKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("launcherConfigSet")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.LauncherConfigSet {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("launcherConfigSet"))
-		}
-		s.WriteObjectEnd()
-	}
-	if x.EntrypointVersion != "" || s.HasField("entrypointVersion") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("entrypointVersion")
-		s.WriteString(x.EntrypointVersion)
-	}
-	if x.EntrypointAssets != nil || s.HasField("entrypointAssets") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("entrypointAssets")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.EntrypointAssets {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("entrypointAssets"))
-		}
-		s.WriteObjectEnd()
-	}
-	if x.Channel != "" || s.HasField("channel") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("channel")
-		s.WriteString(x.Channel)
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
 	}
 	s.WriteObjectEnd()
 }
@@ -1241,100 +785,15 @@ func (x *DistConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "rev":
 			s.AddField("rev")
 			x.Rev = s.ReadUint64()
-		case "launcher_config_set", "launcherConfigSet":
-			s.AddField("launcher_config_set")
-			if s.ReadNil() {
-				x.LauncherConfigSet = nil
-				return
-			}
-			x.LauncherConfigSet = make(map[string]*proto.ControllerConfig)
-			s.ReadStringMap(func(key string) {
-				var v proto.ControllerConfig
-				v.UnmarshalProtoJSON(s)
-				x.LauncherConfigSet[key] = &v
-			})
-		case "entrypoint_version", "entrypointVersion":
-			s.AddField("entrypoint_version")
-			x.EntrypointVersion = s.ReadString()
-		case "entrypoint_assets", "entrypointAssets":
-			s.AddField("entrypoint_assets")
-			if s.ReadNil() {
-				x.EntrypointAssets = nil
-				return
-			}
-			x.EntrypointAssets = make(map[string]*EntrypointAsset)
-			s.ReadStringMap(func(key string) {
-				var v EntrypointAsset
-				v.UnmarshalProtoJSON(s)
-				x.EntrypointAssets[key] = &v
-			})
-		case "channel":
-			s.AddField("channel")
-			x.Channel = s.ReadString()
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the DistConfig from JSON.
 func (x *DistConfig) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the EntrypointAsset message to JSON.
-func (x *EntrypointAsset) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Url != "" || s.HasField("url") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("url")
-		s.WriteString(x.Url)
-	}
-	if x.Size != 0 || s.HasField("size") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("size")
-		s.WriteUint64(x.Size)
-	}
-	if len(x.Sha256) > 0 || s.HasField("sha256") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sha256")
-		s.WriteBytes(x.Sha256)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the EntrypointAsset to JSON.
-func (x *EntrypointAsset) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the EntrypointAsset message from JSON.
-func (x *EntrypointAsset) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "url":
-			s.AddField("url")
-			x.Url = s.ReadString()
-		case "size":
-			s.AddField("size")
-			x.Size = s.ReadUint64()
-		case "sha256":
-			s.AddField("sha256")
-			x.Sha256 = s.ReadBytes()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the EntrypointAsset from JSON.
-func (x *EntrypointAsset) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1467,64 +926,6 @@ func (x *UpdateState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the UpdateState from JSON.
 func (x *UpdateState) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the StagedManifest message to JSON.
-func (x *StagedManifest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Version != "" || s.HasField("version") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("version")
-		s.WriteString(x.Version)
-	}
-	if x.Path != "" || s.HasField("path") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("path")
-		s.WriteString(x.Path)
-	}
-	if len(x.SignatureHash) > 0 || s.HasField("signatureHash") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("signatureHash")
-		s.WriteBytes(x.SignatureHash)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the StagedManifest to JSON.
-func (x *StagedManifest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the StagedManifest message from JSON.
-func (x *StagedManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "version":
-			s.AddField("version")
-			x.Version = s.ReadString()
-		case "path":
-			s.AddField("path")
-			x.Path = s.ReadString()
-		case "signature_hash", "signatureHash":
-			s.AddField("signature_hash")
-			x.SignatureHash = s.ReadBytes()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the StagedManifest from JSON.
-func (x *StagedManifest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1816,63 +1217,12 @@ func (m *DistConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.Channel) > 0 {
-		i -= len(m.Channel)
-		copy(dAtA[i:], m.Channel)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Channel)))
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
 		i--
 		dAtA[i] = 0x42
-	}
-	if len(m.EntrypointAssets) > 0 {
-		for k := range m.EntrypointAssets {
-			v := m.EntrypointAssets[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if len(m.EntrypointVersion) > 0 {
-		i -= len(m.EntrypointVersion)
-		copy(dAtA[i:], m.EntrypointVersion)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointVersion)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.LauncherConfigSet) > 0 {
-		for k := range m.LauncherConfigSet {
-			v := m.LauncherConfigSet[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x1a
-		}
 	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
@@ -1883,58 +1233,6 @@ func (m *DistConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.ProjectId)
 		copy(dAtA[i:], m.ProjectId)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EntrypointAsset) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EntrypointAsset) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *EntrypointAsset) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Sha256) > 0 {
-		i -= len(m.Sha256)
-		copy(dAtA[i:], m.Sha256)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Sha256)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Size != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Size))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Url) > 0 {
-		i -= len(m.Url)
-		copy(dAtA[i:], m.Url)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Url)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -2054,60 +1352,6 @@ func (m *UpdateState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Phase))
 		i--
 		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *StagedManifest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *StagedManifest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *StagedManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.SignatureHash) > 0 {
-		i -= len(m.SignatureHash)
-		copy(dAtA[i:], m.SignatureHash)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SignatureHash)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Path) > 0 {
-		i -= len(m.Path)
-		copy(dAtA[i:], m.Path)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Version) > 0 {
-		i -= len(m.Version)
-		copy(dAtA[i:], m.Version)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Version)))
-		i--
-		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2393,58 +1637,7 @@ func (m *DistConfig) SizeVT() (n int) {
 	if m.Rev != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
 	}
-	if len(m.LauncherConfigSet) > 0 {
-		for k, v := range m.LauncherConfigSet {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
-		}
-	}
-	l = len(m.EntrypointVersion)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if len(m.EntrypointAssets) > 0 {
-		for k, v := range m.EntrypointAssets {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
-		}
-	}
-	l = len(m.Channel)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *EntrypointAsset) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Url)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Size != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Size))
-	}
-	l = len(m.Sha256)
+	l = len(m.ChannelKey)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2491,28 +1684,6 @@ func (m *UpdateState) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.ErrorMessage)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *StagedManifest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Version)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Path)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.SignatureHash)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2610,56 +1781,6 @@ func (x UpdatePhase) MarshalProtoText() string {
 	return x.String()
 }
 
-func (x *DistConfig_LauncherConfigSetEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("LauncherConfigSetEntry {")
-	if x.Key != "" {
-		if sb.Len() > 24 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 24 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *DistConfig_LauncherConfigSetEntry) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *DistConfig_EntrypointAssetsEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("EntrypointAssetsEntry {")
-	if x.Key != "" {
-		if sb.Len() > 23 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 23 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *DistConfig_EntrypointAssetsEntry) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *DistConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DistConfig {")
@@ -2677,87 +1798,18 @@ func (x *DistConfig) MarshalProtoText() string {
 		sb.WriteString("rev: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
 	}
-	if len(x.LauncherConfigSet) > 0 {
+	if x.ChannelKey != "" {
 		if sb.Len() > 12 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("launcher_config_set: {")
-		for _, k := range slices.Sorted(maps.Keys(x.LauncherConfigSet)) {
-			v := x.LauncherConfigSet[k]
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString(" }")
-	}
-	if x.EntrypointVersion != "" {
-		if sb.Len() > 12 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("entrypoint_version: ")
-		sb.WriteString(strconv.Quote(x.EntrypointVersion))
-	}
-	if len(x.EntrypointAssets) > 0 {
-		if sb.Len() > 12 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("entrypoint_assets: {")
-		for _, k := range slices.Sorted(maps.Keys(x.EntrypointAssets)) {
-			v := x.EntrypointAssets[k]
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString(" }")
-	}
-	if x.Channel != "" {
-		if sb.Len() > 12 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("channel: ")
-		sb.WriteString(strconv.Quote(x.Channel))
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *DistConfig) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *EntrypointAsset) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("EntrypointAsset {")
-	if x.Url != "" {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("url: ")
-		sb.WriteString(strconv.Quote(x.Url))
-	}
-	if x.Size != 0 {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("size: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.Size), 10))
-	}
-	if x.Sha256 != nil {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("sha256: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.Sha256))
-		sb.WriteString("\"")
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *EntrypointAsset) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2831,40 +1883,6 @@ func (x *UpdateState) MarshalProtoText() string {
 }
 
 func (x *UpdateState) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *StagedManifest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("StagedManifest {")
-	if x.Version != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("version: ")
-		sb.WriteString(strconv.Quote(x.Version))
-	}
-	if x.Path != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("path: ")
-		sb.WriteString(strconv.Quote(x.Path))
-	}
-	if x.SignatureHash != nil {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("signature_hash: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.SignatureHash))
-		sb.WriteString("\"")
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *StagedManifest) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3031,217 +2049,9 @@ func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LauncherConfigSet", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LauncherConfigSet == nil {
-				m.LauncherConfigSet = make(map[string]*proto.ControllerConfig)
-			}
-			var mapkey string
-			var mapvalue *proto.ControllerConfig
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-				if err != nil {
-					return err
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					if err != nil {
-						return err
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					var _v uint64
-					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					mapmsglen = int(_v)
-					if err != nil {
-						return err
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &proto.ControllerConfig{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.LauncherConfigSet[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointVersion", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EntrypointVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointAssets", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.EntrypointAssets == nil {
-				m.EntrypointAssets = make(map[string]*EntrypointAsset)
-			}
-			var mapkey string
-			var mapvalue *EntrypointAsset
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-				if err != nil {
-					return err
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					if err != nil {
-						return err
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					var _v uint64
-					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-					mapmsglen = int(_v)
-					if err != nil {
-						return err
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &EntrypointAsset{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.EntrypointAssets[mapkey] = mapvalue
-			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Channel", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
 			}
 			var stringLen uint64
 			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
@@ -3259,107 +2069,7 @@ func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Channel = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *EntrypointAsset) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: EntrypointAsset: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EntrypointAsset: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Url = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
-			}
-			m.Size = 0
-			m.Size, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sha256", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Sha256 = append(m.Sha256[:0], dAtA[iNdEx:postIndex]...)
-			if m.Sha256 == nil {
-				m.Sha256 = []byte{}
-			}
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3588,119 +2298,6 @@ func (m *UpdateState) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ErrorMessage = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *StagedManifest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: StagedManifest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StagedManifest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Version = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Path = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SignatureHash", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.SignatureHash = append(m.SignatureHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.SignatureHash == nil {
-				m.SignatureHash = []byte{}
-			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

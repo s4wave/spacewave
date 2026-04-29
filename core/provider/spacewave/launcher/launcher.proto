@@ -1,8 +1,6 @@
 syntax = "proto3";
 package spacewave.launcher;
 
-import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-
 // DistConfig is the encoded and signed object that is exposed on the
 // distribution URL endpoints. The config with the highest valid revision field
 // and valid signature is accepted as the latest config.
@@ -16,39 +14,18 @@ message DistConfig {
   // Rev is the revision of this app config object.
   uint64 rev = 2;
 
-  // LauncherConfigSet is a ConfigSet to apply to the launcher.
-  // This ConfigSet is applied to the launcher plugin bus.
-  // Note: the launcher configuration itself could be overridden by this.
-  // Note: the highest revision config is used in the configset controller.
-  map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
-  // EntrypointVersion is the latest entrypoint binary version.
-  string entrypoint_version = 4;
-  // EntrypointAssets maps platform/arch (e.g. "darwin/arm64") to the
-  // download URL for the new entrypoint binary.
-  map<string, EntrypointAsset> entrypoint_assets = 5;
-  // Channel selects the release channel this DistConfig targets.
-  // Empty means "stable"; alpha clients that do not know an advertised
-  // channel MUST treat the DistConfig as stable (forward-compat fallback).
-  // Reserved future values: "beta", "canary", "internal".
-  string channel = 8;
+  // ChannelKey selects the release channel this DistConfig targets.
+  string channel_key = 8;
 
   // Reserved field numbers. Previously:
+  //   3 -> map<string, ControllerConfig> launcher_config_set
+  //   4 -> string entrypoint_version
+  //   5 -> map<string, EntrypointAsset> entrypoint_assets
   //   6 -> string plugin_version
   //   7 -> map<string, PluginAsset> plugin_assets
-  // Removed in favor of launcher_config_set-driven remote world mounting
-  // (2026-04-17 restoration). Do not reuse these numbers.
-  reserved 6, 7;
-  reserved "plugin_version", "plugin_assets";
-}
-
-// EntrypointAsset describes a downloadable entrypoint binary for a platform.
-message EntrypointAsset {
-  // Url is the download URL for the binary.
-  string url = 1;
-  // Size is the expected file size in bytes.
-  uint64 size = 2;
-  // Sha256 is the SHA-256 hash of the binary.
-  bytes sha256 = 3;
+  reserved 3, 4, 5, 6, 7;
+  reserved "launcher_config_set", "entrypoint_version", "entrypoint_assets",
+    "plugin_version", "plugin_assets";
 }
 
 // LauncherInfo contains information about the state of the launcher.
@@ -72,22 +49,6 @@ message UpdateState {
   string staged_path = 4;
   // ErrorMessage contains any error message.
   string error_message = 5;
-}
-
-// StagedManifest is a sidecar manifest written into the staging directory
-// after a .app bundle has been extracted and codesign-verified. The launcher
-// reads it at boot to decide whether the on-disk STAGED .app is still fresh
-// against the latest DistConfig. The manifest is binary-serialized proto
-// written to =manifest.binpb= in the staging dir.
-message StagedManifest {
-  // Version is the entrypoint version of the staged .app.
-  string version = 1;
-  // Path is the absolute path to the staged =Spacewave-<version>.app=.
-  string path = 2;
-  // SignatureHash is the SHA-256 hash of the archive that produced the .app,
-  // copied from =EntrypointAsset.sha256=. Used to detect resumed-and-tampered
-  // staging trees where the archive was swapped out after extract.
-  bytes signature_hash = 3;
 }
 
 // UpdatePhase is the phase of the entrypoint update.

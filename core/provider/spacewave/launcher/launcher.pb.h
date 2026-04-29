@@ -31,13 +31,8 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
-#include "google/protobuf/map.h"  // IWYU pragma: export
-#include "google/protobuf/map_type_handler.h"  // IWYU pragma: export
-#include "google/protobuf/map_entry.h"
-#include "google/protobuf/map_field.h"
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
-#include "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -77,18 +72,6 @@ class DistConfig;
 struct DistConfigDefaultTypeInternal;
 extern DistConfigDefaultTypeInternal _DistConfig_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DistConfig_class_data_;
-class DistConfig_EntrypointAssetsEntry_DoNotUse;
-struct DistConfig_EntrypointAssetsEntry_DoNotUseDefaultTypeInternal;
-extern DistConfig_EntrypointAssetsEntry_DoNotUseDefaultTypeInternal _DistConfig_EntrypointAssetsEntry_DoNotUse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DistConfig_EntrypointAssetsEntry_DoNotUse_class_data_;
-class DistConfig_LauncherConfigSetEntry_DoNotUse;
-struct DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal;
-extern DistConfig_LauncherConfigSetEntry_DoNotUseDefaultTypeInternal _DistConfig_LauncherConfigSetEntry_DoNotUse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_;
-class EntrypointAsset;
-struct EntrypointAssetDefaultTypeInternal;
-extern EntrypointAssetDefaultTypeInternal _EntrypointAsset_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull EntrypointAsset_class_data_;
 class LauncherInfo;
 struct LauncherInfoDefaultTypeInternal;
 extern LauncherInfoDefaultTypeInternal _LauncherInfo_default_instance_;
@@ -109,10 +92,6 @@ class RecheckDistConfigResponse;
 struct RecheckDistConfigResponseDefaultTypeInternal;
 extern RecheckDistConfigResponseDefaultTypeInternal _RecheckDistConfigResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RecheckDistConfigResponse_class_data_;
-class StagedManifest;
-struct StagedManifestDefaultTypeInternal;
-extern StagedManifestDefaultTypeInternal _StagedManifest_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull StagedManifest_class_data_;
 class UpdateState;
 struct UpdateStateDefaultTypeInternal;
 extern UpdateStateDefaultTypeInternal _UpdateState_default_instance_;
@@ -232,7 +211,7 @@ class WatchLauncherInfoRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const WatchLauncherInfoRequest*>(
         &_WatchLauncherInfoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(WatchLauncherInfoRequest& a, WatchLauncherInfoRequest& b) { a.Swap(&b); }
   inline void Swap(WatchLauncherInfoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -367,7 +346,7 @@ class UpdateState final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateState*>(
         &_UpdateState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(UpdateState& a, UpdateState& b) { a.Swap(&b); }
   inline void Swap(UpdateState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -565,235 +544,6 @@ class UpdateState final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull UpdateState_class_data_;
 // -------------------------------------------------------------------
 
-class StagedManifest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:spacewave.launcher.StagedManifest) */ {
- public:
-  inline StagedManifest() : StagedManifest(nullptr) {}
-  ~StagedManifest() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(StagedManifest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(StagedManifest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR StagedManifest(::google::protobuf::internal::ConstantInitialized);
-
-  inline StagedManifest(const StagedManifest& from) : StagedManifest(nullptr, from) {}
-  inline StagedManifest(StagedManifest&& from) noexcept
-      : StagedManifest(nullptr, ::std::move(from)) {}
-  inline StagedManifest& operator=(const StagedManifest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline StagedManifest& operator=(StagedManifest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const StagedManifest& default_instance() {
-    return *reinterpret_cast<const StagedManifest*>(
-        &_StagedManifest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 6;
-  friend void swap(StagedManifest& a, StagedManifest& b) { a.Swap(&b); }
-  inline void Swap(StagedManifest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(StagedManifest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  StagedManifest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<StagedManifest>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const StagedManifest& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const StagedManifest& from) { StagedManifest::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(StagedManifest* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "spacewave.launcher.StagedManifest"; }
-
-  explicit StagedManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  StagedManifest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const StagedManifest& from);
-  StagedManifest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, StagedManifest&& from) noexcept
-      : StagedManifest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kVersionFieldNumber = 1,
-    kPathFieldNumber = 2,
-    kSignatureHashFieldNumber = 3,
-  };
-  // string version = 1;
-  void clear_version() ;
-  const ::std::string& version() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_version(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_version();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_version();
-  void set_allocated_version(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_version() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_version(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_version();
-
-  public:
-  // string path = 2;
-  void clear_path() ;
-  const ::std::string& path() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_path(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_path();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
-  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_path() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
-
-  public:
-  // bytes signature_hash = 3;
-  void clear_signature_hash() ;
-  const ::std::string& signature_hash() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_signature_hash(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_signature_hash();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_signature_hash();
-  void set_allocated_signature_hash(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_signature_hash() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_signature_hash(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_signature_hash();
-
-  public:
-  // @@protoc_insertion_point(class_scope:spacewave.launcher.StagedManifest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 53,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const StagedManifest& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr version_;
-    ::google::protobuf::internal::ArenaStringPtr path_;
-    ::google::protobuf::internal::ArenaStringPtr signature_hash_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull StagedManifest_class_data_;
-// -------------------------------------------------------------------
-
 class RecheckDistConfigResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:spacewave.launcher.RecheckDistConfigResponse) */ {
  public:
@@ -848,7 +598,7 @@ class RecheckDistConfigResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const RecheckDistConfigResponse*>(
         &_RecheckDistConfigResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(RecheckDistConfigResponse& a, RecheckDistConfigResponse& b) { a.Swap(&b); }
   inline void Swap(RecheckDistConfigResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -982,7 +732,7 @@ class RecheckDistConfigRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const RecheckDistConfigRequest*>(
         &_RecheckDistConfigRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(RecheckDistConfigRequest& a, RecheckDistConfigRequest& b) { a.Swap(&b); }
   inline void Swap(RecheckDistConfigRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1117,7 +867,7 @@ class PushDistConfigResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PushDistConfigResponse*>(
         &_PushDistConfigResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(PushDistConfigResponse& a, PushDistConfigResponse& b) { a.Swap(&b); }
   inline void Swap(PushDistConfigResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1343,7 +1093,7 @@ class PushDistConfigRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PushDistConfigRequest*>(
         &_PushDistConfigRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(PushDistConfigRequest& a, PushDistConfigRequest& b) { a.Swap(&b); }
   inline void Swap(PushDistConfigRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1483,30 +1233,30 @@ class PushDistConfigRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull PushDistConfigRequest_class_data_;
 // -------------------------------------------------------------------
 
-class EntrypointAsset final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:spacewave.launcher.EntrypointAsset) */ {
+class DistConfig final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:spacewave.launcher.DistConfig) */ {
  public:
-  inline EntrypointAsset() : EntrypointAsset(nullptr) {}
-  ~EntrypointAsset() PROTOBUF_FINAL;
+  inline DistConfig() : DistConfig(nullptr) {}
+  ~DistConfig() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(EntrypointAsset* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DistConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(EntrypointAsset));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DistConfig));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR EntrypointAsset(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DistConfig(::google::protobuf::internal::ConstantInitialized);
 
-  inline EntrypointAsset(const EntrypointAsset& from) : EntrypointAsset(nullptr, from) {}
-  inline EntrypointAsset(EntrypointAsset&& from) noexcept
-      : EntrypointAsset(nullptr, ::std::move(from)) {}
-  inline EntrypointAsset& operator=(const EntrypointAsset& from) {
+  inline DistConfig(const DistConfig& from) : DistConfig(nullptr, from) {}
+  inline DistConfig(DistConfig&& from) noexcept
+      : DistConfig(nullptr, ::std::move(from)) {}
+  inline DistConfig& operator=(const DistConfig& from) {
     CopyFrom(from);
     return *this;
   }
-  inline EntrypointAsset& operator=(EntrypointAsset&& from) noexcept {
+  inline DistConfig& operator=(DistConfig&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -1534,13 +1284,13 @@ class EntrypointAsset final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const EntrypointAsset& default_instance() {
-    return *reinterpret_cast<const EntrypointAsset*>(
-        &_EntrypointAsset_default_instance_);
+  static const DistConfig& default_instance() {
+    return *reinterpret_cast<const DistConfig*>(
+        &_DistConfig_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
-  friend void swap(EntrypointAsset& a, EntrypointAsset& b) { a.Swap(&b); }
-  inline void Swap(EntrypointAsset* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 0;
+  friend void swap(DistConfig& a, DistConfig& b) { a.Swap(&b); }
+  inline void Swap(DistConfig* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -1548,7 +1298,7 @@ class EntrypointAsset final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(EntrypointAsset* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DistConfig* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -1556,13 +1306,13 @@ class EntrypointAsset final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  EntrypointAsset* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<EntrypointAsset>(arena);
+  DistConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DistConfig>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const EntrypointAsset& from);
+  void CopyFrom(const DistConfig& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const EntrypointAsset& from) { EntrypointAsset::MergeImpl(*this, from); }
+  void MergeFrom(const DistConfig& from) { DistConfig::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -1598,17 +1348,17 @@ class EntrypointAsset final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(EntrypointAsset* PROTOBUF_NONNULL other);
+  void InternalSwap(DistConfig* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "spacewave.launcher.EntrypointAsset"; }
+  static ::absl::string_view FullMessageName() { return "spacewave.launcher.DistConfig"; }
 
-  explicit EntrypointAsset(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  EntrypointAsset(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const EntrypointAsset& from);
-  EntrypointAsset(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, EntrypointAsset&& from) noexcept
-      : EntrypointAsset(arena) {
+  explicit DistConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DistConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DistConfig& from);
+  DistConfig(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DistConfig&& from) noexcept
+      : DistConfig(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -1625,56 +1375,56 @@ class EntrypointAsset final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kUrlFieldNumber = 1,
-    kSha256FieldNumber = 3,
-    kSizeFieldNumber = 2,
+    kProjectIdFieldNumber = 1,
+    kChannelKeyFieldNumber = 8,
+    kRevFieldNumber = 2,
   };
-  // string url = 1;
-  void clear_url() ;
-  const ::std::string& url() const;
+  // string project_id = 1;
+  void clear_project_id() ;
+  const ::std::string& project_id() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_url(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_url();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_url();
-  void set_allocated_url(::std::string* PROTOBUF_NULLABLE value);
+  void set_project_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_project_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_project_id();
+  void set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value);
 
   private:
-  const ::std::string& _internal_url() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_url(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_url();
+  const ::std::string& _internal_project_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_project_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_project_id();
 
   public:
-  // bytes sha256 = 3;
-  void clear_sha256() ;
-  const ::std::string& sha256() const;
+  // string channel_key = 8;
+  void clear_channel_key() ;
+  const ::std::string& channel_key() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_sha256(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_sha256();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sha256();
-  void set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value);
+  void set_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel_key();
+  void set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value);
 
   private:
-  const ::std::string& _internal_sha256() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_sha256(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_sha256();
+  const ::std::string& _internal_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
 
   public:
-  // uint64 size = 2;
-  void clear_size() ;
-  ::uint64_t size() const;
-  void set_size(::uint64_t value);
+  // uint64 rev = 2;
+  void clear_rev() ;
+  ::uint64_t rev() const;
+  void set_rev(::uint64_t value);
 
   private:
-  ::uint64_t _internal_size() const;
-  void _internal_set_size(::uint64_t value);
+  ::uint64_t _internal_rev() const;
+  void _internal_set_rev(::uint64_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:spacewave.launcher.EntrypointAsset)
+  // @@protoc_insertion_point(class_scope:spacewave.launcher.DistConfig)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 46,
+                                   0, 59,
                                    2>
       _table_;
 
@@ -1692,19 +1442,19 @@ class EntrypointAsset final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const EntrypointAsset& from_msg);
+        const DistConfig& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr url_;
-    ::google::protobuf::internal::ArenaStringPtr sha256_;
-    ::uint64_t size_;
+    ::google::protobuf::internal::ArenaStringPtr project_id_;
+    ::google::protobuf::internal::ArenaStringPtr channel_key_;
+    ::uint64_t rev_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull EntrypointAsset_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DistConfig_class_data_;
 // -------------------------------------------------------------------
 
 class ApplyUpdateResponse final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -1761,7 +1511,7 @@ class ApplyUpdateResponse final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const ApplyUpdateResponse*>(
         &_ApplyUpdateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(ApplyUpdateResponse& a, ApplyUpdateResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyUpdateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1895,7 +1645,7 @@ class ApplyUpdateRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const ApplyUpdateRequest*>(
         &_ApplyUpdateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(ApplyUpdateRequest& a, ApplyUpdateRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyUpdateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1975,365 +1725,6 @@ class ApplyUpdateRequest final : public ::google::protobuf::internal::ZeroFields
 extern const ::google::protobuf::internal::ClassDataFull ApplyUpdateRequest_class_data_;
 // -------------------------------------------------------------------
 
-class DistConfig_LauncherConfigSetEntry_DoNotUse final
-    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
- public:
-  using SuperType =
-      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
-  DistConfig_LauncherConfigSetEntry_DoNotUse();
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DistConfig_LauncherConfigSetEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
-  explicit DistConfig_LauncherConfigSetEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
-    return &_DistConfig_LauncherConfigSetEntry_DoNotUse_default_instance_;
-  }
-
-
-  static constexpr auto InternalGenerateClassData_();
-
- private:
-  friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto;
-
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 64,
-                                   2>
-      _table_;
-
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-};
-extern const ::google::protobuf::internal::ClassDataFull DistConfig_LauncherConfigSetEntry_DoNotUse_class_data_;
-// -------------------------------------------------------------------
-
-class DistConfig_EntrypointAssetsEntry_DoNotUse final
-    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
- public:
-  using SuperType =
-      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
-  DistConfig_EntrypointAssetsEntry_DoNotUse();
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DistConfig_EntrypointAssetsEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
-  explicit DistConfig_EntrypointAssetsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
-    return &_DistConfig_EntrypointAssetsEntry_DoNotUse_default_instance_;
-  }
-
-
-  static constexpr auto InternalGenerateClassData_();
-
- private:
-  friend class ::google::protobuf::MessageLite;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto;
-
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 63,
-                                   2>
-      _table_;
-
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-};
-extern const ::google::protobuf::internal::ClassDataFull DistConfig_EntrypointAssetsEntry_DoNotUse_class_data_;
-// -------------------------------------------------------------------
-
-class DistConfig final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:spacewave.launcher.DistConfig) */ {
- public:
-  inline DistConfig() : DistConfig(nullptr) {}
-  ~DistConfig() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DistConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DistConfig));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DistConfig(::google::protobuf::internal::ConstantInitialized);
-
-  inline DistConfig(const DistConfig& from) : DistConfig(nullptr, from) {}
-  inline DistConfig(DistConfig&& from) noexcept
-      : DistConfig(nullptr, ::std::move(from)) {}
-  inline DistConfig& operator=(const DistConfig& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline DistConfig& operator=(DistConfig&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const DistConfig& default_instance() {
-    return *reinterpret_cast<const DistConfig*>(
-        &_DistConfig_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(DistConfig& a, DistConfig& b) { a.Swap(&b); }
-  inline void Swap(DistConfig* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(DistConfig* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  DistConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DistConfig>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DistConfig& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DistConfig& from) { DistConfig::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(DistConfig* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "spacewave.launcher.DistConfig"; }
-
-  explicit DistConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DistConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DistConfig& from);
-  DistConfig(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DistConfig&& from) noexcept
-      : DistConfig(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kProjectIdFieldNumber = 1,
-    kEntrypointVersionFieldNumber = 4,
-    kChannelFieldNumber = 8,
-    kRevFieldNumber = 2,
-    kLauncherConfigSetFieldNumber = 3,
-    kEntrypointAssetsFieldNumber = 5,
-  };
-  // string project_id = 1;
-  void clear_project_id() ;
-  const ::std::string& project_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_project_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_project_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_project_id();
-  void set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_project_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_project_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_project_id();
-
-  public:
-  // string entrypoint_version = 4;
-  void clear_entrypoint_version() ;
-  const ::std::string& entrypoint_version() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_entrypoint_version(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_entrypoint_version();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entrypoint_version();
-  void set_allocated_entrypoint_version(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_entrypoint_version() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_entrypoint_version(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_version();
-
-  public:
-  // string channel = 8;
-  void clear_channel() ;
-  const ::std::string& channel() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_channel(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_channel();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel();
-  void set_allocated_channel(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_channel() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_channel(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel();
-
-  public:
-  // uint64 rev = 2;
-  void clear_rev() ;
-  ::uint64_t rev() const;
-  void set_rev(::uint64_t value);
-
-  private:
-  ::uint64_t _internal_rev() const;
-  void _internal_set_rev(::uint64_t value);
-
-  public:
-  // map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
-  int launcher_config_set_size() const;
-  private:
-  int _internal_launcher_config_set_size() const;
-
-  public:
-  void clear_launcher_config_set() ;
-  const ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>& launcher_config_set() const;
-  ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL mutable_launcher_config_set();
-
-  private:
-  const ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>& _internal_launcher_config_set() const;
-  ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL _internal_mutable_launcher_config_set();
-
-  public:
-  // map<string, .spacewave.launcher.EntrypointAsset> entrypoint_assets = 5;
-  int entrypoint_assets_size() const;
-  private:
-  int _internal_entrypoint_assets_size() const;
-
-  public:
-  void clear_entrypoint_assets() ;
-  const ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>& entrypoint_assets() const;
-  ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>* PROTOBUF_NONNULL mutable_entrypoint_assets();
-
-  private:
-  const ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>& _internal_entrypoint_assets() const;
-  ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>* PROTOBUF_NONNULL _internal_mutable_entrypoint_assets();
-
-  public:
-  // @@protoc_insertion_point(class_scope:spacewave.launcher.DistConfig)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   4, 109,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DistConfig& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr project_id_;
-    ::google::protobuf::internal::ArenaStringPtr entrypoint_version_;
-    ::google::protobuf::internal::ArenaStringPtr channel_;
-    ::uint64_t rev_;
-    ::google::protobuf::internal::MapField<DistConfig_LauncherConfigSetEntry_DoNotUse, ::std::string, ::configset::proto::ControllerConfig,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
-        launcher_config_set_;
-    ::google::protobuf::internal::MapField<DistConfig_EntrypointAssetsEntry_DoNotUse, ::std::string, ::spacewave::launcher::EntrypointAsset,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
-        entrypoint_assets_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2flauncher_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull DistConfig_class_data_;
-// -------------------------------------------------------------------
-
 class LauncherInfo final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:spacewave.launcher.LauncherInfo) */ {
  public:
@@ -2389,7 +1780,7 @@ class LauncherInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const LauncherInfo*>(
         &_LauncherInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 1;
   friend void swap(LauncherInfo& a, LauncherInfo& b) { a.Swap(&b); }
   inline void Swap(LauncherInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2559,10 +1950,6 @@ extern const ::google::protobuf::internal::ClassDataFull LauncherInfo_class_data
 #endif  // __GNUC__
 // -------------------------------------------------------------------
 
-// -------------------------------------------------------------------
-
-// -------------------------------------------------------------------
-
 // DistConfig
 
 // string project_id = 1;
@@ -2635,7 +2022,7 @@ inline void DistConfig::clear_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000004U);
 }
 inline ::uint64_t DistConfig::rev() const {
   // @@protoc_insertion_point(field_get:spacewave.launcher.DistConfig.rev)
@@ -2643,7 +2030,7 @@ inline ::uint64_t DistConfig::rev() const {
 }
 inline void DistConfig::set_rev(::uint64_t value) {
   _internal_set_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:spacewave.launcher.DistConfig.rev)
 }
 inline ::uint64_t DistConfig::_internal_rev() const {
@@ -2655,351 +2042,69 @@ inline void DistConfig::_internal_set_rev(::uint64_t value) {
   _impl_.rev_ = value;
 }
 
-// map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
-inline int DistConfig::_internal_launcher_config_set_size() const {
-  return _internal_launcher_config_set().size();
-}
-inline int DistConfig::launcher_config_set_size() const {
-  return _internal_launcher_config_set_size();
-}
-inline const ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>& DistConfig::_internal_launcher_config_set() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.launcher_config_set_.GetMap();
-}
-inline const ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>& DistConfig::launcher_config_set() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_map:spacewave.launcher.DistConfig.launcher_config_set)
-  return _internal_launcher_config_set();
-}
-inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL DistConfig::_internal_mutable_launcher_config_set() {
+// string channel_key = 8;
+inline void DistConfig::clear_channel_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.launcher_config_set_.MutableMap();
-}
-inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL DistConfig::mutable_launcher_config_set()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_mutable_map:spacewave.launcher.DistConfig.launcher_config_set)
-  return _internal_mutable_launcher_config_set();
-}
-
-// string entrypoint_version = 4;
-inline void DistConfig::clear_entrypoint_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.entrypoint_version_.ClearToEmpty();
+  _impl_.channel_key_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::std::string& DistConfig::entrypoint_version() const
+inline const ::std::string& DistConfig::channel_key() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.DistConfig.entrypoint_version)
-  return _internal_entrypoint_version();
+  // @@protoc_insertion_point(field_get:spacewave.launcher.DistConfig.channel_key)
+  return _internal_channel_key();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DistConfig::set_entrypoint_version(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DistConfig::set_channel_key(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.entrypoint_version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.DistConfig.entrypoint_version)
+  _impl_.channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:spacewave.launcher.DistConfig.channel_key)
 }
-inline ::std::string* PROTOBUF_NONNULL DistConfig::mutable_entrypoint_version()
+inline ::std::string* PROTOBUF_NONNULL DistConfig::mutable_channel_key()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_entrypoint_version();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.DistConfig.entrypoint_version)
+  ::std::string* _s = _internal_mutable_channel_key();
+  // @@protoc_insertion_point(field_mutable:spacewave.launcher.DistConfig.channel_key)
   return _s;
 }
-inline const ::std::string& DistConfig::_internal_entrypoint_version() const {
+inline const ::std::string& DistConfig::_internal_channel_key() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.entrypoint_version_.Get();
+  return _impl_.channel_key_.Get();
 }
-inline void DistConfig::_internal_set_entrypoint_version(const ::std::string& value) {
+inline void DistConfig::_internal_set_channel_key(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.entrypoint_version_.Set(value, GetArena());
+  _impl_.channel_key_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DistConfig::_internal_mutable_entrypoint_version() {
+inline ::std::string* PROTOBUF_NONNULL DistConfig::_internal_mutable_channel_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.entrypoint_version_.Mutable( GetArena());
+  return _impl_.channel_key_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DistConfig::release_entrypoint_version() {
+inline ::std::string* PROTOBUF_NULLABLE DistConfig::release_channel_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.DistConfig.entrypoint_version)
+  // @@protoc_insertion_point(field_release:spacewave.launcher.DistConfig.channel_key)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.entrypoint_version_.Release();
+  auto* released = _impl_.channel_key_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.entrypoint_version_.Set("", GetArena());
+    _impl_.channel_key_.Set("", GetArena());
   }
   return released;
 }
-inline void DistConfig::set_allocated_entrypoint_version(::std::string* PROTOBUF_NULLABLE value) {
+inline void DistConfig::set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
-  _impl_.entrypoint_version_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entrypoint_version_.IsDefault()) {
-    _impl_.entrypoint_version_.Set("", GetArena());
+  _impl_.channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_key_.IsDefault()) {
+    _impl_.channel_key_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.DistConfig.entrypoint_version)
-}
-
-// map<string, .spacewave.launcher.EntrypointAsset> entrypoint_assets = 5;
-inline int DistConfig::_internal_entrypoint_assets_size() const {
-  return _internal_entrypoint_assets().size();
-}
-inline int DistConfig::entrypoint_assets_size() const {
-  return _internal_entrypoint_assets_size();
-}
-inline void DistConfig::clear_entrypoint_assets() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.entrypoint_assets_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000020U);
-}
-inline const ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>& DistConfig::_internal_entrypoint_assets() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.entrypoint_assets_.GetMap();
-}
-inline const ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>& DistConfig::entrypoint_assets() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_map:spacewave.launcher.DistConfig.entrypoint_assets)
-  return _internal_entrypoint_assets();
-}
-inline ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>* PROTOBUF_NONNULL DistConfig::_internal_mutable_entrypoint_assets() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.entrypoint_assets_.MutableMap();
-}
-inline ::google::protobuf::Map<::std::string, ::spacewave::launcher::EntrypointAsset>* PROTOBUF_NONNULL DistConfig::mutable_entrypoint_assets()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
-  // @@protoc_insertion_point(field_mutable_map:spacewave.launcher.DistConfig.entrypoint_assets)
-  return _internal_mutable_entrypoint_assets();
-}
-
-// string channel = 8;
-inline void DistConfig::clear_channel() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.channel_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& DistConfig::channel() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.DistConfig.channel)
-  return _internal_channel();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DistConfig::set_channel(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.channel_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.DistConfig.channel)
-}
-inline ::std::string* PROTOBUF_NONNULL DistConfig::mutable_channel()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_channel();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.DistConfig.channel)
-  return _s;
-}
-inline const ::std::string& DistConfig::_internal_channel() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.channel_.Get();
-}
-inline void DistConfig::_internal_set_channel(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.channel_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DistConfig::_internal_mutable_channel() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.channel_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DistConfig::release_channel() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.DistConfig.channel)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.channel_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.channel_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DistConfig::set_allocated_channel(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.channel_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_.IsDefault()) {
-    _impl_.channel_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.DistConfig.channel)
-}
-
-// -------------------------------------------------------------------
-
-// EntrypointAsset
-
-// string url = 1;
-inline void EntrypointAsset::clear_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.url_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& EntrypointAsset::url() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.EntrypointAsset.url)
-  return _internal_url();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void EntrypointAsset::set_url(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.EntrypointAsset.url)
-}
-inline ::std::string* PROTOBUF_NONNULL EntrypointAsset::mutable_url()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_url();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.EntrypointAsset.url)
-  return _s;
-}
-inline const ::std::string& EntrypointAsset::_internal_url() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.url_.Get();
-}
-inline void EntrypointAsset::_internal_set_url(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.url_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL EntrypointAsset::_internal_mutable_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.url_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE EntrypointAsset::release_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.EntrypointAsset.url)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.url_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.url_.Set("", GetArena());
-  }
-  return released;
-}
-inline void EntrypointAsset::set_allocated_url(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.url_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.url_.IsDefault()) {
-    _impl_.url_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.EntrypointAsset.url)
-}
-
-// uint64 size = 2;
-inline void EntrypointAsset::clear_size() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.size_ = ::uint64_t{0u};
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline ::uint64_t EntrypointAsset::size() const {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.EntrypointAsset.size)
-  return _internal_size();
-}
-inline void EntrypointAsset::set_size(::uint64_t value) {
-  _internal_set_size(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:spacewave.launcher.EntrypointAsset.size)
-}
-inline ::uint64_t EntrypointAsset::_internal_size() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.size_;
-}
-inline void EntrypointAsset::_internal_set_size(::uint64_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.size_ = value;
-}
-
-// bytes sha256 = 3;
-inline void EntrypointAsset::clear_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.sha256_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& EntrypointAsset::sha256() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.EntrypointAsset.sha256)
-  return _internal_sha256();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void EntrypointAsset::set_sha256(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.sha256_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.EntrypointAsset.sha256)
-}
-inline ::std::string* PROTOBUF_NONNULL EntrypointAsset::mutable_sha256()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_sha256();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.EntrypointAsset.sha256)
-  return _s;
-}
-inline const ::std::string& EntrypointAsset::_internal_sha256() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.sha256_.Get();
-}
-inline void EntrypointAsset::_internal_set_sha256(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.sha256_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL EntrypointAsset::_internal_mutable_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.sha256_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE EntrypointAsset::release_sha256() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.EntrypointAsset.sha256)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.sha256_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.sha256_.Set("", GetArena());
-  }
-  return released;
-}
-inline void EntrypointAsset::set_allocated_sha256(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.sha256_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.sha256_.IsDefault()) {
-    _impl_.sha256_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.EntrypointAsset.sha256)
+  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.DistConfig.channel_key)
 }
 
 // -------------------------------------------------------------------
@@ -3451,205 +2556,6 @@ inline void UpdateState::set_allocated_error_message(::std::string* PROTOBUF_NUL
     _impl_.error_message_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.UpdateState.error_message)
-}
-
-// -------------------------------------------------------------------
-
-// StagedManifest
-
-// string version = 1;
-inline void StagedManifest::clear_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.version_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& StagedManifest::version() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.StagedManifest.version)
-  return _internal_version();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void StagedManifest::set_version(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.StagedManifest.version)
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::mutable_version()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_version();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.StagedManifest.version)
-  return _s;
-}
-inline const ::std::string& StagedManifest::_internal_version() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.version_.Get();
-}
-inline void StagedManifest::_internal_set_version(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.version_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::_internal_mutable_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.version_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE StagedManifest::release_version() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.StagedManifest.version)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.version_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.version_.Set("", GetArena());
-  }
-  return released;
-}
-inline void StagedManifest::set_allocated_version(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.version_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.version_.IsDefault()) {
-    _impl_.version_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.StagedManifest.version)
-}
-
-// string path = 2;
-inline void StagedManifest::clear_path() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.path_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& StagedManifest::path() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.StagedManifest.path)
-  return _internal_path();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void StagedManifest::set_path(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.StagedManifest.path)
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::mutable_path()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_path();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.StagedManifest.path)
-  return _s;
-}
-inline const ::std::string& StagedManifest::_internal_path() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.path_.Get();
-}
-inline void StagedManifest::_internal_set_path(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.path_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::_internal_mutable_path() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.path_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE StagedManifest::release_path() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.StagedManifest.path)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.path_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.path_.Set("", GetArena());
-  }
-  return released;
-}
-inline void StagedManifest::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.path_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
-    _impl_.path_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.StagedManifest.path)
-}
-
-// bytes signature_hash = 3;
-inline void StagedManifest::clear_signature_hash() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.signature_hash_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& StagedManifest::signature_hash() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:spacewave.launcher.StagedManifest.signature_hash)
-  return _internal_signature_hash();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void StagedManifest::set_signature_hash(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.signature_hash_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:spacewave.launcher.StagedManifest.signature_hash)
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::mutable_signature_hash()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_signature_hash();
-  // @@protoc_insertion_point(field_mutable:spacewave.launcher.StagedManifest.signature_hash)
-  return _s;
-}
-inline const ::std::string& StagedManifest::_internal_signature_hash() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.signature_hash_.Get();
-}
-inline void StagedManifest::_internal_set_signature_hash(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.signature_hash_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL StagedManifest::_internal_mutable_signature_hash() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.signature_hash_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE StagedManifest::release_signature_hash() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:spacewave.launcher.StagedManifest.signature_hash)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.signature_hash_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.signature_hash_.Set("", GetArena());
-  }
-  return released;
-}
-inline void StagedManifest::set_allocated_signature_hash(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.signature_hash_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.signature_hash_.IsDefault()) {
-    _impl_.signature_hash_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.StagedManifest.signature_hash)
 }
 
 // -------------------------------------------------------------------

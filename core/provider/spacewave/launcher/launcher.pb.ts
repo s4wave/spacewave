@@ -8,7 +8,6 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
-import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'spacewave.launcher'
 
@@ -67,43 +66,6 @@ export const UpdatePhase_Enum = createEnumType(
 )
 
 /**
- * EntrypointAsset describes a downloadable entrypoint binary for a platform.
- *
- * @generated from message spacewave.launcher.EntrypointAsset
- */
-export interface EntrypointAsset {
-  /**
-   * Url is the download URL for the binary.
-   *
-   * @generated from field: string url = 1;
-   */
-  url?: string
-  /**
-   * Size is the expected file size in bytes.
-   *
-   * @generated from field: uint64 size = 2;
-   */
-  size?: bigint
-  /**
-   * Sha256 is the SHA-256 hash of the binary.
-   *
-   * @generated from field: bytes sha256 = 3;
-   */
-  sha256?: Uint8Array
-}
-
-// EntrypointAsset contains the message type declaration for EntrypointAsset.
-export const EntrypointAsset: MessageType<EntrypointAsset> = createMessageType({
-  typeName: 'spacewave.launcher.EntrypointAsset',
-  fields: [
-    { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 3, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
  * DistConfig is the encoded and signed object that is exposed on the
  * distribution URL endpoints. The config with the highest valid revision field
  * and valid signature is accepted as the latest config.
@@ -128,36 +90,11 @@ export interface DistConfig {
    */
   rev?: bigint
   /**
-   * LauncherConfigSet is a ConfigSet to apply to the launcher.
-   * This ConfigSet is applied to the launcher plugin bus.
-   * Note: the launcher configuration itself could be overridden by this.
-   * Note: the highest revision config is used in the configset controller.
+   * ChannelKey selects the release channel this DistConfig targets.
    *
-   * @generated from field: map<string, configset.proto.ControllerConfig> launcher_config_set = 3;
+   * @generated from field: string channel_key = 8;
    */
-  launcherConfigSet?: { [key: string]: ControllerConfig }
-  /**
-   * EntrypointVersion is the latest entrypoint binary version.
-   *
-   * @generated from field: string entrypoint_version = 4;
-   */
-  entrypointVersion?: string
-  /**
-   * EntrypointAssets maps platform/arch (e.g. "darwin/arm64") to the
-   * download URL for the new entrypoint binary.
-   *
-   * @generated from field: map<string, spacewave.launcher.EntrypointAsset> entrypoint_assets = 5;
-   */
-  entrypointAssets?: { [key: string]: EntrypointAsset }
-  /**
-   * Channel selects the release channel this DistConfig targets.
-   * Empty means "stable"; alpha clients that do not know an advertised
-   * channel MUST treat the DistConfig as stable (forward-compat fallback).
-   * Reserved future values: "beta", "canary", "internal".
-   *
-   * @generated from field: string channel = 8;
-   */
-  channel?: string
+  channelKey?: string
 }
 
 // DistConfig contains the message type declaration for DistConfig.
@@ -166,22 +103,7 @@ export const DistConfig: MessageType<DistConfig> = createMessageType({
   fields: [
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 3,
-      name: 'launcher_config_set',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    { no: 4, name: 'entrypoint_version', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'entrypoint_assets',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => EntrypointAsset },
-    },
-    { no: 8, name: 'channel', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -264,49 +186,6 @@ export const LauncherInfo: MessageType<LauncherInfo> = createMessageType({
   fields: [
     { no: 1, name: 'dist_config', kind: 'message', T: () => DistConfig },
     { no: 2, name: 'update_state', kind: 'message', T: () => UpdateState },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * StagedManifest is a sidecar manifest written into the staging directory
- * after a .app bundle has been extracted and codesign-verified. The launcher
- * reads it at boot to decide whether the on-disk STAGED .app is still fresh
- * against the latest DistConfig. The manifest is binary-serialized proto
- * written to =manifest.binpb= in the staging dir.
- *
- * @generated from message spacewave.launcher.StagedManifest
- */
-export interface StagedManifest {
-  /**
-   * Version is the entrypoint version of the staged .app.
-   *
-   * @generated from field: string version = 1;
-   */
-  version?: string
-  /**
-   * Path is the absolute path to the staged =Spacewave-<version>.app=.
-   *
-   * @generated from field: string path = 2;
-   */
-  path?: string
-  /**
-   * SignatureHash is the SHA-256 hash of the archive that produced the .app,
-   * copied from =EntrypointAsset.sha256=. Used to detect resumed-and-tampered
-   * staging trees where the archive was swapped out after extract.
-   *
-   * @generated from field: bytes signature_hash = 3;
-   */
-  signatureHash?: Uint8Array
-}
-
-// StagedManifest contains the message type declaration for StagedManifest.
-export const StagedManifest: MessageType<StagedManifest> = createMessageType({
-  typeName: 'spacewave.launcher.StagedManifest',
-  fields: [
-    { no: 1, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'signature_hash', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

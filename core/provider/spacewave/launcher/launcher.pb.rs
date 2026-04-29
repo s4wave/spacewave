@@ -5,7 +5,7 @@
 /// and valid signature is accepted as the latest config.
 ///
 /// Usually encoded with packedmsg(peer.SignedMsg(DistConfig))
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DistConfig {
     /// ProjectId is the identifier of the project.
     /// usually matches the id: field in the project config.
@@ -15,41 +15,12 @@ pub struct DistConfig {
     /// Rev is the revision of this app config object.
     #[prost(uint64, tag="2")]
     pub rev: u64,
-    /// LauncherConfigSet is a ConfigSet to apply to the launcher.
-    /// This ConfigSet is applied to the launcher plugin bus.
-    /// Note: the launcher configuration itself could be overridden by this.
-    /// Note: the highest revision config is used in the configset controller.
-    #[prost(map="string, message", tag="3")]
-    pub launcher_config_set: ::std::collections::HashMap<::prost::alloc::string::String, super::super::configset::proto::ControllerConfig>,
-    /// EntrypointVersion is the latest entrypoint binary version.
-    #[prost(string, tag="4")]
-    pub entrypoint_version: ::prost::alloc::string::String,
-    /// EntrypointAssets maps platform/arch (e.g. "darwin/arm64") to the
-    /// download URL for the new entrypoint binary.
-    #[prost(map="string, message", tag="5")]
-    pub entrypoint_assets: ::std::collections::HashMap<::prost::alloc::string::String, EntrypointAsset>,
-    /// Channel selects the release channel this DistConfig targets.
-    /// Empty means "stable"; alpha clients that do not know an advertised
-    /// channel MUST treat the DistConfig as stable (forward-compat fallback).
-    /// Reserved future values: "beta", "canary", "internal".
+    /// ChannelKey selects the release channel this DistConfig targets.
     #[prost(string, tag="8")]
-    pub channel: ::prost::alloc::string::String,
-}
-/// EntrypointAsset describes a downloadable entrypoint binary for a platform.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EntrypointAsset {
-    /// Url is the download URL for the binary.
-    #[prost(string, tag="1")]
-    pub url: ::prost::alloc::string::String,
-    /// Size is the expected file size in bytes.
-    #[prost(uint64, tag="2")]
-    pub size: u64,
-    /// Sha256 is the SHA-256 hash of the binary.
-    #[prost(bytes="vec", tag="3")]
-    pub sha256: ::prost::alloc::vec::Vec<u8>,
+    pub channel_key: ::prost::alloc::string::String,
 }
 /// LauncherInfo contains information about the state of the launcher.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LauncherInfo {
     /// DistConfig contains the latest app dist config object.
     /// May be empty if the config is not known / fetched yet.
@@ -77,25 +48,6 @@ pub struct UpdateState {
     /// ErrorMessage contains any error message.
     #[prost(string, tag="5")]
     pub error_message: ::prost::alloc::string::String,
-}
-/// StagedManifest is a sidecar manifest written into the staging directory
-/// after a .app bundle has been extracted and codesign-verified. The launcher
-/// reads it at boot to decide whether the on-disk STAGED .app is still fresh
-/// against the latest DistConfig. The manifest is binary-serialized proto
-/// written to =manifest.binpb= in the staging dir.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StagedManifest {
-    /// Version is the entrypoint version of the staged .app.
-    #[prost(string, tag="1")]
-    pub version: ::prost::alloc::string::String,
-    /// Path is the absolute path to the staged =Spacewave-<version>.app=.
-    #[prost(string, tag="2")]
-    pub path: ::prost::alloc::string::String,
-    /// SignatureHash is the SHA-256 hash of the archive that produced the .app,
-    /// copied from =EntrypointAsset.sha256=. Used to detect resumed-and-tampered
-    /// staging trees where the archive was swapped out after extract.
-    #[prost(bytes="vec", tag="3")]
-    pub signature_hash: ::prost::alloc::vec::Vec<u8>,
 }
 /// RecheckDistConfigRequest is a request to immediately recheck for updates.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
