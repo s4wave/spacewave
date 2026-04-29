@@ -10,7 +10,25 @@ import (
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
-// MaxBlockSize is the default maximum block size in bytes (10MB).
+// MaxBlockSize is the default maximum size in bytes (10MB) for a single
+// serialized block accepted on the wire by transports such as DEX.
+//
+// This is a sanity / DoS ceiling, not a structural limit on any one block
+// type. Individual block types are naturally bounded well below this value:
+//
+//   - blob.Blob (root): inline RawData is capped by
+//     blob.DefRawHighWaterMark = blob.DefChunkingMaxSize = 786432 (768 KiB).
+//     Above that the Blob auto-converts to CHUNKED, where the root only
+//     stores a ChunkIndex of references and individual chunk data lives in
+//     separate byteslice blocks.
+//   - blob chunk data (byteslice.ByteSlice): one chunk per block, capped by
+//     blob.DefChunkingMaxSize = 786432 (768 KiB).
+//   - blob.ChunkIndex / IAVL node / other index blocks: hold only references
+//     and small metadata, well under 1 MiB in practice.
+//
+// 10 MiB therefore leaves roughly an order of magnitude of headroom over the
+// largest block any current producer will emit, while still bounding the
+// per-message buffer a peer must allocate when receiving a single block.
 const MaxBlockSize = 10485760
 
 // Ctor is a block constructor.

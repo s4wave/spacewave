@@ -30,7 +30,11 @@ const ControllerID = "hydra/dex/solicit"
 const DexProtocolID = protocol.ID("hydra/dex")
 
 // maxMessageSize is the max message size for packet sessions.
-// 10MB to accommodate large blocks.
+//
+// 10MB matches block.MaxBlockSize: see that constant for the rationale on why
+// 10 MiB is comfortable headroom over the largest single block any current
+// producer emits (real block types stay under blob.DefChunkingMaxSize, 768
+// KiB).
 const maxMessageSize = 10 * 1024 * 1024
 
 // requestTimeout is the per-peer request timeout.

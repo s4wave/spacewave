@@ -18,6 +18,11 @@ const defaultMaxConcurrentStreams = 4
 const defaultPublishDebounceMs = 100
 
 // defaultMaxBlockSize is the default maximum block size in bytes (10MB).
+//
+// See block.MaxBlockSize for the rationale: 10 MiB is a sanity / DoS cap on a
+// single wire-serialized block. Real block types (blob.Blob, byteslice chunks,
+// IAVL nodes) are bounded by blob.DefChunkingMaxSize (768 KiB) and produce
+// values well under this ceiling.
 const defaultMaxBlockSize = block.MaxBlockSize
 
 // defaultChunkSize is the default chunk size in bytes (1KB).
