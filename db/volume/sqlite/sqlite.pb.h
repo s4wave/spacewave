@@ -30,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../store/kvtx/kvtx.pb.h"
 #include "../../store/kvkey/kvkey.pb.h"
@@ -59,6 +60,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace volume {
 namespace sqlite {
+enum TempStore : int;
+extern const uint32_t TempStore_internal_data_[];
 class Config;
 struct ConfigDefaultTypeInternal;
 extern ConfigDefaultTypeInternal _Config_default_instance_;
@@ -67,11 +70,51 @@ extern const ::google::protobuf::internal::ClassDataFull Config_class_data_;
 }  // namespace volume
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::volume::sqlite::TempStore_internal_data_>
+    internal::EnumTraitsImpl::value<::volume::sqlite::TempStore>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace volume {
 namespace sqlite {
+enum TempStore : int {
+  TempStore_DEFAULT = 0,
+  TempStore_FILE = 1,
+  TempStore_MEMORY = 2,
+  TempStore_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  TempStore_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t TempStore_internal_data_[];
+inline constexpr TempStore TempStore_MIN =
+    static_cast<TempStore>(0);
+inline constexpr TempStore TempStore_MAX =
+    static_cast<TempStore>(2);
+inline bool TempStore_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int TempStore_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TempStore_descriptor();
+template <typename T>
+const ::std::string& TempStore_Name(T value) {
+  static_assert(::std::is_same<T, TempStore>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to TempStore_Name().");
+  return TempStore_Name(static_cast<TempStore>(value));
+}
+template <>
+inline const ::std::string& TempStore_Name(TempStore value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<TempStore_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool TempStore_Parse(
+    ::absl::string_view name, TempStore* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<TempStore>(TempStore_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -228,6 +271,10 @@ class Config final : public ::google::protobuf::Message
     kVerboseFieldNumber = 4,
     kNoGenerateKeyFieldNumber = 7,
     kNoWriteKeyFieldNumber = 8,
+    kCacheSizeFieldNumber = 9,
+    kMmapSizeFieldNumber = 10,
+    kTempStoreFieldNumber = 11,
+    kPageSizeFieldNumber = 12,
   };
   // string path = 1;
   void clear_path() ;
@@ -334,11 +381,51 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_no_write_key(bool value);
 
   public:
+  // int32 cache_size = 9;
+  void clear_cache_size() ;
+  ::int32_t cache_size() const;
+  void set_cache_size(::int32_t value);
+
+  private:
+  ::int32_t _internal_cache_size() const;
+  void _internal_set_cache_size(::int32_t value);
+
+  public:
+  // int64 mmap_size = 10;
+  void clear_mmap_size() ;
+  ::int64_t mmap_size() const;
+  void set_mmap_size(::int64_t value);
+
+  private:
+  ::int64_t _internal_mmap_size() const;
+  void _internal_set_mmap_size(::int64_t value);
+
+  public:
+  // .volume.sqlite.TempStore temp_store = 11;
+  void clear_temp_store() ;
+  ::volume::sqlite::TempStore temp_store() const;
+  void set_temp_store(::volume::sqlite::TempStore value);
+
+  private:
+  ::volume::sqlite::TempStore _internal_temp_store() const;
+  void _internal_set_temp_store(::volume::sqlite::TempStore value);
+
+  public:
+  // int32 page_size = 12;
+  void clear_page_size() ;
+  ::int32_t page_size() const;
+  void set_page_size(::int32_t value);
+
+  private:
+  ::int32_t _internal_page_size() const;
+  void _internal_set_page_size(::int32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:volume.sqlite.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
                                    3, 46,
                                    2>
       _table_;
@@ -368,6 +455,10 @@ class Config final : public ::google::protobuf::Message
     bool verbose_;
     bool no_generate_key_;
     bool no_write_key_;
+    ::int32_t cache_size_;
+    ::int64_t mmap_size_;
+    int temp_store_;
+    ::int32_t page_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -876,6 +967,106 @@ inline void Config::_internal_set_no_write_key(bool value) {
   _impl_.no_write_key_ = value;
 }
 
+// int32 cache_size = 9;
+inline void Config::clear_cache_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_size_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::int32_t Config::cache_size() const {
+  // @@protoc_insertion_point(field_get:volume.sqlite.Config.cache_size)
+  return _internal_cache_size();
+}
+inline void Config::set_cache_size(::int32_t value) {
+  _internal_set_cache_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:volume.sqlite.Config.cache_size)
+}
+inline ::int32_t Config::_internal_cache_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cache_size_;
+}
+inline void Config::_internal_set_cache_size(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_size_ = value;
+}
+
+// int64 mmap_size = 10;
+inline void Config::clear_mmap_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.mmap_size_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::int64_t Config::mmap_size() const {
+  // @@protoc_insertion_point(field_get:volume.sqlite.Config.mmap_size)
+  return _internal_mmap_size();
+}
+inline void Config::set_mmap_size(::int64_t value) {
+  _internal_set_mmap_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:volume.sqlite.Config.mmap_size)
+}
+inline ::int64_t Config::_internal_mmap_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.mmap_size_;
+}
+inline void Config::_internal_set_mmap_size(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.mmap_size_ = value;
+}
+
+// .volume.sqlite.TempStore temp_store = 11;
+inline void Config::clear_temp_store() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.temp_store_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::volume::sqlite::TempStore Config::temp_store() const {
+  // @@protoc_insertion_point(field_get:volume.sqlite.Config.temp_store)
+  return _internal_temp_store();
+}
+inline void Config::set_temp_store(::volume::sqlite::TempStore value) {
+  _internal_set_temp_store(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:volume.sqlite.Config.temp_store)
+}
+inline ::volume::sqlite::TempStore Config::_internal_temp_store() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::volume::sqlite::TempStore>(_impl_.temp_store_);
+}
+inline void Config::_internal_set_temp_store(::volume::sqlite::TempStore value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.temp_store_ = value;
+}
+
+// int32 page_size = 12;
+inline void Config::clear_page_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.page_size_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::int32_t Config::page_size() const {
+  // @@protoc_insertion_point(field_get:volume.sqlite.Config.page_size)
+  return _internal_page_size();
+}
+inline void Config::set_page_size(::int32_t value) {
+  _internal_set_page_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:volume.sqlite.Config.page_size)
+}
+inline ::int32_t Config::_internal_page_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.page_size_;
+}
+inline void Config::_internal_set_page_size(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.page_size_ = value;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -884,6 +1075,19 @@ inline void Config::_internal_set_no_write_key(bool value) {
 }  // namespace sqlite
 }  // namespace volume
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::volume::sqlite::TempStore> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::volume::sqlite::TempStore>() {
+  return ::volume::sqlite::TempStore_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

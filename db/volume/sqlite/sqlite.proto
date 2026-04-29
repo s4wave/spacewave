@@ -5,6 +5,16 @@ import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
 import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
 import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
 
+// TempStore selects the SQLite temp_store pragma value.
+enum TempStore {
+  // TempStore_DEFAULT uses the SQLite-compiled default (file).
+  TempStore_DEFAULT = 0;
+  // TempStore_FILE forces temp tables and indexes onto disk.
+  TempStore_FILE = 1;
+  // TempStore_MEMORY keeps temp tables and indexes in memory.
+  TempStore_MEMORY = 2;
+}
+
 // Config is the sqlite volume controller config.
 message Config {
 	// Path is the file to store the data in.
@@ -29,5 +39,19 @@ message Config {
   //
   // Has no effect if the store has a peer private key.
   bool no_write_key = 8;
+
+  // CacheSize sets the SQLite cache_size pragma. Positive values are pages,
+  // negative values are KiB. 0 leaves the SQLite default (-2000, ~2 MiB).
+  int32 cache_size = 9;
+  // MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the SQLite
+  // default (0, mmap disabled). Capped by the compile-time max mmap size.
+  int64 mmap_size = 10;
+  // TempStore selects the SQLite temp_store pragma. Defaults to the SQLite
+  // compiled default when unset.
+  TempStore temp_store = 11;
+  // PageSize sets the SQLite page_size pragma in bytes. Must be a power of
+  // two between 512 and 65536. 0 leaves the SQLite default (4096). Only
+  // takes effect on a fresh database; ignored if the file already exists.
+  int32 page_size = 12;
 }
 

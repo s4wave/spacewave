@@ -3003,7 +3003,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/sqlite": {
-      "hash": "d8216c59ecc81f0cbf969b1e74220176d2e221d4e21187db707d1a0536c4aac0",
+      "hash": "75b27dbd647620e5c5f21e604593e441ff75eecf9f39cb8ac92bf96355aaedfc",
       "generatedFiles": [
         "db/volume/sqlite/sqlite.pb.cc",
         "db/volume/sqlite/sqlite.pb.go",

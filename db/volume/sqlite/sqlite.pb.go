@@ -18,6 +18,46 @@ import (
 	controller "github.com/s4wave/spacewave/db/volume/controller"
 )
 
+// TempStore selects the SQLite temp_store pragma value.
+type TempStore int32
+
+const (
+	// TempStore_DEFAULT uses the SQLite-compiled default (file).
+	TempStore_TempStore_DEFAULT TempStore = 0
+	// TempStore_FILE forces temp tables and indexes onto disk.
+	TempStore_TempStore_FILE TempStore = 1
+	// TempStore_MEMORY keeps temp tables and indexes in memory.
+	TempStore_TempStore_MEMORY TempStore = 2
+)
+
+// Enum value maps for TempStore.
+var (
+	TempStore_name = map[int32]string{
+		0: "TempStore_DEFAULT",
+		1: "TempStore_FILE",
+		2: "TempStore_MEMORY",
+	}
+	TempStore_value = map[string]int32{
+		"TempStore_DEFAULT": 0,
+		"TempStore_FILE":    1,
+		"TempStore_MEMORY":  2,
+	}
+)
+
+func (x TempStore) Enum() *TempStore {
+	p := new(TempStore)
+	*p = x
+	return p
+}
+
+func (x TempStore) String() string {
+	name, valid := TempStore_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Config is the sqlite volume controller config.
 type Config struct {
 	unknownFields []byte
@@ -43,6 +83,19 @@ type Config struct {
 	//
 	// Has no effect if the store has a peer private key.
 	NoWriteKey bool `protobuf:"varint,8,opt,name=no_write_key,json=noWriteKey,proto3" json:"noWriteKey,omitempty"`
+	// CacheSize sets the SQLite cache_size pragma. Positive values are pages,
+	// negative values are KiB. 0 leaves the SQLite default (-2000, ~2 MiB).
+	CacheSize int32 `protobuf:"varint,9,opt,name=cache_size,json=cacheSize,proto3" json:"cacheSize,omitempty"`
+	// MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the SQLite
+	// default (0, mmap disabled). Capped by the compile-time max mmap size.
+	MmapSize int64 `protobuf:"varint,10,opt,name=mmap_size,json=mmapSize,proto3" json:"mmapSize,omitempty"`
+	// TempStore selects the SQLite temp_store pragma. Defaults to the SQLite
+	// compiled default when unset.
+	TempStore TempStore `protobuf:"varint,11,opt,name=temp_store,json=tempStore,proto3" json:"tempStore,omitempty"`
+	// PageSize sets the SQLite page_size pragma in bytes. Must be a power of
+	// two between 512 and 65536. 0 leaves the SQLite default (4096). Only
+	// takes effect on a fresh database; ignored if the file already exists.
+	PageSize int32 `protobuf:"varint,12,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -107,6 +160,34 @@ func (x *Config) GetNoWriteKey() bool {
 	return false
 }
 
+func (x *Config) GetCacheSize() int32 {
+	if x != nil {
+		return x.CacheSize
+	}
+	return 0
+}
+
+func (x *Config) GetMmapSize() int64 {
+	if x != nil {
+		return x.MmapSize
+	}
+	return 0
+}
+
+func (x *Config) GetTempStore() TempStore {
+	if x != nil {
+		return x.TempStore
+	}
+	return TempStore_TempStore_DEFAULT
+}
+
+func (x *Config) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -114,12 +195,22 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Path = m.Path
 	r.Table = m.Table
-	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.Verbose = m.Verbose
-	r.VolumeConfig = m.VolumeConfig.CloneVT()
-	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
+	r.CacheSize = m.CacheSize
+	r.MmapSize = m.MmapSize
+	r.TempStore = m.TempStore
+	r.PageSize = m.PageSize
+	if rhs := m.KvKeyOpts; rhs != nil {
+		r.KvKeyOpts = rhs.CloneVT()
+	}
+	if rhs := m.VolumeConfig; rhs != nil {
+		r.VolumeConfig = rhs.CloneVT()
+	}
+	if rhs := m.StoreConfig; rhs != nil {
+		r.StoreConfig = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -160,6 +251,18 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.NoWriteKey != that.NoWriteKey {
 		return false
 	}
+	if this.CacheSize != that.CacheSize {
+		return false
+	}
+	if this.MmapSize != that.MmapSize {
+		return false
+	}
+	if this.TempStore != that.TempStore {
+		return false
+	}
+	if this.PageSize != that.PageSize {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -169,6 +272,46 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the TempStore to JSON.
+func (x TempStore) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), TempStore_name)
+}
+
+// MarshalText marshals the TempStore to text.
+func (x TempStore) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), TempStore_name)), nil
+}
+
+// MarshalJSON marshals the TempStore to JSON.
+func (x TempStore) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TempStore from JSON.
+func (x *TempStore) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(TempStore_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read TempStore enum: %v", err)
+		return
+	}
+	*x = TempStore(v)
+}
+
+// UnmarshalText unmarshals the TempStore from text.
+func (x *TempStore) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), TempStore_value)
+	if err != nil {
+		return err
+	}
+	*x = TempStore(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the TempStore from JSON.
+func (x *TempStore) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -218,6 +361,26 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("noWriteKey")
 		s.WriteBool(x.NoWriteKey)
+	}
+	if x.CacheSize != 0 || s.HasField("cacheSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheSize")
+		s.WriteInt32(x.CacheSize)
+	}
+	if x.MmapSize != 0 || s.HasField("mmapSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mmapSize")
+		s.WriteInt64(x.MmapSize)
+	}
+	if x.TempStore != 0 || s.HasField("tempStore") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tempStore")
+		x.TempStore.MarshalProtoJSON(s)
+	}
+	if x.PageSize != 0 || s.HasField("pageSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pageSize")
+		s.WriteInt32(x.PageSize)
 	}
 	s.WriteObjectEnd()
 }
@@ -272,6 +435,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "no_write_key", "noWriteKey":
 			s.AddField("no_write_key")
 			x.NoWriteKey = s.ReadBool()
+		case "cache_size", "cacheSize":
+			s.AddField("cache_size")
+			x.CacheSize = s.ReadInt32()
+		case "mmap_size", "mmapSize":
+			s.AddField("mmap_size")
+			x.MmapSize = s.ReadInt64()
+		case "temp_store", "tempStore":
+			s.AddField("temp_store")
+			x.TempStore.UnmarshalProtoJSON(s)
+		case "page_size", "pageSize":
+			s.AddField("page_size")
+			x.PageSize = s.ReadInt32()
 		}
 	})
 }
@@ -310,6 +485,26 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PageSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.TempStore != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TempStore))
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.MmapSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MmapSize))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.CacheSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CacheSize))
+		i--
+		dAtA[i] = 0x48
 	}
 	if m.NoWriteKey {
 		i--
@@ -423,8 +618,24 @@ func (m *Config) SizeVT() (n int) {
 	if m.NoWriteKey {
 		n += 2
 	}
+	if m.CacheSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CacheSize))
+	}
+	if m.MmapSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.MmapSize))
+	}
+	if m.TempStore != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TempStore))
+	}
+	if m.PageSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x TempStore) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -485,6 +696,36 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("no_write_key: ")
 		sb.WriteString(strconv.FormatBool(x.NoWriteKey))
+	}
+	if x.CacheSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cache_size: ")
+		sb.WriteString(strconv.FormatInt(int64(x.CacheSize), 10))
+	}
+	if x.MmapSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mmap_size: ")
+		sb.WriteString(strconv.FormatInt(int64(x.MmapSize), 10))
+	}
+	if x.TempStore != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("temp_store: ")
+		sb.WriteString("\"")
+		sb.WriteString(TempStore(x.TempStore).String())
+		sb.WriteString("\"")
+	}
+	if x.PageSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("page_size: ")
+		sb.WriteString(strconv.FormatInt(int64(x.PageSize), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -678,6 +919,44 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.NoWriteKey = bool(v != 0)
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheSize", wireType)
+			}
+			m.CacheSize = 0
+			m.CacheSize, iNdEx, err = protobuf_go_lite.DecodeVarintInt32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MmapSize", wireType)
+			}
+			m.MmapSize = 0
+			m.MmapSize, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TempStore", wireType)
+			}
+			m.TempStore = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.TempStore = TempStore(_v)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			m.PageSize, iNdEx, err = protobuf_go_lite.DecodeVarintInt32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -66,6 +66,12 @@ func Open(ctx context.Context, path string, table string) (*common.Store[SqliteW
 	return common.Open(ctx, path, table, SqliteWasmBridgeConfig{})
 }
 
+// OpenWithPragmas opens a sqlite-wasm database and applies the supplied
+// tunable pragmas.
+func OpenWithPragmas(ctx context.Context, path string, table string, pragmas common.Pragmas) (*common.Store[SqliteWasmBridgeConfig], error) {
+	return common.OpenWithPragmas(ctx, path, table, pragmas, SqliteWasmBridgeConfig{})
+}
+
 // OpenWithMode opens a sqlite-wasm database with mode and wraps it in a kvtx store.
 func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*common.Store[SqliteWasmBridgeConfig], error) {
 	return common.Open(ctx, path, table, SqliteWasmBridgeConfig{})

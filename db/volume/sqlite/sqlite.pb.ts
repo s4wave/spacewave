@@ -2,13 +2,52 @@
 // @generated from file github.com/s4wave/spacewave/db/volume/sqlite/sqlite.proto (package volume.sqlite, syntax proto3)
 /* eslint-disable */
 
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.sqlite'
+
+/**
+ * TempStore selects the SQLite temp_store pragma value.
+ *
+ * @generated from enum volume.sqlite.TempStore
+ */
+export enum TempStore {
+  /**
+   * TempStore_DEFAULT uses the SQLite-compiled default (file).
+   *
+   * @generated from enum value: TempStore_DEFAULT = 0;
+   */
+  TempStore_DEFAULT = 0,
+
+  /**
+   * TempStore_FILE forces temp tables and indexes onto disk.
+   *
+   * @generated from enum value: TempStore_FILE = 1;
+   */
+  TempStore_FILE = 1,
+
+  /**
+   * TempStore_MEMORY keeps temp tables and indexes in memory.
+   *
+   * @generated from enum value: TempStore_MEMORY = 2;
+   */
+  TempStore_MEMORY = 2,
+}
+
+// TempStore_Enum is the enum type for TempStore.
+export const TempStore_Enum = createEnumType('volume.sqlite.TempStore', [
+  { no: 0, name: 'TempStore_DEFAULT' },
+  { no: 1, name: 'TempStore_FILE' },
+  { no: 2, name: 'TempStore_MEMORY' },
+])
 
 /**
  * Config is the sqlite volume controller config.
@@ -70,6 +109,35 @@ export interface Config {
    * @generated from field: bool no_write_key = 8;
    */
   noWriteKey?: boolean
+  /**
+   * CacheSize sets the SQLite cache_size pragma. Positive values are pages,
+   * negative values are KiB. 0 leaves the SQLite default (-2000, ~2 MiB).
+   *
+   * @generated from field: int32 cache_size = 9;
+   */
+  cacheSize?: number
+  /**
+   * MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the SQLite
+   * default (0, mmap disabled). Capped by the compile-time max mmap size.
+   *
+   * @generated from field: int64 mmap_size = 10;
+   */
+  mmapSize?: bigint
+  /**
+   * TempStore selects the SQLite temp_store pragma. Defaults to the SQLite
+   * compiled default when unset.
+   *
+   * @generated from field: volume.sqlite.TempStore temp_store = 11;
+   */
+  tempStore?: TempStore
+  /**
+   * PageSize sets the SQLite page_size pragma in bytes. Must be a power of
+   * two between 512 and 65536. 0 leaves the SQLite default (4096). Only
+   * takes effect on a fresh database; ignored if the file already exists.
+   *
+   * @generated from field: int32 page_size = 12;
+   */
+  pageSize?: number
 }
 
 // Config contains the message type declaration for Config.
@@ -84,6 +152,10 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'store_config', kind: 'message', T: () => Config$3 },
     { no: 7, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 9, name: 'cache_size', kind: 'scalar', T: ScalarType.INT32 },
+    { no: 10, name: 'mmap_size', kind: 'scalar', T: ScalarType.INT64 },
+    { no: 11, name: 'temp_store', kind: 'enum', T: TempStore_Enum },
+    { no: 12, name: 'page_size', kind: 'scalar', T: ScalarType.INT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -14,6 +14,10 @@ func open(ctx context.Context, path string, table string) (Store, error) {
 	return cgo.Open(ctx, path, table)
 }
 
+func openWithPragmas(ctx context.Context, path string, table string, pragmas Pragmas) (Store, error) {
+	return cgo.OpenWithPragmas(ctx, path, table, pragmas)
+}
+
 func openWithMode(ctx context.Context, path string, mode os.FileMode, table string) (Store, error) {
 	return cgo.OpenWithMode(ctx, path, mode, table)
 }

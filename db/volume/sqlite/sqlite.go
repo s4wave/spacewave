@@ -27,7 +27,13 @@ func NewSqlite(
 		return nil, err
 	}
 
-	store, err := sqlite.Open(ctx, conf.GetPath(), conf.GetTable())
+	pragmas := sqlite.Pragmas{
+		CacheSize: conf.GetCacheSize(),
+		MmapSize:  conf.GetMmapSize(),
+		TempStore: int32(conf.GetTempStore()),
+		PageSize:  conf.GetPageSize(),
+	}
+	store, err := sqlite.OpenWithPragmas(ctx, conf.GetPath(), conf.GetTable(), pragmas)
 	if err != nil {
 		return nil, err
 	}

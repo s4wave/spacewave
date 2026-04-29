@@ -7,10 +7,29 @@ import (
 	"errors"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 )
+
+// Pragmas configures tunable SQLite pragmas applied during Open.
+// A zero value leaves SQLite's compiled default in place.
+type Pragmas struct {
+	// CacheSize sets the SQLite cache_size pragma. Positive = pages,
+	// negative = KiB. 0 leaves the SQLite default.
+	CacheSize int32
+	// MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the
+	// SQLite default (mmap disabled).
+	MmapSize int64
+	// TempStore sets the SQLite temp_store pragma. Valid values are 0
+	// (DEFAULT), 1 (FILE), 2 (MEMORY). 0 leaves the SQLite default.
+	TempStore int32
+	// PageSize sets the SQLite page_size pragma in bytes. Must be a power
+	// of two between 512 and 65536. 0 leaves the SQLite default. Only
+	// effective on a fresh database.
+	PageSize int32
+}
 
 // ValidateTableName validates that a table name is safe to use in SQL queries.
 // It only allows alphanumeric characters and underscores, and must start with a letter or underscore.
@@ -70,6 +89,13 @@ func NewStore[T SQLiteDriverConfig](db *sql.DB, table string, config T) (*Store[
 
 // Open opens a SQLite database store using the configured driver.
 func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, config T) (*Store[T], error) {
+	return OpenWithPragmas(ctx, path, table, Pragmas{}, config)
+}
+
+// OpenWithPragmas opens a SQLite database store using the configured driver
+// and applies the supplied tunable pragmas. Zero-valued pragma fields leave
+// the SQLite default in place.
+func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, table string, pragmas Pragmas, config T) (*Store[T], error) {
 	if err := ValidateTableName(table); err != nil {
 		return nil, err
 	}
@@ -85,6 +111,16 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 		poolConfigurator.ConfigureDBPool(db)
 	}
 
+	// page_size must be applied before the WAL header is written and before
+	// any tables are created on a fresh database. On an existing database it
+	// has no effect unless followed by VACUUM, which we do not run here.
+	if pragmas.PageSize != 0 {
+		if _, err := db.ExecContext(ctx, "PRAGMA page_size="+strconv.FormatInt(int64(pragmas.PageSize), 10)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+
 	// Execute PRAGMAs directly as a safety net for drivers that may ignore DSN params.
 	// journal_mode and synchronous are database-level and persist once set.
 	// busy_timeout is per-connection but covers the initial connection used for setup.
@@ -94,6 +130,28 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 		"PRAGMA busy_timeout=5000",
 	} {
 		if _, err := db.ExecContext(ctx, pragma); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+
+	// Tunable pragmas. Each applies only when the caller supplied a non-zero
+	// value. cache_size and temp_store are connection-scoped but cover the
+	// initial connection used for setup; mmap_size is database-level.
+	if pragmas.CacheSize != 0 {
+		if _, err := db.ExecContext(ctx, "PRAGMA cache_size="+strconv.FormatInt(int64(pragmas.CacheSize), 10)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+	if pragmas.MmapSize != 0 {
+		if _, err := db.ExecContext(ctx, "PRAGMA mmap_size="+strconv.FormatInt(pragmas.MmapSize, 10)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+	if pragmas.TempStore != 0 {
+		if _, err := db.ExecContext(ctx, "PRAGMA temp_store="+strconv.FormatInt(int64(pragmas.TempStore), 10)); err != nil {
 			db.Close()
 			return nil, err
 		}
@@ -118,6 +176,12 @@ func Open[T SQLiteDriverConfig](ctx context.Context, path string, table string, 
 
 // OpenWithMode opens a SQLite database store with file mode.
 func OpenWithMode[T SQLiteDriverConfig](ctx context.Context, path string, mode os.FileMode, table string, config T) (*Store[T], error) {
+	return OpenWithModeAndPragmas(ctx, path, mode, table, Pragmas{}, config)
+}
+
+// OpenWithModeAndPragmas opens a SQLite database store with file mode and the
+// supplied tunable pragmas.
+func OpenWithModeAndPragmas[T SQLiteDriverConfig](ctx context.Context, path string, mode os.FileMode, table string, pragmas Pragmas, config T) (*Store[T], error) {
 	// For SQLite, we can create the file with the specified mode before opening
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if file, err := os.OpenFile(path, os.O_CREATE, mode); err == nil {
@@ -125,7 +189,7 @@ func OpenWithMode[T SQLiteDriverConfig](ctx context.Context, path string, mode o
 		}
 	}
 
-	return Open(ctx, path, table, config)
+	return OpenWithPragmas(ctx, path, table, pragmas, config)
 }
 
 // GetDB returns the SQL DB.

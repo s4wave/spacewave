@@ -178,6 +178,29 @@ func TestSQLiteIterator(t *testing.T) {
 	}
 }
 
+// TestSQLitePragmas verifies that tunable pragmas supplied via OpenWithPragmas
+// are applied to the underlying database connection.
+func TestSQLitePragmas(t *testing.T) {
+	ctx := context.Background()
+
+	tp := newTempDBPath(t, "hydra-test-sqlite-pragmas-*.sqlite")
+
+	const wantCacheSize int32 = -8000
+	db, err := OpenWithPragmas(ctx, tp, "test_pragmas", Pragmas{CacheSize: wantCacheSize})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	var got int32
+	if err := db.GetDB().QueryRowContext(ctx, "PRAGMA cache_size").Scan(&got); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got != wantCacheSize {
+		t.Fatalf("expected cache_size=%d, got %d", wantCacheSize, got)
+	}
+}
+
 // TestSQLiteReadHandle ensures read-only sqlite transactions are lightweight
 // handles over sql.DB and still honor Commit/Discard lifecycle semantics.
 func TestSQLiteReadHandle(t *testing.T) {

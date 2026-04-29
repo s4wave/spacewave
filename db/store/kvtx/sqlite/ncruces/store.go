@@ -71,6 +71,12 @@ func Open(ctx context.Context, path string, table string) (*Store, error) {
 	return common.Open(ctx, path, table, SqliteWasmConfig{})
 }
 
+// OpenWithPragmas opens a SQLite database store using pure Go driver and
+// applies the supplied tunable pragmas.
+func OpenWithPragmas(ctx context.Context, path string, table string, pragmas common.Pragmas) (*Store, error) {
+	return common.OpenWithPragmas(ctx, path, table, pragmas, SqliteWasmConfig{})
+}
+
 // OpenWithMode opens a SQLite database store with file mode.
 func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*Store, error) {
 	return common.OpenWithMode(ctx, path, mode, table, SqliteWasmConfig{})

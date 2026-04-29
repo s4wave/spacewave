@@ -33,5 +33,55 @@ pub struct Config {
     /// Has no effect if the store has a peer private key.
     #[prost(bool, tag="8")]
     pub no_write_key: bool,
+    /// CacheSize sets the SQLite cache_size pragma. Positive values are pages,
+    /// negative values are KiB. 0 leaves the SQLite default (-2000, ~2 MiB).
+    #[prost(int32, tag="9")]
+    pub cache_size: i32,
+    /// MmapSize sets the SQLite mmap_size pragma in bytes. 0 leaves the SQLite
+    /// default (0, mmap disabled). Capped by the compile-time max mmap size.
+    #[prost(int64, tag="10")]
+    pub mmap_size: i64,
+    /// TempStore selects the SQLite temp_store pragma. Defaults to the SQLite
+    /// compiled default when unset.
+    #[prost(enumeration="TempStore", tag="11")]
+    pub temp_store: i32,
+    /// PageSize sets the SQLite page_size pragma in bytes. Must be a power of
+    /// two between 512 and 65536. 0 leaves the SQLite default (4096). Only
+    /// takes effect on a fresh database; ignored if the file already exists.
+    #[prost(int32, tag="12")]
+    pub page_size: i32,
+}
+/// TempStore selects the SQLite temp_store pragma value.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TempStore {
+    /// TempStore_DEFAULT uses the SQLite-compiled default (file).
+    Default = 0,
+    /// TempStore_FILE forces temp tables and indexes onto disk.
+    File = 1,
+    /// TempStore_MEMORY keeps temp tables and indexes in memory.
+    Memory = 2,
+}
+impl TempStore {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Default => "TempStore_DEFAULT",
+            Self::File => "TempStore_FILE",
+            Self::Memory => "TempStore_MEMORY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TempStore_DEFAULT" => Some(Self::Default),
+            "TempStore_FILE" => Some(Self::File),
+            "TempStore_MEMORY" => Some(Self::Memory),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)
