@@ -1492,6 +1492,19 @@
         "core/rbac/rbac.proto"
       ]
     },
+    "github.com/s4wave/spacewave/core/release": {
+      "hash": "104fe3d8185d8bb0e15605d105f81e04b7fda95d2d673fec98aa223dbeae3346",
+      "generatedFiles": [
+        "core/release/release.pb.cc",
+        "core/release/release.pb.go",
+        "core/release/release.pb.h",
+        "core/release/release.pb.rs",
+        "core/release/release.pb.ts"
+      ],
+      "protoFiles": [
+        "core/release/release.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/core/resource/listener": {
       "hash": "d80bcd1f7f57703029be48121410614da1500410a40497c158c7778881c449c3",
       "generatedFiles": [
