@@ -36,13 +36,15 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int) (*MetaShard, er
 
 	pager := NewOpfsPager(dir, "pages.dat", pageSize)
 
-	// Read superblocks.
 	aBuf := make([]byte, pagestore.SuperblockSize)
 	bBuf := make([]byte, pagestore.SuperblockSize)
 	readSuper(dir, "super-a", aBuf)
 	readSuper(dir, "super-b", bBuf)
 
-	sb := pagestore.PickSuperblock(aBuf, bBuf)
+	sb, err := pickValidSuperblock(pager, aBuf, bBuf)
+	if err != nil {
+		return nil, err
+	}
 
 	rootPage := pagestore.InvalidPage
 	var gen uint64
@@ -180,6 +182,50 @@ func (ms *MetaShard) callTestHook(stage string) error {
 		return ms.testHook(stage)
 	}
 	return nil
+}
+
+func pickValidSuperblock(pager *OpfsPager, a, b []byte) (*pagestore.Superblock, error) {
+	sa, errA := pagestore.DecodeSuperblock(a)
+	sb, errB := pagestore.DecodeSuperblock(b)
+	if errA != nil && errB != nil {
+		return nil, nil
+	}
+	if errA != nil {
+		return validateSuperblock(pager, sb)
+	}
+	if errB != nil {
+		return validateSuperblock(pager, sa)
+	}
+	if sb.Generation > sa.Generation {
+		valid, err := validateSuperblock(pager, sb)
+		if err == nil {
+			return valid, nil
+		}
+		return validateSuperblock(pager, sa)
+	}
+	valid, err := validateSuperblock(pager, sa)
+	if err == nil {
+		return valid, nil
+	}
+	return validateSuperblock(pager, sb)
+}
+
+func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.Superblock, error) {
+	pager.SetPageCount(sb.PageCount)
+	if err := pager.LoadFreelist(sb.FreelistPage); err != nil {
+		return nil, errors.Wrap(err, "load freelist")
+	}
+	if sb.RootPage == pagestore.InvalidPage {
+		return sb, nil
+	}
+	if uint32(sb.RootPage) >= sb.PageCount {
+		return nil, errors.Errorf("root page %d outside page count %d", sb.RootPage, sb.PageCount)
+	}
+	tree := pagestore.OpenTree(pager, sb.RootPage)
+	if err := tree.ScanPrefix(nil, func(_, _ []byte) bool { return true }); err != nil {
+		return nil, errors.Wrap(err, "validate page tree")
+	}
+	return sb, nil
 }
 
 // readSuper reads a superblock file into buf, ignoring errors.

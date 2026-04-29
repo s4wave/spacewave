@@ -241,6 +241,40 @@ func TestMetaShardCorruptNewestSuperblockFallsBack(t *testing.T) {
 	}
 }
 
+func TestMetaShardNewestSuperblockWithZeroRootFallsBack(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metashard-zero-root")
+	putMetaValue(t, ms, "k", "v1")
+	putMetaValue(t, ms, "k", "v2")
+
+	var sbBuf [pagestore.SuperblockSize]byte
+	readSuper(ms.dir, "super-b", sbBuf[:])
+	sb, err := pagestore.DecodeSuperblock(sbBuf[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := opfs.CreateSyncFile(ms.dir, "pages.dat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	zeroPage := make([]byte, pagestore.DefaultPageSize)
+	if _, err := f.WriteAt(zeroPage, int64(sb.RootPage)*pagestore.DefaultPageSize); err != nil {
+		t.Fatal(err)
+	}
+	f.Flush()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := reopenTestMetaShard(t, "test-metashard-zero-root")
+	val, found, err := reopened.Get([]byte("k"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("fallback value got found=%v val=%q want v1", found, val)
+	}
+}
+
 func TestMetaShardMissingPagesFileReturnsReadError(t *testing.T) {
 	ms := newTestMetaShard(t, "test-metashard-missing-pages")
 	putMetaValue(t, ms, "k", "v1")
