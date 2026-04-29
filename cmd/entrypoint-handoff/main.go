@@ -95,6 +95,11 @@ func run(ctx context.Context, args []string) error {
 		return errors.Wrap(err, "clean out dir")
 	}
 	if browserOnly {
+		if err := runPhase(le, "build-remote-entrypoints", func() error {
+			return buildRemoteEntrypoints(ctx, repoDir)
+		}); err != nil {
+			return err
+		}
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, reactDev)
 		}); err != nil {
@@ -300,11 +305,8 @@ func buildHelpers(repoDir string, platforms []string) error {
 }
 
 func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
-	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-web"); err != nil {
-		return errors.Wrap(err, "run bldr release-remote-web")
-	}
-	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-js"); err != nil {
-		return errors.Wrap(err, "run bldr release-remote-js")
+	if err := buildRemoteEntrypoints(ctx, repoDir); err != nil {
+		return err
 	}
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
@@ -332,6 +334,16 @@ func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) e
 		if err := os.Chmod(dstBin, 0o755); err != nil {
 			return errors.Wrap(err, "chmod dist binary "+platform)
 		}
+	}
+	return nil
+}
+
+func buildRemoteEntrypoints(ctx context.Context, repoDir string) error {
+	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-web"); err != nil {
+		return errors.Wrap(err, "run bldr release-remote-web")
+	}
+	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-js"); err != nil {
+		return errors.Wrap(err, "run bldr release-remote-js")
 	}
 	return nil
 }
