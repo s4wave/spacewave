@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -294,6 +295,74 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	}
 }
 
+func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
+	ctx := context.Background()
+
+	block1 := []byte("hello cdn writeback")
+	pack := buildSinglePack(t, "01kcdnpack0000000000000003", map[string][]byte{"b1": block1})
+
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	pointerBytes := encodePointer(t, ptr)
+	srv := newTestCdnServer(t, testSpaceID, pointerBytes, []testPack{pack})
+	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
+	defer hs.Close()
+
+	refHash, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &block.BlockRef{Hash: refHash}
+	cache := newWritebackReadStore()
+	first, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.SetWriteback(ctx, cache, 1<<20)
+	got, found, err := first.GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, block1) {
+		t.Fatalf("first read mismatch found=%v data=%q", found, got)
+	}
+	if err := cache.waitPut(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	rangesAfterFirst := srv.ranges
+	second, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.SetWriteback(ctx, cache, 1<<20)
+	got, found, err = second.GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, block1) {
+		t.Fatalf("second read mismatch found=%v data=%q", found, got)
+	}
+	if srv.ranges != rangesAfterFirst {
+		t.Fatalf("second cold start fetched remote ranges: before=%d after=%d", rangesAfterFirst, srv.ranges)
+	}
+}
+
 func TestCdnBlockStoreWritesRejected(t *testing.T) {
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: "https://cdn.example",
@@ -307,6 +376,74 @@ func TestCdnBlockStoreWritesRejected(t *testing.T) {
 	}
 	if err := bs.RmBlock(context.Background(), &block.BlockRef{}); err == nil {
 		t.Fatal("expected RmBlock to error")
+	}
+}
+
+type writebackReadStore struct {
+	block.NopStoreOps
+	mu    sync.Mutex
+	data  map[string][]byte
+	putCh chan struct{}
+}
+
+func newWritebackReadStore() *writebackReadStore {
+	return &writebackReadStore{
+		data:  make(map[string][]byte),
+		putCh: make(chan struct{}, 1),
+	}
+}
+
+func (w *writebackReadStore) GetHashType() hash.HashType {
+	return hash.HashType_HashType_SHA256
+}
+
+func (w *writebackReadStore) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, err := block.BuildBlockRef(data, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	key := ref.MarshalString()
+	w.mu.Lock()
+	_, existed := w.data[key]
+	w.data[key] = bytes.Clone(data)
+	w.mu.Unlock()
+	select {
+	case w.putCh <- struct{}{}:
+	default:
+	}
+	return ref, existed, nil
+}
+
+func (w *writebackReadStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	data, ok := w.data[ref.MarshalString()]
+	return bytes.Clone(data), ok, nil
+}
+
+func (w *writebackReadStore) GetBlockExists(_ context.Context, ref *block.BlockRef) (bool, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	_, ok := w.data[ref.MarshalString()]
+	return ok, nil
+}
+
+func (w *writebackReadStore) StatBlock(_ context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	data, ok := w.data[ref.MarshalString()]
+	if !ok {
+		return nil, nil
+	}
+	return &block.BlockStat{Ref: ref.CloneVT(), Size: int64(len(data))}, nil
+}
+
+func (w *writebackReadStore) waitPut(ctx context.Context) error {
+	select {
+	case <-w.putCh:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

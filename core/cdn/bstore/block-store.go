@@ -47,6 +47,7 @@ type CdnBlockStore struct {
 	bcast       broadcast.Broadcast
 	pointer     *cdn.CdnRootPointer
 	pointerTime time.Time
+	writebackTarget block.StoreOps
 }
 
 // NewCdnBlockStore constructs a new CdnBlockStore. The pointer is fetched
@@ -94,6 +95,10 @@ func (s *CdnBlockStore) GetSupportedFeatures() block.StoreFeature {
 // SetWriteback enables local co-block persistence through the underlying
 // packfile store.
 func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
+	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		s.writebackTarget = target
+		broadcastFn()
+	})
 	s.pfs.SetWriteback(ctx, target, windowBytes)
 }
 
@@ -104,6 +109,9 @@ func (s *CdnBlockStore) SetRangeCacheMaxBytes(maxBytes int64) {
 
 // GetBlock reads a block by reference, refreshing the pointer if needed.
 func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if data, ok, err := s.getCachedBlock(ctx, ref); err != nil || ok {
+		return data, ok, err
+	}
 	if _, err := s.ensurePointer(ctx); err != nil {
 		return nil, false, err
 	}
@@ -112,6 +120,9 @@ func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 
 // GetBlockExists checks if a block exists.
 func (s *CdnBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	if _, ok, err := s.getCachedBlock(ctx, ref); err != nil || ok {
+		return ok, err
+	}
 	if _, err := s.ensurePointer(ctx); err != nil {
 		return false, err
 	}
@@ -128,6 +139,12 @@ func (s *CdnBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 
 // StatBlock returns block metadata without reading the data.
 func (s *CdnBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	if target := s.getWritebackTarget(); target != nil {
+		stat, err := target.StatBlock(ctx, ref)
+		if err == nil && stat != nil {
+			return stat, nil
+		}
+	}
 	if _, err := s.ensurePointer(ctx); err != nil {
 		return nil, err
 	}
@@ -241,6 +258,22 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 		return cached, nil
 	}
 	return s.Refresh(ctx)
+}
+
+func (s *CdnBlockStore) getCachedBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	target := s.getWritebackTarget()
+	if target == nil {
+		return nil, false, nil
+	}
+	return target.GetBlock(ctx, ref)
+}
+
+func (s *CdnBlockStore) getWritebackTarget() block.StoreOps {
+	var target block.StoreOps
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		target = s.writebackTarget
+	})
+	return target
 }
 
 // _ is a type assertion
