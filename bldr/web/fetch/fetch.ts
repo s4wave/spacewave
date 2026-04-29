@@ -325,7 +325,7 @@ export async function proxyFetch(
       void resultIt.return(err)
     }
     const error = castToError(err, 'failed to start fetch request')
-    console.error('fetch: proxyFetch catch error', error)
+    logProxyFetchError(error)
 
     let responseMessage = error.message
     let responseStatus = 500
@@ -346,4 +346,23 @@ export async function proxyFetch(
   } finally {
     cleanup()
   }
+}
+
+function logProxyFetchError(error: Error) {
+  try {
+    console.error('fetch: proxyFetch catch error', error)
+  } catch (err) {
+    if (!isBrokenPipeError(err)) {
+      throw err
+    }
+  }
+}
+
+function isBrokenPipeError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    err.code === 'EPIPE'
+  )
 }

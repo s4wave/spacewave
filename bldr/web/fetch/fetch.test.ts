@@ -71,6 +71,32 @@ describe('proxyFetch', () => {
     await expect(resp.text()).resolves.toContain('aborted by owner')
   })
 
+  it('still returns an error response when proxy error logging hits EPIPE', async () => {
+    const logErr = new Error('write EPIPE') as Error & { code: string }
+    logErr.code = 'EPIPE'
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+      throw logErr
+    })
+    try {
+      const svc: FetchService = {
+        Fetch() {
+          throw new Error('socket closed')
+        },
+      }
+
+      const resp = await proxyFetch(
+        svc,
+        new Request('https://example.test/p/test'),
+        'client-1',
+      )
+
+      expect(resp.status).toBe(500)
+      await expect(resp.text()).resolves.toContain('socket closed')
+    } finally {
+      errorSpy.mockRestore()
+    }
+  })
+
   it('returns the proxied response when a header value contains unicode', async () => {
     const svc: FetchService = {
       Fetch() {
