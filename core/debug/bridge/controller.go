@@ -27,7 +27,7 @@ const ControllerID = "debug/bridge"
 const DebugBridgeWebViewID = "debug-bridge"
 
 // defaultSocketPath is the default path for the debug socket.
-const defaultSocketPath = ".bldr/alpha-debug.sock"
+const defaultSocketPath = ".bldr/spacewave-debug.sock"
 
 // Version is the component version.
 var Version = semver.MustParse("0.0.1")

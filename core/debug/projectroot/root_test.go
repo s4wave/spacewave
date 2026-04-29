@@ -30,7 +30,7 @@ func TestFindFromDirFindsBldrYaml(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "bldr.yaml"), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	child := filepath.Join(root, "cmd", "alpha-debug")
+	child := filepath.Join(root, "cmd", "spacewave-debug")
 	if err := os.MkdirAll(child, 0o755); err != nil {
 		t.Fatal(err)
 	}

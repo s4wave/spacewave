@@ -3,7 +3,7 @@
 package main
 
 import (
-	debug_cli "github.com/s4wave/spacewave/cmd/alpha-debug/cli"
+	debug_cli "github.com/s4wave/spacewave/cmd/spacewave-debug/cli"
 )
 
 // escapeJSString returns s as a safe JavaScript string literal (with quotes).

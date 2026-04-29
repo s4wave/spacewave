@@ -1186,7 +1186,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/debug/bridge": {
-      "hash": "9a4fc175bcf71c69942dd80172a23c315e7572a5d09685d567ea9b8b94a74fcd",
+      "hash": "240bfaabed961e9bb83212846449749a1eb789a0b8c1694b090f00dcc5305e6d",
       "generatedFiles": [
         "core/debug/bridge/config.pb.cc",
         "core/debug/bridge/config.pb.go",

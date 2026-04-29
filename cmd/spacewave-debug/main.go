@@ -8,7 +8,7 @@ import (
 
 	appcli "github.com/aperturerobotics/cli"
 
-	debug_cli "github.com/s4wave/spacewave/cmd/alpha-debug/cli"
+	debug_cli "github.com/s4wave/spacewave/cmd/spacewave-debug/cli"
 )
 
 var args debug_cli.ClientArgs
@@ -19,7 +19,7 @@ func main() {
 	args.SetContext(ctx)
 
 	app := appcli.NewApp()
-	app.Name = "alpha-debug"
+	app.Name = "spacewave-debug"
 	app.HideVersion = true
 	app.Usage = "debug bridge for interacting with a running Spacewave Alpha page"
 	app.Commands = append(

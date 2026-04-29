@@ -19,7 +19,7 @@ import (
 type Config struct {
 	unknownFields []byte
 	// SocketPath overrides the unix socket path.
-	// Defaults to .bldr/alpha-debug.sock relative to the project root.
+	// Defaults to .bldr/spacewave-debug.sock relative to the project root.
 	SocketPath string `protobuf:"bytes,1,opt,name=socket_path,json=socketPath,proto3" json:"socketPath,omitempty"`
 }
 

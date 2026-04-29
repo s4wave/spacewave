@@ -1,11 +1,11 @@
 ---
 name: debug-ui-layout
-description: Optimize text copy to fit rendered UI layout using alpha-debug eval to measure exact line breaks and eliminate orphans.
+description: Optimize text copy to fit rendered UI layout using spacewave-debug eval to measure exact line breaks and eliminate orphans.
 ---
 
 # Debug UI Layout Optimization
 
-Use the alpha-debug eval bridge to iteratively measure how text copy renders at actual viewport widths, then adjust wording to produce clean line breaks without orphans.
+Use the spacewave-debug eval bridge to iteratively measure how text copy renders at actual viewport widths, then adjust wording to produce clean line breaks without orphans.
 
 ## Process
 
@@ -14,7 +14,7 @@ Use the alpha-debug eval bridge to iteratively measure how text copy renders at 
 Find the section by its DOM id or heading text:
 
 ```bash
-go run ./cmd/alpha-debug/ eval "document.getElementById('section-id')?.querySelector('h2')?.textContent"
+go run ./cmd/spacewave-debug/ eval "document.getElementById('section-id')?.querySelector('h2')?.textContent"
 ```
 
 ### 2. Measure overall dimensions
@@ -39,7 +39,7 @@ return res.join("\n")
 Run with:
 
 ```bash
-go run ./cmd/alpha-debug/ eval --file .tmp/eval-{section}.js
+go run ./cmd/spacewave-debug/ eval --file .tmp/eval-{section}.js
 ```
 
 ### 3. Measure exact line breaks

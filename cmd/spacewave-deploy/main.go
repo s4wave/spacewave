@@ -8,7 +8,7 @@ import (
 
 	appcli "github.com/aperturerobotics/cli"
 
-	deploy_cli "github.com/s4wave/spacewave/cmd/alpha-deploy/cli"
+	deploy_cli "github.com/s4wave/spacewave/cmd/spacewave-deploy/cli"
 )
 
 var args deploy_cli.DeployArgs
@@ -19,7 +19,7 @@ func main() {
 	args.SetContext(ctx)
 
 	app := appcli.NewApp()
-	app.Name = "alpha-deploy"
+	app.Name = "spacewave-deploy"
 	app.HideVersion = true
 	app.Usage = "deploy manifests to a running Spacewave Alpha Space"
 	app.Commands = []*appcli.Command{

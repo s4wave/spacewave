@@ -1,44 +1,44 @@
 ---
-name: alpha-debug
-description: Use the alpha-debug CLI to inspect and interact with the running page.
+name: spacewave-debug
+description: Use the spacewave-debug CLI to inspect and interact with the running page.
 ---
 
-# Alpha Debug
+# Spacewave Debug
 
-Use the `alpha-debug` CLI tool to inspect the running Spacewave Alpha page from the terminal.
+Use the `spacewave-debug` CLI tool to inspect the running Spacewave Alpha page from the terminal.
 
 Quick reference:
 
 ```bash
 # Get page info
-go run ./cmd/alpha-debug/ info
+go run ./cmd/spacewave-debug/ info
 
 # Evaluate JS expression (auto-returns single expressions)
-go run ./cmd/alpha-debug/ eval "document.title"
+go run ./cmd/spacewave-debug/ eval "document.title"
 
 # Evaluate from file (avoids shell quoting issues)
-go run ./cmd/alpha-debug/ eval --file .tmp/script.js
+go run ./cmd/spacewave-debug/ eval --file .tmp/script.js
 
 # Evaluate TypeScript from file (bundles with the app aliases first)
-go run ./cmd/alpha-debug/ eval --file .tmp/script.ts
+go run ./cmd/spacewave-debug/ eval --file .tmp/script.ts
 
 # Show exact visual line breaks
-go run ./cmd/alpha-debug/ linebreaks "h1"
+go run ./cmd/spacewave-debug/ linebreaks "h1"
 
 # Detect typographic orphans
-go run ./cmd/alpha-debug/ orphans "p"
+go run ./cmd/spacewave-debug/ orphans "p"
 
 # Dump geometry and typography
-go run ./cmd/alpha-debug/ measure ".card"
+go run ./cmd/spacewave-debug/ measure ".card"
 
 # Check grid row height consistency
-go run ./cmd/alpha-debug/ grid-check ".grid"
+go run ./cmd/spacewave-debug/ grid-check ".grid"
 
 # Preview text rendering (inject, measure, restore)
-go run ./cmd/alpha-debug/ preview-text "h1" "New heading"
+go run ./cmd/spacewave-debug/ preview-text "h1" "New heading"
 
 # Watch: re-evaluate a JS file on interval
-go run ./cmd/alpha-debug/ watch --file .tmp/script.js
+go run ./cmd/spacewave-debug/ watch --file .tmp/script.js
 ```
 
 ## Notes

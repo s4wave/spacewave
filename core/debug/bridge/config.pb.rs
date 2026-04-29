@@ -4,7 +4,7 @@
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Config {
     /// SocketPath overrides the unix socket path.
-    /// Defaults to .bldr/alpha-debug.sock relative to the project root.
+    /// Defaults to .bldr/spacewave-debug.sock relative to the project root.
     #[prost(string, tag="1")]
     pub socket_path: ::prost::alloc::string::String,
 }

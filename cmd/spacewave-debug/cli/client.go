@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	socketName   = ".bldr/alpha-debug.sock"
+	socketName   = ".bldr/spacewave-debug.sock"
 	maxWalkDepth = 10
 	corePluginID = "spacewave-core"
 )
@@ -272,11 +272,11 @@ func findProjectRoot() (string, error) {
 }
 
 func findSocket() (string, error) {
-	if p := os.Getenv("ALPHA_DEBUG_SOCK"); p != "" {
+	if p := os.Getenv("SPACEWAVE_DEBUG_SOCK"); p != "" {
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}
-		return "", errors.Errorf("socket not found at ALPHA_DEBUG_SOCK=%s", p)
+		return "", errors.Errorf("socket not found at SPACEWAVE_DEBUG_SOCK=%s", p)
 	}
 
 	dir, err := os.Getwd()

@@ -15,7 +15,7 @@ export const protobufPackage = 'debug.bridge'
 export interface Config {
   /**
    * SocketPath overrides the unix socket path.
-   * Defaults to .bldr/alpha-debug.sock relative to the project root.
+   * Defaults to .bldr/spacewave-debug.sock relative to the project root.
    *
    * @generated from field: string socket_path = 1;
    */

@@ -49,8 +49,8 @@ eslint-errors.json
 .tmp*
 /e2e-runtime*
 /test-results
-/alpha-deploy*
-/alpha-debug*
+/spacewave-deploy*
+/spacewave-debug*
 /spacewave-cli
 /build-web-pkgs
 /playwright-report

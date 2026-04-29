@@ -15,7 +15,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
-	debug_cli "github.com/s4wave/spacewave/cmd/alpha-debug/cli"
+	debug_cli "github.com/s4wave/spacewave/cmd/spacewave-debug/cli"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"

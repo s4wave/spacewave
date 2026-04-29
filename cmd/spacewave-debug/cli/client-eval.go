@@ -63,7 +63,7 @@ func (a *ClientArgs) RunEval(c *cli.Context) error {
 	if resp.GetError() != "" {
 		msg := resp.GetError()
 		if LooksLikeSyntaxError(msg) {
-			msg += "\nhint: for complex code, use --file: alpha-debug eval --file script.js"
+			msg += "\nhint: for complex code, use --file: spacewave-debug eval --file script.js"
 		}
 		return errors.Errorf("eval: %s", msg)
 	}
