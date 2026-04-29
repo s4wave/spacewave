@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"sync"
-	"weak"
 
 	"github.com/aperturerobotics/util/broadcast"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
@@ -80,7 +79,7 @@ type PackfileStore struct {
 
 	// manifest state, guarded by bcast.
 	manifest []*packfile.PackfileEntry
-	blooms   map[string]weak.Pointer[bbloom.BloomFilter]
+	blooms   map[string]bloomRef
 	tree     *bloomNode
 }
 
@@ -94,7 +93,7 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
 		maxBytes:        defaultResidentBudget,
-		blooms:          make(map[string]weak.Pointer[bbloom.BloomFilter]),
+		blooms:          make(map[string]bloomRef),
 	}
 	return s
 }
@@ -441,12 +440,12 @@ func (s *PackfileStore) getOrDeserializeBloom(entry *packfile.PackfileEntry) *bb
 	if bf == nil {
 		return nil
 	}
-	s.blooms[id] = weak.Make(bf)
+	s.blooms[id] = makeBloomRef(bf)
 	return bf
 }
 
 // buildBloomTree builds a binary bloom tree from manifest entries.
-func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]weak.Pointer[bbloom.BloomFilter]) *bloomNode {
+func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]bloomRef) *bloomNode {
 	if len(entries) == 0 {
 		return nil
 	}
@@ -463,7 +462,7 @@ func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]weak.Po
 				if err := pbf.UnmarshalBlock(bloomData); err == nil {
 					bf = pbf.ToBloomFilter()
 					if bf != nil {
-						blooms[entry.GetId()] = weak.Make(bf)
+						blooms[entry.GetId()] = makeBloomRef(bf)
 					}
 				}
 			}
