@@ -78,6 +78,56 @@ func TestRunSelfRejoinSweepEmptyListSingleFetch(t *testing.T) {
 	}
 }
 
+func TestRunSelfRejoinSweepProcessesMailboxesWithoutMounting(t *testing.T) {
+	var (
+		mu   sync.Mutex
+		hits = make(map[string]int)
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hits[r.URL.Path]++
+		mu.Unlock()
+		switch r.URL.Path {
+		case "/api/sobject/list":
+			_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{
+				SharedObjects: []*sobject.SharedObjectListEntry{
+					{Ref: sobject.NewSharedObjectRef("spacewave", "test-account", "so-1", SobjectBlockStoreID("so-1"))},
+					{Ref: sobject.NewSharedObjectRef("spacewave", "test-account", "so-2", SobjectBlockStoreID("so-2"))},
+				},
+			}))
+		case "/api/sobject/so-1/invite-mailbox",
+			"/api/sobject/so-2/invite-mailbox":
+			_, _ = w.Write(mustMarshalVT(t, &api.GetMailboxResponse{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	acc.syncSharedObjectListAccess(
+		s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+	)
+
+	if err := acc.runSelfRejoinSweep(context.Background(), &selfRejoinSweepState{
+		generation: 1,
+	}); err != nil {
+		t.Fatalf("runSelfRejoinSweep: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if hits["/api/sobject/list"] != 1 {
+		t.Fatalf("expected 1 /sobject/list fetch, got %d", hits["/api/sobject/list"])
+	}
+	if hits["/api/sobject/so-1/invite-mailbox"] != 1 {
+		t.Fatalf("expected so-1 mailbox fetch, got %d", hits["/api/sobject/so-1/invite-mailbox"])
+	}
+	if hits["/api/sobject/so-2/invite-mailbox"] != 1 {
+		t.Fatalf("expected so-2 mailbox fetch, got %d", hits["/api/sobject/so-2/invite-mailbox"])
+	}
+}
+
 func TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger(t *testing.T) {
 	acc := &ProviderAccount{
 		sessionClient: &SessionClient{

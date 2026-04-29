@@ -5,7 +5,10 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/s4wave/spacewave/core/session"
+	"golang.org/x/sync/errgroup"
 )
+
+const selfRejoinSweepConcurrency = 4
 
 // selfRejoinSweepState captures the meaningful sweep inputs so the routine only
 // reruns when bootstrap/mutation eligibility is met and one of the underlying
@@ -118,9 +121,9 @@ func (a *ProviderAccount) runSelfRejoinSweep(
 	state *selfRejoinSweepState,
 ) error {
 	a.setSelfRejoinSweepRunning(true)
+	defer a.setSelfRejoinSweepRunning(false)
 
 	if state == nil || !a.canSelfEnrollCloudObjects() {
-		a.setSelfRejoinSweepRunning(false)
 		return nil
 	}
 
@@ -133,6 +136,8 @@ func (a *ProviderAccount) runSelfRejoinSweep(
 		return nil
 	}
 
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(selfRejoinSweepConcurrency)
 	for _, entry := range list.GetSharedObjects() {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -142,23 +147,20 @@ func (a *ProviderAccount) runSelfRejoinSweep(
 			continue
 		}
 		soID := ref.GetProviderResourceRef().GetId()
-		_, rel, err := a.MountSharedObject(ctx, ref, nil)
-		if rel != nil {
-			rel()
-		}
-		if err != nil {
-			a.le.WithError(err).
-				WithField("sobject-id", soID).
-				Debug("self-rejoin sweep skipped shared object")
-		}
-		if err := a.processPendingMailboxEntries(ctx, soID); err != nil {
-			a.le.WithError(err).
-				WithField("sobject-id", soID).
-				Debug("self-rejoin sweep mailbox processing skipped shared object")
-		}
+		id := soID
+		group.Go(func() error {
+			if err := a.processPendingMailboxEntries(groupCtx, id); err != nil {
+				if groupCtx.Err() != nil {
+					return groupCtx.Err()
+				}
+				a.le.WithError(err).
+					WithField("sobject-id", id).
+					Debug("self-rejoin sweep mailbox processing skipped shared object")
+			}
+			return nil
+		})
 	}
-	a.setSelfRejoinSweepRunning(false)
-	return nil
+	return group.Wait()
 }
 
 func cloneEntityKeypairs(

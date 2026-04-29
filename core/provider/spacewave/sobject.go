@@ -793,8 +793,20 @@ func (a *ProviderAccount) RefreshSharedObjectList(ctx context.Context) error {
 		a.refreshSelfEnrollmentSummary(ctx)
 		return nil
 	}
+	prev := a.soListCtr.GetValue()
 	a.invalidateSharedObjectList()
-	return a.EnsureSharedObjectListLoaded(ctx)
+	if err := a.EnsureSharedObjectListLoaded(ctx); err != nil {
+		return err
+	}
+	if prev == nil {
+		return nil
+	}
+	next := a.soListCtr.GetValue()
+	if prev != next {
+		return nil
+	}
+	_, err := a.soListCtr.WaitValueChange(ctx, prev, nil)
+	return err
 }
 
 // HasCachedSharedObject returns true when the cached SO list already contains

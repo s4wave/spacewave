@@ -59,9 +59,11 @@ func (a *ProviderAccount) invalidateSharedObjectList() {
 // resolveSharedObjectList resolves the shared object list once for current subscribers.
 func (a *ProviderAccount) resolveSharedObjectList(
 	ctx context.Context,
-	released func(),
+	_ func(),
 ) (struct{}, func(), error) {
-	a.setSharedObjectListInvalidator(released)
+	a.setSharedObjectListInvalidator(func() {
+		a.soListRc.Invalidate()
+	})
 
 	if !a.hasSharedObjectListAccess() {
 		a.soListCtr.SetValue(&sobject.SharedObjectList{})

@@ -2,9 +2,11 @@ package provider_spacewave
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
@@ -96,6 +98,11 @@ func (a *ProviderAccount) createOrgSOForBootstrap(ctx context.Context, orgID str
 
 	ref, err := a.CreateSharedObject(ctx, orgID, s4wave_org.NewOrgSharedObjectMeta(info.GetDisplayName()), sobject.OwnerTypeOrganization, orgID)
 	if err != nil {
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == http.StatusConflict {
+			le.WithError(err).Debug("bootstrap: org SO already exists")
+			return
+		}
 		le.WithError(err).Debug("bootstrap: failed to create org SO")
 		return
 	}
