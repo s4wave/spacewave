@@ -159,13 +159,13 @@ export function ForgeJobViewer({
           {decodedTasks.map((task) => (
             <div
               key={task.entity.objectKey}
-              className="border-foreground/6 bg-background-card/20 flex items-center justify-between rounded border px-3 py-2"
+              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
             >
               <div className="min-w-0">
                 <div className="text-foreground truncate text-sm font-medium">
                   {task.data.name || task.entity.objectKey}
                 </div>
-                <div className="text-muted-foreground truncate text-xs">
+                <div className="text-foreground-alt/50 truncate text-xs">
                   {task.entity.objectKey}
                 </div>
               </div>
@@ -181,22 +181,31 @@ export function ForgeJobViewer({
 
     if (taskEdgesLoading && taskEdges.length === 0) {
       return (
-        <div className="text-muted-foreground py-4 text-center text-xs">
-          Loading dependency graph...
+        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+            <LuGitBranch className="h-3.5 w-3.5 shrink-0" />
+            <span>Loading dependency graph...</span>
+          </div>
         </div>
       )
     }
     if (decodedTasks.length === 0) {
       return (
-        <div className="text-muted-foreground py-4 text-center text-xs">
-          No tasks in job
+        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+            <LuListTodo className="h-3.5 w-3.5 shrink-0" />
+            <span>No tasks in job</span>
+          </div>
         </div>
       )
     }
     if (taskEdges.length === 0) {
       return (
-        <div className="text-muted-foreground py-4 text-center text-xs">
-          No task dependency edges defined yet
+        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+          <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+            <LuGitBranch className="h-3.5 w-3.5 shrink-0" />
+            <span>No task dependency edges defined yet</span>
+          </div>
         </div>
       )
     }
@@ -209,15 +218,15 @@ export function ForgeJobViewer({
           return (
             <div
               key={`${edge.kind}:${edge.from}:${edge.to}`}
-              className="border-foreground/6 bg-background-card/20 rounded border px-3 py-2"
+              className="border-foreground/6 bg-background-card/30 rounded-lg border px-3.5 py-2.5"
             >
               <div className="text-foreground flex items-center gap-2 text-sm font-medium">
                 <LuGitBranch className="h-3.5 w-3.5" />
                 <span>{fromTask?.data.name || edge.from}</span>
-                <span className="text-muted-foreground text-xs">-&gt;</span>
+                <span className="text-foreground-alt/50 text-xs">-&gt;</span>
                 <span>{toTask?.data.name || edge.to}</span>
               </div>
-              <div className="text-muted-foreground mt-1 text-xs uppercase">
+              <div className="text-foreground-alt/50 mt-1 text-[0.6rem] tracking-widest uppercase">
                 {edge.kind}
               </div>
             </div>
@@ -256,19 +265,19 @@ export function ForgeJobViewer({
             </InfoCard>
             <InfoCard
               icon={
-                <LuListTodo className="text-muted-foreground h-3.5 w-3.5" />
+                <LuListTodo className="text-foreground-alt/60 h-3.5 w-3.5" />
               }
               title="Tasks"
             >
               <div className="text-foreground text-2xl font-semibold">
                 {tasksLoading ? '-' : `${completeTaskCount}/${tasks.length}`}
               </div>
-              <div className="text-muted-foreground mt-1 text-xs">
+              <div className="text-foreground-alt/50 mt-1 text-xs">
                 {progressPercent}% complete
               </div>
-              <div className="bg-background-secondary mt-3 h-2 overflow-hidden rounded-full">
+              <div className="bg-foreground/8 mt-3 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-foreground h-full transition-all duration-200"
+                  className="bg-brand h-full transition-all duration-200"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>

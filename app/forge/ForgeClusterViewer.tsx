@@ -31,6 +31,7 @@ import {
 } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -179,38 +180,30 @@ export function ForgeClusterViewer({
               </div>
             </InfoCard>
             <div className="grid grid-cols-2 gap-3">
-              <InfoCard
-                icon={<LuCpu className="text-muted-foreground h-3.5 w-3.5" />}
-                title="Workers"
-              >
-                <div className="text-foreground text-2xl font-semibold">
-                  {workersLoading ? '-' : workers.length}
-                </div>
-              </InfoCard>
-              <InfoCard
-                icon={
-                  <LuBriefcase className="text-muted-foreground h-3.5 w-3.5" />
-                }
-                title="Jobs"
-              >
-                <div className="text-foreground text-2xl font-semibold">
-                  {jobsLoading ? '-' : jobs.length}
-                </div>
-              </InfoCard>
+              <StatCard
+                icon={LuCpu}
+                label="Workers"
+                value={workersLoading ? '-' : workers.length}
+              />
+              <StatCard
+                icon={LuBriefcase}
+                label="Jobs"
+                value={jobsLoading ? '-' : jobs.length}
+              />
             </div>
             <InfoCard
               icon={
-                <LuListTodo className="text-muted-foreground h-3.5 w-3.5" />
+                <LuListTodo className="text-foreground-alt/60 h-3.5 w-3.5" />
               }
               title="Task States"
             >
               {snapshotLoading && (
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   Loading task breakdown...
                 </div>
               )}
               {!snapshotLoading && snapshot.tasks.length === 0 && (
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   No tasks assigned yet
                 </div>
               )}
@@ -219,9 +212,9 @@ export function ForgeClusterViewer({
                   {Object.entries(taskStateLabels).map(([state, label]) => (
                     <div
                       key={state}
-                      className="border-foreground/6 bg-background-card/20 rounded border px-3 py-2"
+                      className="border-foreground/6 bg-background-card/30 rounded-lg border px-3 py-2"
                     >
-                      <div className="text-muted-foreground text-[11px] uppercase">
+                      <div className="text-foreground-alt/60 text-[0.6rem] tracking-widest uppercase">
                         {label}
                       </div>
                       <div className="text-foreground mt-1 text-lg font-semibold">
@@ -253,7 +246,7 @@ export function ForgeClusterViewer({
               {snapshot.workers.map((worker) => (
                 <div
                   key={worker.objectKey}
-                  className="border-foreground/6 bg-background-card/20 space-y-2 rounded border px-3 py-2"
+                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <ForgeEntityLink
@@ -262,11 +255,11 @@ export function ForgeClusterViewer({
                     >
                       {worker.data.name || worker.objectKey}
                     </ForgeEntityLink>
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-foreground-alt/50 text-xs">
                       {workerExecutionCounts.get(worker.objectKey) ?? 0} active
                     </div>
                   </div>
-                  <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+                  <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                     <span>{worker.peerIds.length} peer IDs</span>
                     <span>{worker.clusterKeys.length} cluster links</span>
                   </div>
@@ -322,7 +315,7 @@ export function ForgeClusterViewer({
                   return (
                     <div
                       key={job.objectKey}
-                      className="border-foreground/6 bg-background-card/20 space-y-3 rounded border px-3 py-2"
+                      className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -330,7 +323,7 @@ export function ForgeClusterViewer({
                             objectKey={job.objectKey}
                             className="text-foreground truncate text-sm font-medium"
                           />
-                          <div className="text-muted-foreground mt-1 text-xs">
+                          <div className="text-foreground-alt/50 mt-1 text-xs">
                             {completeTasks}/{jobTasks.length} tasks complete
                           </div>
                         </div>
@@ -339,9 +332,9 @@ export function ForgeClusterViewer({
                           labels={jobStateLabels}
                         />
                       </div>
-                      <div className="bg-background-secondary h-2 overflow-hidden rounded-full">
+                      <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
                         <div
-                          className="bg-foreground h-full transition-all duration-200"
+                          className="bg-brand h-full transition-all duration-200"
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>

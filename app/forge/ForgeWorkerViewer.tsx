@@ -20,6 +20,7 @@ import { ForgeEntityLink } from '@s4wave/web/forge/ForgeEntityLink.js'
 import { PRED_CLUSTER_TO_WORKER } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 
@@ -134,38 +135,26 @@ export function ForgeWorkerViewer({
               </div>
             </InfoCard>
             <div className="grid grid-cols-2 gap-3">
-              <InfoCard
-                icon={
-                  <LuServer className="text-muted-foreground h-3.5 w-3.5" />
-                }
-                title="Clusters"
-              >
-                <div className="text-foreground text-2xl font-semibold">
-                  {clustersLoading ? '-' : clusters.length}
-                </div>
-              </InfoCard>
-              <InfoCard
-                icon={
-                  <LuActivity className="text-muted-foreground h-3.5 w-3.5" />
-                }
-                title="Capacity"
-              >
-                <div className="text-foreground text-2xl font-semibold">
-                  {activeExecutions.length}/{Math.max(peerIds.length, 1)}
-                </div>
-                <div className="text-muted-foreground mt-1 text-xs">
-                  active executions / configured peers
-                </div>
-              </InfoCard>
+              <StatCard
+                icon={LuServer}
+                label="Clusters"
+                value={clustersLoading ? '-' : clusters.length}
+              />
+              <StatCard
+                icon={LuActivity}
+                label="Capacity"
+                value={`${activeExecutions.length}/${Math.max(peerIds.length, 1)}`}
+                detail="active executions / peers"
+              />
             </div>
             <InfoCard title="Peer IDs">
               {snapshotLoading && (
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   Loading worker identities...
                 </div>
               )}
               {!snapshotLoading && peerIds.length === 0 && (
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   No keypairs linked to this worker
                 </div>
               )}
@@ -181,7 +170,7 @@ export function ForgeWorkerViewer({
                 </div>
               )}
               {binding && (
-                <div className="text-muted-foreground mt-3 text-xs">
+                <div className="text-foreground-alt/50 mt-3 text-xs">
                   Process binding:{' '}
                   {(binding.approved ?? false) ? 'approved' : 'unapproved'}
                 </div>
@@ -196,14 +185,17 @@ export function ForgeWorkerViewer({
         content: (
           <div className="space-y-2">
             {activeExecutions.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                No active executions assigned to this worker
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <span>No active executions assigned to this worker</span>
+                </div>
               </div>
             )}
             {activeExecutions.map((execution) => (
               <div
                 key={execution.objectKey}
-                className="border-foreground/6 bg-background-card/20 space-y-2 rounded border px-3 py-2"
+                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -211,7 +203,7 @@ export function ForgeWorkerViewer({
                       objectKey={execution.objectKey}
                       className="text-foreground truncate text-sm font-medium"
                     />
-                    <div className="text-muted-foreground truncate text-xs">
+                    <div className="text-foreground-alt/50 truncate text-xs">
                       {execution.jobKey} / {execution.taskKey}
                     </div>
                   </div>
@@ -220,7 +212,7 @@ export function ForgeWorkerViewer({
                     labels={executionStateLabels}
                   />
                 </div>
-                <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                   <span>{execution.passKey}</span>
                   <span>
                     {execution.data.timestamp?.toISOString() ?? 'No timestamp'}
@@ -237,14 +229,17 @@ export function ForgeWorkerViewer({
         content: (
           <div className="space-y-2">
             {completeExecutions.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                No completed executions recorded yet
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <span>No completed executions recorded yet</span>
+                </div>
               </div>
             )}
             {completeExecutions.map((execution) => (
               <div
                 key={execution.objectKey}
-                className="border-foreground/6 bg-background-card/20 space-y-2 rounded border px-3 py-2"
+                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -252,7 +247,7 @@ export function ForgeWorkerViewer({
                       objectKey={execution.objectKey}
                       className="text-foreground truncate text-sm font-medium"
                     />
-                    <div className="text-muted-foreground truncate text-xs">
+                    <div className="text-foreground-alt/50 truncate text-xs">
                       {execution.jobKey} / {execution.taskKey}
                     </div>
                   </div>
@@ -261,7 +256,7 @@ export function ForgeWorkerViewer({
                     labels={executionStateLabels}
                   />
                 </div>
-                <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                   <span>
                     {(execution.data.result?.success ?? false) ?
                       'Success'

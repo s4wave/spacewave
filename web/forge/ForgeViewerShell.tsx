@@ -72,24 +72,23 @@ export function ForgeViewerShell({
 
       {/* Tab bar */}
       {tabs && tabs.length > 1 && (
-        <div className="border-foreground/8 flex h-8 shrink-0 items-end gap-0 border-b px-3">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onTabClick(tab.id)}
-              className={cn(
-                'relative px-3 pt-1 pb-1.5 text-xs font-medium transition-colors',
-                resolvedTab?.id === tab.id ?
-                  'text-foreground'
-                : 'text-foreground/50 hover:text-foreground/70',
-              )}
-            >
-              {tab.label}
-              {resolvedTab?.id === tab.id && (
-                <span className="bg-foreground absolute right-1 bottom-0 left-1 h-[2px] rounded-t" />
-              )}
-            </button>
-          ))}
+        <div className="border-foreground/8 flex shrink-0 items-center border-b px-3 py-1.5">
+          <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => onTabClick(tab.id)}
+                className={cn(
+                  'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                  resolvedTab?.id === tab.id ?
+                    'bg-brand/10 text-foreground border-brand/20 border'
+                  : 'text-foreground-alt/60 hover:text-foreground-alt/90 border border-transparent',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

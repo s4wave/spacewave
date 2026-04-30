@@ -68,12 +68,21 @@ function Intro() {
       <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
         Side-by-side variants for the primitives that compose every Forge
         viewer (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each
-        section shows the current production rendering first, followed by
-        candidate variants drawn from the modern token set in
-        guides/alpha-ui-design-system.org. Variants exist so we can pick
-        one consistent treatment, then propagate it through ForgeViewerShell,
-        StateBadge, ForgeEntityList, and the per-type viewers.
+        section shows the historical production rendering, then candidate
+        variants drawn from the modern token set in
+        guides/alpha-ui-design-system.org.
       </p>
+      <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
+        Decisions live in production code:
+      </p>
+      <ul className="text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed">
+        <li>State badge: B (tinted pill) is default, C (dot + label) is the
+          list variant via prop.</li>
+        <li>Entity rows: C (compact dense single-line) for ForgeEntityList.</li>
+        <li>Stat tile: C (inline StatCard, web/ui/StatCard.tsx).</li>
+        <li>Empty state: B (compact single-line, foreground-alt/40).</li>
+        <li>Tab bar: C (pill tabs) in ForgeViewerShell.</li>
+      </ul>
     </div>
   )
 }

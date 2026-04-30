@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LuPlay, LuActivity } from 'react-icons/lu'
+import { LuActivity, LuCopy, LuPlay } from 'react-icons/lu'
 
 import {
   Pass,
@@ -20,6 +20,7 @@ import { ForgeEntityLink } from '@s4wave/web/forge/ForgeEntityLink.js'
 import { PRED_PASS_TO_EXECUTION } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { ForgeValueSetPanels } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
@@ -93,16 +94,18 @@ export function ForgePassViewer({
               </div>
             </InfoCard>
             <div className="grid grid-cols-2 gap-3">
-              <InfoCard title="Replicas">
-                <div className="text-foreground text-2xl font-semibold">
-                  {pass?.replicas ?? 0}
-                </div>
-              </InfoCard>
-              <InfoCard title="Executions">
-                <div className="text-foreground text-2xl font-semibold">
-                  {decodedExecutionsLoading ? '-' : decodedExecutions.length}
-                </div>
-              </InfoCard>
+              <StatCard
+                icon={LuCopy}
+                label="Replicas"
+                value={pass?.replicas ?? 0}
+              />
+              <StatCard
+                icon={LuActivity}
+                label="Executions"
+                value={
+                  decodedExecutionsLoading ? '-' : decodedExecutions.length
+                }
+              />
             </div>
             <InfoCard title="Result">
               <div className="text-foreground text-sm font-medium">
@@ -130,7 +133,7 @@ export function ForgePassViewer({
               {decodedExecutions.map((execution) => (
                 <div
                   key={execution.entity.objectKey}
-                  className="border-foreground/6 bg-background-card/20 space-y-2 rounded border px-3 py-2"
+                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -138,7 +141,7 @@ export function ForgePassViewer({
                         objectKey={execution.entity.objectKey}
                         className="text-foreground truncate text-sm font-medium"
                       />
-                      <div className="text-muted-foreground truncate text-xs">
+                      <div className="text-foreground-alt/50 truncate text-xs">
                         {execution.data.peerId || 'Worker pending'}
                       </div>
                     </div>
@@ -147,7 +150,7 @@ export function ForgePassViewer({
                       labels={executionStateLabels}
                     />
                   </div>
-                  <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+                  <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                     <span>
                       {execution.data.timestamp?.toISOString() ??
                         'No timestamp'}
@@ -169,7 +172,7 @@ export function ForgePassViewer({
               emptyOutputsLabel="No pass outputs recorded"
             />
             <InfoCard title="Execution Snapshot">
-              <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+              <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                 <span>{pass?.execStates?.length ?? 0} exec states</span>
                 <span>{describeResult(pass?.result)}</span>
               </div>

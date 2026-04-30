@@ -37,4 +37,21 @@ describe('StatCard', () => {
     const icon = screen.getByTestId('test-icon')
     expect(icon.getAttribute('class')).toContain('text-brand')
   })
+
+  it('renders the detail line when provided', () => {
+    render(
+      <StatCard
+        icon={TestIcon}
+        label="Tasks"
+        value="6/12"
+        detail="50% complete"
+      />,
+    )
+    expect(screen.getByText('50% complete')).toBeDefined()
+  })
+
+  it('omits the detail line when not provided', () => {
+    render(<StatCard icon={TestIcon} label="Tasks" value="6" />)
+    expect(screen.queryByText('50% complete')).toBeNull()
+  })
 })

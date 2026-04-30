@@ -241,11 +241,11 @@ export function ForgeDashboardViewer({
         content: (
           <div className="space-y-3">
             {pendingWorkers.length > 0 && (
-              <div className="border-foreground/8 bg-background-card/40 rounded-lg border p-3">
+              <div className="border-brand/20 bg-brand/5 rounded-lg border p-3.5">
                 <div className="text-foreground text-sm font-medium">
                   Worker ready to start
                 </div>
-                <div className="text-muted-foreground mt-1 text-xs">
+                <div className="text-foreground-alt/60 mt-1 text-xs">
                   Approve the quickstart worker process binding to start task
                   execution in this session.
                 </div>
@@ -254,7 +254,7 @@ export function ForgeDashboardViewer({
                   onClick={() => {
                     void handleStartWorkers()
                   }}
-                  className="bg-foreground text-background-primary mt-3 rounded px-3 py-1.5 text-xs font-medium"
+                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150"
                 >
                   {pendingWorkers.length === 1 ?
                     'Start worker'
@@ -262,7 +262,7 @@ export function ForgeDashboardViewer({
                 </button>
               </div>
             )}
-            {/* Summary cards grid */}
+            {/* Summary counts grid */}
             {Object.keys(typeCounts).length > 0 && (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {Object.entries(typeCounts).map(([label, count]) => (
@@ -270,7 +270,7 @@ export function ForgeDashboardViewer({
                     key={label}
                     className="border-foreground/6 bg-background-card/30 rounded-lg border p-3"
                   >
-                    <div className="text-muted-foreground mb-1 text-xs">
+                    <div className="text-foreground-alt/60 mb-1 text-[0.6rem] tracking-widest uppercase">
                       {label}
                     </div>
                     <div className="text-foreground text-xl font-semibold">
@@ -281,13 +281,19 @@ export function ForgeDashboardViewer({
               </div>
             )}
             {entitiesLoading && entities.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                Loading entities...
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuBox className="h-3.5 w-3.5 shrink-0" />
+                  <span>Loading entities...</span>
+                </div>
               </div>
             )}
             {!entitiesLoading && entities.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                No linked Forge entities
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuBox className="h-3.5 w-3.5 shrink-0" />
+                  <span>No linked Forge entities</span>
+                </div>
               </div>
             )}
           </div>
@@ -299,13 +305,19 @@ export function ForgeDashboardViewer({
         content: (
           <div className="space-y-2">
             {activityLoading && activityEntries.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                Loading activity...
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <span>Loading activity...</span>
+                </div>
               </div>
             )}
             {!activityLoading && activityEntries.length === 0 && (
-              <div className="text-muted-foreground py-4 text-center text-xs">
-                No recent activity yet
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuActivity className="h-3.5 w-3.5 shrink-0" />
+                  <span>No recent activity yet</span>
+                </div>
               </div>
             )}
             {activityEntries.map((entry) => {
@@ -314,10 +326,10 @@ export function ForgeDashboardViewer({
                   <div className="text-foreground text-xs font-medium">
                     {entry.title}
                   </div>
-                  <div className="text-muted-foreground truncate text-xs">
+                  <div className="text-foreground-alt/50 truncate text-xs">
                     {entry.detail}
                   </div>
-                  <div className="text-muted-foreground text-[11px]">
+                  <div className="text-foreground-alt/50 text-[0.6rem]">
                     {entry.timestamp.toISOString()}
                   </div>
                 </div>
@@ -329,7 +341,7 @@ export function ForgeDashboardViewer({
                     key={entry.id}
                     objectKey={entry.objectKey}
                     icon={
-                      <LuActivity className="text-muted-foreground h-3 w-3 shrink-0" />
+                      <LuActivity className="text-foreground-alt/60 h-3 w-3 shrink-0" />
                     }
                   >
                     {content}
@@ -340,9 +352,9 @@ export function ForgeDashboardViewer({
               return (
                 <div
                   key={entry.id}
-                  className="border-foreground/6 bg-background-card/20 flex items-start gap-2 rounded-lg border p-3"
+                  className="border-foreground/6 bg-background-card/30 flex items-start gap-2 rounded-lg border p-3"
                 >
-                  <LuActivity className="text-muted-foreground mt-0.5 h-3 w-3 shrink-0" />
+                  <LuActivity className="text-foreground-alt/60 mt-0.5 h-3 w-3 shrink-0" />
                   {content}
                 </div>
               )
@@ -360,7 +372,7 @@ export function ForgeDashboardViewer({
                 key={entity.objectKey}
                 objectKey={entity.objectKey}
                 icon={
-                  <LuBox className="text-muted-foreground h-3 w-3 shrink-0" />
+                  <LuBox className="text-foreground-alt/60 h-3 w-3 shrink-0" />
                 }
               >
                 {entity.typeId && (
@@ -369,6 +381,7 @@ export function ForgeDashboardViewer({
                     labels={{
                       0: entityTypeLabels[entity.typeId] || entity.typeId,
                     }}
+                    variant="dot"
                   />
                 )}
                 {entity.objectKey}
@@ -389,8 +402,11 @@ export function ForgeDashboardViewer({
                   void handleToggle(bindingObjectKey, approved)
                 }}
               />
-            : <div className="text-muted-foreground py-4 text-center text-xs">
-                No process bindings
+            : <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+                <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+                  <LuBox className="h-3.5 w-3.5 shrink-0" />
+                  <span>No process bindings</span>
+                </div>
               </div>
             }
           </div>

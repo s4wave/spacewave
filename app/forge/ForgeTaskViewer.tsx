@@ -23,6 +23,7 @@ import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { PRED_TASK_TO_PASS } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
@@ -140,17 +141,12 @@ export function ForgeTaskViewer({
                 <CopyableField label="Object Key" value={objectKey} />
               </div>
             </InfoCard>
-            <InfoCard
-              icon={<LuPlay className="text-muted-foreground h-3.5 w-3.5" />}
-              title="Passes"
-            >
-              <div className="text-foreground text-2xl font-semibold">
-                {passesLoading ? '-' : passes.length}
-              </div>
-              <div className="text-muted-foreground mt-1 text-xs">
-                Current nonce {task?.passNonce?.toString() ?? '0'}
-              </div>
-            </InfoCard>
+            <StatCard
+              icon={LuPlay}
+              label="Passes"
+              value={passesLoading ? '-' : passes.length}
+              detail={`Current nonce ${task?.passNonce?.toString() ?? '0'}`}
+            />
             <InfoCard
               icon={
                 <LuActivity className="text-muted-foreground h-3.5 w-3.5" />
@@ -158,7 +154,7 @@ export function ForgeTaskViewer({
               title="Current Execution"
             >
               {!currentPass && (
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   No pass has started yet
                 </div>
               )}
@@ -169,7 +165,7 @@ export function ForgeTaskViewer({
                       <div className="text-foreground text-sm font-medium">
                         Pass #{currentPass.data.passNonce?.toString() ?? '0'}
                       </div>
-                      <div className="text-muted-foreground text-xs">
+                      <div className="text-foreground-alt/50 text-xs">
                         {currentPass.data.execStates?.length ?? 0} execution
                         {(currentPass.data.execStates?.length ?? 0) === 1 ?
                           ''
@@ -188,7 +184,7 @@ export function ForgeTaskViewer({
                           <div className="text-foreground truncate text-xs font-medium">
                             {currentExecution.objectKey || 'Execution'}
                           </div>
-                          <div className="text-muted-foreground truncate text-xs">
+                          <div className="text-foreground-alt/50 truncate text-xs">
                             {currentExecution.peerId || 'Worker pending'}
                           </div>
                         </div>
@@ -198,28 +194,26 @@ export function ForgeTaskViewer({
                         />
                       </div>
                       {currentExecution.timestamp && (
-                        <div className="text-muted-foreground text-xs">
+                        <div className="text-foreground-alt/50 text-xs">
                           Started {currentExecution.timestamp.toISOString()}
                         </div>
                       )}
                     </div>
                   )}
                   {!currentExecution && (
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-foreground-alt/50 text-xs">
                       No execution snapshot recorded yet
                     </div>
                   )}
                 </div>
               )}
             </InfoCard>
-            <InfoCard title="Task Outputs">
-              <div className="text-foreground text-2xl font-semibold">
-                {task?.valueSet?.outputs?.length ?? 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-xs">
-                {describeResult(task?.result)}
-              </div>
-            </InfoCard>
+            <StatCard
+              icon={LuListTodo}
+              label="Task Outputs"
+              value={task?.valueSet?.outputs?.length ?? 0}
+              detail={describeResult(task?.result)}
+            />
           </div>
         ),
       },
@@ -242,14 +236,14 @@ export function ForgeTaskViewer({
             {sortedPasses.map((pass) => (
               <div
                 key={pass.entity.objectKey}
-                className="border-foreground/6 bg-background-card/20 space-y-2 rounded border px-3 py-2"
+                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-foreground truncate text-sm font-medium">
                       Pass #{pass.data.passNonce?.toString() ?? '0'}
                     </div>
-                    <div className="text-muted-foreground truncate text-xs">
+                    <div className="text-foreground-alt/50 truncate text-xs">
                       {pass.data.timestamp?.toISOString() ??
                         pass.entity.objectKey}
                     </div>
@@ -259,7 +253,7 @@ export function ForgeTaskViewer({
                     labels={passStateLabels}
                   />
                 </div>
-                <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                   <span>
                     {pass.data.execStates?.length ?? 0} execution
                     {(pass.data.execStates?.length ?? 0) === 1 ? '' : 's'}

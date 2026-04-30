@@ -30,11 +30,11 @@ const execStateLabels: Record<number, string> = {
 function logLevelColor(level: string): string {
   switch (level) {
     case 'error':
-      return 'text-red-400'
+      return 'text-destructive'
     case 'warn':
-      return 'text-yellow-400'
+      return 'text-amber-300'
     case 'debug':
-      return 'text-muted-foreground'
+      return 'text-foreground-alt/50'
     default:
       return 'text-foreground'
   }
@@ -85,7 +85,7 @@ function ExecutionDuration({
   }, [running, timestamp])
 
   if (!timestamp) {
-    return <span className="text-muted-foreground text-xs">Not started</span>
+    return <span className="text-foreground-alt/50 text-xs">Not started</span>
   }
 
   return (
@@ -106,8 +106,11 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
 
   if (entries.length === 0) {
     return (
-      <div className="text-muted-foreground py-4 text-center text-xs">
-        No log output
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <div className="text-foreground-alt/40 flex items-center gap-2 px-1 py-1 text-xs">
+          <LuActivity className="h-3.5 w-3.5 shrink-0" />
+          <span>No log output</span>
+        </div>
       </div>
     )
   }
@@ -115,7 +118,7 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
   return (
     <div
       ref={scrollRef}
-      className="bg-muted max-h-64 overflow-y-auto rounded p-2"
+      className="border-foreground/6 bg-background/40 max-h-64 overflow-y-auto rounded-lg border p-3"
     >
       {entries.map((entry, i) => (
         <div key={i} className="flex gap-2 font-mono text-xs leading-relaxed">
@@ -201,7 +204,7 @@ export function ForgeExecutionViewer({
             </InfoCard>
             <InfoCard title="Runtime">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-muted-foreground text-xs">
+                <div className="text-foreground-alt/50 text-xs">
                   Live duration
                 </div>
                 <ExecutionDuration
@@ -209,7 +212,7 @@ export function ForgeExecutionViewer({
                   running={isRunning}
                 />
               </div>
-              <div className="text-muted-foreground mt-3 flex flex-wrap gap-3 text-xs">
+              <div className="text-foreground-alt/50 mt-3 flex flex-wrap gap-3 text-xs">
                 <span>{execution?.logEntries?.length ?? 0} log entries</span>
                 <span>{execution?.valueSet?.inputs?.length ?? 0} inputs</span>
                 <span>{execution?.valueSet?.outputs?.length ?? 0} outputs</span>
