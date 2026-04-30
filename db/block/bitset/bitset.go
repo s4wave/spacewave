@@ -1,29 +1,16 @@
 package bitset
 
-import (
-	bb "github.com/bits-and-blooms/bitset"
-	"github.com/s4wave/spacewave/db/block"
-)
+import "github.com/s4wave/spacewave/db/block"
 
-// NewBitset constructs a new bitset from an existing bitset.
-// if input is nil, returns nil
-func NewBitset(bitSet *bb.BitSet) *BitSet {
-	if bitSet == nil {
+// NewBitset constructs a new bitset from existing words.
+func NewBitset(words []uint64, length uint32) *BitSet {
+	if len(words) == 0 {
 		return nil
 	}
 	return &BitSet{
-		Len: uint32(bitSet.Len()), //nolint:gosec
-		Set: bitSet.Words(),
+		Len: length,
+		Set: words,
 	}
-}
-
-// ToBitSet converts the bitset block into a BitSet.
-func (b *BitSet) ToBitSet() *bb.BitSet {
-	if b == nil || len(b.GetSet()) == 0 {
-		return &bb.BitSet{}
-	}
-
-	return bb.FromWithLength(uint(b.GetLen()), b.GetSet())
 }
 
 // Clone clones the bitset block.

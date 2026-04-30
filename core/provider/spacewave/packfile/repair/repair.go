@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/go-kvfile"
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/pkg/errors"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
@@ -56,7 +55,7 @@ func Audit(entries []*packfile.PackfileEntry, policy writer.Policy) *Report {
 			if bf.Cap() != policyBloom.Cap() || bf.K() != policyBloom.K() {
 				finding.addReason(ReasonIncompatibleBloom)
 			}
-			fp := bbloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
+			fp := bloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
 			finding.EstimatedFalsePositive = fp
 			if fp > report.BeforeMaxFalsePositiveRate {
 				report.BeforeMaxFalsePositiveRate = fp
@@ -105,7 +104,7 @@ func Repair(
 		report.VerifiedIndexedBlockCountSum += verified
 		report.UpdatedEntries = append(report.UpdatedEntries, updated)
 
-		fp := bbloom.EstimateFalsePositiveRate(
+		fp := bloom.EstimateFalsePositiveRate(
 			policyBloom.Cap(),
 			policyBloom.K(),
 			uint(updated.GetBlockCount()),
@@ -118,7 +117,7 @@ func Repair(
 	return report, nil
 }
 
-func entryBloomFilter(entry *packfile.PackfileEntry) (*bbloom.BloomFilter, bool) {
+func entryBloomFilter(entry *packfile.PackfileEntry) (*bloom.Filter, bool) {
 	bloomData := entry.GetBloomFilter()
 	if len(bloomData) == 0 {
 		return nil, false

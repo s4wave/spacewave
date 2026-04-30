@@ -3,7 +3,7 @@
 package store
 
 import (
-	bbloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/s4wave/spacewave/db/block/bloom"
 )
 
 // bloomRef is a strong reference to a bloom filter.
@@ -12,15 +12,15 @@ import (
 // build retains cached filters strongly. Filters live as long as the
 // store's bloom map entry.
 type bloomRef struct {
-	bf *bbloom.BloomFilter
+	bf *bloom.Filter
 }
 
 // makeBloomRef wraps bf in a strong reference.
-func makeBloomRef(bf *bbloom.BloomFilter) bloomRef {
+func makeBloomRef(bf *bloom.Filter) bloomRef {
 	return bloomRef{bf: bf}
 }
 
 // Value returns the underlying bloom filter.
-func (r bloomRef) Value() *bbloom.BloomFilter {
+func (r bloomRef) Value() *bloom.Filter {
 	return r.bf
 }

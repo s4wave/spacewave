@@ -1,6 +1,6 @@
 package writer
 
-import bbloom "github.com/bits-and-blooms/bloom/v3"
+import "github.com/s4wave/spacewave/db/block/bloom"
 
 const (
 	// DefaultMaxPackBytes is the byte ceiling for a single uploaded packfile.
@@ -36,7 +36,7 @@ func DefaultPolicy() Policy {
 }
 
 // NewBloomFilter creates an empty bloom filter for the policy.
-func (p Policy) NewBloomFilter() *bbloom.BloomFilter {
+func (p Policy) NewBloomFilter() *bloom.Filter {
 	n := p.BloomExpectedBlocks
 	if n == 0 {
 		n = DefaultMaxBlocksPerPack
@@ -45,5 +45,5 @@ func (p Policy) NewBloomFilter() *bbloom.BloomFilter {
 	if fp <= 0 {
 		fp = DefaultBloomFalsePositiveRate
 	}
-	return bbloom.NewWithEstimates(uint(n), fp)
+	return bloom.NewFilter(uint(n), fp)
 }

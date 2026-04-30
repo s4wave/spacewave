@@ -3,8 +3,6 @@ package bloom
 import (
 	"strconv"
 	"testing"
-
-	boom "github.com/bits-and-blooms/bloom/v3"
 )
 
 // TestBloom performs a end to end test of the bloom block.
@@ -13,7 +11,7 @@ func TestBloom(t *testing.T) {
 	fpRate := float64(0.1)
 	k := uint(4)
 
-	bl := boom.NewWithEstimates(n, fpRate)
+	bl := NewFilter(n, fpRate)
 	var datas [][]byte
 	for i := range 1000 {
 		msgData := append([]byte("hello world #"), strconv.Itoa(i)...)
@@ -24,7 +22,7 @@ func TestBloom(t *testing.T) {
 		)
 	}
 
-	checkFilter := func(b *boom.BloomFilter) {
+	checkFilter := func(b *Filter) {
 		if blk := b.K(); blk != k {
 			t.Fatalf("expected k %v but got %v", k, blk)
 		}
@@ -57,7 +55,8 @@ func TestBloom(t *testing.T) {
 // optimalK calculations are the same between releases.
 func TestBloomConsistent(t *testing.T) {
 	check := func(n uint, fpRate float64, expectedK, expectedM uint) {
-		m, k := boom.EstimateParameters(n, fpRate)
+		f := NewFilter(n, fpRate)
+		m, k := f.Cap(), f.K()
 		t.Logf(
 			"OptimalM(n = %v, fpRate = %v) => %v (%v bytes)\n",
 			n,

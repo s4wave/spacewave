@@ -3,7 +3,7 @@ package filters
 import (
 	"strings"
 
-	bbloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/block/quad"
 )
 
@@ -12,7 +12,7 @@ type KeyFiltersReader struct {
 	// keyFilters is the key filters object
 	keyFilters *KeyFilters
 	// keyBloom is the key bloom filter
-	keyBloom *bbloom.BloomFilter
+	keyBloom *bloom.Filter
 }
 
 // NewKeyFiltersBuilder constructs a new KeyFiltersBuilder.

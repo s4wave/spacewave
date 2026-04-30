@@ -2,7 +2,6 @@ package filters
 
 import (
 	"github.com/aperturerobotics/util/commonprefix"
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/block/quad"
 )
@@ -14,7 +13,7 @@ const keyFiltersFpRate = 0.1
 type KeyFiltersBuilder struct {
 	// keyBloom is the key bloom filter
 	// may be nil
-	keyBloom *bbloom.BloomFilter
+	keyBloom *bloom.Filter
 	// applied indicates if any ops have been applied yet
 	applied bool
 	// quadPrefix contains prefixes affected by selected graph quads.
@@ -30,7 +29,7 @@ type KeyFiltersBuilder struct {
 func NewKeyFiltersBuilder(bloomCapacity int) *KeyFiltersBuilder {
 	kfb := &KeyFiltersBuilder{}
 	if bloomCapacity > 0 {
-		kfb.keyBloom = bbloom.NewWithEstimates(uint(bloomCapacity), keyFiltersFpRate)
+		kfb.keyBloom = bloom.NewFilter(uint(bloomCapacity), keyFiltersFpRate)
 	}
 	return kfb
 }
@@ -59,7 +58,7 @@ func (b *KeyFiltersBuilder) ApplyObjectKey(key string) {
 	}
 	// apply to key bloom
 	if b.keyBloom != nil {
-		_ = b.keyBloom.AddString(key)
+		b.keyBloom.AddString(key)
 	}
 }
 
@@ -93,10 +92,10 @@ func (b *KeyFiltersBuilder) ApplyQuad(gq *quad.Quad) {
 	// apply to key bloom
 	if b.keyBloom != nil {
 		if subj := gq.GetSubject(); subj != "" {
-			_ = b.keyBloom.AddString(subj)
+			b.keyBloom.AddString(subj)
 		}
 		if obj := gq.GetObj(); obj != "" {
-			_ = b.keyBloom.AddString(obj)
+			b.keyBloom.AddString(obj)
 		}
 	}
 }

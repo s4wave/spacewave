@@ -3,35 +3,11 @@ package block_transform
 import (
 	"encoding/base64"
 
-	"github.com/aperturerobotics/controllerbus/config"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
-
-// NewStepConfig constructs the step config with a underlying config.
-func NewStepConfig(conf config.Config) (*StepConfig, error) {
-	dat, err := conf.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	return &StepConfig{
-		Id:     conf.GetConfigID(),
-		Config: dat,
-	}, nil
-}
-
-// UnmarshalStepConfig unmarshals a step config using either json or protobuf.
-func UnmarshalStepConfig(data []byte, conf config.Config) error {
-	if len(data) == 0 {
-		return nil
-	}
-	if data[0] == '{' {
-		return conf.UnmarshalJSON(data)
-	}
-	return conf.UnmarshalVT(data)
-}
 
 // IsNil returns if the object is nil.
 func (c *StepConfig) IsNil() bool {

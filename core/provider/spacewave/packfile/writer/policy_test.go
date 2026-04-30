@@ -3,7 +3,7 @@ package writer
 import (
 	"testing"
 
-	bbloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/s4wave/spacewave/db/block/bloom"
 )
 
 func TestDefaultPolicy(t *testing.T) {
@@ -29,7 +29,7 @@ func TestDefaultPolicy(t *testing.T) {
 	if bf.Cap() == 0 || bf.K() == 0 {
 		t.Fatalf("invalid bloom parameters m=%d k=%d", bf.Cap(), bf.K())
 	}
-	fp := bbloom.EstimateFalsePositiveRate(
+	fp := bloom.EstimateFalsePositiveRate(
 		bf.Cap(),
 		bf.K(),
 		uint(policy.BloomExpectedBlocks),

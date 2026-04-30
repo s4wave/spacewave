@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/pkg/errors"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/block"
@@ -37,7 +36,7 @@ type IndexCache interface {
 // bloomNode is a node in the manifest's bloom pruning tree.
 type bloomNode struct {
 	// merged is the OR-merged bloom filter covering all children.
-	merged *bbloom.BloomFilter
+	merged *bloom.Filter
 	// left is the left child (nil for leaf nodes).
 	left *bloomNode
 	// right is the right child (nil for leaf nodes).
@@ -421,7 +420,7 @@ func collectCandidates(node *bloomNode, key []byte, result *[]int) {
 // getOrDeserializeBloom returns the bloom filter for an entry, using the
 // store's weak pointer cache so filters share memory across calls while
 // remaining eligible for GC when no caller retains them.
-func (s *PackfileStore) getOrDeserializeBloom(entry *packfile.PackfileEntry) *bbloom.BloomFilter {
+func (s *PackfileStore) getOrDeserializeBloom(entry *packfile.PackfileEntry) *bloom.Filter {
 	id := entry.GetId()
 	bloomData := entry.GetBloomFilter()
 	if len(bloomData) == 0 {
@@ -451,7 +450,7 @@ func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]bloomRe
 	}
 	leaves := make([]*bloomNode, len(entries))
 	for i, entry := range entries {
-		var bf *bbloom.BloomFilter
+		var bf *bloom.Filter
 		bloomData := entry.GetBloomFilter()
 		if len(bloomData) > 0 {
 			if wp, ok := blooms[entry.GetId()]; ok {
@@ -494,7 +493,7 @@ func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]bloomRe
 }
 
 // mergeBloomFilters OR-merges two bloom filters.
-func mergeBloomFilters(a, b *bbloom.BloomFilter) *bbloom.BloomFilter {
+func mergeBloomFilters(a, b *bloom.Filter) *bloom.Filter {
 	if a == nil {
 		return b
 	}

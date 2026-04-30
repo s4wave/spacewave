@@ -1,25 +1,11 @@
-//go:build !sql_lite
+//go:build sql_lite
 
 package block_transform
 
 import (
-	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
-
-// NewConfig constructs a new config with a set of underlying steps.
-func NewConfig(steps []config.Config) (*Config, error) {
-	c := &Config{}
-	for _, step := range steps {
-		sc, err := NewStepConfig(step)
-		if err != nil {
-			return nil, err
-		}
-		c.Steps = append(c.Steps, sc)
-	}
-	return c, nil
-}
 
 // NewTransformConfigBlock is a transform configuration block constructor.
 func NewTransformConfigBlock() block.Block {
@@ -51,25 +37,21 @@ func (c *Config) GetEmpty() bool {
 }
 
 // MarshalBlock marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
 func (c *Config) MarshalBlock() ([]byte, error) {
 	return c.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
 func (c *Config) UnmarshalBlock(data []byte) error {
 	return c.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (c *Config) ApplySubBlock(id uint32, next block.SubBlock) error {
-	// no-op
 	return nil
 }
 
 // GetSubBlocks returns all constructed sub-blocks by ID.
-// May return nil, and values may also be nil.
 func (c *Config) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[1] = NewStepConfigSetSubBlockCtor(&c.Steps)(false)

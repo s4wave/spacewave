@@ -4,7 +4,6 @@ import (
 	"maps"
 	"time"
 
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/block/bloom"
 )
@@ -219,7 +218,7 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 		}
 		stats.BloomFilterCount++
 		shapes[bloomParameterShape{m: bf.Cap(), k: bf.K()}] = struct{}{}
-		fp := bbloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
+		fp := bloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
 		if stats.BloomMaxFalsePositiveRate < fp {
 			stats.BloomMaxFalsePositiveRate = fp
 		}
@@ -231,7 +230,7 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 	return stats
 }
 
-func manifestEntryBloomFilter(entry *packfile.PackfileEntry) *bbloom.BloomFilter {
+func manifestEntryBloomFilter(entry *packfile.PackfileEntry) *bloom.Filter {
 	bloomData := entry.GetBloomFilter()
 	if len(bloomData) == 0 {
 		return nil

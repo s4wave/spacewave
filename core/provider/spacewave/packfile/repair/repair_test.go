@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	bbloom "github.com/bits-and-blooms/bloom/v3"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block/bloom"
@@ -41,7 +40,7 @@ func testPack(t *testing.T, blocks ...[]byte) ([]byte, []byte, []*hash.Hash) {
 	return buf.Bytes(), result.BloomFilter, hashes
 }
 
-func testBloom(t *testing.T, bf *bbloom.BloomFilter) []byte {
+func testBloom(t *testing.T, bf *bloom.Filter) []byte {
 	t.Helper()
 	out, err := bloom.NewBloom(bf).MarshalBlock()
 	if err != nil {
@@ -56,7 +55,7 @@ func hasReason(f *Finding, reason Reason) bool {
 
 func TestAuditIdentifiesBadPackMetadata(t *testing.T) {
 	_, validBloom, _ := testPack(t, []byte("alpha"))
-	incompatible := testBloom(t, bbloom.New(128, 3))
+	incompatible := testBloom(t, bloom.From([]uint64{1}, 128, 3))
 	createdAt := timestamppb.Now()
 
 	report := Audit([]*packfile.PackfileEntry{
@@ -113,7 +112,7 @@ func TestRepairRecomputesBloomWithoutChangingPackBytes(t *testing.T) {
 	createdAt := timestamppb.Now()
 	entry := &packfile.PackfileEntry{
 		Id:          "pack-1",
-		BloomFilter: testBloom(t, bbloom.New(128, 3)),
+		BloomFilter: testBloom(t, bloom.From([]uint64{1}, 128, 3)),
 		BlockCount:  999,
 		SizeBytes:   uint64(len(packBytes)),
 		CreatedAt:   createdAt,
