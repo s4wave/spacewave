@@ -2,6 +2,7 @@ import { Route } from '@s4wave/web/router/router.js'
 
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
+import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
 import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
 import { LayoutDebug } from '@s4wave/web/debug/LayoutDebug.js'
 import { LayoutColorsDebug } from '@s4wave/web/debug/LayoutColorsDebug.js'
@@ -31,6 +32,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/loading">
       <LoadingDebug />
+    </Route>
+    <Route path="/debug/ui/forge-viewer">
+      <ForgeViewerDebug />
     </Route>
   </>
 )
