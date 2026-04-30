@@ -4,6 +4,7 @@ import { LuArrowLeft, LuCircle, LuTerminal, LuUsers } from 'react-icons/lu'
 
 import { useRuntimeHandoff } from '@s4wave/app/listener/RuntimeHandoffContext.js'
 import { useListenerStatus } from '@s4wave/app/hooks/useListenerStatus.js'
+import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
@@ -110,6 +111,9 @@ function WalkthroughSection({ opts }: { opts: CommandOptions }) {
 // /download#cli for the packaged binary and to the user-facing install
 // and quickstart guide.
 function InstallGuidanceSection() {
+  const cliDownloadHref = useStaticHref('/download#cli')
+  const cliInstallHref = useStaticHref('/docs/users/cli/install')
+
   return (
     <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
       <h2 className="text-foreground mb-2 text-sm font-semibold tracking-tight">
@@ -122,7 +126,7 @@ function InstallGuidanceSection() {
       <ul className="space-y-1.5 text-xs">
         <li>
           <a
-            href="/download#cli"
+            href={cliDownloadHref}
             className="text-brand hover:text-brand/80 transition-colors"
           >
             Download the spacewave CLI
@@ -131,7 +135,7 @@ function InstallGuidanceSection() {
         </li>
         <li>
           <a
-            href="/docs/users/cli/install"
+            href={cliInstallHref}
             className="text-brand hover:text-brand/80 transition-colors"
           >
             Install and quickstart guide
