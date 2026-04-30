@@ -15,7 +15,6 @@ import (
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	"github.com/s4wave/spacewave/db/world"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
@@ -195,22 +194,6 @@ func commonGitFlags(gitURI *string, statePath *string, spaceID *string, sessIdx 
 			Destination: outputFormat,
 		},
 	}
-}
-
-// applyGitOp applies a world operation via the git context's engine.
-func applyGitOp(c *cli.Context, engine *sdk_engine.SDKEngine, op world.Operation) error {
-	ctx := c.Context
-	tx, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "new transaction")
-	}
-	defer tx.Discard()
-
-	_, _, err = tx.ApplyWorldOp(ctx, op, "")
-	if err != nil {
-		return errors.Wrap(err, "apply "+op.GetOperationTypeId())
-	}
-	return tx.Commit(ctx)
 }
 
 // resolveGitURI resolves the URI from either --uri flag or positional arg + --space.
@@ -1071,7 +1054,7 @@ func buildGitFetchCommand() *cli.Command {
 			}
 
 			op := git_world.NewGitFetchOp(gc.objectKey, fetchOpts)
-			if err := applyGitOp(c, gc.engine, op); err != nil {
+			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 
@@ -1164,7 +1147,7 @@ func buildGitWorktreeCreateCommand() *cli.Command {
 				time.Now(),
 			)
 
-			if err := applyGitOp(c, gc.engine, op); err != nil {
+			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 
@@ -1231,7 +1214,7 @@ func buildGitWorktreeCheckoutCommand() *cli.Command {
 			}
 
 			op := git_world.NewGitWorktreeCheckoutOp(wtKey, repoKey, checkoutOpts)
-			if err := applyGitOp(c, gc.engine, op); err != nil {
+			if err := applyWorldOp(c, gc.engine, op); err != nil {
 				return err
 			}
 

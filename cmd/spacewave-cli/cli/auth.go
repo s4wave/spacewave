@@ -147,6 +147,14 @@ func newAuthBackupGenerateCommand() *cli.Command {
 
 // runAuthBackupGenerate implements the auth backup generate command.
 func runAuthBackupGenerate(c *cli.Context, statePath string, sessionIdx uint32, authPemFile string) error {
+	return generateAndSaveBackupKey(c, statePath, sessionIdx, authPemFile, c.String("output"))
+}
+
+// generateAndSaveBackupKey performs the shared backup-key flow: prompt
+// credential, mount session, access account, call GenerateBackupKey, write
+// the PEM to outFile, and print a confirmation line. Used by both the
+// auth backup generate and auth method add backup subcommands.
+func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, outFile string) error {
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
@@ -190,7 +198,6 @@ func runAuthBackupGenerate(c *cli.Context, statePath string, sessionIdx uint32, 
 		return errors.Wrap(err, "generate backup key")
 	}
 
-	outFile := c.String("output")
 	if err := os.WriteFile(outFile, resp.GetPemData(), 0o600); err != nil {
 		return errors.Wrap(err, "write PEM file")
 	}
@@ -391,84 +398,30 @@ func newAuthMethodAddPasswordCommand() *cli.Command {
 
 // runAuthMethodAddPassword implements the auth method add password command.
 func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint32, pemFile string) error {
-	ctx := c.Context
-	resolved, err := authResolveStatePath(c, statePath)
-	if err != nil {
-		return err
-	}
-
-	// Prompt for existing credential to authorize.
 	cred, err := promptCredential(pemFile)
 	if err != nil {
 		return err
 	}
-
-	// Prompt for new password to add.
 	newPassword, err := promptNewPassword("New password")
 	if err != nil {
 		return err
 	}
-
-	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
-	if err != nil {
-		return err
-	}
-	defer client.close()
-
-	sess, err := client.mountSession(ctx, sessionIdx)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	info, err := sess.GetSessionInfo(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get session info")
-	}
-	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
-	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
-
-	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
-	if err != nil {
-		return err
-	}
-	defer acctCleanup()
-
-	// Get entity ID for key derivation.
-	infoStrm, err := acctSvc.WatchAccountInfo(ctx, &s4wave_account.WatchAccountInfoRequest{})
-	if err != nil {
-		return errors.Wrap(err, "watch account info")
-	}
-	acctInfo, err := infoStrm.Recv()
-	if err != nil {
-		return errors.Wrap(err, "recv account info")
-	}
-
-	// Derive new keypair from password.
-	_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(acctInfo.GetEntityId(), []byte(newPassword))
-	if err != nil {
-		return errors.Wrap(err, "derive new entity key")
-	}
-	newPeerID, err := peer.IDFromPrivateKey(newPriv)
-	if err != nil {
-		return errors.Wrap(err, "derive new peer ID")
-	}
-
-	kp := &session_pb.EntityKeypair{
-		PeerId:     newPeerID.String(),
-		AuthMethod: auth_password.MethodID,
-	}
-
-	_, err = acctSvc.AddAuthMethod(ctx, &s4wave_account.AddAuthMethodRequest{
-		Keypair:    kp,
-		Credential: cred,
-	})
-	if err != nil {
-		return errors.Wrap(err, "add auth method")
-	}
-
-	os.Stdout.WriteString("password auth method added\n")
-	return nil
+	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
+		func(acctInfo *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
+			_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(acctInfo.GetEntityId(), []byte(newPassword))
+			if err != nil {
+				return nil, "", errors.Wrap(err, "derive new entity key")
+			}
+			newPeerID, err := peer.IDFromPrivateKey(newPriv)
+			if err != nil {
+				return nil, "", errors.Wrap(err, "derive new peer ID")
+			}
+			kp := &session_pb.EntityKeypair{
+				PeerId:     newPeerID.String(),
+				AuthMethod: auth_password.MethodID,
+			}
+			return kp, "password auth method added\n", nil
+		})
 }
 
 // newAuthMethodAddPemCommand builds the auth method add pem command.
@@ -495,18 +448,10 @@ func newAuthMethodAddPemCommand() *cli.Command {
 
 // runAuthMethodAddPem implements the auth method add pem command.
 func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, authPemFile string) error {
-	ctx := c.Context
-	resolved, err := authResolveStatePath(c, statePath)
-	if err != nil {
-		return err
-	}
-
-	pemFile := c.String("file")
-	pemData, err := os.ReadFile(pemFile)
+	pemData, err := os.ReadFile(c.String("file"))
 	if err != nil {
 		return errors.Wrap(err, "read PEM file")
 	}
-
 	privKey, err := keypem.ParsePrivKeyPem(pemData)
 	if err != nil {
 		return errors.Wrap(err, "parse PEM key")
@@ -516,6 +461,35 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 		return errors.Wrap(err, "derive peer ID")
 	}
 	cred, err := promptCredential(authPemFile)
+	if err != nil {
+		return err
+	}
+	pidStr := peerID.String()
+	if len(pidStr) > 16 {
+		pidStr = pidStr[:16] + "..."
+	}
+	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
+		func(_ *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
+			kp := &session_pb.EntityKeypair{
+				PeerId:     peerID.String(),
+				AuthMethod: "pem",
+			}
+			return kp, "pem auth method added (peer " + pidStr + ")\n", nil
+		})
+}
+
+// addAuthMethodFlow performs the shared connect/mount/access/add-auth-method
+// flow. The buildKeypair callback runs after WatchAccountInfo recv and
+// returns the keypair to register plus the success message to write.
+func addAuthMethodFlow(
+	c *cli.Context,
+	statePath string,
+	sessionIdx uint32,
+	cred *session_pb.EntityCredential,
+	buildKeypair func(*s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error),
+) error {
+	ctx := c.Context
+	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
 		return err
 	}
@@ -549,14 +523,14 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 	if err != nil {
 		return errors.Wrap(err, "watch account info")
 	}
-	_, err = infoStrm.Recv()
+	acctInfo, err := infoStrm.Recv()
 	if err != nil {
 		return errors.Wrap(err, "recv account info")
 	}
 
-	kp := &session_pb.EntityKeypair{
-		PeerId:     peerID.String(),
-		AuthMethod: "pem",
+	kp, successMsg, err := buildKeypair(acctInfo)
+	if err != nil {
+		return err
 	}
 
 	_, err = acctSvc.AddAuthMethod(ctx, &s4wave_account.AddAuthMethodRequest{
@@ -567,11 +541,7 @@ func runAuthMethodAddPem(c *cli.Context, statePath string, sessionIdx uint32, au
 		return errors.Wrap(err, "add auth method")
 	}
 
-	pidStr := peerID.String()
-	if len(pidStr) > 16 {
-		pidStr = pidStr[:16] + "..."
-	}
-	os.Stdout.WriteString("pem auth method added (peer " + pidStr + ")\n")
+	os.Stdout.WriteString(successMsg)
 	return nil
 }
 
@@ -599,60 +569,7 @@ func newAuthMethodAddBackupCommand() *cli.Command {
 
 // runAuthMethodAddBackup implements the auth method add backup command.
 func runAuthMethodAddBackup(c *cli.Context, statePath string, sessionIdx uint32, authPemFile string) error {
-	ctx := c.Context
-	resolved, err := authResolveStatePath(c, statePath)
-	if err != nil {
-		return err
-	}
-
-	cred, err := promptCredential(authPemFile)
-	if err != nil {
-		return err
-	}
-
-	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
-	if err != nil {
-		return err
-	}
-	defer client.close()
-
-	sess, err := client.mountSession(ctx, sessionIdx)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	info, err := sess.GetSessionInfo(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get session info")
-	}
-	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
-	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
-
-	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
-	if err != nil {
-		return err
-	}
-	defer acctCleanup()
-
-	resp, err := acctSvc.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{
-		Credential: cred,
-	})
-	if err != nil {
-		return errors.Wrap(err, "generate backup key")
-	}
-
-	outFile := c.String("output-file")
-	if err := os.WriteFile(outFile, resp.GetPemData(), 0o600); err != nil {
-		return errors.Wrap(err, "write PEM file")
-	}
-
-	pidStr := resp.GetPeerId()
-	if len(pidStr) > 16 {
-		pidStr = pidStr[:16] + "..."
-	}
-	os.Stdout.WriteString("backup key saved to " + outFile + " (peer " + pidStr + ")\n")
-	return nil
+	return generateAndSaveBackupKey(c, statePath, sessionIdx, authPemFile, c.String("output-file"))
 }
 
 // newAuthMethodRemoveCommand builds the auth method remove command.

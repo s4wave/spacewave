@@ -17,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
-	"github.com/s4wave/spacewave/db/world"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
@@ -566,40 +565,16 @@ func writeHiddenGraphLinksTable(w *os.File, links []*s4wave_canvas.HiddenGraphLi
 func marshalNode(ms *protojson.MarshalState, node *s4wave_canvas.CanvasNode) {
 	ms.WriteObjectStart()
 	var f bool
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("id")
-	ms.WriteString(node.GetId())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("type")
-	ms.WriteString(nodeTypeDisplay(node.GetType()))
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("x")
-	ms.WriteFloat64(node.GetX())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("y")
-	ms.WriteFloat64(node.GetY())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("width")
-	ms.WriteFloat64(node.GetWidth())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("height")
-	ms.WriteFloat64(node.GetHeight())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("zIndex")
-	ms.WriteInt32(node.GetZIndex())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("pinned")
-	ms.WriteBool(node.GetPinned())
-	if node.GetObjectKey() != "" {
-		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("objectKey")
-		ms.WriteString(node.GetObjectKey())
-	}
-	if node.GetTextContent() != "" {
-		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("textContent")
-		ms.WriteString(node.GetTextContent())
-	}
+	writeJSONStringField(ms, &f, "id", node.GetId())
+	writeJSONStringField(ms, &f, "type", nodeTypeDisplay(node.GetType()))
+	writeJSONFloat64Field(ms, &f, "x", node.GetX())
+	writeJSONFloat64Field(ms, &f, "y", node.GetY())
+	writeJSONFloat64Field(ms, &f, "width", node.GetWidth())
+	writeJSONFloat64Field(ms, &f, "height", node.GetHeight())
+	writeJSONInt32Field(ms, &f, "zIndex", node.GetZIndex())
+	writeJSONBoolField(ms, &f, "pinned", node.GetPinned())
+	writeJSONStringFieldIf(ms, &f, "objectKey", node.GetObjectKey())
+	writeJSONStringFieldIf(ms, &f, "textContent", node.GetTextContent())
 	ms.WriteObjectEnd()
 }
 
@@ -607,23 +582,11 @@ func marshalNode(ms *protojson.MarshalState, node *s4wave_canvas.CanvasNode) {
 func marshalEdge(ms *protojson.MarshalState, edge *s4wave_canvas.CanvasEdge) {
 	ms.WriteObjectStart()
 	var f bool
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("id")
-	ms.WriteString(edge.GetId())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("sourceNodeId")
-	ms.WriteString(edge.GetSourceNodeId())
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("targetNodeId")
-	ms.WriteString(edge.GetTargetNodeId())
-	if edge.GetLabel() != "" {
-		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("label")
-		ms.WriteString(edge.GetLabel())
-	}
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("style")
-	ms.WriteString(edgeStyleDisplay(edge.GetStyle()))
+	writeJSONStringField(ms, &f, "id", edge.GetId())
+	writeJSONStringField(ms, &f, "sourceNodeId", edge.GetSourceNodeId())
+	writeJSONStringField(ms, &f, "targetNodeId", edge.GetTargetNodeId())
+	writeJSONStringFieldIf(ms, &f, "label", edge.GetLabel())
+	writeJSONStringField(ms, &f, "style", edgeStyleDisplay(edge.GetStyle()))
 	ms.WriteObjectEnd()
 }
 
@@ -723,147 +686,55 @@ func overlapsAny(nodes map[string]*s4wave_canvas.CanvasNode, x, y, w, h float64)
 	return false
 }
 
-// applyCanvasOp creates a writable transaction, applies the op, and commits.
-func applyCanvasOp(c *cli.Context, cc *canvasContext, op world.Operation) error {
-	ctx := c.Context
-	tx, err := cc.engine.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "new transaction")
-	}
-	defer tx.Discard()
-
-	_, _, err = tx.ApplyWorldOp(ctx, op, "")
-	if err != nil {
-		return errors.Wrap(err, "apply "+op.GetOperationTypeId())
-	}
-	return tx.Commit(ctx)
+// canvasNodeAddSpec parameterizes one canvas-node add subcommand.
+type canvasNodeAddSpec struct {
+	name          string
+	usage         string
+	argsUsage     string
+	defaultWidth  float64
+	defaultHeight float64
+	nodeType      s4wave_canvas.NodeType
+	// preMountValidate runs before mountCanvasContext to short-circuit on
+	// missing args. nil if the subcommand has no positional arg.
+	preMountValidate func(c *cli.Context) error
+	// applyArg fills type-specific fields after mount, with access to cc for
+	// validation that requires the engine. nil if not needed.
+	applyArg func(c *cli.Context, cc *canvasContext, node *s4wave_canvas.CanvasNode) error
 }
 
-// buildCanvasNodeAddCommand builds the canvas node add command group.
-func buildCanvasNodeAddCommand() *cli.Command {
-	return &cli.Command{
-		Name:  "add",
-		Usage: "add a canvas node",
-		Subcommands: []*cli.Command{
-			buildCanvasNodeAddTextCommand(),
-			buildCanvasNodeAddObjectCommand(),
-			buildCanvasNodeAddShapeCommand(),
-			buildCanvasNodeAddDrawingCommand(),
-		},
-	}
-}
-
-// buildCanvasNodeAddTextCommand builds the canvas node add text subcommand.
-func buildCanvasNodeAddTextCommand() *cli.Command {
-	var canvasURI, statePath, spaceID, outputFormat string
-	var sessIdx int
-	var nx, ny, nw, nh float64
-	var nz int
-	return &cli.Command{
-		Name:      "text",
-		Usage:     "add a text node",
-		ArgsUsage: "<content>",
-		Flags: append(commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
-			&cli.Float64Flag{Name: "x", Destination: &nx},
-			&cli.Float64Flag{Name: "y", Destination: &ny},
-			&cli.Float64Flag{Name: "width", Value: 200, Destination: &nw},
-			&cli.Float64Flag{Name: "height", Value: 100, Destination: &nh},
-			&cli.IntFlag{Name: "z", Destination: &nz},
-		),
-		Action: func(c *cli.Context) error {
-			content := c.Args().First()
-			if content == "" {
+// canvasNodeAddSpecs lists the four canvas-node add subcommand specs in display order.
+var canvasNodeAddSpecs = []canvasNodeAddSpec{
+	{
+		name:          "text",
+		usage:         "add a text node",
+		argsUsage:     "<content>",
+		defaultWidth:  200,
+		defaultHeight: 100,
+		nodeType:      s4wave_canvas.NodeType_NODE_TYPE_TEXT,
+		preMountValidate: func(c *cli.Context) error {
+			if c.Args().First() == "" {
 				return errors.New("text content required")
 			}
-
-			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
-			if err != nil {
-				return err
-			}
-
-			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
-			if err != nil {
-				return err
-			}
-			defer cleanup()
-
-			ctx := c.Context
-			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
-			if err != nil {
-				return errors.Wrap(err, "get canvas state")
-			}
-			state := resp.GetState()
-			if state == nil {
-				state = &s4wave_canvas.CanvasState{}
-			}
-
-			nodes := state.GetNodes()
-			nodeID := nextNodeID(nodes)
-
-			if !c.IsSet("x") && !c.IsSet("y") {
-				nx, ny = autoPlaceNode(nodes, s4wave_canvas.NodeType_NODE_TYPE_TEXT, nw, nh)
-			}
-
-			node := &s4wave_canvas.CanvasNode{
-				Id:          nodeID,
-				X:           nx,
-				Y:           ny,
-				Width:       nw,
-				Height:      nh,
-				ZIndex:      int32(nz),
-				Type:        s4wave_canvas.NodeType_NODE_TYPE_TEXT,
-				TextContent: content,
-				Pinned:      true,
-			}
-
-			op := space_world_ops.NewCanvasAddNodeOp(cc.objectKey, node)
-			if err := applyCanvasOp(c, cc, op); err != nil {
-				return err
-			}
-
-			os.Stdout.WriteString(nodeID + "\n")
 			return nil
 		},
-	}
-}
-
-// buildCanvasNodeAddObjectCommand builds the canvas node add object subcommand.
-func buildCanvasNodeAddObjectCommand() *cli.Command {
-	var canvasURI, statePath, spaceID, outputFormat string
-	var sessIdx int
-	var nx, ny, nw, nh float64
-	var nz int
-	return &cli.Command{
-		Name:      "object",
-		Usage:     "add a world-object node",
-		ArgsUsage: "<object-key>",
-		Flags: append(commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
-			&cli.Float64Flag{Name: "x", Destination: &nx},
-			&cli.Float64Flag{Name: "y", Destination: &ny},
-			&cli.Float64Flag{Name: "width", Value: 400, Destination: &nw},
-			&cli.Float64Flag{Name: "height", Value: 300, Destination: &nh},
-			&cli.IntFlag{Name: "z", Destination: &nz},
-		),
-		Action: func(c *cli.Context) error {
+		applyArg: func(c *cli.Context, _ *canvasContext, node *s4wave_canvas.CanvasNode) error {
+			node.TextContent = c.Args().First()
+			return nil
+		},
+	},
+	{
+		name:          "object",
+		usage:         "add a world-object node",
+		argsUsage:     "<object-key>",
+		defaultWidth:  400,
+		defaultHeight: 300,
+		nodeType:      s4wave_canvas.NodeType_NODE_TYPE_WORLD_OBJECT,
+		applyArg: func(c *cli.Context, cc *canvasContext, node *s4wave_canvas.CanvasNode) error {
 			objKey := c.Args().First()
 			if objKey == "" {
 				return errors.New("object key required")
 			}
-
-			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
-			if err != nil {
-				return err
-			}
-
-			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
-			if err != nil {
-				return err
-			}
-			defer cleanup()
-
 			ctx := c.Context
-
-			// Validate object exists.
 			tx, err := cc.engine.NewTransaction(ctx, false)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
@@ -876,63 +747,63 @@ func buildCanvasNodeAddObjectCommand() *cli.Command {
 			if !found {
 				return errors.Errorf("object %q not found", objKey)
 			}
-
-			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
-			if err != nil {
-				return errors.Wrap(err, "get canvas state")
-			}
-			state := resp.GetState()
-			if state == nil {
-				state = &s4wave_canvas.CanvasState{}
-			}
-
-			nodes := state.GetNodes()
-			nodeID := nextNodeID(nodes)
-
-			if !c.IsSet("x") && !c.IsSet("y") {
-				nx, ny = autoPlaceNode(nodes, s4wave_canvas.NodeType_NODE_TYPE_WORLD_OBJECT, nw, nh)
-			}
-
-			node := &s4wave_canvas.CanvasNode{
-				Id:        nodeID,
-				X:         nx,
-				Y:         ny,
-				Width:     nw,
-				Height:    nh,
-				ZIndex:    int32(nz),
-				Type:      s4wave_canvas.NodeType_NODE_TYPE_WORLD_OBJECT,
-				ObjectKey: objKey,
-				Pinned:    true,
-			}
-
-			op := space_world_ops.NewCanvasAddNodeOp(cc.objectKey, node)
-			if err := applyCanvasOp(c, cc, op); err != nil {
-				return err
-			}
-
-			os.Stdout.WriteString(nodeID + "\n")
+			node.ObjectKey = objKey
 			return nil
 		},
+	},
+	{
+		name:          "shape",
+		usage:         "add a shape node",
+		defaultWidth:  150,
+		defaultHeight: 150,
+		nodeType:      s4wave_canvas.NodeType_NODE_TYPE_SHAPE,
+	},
+	{
+		name:          "drawing",
+		usage:         "add a drawing node",
+		defaultWidth:  300,
+		defaultHeight: 300,
+		nodeType:      s4wave_canvas.NodeType_NODE_TYPE_DRAWING,
+	},
+}
+
+// buildCanvasNodeAddCommand builds the canvas node add command group.
+func buildCanvasNodeAddCommand() *cli.Command {
+	subs := make([]*cli.Command, len(canvasNodeAddSpecs))
+	for i := range canvasNodeAddSpecs {
+		subs[i] = buildCanvasNodeAddSubcommand(canvasNodeAddSpecs[i])
+	}
+	return &cli.Command{
+		Name:        "add",
+		Usage:       "add a canvas node",
+		Subcommands: subs,
 	}
 }
 
-// buildCanvasNodeAddShapeCommand builds the canvas node add shape subcommand.
-func buildCanvasNodeAddShapeCommand() *cli.Command {
+// buildCanvasNodeAddSubcommand builds one canvas node add subcommand from a spec.
+func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 	var canvasURI, statePath, spaceID, outputFormat string
 	var sessIdx int
 	var nx, ny, nw, nh float64
 	var nz int
 	return &cli.Command{
-		Name:  "shape",
-		Usage: "add a shape node",
+		Name:      spec.name,
+		Usage:     spec.usage,
+		ArgsUsage: spec.argsUsage,
 		Flags: append(commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
 			&cli.Float64Flag{Name: "x", Destination: &nx},
 			&cli.Float64Flag{Name: "y", Destination: &ny},
-			&cli.Float64Flag{Name: "width", Value: 150, Destination: &nw},
-			&cli.Float64Flag{Name: "height", Value: 150, Destination: &nh},
+			&cli.Float64Flag{Name: "width", Value: spec.defaultWidth, Destination: &nw},
+			&cli.Float64Flag{Name: "height", Value: spec.defaultHeight, Destination: &nh},
 			&cli.IntFlag{Name: "z", Destination: &nz},
 		),
 		Action: func(c *cli.Context) error {
+			if spec.preMountValidate != nil {
+				if err := spec.preMountValidate(c); err != nil {
+					return err
+				}
+			}
+
 			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
 			if err != nil {
 				return err
@@ -945,6 +816,19 @@ func buildCanvasNodeAddShapeCommand() *cli.Command {
 			defer cleanup()
 
 			ctx := c.Context
+			node := &s4wave_canvas.CanvasNode{
+				Width:  nw,
+				Height: nh,
+				ZIndex: int32(nz),
+				Type:   spec.nodeType,
+				Pinned: true,
+			}
+			if spec.applyArg != nil {
+				if err := spec.applyArg(c, cc, node); err != nil {
+					return err
+				}
+			}
+
 			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
 			if err != nil {
 				return errors.Wrap(err, "get canvas state")
@@ -955,96 +839,20 @@ func buildCanvasNodeAddShapeCommand() *cli.Command {
 			}
 
 			nodes := state.GetNodes()
-			nodeID := nextNodeID(nodes)
+			node.Id = nextNodeID(nodes)
 
 			if !c.IsSet("x") && !c.IsSet("y") {
-				nx, ny = autoPlaceNode(nodes, s4wave_canvas.NodeType_NODE_TYPE_SHAPE, nw, nh)
+				nx, ny = autoPlaceNode(nodes, spec.nodeType, nw, nh)
 			}
-
-			node := &s4wave_canvas.CanvasNode{
-				Id:     nodeID,
-				X:      nx,
-				Y:      ny,
-				Width:  nw,
-				Height: nh,
-				ZIndex: int32(nz),
-				Type:   s4wave_canvas.NodeType_NODE_TYPE_SHAPE,
-				Pinned: true,
-			}
+			node.X = nx
+			node.Y = ny
 
 			op := space_world_ops.NewCanvasAddNodeOp(cc.objectKey, node)
-			if err := applyCanvasOp(c, cc, op); err != nil {
+			if err := applyWorldOp(c, cc.engine, op); err != nil {
 				return err
 			}
 
-			os.Stdout.WriteString(nodeID + "\n")
-			return nil
-		},
-	}
-}
-
-// buildCanvasNodeAddDrawingCommand builds the canvas node add drawing subcommand.
-func buildCanvasNodeAddDrawingCommand() *cli.Command {
-	var canvasURI, statePath, spaceID, outputFormat string
-	var sessIdx int
-	var nx, ny, nw, nh float64
-	var nz int
-	return &cli.Command{
-		Name:  "drawing",
-		Usage: "add a drawing node",
-		Flags: append(commonCanvasFlags(&canvasURI, &statePath, &spaceID, &sessIdx, &outputFormat),
-			&cli.Float64Flag{Name: "x", Destination: &nx},
-			&cli.Float64Flag{Name: "y", Destination: &ny},
-			&cli.Float64Flag{Name: "width", Value: 300, Destination: &nw},
-			&cli.Float64Flag{Name: "height", Value: 300, Destination: &nh},
-			&cli.IntFlag{Name: "z", Destination: &nz},
-		),
-		Action: func(c *cli.Context) error {
-			uri, err := parseCanvasURI(canvasURI, spaceID, sessIdx)
-			if err != nil {
-				return err
-			}
-
-			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
-			if err != nil {
-				return err
-			}
-			defer cleanup()
-
-			ctx := c.Context
-			resp, err := cc.canvasSvc.GetCanvasState(ctx, &s4wave_canvas.GetCanvasStateRequest{})
-			if err != nil {
-				return errors.Wrap(err, "get canvas state")
-			}
-			state := resp.GetState()
-			if state == nil {
-				state = &s4wave_canvas.CanvasState{}
-			}
-
-			nodes := state.GetNodes()
-			nodeID := nextNodeID(nodes)
-
-			if !c.IsSet("x") && !c.IsSet("y") {
-				nx, ny = autoPlaceNode(nodes, s4wave_canvas.NodeType_NODE_TYPE_DRAWING, nw, nh)
-			}
-
-			node := &s4wave_canvas.CanvasNode{
-				Id:     nodeID,
-				X:      nx,
-				Y:      ny,
-				Width:  nw,
-				Height: nh,
-				ZIndex: int32(nz),
-				Type:   s4wave_canvas.NodeType_NODE_TYPE_DRAWING,
-				Pinned: true,
-			}
-
-			op := space_world_ops.NewCanvasAddNodeOp(cc.objectKey, node)
-			if err := applyCanvasOp(c, cc, op); err != nil {
-				return err
-			}
-
-			os.Stdout.WriteString(nodeID + "\n")
+			os.Stdout.WriteString(node.Id + "\n")
 			return nil
 		},
 	}
@@ -1077,7 +885,7 @@ func buildCanvasNodeRmCommand() *cli.Command {
 			defer cleanup()
 
 			op := space_world_ops.NewCanvasRemoveNodeOp(cc.objectKey, ids)
-			return applyCanvasOp(c, cc, op)
+			return applyWorldOp(c, cc.engine, op)
 		},
 	}
 }
@@ -1154,7 +962,7 @@ func buildCanvasNodeSetCommand() *cli.Command {
 			}
 
 			op := space_world_ops.NewCanvasSetNodeOp(cc.objectKey, node)
-			return applyCanvasOp(c, cc, op)
+			return applyWorldOp(c, cc.engine, op)
 		},
 	}
 }
@@ -1208,7 +1016,7 @@ func buildCanvasEdgeAddCommand() *cli.Command {
 			}
 
 			op := space_world_ops.NewCanvasAddEdgeOp(cc.objectKey, edge)
-			if err := applyCanvasOp(c, cc, op); err != nil {
+			if err := applyWorldOp(c, cc.engine, op); err != nil {
 				return err
 			}
 
@@ -1245,7 +1053,7 @@ func buildCanvasEdgeRmCommand() *cli.Command {
 			defer cleanup()
 
 			op := space_world_ops.NewCanvasRemoveEdgeOp(cc.objectKey, ids)
-			return applyCanvasOp(c, cc, op)
+			return applyWorldOp(c, cc.engine, op)
 		},
 	}
 }
@@ -1309,6 +1117,58 @@ func buildCanvasWatchCommand() *cli.Command {
 	}
 }
 
+// logCanvasEvent writes one timestamped diff line: "[ts] body\n".
+func logCanvasEvent(w *os.File, ts, body string) {
+	w.WriteString("[" + ts + "] " + body + "\n")
+}
+
+// formatNodeAddBody formats the body of an "added node" diff line.
+func formatNodeAddBody(id string, node *s4wave_canvas.CanvasNode) string {
+	body := "+" + id + " " + nodeTypeDisplay(node.GetType())
+	if node.GetTextContent() != "" {
+		body += " \"" + truncate(node.GetTextContent(), 40) + "\""
+	}
+	if node.GetObjectKey() != "" {
+		body += " obj=" + node.GetObjectKey()
+	}
+	return body
+}
+
+// formatNodeChangeBody formats the body of a "changed node" diff line.
+func formatNodeChangeBody(id string, old, node *s4wave_canvas.CanvasNode) string {
+	body := "~" + id
+	if old.GetX() != node.GetX() || old.GetY() != node.GetY() {
+		body += " moved (" +
+			strconv.FormatFloat(old.GetX(), 'f', 0, 64) + "," +
+			strconv.FormatFloat(old.GetY(), 'f', 0, 64) + ")->(" +
+			strconv.FormatFloat(node.GetX(), 'f', 0, 64) + "," +
+			strconv.FormatFloat(node.GetY(), 'f', 0, 64) + ")"
+	}
+	if old.GetWidth() != node.GetWidth() || old.GetHeight() != node.GetHeight() {
+		body += " resized"
+	}
+	if old.GetTextContent() != node.GetTextContent() {
+		body += " text=\"" + truncate(node.GetTextContent(), 40) + "\""
+	}
+	if old.GetPinned() != node.GetPinned() {
+		if node.GetPinned() {
+			body += " pinned"
+		} else {
+			body += " unpinned"
+		}
+	}
+	return body
+}
+
+// formatEdgeAddBody formats the body of an "added edge" diff line.
+func formatEdgeAddBody(e *s4wave_canvas.CanvasEdge) string {
+	body := "+" + e.GetId() + " " + e.GetSourceNodeId() + "->" + e.GetTargetNodeId()
+	if e.GetLabel() != "" {
+		body += " \"" + e.GetLabel() + "\""
+	}
+	return body
+}
+
 // writeCanvasDiff writes compact text diff between two canvas states.
 func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasState) {
 	prevNodes := make(map[string]*s4wave_canvas.CanvasNode)
@@ -1321,44 +1181,16 @@ func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasStat
 	for id, node := range currNodes {
 		old, existed := prevNodes[id]
 		if !existed {
-			w.WriteString("[" + ts + "] +" + id + " " + nodeTypeDisplay(node.GetType()))
-			if node.GetTextContent() != "" {
-				w.WriteString(" \"" + truncate(node.GetTextContent(), 40) + "\"")
-			}
-			if node.GetObjectKey() != "" {
-				w.WriteString(" obj=" + node.GetObjectKey())
-			}
-			w.WriteString("\n")
+			logCanvasEvent(w, ts, formatNodeAddBody(id, node))
 		} else if nodeChanged(old, node) {
-			w.WriteString("[" + ts + "] ~" + id)
-			if old.GetX() != node.GetX() || old.GetY() != node.GetY() {
-				w.WriteString(" moved (" +
-					strconv.FormatFloat(old.GetX(), 'f', 0, 64) + "," +
-					strconv.FormatFloat(old.GetY(), 'f', 0, 64) + ")->(" +
-					strconv.FormatFloat(node.GetX(), 'f', 0, 64) + "," +
-					strconv.FormatFloat(node.GetY(), 'f', 0, 64) + ")")
-			}
-			if old.GetWidth() != node.GetWidth() || old.GetHeight() != node.GetHeight() {
-				w.WriteString(" resized")
-			}
-			if old.GetTextContent() != node.GetTextContent() {
-				w.WriteString(" text=\"" + truncate(node.GetTextContent(), 40) + "\"")
-			}
-			if old.GetPinned() != node.GetPinned() {
-				if node.GetPinned() {
-					w.WriteString(" pinned")
-				} else {
-					w.WriteString(" unpinned")
-				}
-			}
-			w.WriteString("\n")
+			logCanvasEvent(w, ts, formatNodeChangeBody(id, old, node))
 		}
 	}
 
 	// removed nodes
 	for id := range prevNodes {
 		if _, exists := currNodes[id]; !exists {
-			w.WriteString("[" + ts + "] -" + id + "\n")
+			logCanvasEvent(w, ts, "-"+id)
 		}
 	}
 
@@ -1371,12 +1203,7 @@ func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasStat
 	}
 	for _, e := range curr.GetEdges() {
 		if _, existed := prevEdges[e.GetId()]; !existed {
-			w.WriteString("[" + ts + "] +" + e.GetId() + " " +
-				e.GetSourceNodeId() + "->" + e.GetTargetNodeId())
-			if e.GetLabel() != "" {
-				w.WriteString(" \"" + e.GetLabel() + "\"")
-			}
-			w.WriteString("\n")
+			logCanvasEvent(w, ts, formatEdgeAddBody(e))
 		}
 	}
 	currEdges := make(map[string]struct{})
@@ -1385,7 +1212,7 @@ func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasStat
 	}
 	for id := range prevEdges {
 		if _, exists := currEdges[id]; !exists {
-			w.WriteString("[" + ts + "] -" + id + "\n")
+			logCanvasEvent(w, ts, "-"+id)
 		}
 	}
 
@@ -1398,7 +1225,7 @@ func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasStat
 	}
 	for _, link := range curr.GetHiddenGraphLinks() {
 		if _, existed := prevHidden[newCanvasHiddenGraphLinkKey(link)]; !existed {
-			w.WriteString("[" + ts + "] +hidden-graph-link " + hiddenGraphLinkDisplay(link) + "\n")
+			logCanvasEvent(w, ts, "+hidden-graph-link "+hiddenGraphLinkDisplay(link))
 		}
 	}
 	currHidden := make(map[canvasHiddenGraphLinkKey]struct{})
@@ -1407,7 +1234,7 @@ func writeCanvasDiff(w *os.File, ts string, prev, curr *s4wave_canvas.CanvasStat
 	}
 	for key, link := range prevHidden {
 		if _, exists := currHidden[key]; !exists {
-			w.WriteString("[" + ts + "] -hidden-graph-link " + hiddenGraphLinkDisplay(link) + "\n")
+			logCanvasEvent(w, ts, "-hidden-graph-link "+hiddenGraphLinkDisplay(link))
 		}
 	}
 }
@@ -1500,7 +1327,7 @@ func buildCanvasNodeNavigateCommand() *cli.Command {
 			node.ViewPath = viewPath
 
 			op := space_world_ops.NewCanvasSetNodeOp(cc.objectKey, node)
-			return applyCanvasOp(c, cc, op)
+			return applyWorldOp(c, cc.engine, op)
 		},
 	}
 }

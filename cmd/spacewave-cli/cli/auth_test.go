@@ -18,6 +18,48 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
+// TestNewAuthMethodAddSubcommandShape pins the names, usage, and required
+// flags of the password/pem/backup add-method subcommands so the shared
+// addAuthMethodFlow refactor preserves the user-facing CLI surface.
+func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
+	cmd := newAuthMethodAddCommand()
+	if cmd.Name != "add" {
+		t.Fatalf("add command name = %q, want %q", cmd.Name, "add")
+	}
+	want := []struct {
+		name  string
+		usage string
+	}{
+		{"password", "add a new password-derived keypair"},
+		{"pem", "add a PEM backup key as an auth method"},
+		{"backup", "generate a backup key, register it, and save the PEM file"},
+	}
+	if len(cmd.Subcommands) != len(want) {
+		t.Fatalf("add subcommand count = %d, want %d", len(cmd.Subcommands), len(want))
+	}
+	for i, w := range want {
+		sub := cmd.Subcommands[i]
+		if sub.Name != w.name {
+			t.Errorf("sub[%d].Name = %q, want %q", i, sub.Name, w.name)
+		}
+		if sub.Usage != w.usage {
+			t.Errorf("sub[%d].Usage = %q, want %q", i, sub.Usage, w.usage)
+		}
+	}
+	// pem subcommand must require --file flag.
+	pem := cmd.Subcommands[1]
+	var fileFlag *cli.StringFlag
+	for _, f := range pem.Flags {
+		if sf, ok := f.(*cli.StringFlag); ok && sf.Name == "file" {
+			fileFlag = sf
+			break
+		}
+	}
+	if fileFlag == nil || !fileFlag.Required {
+		t.Errorf("pem add subcommand --file flag missing or not required")
+	}
+}
+
 func TestRunAuthMethodListUsesLocalSessionResource(t *testing.T) {
 	restore := stubAuthTestHooks(t)
 	defer restore()

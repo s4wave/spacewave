@@ -96,3 +96,46 @@ func truncateID(id string, max int) string {
 	}
 	return id[:max] + "..."
 }
+
+// writeJSONStringField writes a JSON string field with the leading separator.
+func writeJSONStringField(ms *protojson.MarshalState, more *bool, name, value string) {
+	ms.WriteMoreIf(more)
+	ms.WriteObjectField(name)
+	ms.WriteString(value)
+}
+
+// writeJSONFloat64Field writes a JSON float64 field with the leading separator.
+func writeJSONFloat64Field(ms *protojson.MarshalState, more *bool, name string, value float64) {
+	ms.WriteMoreIf(more)
+	ms.WriteObjectField(name)
+	ms.WriteFloat64(value)
+}
+
+// writeJSONInt32Field writes a JSON int32 field with the leading separator.
+func writeJSONInt32Field(ms *protojson.MarshalState, more *bool, name string, value int32) {
+	ms.WriteMoreIf(more)
+	ms.WriteObjectField(name)
+	ms.WriteInt32(value)
+}
+
+// writeJSONUint64Field writes a JSON uint64 field with the leading separator.
+func writeJSONUint64Field(ms *protojson.MarshalState, more *bool, name string, value uint64) {
+	ms.WriteMoreIf(more)
+	ms.WriteObjectField(name)
+	ms.WriteUint64(value)
+}
+
+// writeJSONBoolField writes a JSON bool field with the leading separator.
+func writeJSONBoolField(ms *protojson.MarshalState, more *bool, name string, value bool) {
+	ms.WriteMoreIf(more)
+	ms.WriteObjectField(name)
+	ms.WriteBool(value)
+}
+
+// writeJSONStringFieldIf writes a JSON string field only when value is non-empty.
+func writeJSONStringFieldIf(ms *protojson.MarshalState, more *bool, name, value string) {
+	if value == "" {
+		return
+	}
+	writeJSONStringField(ms, more, name, value)
+}
