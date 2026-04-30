@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
 import {
   LuBuilding2,
   LuChevronRight,
@@ -234,6 +234,41 @@ function WelcomeHeading() {
   )
 }
 
+// LockState bundles the coupled lock-mode UI inputs that transition together
+// under each user action in the lock setup flow.
+interface LockState {
+  mode: 'auto' | 'pin'
+  pin: string
+  confirmPin: string
+  error: string | null
+}
+
+type LockAction =
+  | { type: 'set-mode'; mode: 'auto' | 'pin' }
+  | { type: 'set-pin'; pin: string }
+  | { type: 'set-confirm-pin'; confirmPin: string }
+  | { type: 'set-error'; error: string | null }
+
+const initialLockState: LockState = {
+  mode: 'auto',
+  pin: '',
+  confirmPin: '',
+  error: null,
+}
+
+function lockReducer(state: LockState, action: LockAction): LockState {
+  switch (action.type) {
+    case 'set-mode':
+      return { ...state, mode: action.mode, error: null }
+    case 'set-pin':
+      return { ...state, pin: action.pin, error: null }
+    case 'set-confirm-pin':
+      return { ...state, confirmPin: action.confirmPin, error: null }
+    case 'set-error':
+      return { ...state, error: action.error }
+  }
+}
+
 // InlineSecureAccountSection renders PEM download and PIN setup inline
 // on the dashboard welcome state. It updates local session onboarding
 // completion when actions are completed.
@@ -247,10 +282,7 @@ function InlineSecureAccountSection(props: {
   const [downloading, setDownloading] = useState(false)
   const [pemError, setPemError] = useState<string | null>(null)
 
-  const [lockMode, setLockMode] = useState<'auto' | 'pin'>('auto')
-  const [pin, setPin] = useState('')
-  const [confirmPin, setConfirmPin] = useState('')
-  const [lockError, setLockError] = useState<string | null>(null)
+  const [lock, dispatchLock] = useReducer(lockReducer, initialLockState)
   const [savingLock, setSavingLock] = useState(false)
 
   const account = props.accountResource?.value
@@ -290,38 +322,39 @@ function InlineSecureAccountSection(props: {
   }, [account, password, onboarding])
 
   const handleSetLockMode = useCallback(async () => {
-    if (lockMode === 'pin') {
-      if (pin.length < 4) {
-        setLockError('PIN must be at least 4 digits')
+    if (lock.mode === 'pin') {
+      if (lock.pin.length < 4) {
+        dispatchLock({ type: 'set-error', error: 'PIN must be at least 4 digits' })
         return
       }
-      if (pin !== confirmPin) {
-        setLockError('PINs do not match')
+      if (lock.pin !== lock.confirmPin) {
+        dispatchLock({ type: 'set-error', error: 'PINs do not match' })
         return
       }
     }
-    setLockError(null)
+    dispatchLock({ type: 'set-error', error: null })
     setSavingLock(true)
     try {
       if (props.session) {
         const mode =
-          lockMode === 'pin' ?
+          lock.mode === 'pin' ?
             SessionLockMode.PIN_ENCRYPTED
           : SessionLockMode.AUTO_UNLOCK
         const pinBytes =
-          lockMode === 'pin' ? new TextEncoder().encode(pin) : undefined
+          lock.mode === 'pin' ? new TextEncoder().encode(lock.pin) : undefined
         await props.session.setLockMode(mode, pinBytes)
       }
       onboarding.markLockComplete()
       toast.success('Lock mode set')
     } catch (err) {
-      setLockError(
-        err instanceof Error ? err.message : 'Failed to set lock mode',
-      )
+      dispatchLock({
+        type: 'set-error',
+        error: err instanceof Error ? err.message : 'Failed to set lock mode',
+      })
     } finally {
       setSavingLock(false)
     }
-  }, [props.session, lockMode, pin, confirmPin, onboarding])
+  }, [props.session, lock.mode, lock.pin, lock.confirmPin, onboarding])
 
   return (
     <div className="mt-4 w-full max-w-md">
@@ -411,21 +444,21 @@ function InlineSecureAccountSection(props: {
               </div>
               <div className="space-y-2">
                 <RadioOption
-                  selected={lockMode === 'auto'}
-                  onSelect={() => setLockMode('auto')}
+                  selected={lock.mode === 'auto'}
+                  onSelect={() => dispatchLock({ type: 'set-mode', mode: 'auto' })}
                   icon={<LuLockOpen className="h-4 w-4" />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed on launch."
                 />
                 <RadioOption
-                  selected={lockMode === 'pin'}
-                  onSelect={() => setLockMode('pin')}
+                  selected={lock.mode === 'pin'}
+                  onSelect={() => dispatchLock({ type: 'set-mode', mode: 'pin' })}
                   icon={<LuLock className="h-4 w-4" />}
                   label="PIN lock"
                   description="Key encrypted with PIN. Enter PIN on each app launch."
                 />
               </div>
-              {lockMode === 'pin' && (
+              {lock.mode === 'pin' && (
                 <div className="space-y-2">
                   <div>
                     <label className="text-foreground-alt mb-1.5 block text-xs select-none">
@@ -433,8 +466,10 @@ function InlineSecureAccountSection(props: {
                     </label>
                     <input
                       type="password"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
+                      value={lock.pin}
+                      onChange={(e) =>
+                        dispatchLock({ type: 'set-pin', pin: e.target.value })
+                      }
                       placeholder="Enter PIN"
                       className={cn(
                         'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
@@ -448,14 +483,19 @@ function InlineSecureAccountSection(props: {
                     </label>
                     <input
                       type="password"
-                      value={confirmPin}
-                      onChange={(e) => setConfirmPin(e.target.value)}
+                      value={lock.confirmPin}
+                      onChange={(e) =>
+                        dispatchLock({
+                          type: 'set-confirm-pin',
+                          confirmPin: e.target.value,
+                        })
+                      }
                       placeholder="Confirm PIN"
                       className={cn(
                         'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
                         'focus:border-brand/50',
-                        confirmPin.length > 0 &&
-                          pin !== confirmPin &&
+                        lock.confirmPin.length > 0 &&
+                          lock.pin !== lock.confirmPin &&
                           'border-destructive/50',
                       )}
                     />
@@ -476,8 +516,8 @@ function InlineSecureAccountSection(props: {
                   {savingLock ? 'Saving...' : 'Set lock mode'}
                 </span>
               </button>
-              {lockError && (
-                <p className="text-destructive text-xs">{lockError}</p>
+              {lock.error && (
+                <p className="text-destructive text-xs">{lock.error}</p>
               )}
             </div>
           }
@@ -670,8 +710,7 @@ function DashboardCommandPalette({
                 key={space.id}
                 value={`space-${space.name}-${space.id}`}
                 icon={LuLayers}
-                iconClassName="text-brand"
-                iconBgClassName="bg-brand/10 group-data-[selected=true]:bg-brand/20"
+                iconTone="brand"
                 label={space.name}
                 sublabel={space.id}
                 onSelect={() => handleSpaceSelect(space)}
@@ -700,8 +739,7 @@ function DashboardCommandPalette({
                   key={space.id}
                   value={`space-${space.name}-${space.id}`}
                   icon={LuLayers}
-                  iconClassName="text-brand"
-                  iconBgClassName="bg-brand/10 group-data-[selected=true]:bg-brand/20"
+                  iconTone="brand"
                   label={space.name}
                   sublabel={space.id}
                   orgName={org.displayName}
@@ -716,8 +754,7 @@ function DashboardCommandPalette({
           <DashboardItem
             value="join-link-device"
             icon={LuLink}
-            iconClassName="text-foreground-alt"
-            iconBgClassName="bg-foreground/5 group-data-[selected=true]:bg-foreground/10"
+            iconTone="muted"
             label="Link a device"
             sublabel="Link to an existing device via pairing code"
             onSelect={handleLinkDevice}
@@ -725,8 +762,7 @@ function DashboardCommandPalette({
           <DashboardItem
             value="join-space"
             icon={LuLogIn}
-            iconClassName="text-foreground-alt"
-            iconBgClassName="bg-foreground/5 group-data-[selected=true]:bg-foreground/10"
+            iconTone="muted"
             label="Join Space"
             sublabel="Join a shared space via invite code or link"
             onSelect={() => navigate({ path: './join' })}
@@ -744,8 +780,7 @@ function DashboardCommandPalette({
               key={opt.id}
               value={`create-${opt.id}`}
               icon={opt.icon}
-              iconClassName="text-foreground-alt"
-              iconBgClassName="bg-foreground/5 group-data-[selected=true]:bg-foreground/10"
+              iconTone="muted"
               label={opt.name}
               sublabel={opt.description}
               experimental={'experimental' in opt && !!opt.experimental}
@@ -796,11 +831,45 @@ function SectionHeading(props: {
   )
 }
 
+type IconTone = 'brand' | 'muted'
+
+const iconToneClasses: Record<IconTone, { icon: string; bg: string }> = {
+  brand: {
+    icon: 'text-brand',
+    bg: 'bg-brand/10 group-data-[selected=true]:bg-brand/20',
+  },
+  muted: {
+    icon: 'text-foreground-alt',
+    bg: 'bg-foreground/5 group-data-[selected=true]:bg-foreground/10',
+  },
+}
+
+// IconButton renders the lozenge-shaped icon container shared by every
+// DashboardItem row.
+function IconButton({
+  icon: Icon,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  tone: IconTone
+}) {
+  const tones = iconToneClasses[tone]
+  return (
+    <div
+      className={cn(
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+        tones.bg,
+      )}
+    >
+      <Icon className={cn('h-4 w-4', tones.icon)} />
+    </div>
+  )
+}
+
 interface DashboardItemProps {
   value: string
   icon: React.ComponentType<{ className?: string }>
-  iconClassName?: string
-  iconBgClassName?: string
+  iconTone: IconTone
   label: string
   sublabel?: string
   experimental?: boolean
@@ -810,9 +879,8 @@ interface DashboardItemProps {
 
 function DashboardItem({
   value,
-  icon: Icon,
-  iconClassName,
-  iconBgClassName,
+  icon,
+  iconTone,
   label,
   sublabel,
   experimental,
@@ -825,14 +893,7 @@ function DashboardItem({
       className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
       onSelect={onSelect}
     >
-      <div
-        className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-          iconBgClassName,
-        )}
-      >
-        <Icon className={cn('h-4 w-4', iconClassName)} />
-      </div>
+      <IconButton icon={icon} tone={iconTone} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <div className="text-foreground truncate text-sm font-medium">

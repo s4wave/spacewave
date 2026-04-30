@@ -92,6 +92,26 @@ export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 const baseURL = import.meta?.url || window.location.origin
 const dedicatedWorkerShutdownGraceMs = 1000
 
+// buildWorkerURL builds the shw.mjs wrapper URL with the user script path,
+// worker type, and plugin marker encoded into the hash fragment. Hash params
+// are used instead of query params to avoid conflicting with parameters the
+// wrapper script itself might consume. Encoded forward slashes (%2F) are
+// restored to literal slashes since RFC 3986 permits them in fragments.
+function buildWorkerURL(
+  sharedWorkerPath: string,
+  scriptPath: string,
+  workerType: WebWorkerType,
+  hasInitData: boolean,
+): URL {
+  const url = new URL(sharedWorkerPath, baseURL)
+  const encodedPath = encodeURIComponent(scriptPath).replace(/%2F/g, '/')
+  const workerTypeParam =
+    workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
+  const pluginParam = hasInitData ? '&p=1' : ''
+  url.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
+  return url
+}
+
 // WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
 class WebDocumentWebWorker {
   // worker is the instance of the worker if !shared
@@ -155,20 +175,12 @@ class WebDocumentWebWorker {
         throw new Error('shared worker path must be set')
       }
 
-      // Build the worker URL with script path and worker type in hash
-      const workerURL = new URL(sharedWorkerPath, baseURL)
-
-      // Use the hash to pass parameters to avoid potential conflicts with
-      // query parameters used by the script itself.
-      // Format: #s=<scriptPath>&t=<workerType>
-      // Encode necessary characters using encodeURIComponent, but then
-      // replace encoded forward slashes (%2F) back to literal slashes (/),
-      // as slashes are permitted characters within URL fragments (RFC 3986).
-      const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
-      const workerTypeParam =
-        workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
-      const pluginParam = initData ? '&p=1' : ''
-      workerURL.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
+      const workerURL = buildWorkerURL(
+        sharedWorkerPath,
+        path,
+        workerType,
+        !!initData,
+      )
 
       if (typeof SharedWorker !== 'undefined') {
         this.sharedWorker = new SharedWorker(workerURL.toString(), {
@@ -192,12 +204,12 @@ class WebDocumentWebWorker {
       if (!sharedWorkerPath) {
         throw new Error('shared worker path must be set for dedicated mode')
       }
-      const workerURL = new URL(sharedWorkerPath, baseURL)
-      const encodedPath = encodeURIComponent(path).replace(/%2F/g, '/')
-      const workerTypeParam =
-        workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
-      const pluginParam = initData ? '&p=1' : ''
-      workerURL.hash = `s=${encodedPath}${workerTypeParam}${pluginParam}`
+      const workerURL = buildWorkerURL(
+        sharedWorkerPath,
+        path,
+        workerType,
+        !!initData,
+      )
       this.worker = new Worker(workerURL.toString(), {
         name: id,
         type: 'module',

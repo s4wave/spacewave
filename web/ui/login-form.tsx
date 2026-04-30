@@ -138,6 +138,51 @@ function isAbortError(err: unknown): boolean {
   )
 }
 
+// SignInMethodButton renders one of the secondary sign-in method buttons
+// (PEM backup key, passkey, Google, GitHub). All variants share the same
+// outlined surface, hover treatment, and disabled/loading states.
+function SignInMethodButton({
+  enabled,
+  busy,
+  loading,
+  icon,
+  label,
+  onClick,
+  fullWidth = false,
+}: {
+  enabled: boolean
+  // busy is true when any sign-in is in progress (locks all buttons).
+  busy: boolean
+  // loading is true when this specific button's action is running.
+  loading: boolean
+  icon: React.ReactNode
+  label: React.ReactNode
+  onClick: () => void
+  fullWidth?: boolean
+}) {
+  return (
+    <button
+      disabled={busy || !enabled}
+      onClick={onClick}
+      className={cn(
+        'group rounded-md border transition-all duration-300',
+        fullWidth ? 'w-full' : 'flex-1',
+        'border-foreground/10 bg-background/20',
+        enabled ?
+          'hover:border-brand/30 hover:bg-background/40'
+        : 'cursor-not-allowed opacity-40',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-10 items-center justify-center gap-2',
+      )}
+    >
+      {loading ?
+        <Spinner size="md" className="text-foreground-alt" />
+      : icon}
+      <span className="text-foreground-alt text-sm">{label}</span>
+    </button>
+  )
+}
+
 // Divider renders a centered label over a horizontal rule.
 function Divider({ label }: { label: string }) {
   return (
@@ -689,30 +734,19 @@ export function LoginForm({
                   onChange={handlePemFileChange}
                   className="hidden"
                 />
-                <button
+                <SignInMethodButton
+                  fullWidth
+                  enabled={!!onLoginWithPem}
+                  busy={loading !== null}
+                  loading={loading === 'pem'}
+                  icon={<LuKeyRound className="text-foreground-alt h-5 w-5" />}
+                  label={
+                    loading === 'pem' ? 'Signing in with backup key...'
+                    : pemFileName ? `Backup key: ${pemFileName}`
+                    : 'Backup key (.pem)'
+                  }
                   onClick={() => pemInputRef.current?.click()}
-                  disabled={loading !== null || !onLoginWithPem}
-                  className={cn(
-                    'group w-full rounded-md border transition-all duration-300',
-                    'border-foreground/10 bg-background/20',
-                    onLoginWithPem ?
-                      'hover:border-brand/30 hover:bg-background/40'
-                    : 'cursor-not-allowed opacity-40',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    'flex h-10 items-center justify-center gap-2',
-                  )}
-                >
-                  {loading === 'pem' ?
-                    <Spinner size="md" className="text-foreground-alt" />
-                  : <LuKeyRound className="text-foreground-alt h-5 w-5" />}
-                  <span className="text-foreground-alt text-sm">
-                    {loading === 'pem' ?
-                      'Signing in with backup key...'
-                    : pemFileName ?
-                      `Backup key: ${pemFileName}`
-                    : 'Backup key (.pem)'}
-                  </span>
-                </button>
+                />
                 <div className="flex gap-2">
                   {[
                     {
@@ -752,29 +786,14 @@ export function LoginForm({
                     .map(({ action, enabled, icon, label, onClick }) => (
                       <Tooltip key={action}>
                         <TooltipTrigger asChild>
-                          <button
-                            disabled={loading !== null || !enabled}
+                          <SignInMethodButton
+                            enabled={enabled}
+                            busy={loading !== null}
+                            loading={loading === action}
+                            icon={icon}
+                            label={label}
                             onClick={onClick}
-                            className={cn(
-                              'group flex-1 rounded-md border transition-all duration-300',
-                              'border-foreground/10 bg-background/20',
-                              enabled ?
-                                'hover:border-brand/30 hover:bg-background/40'
-                              : 'cursor-not-allowed opacity-40',
-                              'disabled:cursor-not-allowed disabled:opacity-50',
-                              'flex h-10 items-center justify-center gap-2',
-                            )}
-                          >
-                            {loading === action ?
-                              <Spinner
-                                size="md"
-                                className="text-foreground-alt"
-                              />
-                            : icon}
-                            <span className="text-foreground-alt text-sm">
-                              {label}
-                            </span>
-                          </button>
+                          />
                         </TooltipTrigger>
                         {!enabled && (
                           <TooltipContent side="bottom">

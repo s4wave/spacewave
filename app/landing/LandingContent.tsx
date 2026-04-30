@@ -38,26 +38,32 @@ import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import { useNavLinks } from '@s4wave/app/nav-links.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
-// SectionWrapper provides consistent section styling with scroll-reveal.
-function SectionWrapper({
+// Section provides consistent section styling with optional scroll-reveal.
+function Section({
   children,
   className,
   id,
-  withTopSeparator,
+  withTopSeparator = false,
+  reveal = false,
 }: {
   children: React.ReactNode
   className?: string
   id?: string
   withTopSeparator?: boolean
+  reveal?: boolean
 }) {
   const { ref, visible } = useScrollReveal(0.08)
   return (
     <section
       id={id}
-      ref={ref}
+      ref={reveal ? ref : undefined}
       className={cn(
-        'relative w-full px-4 py-20 transition-all duration-700 @lg:px-8 @2xl:px-12',
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
+        'relative w-full px-4 py-20 @lg:px-8 @2xl:px-12',
+        reveal &&
+          cn(
+            'transition-all duration-700',
+            visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
+          ),
         className,
       )}
     >
@@ -130,31 +136,6 @@ function CtaRow({ children }: { children: React.ReactNode }) {
     <div className="mt-10 flex flex-wrap justify-center gap-3">{children}</div>
   )
 }
-
-// Common Components
-interface SectionProps {
-  id?: string
-  className?: string
-  children: React.ReactNode
-  withTopSeparator?: boolean
-}
-
-const Section: React.FC<SectionProps> = ({
-  id,
-  className,
-  children,
-  withTopSeparator = false,
-}) => (
-  <section
-    id={id}
-    className={cn('relative w-full px-4 py-20 @lg:px-8 @2xl:px-12', className)}
-  >
-    {withTopSeparator && (
-      <div className="via-foreground/10 absolute top-0 right-0 left-0 h-px bg-gradient-to-r from-transparent to-transparent" />
-    )}
-    <div className="mx-auto max-w-5xl">{children}</div>
-  </section>
-)
 
 interface SectionHeadingProps {
   children: React.ReactNode
@@ -906,7 +887,7 @@ function HowItWorksSection() {
   ]
 
   return (
-    <SectionWrapper id="how-it-works" withTopSeparator>
+    <Section id="how-it-works" withTopSeparator reveal>
       <SectionLabel>How it works</SectionLabel>
       <SectionTitle>All your devices. One system.</SectionTitle>
       <SectionSubtitle>
@@ -954,7 +935,7 @@ function HowItWorksSection() {
           )
         })}
       </div>
-    </SectionWrapper>
+    </Section>
   )
 }
 
@@ -1064,7 +1045,7 @@ function UseCaseCard({
 function UseCasesSection() {
   const nav = useNavLinks()
   return (
-    <SectionWrapper id="use-cases">
+    <Section id="use-cases" reveal>
       <SectionLabel>What you can do</SectionLabel>
       <SectionTitle>Start with one thing. Then do everything.</SectionTitle>
       <SectionSubtitle>
@@ -1091,7 +1072,7 @@ function UseCasesSection() {
           Get Started
         </CtaButton>
       </CtaRow>
-    </SectionWrapper>
+    </Section>
   )
 }
 
@@ -1221,7 +1202,7 @@ const DEV_CARD_ICONS = [LuCode, LuGlobe, LuUsers]
 function ForDevelopersSection() {
   const nav = useNavLinks()
   return (
-    <SectionWrapper id="plugins" withTopSeparator>
+    <Section id="plugins" withTopSeparator reveal>
       <SectionLabel>For developers</SectionLabel>
       <SectionTitle>If you can imagine it, you can build it</SectionTitle>
       <SectionSubtitle>
@@ -1267,7 +1248,7 @@ function ForDevelopersSection() {
           <span>Browse Source</span>
         </a>
       </CtaRow>
-    </SectionWrapper>
+    </Section>
   )
 }
 

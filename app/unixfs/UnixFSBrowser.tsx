@@ -934,74 +934,6 @@ export function UnixFSBrowser({
     handler: handleUp,
   })
 
-  // renderEntry overrides the default entry renderer to show an inline rename input.
-  const renderEntry: RenderEntryCallback | undefined = useMemo(() => {
-    if (!renamingEntry) return undefined
-    return ({ entry, defaultNode }) => {
-      if (entry.id !== renamingEntry.id) return defaultNode
-      return (
-        <div
-          className="rename-actions flex min-w-[120px] flex-1 items-center gap-0.5 overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <input
-            ref={(el) => {
-              if (!el) return
-              el.focus()
-              const name = renameRef.current
-              const lastDot = name.lastIndexOf('.')
-              el.setSelectionRange(0, lastDot > 0 ? lastDot : name.length)
-            }}
-            className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
-            defaultValue={renameRef.current}
-            onChange={(e) => {
-              renameRef.current = e.target.value
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void handleConfirmRename()
-              }
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                handleCancelRename()
-              }
-              e.stopPropagation()
-            }}
-            onBlur={(e) => {
-              const related = e.relatedTarget as HTMLElement | null
-              if (related?.closest('.rename-actions')) return
-              handleCancelRename()
-            }}
-          />
-          <button
-            tabIndex={0}
-            className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              void handleConfirmRename()
-            }}
-          >
-            <LuCheck className="h-3 w-3" />
-          </button>
-          <button
-            tabIndex={0}
-            className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              handleCancelRename()
-            }}
-          >
-            <LuX className="h-3 w-3" />
-          </button>
-        </div>
-      )
-    }
-  }, [renamingEntry, handleConfirmRename, handleCancelRename])
-
   // Build entries with new folder/file inline input prepended
   const displayEntries = useMemo(() => {
     const prepend: FileEntry[] = []
@@ -1015,111 +947,145 @@ export function UnixFSBrowser({
     return [...prepend, ...fileEntries]
   }, [fileEntries, newFolderName, newFileName])
 
-  // renderEntry for new folder/file inline input
-  const renderEntryWithNewFolder: RenderEntryCallback | undefined =
-    useMemo(() => {
-      if (newFolderName === null && newFileName === null && !renamingEntry)
-        return undefined
-      return ({ entry, defaultNode }) => {
-        // New folder inline input
-        if (entry.id === '__new-folder__' && newFolderName !== null) {
-          return (
-            <div
-              className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <input
-                autoFocus
-                className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
-                value={newFolderName}
-                onChange={(e) =>
-                  dispatch({
-                    type: 'set-new-folder-name',
-                    name: e.target.value,
-                  })
+  // renderEntry overrides the default entry renderer to show an inline input
+  // for renaming an existing entry or naming a new folder/file. Returns
+  // undefined when no inline input is active so the file list uses the
+  // default renderer.
+  const renderEntry: RenderEntryCallback | undefined = useMemo(() => {
+    if (newFolderName === null && newFileName === null && !renamingEntry) {
+      return undefined
+    }
+    return ({ entry, defaultNode }) => {
+      const isNewFolder =
+        entry.id === '__new-folder__' && newFolderName !== null
+      const isNewFile = entry.id === '__new-file__' && newFileName !== null
+      const isRenaming = !!renamingEntry && entry.id === renamingEntry.id
+      const isNewItem = isNewFolder || isNewFile
+
+      if (!isNewItem && !isRenaming) return defaultNode
+
+      if (isRenaming) {
+        return (
+          <div
+            className="rename-actions flex min-w-[120px] flex-1 items-center gap-0.5 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <input
+              ref={(el) => {
+                if (!el) return
+                el.focus()
+                const name = renameRef.current
+                const lastDot = name.lastIndexOf('.')
+                el.setSelectionRange(0, lastDot > 0 ? lastDot : name.length)
+              }}
+              className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
+              defaultValue={renameRef.current}
+              onChange={(e) => {
+                renameRef.current = e.target.value
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void handleConfirmRename()
                 }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void handleNewFolderConfirm(e.currentTarget.value)
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    handleNewFolderCancel()
-                  }
-                  e.stopPropagation()
-                }}
-                onBlur={(e) => {
-                  if (e.currentTarget.value.trim()) {
-                    void handleNewFolderConfirm(e.currentTarget.value)
-                  } else {
-                    handleNewFolderCancel()
-                  }
-                }}
-                placeholder="Folder name"
-              />
-            </div>
-          )
-        }
-        // New file inline input
-        if (entry.id === '__new-file__' && newFileName !== null) {
-          return (
-            <div
-              className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <input
-                autoFocus
-                className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
-                value={newFileName}
-                onChange={(e) =>
-                  dispatch({
-                    type: 'set-new-file-name',
-                    name: e.target.value,
-                  })
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  handleCancelRename()
                 }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void handleNewFileConfirm(e.currentTarget.value)
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    handleNewFileCancel()
-                  }
-                  e.stopPropagation()
-                }}
-                onBlur={(e) => {
-                  if (e.currentTarget.value.trim()) {
-                    void handleNewFileConfirm(e.currentTarget.value)
-                  } else {
-                    handleNewFileCancel()
-                  }
-                }}
-                placeholder="File name"
-              />
-            </div>
-          )
-        }
-        // Rename inline input (delegate to renderEntry)
-        if (renamingEntry && entry.id === renamingEntry.id && renderEntry) {
-          return renderEntry({ entry, defaultNode, path: displayPath })
-        }
-        return defaultNode
+                e.stopPropagation()
+              }}
+              onBlur={(e) => {
+                const related = e.relatedTarget as HTMLElement | null
+                if (related?.closest('.rename-actions')) return
+                handleCancelRename()
+              }}
+            />
+            <button
+              tabIndex={0}
+              className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                void handleConfirmRename()
+              }}
+            >
+              <LuCheck className="h-3 w-3" />
+            </button>
+            <button
+              tabIndex={0}
+              className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleCancelRename()
+              }}
+            >
+              <LuX className="h-3 w-3" />
+            </button>
+          </div>
+        )
       }
-    }, [
-      newFolderName,
-      newFileName,
-      renamingEntry,
-      renderEntry,
-      displayPath,
-      handleNewFolderConfirm,
-      handleNewFolderCancel,
-      handleNewFileConfirm,
-      handleNewFileCancel,
-    ])
+
+      // New folder or new file inline input.
+      const value = isNewFolder ? newFolderName! : newFileName!
+      const placeholder = isNewFolder ? 'Folder name' : 'File name'
+      const handleConfirm = isNewFolder ?
+          handleNewFolderConfirm
+        : handleNewFileConfirm
+      const handleCancel = isNewFolder ?
+          handleNewFolderCancel
+        : handleNewFileCancel
+      const dispatchType =
+        isNewFolder ? 'set-new-folder-name' : 'set-new-file-name'
+
+      return (
+        <div
+          className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <input
+            autoFocus
+            className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
+            value={value}
+            onChange={(e) =>
+              dispatch({ type: dispatchType, name: e.target.value })
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void handleConfirm(e.currentTarget.value)
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                handleCancel()
+              }
+              e.stopPropagation()
+            }}
+            onBlur={(e) => {
+              if (e.currentTarget.value.trim()) {
+                void handleConfirm(e.currentTarget.value)
+              } else {
+                handleCancel()
+              }
+            }}
+            placeholder={placeholder}
+          />
+        </div>
+      )
+    }
+  }, [
+    newFolderName,
+    newFileName,
+    renamingEntry,
+    handleConfirmRename,
+    handleCancelRename,
+    handleNewFolderConfirm,
+    handleNewFolderCancel,
+    handleNewFileConfirm,
+    handleNewFileCancel,
+  ])
 
   // Context menu props shared between states
   const contextMenuProps = useMemo(
@@ -1448,7 +1414,7 @@ export function UnixFSBrowser({
           onOpen={handleOpen}
           onContextMenu={handleContextMenu}
           onStateChange={handleListStateChange}
-          renderEntry={renderEntryWithNewFolder}
+          renderEntry={renderEntry}
           currentPath={displayPath}
           getDragEnvelope={getDragEnvelope}
           getDownloadDragTarget={getDownloadDragTarget}

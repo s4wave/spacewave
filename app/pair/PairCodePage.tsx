@@ -450,21 +450,7 @@ function PairVerifyStep({
             Confirm the emoji match on your other device to continue.
           </p>
         </div>
-        {emoji && (
-          <div className="grid grid-cols-3 gap-2 px-4">
-            {emoji.map((e, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'border-foreground/10 bg-foreground/5 flex items-center justify-center rounded-lg border',
-                  'h-16 text-4xl',
-                )}
-              >
-                {e}
-              </div>
-            ))}
-          </div>
-        )}
+        {emoji && <EmojiGrid emoji={emoji} />}
         <div className="flex min-h-10 items-center justify-center">
           <Spinner size="md" className="text-foreground-alt" />
         </div>
@@ -518,19 +504,7 @@ function PairVerifyStep({
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 px-4">
-        {emoji.map((e, i) => (
-          <div
-            key={i}
-            className={cn(
-              'border-foreground/10 bg-foreground/5 flex items-center justify-center rounded-lg border',
-              'h-16 text-4xl',
-            )}
-          >
-            {e}
-          </div>
-        ))}
-      </div>
+      <EmojiGrid emoji={emoji} />
 
       <div className="flex gap-2">
         <button
@@ -818,6 +792,26 @@ function PairDirectStep({
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+// EmojiGrid renders the SAS verification emojis in a fixed three-column grid
+// shared by the verify and waiting-for-remote pairing screens.
+function EmojiGrid({ emoji }: { emoji: string[] }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 px-4">
+      {emoji.map((e, i) => (
+        <div
+          key={i}
+          className={cn(
+            'border-foreground/10 bg-foreground/5 flex items-center justify-center rounded-lg border',
+            'h-16 text-4xl',
+          )}
+        >
+          {e}
+        </div>
+      ))}
     </div>
   )
 }
