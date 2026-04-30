@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   LuArrowRight,
   LuCircleAlert,
@@ -7,6 +7,7 @@ import {
   LuRefreshCcw,
 } from 'react-icons/lu'
 
+import { useAbortSignalEffect } from '@aptre/bldr-react'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
@@ -61,6 +62,10 @@ function SessionSelfEnrollmentInterstitialContent({
   const navigateSession = useSessionNavigate()
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const autoStartKeyRef = useRef<string | null>(null)
+  const [initialCount] = useState(
+    onboarding?.sessionSelfEnrollmentCount ?? 0,
+  )
   const [, setSelfEnrollmentSkip] = useStateAtom(
     null,
     selfEnrollmentSkipAtomKey,
@@ -84,14 +89,17 @@ function SessionSelfEnrollmentInterstitialContent({
     [onboarding?.sessionSelfEnrollmentCount, state.value?.count],
   )
   const completedCount = state.value?.completedSharedObjectIds?.length ?? 0
-  const progress = count > 0 ? Math.min(100, (completedCount / count) * 100) : 0
-  const isComplete =
-    !!state.value &&
-    !state.value.running &&
-    count > 0 &&
-    completedCount + failures.length >= count
   const generationKey =
     state.value?.generationKey || onboarding?.sessionSelfEnrollmentGenerationKey
+  const displayTotal = Math.max(initialCount, count, completedCount)
+  const displayCompleted =
+    displayTotal > 0 ? Math.max(completedCount, displayTotal - count) : 0
+  const progress =
+    displayTotal > 0 ?
+      Math.min(100, (displayCompleted / displayTotal) * 100)
+    : 0
+  const isComplete =
+    !!state.value && !state.value.running && displayTotal > 0 && count === 0
   const escalationIntent = useMemo(
     () => ({
       kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
@@ -119,8 +127,34 @@ function SessionSelfEnrollmentInterstitialContent({
   const unlockedSigners = escalation?.state.requirement?.unlockedSigners ?? 0
   const authReady =
     !!accountState && !escalation?.loading && unlockedSigners >= requiredSigners
-  const showProgress = state.value?.running || (authReady && !isComplete)
+  const showProgress =
+    !actionError && (state.value?.running || (authReady && !isComplete))
   const progressKnown = !!state.value
+  useAbortSignalEffect(
+    (signal) => {
+      if (
+        !authReady ||
+        !generationKey ||
+        autoStartKeyRef.current === generationKey
+      ) {
+        return
+      }
+      if (
+        !enrollment.value ||
+        !state.value ||
+        state.value.running ||
+        count === 0
+      ) {
+        return
+      }
+      autoStartKeyRef.current = generationKey
+      void Promise.resolve(enrollment.value.start(signal)).catch((err) => {
+        if (signal.aborted) return
+        setActionError(err instanceof Error ? err.message : String(err))
+      })
+    },
+    [authReady, count, enrollment.value, generationKey, state.value],
+  )
 
   const handleUnlockConfirm = useCallback(async () => {
     setActionError(null)
@@ -172,19 +206,19 @@ function SessionSelfEnrollmentInterstitialContent({
                 Connect this session
               </h1>
               <p className="text-foreground-alt/60 mt-1 text-xs">
-                {count === 1 ?
+                {displayTotal === 1 ?
                   '1 space needs this session key.'
-                : `${count} spaces need this session key.`}
+                : `${displayTotal} spaces need this session key.`}
               </p>
             </div>
             {showProgress ?
               <div className="space-y-2">
                 <div className="text-foreground-alt/70 flex items-center justify-between text-xs">
-                  <span>Connecting to {count} spaces</span>
+                  <span>Connecting to {displayTotal} spaces</span>
                   <span>
                     {progressKnown ?
-                      `${completedCount}/${count}`
-                    : `${count} remaining`}
+                      `${displayCompleted}/${displayTotal}`
+                    : `${displayTotal} remaining`}
                   </span>
                 </div>
                 {progressKnown ?

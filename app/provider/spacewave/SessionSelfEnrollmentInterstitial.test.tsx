@@ -24,8 +24,8 @@ interface MockOnboarding {
 }
 
 const mockNavigateSession = vi.hoisted(() => vi.fn())
-const mockStart = vi.hoisted(() => vi.fn())
-const mockSkip = vi.hoisted(() => vi.fn())
+const mockStart = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
+const mockSkip = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
 const mockSetSkip = vi.hoisted(() => vi.fn())
 const mockState = vi.hoisted<{
   value: WatchSharedObjectSelfEnrollmentStateResponse | undefined
@@ -205,7 +205,7 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     await waitFor(() => expect(mockSkip).toHaveBeenCalledWith('gen-1'))
     expect(mockSetSkip).toHaveBeenCalledWith({
       skippedKey: 'gen-1',
-      skippedAt: expect.any(Number),
+      skippedAt: expect.any(Number) as number,
     })
     expect(mockNavigateSession).toHaveBeenCalledWith({
       path: '/',
@@ -237,10 +237,36 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     expect(screen.getByText('Retry now')).toBeTruthy()
   })
 
-  it('shows passive progress instead of unlock controls when enough signers are already unlocked', () => {
+  it('keeps the initial total when pending count shrinks during enrollment', () => {
+    mockOnboarding.value = {
+      sessionSelfEnrollmentCount: 6,
+      sessionSelfEnrollmentGenerationKey: 'gen-1',
+    }
+    mockState.value = {
+      count: 4,
+      running: true,
+      currentSharedObjectId: 'space-5',
+      completedSharedObjectIds: [],
+      failures: [],
+    }
+
+    render(<SessionSelfEnrollmentInterstitial />)
+
+    expect(screen.getByText('Connecting to 6 spaces')).toBeTruthy()
+    expect(screen.getByText('2/6')).toBeTruthy()
+  })
+
+  it('starts enrollment when enough signers are already unlocked', async () => {
     mockOnboarding.value = {
       sessionSelfEnrollmentCount: 3,
       sessionSelfEnrollmentGenerationKey: 'gen-1',
+    }
+    mockState.value = {
+      count: 3,
+      generationKey: 'gen-1',
+      running: false,
+      completedSharedObjectIds: [],
+      failures: [],
     }
     mockAccountState.entityKeypairs.value = {
       keypairs: [{ keypair: { peerId: 'peer-1' }, unlocked: true }],
@@ -250,8 +276,9 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     render(<SessionSelfEnrollmentInterstitial />)
 
     expect(screen.getByText('Connecting to 3 spaces')).toBeTruthy()
-    expect(screen.getByText('3 remaining')).toBeTruthy()
+    expect(screen.getByText('0/3')).toBeTruthy()
     expect(screen.queryByText('Unlock and continue')).toBeNull()
     expect(screen.queryByText('Skip for now')).toBeNull()
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1))
   })
 })
