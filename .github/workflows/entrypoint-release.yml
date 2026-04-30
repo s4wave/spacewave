@@ -674,15 +674,17 @@ jobs:
               return h.hexdigest()
 
           installers = []
+          checksums_lines = []
           for path in sorted(p for p in installers_root.rglob("*") if p.is_file()):
+              digest = sha256(path)
               installers.append({
                   "path": path.relative_to(root).as_posix(),
-                  "sha256": sha256(path),
+                  "sha256": digest,
                   "size": path.stat().st_size,
               })
+              checksums_lines.append(f"{digest}  {path.name}")
 
           bundles = []
-          checksums_lines = []
           for path in sorted(p for p in bundles_root.rglob("*") if p.is_file()):
               digest = sha256(path)
               bundles.append({
@@ -690,7 +692,6 @@ jobs:
                   "sha256": digest,
                   "size": path.stat().st_size,
               })
-              checksums_lines.append(f"{digest}  {path.name}")
 
           cli_artifacts = []
           if cli_root.exists():

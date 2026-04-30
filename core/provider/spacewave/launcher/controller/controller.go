@@ -50,6 +50,8 @@ type Controller struct {
 	// tries each endpoint in order until it finds a valid dist config
 	// stops after finding a valid config
 	confFetcherRoutine *routine.RoutineContainer
+	// stagingDirFunc overrides the platform staging dir in tests
+	stagingDirFunc func() (string, error)
 	// mtx guards below fields
 	mtx sync.Mutex
 	// confFetcherRefetch is a timer to restart confFetcherRoutine on success
@@ -176,6 +178,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	c.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: distConf,
 	})
+	c.refreshReleaseMetadataStatus(ctx, distConf)
 	// seed fetch status with whether a non-empty dist config was found on disk
 	// or in the embedded default so downstream watchers start in the right
 	// state (has-config -> skip retry UI; no-config -> show connecting).
@@ -285,6 +288,7 @@ func (c *Controller) PushDistConf(ctx context.Context, body []byte) (*spacewave_
 		c.le.WithError(err).Warn("failed to store updated app dist config")
 	}
 	_, _ = c.swapDistConf(updatedAppDistConf)
+	c.refreshReleaseMetadataStatus(ctx, updatedAppDistConf)
 	return updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, true, currRev, nil
 }
 

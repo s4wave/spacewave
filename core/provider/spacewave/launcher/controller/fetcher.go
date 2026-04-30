@@ -123,6 +123,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			c.le.WithError(err).Warn("failed to store updated app dist config")
 		}
 		_, _ = c.swapDistConf(updatedAppDistConf)
+		c.refreshReleaseMetadataStatus(ctx, updatedAppDistConf)
 		c.le.
 			WithField("prev-conf-rev", currRev).
 			WithField("conf-rev", rev).
