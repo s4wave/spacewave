@@ -212,12 +212,12 @@ describe('SpaceCommands', () => {
 
     expect(h.createNotebookClientSide).toHaveBeenCalledWith(
       expect.anything(),
-      'notebook-1',
-      'notebook-1-fs',
+      'notebook/notebook-1',
+      'notebook/notebook-1-fs',
       'Notebook',
       expect.any(Date),
     )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook/notebook-1'])
   })
 
   it('creates docs through the merged spacewave-app client-side path', async () => {
@@ -237,12 +237,12 @@ describe('SpaceCommands', () => {
 
     expect(h.createDocsClientSide).toHaveBeenCalledWith(
       expect.anything(),
-      'docs-1',
+      'docs/docs-1',
       'Documentation',
       '',
       expect.any(Date),
     )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['docs-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['docs/docs-1'])
   })
 
   it('launches a persistent forge job wizard from the create-object command', async () => {
@@ -287,7 +287,7 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(INIT_OBJECT_LAYOUT_OP_ID)
 
     const decoded = InitObjectLayoutOp.fromBinary(opData)
-    expect(decoded.objectKey).toBe('object-layout-1')
+    expect(decoded.objectKey).toBe('object-layout/object-layout-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 

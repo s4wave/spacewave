@@ -176,7 +176,9 @@ export function buildObjectKey(
   name: string,
   existingKeys?: Iterable<string | undefined>,
 ): string {
-  const base = buildObjectKeyBase(prefix, name)
+  const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '')
+  const prefixPath = normalizedPrefix ? `${normalizedPrefix}/` : ''
+  const base = `${prefixPath}${buildObjectKeyBase(prefix, name)}`
   const existing = new Set(existingKeys ?? [])
   const candidates = Array.from(
     { length: existing.size + 2 },
