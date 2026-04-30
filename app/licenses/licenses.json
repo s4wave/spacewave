@@ -1104,7 +1104,7 @@
     },
     {
       "name": "github.com/go-sql-driver/mysql",
-      "version": "v1.9.3",
+      "version": "v1.10.0",
       "spdx": "MPL-2.0",
       "source": "go",
       "repo": "https://github.com/go-sql-driver/mysql",
