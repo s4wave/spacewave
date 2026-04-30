@@ -52,12 +52,40 @@ func reopenTestMetaShard(t *testing.T, name string) *MetaShard {
 	return ms
 }
 
+func openSecondTestMetaShard(t *testing.T, name string) *MetaShard {
+	t.Helper()
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := opfs.GetDirectory(root, name, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms, err := NewMetaShard(dir, name, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ms
+}
+
 func putMetaValue(t *testing.T, ms *MetaShard, key, value string) {
 	t.Helper()
 	if err := ms.WriteTx(func(tree *pagestore.Tree) error {
 		return tree.Put([]byte(key), []byte(value))
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func assertMetaValue(t *testing.T, ms *MetaShard, key, want string) {
+	t.Helper()
+	val, found, err := ms.Get([]byte(key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != want {
+		t.Fatalf("%s got found=%v val=%q want %q", key, found, val, want)
 	}
 }
 
@@ -156,6 +184,18 @@ func TestMetaShardWriteTxMultipleMutations(t *testing.T) {
 	if !found || string(val) != "v2" {
 		t.Fatalf("k2 got found=%v val=%q want v2", found, val)
 	}
+}
+
+func TestMetaShardWriteTxRefreshesStaleSecondInstance(t *testing.T) {
+	ms1 := newTestMetaShard(t, "test-metashard-stale-second-instance")
+	ms2 := openSecondTestMetaShard(t, "test-metashard-stale-second-instance")
+
+	putMetaValue(t, ms1, "k1", "v1")
+	putMetaValue(t, ms2, "k2", "v2")
+
+	reopened := reopenTestMetaShard(t, "test-metashard-stale-second-instance")
+	assertMetaValue(t, reopened, "k1", "v1")
+	assertMetaValue(t, reopened, "k2", "v2")
 }
 
 func TestMetaShardRecoveryBeforeSuperblockFlip(t *testing.T) {

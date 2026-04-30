@@ -84,6 +84,9 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	}
 	defer release()
 
+	if err := ms.reloadCommittedState(); err != nil {
+		return errors.Wrap(err, "reload committed state")
+	}
 	tree, gen := ms.OpenCommittedTree()
 
 	// Execute mutations.
@@ -177,6 +180,37 @@ func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
 	return pagestore.OpenTree(ms.pager, rootPage), generation
 }
 
+func (ms *MetaShard) reloadCommittedState() error {
+	var aBuf [pagestore.SuperblockSize]byte
+	var bBuf [pagestore.SuperblockSize]byte
+	readSuper(ms.dir, "super-a", aBuf[:])
+	readSuper(ms.dir, "super-b", bBuf[:])
+
+	sb, err := pickValidSuperblock(ms.pager, aBuf[:], bBuf[:])
+	if err != nil {
+		return err
+	}
+
+	rootPage := pagestore.InvalidPage
+	var gen uint64
+	if sb != nil {
+		rootPage = sb.RootPage
+		gen = sb.Generation
+	}
+	if sb == nil {
+		ms.pager.SetPageCount(0)
+		if err := ms.pager.LoadFreelist(pagestore.InvalidPage); err != nil {
+			return err
+		}
+	}
+
+	ms.mu.Lock()
+	ms.rootPage = rootPage
+	ms.generation = gen
+	ms.mu.Unlock()
+	return nil
+}
+
 func (ms *MetaShard) callTestHook(stage string) error {
 	if ms.testHook != nil {
 		return ms.testHook(stage)
@@ -223,7 +257,14 @@ func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.
 	}
 	tree := pagestore.OpenTree(pager, sb.RootPage)
 	if err := tree.ScanPrefix(nil, func(_, _ []byte) bool { return true }); err != nil {
-		return nil, errors.Wrap(err, "validate page tree")
+		return nil, errors.Wrapf(
+			err,
+			"validate page tree generation %d root page %d freelist page %d page count %d",
+			sb.Generation,
+			sb.RootPage,
+			sb.FreelistPage,
+			sb.PageCount,
+		)
 	}
 	return sb, nil
 }
@@ -246,7 +287,6 @@ func writeSuper(dir js.Value, name string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	f.Truncate(0)
 	if _, err := f.WriteAt(data, 0); err != nil {
 		f.Close()
 		return err
