@@ -121,7 +121,7 @@ describe('ForgeJobWizardViewer', () => {
     expect(sender).toBe('12D3KooWJobPeer')
 
     const decoded = ForgeJobCreateOp.fromBinary(opData)
-    expect(decoded.jobKey).toMatch(/^job-\d+$/)
+    expect(decoded.jobKey).toMatch(/^forge\/job\/job-\d+$/)
     expect(decoded.clusterKey).toBe('forge/cluster/main')
     expect(decoded.taskDefs?.map((td) => td.name)).toEqual(['compile', 'test'])
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/forge/job/test')

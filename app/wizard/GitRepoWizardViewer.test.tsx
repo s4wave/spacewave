@@ -184,10 +184,10 @@ describe('GitRepoWizardViewer', () => {
     const settingsOp = SetSpaceSettingsOp.fromBinary(
       h.applyWorldOp.mock.calls[1]?.[1] as Uint8Array,
     )
-    expect(settingsOp.settings?.indexPath).toBe('repo-1')
+    expect(settingsOp.settings?.indexPath).toBe('git/repo/repo-1')
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['repo-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['git/repo/repo-1'])
   })
 
   it('navigates to the repo when clone progress completes', async () => {
