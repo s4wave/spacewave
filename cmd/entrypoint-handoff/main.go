@@ -441,12 +441,12 @@ func buildBundles(repoDir string, platforms []string) error {
 		srcDir := filepath.Join(repoDir, ".tmp", "dist", platform)
 		archivePath := filepath.Join(bundlesDir, archiveName(goos, platform))
 		if goos == "windows" {
-			if _, err := zipDir(srcDir, archivePath); err != nil {
+			if _, err := archiveDir(srcDir, archivePath, archiveZip); err != nil {
 				return errors.Wrap(err, "zip "+platform)
 			}
 			continue
 		}
-		if _, err := tarGzDir(srcDir, archivePath); err != nil {
+		if _, err := archiveDir(srcDir, archivePath, archiveTarGz); err != nil {
 			return errors.Wrap(err, "tar.gz "+platform)
 		}
 	}
@@ -572,12 +572,12 @@ func packageCliArtifacts(repoDir string, platforms []string) error {
 		srcDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
 		archivePath := filepath.Join(cliDir, cliArchiveName(goos, platform))
 		if goos == "darwin" || goos == "windows" {
-			if _, err := zipDir(srcDir, archivePath); err != nil {
+			if _, err := archiveDir(srcDir, archivePath, archiveZip); err != nil {
 				return errors.Wrap(err, "zip cli "+platform)
 			}
 			continue
 		}
-		if _, err := tarGzDir(srcDir, archivePath); err != nil {
+		if _, err := archiveDir(srcDir, archivePath, archiveTarGz); err != nil {
 			return errors.Wrap(err, "tar.gz cli "+platform)
 		}
 	}
@@ -890,7 +890,19 @@ func copyTree(srcRoot, dstRoot string) error {
 	})
 }
 
-func tarGzDir(srcDir, destPath string) (string, error) {
+// archiveFormat identifies the archive format produced by archiveDir.
+type archiveFormat int
+
+const (
+	archiveTarGz archiveFormat = iota
+	archiveZip
+)
+
+// archiveDir streams srcDir into destPath in the requested format and
+// returns the hex-encoded sha256 of the archive bytes. Both tar.gz and
+// zip share the same walk + per-entry contract; only the writer
+// construction and entry-header layout differ.
+func archiveDir(srcDir, destPath string, format archiveFormat) (string, error) {
 	outFile, err := os.Create(destPath)
 	if err != nil {
 		return "", errors.Wrap(err, "create output")
@@ -899,8 +911,68 @@ func tarGzDir(srcDir, destPath string) (string, error) {
 
 	hash := sha256.New()
 	mw := io.MultiWriter(outFile, hash)
-	gw := gzip.NewWriter(mw)
-	tw := tar.NewWriter(gw)
+
+	var writeEntry func(relPath string, info fs.FileInfo, path string) error
+	var closeArchive func() error
+
+	switch format {
+	case archiveTarGz:
+		gw := gzip.NewWriter(mw)
+		tw := tar.NewWriter(gw)
+		writeEntry = func(relPath string, info fs.FileInfo, path string) error {
+			header, err := tar.FileInfoHeader(info, "")
+			if err != nil {
+				return errors.Wrap(err, "file info header")
+			}
+			header.Name = relPath
+			if info.IsDir() {
+				header.Name += "/"
+			}
+			if err := tw.WriteHeader(header); err != nil {
+				return errors.Wrap(err, "write header")
+			}
+			if info.IsDir() {
+				return nil
+			}
+			return copyFileTo(tw, path, relPath)
+		}
+		closeArchive = func() error {
+			if err := tw.Close(); err != nil {
+				return errors.Wrap(err, "close tar")
+			}
+			if err := gw.Close(); err != nil {
+				return errors.Wrap(err, "close gzip")
+			}
+			return nil
+		}
+	case archiveZip:
+		zw := zip.NewWriter(mw)
+		writeEntry = func(relPath string, info fs.FileInfo, path string) error {
+			if info.IsDir() {
+				_, err := zw.Create(relPath + "/")
+				return err
+			}
+			header, err := zip.FileInfoHeader(info)
+			if err != nil {
+				return errors.Wrap(err, "file info header")
+			}
+			header.Name = relPath
+			header.Method = zip.Deflate
+			w, err := zw.CreateHeader(header)
+			if err != nil {
+				return errors.Wrap(err, "create header")
+			}
+			return copyFileTo(w, path, relPath)
+		}
+		closeArchive = func() error {
+			if err := zw.Close(); err != nil {
+				return errors.Wrap(err, "close zip")
+			}
+			return nil
+		}
+	default:
+		return "", errors.Errorf("unsupported archive format: %d", format)
+	}
 
 	err = filepath.Walk(srcDir, func(path string, info fs.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -913,39 +985,13 @@ func tarGzDir(srcDir, destPath string) (string, error) {
 		if relPath == "." {
 			return nil
 		}
-		relPath = filepath.ToSlash(relPath)
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return errors.Wrap(err, "file info header")
-		}
-		header.Name = relPath
-		if info.IsDir() {
-			header.Name += "/"
-		}
-		if err := tw.WriteHeader(header); err != nil {
-			return errors.Wrap(err, "write header")
-		}
-		if info.IsDir() {
-			return nil
-		}
-		f, err := os.Open(path)
-		if err != nil {
-			return errors.Wrap(err, "open "+relPath)
-		}
-		defer f.Close()
-		if _, err := io.Copy(tw, f); err != nil {
-			return errors.Wrap(err, "copy "+relPath)
-		}
-		return nil
+		return writeEntry(filepath.ToSlash(relPath), info, path)
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "walk")
 	}
-	if err := tw.Close(); err != nil {
-		return "", errors.Wrap(err, "close tar")
-	}
-	if err := gw.Close(); err != nil {
-		return "", errors.Wrap(err, "close gzip")
+	if err := closeArchive(); err != nil {
+		return "", err
 	}
 	if err := outFile.Close(); err != nil {
 		return "", errors.Wrap(err, "close file")
@@ -953,63 +999,17 @@ func tarGzDir(srcDir, destPath string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func zipDir(srcDir, destPath string) (string, error) {
-	outFile, err := os.Create(destPath)
+// copyFileTo opens path and copies its bytes into w with wrapped error context.
+func copyFileTo(w io.Writer, path, relPath string) error {
+	f, err := os.Open(path)
 	if err != nil {
-		return "", errors.Wrap(err, "create output")
+		return errors.Wrap(err, "open "+relPath)
 	}
-	defer outFile.Close()
-
-	hash := sha256.New()
-	mw := io.MultiWriter(outFile, hash)
-	zw := zip.NewWriter(mw)
-
-	err = filepath.Walk(srcDir, func(path string, info fs.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relPath, err := filepath.Rel(srcDir, path)
-		if err != nil {
-			return err
-		}
-		if relPath == "." {
-			return nil
-		}
-		relPath = filepath.ToSlash(relPath)
-		if info.IsDir() {
-			_, err := zw.Create(relPath + "/")
-			return err
-		}
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return errors.Wrap(err, "file info header")
-		}
-		header.Name = relPath
-		header.Method = zip.Deflate
-		w, err := zw.CreateHeader(header)
-		if err != nil {
-			return errors.Wrap(err, "create header")
-		}
-		f, err := os.Open(path)
-		if err != nil {
-			return errors.Wrap(err, "open "+relPath)
-		}
-		defer f.Close()
-		if _, err := io.Copy(w, f); err != nil {
-			return errors.Wrap(err, "copy "+relPath)
-		}
-		return nil
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "walk")
+	defer f.Close()
+	if _, err := io.Copy(w, f); err != nil {
+		return errors.Wrap(err, "copy "+relPath)
 	}
-	if err := zw.Close(); err != nil {
-		return "", errors.Wrap(err, "close zip")
-	}
-	if err := outFile.Close(); err != nil {
-		return "", errors.Wrap(err, "close file")
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return nil
 }
 
 func stageWebDist(distDir, stagingDir string) error {
