@@ -1,9 +1,12 @@
+//go:build !sql_lite
+
 package mysql
 
 import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -39,16 +42,7 @@ func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
 
 // NewTransaction returns a new SqlDB transaction.
 func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (sql.SqlTransaction, error) {
-	mtx, err := t.NewMysqlTransaction(ctx, write)
-	if err != nil {
-		return nil, err
-	}
-	stx, err := NewSqlTx(ctx, mtx, dsn)
-	if err != nil {
-		mtx.Discard()
-		return nil, err
-	}
-	return stx, nil
+	return nil, errors.New("mysql database/sql driver adapter was removed")
 }
 
 // NewMysqlTransaction returns a transaction against the db.

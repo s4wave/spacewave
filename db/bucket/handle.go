@@ -1,3 +1,5 @@
+//go:build !sql_lite
+
 package bucket
 
 // bucketHandle implements a bucket handle with a block store and kvkey.

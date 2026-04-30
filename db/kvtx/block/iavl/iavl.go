@@ -1,3 +1,5 @@
+//go:build !sql_lite
+
 // Package iavl implements a iavl tree.
 //
 // NOTE: This code package is similar to Tendermint IAVL:
@@ -27,6 +29,12 @@ type AVLTree struct {
 // the tree. The cursor ref can be empty to indicate a new tree.
 func NewAVLTree(rootCursor *bucket_lookup.Cursor) *AVLTree {
 	return &AVLTree{rootCursor: rootCursor}
+}
+
+func (t *AVLTree) setRootRef(ref *block.BlockRef) {
+	nc := t.rootCursor.Clone()
+	nc.SetRootRef(ref)
+	t.rootCursor = nc
 }
 
 // NewAVLTreeSubBlockCtor returns the sub-block constructor.

@@ -1,3 +1,5 @@
+//go:build !sql_lite
+
 package mysql
 
 import (
