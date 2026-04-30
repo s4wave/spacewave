@@ -136,31 +136,66 @@ func (r *AccountResource) watchLocalAccountInfo(
 func (r *AccountResource) watchCloudAccountInfo(
 	strm s4wave_account.SRPCAccountResourceService_WatchAccountInfoStream,
 ) error {
-	ctx := strm.Context()
-	bcast := r.account.GetAccountBroadcast()
 	var prev *s4wave_account.WatchAccountInfoResponse
-	for {
-		// Snapshot state and wait channel atomically inside one HoldLock.
-		var info *api.AccountStateResponse
-		var ch <-chan struct{}
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			info = r.account.AccountStateSnapshot()
-			ch = getWaitCh()
-		})
-
-		if info != nil {
-			resp := &s4wave_account.WatchAccountInfoResponse{
+	return watchCloudBcast(
+		strm.Context(),
+		r.account.GetAccountBroadcast(),
+		func() (*api.AccountStateResponse, bool) {
+			info := r.account.AccountStateSnapshot()
+			return info, info != nil
+		},
+		func(info *api.AccountStateResponse) *s4wave_account.WatchAccountInfoResponse {
+			return &s4wave_account.WatchAccountInfoResponse{
 				AccountId:     info.AccountId,
 				EntityId:      info.EntityId,
 				ProviderId:    r.account.GetProviderID(),
 				AuthThreshold: info.AuthThreshold,
 				KeypairCount:  info.KeypairCount,
 			}
-			if prev == nil || !resp.EqualVT(prev) {
-				if err := strm.Send(resp); err != nil {
+		},
+		func(resp *s4wave_account.WatchAccountInfoResponse) bool {
+			if prev != nil && resp.EqualVT(prev) {
+				return false
+			}
+			prev = resp
+			return true
+		},
+		strm.Send,
+	)
+}
+
+// watchCloudBcast drives a bcast-based watch loop. snapshot reads
+// broadcast-guarded state and the wait channel atomically inside one HoldLock
+// per iteration; it must not read state guarded by other locks since that
+// would risk missed-wakeup races. build runs outside the lock and produces
+// the response sent to the client when changed returns true. send is only
+// invoked when snapshot returns valid=true and changed returns true. The
+// loop exits when ctx is canceled or send returns an error.
+func watchCloudBcast[S any, T any](
+	ctx context.Context,
+	bcast accountBroadcaster,
+	snapshot func() (state S, valid bool),
+	build func(state S) T,
+	changed func(resp T) bool,
+	send func(resp T) error,
+) error {
+	for {
+		var (
+			state S
+			valid bool
+			ch    <-chan struct{}
+		)
+		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			state, valid = snapshot()
+			ch = getWaitCh()
+		})
+
+		if valid {
+			resp := build(state)
+			if changed(resp) {
+				if err := send(resp); err != nil {
 					return err
 				}
-				prev = resp
 			}
 		}
 
@@ -172,43 +207,40 @@ func (r *AccountResource) watchCloudAccountInfo(
 	}
 }
 
+// accountBroadcaster is the subset of broadcast.Broadcast used by
+// watchCloudBcast. It is satisfied by *broadcast.Broadcast.
+type accountBroadcaster interface {
+	HoldLock(cb func(broadcast func(), getWaitCh func() <-chan struct{}))
+}
+
 // WatchAuthMethods streams the account auth-method rows for this account.
 func (r *AccountResource) WatchAuthMethods(
 	req *s4wave_account.WatchAuthMethodsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchAuthMethodsStream,
 ) error {
-	ctx := strm.Context()
-	bcast := r.account.GetAccountBroadcast()
 	var prev *s4wave_account.WatchAuthMethodsResponse
-	for {
-		// Snapshot state and wait channel atomically inside one HoldLock.
-		var authMethods []*api.AccountAuthMethod
-		var valid bool
-		var ch <-chan struct{}
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			authMethods = r.account.AuthMethodsSnapshot()
-			valid = r.account.AccountStateSnapshot() != nil
-			ch = getWaitCh()
-		})
-
-		if valid {
-			resp := &s4wave_account.WatchAuthMethodsResponse{
+	return watchCloudBcast(
+		strm.Context(),
+		r.account.GetAccountBroadcast(),
+		func() ([]*api.AccountAuthMethod, bool) {
+			authMethods := r.account.AuthMethodsSnapshot()
+			valid := r.account.AccountStateSnapshot() != nil
+			return authMethods, valid
+		},
+		func(authMethods []*api.AccountAuthMethod) *s4wave_account.WatchAuthMethodsResponse {
+			return &s4wave_account.WatchAuthMethodsResponse{
 				AuthMethods: authMethods,
 			}
-			if prev == nil || !resp.EqualVT(prev) {
-				if err := strm.Send(resp); err != nil {
-					return err
-				}
-				prev = resp
+		},
+		func(resp *s4wave_account.WatchAuthMethodsResponse) bool {
+			if prev != nil && resp.EqualVT(prev) {
+				return false
 			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
-	}
+			prev = resp
+			return true
+		},
+		strm.Send,
+	)
 }
 
 // WatchSessions streams the attached sessions snapshot for this account.
@@ -343,39 +375,29 @@ func (r *AccountResource) watchCloudSessions(
 		defer relSO()
 	}
 
-	bcast := r.account.GetAccountBroadcast()
 	var prev *s4wave_account.WatchSessionsResponse
-	for {
-		var (
-			rows  []*api.AccountSessionInfo
-			valid bool
-			ch    <-chan struct{}
-		)
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			rows, valid = r.account.SessionsSnapshot()
-			ch = getWaitCh()
-		})
-
-		if valid {
+	return watchCloudBcast(
+		ctx,
+		r.account.GetAccountBroadcast(),
+		func() ([]*api.AccountSessionInfo, bool) {
+			return r.account.SessionsSnapshot()
+		},
+		func(rows []*api.AccountSessionInfo) *s4wave_account.WatchSessionsResponse {
 			metadata := buildSessionPresentationMapFromSnapshot(stateCtr)
 			currentPeerID := r.account.GetCurrentSessionPeerID().String()
-			resp := &s4wave_account.WatchSessionsResponse{
+			return &s4wave_account.WatchSessionsResponse{
 				Sessions: buildCloudSessionRows(currentPeerID, rows, metadata),
 			}
-			if prev == nil || !resp.EqualVT(prev) {
-				if err := strm.Send(resp); err != nil {
-					return err
-				}
-				prev = resp
+		},
+		func(resp *s4wave_account.WatchSessionsResponse) bool {
+			if prev != nil && resp.EqualVT(prev) {
+				return false
 			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
-	}
+			prev = resp
+			return true
+		},
+		strm.Send,
+	)
 }
 
 func buildCloudSessionRows(
@@ -584,6 +606,28 @@ func marshalMultiSigRequest(msReq *api.MultiSigRequest) ([]byte, error) {
 	return body, nil
 }
 
+// submitTrackedAction resolves or signs the entity multi-sig envelope for an
+// account API mutation, submits it through the multi-sig endpoint, and bumps
+// the local epoch on success. wrapMsg is used to wrap a non-nil send error.
+func (r *AccountResource) submitTrackedAction(
+	ctx context.Context,
+	cred *session.EntityCredential,
+	kind api.MultiSigActionKind,
+	method, reqPath string,
+	actionBody []byte,
+	wrapMsg string,
+) error {
+	envelope, sigs, err := r.resolveOrSignWithTracker(ctx, cred, kind, method, reqPath, actionBody)
+	if err != nil {
+		return err
+	}
+	if _, err := r.sendMultiSig(ctx, method, reqPath, envelope, sigs); err != nil {
+		return errors.Wrap(err, wrapMsg)
+	}
+	r.account.BumpLocalEpoch()
+	return nil
+}
+
 // AddAuthMethod adds a new entity keypair (auth method) to the account.
 func (r *AccountResource) AddAuthMethod(
 	ctx context.Context,
@@ -597,24 +641,18 @@ func (r *AccountResource) AddAuthMethod(
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal add keypair action")
 	}
-	accountID := r.account.GetAccountID()
-	reqPath := accountAPIPath(accountID, "keypair", "add")
-	envelope, sigs, err := r.resolveOrSignWithTracker(
+	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "add")
+	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
 		api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_ADD_KEYPAIR,
 		http.MethodPost,
 		reqPath,
 		actionBody,
-	)
-	if err != nil {
+		"add auth method",
+	); err != nil {
 		return nil, err
 	}
-	if _, err := r.sendMultiSig(ctx, http.MethodPost, reqPath, envelope, sigs); err != nil {
-		return nil, errors.Wrap(err, "add auth method")
-	}
-	r.account.BumpLocalEpoch()
-
 	return &s4wave_account.AddAuthMethodResponse{}, nil
 }
 
@@ -623,29 +661,22 @@ func (r *AccountResource) RemoveAuthMethod(
 	ctx context.Context,
 	req *s4wave_account.RemoveAuthMethodRequest,
 ) (*s4wave_account.RemoveAuthMethodResponse, error) {
-	accountID := r.account.GetAccountID()
-	reqPath := accountAPIPath(accountID, "keypair", "remove")
-
 	actionBody, err := (&api.RemoveKeypairAction{PeerId: req.GetPeerId()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal remove keypair action")
 	}
-	envelope, sigs, err := r.resolveOrSignWithTracker(
+	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "remove")
+	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
 		api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_REMOVE_KEYPAIR,
 		http.MethodPost,
 		reqPath,
 		actionBody,
-	)
-	if err != nil {
+		"remove auth method",
+	); err != nil {
 		return nil, err
 	}
-	if _, err := r.sendMultiSig(ctx, http.MethodPost, reqPath, envelope, sigs); err != nil {
-		return nil, errors.Wrap(err, "remove auth method")
-	}
-	r.account.BumpLocalEpoch()
-
 	return &s4wave_account.RemoveAuthMethodResponse{}, nil
 }
 
@@ -654,28 +685,22 @@ func (r *AccountResource) SetSecurityLevel(
 	ctx context.Context,
 	req *s4wave_account.SetSecurityLevelRequest,
 ) (*s4wave_account.SetSecurityLevelResponse, error) {
-	accountID := r.account.GetAccountID()
-	reqPath := accountAPIPath(accountID, "threshold")
-
 	actionBody, err := (&api.UpdateThresholdAction{Threshold: req.GetThreshold()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal update threshold action")
 	}
-	envelope, sigs, err := r.resolveOrSignWithTracker(
+	reqPath := accountAPIPath(r.account.GetAccountID(), "threshold")
+	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
 		api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_UPDATE_THRESHOLD,
 		http.MethodPost,
 		reqPath,
 		actionBody,
-	)
-	if err != nil {
+		"set security level",
+	); err != nil {
 		return nil, err
 	}
-	if _, err := r.sendMultiSig(ctx, http.MethodPost, reqPath, envelope, sigs); err != nil {
-		return nil, errors.Wrap(err, "set security level")
-	}
-	r.account.BumpLocalEpoch()
 	return &s4wave_account.SetSecurityLevelResponse{}, nil
 }
 
@@ -703,30 +728,24 @@ func (r *AccountResource) RevokeSession(
 		}
 	}
 
-	accountID := r.account.GetAccountID()
-	reqPath := accountAPIPath(accountID, "session", req.GetSessionPeerId())
-
 	actionBody, err := (&api.RevokeSessionAction{
 		SessionPeerId: req.GetSessionPeerId(),
 	}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal revoke session action")
 	}
-	envelope, sigs, err := r.resolveOrSignWithTracker(
+	reqPath := accountAPIPath(r.account.GetAccountID(), "session", req.GetSessionPeerId())
+	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
 		api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_REVOKE_SESSION,
 		http.MethodDelete,
 		reqPath,
 		actionBody,
-	)
-	if err != nil {
+		"revoke session",
+	); err != nil {
 		return nil, err
 	}
-	if _, err := r.sendMultiSig(ctx, http.MethodDelete, reqPath, envelope, sigs); err != nil {
-		return nil, errors.Wrap(err, "revoke session")
-	}
-	r.account.BumpLocalEpoch()
 	return &s4wave_account.RevokeSessionResponse{}, nil
 }
 
@@ -757,23 +776,18 @@ func (r *AccountResource) GenerateBackupKey(
 	}
 
 	// Register the backup key with the cloud.
-	accountID := r.account.GetAccountID()
-	reqPath := accountAPIPath(accountID, "keypair", "add")
-	envelope, sigs, err := r.resolveOrSignWithTracker(
+	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "add")
+	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
 		api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_ADD_KEYPAIR,
 		http.MethodPost,
 		reqPath,
 		actionBody,
-	)
-	if err != nil {
+		"register backup key",
+	); err != nil {
 		return nil, err
 	}
-	if _, err := r.sendMultiSig(ctx, http.MethodPost, reqPath, envelope, sigs); err != nil {
-		return nil, errors.Wrap(err, "register backup key")
-	}
-	r.account.BumpLocalEpoch()
 
 	// Marshal private key to PEM.
 	pemData, err := keypem.MarshalPrivKeyPem(backupPriv)

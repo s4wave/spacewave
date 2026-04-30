@@ -2000,6 +2000,42 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 	}, nil
 }
 
+// Invite-beacon registration flow.
+//
+// The full invite lifecycle straddles the local invite host and the cloud DO:
+//
+//  1. Owner: SessionResource.CreateSpaceInvite signs an SOInviteMessage with
+//     the owner's session key via InviteHost.CreateSOInviteOp. The signed
+//     message and its token are kept in memory by the caller; the on-chain
+//     SOInvite (token-hash only) is appended to the SO config chain.
+//
+//  2. Owner: for spacewave-backed sessions, CreateSpaceInvite registers two
+//     cloud-side handles for the message it just produced:
+//     - RegisterInviteBeacon binds (so_id, invite_id, token_hash, expires_at)
+//       on the SO DO so a joiner that already has the message bytes can
+//       deliver an enrollment request through the cloud mailbox.
+//     - RegisterInviteCode publishes a short, human-readable code (8 chars)
+//       that maps to the base64'd SOInviteMessage with the same expiry. The
+//       short code is cloud-only convenience storage; the SO config chain
+//       sees only the on-chain SOInvite recorded in step 1.
+//
+//  3. Joiner: LookupInviteCode below resolves a short code to the original
+//     SOInviteMessage by asking the SO DO. Joiners then verify the message
+//     against the SO config chain locally (the chain entry from step 1) and
+//     run the standard mailbox-driven enrollment via ProcessMailboxEntry.
+//
+// Local-vs-cloud ownership boundary:
+//
+//   - Local (spacewave package): builds and signs the SOInviteMessage,
+//     verifies the message, drives mailbox processing, and applies invite
+//     mutations to the SO config chain. These actions are authoritative; the
+//     cloud cannot forge them.
+//   - Cloud (SO DO): owns only the beacon and short-code lookup tables. They
+//     are advisory routing aids that expire; losing or rejecting a beacon
+//     never compromises the on-chain invite state. RegisterInviteBeacon and
+//     RegisterInviteCode failures are logged and ignored at the call site
+//     because the local message is still usable as a long-form invite link.
+
 // LookupInviteCode resolves a short invite code to the full SOInviteMessage.
 func (r *SpacewaveSessionResource) LookupInviteCode(
 	ctx context.Context,

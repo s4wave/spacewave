@@ -303,5 +303,5 @@ func (c *SessionClient) loadStandaloneConfigState(
 	if err := chain.UnmarshalVT(chainData); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "unmarshal config chain")
 	}
-	return state, currentCfg, cloneSOKeyEpochs(chain.GetKeyEpochs()), nil
+	return state, currentCfg, cloneVTSlice(chain.GetKeyEpochs()), nil
 }

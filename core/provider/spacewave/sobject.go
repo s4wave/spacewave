@@ -1205,27 +1205,18 @@ func (s *SharedObject) buildRecoveryEnvelopesForConfig(
 	return recoveryEnvelopes, nil
 }
 
-// cloneSOGrants deep-copies a slice of SOGrant messages.
-func cloneSOGrants(grants []*sobject.SOGrant) []*sobject.SOGrant {
-	cloned := make([]*sobject.SOGrant, 0, len(grants))
-	for _, grant := range grants {
-		cloned = append(cloned, grant.CloneVT())
-	}
-	return cloned
-}
-
-// cloneSOKeyEpochs deep-copies a slice of SOKeyEpoch messages.
-func cloneSOKeyEpochs(epochs []*sobject.SOKeyEpoch) []*sobject.SOKeyEpoch {
-	cloned := make([]*sobject.SOKeyEpoch, 0, len(epochs))
-	for _, epoch := range epochs {
-		cloned = append(cloned, epoch.CloneVT())
+// cloneVTSlice deep-copies a slice of VT-clonable proto messages.
+func cloneVTSlice[T interface{ CloneVT() T }](items []T) []T {
+	cloned := make([]T, 0, len(items))
+	for _, item := range items {
+		cloned = append(cloned, item.CloneVT())
 	}
 	return cloned
 }
 
 // mergeSOKeyEpochs appends a new epoch to the cloned epoch list, closing the previous epoch's seqno range.
 func mergeSOKeyEpochs(epochs []*sobject.SOKeyEpoch, next *sobject.SOKeyEpoch) []*sobject.SOKeyEpoch {
-	cloned := cloneSOKeyEpochs(epochs)
+	cloned := cloneVTSlice(epochs)
 	if next == nil {
 		return cloned
 	}
@@ -1273,7 +1264,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		lastHash = append([]byte(nil), s.host.lastConfigChainHash...)
 		lastSeqno = s.host.verifiedConfigChainSeqno
-		epochs = cloneSOKeyEpochs(s.host.keyEpochs)
+		epochs = cloneVTSlice(s.host.keyEpochs)
 	})
 
 	currentHash := currentCfg.GetConfigChainHash()
@@ -1285,7 +1276,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 		s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			lastHash = append([]byte(nil), s.host.lastConfigChainHash...)
 			lastSeqno = s.host.verifiedConfigChainSeqno
-			epochs = cloneSOKeyEpochs(s.host.keyEpochs)
+			epochs = cloneVTSlice(s.host.keyEpochs)
 		})
 	}
 	if len(lastHash) != 0 {
@@ -1294,14 +1285,6 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	}
 
 	return state, currentCfg, epochs, nil
-}
-
-func cloneSOInvites(invites []*sobject.SOInvite) []*sobject.SOInvite {
-	cloned := make([]*sobject.SOInvite, 0, len(invites))
-	for _, invite := range invites {
-		cloned = append(cloned, invite.CloneVT())
-	}
-	return cloned
 }
 
 func (s *SharedObject) applyInviteMutation(
@@ -1327,7 +1310,7 @@ func (s *SharedObject) applyInviteMutation(
 		}
 		epoch := currentEpochWithFallback(state, epochs)
 
-		nextInvites, err := updateFn(cloneSOInvites(state.GetInvites()))
+		nextInvites, err := updateFn(cloneVTSlice(state.GetInvites()))
 		if err != nil {
 			return err
 		}

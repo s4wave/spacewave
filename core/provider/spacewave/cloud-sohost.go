@@ -877,7 +877,7 @@ func (h *cloudSOHost) applyKeyEpoch(ctx context.Context, epoch *sobject.SOKeyEpo
 			rootSeqno := next.GetRoot().GetInnerSeqno()
 			if rootSeqno >= epoch.GetSeqnoStart() &&
 				(epoch.GetSeqnoEnd() == 0 || rootSeqno <= epoch.GetSeqnoEnd()) {
-				next.RootGrants = cloneSOGrants(epoch.GetGrants())
+				next.RootGrants = cloneVTSlice(epoch.GetGrants())
 			}
 			h.stateCtr.SetValue(next)
 		}
@@ -923,13 +923,13 @@ func (h *cloudSOHost) applyConfigMutation(
 			next := st.CloneVT()
 			next.Config = nextCfg
 			if nextInvites != nil {
-				next.Invites = cloneSOInvites(nextInvites)
+				next.Invites = cloneVTSlice(nextInvites)
 			}
 			if epoch != nil {
 				rootSeqno := next.GetRoot().GetInnerSeqno()
 				if rootSeqno >= epoch.GetSeqnoStart() &&
 					(epoch.GetSeqnoEnd() == 0 || rootSeqno <= epoch.GetSeqnoEnd()) {
-					next.RootGrants = cloneSOGrants(epoch.GetGrants())
+					next.RootGrants = cloneVTSlice(epoch.GetGrants())
 				}
 			}
 			h.stateCtr.SetValue(next)
@@ -1123,7 +1123,7 @@ func (h *cloudSOHost) syncConfigChain(ctx context.Context, newHash []byte) error
 		GenesisHash:              append([]byte(nil), h.genesisHash...),
 		VerifiedConfigChainHash:  append([]byte(nil), newHash...),
 		VerifiedConfigChainSeqno: entries[len(entries)-1].GetConfigSeqno(),
-		KeyEpochs:                cloneSOKeyEpochs(resp.GetKeyEpochs()),
+		KeyEpochs:                cloneVTSlice(resp.GetKeyEpochs()),
 	}
 	if latestConfig != nil {
 		cache.CurrentConfig = latestConfig.CloneVT()
@@ -1133,7 +1133,7 @@ func (h *cloudSOHost) syncConfigChain(ctx context.Context, newHash []byte) error
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		h.lastConfigChainHash = append([]byte(nil), newHash...)
 		h.verifiedConfigChainSeqno = entries[len(entries)-1].GetConfigSeqno()
-		h.keyEpochs = cloneSOKeyEpochs(resp.GetKeyEpochs())
+		h.keyEpochs = cloneVTSlice(resp.GetKeyEpochs())
 		if latestConfig != nil {
 			h.verifiedConfig = latestConfig.CloneVT()
 		}
@@ -1340,7 +1340,7 @@ func (h *cloudSOHost) buildVerifiedStateCache() *api.VerifiedSOStateCache {
 			GenesisHash:              append([]byte(nil), h.genesisHash...),
 			VerifiedConfigChainHash:  append([]byte(nil), h.lastConfigChainHash...),
 			VerifiedConfigChainSeqno: h.verifiedConfigChainSeqno,
-			KeyEpochs:                cloneSOKeyEpochs(h.keyEpochs),
+			KeyEpochs:                cloneVTSlice(h.keyEpochs),
 		}
 		config := h.verifiedConfig
 		if config == nil {
@@ -1401,7 +1401,7 @@ func (h *cloudSOHost) hydrateVerifiedStateCache(cache *api.VerifiedSOStateCache)
 	h.genesisHash = append([]byte(nil), cache.GetGenesisHash()...)
 	h.lastConfigChainHash = append([]byte(nil), cache.GetVerifiedConfigChainHash()...)
 	h.verifiedConfigChainSeqno = cache.GetVerifiedConfigChainSeqno()
-	h.keyEpochs = cloneSOKeyEpochs(cache.GetKeyEpochs())
+	h.keyEpochs = cloneVTSlice(cache.GetKeyEpochs())
 	if cache.GetCurrentConfig() != nil {
 		h.verifiedConfig = cache.GetCurrentConfig().CloneVT()
 	}

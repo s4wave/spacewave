@@ -158,7 +158,9 @@ func (s *syncController) Execute(ctx context.Context) error {
 				}
 				s.le.WithError(err).Warn("flush failed")
 				delay := nextProviderRetryDelay(bo, err)
-				ch = s.getDirtyWaitCh()
+				s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+					ch = getWaitCh()
+				})
 				if err := waitDirtySyncRetry(ctx, ch, delay); err != nil {
 					return nil
 				}
@@ -169,7 +171,9 @@ func (s *syncController) Execute(ctx context.Context) error {
 					nextDirty = s.dirtySize
 				})
 				if nextDirty >= dirty && nextDirty > 0 {
-					ch = s.getDirtyWaitCh()
+					s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+						ch = getWaitCh()
+					})
 					select {
 					case <-ctx.Done():
 						return nil
@@ -202,7 +206,9 @@ func (s *syncController) Execute(ctx context.Context) error {
 					}
 					s.le.WithError(err).Warn("flush on timeout failed")
 					delay := nextProviderRetryDelay(bo, err)
-					ch = s.getDirtyWaitCh()
+					s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+						ch = getWaitCh()
+					})
 					if err := waitDirtySyncRetry(ctx, ch, delay); err != nil {
 						return nil
 					}
@@ -219,14 +225,6 @@ func (s *syncController) Execute(ctx context.Context) error {
 			}
 		}
 	}
-}
-
-func (s *syncController) getDirtyWaitCh() <-chan struct{} {
-	var ch <-chan struct{}
-	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ch = getWaitCh()
-	})
-	return ch
 }
 
 func waitDirtySyncRetry(ctx context.Context, ch <-chan struct{}, delay time.Duration) error {
@@ -347,9 +345,9 @@ func (s *syncController) MarkDirty(ctx context.Context, h *hash.Hash, size int64
 		s.dirtySize += size
 		broadcast()
 	})
-	if s.telemetry != nil {
-		s.telemetry.addSyncTelemetryDirty(s.resourceID, size)
-	}
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.addSyncTelemetryDirty(id, size)
+	})
 }
 
 // recalcDirtySize recalculates the dirty size from the object store on startup.
@@ -377,9 +375,9 @@ func (s *syncController) recalcDirtySize(ctx context.Context) {
 		s.dirtySize = total
 		broadcast()
 	})
-	if s.telemetry != nil {
-		s.telemetry.setSyncTelemetryPending(s.resourceID, total, count)
-	}
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryPending(id, total, count)
+	})
 }
 
 // dirtyBlock holds a dirty block's hash key and data for flushing.
@@ -531,7 +529,10 @@ func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncCh
 // pushPreparedChunk uploads one prepared packfile chunk.
 func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
 	entry := chunk.entry
-	s.startTelemetryPush(int64(len(chunk.packData)))
+	pushBytes := int64(len(chunk.packData))
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.startSyncTelemetryPush(id, pushBytes)
+	})
 	started := time.Now()
 	err := s.pushPackfile(
 		ctx,
@@ -548,7 +549,9 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 				entry.GetBloomFilter(),
 				entry.GetBloomFormatVersion(),
 				func(sent int64) {
-					s.setTelemetryPushProgress(sent)
+					s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+						t.setSyncTelemetryPushProgress(id, sent)
+					})
 				},
 			)
 		},
@@ -558,7 +561,9 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 		WithField("bytes", len(chunk.packData)).
 		WithField("duration", time.Since(started)).
 		Debug("pushed packfile")
-	s.finishTelemetryPush(int64(len(chunk.packData)), err)
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.finishSyncTelemetryPush(id, pushBytes, err)
+	})
 	if err != nil {
 		return errors.Wrap(err, "pushing packfile")
 	}
@@ -745,9 +750,13 @@ func (s *syncController) pull(ctx context.Context) error {
 		since = strconv.FormatUint(lastSeq, 10)
 	}
 
-	s.startTelemetryPull()
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.startSyncTelemetryPull(id)
+	})
 	respData, err := s.client.SyncPull(ctx, s.resourceID, since)
-	s.finishTelemetryPull(err)
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.finishSyncTelemetryPull(id, err)
+	})
 	if err != nil {
 		return errors.Wrap(err, "pulling from server")
 	}
@@ -775,39 +784,14 @@ func (s *syncController) pull(ctx context.Context) error {
 	return nil
 }
 
-func (s *syncController) startTelemetryPush(bytes int64) {
+// telemetrySafeCall invokes fn against the attached telemetry account when
+// telemetry is enabled. The shared resource id and account handle are bound
+// so call sites read as a single line per telemetry event.
+func (s *syncController) telemetrySafeCall(fn func(t *ProviderAccount, resourceID string)) {
 	if s.telemetry == nil {
 		return
 	}
-	s.telemetry.startSyncTelemetryPush(s.resourceID, bytes)
-}
-
-func (s *syncController) finishTelemetryPush(bytes int64, err error) {
-	if s.telemetry == nil {
-		return
-	}
-	s.telemetry.finishSyncTelemetryPush(s.resourceID, bytes, err)
-}
-
-func (s *syncController) setTelemetryPushProgress(bytes int64) {
-	if s.telemetry == nil {
-		return
-	}
-	s.telemetry.setSyncTelemetryPushProgress(s.resourceID, bytes)
-}
-
-func (s *syncController) startTelemetryPull() {
-	if s.telemetry == nil {
-		return
-	}
-	s.telemetry.startSyncTelemetryPull(s.resourceID)
-}
-
-func (s *syncController) finishTelemetryPull(err error) {
-	if s.telemetry == nil {
-		return
-	}
-	s.telemetry.finishSyncTelemetryPull(s.resourceID, err)
+	fn(s.telemetry, s.resourceID)
 }
 
 func isRetryableSyncPushCancel(err error) bool {
