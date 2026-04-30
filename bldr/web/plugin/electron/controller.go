@@ -3,6 +3,7 @@ package electron
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -165,20 +166,33 @@ func (r *Controller) Execute(ctx context.Context) error {
 }
 
 func (r *Controller) shouldExitWithoutRestart(err error, e *Electron) bool {
+	quitPolicy := r.electronInit.GetQuitPolicy()
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
 	defer waitCancel()
 	waitErr := e.Wait(waitCtx)
-	return shouldExitWithoutRestart(waitErr, r.electronInit.GetQuitPolicy())
+	return shouldExitWithoutRestart(err, waitErr, quitPolicy)
 }
 
 func shouldExitWithoutRestart(
+	runtimeErr error,
 	processErr error,
 	quitPolicy QuitPolicy,
 ) bool {
 	if quitPolicy != QuitPolicy_QUIT_POLICY_EXIT {
 		return false
 	}
-	return processErr == nil
+	if processErr == nil {
+		return true
+	}
+	return isExpectedRuntimeDisconnect(runtimeErr)
+}
+
+func isExpectedRuntimeDisconnect(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return msg == "stream reset" || strings.Contains(msg, "use of closed network connection")
 }
 
 func requestHostExit(le *logrus.Entry) {

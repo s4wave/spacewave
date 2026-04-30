@@ -43,6 +43,7 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
         "provider-local": config_entry("provider/local", 1),
         "provider-spacewave": config_entry("provider/spacewave", 2, {
             "endpoint": "https://spacewave.app",
+            "accountEndpoint": "https://account.spacewave.app",
             "signingEnvPrefix": "spacewave",
         }),
         "space-sobject": config_entry("space/sobject", 1, {"verbose": False}),

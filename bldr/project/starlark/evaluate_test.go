@@ -168,6 +168,20 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	core := result.Config.GetManifests()["spacewave-core"]
+	if core == nil {
+		t.Fatal("spacewave-core manifest not found")
+	}
+	coreCfg := string(core.GetBuilder().GetConfig())
+	for _, want := range []string{
+		`"accountEndpoint":"https://account.spacewave.app"`,
+		`"endpoint":"https://spacewave.app"`,
+	} {
+		if !strings.Contains(coreCfg, want) {
+			t.Fatalf("spacewave-core config missing %s: %s", want, coreCfg)
+		}
+	}
+
 	bc := result.Config.GetBuild()["release-desktop-darwin-arm64"]
 	if bc == nil {
 		t.Fatal("build target 'release-desktop-darwin-arm64' not found")
@@ -186,7 +200,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		`"spacewave-loader"`,
 		`"spacewave-core"`,
 		`"web"`,
-		`"platformId":"web/js/wasm"`,
+		`"platformId":"desktop/darwin/arm64"`,
 		`"spacewave-web"`,
 		`"spacewave-app"`,
 		`"platformId":"js"`,
