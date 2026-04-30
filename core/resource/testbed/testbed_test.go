@@ -5,11 +5,63 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
+
+// rpcWorldFixture holds the RPC plumbing shared by RPC-variant subtests.
+type rpcWorldFixture struct {
+	resClient     *resource_client.Client
+	testbedClient s4wave_testbed.SRPCTestbedResourceServiceClient
+}
+
+// setupRPCWorldFixture creates a testbed, resource client, root reference, and
+// testbed RPC client. Cleanup is registered via t.Cleanup.
+func setupRPCWorldFixture(ctx context.Context, t *testing.T) *rpcWorldFixture {
+	t.Helper()
+	_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
+	t.Cleanup(cleanup)
+
+	rootRef := resClient.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+
+	srpcClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return &rpcWorldFixture{
+		resClient:     resClient,
+		testbedClient: s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient),
+	}
+}
+
+// createEngineRef creates a world via RPC and returns a tracked reference to
+// the engine resource. Release is registered via t.Cleanup.
+func (f *rpcWorldFixture) createEngineRef(ctx context.Context, t *testing.T) resource_client.ResourceRef {
+	t.Helper()
+	createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engineRef := f.resClient.CreateResourceReference(createResp.ResourceId)
+	t.Cleanup(engineRef.Release)
+	return engineRef
+}
+
+// engineClient builds an EngineResourceService client from an engine ref and
+// returns the underlying SRPC client for callers that also need it.
+func engineClient(t *testing.T, engineRef resource_client.ResourceRef) (s4wave_world.SRPCEngineResourceServiceClient, srpc.Client) {
+	t.Helper()
+	engineSrpcClient, err := engineRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return s4wave_world.NewSRPCEngineResourceServiceClient(engineSrpcClient), engineSrpcClient
+}
 
 // TestTestbedResourceServerViaRpc tests the testbed resource server functionality calling RPCs directly.
 func TestTestbedResourceServerViaRpc(t *testing.T) {
@@ -17,11 +69,10 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 1: Create testbed resource server and access root
 	t.Run("AccessRootResource", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
 
-		// Access root resource
-		rootRef := resClient.AccessRootResource()
+		// Sanity-check the root resource ID via the underlying ref API.
+		rootRef := f.resClient.AccessRootResource()
 		defer rootRef.Release()
 
 		rootID := rootRef.GetResourceID()
@@ -34,20 +85,9 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 2: Create world engine via CreateWorld RPC
 	t.Run("CreateWorld", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
 
-		// Access root resource
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		// Call CreateWorld
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		resp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+		resp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -61,34 +101,11 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 3: Get engine info from created engine resource
 	t.Run("GetEngineInfo", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
+		engineRef := f.createEngineRef(ctx, t)
 
-		// Access root and create world
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		// Create reference to engine resource
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		defer engineRef.Release()
-
-		// Get engine info
-		engineSrpcClient, err := engineRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		engineClient := s4wave_world.NewSRPCEngineResourceServiceClient(engineSrpcClient)
-		infoResp, err := engineClient.GetEngineInfo(ctx, &s4wave_world.GetEngineInfoRequest{})
+		ec, _ := engineClient(t, engineRef)
+		infoResp, err := ec.GetEngineInfo(ctx, &s4wave_world.GetEngineInfoRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -106,43 +123,20 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 4: Access WorldState operations via transaction
 	t.Run("WorldStateOperations", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
+		engineRef := f.createEngineRef(ctx, t)
 
-		// Access root and create world
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		// Create reference to engine resource
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		defer engineRef.Release()
-
-		// Create EngineResourceService client
-		engineSrpcClient, err := engineRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		engineClient := s4wave_world.NewSRPCEngineResourceServiceClient(engineSrpcClient)
+		ec, _ := engineClient(t, engineRef)
 
 		// Test GetSeqno via engine
-		seqnoResp, err := engineClient.GetSeqno(ctx, &s4wave_world.GetSeqnoRequest{})
+		seqnoResp, err := ec.GetSeqno(ctx, &s4wave_world.GetSeqnoRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		t.Logf("Initial seqno: %d", seqnoResp.Seqno)
 
 		// Create a write transaction
-		txResp, err := engineClient.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{
+		txResp, err := ec.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{
 			Write: true,
 		})
 		if err != nil {
@@ -150,7 +144,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		}
 
 		// Create reference to transaction resource
-		txRef := resClient.CreateResourceReference(txResp.ResourceId)
+		txRef := f.resClient.CreateResourceReference(txResp.ResourceId)
 		defer txRef.Release()
 
 		// Create WorldStateResourceService client on the transaction
@@ -170,7 +164,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		}
 
 		// Create reference to object resource
-		objRef := resClient.CreateResourceReference(createObjResp.ResourceId)
+		objRef := f.resClient.CreateResourceReference(createObjResp.ResourceId)
 		defer objRef.Release()
 
 		// Create ObjectStateResourceService client
@@ -194,14 +188,14 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		}
 
 		// Get the new seqno after the commit
-		newSeqnoResp, err := engineClient.GetSeqno(ctx, &s4wave_world.GetSeqnoRequest{})
+		newSeqnoResp, err := ec.GetSeqno(ctx, &s4wave_world.GetSeqnoRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		newSeqno := newSeqnoResp.Seqno
 
 		// Wait for seqno via RPC (should return immediately since we already have the seqno)
-		waitResp, err := engineClient.WaitSeqno(ctx, &s4wave_world.WaitSeqnoRequest{
+		waitResp, err := ec.WaitSeqno(ctx, &s4wave_world.WaitSeqnoRequest{
 			Seqno: newSeqno,
 		})
 		if err != nil {
@@ -217,27 +211,16 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 5: Multiple engine resources can be created
 	t.Run("MultipleEngines", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
-
-		// Access root resource
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
+		f := setupRPCWorldFixture(ctx, t)
 
 		// Create first engine
-		resp1, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+		resp1, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
 		// Create second engine
-		resp2, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+		resp2, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -251,36 +234,13 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 6: WatchWorldState via transaction
 	t.Run("WatchWorldStateViaTransaction", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
+		engineRef := f.createEngineRef(ctx, t)
 
-		// Access root and create world
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		// Create reference to engine resource
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		defer engineRef.Release()
-
-		// Create EngineResourceService client
-		engineSrpcClient, err := engineRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		engineClient := s4wave_world.NewSRPCEngineResourceServiceClient(engineSrpcClient)
+		ec, engineSrpcClient := engineClient(t, engineRef)
 
 		// Create a read transaction
-		txResp, err := engineClient.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{
+		txResp, err := ec.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{
 			Write: false,
 		})
 		if err != nil {
@@ -288,7 +248,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 		}
 
 		// Create reference to transaction resource
-		txRef := resClient.CreateResourceReference(txResp.ResourceId)
+		txRef := f.resClient.CreateResourceReference(txResp.ResourceId)
 		defer txRef.Release()
 
 		// Create WatchWorldStateResourceService client on the engine
@@ -315,25 +275,15 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 
 	// Test 7: Resource cleanup on release
 	t.Run("ResourceCleanup", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
 
-		// Access root and create world
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
+		// Manual lifecycle: this test releases the engine ref explicitly
+		// during the body, so we do not register Release with t.Cleanup.
+		createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		// Create reference to engine resource
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
+		engineRef := f.resClient.CreateResourceReference(createResp.ResourceId)
 
 		// Create WatchWorldStateResourceService client on the engine
 		engineSrpcClient, err := engineRef.GetClient()
@@ -370,36 +320,38 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 	})
 }
 
+// sdkEngineFixture wraps an SDK engine bound to a freshly created world.
+type sdkEngineFixture struct {
+	engine *s4wave_world.Engine
+}
+
+// setupSDKEngine creates a testbed, resource client, and an SDK Engine over a
+// freshly created world. Cleanup is registered via t.Cleanup.
+func setupSDKEngine(ctx context.Context, t *testing.T) *sdkEngineFixture {
+	t.Helper()
+	f := setupRPCWorldFixture(ctx, t)
+	createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engineRef := f.resClient.CreateResourceReference(createResp.ResourceId)
+	engine, err := s4wave_world.NewEngine(f.resClient, engineRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(engine.Release)
+	return &sdkEngineFixture{engine: engine}
+}
+
 // TestTestbedResourceServerViaSDK tests the testbed resource server functionality using SDK wrappers.
 func TestTestbedResourceServerViaSDK(t *testing.T) {
 	ctx := context.Background()
 
 	// Test 1: Create world engine and get engine info
 	t.Run("CreateWorldAndGetInfo", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		infoResp, err := engine.GetEngineInfo(ctx)
+		infoResp, err := f.engine.GetEngineInfo(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -417,36 +369,15 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 2: Create and commit transaction
 	t.Run("CreateAndCommitTransaction", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		initialSeqno, err := engine.GetSeqno(ctx)
+		initialSeqno, err := f.engine.GetSeqno(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		t.Logf("Initial seqno: %d", initialSeqno)
 
-		tx, err := engine.NewTransaction(ctx, true)
+		tx, err := f.engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -468,7 +399,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		newSeqno, err := engine.GetSeqno(ctx)
+		newSeqno, err := f.engine.GetSeqno(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -482,30 +413,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 3: WorldState operations
 	t.Run("WorldStateOperations", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		tx, err := engine.NewTransaction(ctx, true)
+		tx, err := f.engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -565,30 +475,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 4: ObjectState operations
 	t.Run("ObjectStateOperations", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		tx, err := engine.NewTransaction(ctx, true)
+		tx, err := f.engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -630,30 +519,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 5: WaitSeqno
 	t.Run("WaitSeqno", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		tx, err := engine.NewTransaction(ctx, true)
+		tx, err := f.engine.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -675,12 +543,12 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		newSeqno, err := engine.GetSeqno(ctx)
+		newSeqno, err := f.engine.GetSeqno(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
-		waitedSeqno, err := engine.WaitSeqno(ctx, newSeqno)
+		waitedSeqno, err := f.engine.WaitSeqno(ctx, newSeqno)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -694,30 +562,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 6: WatchWorldState
 	t.Run("WatchWorldState", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupSDKEngine(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer engine.Release()
-
-		stream, err := engine.WatchWorldState(ctx)
+		stream, err := f.engine.WatchWorldState(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -736,24 +583,15 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 	// Test 7: Resource cleanup
 	t.Run("ResourceCleanupViaSDK", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
-
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
+		// Manual engine lifecycle: this test releases the engine in the body,
+		// so we do not use the t.Cleanup-based setupSDKEngine helper.
+		f := setupRPCWorldFixture(ctx, t)
+		createResp, err := f.testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-		createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-		engine, err := s4wave_world.NewEngine(resClient, engineRef)
+		engineRef := f.resClient.CreateResourceReference(createResp.ResourceId)
+		engine, err := s4wave_world.NewEngine(f.resClient, engineRef)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -782,166 +620,111 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 	})
 }
 
+// stateAtomFixture wraps an accessed StateAtom resource client for a subtest.
+type stateAtomFixture struct {
+	stateClient resource_state.SRPCStateAtomResourceServiceClient
+}
+
+// setupStateAtom creates a testbed and accesses a StateAtom on the requested
+// store ID (empty string defaults to the default store).
+func setupStateAtom(ctx context.Context, t *testing.T, storeID string) *stateAtomFixture {
+	t.Helper()
+	f := setupRPCWorldFixture(ctx, t)
+	accessResp, err := f.testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{
+		StoreId: storeID,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	stateRef := f.resClient.CreateResourceReference(accessResp.ResourceId)
+	t.Cleanup(stateRef.Release)
+	stateSrpcClient, err := stateRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return &stateAtomFixture{
+		stateClient: resource_state.NewSRPCStateAtomResourceServiceClient(stateSrpcClient),
+	}
+}
+
 // TestStateAtomResourceViaRpc tests the StateAtom resource functionality via raw RPC calls.
 func TestStateAtomResourceViaRpc(t *testing.T) {
 	ctx := context.Background()
 
-	// Test 1: Access StateAtom resource
-	t.Run("AccessStateAtom", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+	// Trivial single-RPC checks: shape state via RPC, assert observable result.
+	type stateAtomCase struct {
+		name string
+		run  func(t *testing.T, sf *stateAtomFixture)
+	}
+	cases := []stateAtomCase{
+		{
+			name: "AccessStateAtom",
+			run: func(t *testing.T, sf *stateAtomFixture) {
+				// AccessStateAtom is exercised inside setupStateAtom; verify
+				// the resulting client can issue a GetState call.
+				resp, err := sf.stateClient.GetState(ctx, &resource_state.GetStateRequest{})
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+				t.Logf("Accessed StateAtom; initial state: %s", resp.StateJson)
+			},
+		},
+		{
+			name: "GetInitialState",
+			run: func(t *testing.T, sf *stateAtomFixture) {
+				getResp, err := sf.stateClient.GetState(ctx, &resource_state.GetStateRequest{})
+				if err != nil {
+					t.Fatal(err.Error())
+				}
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
+				if getResp.StateJson != "{}" {
+					t.Fatalf("expected initial state '{}', got %q", getResp.StateJson)
+				}
 
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
+				t.Logf("Initial state: %s, seqno: %d", getResp.StateJson, getResp.Seqno)
+			},
+		},
+		{
+			name: "SetAndGetState",
+			run: func(t *testing.T, sf *stateAtomFixture) {
+				testState := `{"tabs":[{"id":"home","path":"/"}],"activeTabId":"home"}`
+				setResp, err := sf.stateClient.SetState(ctx, &resource_state.SetStateRequest{
+					StateJson: testState,
+				})
+				if err != nil {
+					t.Fatal(err.Error())
+				}
 
-		// Access StateAtom (uses default store ID)
-		resp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
+				if setResp.Seqno == 0 {
+					t.Fatal("expected non-zero seqno after SetState")
+				}
 
-		if resp.ResourceId == 0 {
-			t.Fatal("expected non-zero resource_id from AccessStateAtom")
-		}
+				getResp, err := sf.stateClient.GetState(ctx, &resource_state.GetStateRequest{})
+				if err != nil {
+					t.Fatal(err.Error())
+				}
 
-		t.Logf("Accessed StateAtom resource with ID: %d", resp.ResourceId)
-	})
+				if getResp.StateJson != testState {
+					t.Fatalf("expected state %q, got %q", testState, getResp.StateJson)
+				}
 
-	// Test 2: Get initial state (should be empty JSON object)
-	t.Run("GetInitialState", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
-
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-
-		// Access StateAtom
-		accessResp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		// Create reference to state atom resource
-		stateRef := resClient.CreateResourceReference(accessResp.ResourceId)
-		defer stateRef.Release()
-
-		// Get state
-		stateSrpcClient, err := stateRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		stateClient := resource_state.NewSRPCStateAtomResourceServiceClient(stateSrpcClient)
-
-		getResp, err := stateClient.GetState(ctx, &resource_state.GetStateRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if getResp.StateJson != "{}" {
-			t.Fatalf("expected initial state '{}', got %q", getResp.StateJson)
-		}
-
-		t.Logf("Initial state: %s, seqno: %d", getResp.StateJson, getResp.Seqno)
-	})
-
-	// Test 3: Set and get state
-	t.Run("SetAndGetState", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
-
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-
-		// Access StateAtom
-		accessResp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		stateRef := resClient.CreateResourceReference(accessResp.ResourceId)
-		defer stateRef.Release()
-
-		stateSrpcClient, err := stateRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		stateClient := resource_state.NewSRPCStateAtomResourceServiceClient(stateSrpcClient)
-
-		// Set state
-		testState := `{"tabs":[{"id":"home","path":"/"}],"activeTabId":"home"}`
-		setResp, err := stateClient.SetState(ctx, &resource_state.SetStateRequest{
-			StateJson: testState,
+				t.Logf("Set and retrieved state successfully, seqno: %d", getResp.Seqno)
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sf := setupStateAtom(ctx, t, "")
+			tc.run(t, sf)
 		})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
+	}
 
-		if setResp.Seqno == 0 {
-			t.Fatal("expected non-zero seqno after SetState")
-		}
-
-		// Get state back
-		getResp, err := stateClient.GetState(ctx, &resource_state.GetStateRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		if getResp.StateJson != testState {
-			t.Fatalf("expected state %q, got %q", testState, getResp.StateJson)
-		}
-
-		t.Logf("Set and retrieved state successfully, seqno: %d", getResp.Seqno)
-	})
-
-	// Test 4: WatchState receives updates
+	// Test 4: WatchState receives updates - non-trivial case kept as its own run.
 	t.Run("WatchStateUpdates", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
-
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-
-		// Access StateAtom
-		accessResp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		stateRef := resClient.CreateResourceReference(accessResp.ResourceId)
-		defer stateRef.Release()
-
-		stateSrpcClient, err := stateRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		stateClient := resource_state.NewSRPCStateAtomResourceServiceClient(stateSrpcClient)
+		sf := setupStateAtom(ctx, t, "")
 
 		// Start watching
-		stream, err := stateClient.WatchState(ctx, &resource_state.WatchStateRequest{})
+		stream, err := sf.stateClient.WatchState(ctx, &resource_state.WatchStateRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -960,7 +743,7 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		go func() {
 			defer close(done)
 			testState := `{"updated":true}`
-			_, err := stateClient.SetState(ctx, &resource_state.SetStateRequest{
+			_, err := sf.stateClient.SetState(ctx, &resource_state.SetStateRequest{
 				StateJson: testState,
 			})
 			if err != nil {
@@ -988,54 +771,39 @@ func TestStateAtomResourceViaRpc(t *testing.T) {
 		t.Logf("Received updated state: %s, seqno: %d", msg.StateJson, msg.Seqno)
 	})
 
-	// Test 5: Custom store ID
+	// Test 5: Custom store ID - non-trivial case kept as its own run.
+	// Both stores must live in the same testbed/resClient for isolation to be
+	// observable, so this case shares the rpcWorldFixture rather than calling
+	// setupStateAtom twice.
 	t.Run("CustomStoreId", func(t *testing.T) {
-		_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
-		defer cleanup()
+		f := setupRPCWorldFixture(ctx, t)
 
-		rootRef := resClient.AccessRootResource()
-		defer rootRef.Release()
-
-		srpcClient, err := rootRef.GetClient()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
-
-		// Access StateAtom with custom store ID
-		accessResp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{
+		customResp, err := f.testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{
 			StoreId: "custom-store",
 		})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-
-		stateRef := resClient.CreateResourceReference(accessResp.ResourceId)
-		defer stateRef.Release()
-
-		stateSrpcClient, err := stateRef.GetClient()
+		customRef := f.resClient.CreateResourceReference(customResp.ResourceId)
+		defer customRef.Release()
+		customSrpc, err := customRef.GetClient()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		stateClient := resource_state.NewSRPCStateAtomResourceServiceClient(stateSrpcClient)
-
-		// Set state on custom store
-		_, err = stateClient.SetState(ctx, &resource_state.SetStateRequest{
+		customClient := resource_state.NewSRPCStateAtomResourceServiceClient(customSrpc)
+		_, err = customClient.SetState(ctx, &resource_state.SetStateRequest{
 			StateJson: `{"custom":true}`,
 		})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
-		// Access default store and verify it's separate
-		defaultResp, err := testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
+		defaultResp, err := f.testbedClient.AccessStateAtom(ctx, &s4wave_testbed.AccessStateAtomRequest{})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-
-		defaultRef := resClient.CreateResourceReference(defaultResp.ResourceId)
+		defaultRef := f.resClient.CreateResourceReference(defaultResp.ResourceId)
 		defer defaultRef.Release()
-
 		defaultSrpcClient, err := defaultRef.GetClient()
 		if err != nil {
 			t.Fatal(err.Error())

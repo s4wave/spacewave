@@ -78,7 +78,11 @@ func (m *testGitWatchStatusStream) Close() error {
 	return nil
 }
 
-func TestFSCursorProjectsUnixFSObjectPaths(t *testing.T) {
+// setupFSCursorTestbed constructs a hydra+world testbed and returns the
+// pieces every fs-cursor test needs: the lifetime context, a debug logger
+// entry, and the world testbed. The world testbed is released via t.Cleanup.
+func setupFSCursorTestbed(t *testing.T) (context.Context, *logrus.Entry, *world_testbed.Testbed) {
+	t.Helper()
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -93,12 +97,23 @@ func TestFSCursorProjectsUnixFSObjectPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer wtb.Release()
+	t.Cleanup(wtb.Release)
+	return ctx, le, wtb
+}
 
-	opc := world.NewLookupOpController("test-space-projection", wtb.EngineID, unixfs_world.LookupFsOp)
+// addUnixFSLookupController registers a lookup-op controller for unixfs ops on
+// the given world testbed. Helper for tests that drive unixfs projections.
+func addUnixFSLookupController(t *testing.T, ctx context.Context, wtb *world_testbed.Testbed, name string) {
+	t.Helper()
+	opc := world.NewLookupOpController(name, wtb.EngineID, unixfs_world.LookupFsOp)
 	if _, err := wtb.Bus.AddController(ctx, opc, nil); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestFSCursorProjectsUnixFSObjectPaths(t *testing.T) {
+	ctx, le, wtb := setupFSCursorTestbed(t)
+	addUnixFSLookupController(t, ctx, wtb, "test-space-projection")
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
@@ -190,26 +205,8 @@ func TestFSCursorProjectsUnixFSObjectPaths(t *testing.T) {
 }
 
 func TestFSCursorDisambiguatesObjectKeyAndDescendantPaths(t *testing.T) {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer wtb.Release()
-
-	opc := world.NewLookupOpController("test-space-projection-overlap", wtb.EngineID, unixfs_world.LookupFsOp)
-	if _, err := wtb.Bus.AddController(ctx, opc, nil); err != nil {
-		t.Fatal(err)
-	}
+	ctx, le, wtb := setupFSCursorTestbed(t)
+	addUnixFSLookupController(t, ctx, wtb, "test-space-projection-overlap")
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()

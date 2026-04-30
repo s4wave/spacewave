@@ -184,68 +184,111 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
-	t.Run("Enforce wrong validator", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 2, peer1)
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer2IDStr, nil, nil)
-		if err == nil {
-			t.Fatal("Expected an error when enforcing wrong validator, got nil")
-		}
-		if !errors.Is(err, ErrInvalidValidator) {
-			t.Fatalf("Expected error %v, got %v", ErrInvalidValidator, err)
-		}
-	})
-
-	t.Run("Invalid seqno", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 3, peer1) // Should be 2
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err != ErrInvalidSeqno {
-			t.Fatalf("Expected error %v, got %v", ErrInvalidSeqno, err)
-		}
-	})
-
-	t.Run("Invalid account nonces order", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 2, peer1, peer2)
-
-		// Deliberately unsort the account nonces
-		nextRoot.AccountNonces[0], nextRoot.AccountNonces[1] = nextRoot.AccountNonces[1], nextRoot.AccountNonces[0]
-
-		// Re-sign after modifying account nonces
-		nextRoot.ValidatorSignatures = nil
-		peer1PrivKey, _ := peer1.GetPrivKey(context.Background())
-		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3); err != nil {
-			t.Fatalf("Failed to sign root: %v", err)
+	// Parameterized rejection cases: each builds a single invalid next-root and
+	// calls UpdateRootState with no rejections/no acceptances. Cases that need
+	// extra setup (operations queued, custom roles) stay as their own runs.
+	t.Run("Rejects invalid next-root", func(t *testing.T) {
+		type rejectionCase struct {
+			name      string
+			buildRoot func(t *testing.T) *SORoot
+			validator string
+			wantIs    error  // when non-nil, errors.Is must match.
+			wantSub   string // when non-empty, error message must contain.
 		}
 
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err == nil {
-			t.Fatal("Expected error for unsorted account nonces, got nil")
+		mustResign := func(t *testing.T, nextRoot *SORoot) {
+			t.Helper()
+			nextRoot.ValidatorSignatures = nil
+			peer1PrivKey, _ := peer1.GetPrivKey(context.Background())
+			if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3); err != nil {
+				t.Fatalf("Failed to sign root: %v", err)
+			}
 		}
-		if !strings.Contains(err.Error(), "account nonces not sorted") {
-			t.Fatalf("Expected error about unsorted account nonces, got: %v", err)
+
+		cases := []rejectionCase{
+			{
+				name:      "Enforce wrong validator",
+				buildRoot: func(t *testing.T) *SORoot { return createMockSORoot(t, 2, peer1) },
+				validator: peer2IDStr,
+				wantIs:    ErrInvalidValidator,
+			},
+			{
+				name:      "Invalid seqno",
+				buildRoot: func(t *testing.T) *SORoot { return createMockSORoot(t, 3, peer1) },
+				validator: peer1IDStr,
+				wantIs:    ErrInvalidSeqno,
+			},
+			{
+				name: "Invalid account nonces order",
+				buildRoot: func(t *testing.T) *SORoot {
+					nr := createMockSORoot(t, 2, peer1, peer2)
+					nr.AccountNonces[0], nr.AccountNonces[1] = nr.AccountNonces[1], nr.AccountNonces[0]
+					mustResign(t, nr)
+					return nr
+				},
+				validator: peer1IDStr,
+				wantSub:   "account nonces not sorted",
+			},
+			{
+				name: "Empty peer ID in account nonces",
+				buildRoot: func(t *testing.T) *SORoot {
+					nr := createMockSORoot(t, 2, peer1, peer2)
+					nr.AccountNonces = append(nr.AccountNonces, &SOAccountNonce{
+						PeerId: "",
+						Nonce:  0,
+					})
+					return nr
+				},
+				validator: peer1IDStr,
+				wantSub:   "peer id cannot be empty",
+			},
+			{
+				name:      "Lower sequence number",
+				buildRoot: func(t *testing.T) *SORoot { return createMockSORoot(t, 1, peer1) },
+				validator: peer1IDStr,
+				wantIs:    ErrInvalidSeqno,
+			},
+			{
+				name: "Invalid inner state",
+				buildRoot: func(t *testing.T) *SORoot {
+					nr := createMockSORoot(t, 2, peer1)
+					nr.Inner = nil
+					return nr
+				},
+				validator: peer1IDStr,
+				wantSub:   "",
+			},
+			{
+				name: "Mismatched inner sequence number",
+				buildRoot: func(t *testing.T) *SORoot {
+					nr := createMockSORoot(t, 2, peer1)
+					nr.InnerSeqno = 3
+					return nr
+				},
+				validator: peer1IDStr,
+				wantSub:   "",
+			},
 		}
-	})
 
-	t.Run("Empty peer ID in account nonces", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 2, peer1, peer2)
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				state := createMockSOState(peers, nil)
+				nextRoot := tc.buildRoot(t)
 
-		// Add an invalid account nonce with empty peer ID
-		nextRoot.AccountNonces = append(nextRoot.AccountNonces, &SOAccountNonce{
-			PeerId: "",
-			Nonce:  0,
-		})
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err == nil {
-			t.Fatal("Expected error for empty peer ID in account nonces, got nil")
-		}
-		if !strings.Contains(err.Error(), "peer id cannot be empty") {
-			t.Fatalf("Expected error about empty peer ID, got: %v", err)
+				err := state.UpdateRootState(mockSharedObjectID, nextRoot, tc.validator, nil, nil)
+				if tc.wantIs != nil {
+					if !errors.Is(err, tc.wantIs) {
+						t.Fatalf("Expected error %v, got %v", tc.wantIs, err)
+					}
+					return
+				}
+				if err == nil {
+					t.Fatalf("Expected an error, got nil")
+				}
+				if tc.wantSub != "" && !strings.Contains(err.Error(), tc.wantSub) {
+					t.Fatalf("Expected error containing %q, got: %v", tc.wantSub, err)
+				}
+			})
 		}
 	})
 
@@ -314,44 +357,14 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
-	t.Run("Lower sequence number", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 1, peer1) // Should be 2 or higher
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err != ErrInvalidSeqno {
-			t.Fatalf("Expected error %v, got %v", ErrInvalidSeqno, err)
-		}
-	})
-
-	t.Run("Invalid inner state", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 2, peer1)
-		nextRoot.Inner = nil // Invalid inner state
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err == nil {
-			t.Fatal("Expected an error for invalid inner state, got nil")
-		}
-	})
-
-	t.Run("Mismatched inner sequence number", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		nextRoot := createMockSORoot(t, 2, peer1)
-		nextRoot.InnerSeqno = 3 // Doesn't match the actual inner sequence number
-
-		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err == nil {
-			t.Fatal("Expected an error for mismatched inner sequence number, got nil")
-		}
-	})
-
 	t.Run("Identical root state", func(t *testing.T) {
+		// Kept as its own run because the next-root is constructed by cloning
+		// state.Root rather than via createMockSORoot.
 		state := createMockSOState(peers, nil)
 		nextRoot := state.Root.CloneVT()
 
 		err := state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, nil, nil)
-		if err != ErrInvalidSeqno {
+		if !errors.Is(err, ErrInvalidSeqno) {
 			t.Fatalf("Expected error %v, got %v", ErrInvalidSeqno, err)
 		}
 	})
@@ -546,96 +559,74 @@ func TestUpdateRootState(t *testing.T) {
 		}
 	})
 
-	t.Run("Accept and reject multiple operations", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
+	// Parameterized: combinations of accept and reject indices for a fixed
+	// queue of three operations. Covers the previous "Accept and reject
+	// multiple operations" and "Reject all operations" cases.
+	t.Run("Accept and reject combinations", func(t *testing.T) {
 		ctx := context.Background()
 		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
 		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
 
-		// Create and queue multiple operations
-		var ids []string
-		for i := uint64(1); i <= 3; i++ {
-			op, inner := createMockSOOperation(t, peer1PrivKey, i)
-			state.Ops = append(state.Ops, op)
-			ids = append(ids, inner.GetLocalId())
+		cases := []struct {
+			name        string
+			rejectIdxs  []int
+			acceptIdxs  []int
+			wantRejects int
+		}{
+			{name: "accept middle, reject first and last", rejectIdxs: []int{0, 2}, acceptIdxs: []int{1}, wantRejects: 2},
+			{name: "reject all three", rejectIdxs: []int{0, 1, 2}, acceptIdxs: nil, wantRejects: 3},
 		}
 
-		// Create rejections for ops 1 and 3
-		rejection1, _ := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), 1, ids[0], nil)
-		rejection3, _ := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), 3, ids[2], nil)
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				state := createMockSOState(peers, nil)
 
-		nextRoot := createMockSORoot(t, 2, peer1, peer2)
+				ops := make([]*SOOperation, 3)
+				ids := make([]string, 3)
+				for i := uint64(1); i <= 3; i++ {
+					op, inner := createMockSOOperation(t, peer1PrivKey, i)
+					state.Ops = append(state.Ops, op)
+					ops[i-1] = op
+					ids[i-1] = inner.GetLocalId()
+				}
 
-		// Update state, accepting op 2 and rejecting ops 1 and 3
-		err := state.UpdateRootState(
-			mockSharedObjectID,
-			nextRoot,
-			peer1IDStr,
-			[]*SOOperationRejection{rejection1, rejection3},
-			[]*SOOperation{state.Ops[1]}, // Accept the second operation (index 1)
-		)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
+				rejections := make([]*SOOperationRejection, 0, len(tc.rejectIdxs))
+				for _, idx := range tc.rejectIdxs {
+					rej, err := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), uint64(idx+1), ids[idx], nil) //nolint:gosec
+					if err != nil {
+						t.Fatalf("BuildSOOperationRejection: %v", err)
+					}
+					rejections = append(rejections, rej)
+				}
 
-		if len(state.Ops) != 0 {
-			t.Fatalf("Expected all operations to be processed, got %d remaining", len(state.Ops))
-		}
+				accepted := make([]*SOOperation, 0, len(tc.acceptIdxs))
+				for _, idx := range tc.acceptIdxs {
+					accepted = append(accepted, ops[idx])
+				}
 
-		if len(state.OpRejections) != 1 {
-			t.Fatalf("Expected 1 peer rejection, got %d", len(state.OpRejections))
-		}
+				nextRoot := createMockSORoot(t, 2, peer1, peer2)
 
-		if len(state.OpRejections[0].Rejections) != 2 {
-			t.Fatalf("Expected 2 rejections, got %d", len(state.OpRejections[0].Rejections))
-		}
-	})
+				err := state.UpdateRootState(
+					mockSharedObjectID,
+					nextRoot,
+					peer1IDStr,
+					rejections,
+					accepted,
+				)
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
 
-	t.Run("Reject all operations", func(t *testing.T) {
-		state := createMockSOState(peers, nil)
-		ctx := context.Background()
-		peer1PrivKey, _ := peer1.GetPrivKey(ctx)
-		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
-
-		// Create and queue multiple operations
-		var ids []string
-		for i := uint64(1); i <= 3; i++ {
-			op, inner := createMockSOOperation(t, peer1PrivKey, i)
-			ids = append(ids, inner.GetLocalId())
-			state.Ops = append(state.Ops, op)
-		}
-
-		// Create rejections for all ops
-		rejections := make([]*SOOperationRejection, 3)
-		for i := range 3 {
-			rejection, _ := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), uint64(i+1), ids[i], nil) //nolint:gosec
-			rejections[i] = rejection
-		}
-
-		nextRoot := createMockSORoot(t, 2, peer1, peer2)
-
-		// Update state, rejecting all operations
-		err := state.UpdateRootState(
-			mockSharedObjectID,
-			nextRoot,
-			peer1IDStr,
-			rejections,
-			nil,
-		)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		if len(state.Ops) != 0 {
-			t.Fatalf("Expected all operations to be processed, got %d remaining", len(state.Ops))
-		}
-
-		if len(state.OpRejections) != 1 {
-			t.Fatalf("Expected 1 peer rejection, got %d", len(state.OpRejections))
-		}
-
-		if len(state.OpRejections[0].Rejections) != 3 {
-			t.Fatalf("Expected 3 rejections, got %d", len(state.OpRejections[0].Rejections))
+				if len(state.Ops) != 0 {
+					t.Fatalf("Expected all operations to be processed, got %d remaining", len(state.Ops))
+				}
+				if len(state.OpRejections) != 1 {
+					t.Fatalf("Expected 1 peer rejection, got %d", len(state.OpRejections))
+				}
+				if got := len(state.OpRejections[0].Rejections); got != tc.wantRejects {
+					t.Fatalf("Expected %d rejections, got %d", tc.wantRejects, got)
+				}
+			})
 		}
 	})
 
