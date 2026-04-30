@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, cleanup, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import superjson from 'superjson'
-import { LocalSessionSetup } from './LocalSessionSetup.js'
+import { LocalSessionSetup, WarningCard } from './LocalSessionSetup.js'
 import { localSessionOnboardingStoreId } from './local-session-onboarding-state.js'
+
+vi.mock('@aptre/bldr', () => ({
+  isDesktop: true,
+}))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: vi.fn(() => vi.fn()),
@@ -260,5 +270,30 @@ describe('LocalSessionSetup', () => {
       expect(next.lockComplete).toBe(false)
       expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/7/setup' })
     })
+  })
+})
+
+describe('WarningCard', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('marks the desktop app download as complete in desktop builds', () => {
+    const onDownload = vi.fn()
+
+    render(<WarningCard onDownload={onDownload} onUpgrade={vi.fn()} />)
+
+    const download = screen.getByRole('button', {
+      name: /Download the desktop app/i,
+    })
+    expect(download).toHaveProperty('disabled', true)
+
+    fireEvent.click(download)
+
+    expect(onDownload).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { isDesktop } from '@aptre/bldr'
 import {
   LuArrowRight,
+  LuCheck,
   LuCloud,
   LuMonitor,
   LuTriangleAlert,
@@ -9,6 +11,7 @@ import superjson from 'superjson'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 import { PLAN_PRICE_MONTHLY } from '@s4wave/app/provider/spacewave/pricing.js'
 import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
@@ -254,10 +257,18 @@ export function WarningCard({
         <div className="space-y-3">
           <button
             onClick={onDownload}
-            className="border-foreground/10 hover:border-brand/30 hover:bg-brand/5 flex w-full cursor-pointer items-center gap-3 rounded-md border p-3 text-left transition-colors"
+            disabled={isDesktop}
+            className={cn(
+              'border-foreground/10 flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors',
+              isDesktop ?
+                'cursor-default opacity-60'
+              : 'hover:border-brand/30 hover:bg-brand/5 cursor-pointer',
+            )}
           >
             <div className="bg-foreground/5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-              <LuMonitor className="text-foreground-alt h-4 w-4" />
+              {isDesktop ?
+                <LuCheck className="text-foreground-alt h-4 w-4" />
+              : <LuMonitor className="text-foreground-alt h-4 w-4" />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-sm font-medium">
@@ -267,7 +278,9 @@ export function WarningCard({
                 Persistent storage on your computer.
               </p>
             </div>
-            <LuArrowRight className="text-foreground-alt/50 h-4 w-4 shrink-0" />
+            {!isDesktop && (
+              <LuArrowRight className="text-foreground-alt/50 h-4 w-4 shrink-0" />
+            )}
           </button>
 
           <button
