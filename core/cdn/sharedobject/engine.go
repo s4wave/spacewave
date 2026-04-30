@@ -97,19 +97,18 @@ func NewWorldEngine(
 	bucketID := so.GetBlockStore().GetID()
 	headRef.BucketId = bucketID
 
-	transformConf := headRef.GetTransformConf()
-	if len(transformConf.GetSteps()) == 0 {
-		return nil, errors.New("cdn head ref has empty transform config")
-	}
-
 	sfs := transform_all.BuildFactorySet()
-	xfrm, err := block_transform.NewTransformer(
-		controller.ConstructOpts{Logger: le},
-		sfs,
-		transformConf,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "build transformer")
+	transformConf := headRef.GetTransformConf()
+	xfrm := block_transform.NewTransformerWithSteps(nil)
+	if len(transformConf.GetSteps()) != 0 {
+		xfrm, err = block_transform.NewTransformer(
+			controller.ConstructOpts{Logger: le},
+			sfs,
+			transformConf,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "build transformer")
+		}
 	}
 
 	cursor := bucket_lookup.NewCursor(
