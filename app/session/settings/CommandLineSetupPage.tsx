@@ -153,6 +153,10 @@ function InstallGuidanceSection() {
 function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
   const ns = useStateNamespace(['cli-setup'])
   const [open, setOpen] = useStateAtom<boolean>(ns, 'more-open', false)
+  const developerCliHref = useStaticHref(
+    '/docs/developers/cli/installation-and-commands',
+  )
+
   return (
     <CollapsibleSection
       title="More commands"
@@ -175,7 +179,7 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
           />
         </ul>
         <a
-          href="/docs/developers/cli/installation-and-commands"
+          href={developerCliHref}
           className="text-brand hover:text-brand/80 inline-flex items-center gap-1.5 text-xs transition-colors"
         >
           Developer CLI reference
