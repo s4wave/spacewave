@@ -10,6 +10,8 @@ import (
 	sqle "github.com/dolthub/go-mysql-server"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -191,4 +193,58 @@ func TestMysql(t *testing.T) {
 	tx, e = buildEngine()
 	printQuery(e, fmt.Sprintf("SELECT * FROM `%s`", tableName))
 	tx.Discard()
+}
+
+func TestMysqlReadInsertedRowBeforeCommit(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	_, bcs := block.NewTransaction(store, nil, nil, nil)
+	bcs.SetBlock(NewDatabaseRootBlock(), true)
+	db, err := NewDatabase(ctx, "r2sql", false, bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sqlCtx := sql.NewContext(ctx, sql.WithSession(sql.NewBaseSession()))
+	sqlCtx.SetCurrentDatabase("r2sql")
+	err = db.CreateTable(sqlCtx, "kv", sql.NewPrimaryKeySchema(sql.Schema{
+		{Name: "id", Type: types.Int64, Nullable: false, Source: "kv", PrimaryKey: true},
+		{Name: "name", Type: types.Text, Nullable: false, Source: "kv"},
+		{Name: "bytes", Type: types.Int64, Nullable: false, Source: "kv"},
+	}), sql.Collation_Default, "")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tbl, ok, err := db.GetTableInsensitive(sqlCtx, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected table")
+	}
+	editor := tbl.(sql.InsertableTable).Inserter(sqlCtx)
+	if err := editor.Insert(sqlCtx, sql.NewRow(int64(1), "alpha", int64(11))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := editor.Close(sqlCtx); err != nil {
+		t.Fatal(err.Error())
+	}
+	partIter, err := tbl.Partitions(sqlCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	part, err := partIter.Next(sqlCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rowIter, err := tbl.PartitionRows(sqlCtx, part)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	row, err := rowIter.Next(sqlCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(row) != 3 || row[0] != int64(1) || row[1] != "alpha" || row[2] != int64(11) {
+		t.Fatalf("unexpected row: %#v", row)
+	}
 }

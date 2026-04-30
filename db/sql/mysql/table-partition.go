@@ -82,7 +82,7 @@ func (p *TablePartition) IterateRows(ctx *sql.Context) (sql.RowIter, error) {
 	*/
 
 	cctx := GetDbContext(ctx)
-	tx, err := p.BuildTreeTx(cctx, true, false)
+	tx, err := p.BuildTreeTx(cctx, false, false)
 	if err != nil {
 		return nil, err
 	}
