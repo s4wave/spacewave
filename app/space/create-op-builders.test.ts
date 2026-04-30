@@ -1,24 +1,29 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildObjectKey } from './create-op-builders.js'
+import { buildObjectKey, buildWizardObjectKey } from './create-op-builders.js'
 
 describe('buildObjectKey', () => {
-  it('uses simple type-based numbered keys', () => {
-    expect(buildObjectKey('canvas/', 'Canvas')).toBe('canvas/canvas-1')
+  it('uses simple name-based numbered keys', () => {
+    expect(buildObjectKey('canvas/', 'Canvas')).toBe('canvas-1')
     expect(buildObjectKey('forge/cluster/', 'Forge Cluster')).toBe(
-      'forge/cluster/cluster-1',
+      'forge-cluster-1',
     )
   })
 
   it('selects the next available numbered key', () => {
-    expect(buildObjectKey('canvas/', 'Canvas', ['canvas/canvas-1'])).toBe(
-      'canvas/canvas-2',
-    )
+    expect(buildObjectKey('canvas/', 'Canvas', ['canvas-1'])).toBe('canvas-2')
   })
 
-  it('keeps strict object layout keys under the object-layout prefix', () => {
-    expect(buildObjectKey('object-layout/', 'Layout')).toBe(
-      'object-layout/object-layout-1',
+  it('uses the prefix only when the name is empty', () => {
+    expect(buildObjectKey('object-layout/', '')).toBe('object-layout-1')
+  })
+
+  it('uses the wizard prefix without coupling to the wizard type id', () => {
+    expect(buildWizardObjectKey('Git Repository')).toBe(
+      'wizard/git-repository-1',
     )
+    expect(
+      buildWizardObjectKey('Git Repository', ['wizard/git-repository-1']),
+    ).toBe('wizard/git-repository-2')
   })
 })

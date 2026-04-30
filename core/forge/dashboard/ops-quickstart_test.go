@@ -36,11 +36,11 @@ func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
 
 	pid := generateQuickstartTestPeerID(t)
 	op := &InitForgeQuickstartOp{
-		LayoutKey:     "object-layout/forge",
-		DashboardKey:  "forge/dashboard",
-		ClusterKey:    "forge/cluster",
+		LayoutKey:     "forge",
+		DashboardKey:  "dashboard",
+		ClusterKey:    "cluster",
 		ClusterName:   "default",
-		WorkerKey:     "forge/worker/session",
+		WorkerKey:     "session-worker",
 		SessionPeerId: pid.String(),
 		Timestamp:     timestamppb.Now(),
 	}
@@ -48,7 +48,7 @@ func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
-	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "forge/cluster/job/sample")
+	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)
 	}

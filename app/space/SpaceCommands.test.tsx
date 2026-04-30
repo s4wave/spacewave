@@ -212,12 +212,12 @@ describe('SpaceCommands', () => {
 
     expect(h.createNotebookClientSide).toHaveBeenCalledWith(
       expect.anything(),
-      'notebook/notebook-1',
-      'notebook/notebook-1-fs',
+      'notebook-1',
+      'notebook-1-fs',
       'Notebook',
       expect.any(Date),
     )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook/notebook-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
   })
 
   it('creates docs through the merged spacewave-app client-side path', async () => {
@@ -237,12 +237,12 @@ describe('SpaceCommands', () => {
 
     expect(h.createDocsClientSide).toHaveBeenCalledWith(
       expect.anything(),
-      'docs/docs-1',
+      'documentation-1',
       'Documentation',
       '',
       expect.any(Date),
     )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['docs/docs-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-1'])
   })
 
   it('launches a persistent forge job wizard from the create-object command', async () => {
@@ -262,7 +262,7 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
     const decoded = CreateWizardObjectOp.fromBinary(opData)
-    expect(decoded.objectKey).toMatch(/^wizard\/forge\/job\/[a-z0-9]+$/)
+    expect(decoded.objectKey).toBe('wizard/job-1')
     expect(decoded.wizardTypeId).toBe('wizard/forge/job')
     expect(decoded.targetTypeId).toBe('forge/job')
     expect(decoded.targetKeyPrefix).toBe('forge/job/')
@@ -287,7 +287,7 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(INIT_OBJECT_LAYOUT_OP_ID)
 
     const decoded = InitObjectLayoutOp.fromBinary(opData)
-    expect(decoded.objectKey).toBe('object-layout/object-layout-1')
+    expect(decoded.objectKey).toBe('layout-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
@@ -308,7 +308,7 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
     const decoded = CreateWizardObjectOp.fromBinary(opData)
-    expect(decoded.objectKey).toMatch(/^wizard\/forge\/task\/[a-z0-9]+$/)
+    expect(decoded.objectKey).toBe('wizard/task-1')
     expect(decoded.wizardTypeId).toBe('wizard/forge/task')
     expect(decoded.targetTypeId).toBe('forge/task')
     expect(decoded.targetKeyPrefix).toBe('forge/task/')
@@ -333,7 +333,7 @@ describe('SpaceCommands', () => {
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
     const decoded = CreateWizardObjectOp.fromBinary(opData)
-    expect(decoded.objectKey).toMatch(/^wizard\/git\/repo\/[a-z0-9]+$/)
+    expect(decoded.objectKey).toBe('wizard/repository-1')
     expect(decoded.wizardTypeId).toBe('wizard/git/repo')
     expect(decoded.targetTypeId).toBe('git/repo')
     expect(decoded.targetKeyPrefix).toBe('git/repo/')

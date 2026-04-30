@@ -58,8 +58,8 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
   const handleFinalize = useCallback(async () => {
     if (!state || !targetWizard?.createOpId || ws.creating) return
     const name = ws.localName || state.name
-    const targetKeyPrefix = state.targetKeyPrefix
-    if (!targetKeyPrefix || !name) return
+    const targetKeyPrefix = state.targetKeyPrefix ?? ''
+    if (!name) return
 
     const builder = lookupCreateOpBuilder(targetWizard.createOpId)
     if (!builder) {

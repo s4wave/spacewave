@@ -165,7 +165,7 @@ describe('ForgeJobViewer', () => {
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
     const decoded = CreateWizardObjectOp.fromBinary(opData)
-    expect(decoded.objectKey).toMatch(/^wizard\/forge\/task\/[a-z0-9]+$/)
+    expect(decoded.objectKey).toBe('wizard/task-1')
     expect(decoded.wizardTypeId).toBe('wizard/forge/task')
     expect(decoded.targetTypeId).toBe('forge/task')
     expect(decoded.initialStep).toBe(1)

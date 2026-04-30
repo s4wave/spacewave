@@ -26,7 +26,7 @@ describe('v86 wizard config', () => {
   it('builds a deterministic quickstart wizard key from the timestamp', () => {
     const now = new Date('2026-04-20T04:54:00Z')
     expect(buildV86QuickstartWizardKey(now)).toBe(
-      `wizard/v86/${now.getTime().toString(36)}`,
+      `wizard/v86-vm-${now.getTime().toString(36)}-1`,
     )
   })
 

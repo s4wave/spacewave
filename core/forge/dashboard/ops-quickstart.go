@@ -42,10 +42,7 @@ func (o *InitForgeQuickstartOp) Validate() error {
 	if len(o.GetSessionPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
-	if err := o.GetTimestamp().Validate(false); err != nil {
-		return err
-	}
-	return s4wave_layout_world.CheckObjectLayoutKey(o.GetLayoutKey())
+	return o.GetTimestamp().Validate(false)
 }
 
 // ApplyWorldOp applies the operation as a world operation.
@@ -90,8 +87,8 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Create a sample job with tasks under the cluster.
-	jobKey := clusterKey + "/job/sample"
+	// Create a sample job for the quickstart cluster.
+	jobKey := "sample-job"
 	tasks := map[string]*forge_target.Target{
 		"compile": space_exec.NewNoopTarget(),
 		"link":    space_exec.NewNoopTarget(),

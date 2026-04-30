@@ -42,11 +42,9 @@ pub struct InitUnixFsOp {
 }
 /// InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
 /// This creates an ObjectLayout with a simple tabset containing one tab.
-/// The object key must have the required "object-layout/" prefix.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InitObjectLayoutOp {
     /// ObjectKey is the object key for the ObjectLayout.
-    /// Must have the "object-layout/" prefix.
     #[prost(string, tag="1")]
     pub object_key: ::prost::alloc::string::String,
     /// Timestamp is the modification time.

@@ -28,7 +28,11 @@ import {
 import { CREATE_DOCS_OP_ID } from '../../plugin/notes/proto/create-docs.js'
 import { INIT_NOTEBOOK_OP_ID } from '../../plugin/notes/proto/init-notebook.js'
 import { normalizeObjectWizards } from './object-wizards.js'
-import { lookupCreateOpBuilder, buildObjectKey } from './create-op-builders.js'
+import {
+  lookupCreateOpBuilder,
+  buildObjectKey,
+  buildWizardObjectKey,
+} from './create-op-builders.js'
 
 interface SpaceCommandsProps {
   canRename: boolean
@@ -141,14 +145,14 @@ export function SpaceCommands({
       if (!wizard) return
 
       if (wizard.persistent && wizard.wizardTypeId) {
-        const suffix = Date.now().toString(36)
-        const wizardKey = `${wizard.wizardTypeId}/${suffix}`
+        const name = wizard.defaultNamePattern || wizard.displayName || 'Wizard'
+        const wizardKey = buildWizardObjectKey(name, existingObjectKeys)
         const opData = CreateWizardObjectOp.toBinary({
           objectKey: wizardKey,
           wizardTypeId: wizard.wizardTypeId,
           targetTypeId: wizard.typeId ?? '',
           targetKeyPrefix: wizard.keyPrefix ?? '',
-          name: wizard.defaultNamePattern ?? '',
+          name,
           timestamp: new Date(),
         })
         await spaceWorld.applyWorldOp(CREATE_WIZARD_OBJECT_OP_ID, opData, '')

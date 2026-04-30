@@ -151,7 +151,7 @@ describe('quickstart create', () => {
     await createSpaceSettingsObject(
       spaceWorld as never,
       undefined,
-      'blog/site',
+      'blog',
       ['spacewave-app'],
     )
 
@@ -170,7 +170,7 @@ describe('quickstart create', () => {
     }
     expect(op.objectKey).toBe('settings')
     expect(op.overwrite).toBe(true)
-    expect(settings.indexPath).toBe('blog/site')
+    expect(settings.indexPath).toBe('blog')
     expect(settings.pluginIds).toEqual(['spacewave-app'])
   })
 
@@ -239,7 +239,7 @@ describe('quickstart create', () => {
     const opData = call[1]
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
     const op = CreateWizardObjectOp.fromBinary(opData)
-    expect(op.objectKey).toMatch(/^wizard\/v86\/[a-z0-9]+$/)
+    expect(op.objectKey).toMatch(/^wizard\/v86-vm-[a-z0-9]+-\d+$/)
     expect(op.wizardTypeId).toBe('wizard/v86')
     expect(op.targetTypeId).toBe('v86')
     expect(op.targetKeyPrefix).toBe('vm/v86/')
@@ -310,7 +310,7 @@ describe('quickstart create', () => {
     const opData = call[1]
     expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
     const op = CreateWizardObjectOp.fromBinary(opData)
-    expect(op.objectKey).toMatch(/^wizard\/git\/repo\/[a-z0-9]+$/)
+    expect(op.objectKey).toMatch(/^wizard\/repository-[a-z0-9]+-\d+$/)
     expect(op.wizardTypeId).toBe('wizard/git/repo')
     expect(op.targetTypeId).toBe('git/repo')
     expect(op.targetKeyPrefix).toBe('git/repo/')

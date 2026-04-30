@@ -39,6 +39,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
+import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
@@ -68,7 +69,8 @@ export function ForgeClusterViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const cluster = useForgeBlockData(objectState, Cluster)
-  const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
+  const { spaceState, spaceWorld, navigateToObjects } =
+    SpaceContainerContext.useContext()
   const [creatingJob, setCreatingJob] = useState(false)
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
   const canCreateJob = visibleWizardTypeSet.has('forge/job')
@@ -115,12 +117,17 @@ export function ForgeClusterViewer({
     }
     return map
   }, [snapshotTasks])
+  const existingObjectKeys = useMemo(
+    () =>
+      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
+      [],
+    [spaceState.worldContents?.objects],
+  )
 
   const handleCreateJob = useCallback(async () => {
     setCreatingJob(true)
     try {
-      const suffix = Date.now().toString(36)
-      const wizardKey = `wizard/forge/job/${suffix}`
+      const wizardKey = buildWizardObjectKey('Job', existingObjectKeys)
       const configData = ForgeJobCreateOp.toBinary({
         jobKey: '',
         clusterKey: objectKey,
@@ -146,7 +153,7 @@ export function ForgeClusterViewer({
     } finally {
       setCreatingJob(false)
     }
-  }, [spaceWorld, navigateToObjects, objectKey])
+  }, [existingObjectKeys, spaceWorld, navigateToObjects, objectKey])
   const handleStartJob = useCallback(
     async (jobKey: string) => {
       try {

@@ -123,11 +123,9 @@ func (x *InitUnixFSOp) GetTimestamp() *timestamppb.Timestamp {
 
 // InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
 // This creates an ObjectLayout with a simple tabset containing one tab.
-// The object key must have the required "object-layout/" prefix.
 type InitObjectLayoutOp struct {
 	unknownFields []byte
 	// ObjectKey is the object key for the ObjectLayout.
-	// Must have the "object-layout/" prefix.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// Timestamp is the modification time.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -382,8 +380,10 @@ func (m *SetSpaceSettingsOp) CloneVT() *SetSpaceSettingsOp {
 	}
 	r := new(SetSpaceSettingsOp)
 	r.ObjectKey = m.ObjectKey
-	r.Settings = m.Settings.CloneVT()
 	r.Overwrite = m.Overwrite
+	if rhs := m.Settings; rhs != nil {
+		r.Settings = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -479,7 +479,9 @@ func (m *CanvasAddNodeOp) CloneVT() *CanvasAddNodeOp {
 	}
 	r := new(CanvasAddNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -515,7 +517,9 @@ func (m *CanvasSetNodeOp) CloneVT() *CanvasSetNodeOp {
 	}
 	r := new(CanvasSetNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -532,7 +536,9 @@ func (m *CanvasAddEdgeOp) CloneVT() *CanvasAddEdgeOp {
 	}
 	r := new(CanvasAddEdgeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Edge = m.Edge.CloneVT()
+	if rhs := m.Edge; rhs != nil {
+		r.Edge = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

@@ -176,9 +176,7 @@ export function buildObjectKey(
   name: string,
   existingKeys?: Iterable<string | undefined>,
 ): string {
-  const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '')
-  const prefixPath = normalizedPrefix ? `${normalizedPrefix}/` : ''
-  const base = `${prefixPath}${buildObjectKeyBase(prefix, name)}`
+  const base = slugObjectKeySegment(name) || buildObjectKeyBase(prefix)
   const existing = new Set(existingKeys ?? [])
   const candidates = Array.from(
     { length: existing.size + 2 },
@@ -187,17 +185,28 @@ export function buildObjectKey(
   return candidates.find((key) => !existing.has(key)) ?? `${base}-1`
 }
 
-function buildObjectKeyBase(prefix: string, name: string): string {
+export function buildWizardObjectKey(
+  name: string,
+  existingKeys?: Iterable<string | undefined>,
+): string {
+  const base = slugObjectKeySegment(name) || 'wizard'
+  const existing = new Set(existingKeys ?? [])
+  const candidates = Array.from(
+    { length: existing.size + 2 },
+    (_, index) => `wizard/${base}-${index + 1}`,
+  )
+  return candidates.find((key) => !existing.has(key)) ?? `wizard/${base}-1`
+}
+
+function buildObjectKeyBase(prefix: string): string {
   const segments = prefix.split('/').filter(Boolean)
   const prefixBase = segments[segments.length - 1]
-  return slugObjectKeySegment(prefixBase || name || 'object')
+  return slugObjectKeySegment(prefixBase || 'object')
 }
 
 function slugObjectKeySegment(value: string): string {
-  return (
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'object'
-  )
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }

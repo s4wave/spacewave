@@ -191,7 +191,7 @@ describe('WizardViewer', () => {
     expect(sender).toBe('')
 
     const decoded = CanvasInitOp.fromBinary(opData)
-    expect(decoded.objectKey).toMatch(/^canvas\/canvas-\d+$/)
+    expect(decoded.objectKey).toBe('demo-canvas-1')
     expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Demo Canvas')
@@ -229,7 +229,7 @@ describe('WizardViewer', () => {
     expect(sender).toBe(currentPeerId)
 
     const decoded = ClusterCreateOp.fromBinary(opData)
-    expect(decoded.clusterKey).toMatch(/^forge\/cluster\/cluster-\d+$/)
+    expect(decoded.clusterKey).toBe('test-cluster-1')
     expect(decoded.name).toBe('Test Cluster')
     expect(decoded.peerId ?? '').toBe('')
     expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')

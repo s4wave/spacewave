@@ -14,6 +14,7 @@ import { ForgeDashboard } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
+import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import type { ProcessBindingInfo } from '@s4wave/sdk/space/space.pb.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 
@@ -56,7 +57,8 @@ export function ForgeDashboardViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const dashboard = useForgeBlockData(objectState, ForgeDashboard)
-  const { navigateToObjects, spaceWorld } = SpaceContainerContext.useContext()
+  const { navigateToObjects, spaceState, spaceWorld } =
+    SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
 
   const { entities, loading: entitiesLoading } = useForgeLinkedEntities(
@@ -108,6 +110,12 @@ export function ForgeDashboardViewer({
   )
   const canCreateCluster = visibleWizardTypeSet.has('forge/cluster')
   const canCreateJob = visibleWizardTypeSet.has('forge/job')
+  const existingObjectKeys = useMemo(
+    () =>
+      spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
+      [],
+    [spaceState.worldContents?.objects],
+  )
 
   const openWizard = useCallback(
     async (
@@ -120,8 +128,7 @@ export function ForgeDashboardViewer({
         initialConfigData?: Uint8Array
       },
     ) => {
-      const suffix = Date.now().toString(36)
-      const wizardKey = `${wizardTypeId}/${suffix}`
+      const wizardKey = buildWizardObjectKey(name, existingObjectKeys)
       const opData = CreateWizardObjectOp.toBinary({
         objectKey: wizardKey,
         wizardTypeId,
@@ -135,7 +142,7 @@ export function ForgeDashboardViewer({
       await spaceWorld.applyWorldOp(CREATE_WIZARD_OBJECT_OP_ID, opData, '')
       navigateToObjects([wizardKey])
     },
-    [navigateToObjects, spaceWorld],
+    [existingObjectKeys, navigateToObjects, spaceWorld],
   )
 
   const handleToggle = useCallback(

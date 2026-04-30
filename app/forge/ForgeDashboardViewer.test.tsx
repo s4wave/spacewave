@@ -200,6 +200,7 @@ describe('ForgeDashboardViewer', () => {
       .calls[0] as [string, Uint8Array]
     expect(clusterOpTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
     const clusterOp = CreateWizardObjectOp.fromBinary(clusterOpData)
+    expect(clusterOp.objectKey).toBe('wizard/cluster-1')
     expect(clusterOp.wizardTypeId).toBe('wizard/forge/cluster')
     expect(clusterOp.targetTypeId).toBe('forge/cluster')
     expect(clusterOp.targetKeyPrefix).toBe('forge/cluster/')
@@ -208,6 +209,7 @@ describe('ForgeDashboardViewer', () => {
       .calls[1] as [string, Uint8Array]
     expect(jobOpTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
     const jobOp = CreateWizardObjectOp.fromBinary(jobOpData)
+    expect(jobOp.objectKey).toBe('wizard/job-1')
     expect(jobOp.wizardTypeId).toBe('wizard/forge/job')
     expect(jobOp.targetTypeId).toBe('forge/job')
     expect(jobOp.initialStep).toBe(1)

@@ -505,11 +505,11 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 
 	pid := generateSpaceContentsTestPeerID(t)
 	op := &forge_dashboard.InitForgeQuickstartOp{
-		LayoutKey:     "object-layout/forge",
-		DashboardKey:  "forge/dashboard",
-		ClusterKey:    "forge/cluster",
+		LayoutKey:     "forge",
+		DashboardKey:  "dashboard",
+		ClusterKey:    "cluster",
 		ClusterName:   "default",
-		WorkerKey:     "forge/worker/session",
+		WorkerKey:     "session-worker",
 		SessionPeerId: pid.String(),
 		Timestamp:     timestamppb.Now(),
 	}
@@ -542,7 +542,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	resource.storeID = "platform-account"
 	defer resource.Release()
 
-	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "forge/cluster/job/sample")
+	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)
 	}
@@ -557,7 +557,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	}
 
 	_, err = resource.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
-		ObjectKey: "forge/worker/session",
+		ObjectKey: "session-worker",
 		TypeId:    "forge/worker",
 		Approved:  true,
 	})
@@ -597,7 +597,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t,
 		tb.Engine,
 		tb.WorldState,
-		"forge/cluster/job/sample",
+		"sample-job",
 	)
 	if !passState.IsComplete() {
 		t.Fatalf("expected complete pass, got %s", passState.GetPassState().String())

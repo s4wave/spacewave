@@ -118,14 +118,12 @@ export const InitUnixFSOp: MessageType<InitUnixFSOp> = createMessageType({
 /**
  * InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
  * This creates an ObjectLayout with a simple tabset containing one tab.
- * The object key must have the required "object-layout/" prefix.
  *
  * @generated from message space.world.ops.InitObjectLayoutOp
  */
 export interface InitObjectLayoutOp {
   /**
    * ObjectKey is the object key for the ObjectLayout.
-   * Must have the "object-layout/" prefix.
    *
    * @generated from field: string object_key = 1;
    */

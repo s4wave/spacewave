@@ -49,6 +49,7 @@ import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { mountSpace } from '@s4wave/app/space/space.js'
+import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import {
   buildV86QuickstartWizardConfig,
   buildV86QuickstartWizardKey,
@@ -654,7 +655,9 @@ async function initGitQuickstart(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const now = new Date()
-  const wizardKey = `wizard/git/repo/${now.getTime().toString(36)}`
+  const wizardKey = buildWizardObjectKey(
+    'Repository ' + now.getTime().toString(36),
+  )
   const op: CreateWizardObjectOp = {
     objectKey: wizardKey,
     wizardTypeId: 'wizard/git/repo',
@@ -696,7 +699,7 @@ async function initDocsQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const objectKey = 'docs/documentation'
+  const objectKey = 'documentation'
   await createSpaceSettingsObject(spaceWorld, abortSignal, objectKey)
   await createDocsClientSide(
     spaceWorld,
@@ -713,7 +716,7 @@ async function initBlogQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const objectKey = 'blog/site'
+  const objectKey = 'blog'
   const timestamp = new Date()
   await withWritableWorldState(spaceWorld, abortSignal, async (writeState) => {
     await runQuickstartStep('init blog content', async () => {
@@ -768,7 +771,7 @@ async function initForgeQuickstart(
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const layoutKey = 'object-layout/forge'
+  const layoutKey = 'forge'
 
   // Get the session peer ID for worker registration.
   const sessionInfo = await setup.session.getSessionInfo(abortSignal)
@@ -776,10 +779,10 @@ async function initForgeQuickstart(
 
   const op: InitForgeQuickstartOp = {
     layoutKey,
-    dashboardKey: 'forge/dashboard',
-    clusterKey: 'forge/cluster',
+    dashboardKey: 'dashboard',
+    clusterKey: 'cluster',
     clusterName: 'default',
-    workerKey: 'forge/worker/session',
+    workerKey: 'session-worker',
     sessionPeerId,
     timestamp: new Date(),
   }

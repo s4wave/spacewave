@@ -53,10 +53,7 @@ func (o *InitObjectLayoutOp) Validate() error {
 	if len(objKey) == 0 {
 		return world.ErrEmptyObjectKey
 	}
-	if err := o.GetTimestamp().Validate(false); err != nil {
-		return err
-	}
-	return s4wave_layout_world.CheckObjectLayoutKey(objKey)
+	return o.GetTimestamp().Validate(false)
 }
 
 // GetOperationTypeId returns the operation type identifier.

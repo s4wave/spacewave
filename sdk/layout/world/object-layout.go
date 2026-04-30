@@ -2,7 +2,6 @@ package s4wave_layout_world
 
 import (
 	"context"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -13,25 +12,11 @@ import (
 )
 
 const (
-	// ObjectLayoutPrefix is the prefix used for object layout objects.
-	ObjectLayoutPrefix = "object-layout/"
 	// ObjectLayoutTypeID is the type identifier for a ObjectLayout.
 	ObjectLayoutTypeID = "alpha/object-layout"
 	// ObjectLayoutComponentID is the component identifier for displaying an ObjectLayout.
 	ObjectLayoutComponentID = "alpha/object-layout"
 )
-
-// CheckObjectLayoutKey checks if the ObjectLayout key is valid.
-func CheckObjectLayoutKey(key string) error {
-	if !strings.HasPrefix(key, ObjectLayoutPrefix) || len(key) <= len(ObjectLayoutPrefix) {
-		return errors.Errorf(
-			"object layout object key must have prefix %s: %s",
-			ObjectLayoutPrefix,
-			key,
-		)
-	}
-	return nil
-}
 
 // NewObjectLayout constructs a new empty object layout.
 func NewObjectLayout() *ObjectLayout {

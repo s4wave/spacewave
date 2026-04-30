@@ -40,10 +40,8 @@ message InitUnixFSOp {
 
 // InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
 // This creates an ObjectLayout with a simple tabset containing one tab.
-// The object key must have the required "object-layout/" prefix.
 message InitObjectLayoutOp {
   // ObjectKey is the object key for the ObjectLayout.
-  // Must have the "object-layout/" prefix.
   string object_key = 1;
   // Timestamp is the modification time.
   .google.protobuf.Timestamp timestamp = 2;
