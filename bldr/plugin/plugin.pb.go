@@ -19,6 +19,46 @@ import (
 	volume "github.com/s4wave/spacewave/db/volume"
 )
 
+// PluginState is the scheduler state for a plugin instance.
+type PluginState int32
+
+const (
+	// PluginState_UNKNOWN indicates the scheduler has no state yet.
+	PluginState_PluginState_UNKNOWN PluginState = 0
+	// PluginState_REQUESTED indicates the plugin has an active reference but no RPC client yet.
+	PluginState_PluginState_REQUESTED PluginState = 1
+	// PluginState_RUNNING indicates the plugin RPC client is ready.
+	PluginState_PluginState_RUNNING PluginState = 2
+)
+
+// Enum value maps for PluginState.
+var (
+	PluginState_name = map[int32]string{
+		0: "PluginState_UNKNOWN",
+		1: "PluginState_REQUESTED",
+		2: "PluginState_RUNNING",
+	}
+	PluginState_value = map[string]int32{
+		"PluginState_UNKNOWN":   0,
+		"PluginState_REQUESTED": 1,
+		"PluginState_RUNNING":   2,
+	}
+)
+
+func (x PluginState) Enum() *PluginState {
+	p := new(PluginState)
+	*p = x
+	return p
+}
+
+func (x PluginState) String() string {
+	name, valid := PluginState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // PluginStatus holds basic status for a plugin.
 type PluginStatus struct {
 	unknownFields []byte
@@ -26,6 +66,10 @@ type PluginStatus struct {
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 	// Running indicates the plugin is running.
 	Running bool `protobuf:"varint,2,opt,name=running,proto3" json:"running,omitempty"`
+	// InstanceKey is the optional instance key for instanced plugins.
+	InstanceKey string `protobuf:"bytes,3,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
+	// State is the scheduler state for this plugin instance.
+	State PluginState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
 }
 
 func (x *PluginStatus) Reset() {
@@ -46,6 +90,20 @@ func (x *PluginStatus) GetRunning() bool {
 		return x.Running
 	}
 	return false
+}
+
+func (x *PluginStatus) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
+}
+
+func (x *PluginStatus) GetState() PluginState {
+	if x != nil {
+		return x.State
+	}
+	return PluginState_PluginState_UNKNOWN
 }
 
 // GetPluginInfoRequest is a request to return the information for the current plugin.
@@ -268,6 +326,8 @@ func (m *PluginStatus) CloneVT() *PluginStatus {
 	r := new(PluginStatus)
 	r.PluginId = m.PluginId
 	r.Running = m.Running
+	r.InstanceKey = m.InstanceKey
+	r.State = m.State
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -411,6 +471,12 @@ func (this *PluginStatus) EqualVT(that *PluginStatus) bool {
 		return false
 	}
 	if this.Running != that.Running {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
+		return false
+	}
+	if this.State != that.State {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -585,6 +651,46 @@ func (this *PluginContextInfo) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the PluginState to JSON.
+func (x PluginState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), PluginState_name)
+}
+
+// MarshalText marshals the PluginState to text.
+func (x PluginState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), PluginState_name)), nil
+}
+
+// MarshalJSON marshals the PluginState to JSON.
+func (x PluginState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginState from JSON.
+func (x *PluginState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(PluginState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read PluginState enum: %v", err)
+		return
+	}
+	*x = PluginState(v)
+}
+
+// UnmarshalText unmarshals the PluginState from text.
+func (x *PluginState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), PluginState_value)
+	if err != nil {
+		return err
+	}
+	*x = PluginState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the PluginState from JSON.
+func (x *PluginState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PluginStatus message to JSON.
 func (x *PluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -602,6 +708,16 @@ func (x *PluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("running")
 		s.WriteBool(x.Running)
+	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
 	}
 	s.WriteObjectEnd()
 }
@@ -626,6 +742,12 @@ func (x *PluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "running":
 			s.AddField("running")
 			x.Running = s.ReadBool()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1027,6 +1149,18 @@ func (m *PluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.InstanceKey) > 0 {
+		i -= len(m.InstanceKey)
+		copy(dAtA[i:], m.InstanceKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InstanceKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Running {
 		i--
 		if m.Running {
@@ -1401,6 +1535,13 @@ func (m *PluginStatus) SizeVT() (n int) {
 	if m.Running {
 		n += 2
 	}
+	l = len(m.InstanceKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.State != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1531,6 +1672,10 @@ func (m *PluginContextInfo) SizeVT() (n int) {
 	return n
 }
 
+func (x PluginState) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x *PluginStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginStatus {")
@@ -1547,6 +1692,22 @@ func (x *PluginStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("running: ")
 		sb.WriteString(strconv.FormatBool(x.Running))
+	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
+	}
+	if x.State != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString("\"")
+		sb.WriteString(PluginState(x.State).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1785,6 +1946,39 @@ func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Running = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstanceKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = PluginState(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

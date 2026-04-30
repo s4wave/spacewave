@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../manifest/manifest.pb.h"
 #include "github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.h"
@@ -61,6 +62,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace bldr {
 namespace plugin {
+enum PluginState : int;
+extern const uint32_t PluginState_internal_data_[];
 class GetPluginInfoRequest;
 struct GetPluginInfoRequestDefaultTypeInternal;
 extern GetPluginInfoRequestDefaultTypeInternal _GetPluginInfoRequest_default_instance_;
@@ -97,11 +100,51 @@ extern const ::google::protobuf::internal::ClassDataFull PluginStatus_class_data
 }  // namespace bldr
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::bldr::plugin::PluginState_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::plugin::PluginState>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace bldr {
 namespace plugin {
+enum PluginState : int {
+  PluginState_UNKNOWN = 0,
+  PluginState_REQUESTED = 1,
+  PluginState_RUNNING = 2,
+  PluginState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  PluginState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t PluginState_internal_data_[];
+inline constexpr PluginState PluginState_MIN =
+    static_cast<PluginState>(0);
+inline constexpr PluginState PluginState_MAX =
+    static_cast<PluginState>(2);
+inline bool PluginState_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int PluginState_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL PluginState_descriptor();
+template <typename T>
+const ::std::string& PluginState_Name(T value) {
+  static_assert(::std::is_same<T, PluginState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to PluginState_Name().");
+  return PluginState_Name(static_cast<PluginState>(value));
+}
+template <>
+inline const ::std::string& PluginState_Name(PluginState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<PluginState_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool PluginState_Parse(
+    ::absl::string_view name, PluginState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<PluginState>(PluginState_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -251,7 +294,9 @@ class PluginStatus final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPluginIdFieldNumber = 1,
+    kInstanceKeyFieldNumber = 3,
     kRunningFieldNumber = 2,
+    kStateFieldNumber = 4,
   };
   // string plugin_id = 1;
   void clear_plugin_id() ;
@@ -268,6 +313,21 @@ class PluginStatus final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
 
   public:
+  // string instance_key = 3;
+  void clear_instance_key() ;
+  const ::std::string& instance_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_instance_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_instance_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_instance_key();
+  void set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_instance_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_instance_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_instance_key();
+
+  public:
   // bool running = 2;
   void clear_running() ;
   bool running() const;
@@ -278,12 +338,22 @@ class PluginStatus final : public ::google::protobuf::Message
   void _internal_set_running(bool value);
 
   public:
+  // .bldr.plugin.PluginState state = 4;
+  void clear_state() ;
+  ::bldr::plugin::PluginState state() const;
+  void set_state(::bldr::plugin::PluginState value);
+
+  private:
+  ::bldr::plugin::PluginState _internal_state() const;
+  void _internal_set_state(::bldr::plugin::PluginState value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.PluginStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 42,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 54,
                                    2>
       _table_;
 
@@ -305,7 +375,9 @@ class PluginStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr instance_key_;
     bool running_;
+    int state_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1840,7 +1912,7 @@ inline void PluginStatus::clear_running() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.running_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline bool PluginStatus::running() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.PluginStatus.running)
@@ -1848,7 +1920,7 @@ inline bool PluginStatus::running() const {
 }
 inline void PluginStatus::set_running(bool value) {
   _internal_set_running(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:bldr.plugin.PluginStatus.running)
 }
 inline bool PluginStatus::_internal_running() const {
@@ -1858,6 +1930,96 @@ inline bool PluginStatus::_internal_running() const {
 inline void PluginStatus::_internal_set_running(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.running_ = value;
+}
+
+// string instance_key = 3;
+inline void PluginStatus::clear_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& PluginStatus::instance_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.PluginStatus.instance_key)
+  return _internal_instance_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginStatus::set_instance_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.plugin.PluginStatus.instance_key)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginStatus::mutable_instance_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_instance_key();
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.PluginStatus.instance_key)
+  return _s;
+}
+inline const ::std::string& PluginStatus::_internal_instance_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.instance_key_.Get();
+}
+inline void PluginStatus::_internal_set_instance_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginStatus::_internal_mutable_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.instance_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginStatus::release_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.plugin.PluginStatus.instance_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.instance_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginStatus::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.instance_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.plugin.PluginStatus.instance_key)
+}
+
+// .bldr.plugin.PluginState state = 4;
+inline void PluginStatus::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::bldr::plugin::PluginState PluginStatus::state() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.PluginStatus.state)
+  return _internal_state();
+}
+inline void PluginStatus::set_state(::bldr::plugin::PluginState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.PluginStatus.state)
+}
+inline ::bldr::plugin::PluginState PluginStatus::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::plugin::PluginState>(_impl_.state_);
+}
+inline void PluginStatus::_internal_set_state(::bldr::plugin::PluginState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -2930,6 +3092,19 @@ inline void PluginContextInfo::set_allocated_plugin_meta(::bldr::plugin::PluginM
 }  // namespace plugin
 }  // namespace bldr
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::bldr::plugin::PluginState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::plugin::PluginState>() {
+  return ::bldr::plugin::PluginState_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

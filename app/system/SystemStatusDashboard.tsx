@@ -2048,10 +2048,10 @@ function PluginsDetail({
         <BuildInfoCard buildInfo={buildInfo} />
         <DetailCard title="Runtime" accent="border-success/40">
           <div className="py-0.5">
-            <DetailRow label="Plugin Requests" value={String(pluginCount)} />
+            <DetailRow label="Plugins" value={String(pluginCount)} />
             <DetailRow
               label="State Source"
-              value="LoadPlugin directives"
+              value="Plugin host scheduler"
               mono={false}
             />
           </div>
@@ -2061,7 +2061,7 @@ function PluginsDetail({
         {plugins.length === 0 && (
           <div className="px-3 py-2">
             <span className="text-foreground-alt/30 text-[0.6rem]">
-              No plugin load requests active.
+              No plugins active.
             </span>
           </div>
         )}

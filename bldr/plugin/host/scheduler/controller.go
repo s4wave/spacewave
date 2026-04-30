@@ -3,6 +3,7 @@ package plugin_host_scheduler
 import (
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -71,6 +72,12 @@ type Controller struct {
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[string, *pluginInstance]
+	// pluginStatusCtr publishes live plugin instance states.
+	pluginStatusCtr *ccontainer.CContainer[*PluginStatusSnapshot]
+	// pluginStatusMtx guards pluginStatus.
+	pluginStatusMtx sync.Mutex
+	// pluginStatus stores live plugin instance states by pluginInstanceKey.
+	pluginStatus map[string]*bldr_plugin.PluginStatus
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -134,6 +141,11 @@ func NewController(
 		worldStateCtr:  ccontainer.NewCContainer[world.WorldState](nil),
 		hostVolumeCtr:  ccontainer.NewCContainer[*hostVol](nil),
 		pluginHostsCtr: ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))

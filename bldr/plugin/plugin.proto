@@ -6,12 +6,26 @@ import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
 import "github.com/s4wave/spacewave/db/volume/volume.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 
+// PluginState is the scheduler state for a plugin instance.
+enum PluginState {
+  // PluginState_UNKNOWN indicates the scheduler has no state yet.
+  PluginState_UNKNOWN = 0;
+  // PluginState_REQUESTED indicates the plugin has an active reference but no RPC client yet.
+  PluginState_REQUESTED = 1;
+  // PluginState_RUNNING indicates the plugin RPC client is ready.
+  PluginState_RUNNING = 2;
+}
+
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
   // Running indicates the plugin is running.
   bool running = 2;
+  // InstanceKey is the optional instance key for instanced plugins.
+  string instance_key = 3;
+  // State is the scheduler state for this plugin instance.
+  PluginState state = 4;
 }
 
 // PluginHost is the service exposed by the plugin host.

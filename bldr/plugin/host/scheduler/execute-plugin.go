@@ -177,9 +177,19 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 		}
 		if client == nil {
 			t.le.Debug("plugin rpc client is unset")
+			t.c.setPluginStatus(
+				t.pluginID,
+				t.instanceKey,
+				bldr_plugin.PluginState_PluginState_REQUESTED,
+			)
 			return nil
 		}
 		t.le.Debug("plugin rpc client is ready")
+		t.c.setPluginStatus(
+			t.pluginID,
+			t.instanceKey,
+			bldr_plugin.PluginState_PluginState_RUNNING,
+		)
 		return bldr_plugin.NewRunningPlugin(client)
 	})
 }

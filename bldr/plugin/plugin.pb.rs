@@ -9,6 +9,12 @@ pub struct PluginStatus {
     /// Running indicates the plugin is running.
     #[prost(bool, tag="2")]
     pub running: bool,
+    /// InstanceKey is the optional instance key for instanced plugins.
+    #[prost(string, tag="3")]
+    pub instance_key: ::prost::alloc::string::String,
+    /// State is the scheduler state for this plugin instance.
+    #[prost(enumeration="PluginState", tag="4")]
+    pub state: i32,
 }
 /// GetPluginInfoRequest is a request to return the information for the current plugin.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -89,5 +95,38 @@ pub struct PluginContextInfo {
     /// PluginMeta is the plugin metadata.
     #[prost(message, optional, tag="1")]
     pub plugin_meta: ::core::option::Option<PluginMeta>,
+}
+/// PluginState is the scheduler state for a plugin instance.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PluginState {
+    /// PluginState_UNKNOWN indicates the scheduler has no state yet.
+    Unknown = 0,
+    /// PluginState_REQUESTED indicates the plugin has an active reference but no RPC client yet.
+    Requested = 1,
+    /// PluginState_RUNNING indicates the plugin RPC client is ready.
+    Running = 2,
+}
+impl PluginState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "PluginState_UNKNOWN",
+            Self::Requested => "PluginState_REQUESTED",
+            Self::Running => "PluginState_RUNNING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PluginState_UNKNOWN" => Some(Self::Unknown),
+            "PluginState_REQUESTED" => Some(Self::Requested),
+            "PluginState_RUNNING" => Some(Self::Running),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

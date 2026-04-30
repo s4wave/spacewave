@@ -3,11 +3,50 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 import { ManifestRef } from '../manifest/manifest.pb.js'
 import { VolumeInfo } from '@go/github.com/s4wave/spacewave/db/volume/volume.pb.js'
 
 export const protobufPackage = 'bldr.plugin'
+
+/**
+ * PluginState is the scheduler state for a plugin instance.
+ *
+ * @generated from enum bldr.plugin.PluginState
+ */
+export enum PluginState {
+  /**
+   * PluginState_UNKNOWN indicates the scheduler has no state yet.
+   *
+   * @generated from enum value: PluginState_UNKNOWN = 0;
+   */
+  PluginState_UNKNOWN = 0,
+
+  /**
+   * PluginState_REQUESTED indicates the plugin has an active reference but no RPC client yet.
+   *
+   * @generated from enum value: PluginState_REQUESTED = 1;
+   */
+  PluginState_REQUESTED = 1,
+
+  /**
+   * PluginState_RUNNING indicates the plugin RPC client is ready.
+   *
+   * @generated from enum value: PluginState_RUNNING = 2;
+   */
+  PluginState_RUNNING = 2,
+}
+
+// PluginState_Enum is the enum type for PluginState.
+export const PluginState_Enum = createEnumType('bldr.plugin.PluginState', [
+  { no: 0, name: 'PluginState_UNKNOWN' },
+  { no: 1, name: 'PluginState_REQUESTED' },
+  { no: 2, name: 'PluginState_RUNNING' },
+])
 
 /**
  * PluginStatus holds basic status for a plugin.
@@ -27,6 +66,18 @@ export interface PluginStatus {
    * @generated from field: bool running = 2;
    */
   running?: boolean
+  /**
+   * InstanceKey is the optional instance key for instanced plugins.
+   *
+   * @generated from field: string instance_key = 3;
+   */
+  instanceKey?: string
+  /**
+   * State is the scheduler state for this plugin instance.
+   *
+   * @generated from field: bldr.plugin.PluginState state = 4;
+   */
+  state?: PluginState
 }
 
 // PluginStatus contains the message type declaration for PluginStatus.
@@ -35,6 +86,8 @@ export const PluginStatus: MessageType<PluginStatus> = createMessageType({
   fields: [
     { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'running', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'state', kind: 'enum', T: PluginState_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

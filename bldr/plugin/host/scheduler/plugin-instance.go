@@ -99,6 +99,17 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 
 // execute executes the routine.
 func (t *pluginInstance) execute(ctx context.Context) error {
+	t.c.setPluginStatus(
+		t.pluginID,
+		t.instanceKey,
+		bldr_plugin.PluginState_PluginState_REQUESTED,
+	)
+	defer t.c.setPluginStatus(
+		t.pluginID,
+		t.instanceKey,
+		bldr_plugin.PluginState_PluginState_UNKNOWN,
+	)
+
 	// Fetch manifests
 	if t.c.conf.GetWatchFetchManifest() {
 		t.fetchWorldManifestRoutine.SetContext(ctx, true)
