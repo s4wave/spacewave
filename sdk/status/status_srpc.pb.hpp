@@ -24,6 +24,8 @@ class SRPCSystemStatusService_WatchControllersClient;
 class SRPCSystemStatusService_WatchControllersStream;
 class SRPCSystemStatusService_WatchDirectivesClient;
 class SRPCSystemStatusService_WatchDirectivesStream;
+class SRPCSystemStatusService_WatchPluginsClient;
+class SRPCSystemStatusService_WatchPluginsStream;
 
 // SRPCSystemStatusServiceClient is the client API for SystemStatusService service.
 class SRPCSystemStatusServiceClient {
@@ -37,6 +39,8 @@ class SRPCSystemStatusServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchControllersClient>, starpc::Error> WatchControllers(const s4wave::status::WatchControllersRequest& in) = 0;
   // WatchDirectives
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchDirectivesClient>, starpc::Error> WatchDirectives(const s4wave::status::WatchDirectivesRequest& in) = 0;
+  // WatchPlugins
+  virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::Error> WatchPlugins(const s4wave::status::WatchPluginsRequest& in) = 0;
 };
 
 // SRPCSystemStatusServiceClientImpl implements SRPCSystemStatusServiceClient.
@@ -51,6 +55,8 @@ class SRPCSystemStatusServiceClientImpl : public SRPCSystemStatusServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchControllersClient>, starpc::Error> WatchControllers(const s4wave::status::WatchControllersRequest& in) override;
   // WatchDirectives
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchDirectivesClient>, starpc::Error> WatchDirectives(const s4wave::status::WatchDirectivesRequest& in) override;
+  // WatchPlugins
+  virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::Error> WatchPlugins(const s4wave::status::WatchPluginsRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -71,6 +77,8 @@ class SRPCSystemStatusServiceServer {
   virtual starpc::Error WatchControllers(const s4wave::status::WatchControllersRequest& req, SRPCSystemStatusService_WatchControllersStream* strm) = 0;
   // WatchDirectives
   virtual starpc::Error WatchDirectives(const s4wave::status::WatchDirectivesRequest& req, SRPCSystemStatusService_WatchDirectivesStream* strm) = 0;
+  // WatchPlugins
+  virtual starpc::Error WatchPlugins(const s4wave::status::WatchPluginsRequest& req, SRPCSystemStatusService_WatchPluginsStream* strm) = 0;
 };
 
 // SRPCSystemStatusServiceHandler implements starpc::Handler for SystemStatusService.
@@ -168,6 +176,41 @@ class SRPCSystemStatusService_WatchDirectivesStream {
   }
 
   starpc::Error SendAndClose(const s4wave::status::WatchDirectivesResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCSystemStatusService_WatchPluginsClient is the client stream for WatchPlugins.
+class SRPCSystemStatusService_WatchPluginsClient {
+ public:
+  explicit SRPCSystemStatusService_WatchPluginsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::status::WatchPluginsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCSystemStatusService_WatchPluginsStream is the server stream for WatchPlugins.
+class SRPCSystemStatusService_WatchPluginsStream {
+ public:
+  explicit SRPCSystemStatusService_WatchPluginsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::status::WatchPluginsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::status::WatchPluginsResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

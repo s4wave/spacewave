@@ -17,6 +17,8 @@ type SRPCSystemStatusServiceClient interface {
 	WatchControllers(ctx context.Context, in *WatchControllersRequest) (SRPCSystemStatusService_WatchControllersClient, error)
 
 	WatchDirectives(ctx context.Context, in *WatchDirectivesRequest) (SRPCSystemStatusService_WatchDirectivesClient, error)
+
+	WatchPlugins(ctx context.Context, in *WatchPluginsRequest) (SRPCSystemStatusService_WatchPluginsClient, error)
 }
 
 type srpcSystemStatusServiceClient struct {
@@ -105,10 +107,46 @@ func (x *srpcSystemStatusService_WatchDirectivesClient) RecvTo(m *WatchDirective
 	return x.MsgRecv(m)
 }
 
+func (c *srpcSystemStatusServiceClient) WatchPlugins(ctx context.Context, in *WatchPluginsRequest) (SRPCSystemStatusService_WatchPluginsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchPlugins", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSystemStatusService_WatchPluginsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSystemStatusService_WatchPluginsClient interface {
+	srpc.Stream
+	Recv() (*WatchPluginsResponse, error)
+	RecvTo(*WatchPluginsResponse) error
+}
+
+type srpcSystemStatusService_WatchPluginsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSystemStatusService_WatchPluginsClient) Recv() (*WatchPluginsResponse, error) {
+	m := new(WatchPluginsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSystemStatusService_WatchPluginsClient) RecvTo(m *WatchPluginsResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSystemStatusServiceServer interface {
 	WatchControllers(*WatchControllersRequest, SRPCSystemStatusService_WatchControllersStream) error
 
 	WatchDirectives(*WatchDirectivesRequest, SRPCSystemStatusService_WatchDirectivesStream) error
+
+	WatchPlugins(*WatchPluginsRequest, SRPCSystemStatusService_WatchPluginsStream) error
 }
 
 const SRPCSystemStatusServiceServiceID = "s4wave.status.SystemStatusService"
@@ -139,6 +177,7 @@ func (SRPCSystemStatusServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchControllers",
 		"WatchDirectives",
+		"WatchPlugins",
 	}
 }
 
@@ -155,6 +194,8 @@ func (d *SRPCSystemStatusServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchControllers(d.impl, strm)
 	case "WatchDirectives":
 		return true, d.InvokeMethod_WatchDirectives(d.impl, strm)
+	case "WatchPlugins":
+		return true, d.InvokeMethod_WatchPlugins(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -176,6 +217,15 @@ func (SRPCSystemStatusServiceHandler) InvokeMethod_WatchDirectives(impl SRPCSyst
 	}
 	serverStrm := &srpcSystemStatusService_WatchDirectivesStream{strm}
 	return impl.WatchDirectives(req, serverStrm)
+}
+
+func (SRPCSystemStatusServiceHandler) InvokeMethod_WatchPlugins(impl SRPCSystemStatusServiceServer, strm srpc.Stream) error {
+	req := new(WatchPluginsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSystemStatusService_WatchPluginsStream{strm}
+	return impl.WatchPlugins(req, serverStrm)
 }
 
 type SRPCSystemStatusService_WatchControllersStream interface {
@@ -216,6 +266,29 @@ func (x *srpcSystemStatusService_WatchDirectivesStream) Send(m *WatchDirectivesR
 }
 
 func (x *srpcSystemStatusService_WatchDirectivesStream) SendAndClose(m *WatchDirectivesResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSystemStatusService_WatchPluginsStream interface {
+	srpc.Stream
+	Send(*WatchPluginsResponse) error
+	SendAndClose(*WatchPluginsResponse) error
+}
+
+type srpcSystemStatusService_WatchPluginsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSystemStatusService_WatchPluginsStream) Send(m *WatchPluginsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSystemStatusService_WatchPluginsStream) SendAndClose(m *WatchPluginsResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

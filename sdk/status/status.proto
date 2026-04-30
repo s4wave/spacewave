@@ -7,6 +7,8 @@ service SystemStatusService {
   rpc WatchControllers(WatchControllersRequest) returns (stream WatchControllersResponse);
 
   rpc WatchDirectives(WatchDirectivesRequest) returns (stream WatchDirectivesResponse);
+
+  rpc WatchPlugins(WatchPluginsRequest) returns (stream WatchPluginsResponse);
 }
 
 // ControllerInfo describes a running controller.
@@ -25,6 +27,16 @@ message DirectiveInfo {
   string name = 1;
   // Ident is the human-readable directive identification string.
   string ident = 2;
+}
+
+// PluginInfo describes a runtime plugin load request.
+message PluginInfo {
+  // Id is the plugin identifier.
+  string id = 1;
+  // InstanceKey is the optional instance key for instanced plugins.
+  string instance_key = 2;
+  // State is the plugin runtime state.
+  string state = 3;
 }
 
 // WatchControllersRequest is the request type for WatchControllers.
@@ -47,4 +59,15 @@ message WatchDirectivesResponse {
   repeated DirectiveInfo directives = 1;
   // DirectiveCount is the total number of active directives.
   uint32 directive_count = 2;
+}
+
+// WatchPluginsRequest is the request type for WatchPlugins.
+message WatchPluginsRequest {}
+
+// WatchPluginsResponse is the response type for WatchPlugins.
+message WatchPluginsResponse {
+  // Plugins is the current list of plugin load requests.
+  repeated PluginInfo plugins = 1;
+  // PluginCount is the total number of plugin load requests.
+  uint32 plugin_count = 2;
 }

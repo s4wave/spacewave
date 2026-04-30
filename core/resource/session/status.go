@@ -3,6 +3,7 @@ package resource_session
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/broadcast"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
@@ -71,6 +72,48 @@ func (r *StatusResource) WatchDirectives(
 			}
 		},
 		func(resp *s4wave_status.WatchDirectivesResponse) error {
+			return strm.Send(resp)
+		},
+	)
+}
+
+// WatchPlugins streams the list of active plugin load requests on change.
+func (r *StatusResource) WatchPlugins(
+	_ *s4wave_status.WatchPluginsRequest,
+	strm s4wave_status.SRPCSystemStatusService_WatchPluginsStream,
+) error {
+	bcast := r.b.GetDirectivesBroadcast()
+	return broadcast.WatchBroadcastVT(
+		strm.Context(),
+		bcast,
+		func() *s4wave_status.WatchPluginsResponse {
+			dirs := r.b.GetDirectives()
+			seen := make(map[string]struct{}, len(dirs))
+			infos := make([]*s4wave_status.PluginInfo, 0, len(dirs))
+			for _, d := range dirs {
+				lp, ok := d.GetDirective().(bldr_plugin.LoadPlugin)
+				if !ok {
+					continue
+				}
+				id := lp.LoadPluginID()
+				instanceKey := lp.LoadPluginInstanceKey()
+				key := id + "\x00" + instanceKey
+				if _, ok := seen[key]; ok {
+					continue
+				}
+				seen[key] = struct{}{}
+				infos = append(infos, &s4wave_status.PluginInfo{
+					Id:          id,
+					InstanceKey: instanceKey,
+					State:       "requested",
+				})
+			}
+			return &s4wave_status.WatchPluginsResponse{
+				Plugins:     infos,
+				PluginCount: uint32(len(infos)),
+			}
+		},
+		func(resp *s4wave_status.WatchPluginsResponse) error {
 			return strm.Send(resp)
 		},
 	)

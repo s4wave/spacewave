@@ -82,6 +82,44 @@ func (x *DirectiveInfo) GetIdent() string {
 	return ""
 }
 
+// PluginInfo describes a runtime plugin load request.
+type PluginInfo struct {
+	unknownFields []byte
+	// Id is the plugin identifier.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// InstanceKey is the optional instance key for instanced plugins.
+	InstanceKey string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
+	// State is the plugin runtime state.
+	State string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+}
+
+func (x *PluginInfo) Reset() {
+	*x = PluginInfo{}
+}
+
+func (*PluginInfo) ProtoMessage() {}
+
+func (x *PluginInfo) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PluginInfo) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
+}
+
+func (x *PluginInfo) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
 // WatchControllersRequest is the request type for WatchControllers.
 type WatchControllersRequest struct {
 	unknownFields []byte
@@ -162,6 +200,46 @@ func (x *WatchDirectivesResponse) GetDirectiveCount() uint32 {
 	return 0
 }
 
+// WatchPluginsRequest is the request type for WatchPlugins.
+type WatchPluginsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchPluginsRequest) Reset() {
+	*x = WatchPluginsRequest{}
+}
+
+func (*WatchPluginsRequest) ProtoMessage() {}
+
+// WatchPluginsResponse is the response type for WatchPlugins.
+type WatchPluginsResponse struct {
+	unknownFields []byte
+	// Plugins is the current list of plugin load requests.
+	Plugins []*PluginInfo `protobuf:"bytes,1,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	// PluginCount is the total number of plugin load requests.
+	PluginCount uint32 `protobuf:"varint,2,opt,name=plugin_count,json=pluginCount,proto3" json:"pluginCount,omitempty"`
+}
+
+func (x *WatchPluginsResponse) Reset() {
+	*x = WatchPluginsResponse{}
+}
+
+func (*WatchPluginsResponse) ProtoMessage() {}
+
+func (x *WatchPluginsResponse) GetPlugins() []*PluginInfo {
+	if x != nil {
+		return x.Plugins
+	}
+	return nil
+}
+
+func (x *WatchPluginsResponse) GetPluginCount() uint32 {
+	if x != nil {
+		return x.PluginCount
+	}
+	return 0
+}
+
 func (m *ControllerInfo) CloneVT() *ControllerInfo {
 	if m == nil {
 		return (*ControllerInfo)(nil)
@@ -194,6 +272,24 @@ func (m *DirectiveInfo) CloneVT() *DirectiveInfo {
 }
 
 func (m *DirectiveInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginInfo) CloneVT() *PluginInfo {
+	if m == nil {
+		return (*PluginInfo)(nil)
+	}
+	r := new(PluginInfo)
+	r.Id = m.Id
+	r.InstanceKey = m.InstanceKey
+	r.State = m.State
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -271,6 +367,43 @@ func (m *WatchDirectivesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage
 	return m.CloneVT()
 }
 
+func (m *WatchPluginsRequest) CloneVT() *WatchPluginsRequest {
+	if m == nil {
+		return (*WatchPluginsRequest)(nil)
+	}
+	r := new(WatchPluginsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchPluginsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchPluginsResponse) CloneVT() *WatchPluginsResponse {
+	if m == nil {
+		return (*WatchPluginsResponse)(nil)
+	}
+	r := new(WatchPluginsResponse)
+	r.PluginCount = m.PluginCount
+	if rhs := m.Plugins; rhs != nil {
+		r.Plugins = make([]*PluginInfo, len(rhs))
+		for k, v := range rhs {
+			r.Plugins[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchPluginsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *ControllerInfo) EqualVT(that *ControllerInfo) bool {
 	if this == that {
 		return true
@@ -314,6 +447,32 @@ func (this *DirectiveInfo) EqualVT(that *DirectiveInfo) bool {
 
 func (this *DirectiveInfo) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DirectiveInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginInfo) EqualVT(that *PluginInfo) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginInfo) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginInfo)
 	if !ok {
 		return false
 	}
@@ -428,6 +587,60 @@ func (this *WatchDirectivesResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *WatchPluginsRequest) EqualVT(that *WatchPluginsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchPluginsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchPluginsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchPluginsResponse) EqualVT(that *WatchPluginsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Plugins) != len(that.Plugins) {
+		return false
+	}
+	for i, vx := range this.Plugins {
+		vy := that.Plugins[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PluginInfo{}
+			}
+			if q == nil {
+				q = &PluginInfo{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.PluginCount != that.PluginCount {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchPluginsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchPluginsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the ControllerInfo message to JSON.
 func (x *ControllerInfo) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -533,6 +746,64 @@ func (x *DirectiveInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the DirectiveInfo from JSON.
 func (x *DirectiveInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginInfo message to JSON.
+func (x *PluginInfo) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
+	if x.State != "" || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		s.WriteString(x.State)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginInfo to JSON.
+func (x *PluginInfo) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginInfo message from JSON.
+func (x *PluginInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginInfo from JSON.
+func (x *PluginInfo) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -738,6 +1009,107 @@ func (x *WatchDirectivesResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchPluginsRequest message to JSON.
+func (x *WatchPluginsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchPluginsRequest to JSON.
+func (x *WatchPluginsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchPluginsRequest message from JSON.
+func (x *WatchPluginsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchPluginsRequest from JSON.
+func (x *WatchPluginsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchPluginsResponse message to JSON.
+func (x *WatchPluginsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Plugins) > 0 || s.HasField("plugins") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("plugins")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Plugins {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("plugins"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.PluginCount != 0 || s.HasField("pluginCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginCount")
+		s.WriteUint32(x.PluginCount)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchPluginsResponse to JSON.
+func (x *WatchPluginsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchPluginsResponse message from JSON.
+func (x *WatchPluginsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugins":
+			s.AddField("plugins")
+			if s.ReadNil() {
+				x.Plugins = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Plugins = append(x.Plugins, nil)
+					return
+				}
+				v := &PluginInfo{}
+				v.UnmarshalProtoJSON(s.WithField("plugins", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Plugins = append(x.Plugins, v)
+			})
+		case "plugin_count", "pluginCount":
+			s.AddField("plugin_count")
+			x.PluginCount = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchPluginsResponse from JSON.
+func (x *WatchPluginsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *ControllerInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -833,6 +1205,60 @@ func (m *DirectiveInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.Name)
 		copy(dAtA[i:], m.Name)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginInfo) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginInfo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.State) > 0 {
+		i -= len(m.State)
+		copy(dAtA[i:], m.State)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.State)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.InstanceKey) > 0 {
+		i -= len(m.InstanceKey)
+		copy(dAtA[i:], m.InstanceKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InstanceKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1005,6 +1431,89 @@ func (m *WatchDirectivesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchPluginsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchPluginsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchPluginsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchPluginsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchPluginsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchPluginsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PluginCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PluginCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Plugins) > 0 {
+		for iNdEx := len(m.Plugins) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Plugins[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ControllerInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1038,6 +1547,28 @@ func (m *DirectiveInfo) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Ident)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginInfo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.InstanceKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.State)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -1103,6 +1634,35 @@ func (m *WatchDirectivesResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *WatchPluginsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchPluginsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Plugins) > 0 {
+		for _, e := range m.Plugins {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.PluginCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PluginCount))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *ControllerInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ControllerInfo {")
@@ -1157,6 +1717,38 @@ func (x *DirectiveInfo) MarshalProtoText() string {
 }
 
 func (x *DirectiveInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginInfo) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PluginInfo {")
+	if x.Id != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
+	}
+	if x.State != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString(strconv.Quote(x.State))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PluginInfo) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1241,6 +1833,48 @@ func (x *WatchDirectivesResponse) MarshalProtoText() string {
 }
 
 func (x *WatchDirectivesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchPluginsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchPluginsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchPluginsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchPluginsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchPluginsResponse {")
+	if len(x.Plugins) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugins: [")
+		for i, v := range x.Plugins {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.PluginCount != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.PluginCount), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchPluginsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1416,6 +2050,115 @@ func (m *DirectiveInfo) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Ident = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginInfo) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstanceKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.State = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1656,6 +2399,127 @@ func (m *WatchDirectivesResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DirectiveCount = 0
 			m.DirectiveCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchPluginsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchPluginsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchPluginsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchPluginsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchPluginsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchPluginsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Plugins = append(m.Plugins, &PluginInfo{})
+			if err := m.Plugins[len(m.Plugins)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginCount", wireType)
+			}
+			m.PluginCount = 0
+			m.PluginCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

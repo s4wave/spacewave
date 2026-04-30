@@ -29,6 +29,24 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace status {
 template <typename>
+PROTOBUF_CONSTEXPR WatchPluginsRequest::WatchPluginsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchPluginsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchPluginsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchPluginsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchPluginsRequestDefaultTypeInternal() {}
+  union {
+    WatchPluginsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchPluginsRequestDefaultTypeInternal _WatchPluginsRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR WatchDirectivesRequest::WatchDirectivesRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(WatchDirectivesRequest_class_data_.base()){}
@@ -64,6 +82,39 @@ struct WatchControllersRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchControllersRequestDefaultTypeInternal _WatchControllersRequest_default_instance_;
+
+inline constexpr PluginInfo::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        instance_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        state_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR PluginInfo::PluginInfo(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(PluginInfo_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct PluginInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PluginInfoDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PluginInfoDefaultTypeInternal() {}
+  union {
+    PluginInfo _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PluginInfoDefaultTypeInternal _PluginInfo_default_instance_;
 
 inline constexpr DirectiveInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -127,6 +178,32 @@ struct ControllerInfoDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ControllerInfoDefaultTypeInternal _ControllerInfo_default_instance_;
+
+inline constexpr WatchPluginsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        plugins_{},
+        plugin_count_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchPluginsResponse::WatchPluginsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchPluginsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchPluginsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchPluginsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchPluginsResponseDefaultTypeInternal() {}
+  union {
+    WatchPluginsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchPluginsResponseDefaultTypeInternal _WatchPluginsResponse_default_instance_;
 
 inline constexpr WatchDirectivesResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -204,6 +281,15 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::status::DirectiveInfo, _impl_.ident_),
         0,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::PluginInfo, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::PluginInfo, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::PluginInfo, _impl_.instance_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::PluginInfo, _impl_.state_),
+        0,
+        1,
+        2,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchControllersResponse, _impl_._has_bits_),
@@ -220,24 +306,38 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchDirectivesResponse, _impl_.directive_count_),
         0,
         1,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchPluginsResponse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchPluginsResponse, _impl_.plugins_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchPluginsResponse, _impl_.plugin_count_),
+        0,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::status::ControllerInfo)},
         {9, sizeof(::s4wave::status::DirectiveInfo)},
-        {16, sizeof(::s4wave::status::WatchControllersRequest)},
-        {17, sizeof(::s4wave::status::WatchControllersResponse)},
-        {24, sizeof(::s4wave::status::WatchDirectivesRequest)},
-        {25, sizeof(::s4wave::status::WatchDirectivesResponse)},
+        {16, sizeof(::s4wave::status::PluginInfo)},
+        {25, sizeof(::s4wave::status::WatchControllersRequest)},
+        {26, sizeof(::s4wave::status::WatchControllersResponse)},
+        {33, sizeof(::s4wave::status::WatchDirectivesRequest)},
+        {34, sizeof(::s4wave::status::WatchDirectivesResponse)},
+        {41, sizeof(::s4wave::status::WatchPluginsRequest)},
+        {42, sizeof(::s4wave::status::WatchPluginsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::status::_ControllerInfo_default_instance_._instance,
     &::s4wave::status::_DirectiveInfo_default_instance_._instance,
+    &::s4wave::status::_PluginInfo_default_instance_._instance,
     &::s4wave::status::_WatchControllersRequest_default_instance_._instance,
     &::s4wave::status::_WatchControllersResponse_default_instance_._instance,
     &::s4wave::status::_WatchDirectivesRequest_default_instance_._instance,
     &::s4wave::status::_WatchDirectivesResponse_default_instance_._instance,
+    &::s4wave::status::_WatchPluginsRequest_default_instance_._instance,
+    &::s4wave::status::_WatchPluginsResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -245,33 +345,40 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "/status.proto\022\rs4wave.status\"B\n\016Controll"
     "erInfo\022\n\n\002id\030\001 \001(\t\022\017\n\007version\030\002 \001(\t\022\023\n\013d"
     "escription\030\003 \001(\t\",\n\rDirectiveInfo\022\014\n\004nam"
-    "e\030\001 \001(\t\022\r\n\005ident\030\002 \001(\t\"\031\n\027WatchControlle"
-    "rsRequest\"h\n\030WatchControllersResponse\0222\n"
-    "\013controllers\030\001 \003(\0132\035.s4wave.status.Contr"
-    "ollerInfo\022\030\n\020controller_count\030\002 \001(\r\"\030\n\026W"
-    "atchDirectivesRequest\"d\n\027WatchDirectives"
-    "Response\0220\n\ndirectives\030\001 \003(\0132\034.s4wave.st"
-    "atus.DirectiveInfo\022\027\n\017directive_count\030\002 "
-    "\001(\r2\340\001\n\023SystemStatusService\022e\n\020WatchCont"
-    "rollers\022&.s4wave.status.WatchControllers"
-    "Request\032\'.s4wave.status.WatchControllers"
-    "Response0\001\022b\n\017WatchDirectives\022%.s4wave.s"
-    "tatus.WatchDirectivesRequest\032&.s4wave.st"
-    "atus.WatchDirectivesResponse0\001B6Z4github"
-    ".com/s4wave/spacewave/sdk/status;s4wave_"
-    "statusb\006proto3"
+    "e\030\001 \001(\t\022\r\n\005ident\030\002 \001(\t\"=\n\nPluginInfo\022\n\n\002"
+    "id\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\022\r\n\005state\030"
+    "\003 \001(\t\"\031\n\027WatchControllersRequest\"h\n\030Watc"
+    "hControllersResponse\0222\n\013controllers\030\001 \003("
+    "\0132\035.s4wave.status.ControllerInfo\022\030\n\020cont"
+    "roller_count\030\002 \001(\r\"\030\n\026WatchDirectivesReq"
+    "uest\"d\n\027WatchDirectivesResponse\0220\n\ndirec"
+    "tives\030\001 \003(\0132\034.s4wave.status.DirectiveInf"
+    "o\022\027\n\017directive_count\030\002 \001(\r\"\025\n\023WatchPlugi"
+    "nsRequest\"X\n\024WatchPluginsResponse\022*\n\007plu"
+    "gins\030\001 \003(\0132\031.s4wave.status.PluginInfo\022\024\n"
+    "\014plugin_count\030\002 \001(\r2\273\002\n\023SystemStatusServ"
+    "ice\022e\n\020WatchControllers\022&.s4wave.status."
+    "WatchControllersRequest\032\'.s4wave.status."
+    "WatchControllersResponse0\001\022b\n\017WatchDirec"
+    "tives\022%.s4wave.status.WatchDirectivesReq"
+    "uest\032&.s4wave.status.WatchDirectivesResp"
+    "onse0\001\022Y\n\014WatchPlugins\022\".s4wave.status.W"
+    "atchPluginsRequest\032#.s4wave.status.Watch"
+    "PluginsResponse0\001B6Z4github.com/s4wave/s"
+    "pacewave/sdk/status;s4wave_statusb\006proto"
+    "3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto = {
     false,
     false,
-    734,
+    1001,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
     "github.com/s4wave/spacewave/sdk/status/status.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once,
     nullptr,
     0,
-    6,
+    9,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto::offsets,
@@ -959,6 +1066,367 @@ void DirectiveInfo::InternalSwap(DirectiveInfo* PROTOBUF_RESTRICT PROTOBUF_NONNU
 }
 
 ::google::protobuf::Metadata DirectiveInfo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class PluginInfo::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<PluginInfo>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_._has_bits_);
+};
+
+PluginInfo::PluginInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PluginInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.PluginInfo)
+}
+PROTOBUF_NDEBUG_INLINE PluginInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::status::PluginInfo& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        instance_key_(arena, from.instance_key_),
+        state_(arena, from.state_) {}
+
+PluginInfo::PluginInfo(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const PluginInfo& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PluginInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  PluginInfo* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.PluginInfo)
+}
+PROTOBUF_NDEBUG_INLINE PluginInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        instance_key_(arena),
+        state_(arena) {}
+
+inline void PluginInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+PluginInfo::~PluginInfo() {
+  // @@protoc_insertion_point(destructor:s4wave.status.PluginInfo)
+  SharedDtor(*this);
+}
+inline void PluginInfo::SharedDtor(MessageLite& self) {
+  PluginInfo& this_ = static_cast<PluginInfo&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.instance_key_.Destroy();
+  this_._impl_.state_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL PluginInfo::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) PluginInfo(arena);
+}
+constexpr auto PluginInfo::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(PluginInfo),
+                                            alignof(PluginInfo));
+}
+constexpr auto PluginInfo::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_PluginInfo_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &PluginInfo::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<PluginInfo>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &PluginInfo::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<PluginInfo>(), &PluginInfo::ByteSizeLong,
+              &PluginInfo::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_._cached_size_),
+          false,
+      },
+      &PluginInfo::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull PluginInfo_class_data_ =
+        PluginInfo::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+PluginInfo::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&PluginInfo_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(PluginInfo_class_data_.tc_table);
+  return PluginInfo_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 52, 2>
+PluginInfo::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    PluginInfo_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::PluginInfo>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.id_)}},
+    // string instance_key = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.instance_key_)}},
+    // string state = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.state_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string instance_key = 2;
+    {PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.instance_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string state = 3;
+    {PROTOBUF_FIELD_OFFSET(PluginInfo, _impl_.state_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\30\2\14\5\0\0\0\0"
+    "s4wave.status.PluginInfo"
+    "id"
+    "instance_key"
+    "state"
+  }},
+};
+PROTOBUF_NOINLINE void PluginInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.status.PluginInfo)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.instance_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.state_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL PluginInfo::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const PluginInfo& this_ = static_cast<const PluginInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL PluginInfo::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const PluginInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.status.PluginInfo)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.PluginInfo.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string instance_key = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_instance_key().empty()) {
+      const ::std::string& _s = this_._internal_instance_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.PluginInfo.instance_key");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string state = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_state().empty()) {
+      const ::std::string& _s = this_._internal_state();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.PluginInfo.state");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.status.PluginInfo)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t PluginInfo::ByteSizeLong(const MessageLite& base) {
+  const PluginInfo& this_ = static_cast<const PluginInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t PluginInfo::ByteSizeLong() const {
+  const PluginInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.status.PluginInfo)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string instance_key = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_instance_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_instance_key());
+      }
+    }
+    // string state = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_state().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_state());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void PluginInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<PluginInfo*>(&to_msg);
+  auto& from = static_cast<const PluginInfo&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.status.PluginInfo)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_instance_key().empty()) {
+        _this->_internal_set_instance_key(from._internal_instance_key());
+      } else {
+        if (_this->_impl_.instance_key_.IsDefault()) {
+          _this->_internal_set_instance_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_state().empty()) {
+        _this->_internal_set_state(from._internal_state());
+      } else {
+        if (_this->_impl_.state_.IsDefault()) {
+          _this->_internal_set_state("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void PluginInfo::CopyFrom(const PluginInfo& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.status.PluginInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void PluginInfo::InternalSwap(PluginInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.instance_key_, &other->_impl_.instance_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.state_, &other->_impl_.state_, arena);
+}
+
+::google::protobuf::Metadata PluginInfo::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -1811,6 +2279,432 @@ void WatchDirectivesResponse::InternalSwap(WatchDirectivesResponse* PROTOBUF_RES
 }
 
 ::google::protobuf::Metadata WatchDirectivesResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchPluginsRequest::_Internal {
+ public:
+};
+
+WatchPluginsRequest::WatchPluginsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchPluginsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.WatchPluginsRequest)
+}
+WatchPluginsRequest::WatchPluginsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchPluginsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchPluginsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchPluginsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.WatchPluginsRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchPluginsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchPluginsRequest(arena);
+}
+constexpr auto WatchPluginsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchPluginsRequest),
+                                            alignof(WatchPluginsRequest));
+}
+constexpr auto WatchPluginsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchPluginsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchPluginsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchPluginsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchPluginsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchPluginsRequest>(), &WatchPluginsRequest::ByteSizeLong,
+              &WatchPluginsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchPluginsRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchPluginsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchPluginsRequest_class_data_ =
+        WatchPluginsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchPluginsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchPluginsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchPluginsRequest_class_data_.tc_table);
+  return WatchPluginsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchPluginsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchPluginsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::WatchPluginsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchPluginsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchPluginsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchPluginsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_._has_bits_);
+};
+
+WatchPluginsResponse::WatchPluginsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchPluginsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.WatchPluginsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchPluginsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::status::WatchPluginsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        plugins_{visibility, arena, from.plugins_} {}
+
+WatchPluginsResponse::WatchPluginsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchPluginsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchPluginsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchPluginsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.plugin_count_ = from._impl_.plugin_count_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.WatchPluginsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchPluginsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        plugins_{visibility, arena} {}
+
+inline void WatchPluginsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.plugin_count_ = {};
+}
+WatchPluginsResponse::~WatchPluginsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.status.WatchPluginsResponse)
+  SharedDtor(*this);
+}
+inline void WatchPluginsResponse::SharedDtor(MessageLite& self) {
+  WatchPluginsResponse& this_ = static_cast<WatchPluginsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchPluginsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchPluginsResponse(arena);
+}
+constexpr auto WatchPluginsResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_.plugins_) +
+          decltype(WatchPluginsResponse::_impl_.plugins_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(WatchPluginsResponse), alignof(WatchPluginsResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchPluginsResponse::PlacementNew_,
+                                 sizeof(WatchPluginsResponse),
+                                 alignof(WatchPluginsResponse));
+  }
+}
+constexpr auto WatchPluginsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchPluginsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchPluginsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchPluginsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchPluginsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchPluginsResponse>(), &WatchPluginsResponse::ByteSizeLong,
+              &WatchPluginsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchPluginsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchPluginsResponse_class_data_ =
+        WatchPluginsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchPluginsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchPluginsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchPluginsResponse_class_data_.tc_table);
+  return WatchPluginsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+WatchPluginsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchPluginsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::WatchPluginsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 plugin_count = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchPluginsResponse, _impl_.plugin_count_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_.plugin_count_)}},
+    // repeated .s4wave.status.PluginInfo plugins = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_.plugins_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.status.PluginInfo plugins = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_.plugins_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 plugin_count = 2;
+    {PROTOBUF_FIELD_OFFSET(WatchPluginsResponse, _impl_.plugin_count_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::status::PluginInfo>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void WatchPluginsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.status.WatchPluginsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.plugins_.Clear();
+  }
+  _impl_.plugin_count_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchPluginsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchPluginsResponse& this_ = static_cast<const WatchPluginsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchPluginsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchPluginsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.status.WatchPluginsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.status.PluginInfo plugins = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_plugins_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_plugins().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // uint32 plugin_count = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_plugin_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_plugin_count(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.status.WatchPluginsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchPluginsResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchPluginsResponse& this_ = static_cast<const WatchPluginsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchPluginsResponse::ByteSizeLong() const {
+  const WatchPluginsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.status.WatchPluginsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // repeated .s4wave.status.PluginInfo plugins = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_plugins_size();
+      for (const auto& msg : this_._internal_plugins()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // uint32 plugin_count = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_plugin_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_plugin_count());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchPluginsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchPluginsResponse*>(&to_msg);
+  auto& from = static_cast<const WatchPluginsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.status.WatchPluginsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_plugins()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_plugins());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_plugin_count() != 0) {
+        _this->_impl_.plugin_count_ = from._impl_.plugin_count_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchPluginsResponse::CopyFrom(const WatchPluginsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.status.WatchPluginsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchPluginsResponse::InternalSwap(WatchPluginsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.plugins_.InternalSwap(&other->_impl_.plugins_);
+  swap(_impl_.plugin_count_, other->_impl_.plugin_count_);
+}
+
+::google::protobuf::Metadata WatchPluginsResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

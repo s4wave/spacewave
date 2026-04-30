@@ -7,6 +7,8 @@ import {
   WatchControllersResponse,
   WatchDirectivesRequest,
   WatchDirectivesResponse,
+  WatchPluginsRequest,
+  WatchPluginsResponse,
 } from './status.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
@@ -35,6 +37,15 @@ export const SystemStatusServiceDefinition = {
       O: WatchDirectivesResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * @generated from rpc s4wave.status.SystemStatusService.WatchPlugins
+     */
+    WatchPlugins: {
+      name: 'WatchPlugins',
+      I: WatchPluginsRequest,
+      O: WatchPluginsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -57,6 +68,14 @@ export interface SystemStatusService {
     request: WatchDirectivesRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchDirectivesResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchPlugins
+   */
+  WatchPlugins(
+    request: WatchPluginsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginsResponse>
 }
 
 export const SystemStatusServiceServiceName =
@@ -70,6 +89,7 @@ export class SystemStatusServiceClient implements SystemStatusService {
     this.rpc = rpc
     this.WatchControllers = this.WatchControllers.bind(this)
     this.WatchDirectives = this.WatchDirectives.bind(this)
+    this.WatchPlugins = this.WatchPlugins.bind(this)
   }
   /**
    * @generated from rpc s4wave.status.SystemStatusService.WatchControllers
@@ -103,5 +123,22 @@ export class SystemStatusServiceClient implements SystemStatusService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchDirectivesResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchPlugins
+   */
+  WatchPlugins(
+    request: WatchPluginsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginsResponse> {
+    const requestMsg = WatchPluginsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SystemStatusServiceDefinition.methods.WatchPlugins.name,
+      WatchPluginsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchPluginsResponse)(result)
   }
 }

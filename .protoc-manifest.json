@@ -4091,7 +4091,7 @@
       "protoFiles": ["sdk/space/space.proto"]
     },
     "github.com/s4wave/spacewave/sdk/status": {
-      "hash": "4b91409cf9bc77c69fb61b52b0903b7226d2d9fd926418776b07d142cae2c6bb",
+      "hash": "2c2dad811857c7b40b3745ef952ae173dbaba7f144deabe9763cfafd8c2aea4e",
       "generatedFiles": [
         "sdk/status/status.pb.cc",
         "sdk/status/status.pb.go",

@@ -30,6 +30,17 @@ pub trait SystemStatusServiceWatchDirectivesStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for SystemStatusService.WatchPlugins.
+#[starpc::async_trait]
+pub trait SystemStatusServiceWatchPluginsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchPluginsResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for SystemStatusService.
 #[starpc::async_trait]
 pub trait SystemStatusServiceClient: Send + Sync {
@@ -37,6 +48,8 @@ pub trait SystemStatusServiceClient: Send + Sync {
     async fn watch_controllers(&self, request: &WatchControllersRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchControllersStream>>;
     /// WatchDirectives.
     async fn watch_directives(&self, request: &WatchDirectivesRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchDirectivesStream>>;
+    /// WatchPlugins.
+    async fn watch_plugins(&self, request: &WatchPluginsRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchPluginsStream>>;
 }
 
 /// Client implementation for SystemStatusService.
@@ -66,6 +79,13 @@ impl<C: starpc::Client + 'static> SystemStatusServiceClient for SystemStatusServ
         let stream = self.client.new_stream("s4wave.status.SystemStatusService", "WatchDirectives", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(SystemStatusServiceWatchDirectivesStreamImpl { stream }))
+    }
+    async fn watch_plugins(&self, request: &WatchPluginsRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchPluginsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.status.SystemStatusService", "WatchPlugins", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(SystemStatusServiceWatchPluginsStreamImpl { stream }))
     }
 }
 
@@ -103,6 +123,23 @@ impl SystemStatusServiceWatchDirectivesStream for SystemStatusServiceWatchDirect
     }
 }
 
+struct SystemStatusServiceWatchPluginsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl SystemStatusServiceWatchPluginsStream for SystemStatusServiceWatchPluginsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchPluginsResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for SystemStatusService.
 #[starpc::async_trait]
 pub trait SystemStatusServiceServer: Send + Sync {
@@ -110,11 +147,14 @@ pub trait SystemStatusServiceServer: Send + Sync {
     async fn watch_controllers(&self, request: WatchControllersRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WatchDirectives.
     async fn watch_directives(&self, request: WatchDirectivesRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// WatchPlugins.
+    async fn watch_plugins(&self, request: WatchPluginsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const SYSTEM_STATUS_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchControllers",
     "WatchDirectives",
+    "WatchPlugins",
 ];
 
 /// Handler for SystemStatusService.
@@ -156,6 +196,13 @@ impl<S: SystemStatusServiceServer + 'static> starpc::Invoker for SystemStatusSer
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_directives(request, stream).await)
+            }
+            "WatchPlugins" => {
+                let request: WatchPluginsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_plugins(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

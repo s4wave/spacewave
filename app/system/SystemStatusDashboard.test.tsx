@@ -14,6 +14,7 @@ const mockStatus = vi.hoisted(() => ({
     { id: 'controller/b', version: '1', description: 'Beta' },
   ],
   directives: [{ name: 'directive/a', ident: 'ident-a' }],
+  plugins: [{ id: 'spacewave-app', instanceKey: '', state: 'requested' }],
   spaces: [
     {
       entry: {
@@ -107,6 +108,10 @@ vi.mock('./useSystemStatus.js', () => ({
     directiveCount: mockStatus.directives.length,
     directives: mockStatus.directives,
   }),
+  useWatchPlugins: () => ({
+    pluginCount: mockStatus.plugins.length,
+    plugins: mockStatus.plugins,
+  }),
   useWatchSpacesList: () => mockStatus.spaces,
 }))
 
@@ -133,6 +138,9 @@ describe('SystemStatusDashboard', () => {
       { id: 'controller/b', version: '1', description: 'Beta' },
     ]
     mockStatus.directives = [{ name: 'directive/a', ident: 'ident-a' }]
+    mockStatus.plugins = [
+      { id: 'spacewave-app', instanceKey: '', state: 'requested' },
+    ]
     mockStatus.spaces = [
       {
         entry: {
@@ -180,6 +188,17 @@ describe('SystemStatusDashboard', () => {
     expect(screen.getAllByText('Primary Space').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Shared Space').length).toBeGreaterThan(0)
     expect(screen.getByText('space-1')).toBeDefined()
+  })
+
+  it('renders plugin runtime state and build details when selected', () => {
+    renderDashboard()
+
+    fireEvent.click(screen.getByText('All plugins'))
+
+    expect(screen.getAllByText('Plugins').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('spacewave-app').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('requested').length).toBeGreaterThan(0)
+    expect(screen.getByText('Build')).toBeDefined()
   })
 
   it('selects a space detail from the all spaces list', () => {

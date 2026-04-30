@@ -9,6 +9,7 @@ import {
   LuLayers,
   LuLock,
   LuLockOpen,
+  LuPuzzle,
   LuRadar,
   LuTerminal,
   LuUser,
@@ -18,6 +19,7 @@ import {
 import { List as VirtualList, type RowComponentProps } from 'react-window'
 
 import { cn } from '@s4wave/web/style/utils.js'
+import { useAppBuildInfo, type AppBuildInfo } from '@s4wave/app/build-info.js'
 import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
@@ -43,6 +45,7 @@ import {
   useWatchSpacesList,
   useWatchControllers,
   useWatchDirectives,
+  useWatchPlugins,
 } from './useSystemStatus.js'
 import { useIsMobile } from '@s4wave/web/hooks/useMobile.js'
 
@@ -76,7 +79,7 @@ function makeOccurrenceKey(id: string | undefined, index: number): string {
 }
 
 const TRANSIENT_FEEDBACK_MS = 1600
-const STATS_KEYS = ['acct', 'spc', 'ctrl', 'dir'] as const
+const STATS_KEYS = ['acct', 'spc', 'plug', 'ctrl', 'dir'] as const
 // SHOW_LOG_PANEL keeps the placeholder logs drawer hidden until a real log
 // stream backs the designed tray.
 const SHOW_LOG_PANEL = false
@@ -217,13 +220,25 @@ function buildDirectivesSnapshotKey(
     .join('|')
 }
 
+function buildPluginsSnapshotKey(
+  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>,
+): string {
+  return plugins
+    .map((plugin) =>
+      [plugin.id ?? '', plugin.instanceKey ?? '', plugin.state ?? ''].join(':'),
+    )
+    .join('|')
+}
+
 // Selection type for tree navigation.
 type Selection =
   | { kind: 'session'; index: number }
   | { kind: 'space'; id: string }
   | { kind: 'controller'; id: string; index: number }
+  | { kind: 'plugin'; id: string; instanceKey: string }
   | { kind: 'directive-group'; name: string }
   | { kind: 'spaces' }
+  | { kind: 'plugins' }
   | { kind: 'controllers' }
   | { kind: 'directives' }
   | { kind: 'resources' }
@@ -232,6 +247,7 @@ type Selection =
 type SidebarSectionKey =
   | 'accounts'
   | 'spaces'
+  | 'plugins'
   | 'controllers'
   | 'directives'
   | 'resources'
@@ -242,6 +258,7 @@ const DEFAULT_SELECTED: Selection = { kind: 'controllers' }
 const DEFAULT_OPEN_SECTIONS: Record<SidebarSectionKey, boolean> = {
   accounts: true,
   spaces: true,
+  plugins: true,
   controllers: true,
   directives: true,
   resources: false,
@@ -255,6 +272,7 @@ function getSelectionLabel(
     spaceMeta?: { name?: string }
   }>,
   controllers: ReadonlyArray<{ id?: string }>,
+  plugins: ReadonlyArray<{ id?: string; instanceKey?: string }>,
   directiveGroups: ReadonlyArray<{ name: string }>,
 ): string {
   if (selected.kind === 'session') {
@@ -270,6 +288,15 @@ function getSelectionLabel(
   if (selected.kind === 'controller') {
     return controllers[selected.index]?.id ?? 'Controller'
   }
+  if (selected.kind === 'plugin') {
+    return (
+      plugins.find(
+        (plugin) =>
+          plugin.id === selected.id &&
+          (plugin.instanceKey ?? '') === selected.instanceKey,
+      )?.id ?? 'Plugin'
+    )
+  }
   if (selected.kind === 'directive-group') {
     return (
       directiveGroups.find((group) => group.name === selected.name)?.name ??
@@ -278,6 +305,9 @@ function getSelectionLabel(
   }
   if (selected.kind === 'spaces') {
     return 'Spaces'
+  }
+  if (selected.kind === 'plugins') {
+    return 'Plugins'
   }
   if (selected.kind === 'controllers') {
     return 'Controllers'
@@ -299,6 +329,7 @@ export interface SystemStatusDashboardProps {
 // tree navigation and detail panels backed by live streaming data.
 export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   const ns = useStateNamespace(['system-status-dashboard'])
+  const buildInfo = useAppBuildInfo()
   const sessionList = useSessionList()
   const sessions = useMemo(
     () => sessionList.value?.sessions ?? [],
@@ -320,6 +351,12 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     () => directivesResp?.directives ?? [],
     [directivesResp?.directives],
   )
+  const pluginsResp = useWatchPlugins()
+  const pluginCount = pluginsResp?.pluginCount ?? 0
+  const plugins = useMemo(
+    () => pluginsResp?.plugins ?? [],
+    [pluginsResp?.plugins],
+  )
   const directiveGroups = useMemo(
     () => groupDirectives(directives),
     [directives],
@@ -328,14 +365,27 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     () => ({
       acct: sessions.length,
       spc: spaces.length,
+      plug: pluginCount,
       ctrl: controllerCount,
       dir: directiveCount,
     }),
-    [sessions.length, spaces.length, controllerCount, directiveCount],
+    [
+      sessions.length,
+      spaces.length,
+      pluginCount,
+      controllerCount,
+      directiveCount,
+    ],
   )
   const statsDeltas = useCountDeltas(statsCounts)
   const statsUpdatedAt = useSnapshotUpdatedAt(
-    [sessions.length, spaces.length, controllerCount, directiveCount].join('|'),
+    [
+      sessions.length,
+      spaces.length,
+      pluginCount,
+      controllerCount,
+      directiveCount,
+    ].join('|'),
   )
   const spacesUpdatedAt = useSnapshotUpdatedAt(buildSpacesSnapshotKey(spaces))
   const controllersUpdatedAt = useSnapshotUpdatedAt(
@@ -343,6 +393,9 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   )
   const directivesUpdatedAt = useSnapshotUpdatedAt(
     buildDirectivesSnapshotKey(directives),
+  )
+  const pluginsUpdatedAt = useSnapshotUpdatedAt(
+    buildPluginsSnapshotKey(plugins),
   )
   const isMobile = useIsMobile()
 
@@ -352,6 +405,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     selected,
     spaces,
     controllers,
+    plugins,
     directiveGroups,
   )
   const mobilePickerVisible = isMobile && mobilePickerOpen
@@ -375,6 +429,17 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
       }
       return
     }
+    if (selected.kind === 'plugin') {
+      const hasPlugin = plugins.some(
+        (plugin) =>
+          plugin.id === selected.id &&
+          (plugin.instanceKey ?? '') === selected.instanceKey,
+      )
+      if (!hasPlugin) {
+        setSelected({ kind: 'plugins' })
+      }
+      return
+    }
     if (selected.kind === 'directive-group') {
       const hasDirectiveGroup = directiveGroups.some(
         (group) => group.name === selected.name,
@@ -388,7 +453,15 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     const controller = controllers[selected.index]
     if (controller?.id === selected.id) return
     setSelected({ kind: 'controllers' })
-  }, [controllers, directiveGroups, selected, sessions, setSelected, spaces])
+  }, [
+    controllers,
+    directiveGroups,
+    plugins,
+    selected,
+    sessions,
+    setSelected,
+    spaces,
+  ])
 
   function handleSelect(next: Selection) {
     setSelected(next)
@@ -418,6 +491,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
       <StatsRibbon
         sessionCount={sessions.length}
         spaceCount={spaces.length}
+        pluginCount={pluginCount}
         controllerCount={controllerCount}
         directiveCount={directiveCount}
         deltas={statsDeltas}
@@ -429,10 +503,12 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
           <SidebarTree
             sessions={sessions}
             spaces={spaces}
+            plugins={plugins}
             controllers={controllers}
             directiveGroups={directiveGroups}
             controllerCount={controllerCount}
             directiveCount={directiveCount}
+            pluginCount={pluginCount}
             selected={selected}
             onSelect={handleSelect}
           />
@@ -458,10 +534,12 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
                   <SidebarTree
                     sessions={sessions}
                     spaces={spaces}
+                    plugins={plugins}
                     controllers={controllers}
                     directiveGroups={directiveGroups}
                     controllerCount={controllerCount}
                     directiveCount={directiveCount}
+                    pluginCount={pluginCount}
                     selected={selected}
                     onSelect={handleSelect}
                     className="w-full border-r-0"
@@ -475,14 +553,18 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
             <DetailView
               selected={selected}
               spaces={spaces}
+              plugins={plugins}
               controllers={controllers}
               directiveGroups={directiveGroups}
               controllerCount={controllerCount}
               directives={directives}
               directiveCount={directiveCount}
+              pluginCount={pluginCount}
               onSelect={handleSelect}
               onClose={onClose}
+              buildInfo={buildInfo}
               spacesUpdatedAt={spacesUpdatedAt}
+              pluginsUpdatedAt={pluginsUpdatedAt}
               controllersUpdatedAt={controllersUpdatedAt}
               directivesUpdatedAt={directivesUpdatedAt}
             />
@@ -783,6 +865,7 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
 function StatsRibbon({
   sessionCount,
   spaceCount,
+  pluginCount,
   controllerCount,
   directiveCount,
   deltas,
@@ -790,6 +873,7 @@ function StatsRibbon({
 }: {
   sessionCount: number
   spaceCount: number
+  pluginCount: number
   controllerCount: number
   directiveCount: number
   deltas: Partial<Record<StatsKey, number>>
@@ -806,6 +890,11 @@ function StatsRibbon({
         label={`${spaceCount} spc`}
         delta={deltas.spc}
         icon={<LuFolderOpen className="text-foreground-alt/30 h-2.5 w-2.5" />}
+      />
+      <StatPill
+        label={`${pluginCount} plug`}
+        delta={deltas.plug}
+        icon={<LuPuzzle className="text-foreground-alt/30 h-2.5 w-2.5" />}
       />
       <StatPill
         label={`${controllerCount} ctrl`}
@@ -902,6 +991,9 @@ function getSidebarSectionIcon(section: SidebarSectionKey): ReactNode {
   if (section === 'spaces') {
     return <LuFolderOpen className="h-3 w-3" />
   }
+  if (section === 'plugins') {
+    return <LuPuzzle className="h-3 w-3" />
+  }
   if (section === 'controllers') {
     return <LuCpu className="h-3 w-3" />
   }
@@ -917,9 +1009,11 @@ function getSidebarSectionIcon(section: SidebarSectionKey): ReactNode {
 function SidebarTree({
   sessions,
   spaces,
+  plugins,
   controllers,
   directiveGroups,
   controllerCount,
+  pluginCount,
   directiveCount,
   selected,
   onSelect,
@@ -930,9 +1024,11 @@ function SidebarTree({
     entry?: { ref?: { providerResourceRef?: { id?: string } } }
     spaceMeta?: { name?: string }
   }>
+  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
   controllers: ReadonlyArray<{ id?: string }>
   directiveGroups: ReadonlyArray<{ name: string; count: number }>
   controllerCount: number
+  pluginCount: number
   directiveCount: number
   selected: Selection
   onSelect: (sel: Selection) => void
@@ -962,6 +1058,7 @@ function SidebarTree({
   const [focusedId, setFocusedId] = useState('section:accounts')
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const visibleSpaces = showAllSpaces ? spaces : spaces.slice(0, 5)
+  const visiblePlugins = plugins.slice(0, 5)
   const visibleControllers =
     showAllControllers ? controllers : controllers.slice(0, 5)
   const visibleDirectiveGroups =
@@ -1035,6 +1132,47 @@ function SidebarTree({
           expanded: showAllSpaces,
           level: 2,
           parentSection: 'spaces',
+        })
+      }
+    }
+
+    nextEntries.push({
+      id: 'section:plugins',
+      kind: 'section',
+      section: 'plugins',
+      label: 'Plugins',
+      count: pluginCount,
+      expanded: openSections.plugins,
+      level: 1,
+    })
+
+    if (openSections.plugins) {
+      nextEntries.push({
+        id: 'selection:plugins',
+        kind: 'selection',
+        label: 'All plugins',
+        dot: 'bg-brand/40',
+        level: 2,
+        parentSection: 'plugins',
+        selection: { kind: 'plugins' },
+        selected: selected.kind === 'plugins',
+      })
+      for (const [index, plugin] of visiblePlugins.entries()) {
+        const id = plugin.id ?? ''
+        const instanceKey = plugin.instanceKey ?? ''
+        nextEntries.push({
+          id: `plugin:${makeOccurrenceKey(`${id}:${instanceKey}`, index)}`,
+          kind: 'selection',
+          label: id || 'unknown',
+          sublabel: plugin.state || 'unknown',
+          dot: plugin.state === 'requested' ? 'bg-success' : 'bg-warning/70',
+          level: 2,
+          parentSection: 'plugins',
+          selection: { kind: 'plugin', id, instanceKey },
+          selected:
+            selected.kind === 'plugin' &&
+            selected.id === id &&
+            selected.instanceKey === instanceKey,
         })
       }
     }
@@ -1197,6 +1335,8 @@ function SidebarTree({
     directiveGroups,
     directiveCount,
     openSections,
+    pluginCount,
+    plugins,
     selected,
     sessions,
     showAllControllers,
@@ -1205,6 +1345,7 @@ function SidebarTree({
     spaces,
     visibleControllers,
     visibleDirectiveGroups,
+    visiblePlugins,
     visibleSpaces,
   ])
   const resolvedFocusedId =
@@ -1475,14 +1616,18 @@ function SessionSidebarItem({
 function DetailView({
   selected,
   spaces,
+  plugins,
   controllers,
   directiveGroups,
+  buildInfo,
+  pluginCount,
   controllerCount,
   directives,
   directiveCount,
   onSelect,
   onClose,
   spacesUpdatedAt,
+  pluginsUpdatedAt,
   controllersUpdatedAt,
   directivesUpdatedAt,
 }: {
@@ -1498,6 +1643,7 @@ function DetailView({
     }
     spaceMeta?: { name?: string }
   }>
+  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
   controllers: ReadonlyArray<{
     id?: string
     version?: string
@@ -1508,12 +1654,15 @@ function DetailView({
     idents: string[]
     count: number
   }>
+  buildInfo: AppBuildInfo
+  pluginCount: number
   controllerCount: number
   directives: ReadonlyArray<{ name?: string; ident?: string }>
   directiveCount: number
   onSelect: (sel: Selection) => void
   onClose?: () => void
   spacesUpdatedAt: string
+  pluginsUpdatedAt: string
   controllersUpdatedAt: string
   directivesUpdatedAt: string
 }) {
@@ -1539,6 +1688,35 @@ function DetailView({
         )}
         updatedAt={spacesUpdatedAt}
         onClose={onClose}
+      />
+    )
+  }
+
+  if (selected.kind === 'plugins') {
+    return (
+      <PluginsDetail
+        buildInfo={buildInfo}
+        plugins={plugins}
+        pluginCount={pluginCount}
+        updatedAt={pluginsUpdatedAt}
+        onSelectPlugin={(id, instanceKey) =>
+          onSelect({ kind: 'plugin', id, instanceKey })
+        }
+      />
+    )
+  }
+
+  if (selected.kind === 'plugin') {
+    return (
+      <PluginDetail
+        plugin={plugins.find(
+          (plugin) =>
+            plugin.id === selected.id &&
+            (plugin.instanceKey ?? '') === selected.instanceKey,
+        )}
+        buildInfo={buildInfo}
+        updatedAt={pluginsUpdatedAt}
+        onBack={() => onSelect({ kind: 'plugins' })}
       />
     )
   }
@@ -1840,6 +2018,190 @@ function SpaceDetail({
         </button>
       </div>
     </div>
+  )
+}
+
+function PluginsDetail({
+  buildInfo,
+  plugins,
+  pluginCount,
+  updatedAt,
+  onSelectPlugin,
+}: {
+  buildInfo: AppBuildInfo
+  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
+  pluginCount: number
+  updatedAt: string
+  onSelectPlugin: (id: string, instanceKey: string) => void
+}) {
+  return (
+    <div className="flex h-full flex-col p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <LuPuzzle className="text-brand/50 h-4 w-4" />
+        <span className="text-foreground text-sm font-medium">Plugins</span>
+        <span className="text-foreground-alt/30 font-mono text-xs">
+          {pluginCount}
+        </span>
+        <LiveIndicator updatedAt={updatedAt} label="Plugins" />
+      </div>
+      <div className="grid gap-2 pb-2 md:grid-cols-2">
+        <BuildInfoCard buildInfo={buildInfo} />
+        <DetailCard title="Runtime" accent="border-success/40">
+          <div className="py-0.5">
+            <DetailRow label="Plugin Requests" value={String(pluginCount)} />
+            <DetailRow
+              label="State Source"
+              value="LoadPlugin directives"
+              mono={false}
+            />
+          </div>
+        </DetailCard>
+      </div>
+      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
+        {plugins.length === 0 && (
+          <div className="px-3 py-2">
+            <span className="text-foreground-alt/30 text-[0.6rem]">
+              No plugin load requests active.
+            </span>
+          </div>
+        )}
+        {plugins.map((plugin, index) => {
+          const id = plugin.id ?? ''
+          const instanceKey = plugin.instanceKey ?? ''
+          const state = plugin.state || 'unknown'
+          return (
+            <button
+              type="button"
+              key={makeOccurrenceKey(`${id}:${instanceKey}`, index)}
+              onClick={() => onSelectPlugin(id, instanceKey)}
+              className="border-foreground/4 hover:bg-foreground/[0.02] flex w-full items-center gap-2 border-b px-3 py-1.5 text-left last:border-b-0"
+            >
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                  state === 'requested' ? 'bg-success' : 'bg-warning/70',
+                )}
+              />
+              <div className="min-w-0 flex-1">
+                <span className="text-foreground/80 block truncate text-[0.65rem]">
+                  {id || 'unknown'}
+                </span>
+                <span className="text-foreground-alt/25 block truncate font-mono text-[0.55rem]">
+                  {instanceKey || 'shared'}
+                </span>
+              </div>
+              <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-[0.5rem]">
+                {state}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PluginDetail({
+  plugin,
+  buildInfo,
+  updatedAt,
+  onBack,
+}: {
+  plugin?: { id?: string; instanceKey?: string; state?: string }
+  buildInfo: AppBuildInfo
+  updatedAt: string
+  onBack: () => void
+}) {
+  if (!plugin) {
+    return (
+      <div className="space-y-2 p-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
+        >
+          <LuArrowLeft className="h-3 w-3" />
+          Back to plugins
+        </button>
+        <DetailCard title="Plugin" accent="border-brand/40">
+          <div className="py-0.5">
+            <DetailRow label="Status" value="Not found" mono={false} />
+          </div>
+        </DetailCard>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2 p-4">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
+      >
+        <LuArrowLeft className="h-3 w-3" />
+        Back to plugins
+      </button>
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'h-2 w-2 rounded-full',
+            plugin.state === 'requested' ? 'bg-success' : 'bg-warning/70',
+          )}
+        />
+        <span className="text-foreground text-sm font-medium">
+          {plugin.id || 'unknown'}
+        </span>
+        <LiveIndicator updatedAt={updatedAt} label="Plugin" />
+      </div>
+      <DetailCard title="Plugin" accent="border-brand/40">
+        <div className="py-0.5">
+          <DetailRow label="Plugin ID" value={plugin.id || 'unknown'} />
+          <DetailRow
+            label="Instance"
+            value={plugin.instanceKey || 'shared'}
+            mono={false}
+          />
+          <DetailRow
+            label="State"
+            value={plugin.state || 'unknown'}
+            mono={false}
+          />
+        </div>
+      </DetailCard>
+      <BuildInfoCard buildInfo={buildInfo} />
+    </div>
+  )
+}
+
+function BuildInfoCard({ buildInfo }: { buildInfo: AppBuildInfo }) {
+  return (
+    <DetailCard title="Build" accent="border-brand/40">
+      <div className="py-0.5">
+        <DetailRow label="Version" value={buildInfo.version || 'dev'} />
+        <DetailRow
+          label="Main Version"
+          value={buildInfo.mainVersion || 'n/a'}
+        />
+        <DetailRow
+          label="Runtime"
+          value={buildInfo.runtimeLabel || 'unknown'}
+          mono={false}
+        />
+        <DetailRow
+          label="Platform"
+          value={
+            buildInfo.goos && buildInfo.goarch ?
+              `${buildInfo.goos}/${buildInfo.goarch}`
+            : 'unknown'
+          }
+        />
+        <DetailRow
+          label="Browser Gen"
+          value={buildInfo.browserGenerationId || 'n/a'}
+        />
+      </div>
+    </DetailCard>
   )
 }
 

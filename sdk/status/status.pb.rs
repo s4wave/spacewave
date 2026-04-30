@@ -23,6 +23,19 @@ pub struct DirectiveInfo {
     #[prost(string, tag="2")]
     pub ident: ::prost::alloc::string::String,
 }
+/// PluginInfo describes a runtime plugin load request.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PluginInfo {
+    /// Id is the plugin identifier.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// InstanceKey is the optional instance key for instanced plugins.
+    #[prost(string, tag="2")]
+    pub instance_key: ::prost::alloc::string::String,
+    /// State is the plugin runtime state.
+    #[prost(string, tag="3")]
+    pub state: ::prost::alloc::string::String,
+}
 /// WatchControllersRequest is the request type for WatchControllers.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchControllersRequest {
@@ -50,5 +63,19 @@ pub struct WatchDirectivesResponse {
     /// DirectiveCount is the total number of active directives.
     #[prost(uint32, tag="2")]
     pub directive_count: u32,
+}
+/// WatchPluginsRequest is the request type for WatchPlugins.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchPluginsRequest {
+}
+/// WatchPluginsResponse is the response type for WatchPlugins.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchPluginsResponse {
+    /// Plugins is the current list of plugin load requests.
+    #[prost(message, repeated, tag="1")]
+    pub plugins: ::prost::alloc::vec::Vec<PluginInfo>,
+    /// PluginCount is the total number of plugin load requests.
+    #[prost(uint32, tag="2")]
+    pub plugin_count: u32,
 }
 // @@protoc_insertion_point(module)

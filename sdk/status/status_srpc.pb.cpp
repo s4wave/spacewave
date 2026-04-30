@@ -32,10 +32,23 @@ std::pair<std::unique_ptr<SRPCSystemStatusService_WatchDirectivesClient>, starpc
   return {std::make_unique<SRPCSystemStatusService_WatchDirectivesClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::Error> SRPCSystemStatusServiceClientImpl::WatchPlugins(const s4wave::status::WatchPluginsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchPlugins", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCSystemStatusService_WatchPluginsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCSystemStatusServiceHandler::GetMethodIDs() const {
   return {
     "WatchControllers",
     "WatchDirectives",
+    "WatchPlugins",
   };
 }
 
@@ -59,6 +72,12 @@ std::pair<bool, starpc::Error> SRPCSystemStatusServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCSystemStatusService_WatchDirectivesStream serverStrm(strm);
     return {true, impl_->WatchDirectives(req, &serverStrm)};
+  } else if (method_id == "WatchPlugins") {
+    s4wave::status::WatchPluginsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCSystemStatusService_WatchPluginsStream serverStrm(strm);
+    return {true, impl_->WatchPlugins(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};

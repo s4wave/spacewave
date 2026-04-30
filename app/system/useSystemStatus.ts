@@ -8,6 +8,8 @@ import {
   WatchControllersResponse,
   WatchDirectivesRequest,
   WatchDirectivesResponse,
+  WatchPluginsRequest,
+  WatchPluginsResponse,
 } from '@s4wave/sdk/status/status.pb.js'
 import type { SpaceSoListEntry } from '@s4wave/core/space/space.pb.js'
 import {
@@ -52,6 +54,26 @@ export function useWatchDirectives(): WatchDirectivesResponse | null {
     {},
     WatchDirectivesRequest.equals,
     WatchDirectivesResponse.equals,
+  )
+}
+
+// useWatchPlugins streams active plugin load requests from the session.
+// Returns the latest WatchPluginsResponse or null while loading.
+export function useWatchPlugins(): WatchPluginsResponse | null {
+  const session = SessionContext.useContext()
+  const sessionValue = useResourceValue(session)
+
+  const watchFn = useCallback(
+    (_: WatchPluginsRequest, signal: AbortSignal) =>
+      sessionValue?.systemStatus.watchPlugins(signal) ?? null,
+    [sessionValue],
+  )
+
+  return useWatchStateRpc(
+    watchFn,
+    {},
+    WatchPluginsRequest.equals,
+    WatchPluginsResponse.equals,
   )
 }
 

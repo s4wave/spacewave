@@ -75,6 +75,43 @@ export const DirectiveInfo: MessageType<DirectiveInfo> = createMessageType({
 })
 
 /**
+ * PluginInfo describes a runtime plugin load request.
+ *
+ * @generated from message s4wave.status.PluginInfo
+ */
+export interface PluginInfo {
+  /**
+   * Id is the plugin identifier.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * InstanceKey is the optional instance key for instanced plugins.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
+  /**
+   * State is the plugin runtime state.
+   *
+   * @generated from field: string state = 3;
+   */
+  state?: string
+}
+
+// PluginInfo contains the message type declaration for PluginInfo.
+export const PluginInfo: MessageType<PluginInfo> = createMessageType({
+  typeName: 's4wave.status.PluginInfo',
+  fields: [
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * WatchControllersRequest is the request type for WatchControllers.
  *
  * @generated from message s4wave.status.WatchControllersRequest
@@ -174,6 +211,58 @@ export const WatchDirectivesResponse: MessageType<WatchDirectivesResponse> =
         repeated: true,
       },
       { no: 2, name: 'directive_count', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchPluginsRequest is the request type for WatchPlugins.
+ *
+ * @generated from message s4wave.status.WatchPluginsRequest
+ */
+export interface WatchPluginsRequest {}
+
+// WatchPluginsRequest contains the message type declaration for WatchPluginsRequest.
+export const WatchPluginsRequest: MessageType<WatchPluginsRequest> =
+  createMessageType({
+    typeName: 's4wave.status.WatchPluginsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchPluginsResponse is the response type for WatchPlugins.
+ *
+ * @generated from message s4wave.status.WatchPluginsResponse
+ */
+export interface WatchPluginsResponse {
+  /**
+   * Plugins is the current list of plugin load requests.
+   *
+   * @generated from field: repeated s4wave.status.PluginInfo plugins = 1;
+   */
+  plugins?: PluginInfo[]
+  /**
+   * PluginCount is the total number of plugin load requests.
+   *
+   * @generated from field: uint32 plugin_count = 2;
+   */
+  pluginCount?: number
+}
+
+// WatchPluginsResponse contains the message type declaration for WatchPluginsResponse.
+export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
+  createMessageType({
+    typeName: 's4wave.status.WatchPluginsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'plugins',
+        kind: 'message',
+        T: () => PluginInfo,
+        repeated: true,
+      },
+      { no: 2, name: 'plugin_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

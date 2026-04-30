@@ -7,6 +7,7 @@ import {
 import type {
   WatchControllersResponse,
   WatchDirectivesResponse,
+  WatchPluginsResponse,
 } from './status.pb.js'
 
 // SystemStatus wraps the SystemStatusService on a session resource.
@@ -29,5 +30,12 @@ export class SystemStatus {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchDirectivesResponse> {
     return this.service.WatchDirectives({}, abortSignal)
+  }
+
+  // watchPlugins streams the list of active plugin load requests on change.
+  public watchPlugins(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchPluginsResponse> {
+    return this.service.WatchPlugins({}, abortSignal)
   }
 }
