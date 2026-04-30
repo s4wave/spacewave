@@ -2,9 +2,9 @@ package block_gc
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/pkg/errors"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // SweepTarget provides backend-specific deletion for swept nodes.

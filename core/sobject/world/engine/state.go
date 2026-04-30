@@ -3,12 +3,12 @@ package sobject_world_engine
 import (
 	"bytes"
 	"context"
-	"runtime/trace"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/sirupsen/logrus"
 )
 

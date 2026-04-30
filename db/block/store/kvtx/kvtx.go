@@ -2,11 +2,11 @@ package block_store_kvtx
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

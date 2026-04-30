@@ -2,11 +2,11 @@ package sobject_world_engine
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/bucket"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"

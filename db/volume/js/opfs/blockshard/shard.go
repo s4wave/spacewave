@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"runtime/trace"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"strconv"
 	"sync"
 	"syscall/js"

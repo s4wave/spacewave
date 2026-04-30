@@ -4,9 +4,10 @@ package blockshard
 
 import (
 	"context"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"hash/fnv"
 	"runtime"
-	"runtime/trace"
 	"strconv"
 	"sync"
 	"syscall/js"

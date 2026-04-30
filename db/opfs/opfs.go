@@ -4,9 +4,10 @@ package opfs
 
 import (
 	"context"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"io"
 	"io/fs"
-	"runtime/trace"
 	"syscall/js"
 	"time"
 

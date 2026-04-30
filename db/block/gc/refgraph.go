@@ -2,9 +2,10 @@ package block_gc
 
 import (
 	"context"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"io"
 	"maps"
-	"runtime/trace"
 	"sync"
 
 	"github.com/aperturerobotics/cayley"

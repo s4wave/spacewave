@@ -2,9 +2,9 @@ package sobject_world_engine
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"

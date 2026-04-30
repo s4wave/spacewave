@@ -2,7 +2,6 @@ package volume_controller
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -10,6 +9,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_event "github.com/s4wave/spacewave/db/bucket/event"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
 )

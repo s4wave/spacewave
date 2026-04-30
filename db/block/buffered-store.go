@@ -3,7 +3,8 @@ package block
 import (
 	"bytes"
 	"context"
-	"runtime/trace"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"slices"
 	"sync/atomic"
 

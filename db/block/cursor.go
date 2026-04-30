@@ -3,7 +3,7 @@ package block
 import (
 	"context"
 	"errors"
-	"runtime/trace"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated

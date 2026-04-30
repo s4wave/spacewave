@@ -2,8 +2,9 @@ package block
 
 import (
 	"context"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"runtime"
-	"runtime/trace"
 	"slices"
 	"sync"
 

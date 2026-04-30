@@ -3,13 +3,12 @@ package s4wave_layout_world
 import (
 	"context"
 	"errors"
-	"runtime/trace"
-
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	resource_layout "github.com/s4wave/spacewave/core/resource/layout"
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_layout "github.com/s4wave/spacewave/sdk/layout"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"

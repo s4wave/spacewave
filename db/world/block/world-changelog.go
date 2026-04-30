@@ -2,9 +2,9 @@ package world_block
 
 import (
 	"context"
-	"runtime/trace"
 
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )

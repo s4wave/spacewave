@@ -3,9 +3,9 @@ package sobject_world_engine
 import (
 	"bytes"
 	"context"
-	"runtime/trace"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // executeProcessOpsAsValidator executes processing operations as a validator.

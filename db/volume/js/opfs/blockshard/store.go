@@ -4,10 +4,10 @@ package blockshard
 
 import (
 	"context"
-	"runtime/trace"
 
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/s4wave/spacewave/net/hash"
 )
