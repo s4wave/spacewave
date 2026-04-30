@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 package mysql
 
 import (
@@ -38,12 +36,12 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	}
 	t.commitOnce.Do(func() {
 		defer t.t.rmtx.Unlock()
+		t.bcs.SetBlock(t.root, true)
 		res, _, err := t.tx.Write(ctx, true)
 		if err != nil {
 			cerr = err
 		} else {
-			nc := t.t.rootCursor.Clone()
-			nextRef := nc.GetRef() // clones
+			nextRef := t.t.rootCursor.GetRef() // clones
 			// if the root is empty: return empty ref.
 			if t.root.SizeVT() != 0 {
 				nextRef.RootRef = res.Clone()
@@ -136,6 +134,7 @@ func (t *Tx) openDatabaseLocked(ctx context.Context, name string, create, readOn
 			return nil, tx.ErrNotWrite
 		}
 		_, rcs = t.root.InsertDatabase(name, nil, t.bcs)
+		t.bcs.SetBlock(t.root, true)
 		rcs = rcs.FollowRef(2, nil)                // follow ref field
 		rcs.SetBlock(NewDatabaseRootBlock(), true) // init empty db root
 	} else {

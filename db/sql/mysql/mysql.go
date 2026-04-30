@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 package mysql
 
 import (
@@ -8,14 +6,20 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/sql"
 )
+
+// RootCursor is the minimal cursor surface Mysql needs to read and update the
+// root object reference.
+type RootCursor interface {
+	BuildTransaction(*block.PutOpts) (*block.Transaction, *block.Cursor)
+	GetRef() *bucket.ObjectRef
+	SetRootRef(*block.BlockRef)
+}
 
 // Mysql is the root of a mysql server data structure, containing named databases.
 type Mysql struct {
 	rmtx       sync.RWMutex
-	rootCursor *bucket_lookup.Cursor
+	rootCursor RootCursor
 	commitFn   CommitFn
 }
 
@@ -28,7 +32,7 @@ type CommitFn func(nref *bucket.ObjectRef) error
 
 // NewMysql creates a handle with an optional root object cursor pointing to the
 // tree. The cursor ref can be empty to indicate a new tree.
-func NewMysql(rootCursor *bucket_lookup.Cursor, commitFn CommitFn) *Mysql {
+func NewMysql(rootCursor RootCursor, commitFn CommitFn) *Mysql {
 	return &Mysql{rootCursor: rootCursor, commitFn: commitFn}
 }
 
@@ -37,20 +41,6 @@ func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 	return t.rootCursor.GetRef().Clone()
-}
-
-// NewTransaction returns a new SqlDB transaction.
-func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (sql.SqlTransaction, error) {
-	mtx, err := t.NewMysqlTransaction(ctx, write)
-	if err != nil {
-		return nil, err
-	}
-	stx, err := NewSqlTx(ctx, mtx, dsn)
-	if err != nil {
-		mtx.Discard()
-		return nil, err
-	}
-	return stx, nil
 }
 
 // NewMysqlTransaction returns a transaction against the db.
@@ -88,6 +78,3 @@ func (t *Mysql) fetchRoot(ctx context.Context) (
 	rn, err = block.UnmarshalBlock[*Root](ctx, bcs, NewRootBlock)
 	return
 }
-
-// _ is a type assertion
-var _ sql.SqlStore = ((*Mysql)(nil))

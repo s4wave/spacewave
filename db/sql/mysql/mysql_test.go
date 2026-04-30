@@ -12,6 +12,7 @@ import (
 	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +43,11 @@ func TestMysql(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	sq := NewMysql(oc, nil)
+	var committedRoot string
+	sq := NewMysql(oc, func(ref *bucket.ObjectRef) error {
+		committedRoot = ref.MarshalString()
+		return nil
+	})
 	tx, err := sq.NewMysqlTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -83,6 +88,9 @@ func TestMysql(t *testing.T) {
 
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
+	}
+	if committedRoot == "" {
+		t.Fatal("expected committed root")
 	}
 
 	tx, err = sq.NewMysqlTransaction(ctx, false)

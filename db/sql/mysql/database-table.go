@@ -21,6 +21,7 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 	if !ok {
 		return sql.ErrTableAlreadyExists.New(name)
 	}
+	d.bcs.SetBlock(d.root, true)
 	ics = ics.FollowRef(2, nil)
 	_, _, err := BuildTable(ctx, ics, name, schema, 1, collation, comment)
 	return err
