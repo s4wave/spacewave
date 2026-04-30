@@ -1,11 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { resolvePath, To } from './router.js'
-import { normalizeAppPath } from './app-path.js'
+import { isPathnameAppRoute, normalizeAppPath } from './app-path.js'
 import { isStaticRoute } from './static-routes.js'
-
-function isPathnameAppRoute(pathname: string): boolean {
-  return pathname === '/recover'
-}
 
 /**
  * Creates a memoized navigation handler function

@@ -21,6 +21,12 @@ describe('app path helpers', () => {
     expect(normalizeAppPath('/recover%20flow?code=abc')).toBe('/recover flow')
   })
 
+  it('uses direct login pathnames as app routes', () => {
+    window.history.replaceState({}, '', '/login')
+
+    expect(getAppPath()).toBe('/login')
+  })
+
   it('preserves literal percent characters in already-decoded paths', () => {
     expect(normalizeAppPath('/u/1/notes/100% ready.txt')).toBe(
       '/u/1/notes/100% ready.txt',

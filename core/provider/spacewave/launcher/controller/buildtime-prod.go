@@ -9,5 +9,5 @@ package spacewave_launcher_controller
 // Prod builds trust the prod signing key only. The corresponding private key is
 // supplied by release tooling and is not stored in this repo.
 var BuildTimeDistPeerIDs = []string{
-	"12D3KooWNSphZVKeDTF2463p5gR2Ye8VUdCUFs4RfDUJ65dRaU5M",
+	"12D3KooWRWx2xR5SFj3qznZ1FujY26jUjWiHKKBMzpwDPScdoqaE",
 }

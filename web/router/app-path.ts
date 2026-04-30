@@ -1,7 +1,18 @@
 import { isStaticRoute } from './static-routes.js'
 
-function isPathnameAppRoute(pathname: string): boolean {
-  return pathname === '/recover'
+export function isPathnameAppRoute(pathname: string): boolean {
+  return (
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/sessions' ||
+    pathname === '/recover' ||
+    pathname === '/pair' ||
+    pathname.startsWith('/pair/') ||
+    pathname === '/join' ||
+    pathname.startsWith('/join/') ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/checkout/')
+  )
 }
 
 function stripQueryParams(path: string): string {
