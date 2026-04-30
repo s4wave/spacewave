@@ -375,12 +375,18 @@ func (i *SOOperationInner) Validate() error {
 	return nil
 }
 
-// ParsePeerID parses the peer ID.
-func (r *SOOperationRef) ParsePeerID() (peer.ID, error) {
-	if len(r.GetPeerId()) == 0 {
+// parsePeerIDField parses a peer id string from a proto field. Returns
+// peer.ErrEmptyPeerID when empty so callers do not need to repeat the check.
+func parsePeerIDField(peerID string) (peer.ID, error) {
+	if len(peerID) == 0 {
 		return "", peer.ErrEmptyPeerID
 	}
-	return confparse.ParsePeerID(r.GetPeerId())
+	return confparse.ParsePeerID(peerID)
+}
+
+// ParsePeerID parses the peer ID.
+func (r *SOOperationRef) ParsePeerID() (peer.ID, error) {
+	return parsePeerIDField(r.GetPeerId())
 }
 
 // Validate validates the SOOperationRef.
@@ -396,18 +402,12 @@ func (r *SOOperationRef) Validate() error {
 
 // ParsePeerID parses the peer ID.
 func (n *SOAccountNonce) ParsePeerID() (peer.ID, error) {
-	if len(n.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(n.GetPeerId())
+	return parsePeerIDField(n.GetPeerId())
 }
 
 // ParsePeerID parses the peer ID.
 func (i *SOOperationInner) ParsePeerID() (peer.ID, error) {
-	if len(i.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(i.GetPeerId())
+	return parsePeerIDField(i.GetPeerId())
 }
 
 // Validate performs cursory checks on the SORoot.
@@ -563,10 +563,7 @@ func (r *SORootInner) Validate() error {
 
 // ParsePeerID parses the peer ID.
 func (g *SOGrant) ParsePeerID() (peer.ID, error) {
-	if len(g.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(g.GetPeerId())
+	return parsePeerIDField(g.GetPeerId())
 }
 
 // Validate performs cursory checks on the SOGrant.
@@ -656,10 +653,7 @@ func BuildSOOperationResult(
 
 // ParsePeerID parses the peer ID.
 func (i *SOOperationRejectionInner) ParsePeerID() (peer.ID, error) {
-	if len(i.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(i.GetPeerId())
+	return parsePeerIDField(i.GetPeerId())
 }
 
 // Validate performs cursory checks on the SOOperationRejectionInner.
@@ -686,10 +680,7 @@ func (i *SOOperationRejectionInner) Validate() error {
 
 // ParsePeerID parses the peer ID for the SOPeerOpRejections.
 func (r *SOPeerOpRejections) ParsePeerID() (peer.ID, error) {
-	if len(r.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(r.GetPeerId())
+	return parsePeerIDField(r.GetPeerId())
 }
 
 // BuildSOClearOperationResult constructs a new SOClearOperationResult.
@@ -780,10 +771,7 @@ func (i *SOClearOperationResultInner) Validate() error {
 
 // ParsePeerID parses the peer ID.
 func (i *SOClearOperationResultInner) ParsePeerID() (peer.ID, error) {
-	if len(i.GetPeerId()) == 0 {
-		return "", peer.ErrEmptyPeerID
-	}
-	return confparse.ParsePeerID(i.GetPeerId())
+	return parsePeerIDField(i.GetPeerId())
 }
 
 // Validate performs cursory checks on the QueuedSOOperation.
