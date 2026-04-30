@@ -6,7 +6,6 @@ go 1.26.2
 replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92 // aperture-5
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf // aperture
-	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 )
 
 // aperture: use compatibility forks
@@ -40,7 +39,7 @@ require (
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260414073032-6d37aebb81c9
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
-	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20260329113556-783bbb0820d5 // latest
+	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
@@ -73,7 +72,6 @@ require (
 )
 
 require (
-	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/bits-and-blooms/bitset v1.24.4
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/blang/semver/v4 v4.0.0
@@ -89,7 +87,6 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-20260424211911-732291493fb8 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.2 // main
-	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
 	github.com/google/uuid v1.6.0

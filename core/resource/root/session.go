@@ -2,8 +2,8 @@ package resource_root
 
 import (
 	"context"
-	"reflect"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -309,24 +309,57 @@ func (s *CoreRootServer) WatchAllAccountStatuses(
 			prev = resp
 		}
 
-		cases := make([]reflect.SelectCase, 0, len(waitChs)+1)
-		cases = append(cases, reflect.SelectCase{
-			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(ctx.Done()),
-		})
-		for _, ch := range waitChs {
-			cases = append(cases, reflect.SelectCase{
-				Dir:  reflect.SelectRecv,
-				Chan: reflect.ValueOf(ch),
-			})
-		}
-		chosen, _, _ := reflect.Select(cases)
+		ctxDone := waitAny(ctx, waitChs)
 		for _, release := range releases {
 			release()
 		}
-		if chosen == 0 {
+		if ctxDone {
 			return ctx.Err()
 		}
+	}
+}
+
+func waitAny(ctx context.Context, waitChs []<-chan struct{}) bool {
+	switch len(waitChs) {
+	case 0:
+		<-ctx.Done()
+		return true
+	case 1:
+		select {
+		case <-ctx.Done():
+			return true
+		case <-waitChs[0]:
+			return false
+		}
+	}
+
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	done := make(chan bool, 1)
+	var once sync.Once
+	for _, ch := range waitChs {
+		go func(ch <-chan struct{}) {
+			select {
+			case <-waitCtx.Done():
+			case <-ch:
+				once.Do(func() {
+					done <- false
+					cancel()
+				})
+			}
+		}(ch)
+	}
+
+	select {
+	case <-ctx.Done():
+		once.Do(func() {
+			done <- true
+			cancel()
+		})
+		return true
+	case ctxDone := <-done:
+		return ctxDone
 	}
 }
 

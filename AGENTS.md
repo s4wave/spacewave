@@ -151,11 +151,19 @@ Direct `AddFactory` calls belong in tests, such as `core/e2e/e2e_test.go`.
 
 ### JSON
 
-- Do not use `encoding/json`.
+- Do not use `encoding/json` in production Go code, and do not add dependencies
+  that pull it in for JSON convenience helpers. Binary size matters in normal
+  builds, not only TinyGo/WASM builds.
+- Do not use `reflect` in production Go code. Reflection-heavy helpers are a
+  binary-size smell; prefer typed code, generated codecs, or explicit parser
+  logic.
 - For proto messages, use generated `MarshalJSON`/`UnmarshalJSON` or
   `MarshalProtoJSON`/`UnmarshalProtoJSON` from `protobuf-go-lite/json`.
 - For non-proto HTTP request/response structs, use
   `aperturerobotics/fastjson`.
+- For raw JSON validation, slicing, passthrough, or structural edits, use
+  `json-iterator-lite`, `protobuf-go-lite/json`, or `fastjson`. Do not use
+  `gabs` or other wrappers around `encoding/json`.
 - Cloud API endpoints define proto messages in
   `core/provider/spacewave/api/api.proto` and use the generated binary codec
   (`MarshalVT` / `UnmarshalVT`) on both sides. Do NOT use `MarshalJSON` /

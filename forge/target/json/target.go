@@ -1,10 +1,8 @@
 package target_json
 
 import (
-	"bytes"
 	"context"
 
-	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/bus"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -153,53 +151,39 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON marshals a target JSON blob.
 func (c *Target) MarshalJSON() ([]byte, error) {
-	var v *gabs.Container
+	var p fastjson.Parser
+	var arena fastjson.Arena
+	v := arena.NewObject()
 
 	// marshal the regular fields
 	if c.underlying != nil {
-		var b bytes.Buffer
 		xdat, err := c.underlying.MarshalJSON()
 		if err != nil {
 			return nil, err
 		}
 		if len(xdat) != 0 {
-			(&b).Write(xdat)
-		}
-		// parse the json to gabs format
-		gj, err := gabs.ParseJSONBuffer(&b)
-		if err != nil {
-			return nil, err
-		}
-		v = gj
-	}
-
-	if v == nil {
-		var err error
-		v, err = gabs.New().Object()
-		if err != nil {
-			return nil, err
+			parsed, err := p.ParseBytes(xdat)
+			if err != nil {
+				return nil, err
+			}
+			v = arena.DeepCopyValue(parsed)
 		}
 	}
 
 	// marshal the exec.controller config, if set
 	if c.execControllerConfig != nil {
-		var arena fastjson.Arena
 		cv, err := marshalControllerConfigValue(&arena, c.execControllerConfig)
 		if err != nil {
 			return nil, err
 		}
-		// parse the json to gabs format
-		gv, err := gabs.ParseJSON(cv.MarshalTo(nil))
-		if err != nil {
-			return nil, err
+		exec := v.Get("exec")
+		if exec == nil || exec.Type() != fastjson.TypeObject {
+			exec = arena.NewObject()
+			v.Set("exec", exec)
 		}
-		// set the field
-		v, err = v.Set(gv, "exec", "controller")
-		if err != nil {
-			return nil, err
-		}
+		exec.Set("controller", cv)
 	}
 
 	// finalize the json
-	return v.EncodeJSON(), nil
+	return v.MarshalTo(nil), nil
 }

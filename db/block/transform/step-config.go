@@ -3,7 +3,6 @@ package block_transform
 import (
 	"encoding/base64"
 
-	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/config"
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
@@ -78,12 +77,13 @@ func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
 		// Detect if config is JSON
 		if c.Config[0] == '{' && c.Config[len(c.Config)-1] == '}' {
 			// Ensure json is parseable
-			_, err := gabs.ParseJSON(c.Config)
-			if err != nil {
-				s.SetError(errors.Wrap(err, "unable to parse config json"))
+			iter := jsoniter.ParseBytes(c.Config)
+			iter.Skip()
+			if iter.Error != nil {
+				s.SetError(errors.Wrap(iter.Error, "unable to parse config json"))
 				return
 			}
-			_, err = s.Write(c.Config)
+			_, err := s.Write(c.Config)
 			if err != nil {
 				s.SetError(err)
 				return
