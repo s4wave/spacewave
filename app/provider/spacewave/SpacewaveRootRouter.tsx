@@ -149,20 +149,6 @@ export function SpacewaveRootRouter() {
   }
 
   if (
-    onboarding.selfEnrollmentGateState === SelfEnrollmentGateState.UNKNOWN ||
-    onboarding.selfEnrollmentGateState === SelfEnrollmentGateState.CHECKING
-  ) {
-    return <RouterLoadingGate detail="Checking connected spaces." />
-  }
-
-  if (
-    onboarding.selfEnrollmentGateState ===
-    SelfEnrollmentGateState.AUTO_CONNECTING
-  ) {
-    return <RouterLoadingGate detail="Connecting spaces." />
-  }
-
-  if (
     onboarding.selfEnrollmentGateState ===
       SelfEnrollmentGateState.ACTION_REQUIRED &&
     onboarding.sessionSelfEnrollmentGenerationKey &&

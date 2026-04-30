@@ -322,7 +322,7 @@ describe('SpacewaveRootRouter', () => {
     expect(screen.getByTestId('redirect').textContent).toBe('verify-email')
   })
 
-  it('renders the loading card while the self-enrollment summary is still loading', () => {
+  it('renders the dashboard while the self-enrollment summary is still loading', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
         onboarding: {
@@ -336,12 +336,9 @@ describe('SpacewaveRootRouter', () => {
 
     render(<SpacewaveRootRouter />)
 
-    expect(screen.getByTestId('session-loading')).toBeTruthy()
-    expect(screen.getByTestId('loading-card').textContent).toBe(
-      'Checking connected spaces.',
-    )
     expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
-    expect(screen.queryByTestId('dashboard')).toBeNull()
+    expect(screen.queryByTestId('session-loading')).toBeNull()
+    expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
   it('routes active verified sessions needing self-enrollment to the interstitial', () => {
@@ -365,7 +362,7 @@ describe('SpacewaveRootRouter', () => {
     expect(screen.queryByTestId('redirect')).toBeNull()
   })
 
-  it('keeps the loading card while backend auto-rejoin is running', () => {
+  it('renders the dashboard while backend auto-rejoin is running', () => {
     mockUseContextSafe.mockReturnValue(
       buildContext({
         onboarding: {
@@ -381,12 +378,9 @@ describe('SpacewaveRootRouter', () => {
 
     render(<SpacewaveRootRouter />)
 
-    expect(screen.getByTestId('session-loading')).toBeTruthy()
-    expect(screen.getByTestId('loading-card').textContent).toBe(
-      'Connecting spaces.',
-    )
     expect(screen.queryByTestId('self-enrollment-interstitial')).toBeNull()
-    expect(screen.queryByTestId('dashboard')).toBeNull()
+    expect(screen.queryByTestId('session-loading')).toBeNull()
+    expect(screen.getByTestId('dashboard')).toBeTruthy()
   })
 
   it('routes active verified sessions with a matching skip atom to the dashboard', () => {
