@@ -347,92 +347,96 @@ export function SpaceContainer() {
   const sharedObjectOverlay = useMemo(() => {
     if (!ready || !spaceWorld || !spaceState) return undefined
     return (
-      <SpaceContainerContext.Provider
-        spaceId={sharedObjectId}
-        spaceWorldResource={spaceWorldResource}
-        spaceWorld={spaceWorld}
-        navigateToRoot={navigateToRoot}
-        navigateToObjects={navigateToObjects}
-        spaceState={spaceState}
-        spaceSharingState={spaceSharingState}
-        orgState={spaceOrgState}
-        buildObjectUrls={buildObjectUrls}
-        objectKey={objectKey}
-        objectPath={objectPath || undefined}
-        navigateToSubPath={navigateToSubPath}
-      >
-        <SharedObjectDetails
-          displayName={spaceName}
-          canRename={canRename}
-          canShare={canManageSharing}
-          onCloseClick={handleCloseDetails}
-          onSharingClick={canManageSharing ? handleSharingClick : undefined}
-          onExportClick={handleExportClick}
-          onDeleteClick={handleDeleteClick}
-          onRenameStart={handleRenameStart}
-          orgIndicator={
-            spaceOrgId ?
-              <button
-                onClick={() => navigate({ path: `../../org/${spaceOrgId}` })}
-                className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors"
-              >
-                <LuBuilding2 className="h-2.5 w-2.5" />
-                <span className="max-w-20 truncate">
-                  {spaceOrgState?.organization?.displayName || 'Org'}
-                </span>
-              </button>
-            : undefined
-          }
-          orgInfoSection={
-            spaceOrgId && spaceOrgState?.organization ?
-              <div className="space-y-1">
-                <div className="text-foreground-alt mb-0.5 text-[0.6rem] select-none">
-                  Organization
-                </div>
-                <div className="text-foreground flex items-center gap-1.5 text-xs">
-                  <LuBuilding2 className="text-brand h-3 w-3 shrink-0" />
-                  <span className="truncate">
-                    {spaceOrgState.organization.displayName || spaceOrgId}
-                  </span>
-                  <span className="text-foreground-alt/50 text-[0.6rem]">
-                    {spaceOrgState.organization.role === 'org:owner' ?
-                      'Owner'
-                    : 'Member'}
-                  </span>
-                </div>
-              </div>
-            : undefined
-          }
-          objectsBadge={
-            <span className="text-foreground-alt/50 text-[0.55rem]">
-              {objectCount}
-            </span>
-          }
-          objectsActions={
-            <button
-              type="button"
-              onClick={handleCreateObject}
-              className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors"
-              aria-label="Create object"
-              title="Create object"
-            >
-              <LuPlus className="h-3.5 w-3.5" />
-            </button>
-          }
-          objectsSection={<SpaceObjectBrowser embedded={true} />}
-          settingsSection={
-            <SpaceSettingsEditor
-              canEdit={true}
-              canRename={canRename}
+      <SpaceContext.Provider resource={spaceResource}>
+        <SpaceContentsContext.Provider resource={spaceContentsResource}>
+          <SpaceContainerContext.Provider
+            spaceId={sharedObjectId}
+            spaceWorldResource={spaceWorldResource}
+            spaceWorld={spaceWorld}
+            navigateToRoot={navigateToRoot}
+            navigateToObjects={navigateToObjects}
+            spaceState={spaceState}
+            spaceSharingState={spaceSharingState}
+            orgState={spaceOrgState}
+            buildObjectUrls={buildObjectUrls}
+            objectKey={objectKey}
+            objectPath={objectPath || undefined}
+            navigateToSubPath={navigateToSubPath}
+          >
+            <SharedObjectDetails
               displayName={spaceName}
-              embedded={true}
+              canRename={canRename}
+              canShare={canManageSharing}
+              onCloseClick={handleCloseDetails}
+              onSharingClick={canManageSharing ? handleSharingClick : undefined}
+              onExportClick={handleExportClick}
+              onDeleteClick={handleDeleteClick}
               onRenameStart={handleRenameStart}
+              orgIndicator={
+                spaceOrgId ?
+                  <button
+                    onClick={() => navigate({ path: `../../org/${spaceOrgId}` })}
+                    className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors"
+                  >
+                    <LuBuilding2 className="h-2.5 w-2.5" />
+                    <span className="max-w-20 truncate">
+                      {spaceOrgState?.organization?.displayName || 'Org'}
+                    </span>
+                  </button>
+                : undefined
+              }
+              orgInfoSection={
+                spaceOrgId && spaceOrgState?.organization ?
+                  <div className="space-y-1">
+                    <div className="text-foreground-alt mb-0.5 text-[0.6rem] select-none">
+                      Organization
+                    </div>
+                    <div className="text-foreground flex items-center gap-1.5 text-xs">
+                      <LuBuilding2 className="text-brand h-3 w-3 shrink-0" />
+                      <span className="truncate">
+                        {spaceOrgState.organization.displayName || spaceOrgId}
+                      </span>
+                      <span className="text-foreground-alt/50 text-[0.6rem]">
+                        {spaceOrgState.organization.role === 'org:owner' ?
+                          'Owner'
+                        : 'Member'}
+                      </span>
+                    </div>
+                  </div>
+                : undefined
+              }
+              objectsBadge={
+                <span className="text-foreground-alt/50 text-[0.55rem]">
+                  {objectCount}
+                </span>
+              }
+              objectsActions={
+                <button
+                  type="button"
+                  onClick={handleCreateObject}
+                  className="text-foreground-alt hover:text-foreground flex h-4 w-4 items-center justify-center transition-colors"
+                  aria-label="Create object"
+                  title="Create object"
+                >
+                  <LuPlus className="h-3.5 w-3.5" />
+                </button>
+              }
+              objectsSection={<SpaceObjectBrowser embedded={true} />}
+              settingsSection={
+                <SpaceSettingsEditor
+                  canEdit={true}
+                  canRename={canRename}
+                  displayName={spaceName}
+                  embedded={true}
+                  onRenameStart={handleRenameStart}
+                />
+              }
+              dataSection={<SpaceDataSection />}
+              pluginsSection={<SpacePlugins />}
             />
-          }
-          dataSection={<SpaceDataSection />}
-          pluginsSection={<SpacePlugins />}
-        />
-      </SpaceContainerContext.Provider>
+          </SpaceContainerContext.Provider>
+        </SpaceContentsContext.Provider>
+      </SpaceContext.Provider>
     )
   }, [
     ready,
@@ -460,6 +464,8 @@ export function SpaceContainer() {
     handleCreateObject,
     navigate,
     spaceOrgId,
+    spaceResource,
+    spaceContentsResource,
   ])
 
   const handleSharedObjectBreadcrumb = useCallback(() => {
