@@ -87,7 +87,7 @@ jobs:
           - arm64
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
-      BLDR_BUILDER_USE_BUILDX_GHA: "1"
+      BLDR_BUILDER_USE_BUILDX_GHA: '1'
       BLDR_BUILDER_ZIG_CACHE_DIR: ${{ github.workspace }}/.tmp/zig-cache
     steps:
       - name: Checkout repository
@@ -367,7 +367,7 @@ jobs:
           BLDR_WINDOWS_SIGN_PROFILE: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_PROFILE || '' }}
           BLDR_WINDOWS_SIGN_ACCOUNT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ACCOUNT || '' }}
           BLDR_WINDOWS_SIGN_ENDPOINT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ENDPOINT || '' }}
-          BLDR_WINDOWS_SIGN_MSIX: "0"
+          BLDR_WINDOWS_SIGN_MSIX: '0'
         run: |
           set -euo pipefail
           go run ./cmd/entrypoint-handoff \

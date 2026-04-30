@@ -2,9 +2,9 @@ package world
 
 import (
 	"context"
+	"strings"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"strings"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"

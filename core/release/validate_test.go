@@ -199,11 +199,11 @@ func testChannelDirectory(ref *block.BlockRef) *ChannelDirectory {
 
 func testReleaseMetadata(ref *block.BlockRef) *ReleaseMetadata {
 	return &ReleaseMetadata{
-		ProjectId:    "spacewave",
-		Rev:          1,
-		Version:      "0.1.0",
-		ChannelKey:   "stable",
-		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef(ref)},
+		ProjectId:              "spacewave",
+		Rev:                    1,
+		Version:                "0.1.0",
+		ChannelKey:             "stable",
+		ManifestRefs:           []*bldr_manifest.ManifestRef{testManifestRef(ref)},
 		BrowserShell:           testBrowserShellMetadata(ref),
 		MinimumLauncherVersion: "0.1.0",
 	}

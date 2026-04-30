@@ -2,9 +2,9 @@ package world_block
 
 import (
 	"context"
+	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"sync/atomic"
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"

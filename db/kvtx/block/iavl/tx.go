@@ -3,9 +3,9 @@ package kvtx_block_iavl
 import (
 	"bytes"
 	"context"
+	"sync"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"

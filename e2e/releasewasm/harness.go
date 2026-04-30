@@ -22,8 +22,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const releaseDistRelPath = ".bldr-dist/build/js/spacewave-dist/dist"
-const prerenderDistRelPath = "app/prerender/dist"
+const (
+	releaseDistRelPath   = ".bldr-dist/build/js/spacewave-dist/dist"
+	prerenderDistRelPath = "app/prerender/dist"
+)
 
 type browserReleaseDescriptor struct {
 	SchemaVersion        int                       `json:"schemaVersion"`

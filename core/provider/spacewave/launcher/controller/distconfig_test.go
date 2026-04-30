@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/util/ccontainer"
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )

@@ -44,9 +44,9 @@ type CdnBlockStore struct {
 	cache  *memIndexCache
 	pfs    *packfile_store.PackfileStore
 
-	bcast       broadcast.Broadcast
-	pointer     *cdn.CdnRootPointer
-	pointerTime time.Time
+	bcast           broadcast.Broadcast
+	pointer         *cdn.CdnRootPointer
+	pointerTime     time.Time
 	writebackTarget block.StoreOps
 }
 

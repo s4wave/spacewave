@@ -4,12 +4,12 @@ package opfs
 
 import (
 	"context"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"io"
 	"io/fs"
 	"syscall/js"
 	"time"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/pkg/errors"
 )

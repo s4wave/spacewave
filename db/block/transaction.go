@@ -2,11 +2,11 @@ package block
 
 import (
 	"context"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"runtime"
 	"slices"
 	"sync"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/conc"
 	simple "github.com/paralin/gonum-graph-simple"

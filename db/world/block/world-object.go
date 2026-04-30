@@ -2,10 +2,10 @@ package world_block
 
 import (
 	"context"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"slices"
 	"strings"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/s4wave/spacewave/db/block"

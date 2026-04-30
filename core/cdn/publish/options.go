@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/s4wave/spacewave/core/sobject"
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/sirupsen/logrus"
 )
 

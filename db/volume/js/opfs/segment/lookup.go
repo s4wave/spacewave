@@ -3,9 +3,10 @@ package segment
 import (
 	"context"
 	"encoding/binary"
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"io"
 	"strconv"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/pkg/errors"
 )

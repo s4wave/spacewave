@@ -3,10 +3,10 @@ package block
 import (
 	"bytes"
 	"context"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"slices"
 	"sync/atomic"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"

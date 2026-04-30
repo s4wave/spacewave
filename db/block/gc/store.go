@@ -2,10 +2,10 @@ package block_gc
 
 import (
 	"context"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"sync"
 	"sync/atomic"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"

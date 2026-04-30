@@ -2,9 +2,9 @@ package block_gc
 
 import (
 	"context"
+	"time"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"time"
 
 	"github.com/pkg/errors"
 )

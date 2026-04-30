@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"strconv"
 	"sync"
 	"syscall/js"
 	"time"
+
+	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"

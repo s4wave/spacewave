@@ -2,9 +2,9 @@ package sobject_world_engine
 
 import (
 	"context"
+	"sync"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"

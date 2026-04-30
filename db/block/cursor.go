@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"errors"
+
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
