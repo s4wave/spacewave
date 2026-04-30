@@ -39,6 +39,7 @@ func BuildTableRow(
 			return nil, errors.Wrapf(err, "column[%d]", i)
 		}
 	}
+	bcs.SetBlock(tr, true)
 	return tr, nil
 }
 

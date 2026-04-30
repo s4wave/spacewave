@@ -4,8 +4,8 @@ go 1.26.2
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92 // aperture-5
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf // aperture
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430160256-9f14583bdee3 // aperture-5
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 // aperture
 )
 
 // aperture: use compatibility forks

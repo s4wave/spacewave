@@ -50,8 +50,8 @@ github.com/aperturerobotics/go-multiaddr v0.17.0 h1:dYNEylrfGoFZEx5ZeTm01R5tX+vp
 github.com/aperturerobotics/go-multiaddr v0.17.0/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92 h1:1NWa0LuaJxMysk18uRaWFOFbrgP2SWjQTOCOWLlaLSU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92/go.mod h1:zlONaTcfb/0psjgAvDKY7kNSZ4I3JrYYKV0vMUpL41k=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430160256-9f14583bdee3 h1:S1z81QmGa03QbNleD0JbbHcWCmOyKhq9wYBNXjvBMiU=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430160256-9f14583bdee3/go.mod h1:zlONaTcfb/0psjgAvDKY7kNSZ4I3JrYYKV0vMUpL41k=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
@@ -76,8 +76,8 @@ github.com/aperturerobotics/starpc v0.49.7 h1:teNtPdGb+xeeaN3Ovcabu/S/1P8zFqlfuE
 github.com/aperturerobotics/starpc v0.49.7/go.mod h1:OHFZGc3qFPzztRW8XPJEGSw+HkRRlnXOnUK+nXF3iS4=
 github.com/aperturerobotics/util v1.34.3 h1:9lFYJovGlAHYX66aWKVzfoVzYox13P054d/Dy8T/GRg=
 github.com/aperturerobotics/util v1.34.3/go.mod h1:xtE2hwpgKGaW0TLx01+9xLsG+rYvhygQ+JCuQeAbvME=
-github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf h1:BvkNwljrCyCto2KreFeaDGZALRG6UTloIwTqAwmqCPM=
-github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
+github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 h1:gOEsFiQyF2xvAp+V57qc998Y1F+LNwFuzgXjwMo8+0o=
+github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6/go.mod h1:SLrPtbLCdMA1cJ2wmpnozln6nLjIH4l/88jcOUEac00=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
@@ -161,8 +161,6 @@ github.com/go-jose/go-jose/v3 v3.0.5 h1:BLLJWbC4nMZOfuPVxoZIxeYsn6Nl2r1fITaJ78UQ
 github.com/go-jose/go-jose/v3 v3.0.5/go.mod h1:5b+7YgP7ZICgJDBdfjZaIt+H/9L9T/YQrVfLAMboGkQ=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible h1:W1iEw64niKVGogNgBN3ePyLFfuisuzeidWPMPWmECqU=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible/go.mod h1:F8jJfvm2KbVjc5NqelyYJmf/v5J0dwNLS2mL4sNA1Jg=
-github.com/go-sql-driver/mysql v1.9.3 h1:U/N249h2WzJ3Ukj8SowVFjdtZKfu9vlLZxjPXV1aweo=
-github.com/go-sql-driver/mysql v1.9.3/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
 github.com/go-sql-driver/mysql v1.10.0 h1:Q+1LV8DkHJvSYAdR83XzuhDaTykuDx0l6fkXxoWCWfw=
 github.com/go-sql-driver/mysql v1.10.0/go.mod h1:M+cqaI7+xxXGG9swrdeUIoPG3Y3KCkF0pZej+SK+nWk=
 github.com/go-stack/stack v1.8.1 h1:ntEHSVwIt7PNXNpgPmVfMrNhLtgjlmnZha2kOpuRiDw=
