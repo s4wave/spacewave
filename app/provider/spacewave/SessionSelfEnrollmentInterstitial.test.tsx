@@ -10,6 +10,11 @@ import {
 
 import { SharedObjectSelfEnrollmentErrorCategory } from '@s4wave/sdk/session/shared-object-self-enrollment.pb.js'
 import type { WatchSharedObjectSelfEnrollmentStateResponse } from '@s4wave/sdk/session/shared-object-self-enrollment.pb.js'
+import type {
+  WatchAccountInfoResponse,
+  WatchAuthMethodsResponse,
+  WatchEntityKeypairsResponse,
+} from '@s4wave/sdk/account/account.pb.js'
 
 import { SessionSelfEnrollmentInterstitial } from './SessionSelfEnrollmentInterstitial.js'
 
@@ -25,6 +30,45 @@ const mockSetSkip = vi.hoisted(() => vi.fn())
 const mockState = vi.hoisted<{
   value: WatchSharedObjectSelfEnrollmentStateResponse | undefined
 }>(() => ({ value: undefined }))
+const mockAccountState = vi.hoisted<{
+  accountInfo: {
+    value: WatchAccountInfoResponse
+    loading: boolean
+    error: null
+    retry: ReturnType<typeof vi.fn>
+  }
+  authMethods: {
+    value: WatchAuthMethodsResponse
+    loading: boolean
+    error: null
+    retry: ReturnType<typeof vi.fn>
+  }
+  entityKeypairs: {
+    value: WatchEntityKeypairsResponse
+    loading: boolean
+    error: null
+    retry: ReturnType<typeof vi.fn>
+  }
+}>(() => ({
+  accountInfo: {
+    value: { authThreshold: 0 },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  },
+  authMethods: {
+    value: { authMethods: [] },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  },
+  entityKeypairs: {
+    value: { keypairs: [], unlockedCount: 0 },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  },
+}))
 const mockOnboarding = vi.hoisted<{
   value: MockOnboarding
 }>(() => ({
@@ -106,6 +150,7 @@ vi.mock(
     AccountDashboardStateProvider: ({ children }: { children?: ReactNode }) => (
       <>{children}</>
     ),
+    useAccountDashboardState: () => mockAccountState,
   }),
 )
 
@@ -130,6 +175,9 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   mockState.value = undefined
+  mockAccountState.accountInfo.value = { authThreshold: 0 }
+  mockAccountState.authMethods.value = { authMethods: [] }
+  mockAccountState.entityKeypairs.value = { keypairs: [], unlockedCount: 0 }
   mockOnboarding.value = {
     sessionSelfEnrollmentCount: 2,
     sessionSelfEnrollmentGenerationKey: 'gen-1',
@@ -187,5 +235,23 @@ describe('SessionSelfEnrollmentInterstitial', () => {
     expect(screen.getByText('space-2')).toBeTruthy()
     expect(screen.getByText('temporary failure')).toBeTruthy()
     expect(screen.getByText('Retry now')).toBeTruthy()
+  })
+
+  it('shows passive progress instead of unlock controls when enough signers are already unlocked', () => {
+    mockOnboarding.value = {
+      sessionSelfEnrollmentCount: 3,
+      sessionSelfEnrollmentGenerationKey: 'gen-1',
+    }
+    mockAccountState.entityKeypairs.value = {
+      keypairs: [{ keypair: { peerId: 'peer-1' }, unlocked: true }],
+      unlockedCount: 1,
+    }
+
+    render(<SessionSelfEnrollmentInterstitial />)
+
+    expect(screen.getByText('Connecting to 3 spaces')).toBeTruthy()
+    expect(screen.getByText('3 remaining')).toBeTruthy()
+    expect(screen.queryByText('Unlock and continue')).toBeNull()
+    expect(screen.queryByText('Skip for now')).toBeNull()
   })
 })

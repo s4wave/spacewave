@@ -122,7 +122,7 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 			return nil, err
 		}
 		if cache == nil || cache.GetCurrentConfig() == nil {
-			loaded = false
+			ids = append(ids, soID)
 			continue
 		}
 		role := readableParticipantRoleForEntity(cache.GetCurrentConfig(), entityID)

@@ -285,6 +285,35 @@ describe('SessionDashboardContainer', () => {
     )
   })
 
+  it('clears self-enrollment checking status after the gate becomes ready', () => {
+    mockOnboardingUseContextSafe.mockReturnValue({
+      onboarding: {
+        selfEnrollmentGateState: SelfEnrollmentGateState.CHECKING,
+      },
+      isPendingDelete: false,
+      isReadOnlyGrace: false,
+    })
+
+    const { rerender } = render(<SessionDashboardContainer />)
+
+    expect(getRenderedDashboardProps()?.topStatus).toBe(
+      'Checking connected spaces',
+    )
+
+    mockOnboardingUseContextSafe.mockReturnValue({
+      onboarding: {
+        selfEnrollmentGateState: SelfEnrollmentGateState.READY,
+      },
+      isPendingDelete: false,
+      isReadOnlyGrace: false,
+    })
+
+    renderedDashboard.mockClear()
+    rerender(<SessionDashboardContainer />)
+
+    expect(getRenderedDashboardProps()?.topStatus).toBeUndefined()
+  })
+
   it('passes self-enrollment auto-connect status to the dashboard', () => {
     mockOnboardingUseContextSafe.mockReturnValue({
       onboarding: {

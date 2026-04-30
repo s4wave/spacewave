@@ -38,17 +38,17 @@ func TestSelfEnrollmentEnumerator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("enumerate: %v", err)
 	}
-	if got.count != 1 {
-		t.Fatalf("count = %d, want 1", got.count)
+	if got.count != 2 {
+		t.Fatalf("count = %d, want 2", got.count)
 	}
-	if len(got.ids) != 1 || got.ids[0] != "needs" {
-		t.Fatalf("ids = %#v, want [needs]", got.ids)
+	if len(got.ids) != 2 || got.ids[0] != "missing-cache" || got.ids[1] != "needs" {
+		t.Fatalf("ids = %#v, want [missing-cache needs]", got.ids)
 	}
-	if got.loaded {
-		t.Fatal("loaded = true, want false while one cache is missing")
+	if !got.loaded {
+		t.Fatal("loaded = false, want true when the list is known")
 	}
-	if got.generationKey != "" {
-		t.Fatalf("generation key = %q, want empty while summary is not loaded", got.generationKey)
+	if got.generationKey == "" {
+		t.Fatal("expected generation key")
 	}
 }
 
@@ -142,15 +142,15 @@ func TestSelfEnrollmentSummaryRefreshesOnCacheWrite(t *testing.T) {
 	acc := newSelfEnrollmentSummaryTestAccount(t, priv, sessionPID.String())
 	acc.cacheSharedObjectListEntry(selfEnrollmentListEntry("needs"))
 
-	if got := acc.GetSelfEnrollmentSummary(); got == nil || got.count != 0 || got.loaded {
-		t.Fatalf("summary before cache write = %+v, want unloaded empty summary", got)
+	if got := acc.GetSelfEnrollmentSummary(); got == nil || got.count != 1 || !got.loaded || len(got.ids) != 1 || got.ids[0] != "needs" {
+		t.Fatalf("summary before cache write = %+v, want pending missing-cache summary", got)
 	}
 
 	var ch <-chan struct{}
 	acc.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
 	})
-	writeSelfEnrollmentCache(t, acc, "needs", "acct-1", "", sobject.SOParticipantRole_SOParticipantRole_READER)
+	writeSelfEnrollmentCache(t, acc, "needs", "acct-1", sessionPID.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
 	select {
 	case <-ch:
 	default:
@@ -161,8 +161,8 @@ func TestSelfEnrollmentSummaryRefreshesOnCacheWrite(t *testing.T) {
 	if got == nil {
 		t.Fatal("expected summary")
 	}
-	if got.count != 1 || got.generationKey == "" || !got.loaded || len(got.ids) != 1 || got.ids[0] != "needs" {
-		t.Fatalf("summary = %+v, want one needs entry", got)
+	if got.count != 0 || got.generationKey != "" || !got.loaded || len(got.ids) != 0 {
+		t.Fatalf("summary = %+v, want empty enrolled summary", got)
 	}
 }
 

@@ -76,6 +76,60 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	}
 }
 
+func TestCollectDirectManifestForManifestID(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const manifestKey = "glados-core"
+	ref := createTestManifestRef(t, ctx, tb, manifestKey, "js", 7)
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(manifestKey, manifestKey, manifestKey)); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectManifestsForManifestID(
+		ctx,
+		ws,
+		manifestKey,
+		[]string{"js"},
+		manifestKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+	if got[0].Manifest.GetMeta().GetManifestId() != manifestKey {
+		t.Fatalf("manifest id = %q", got[0].Manifest.GetMeta().GetManifestId())
+	}
+	if !got[0].ManifestRef.EqualVT(ref.GetManifestRef()) {
+		t.Fatalf("manifest ref was not preserved")
+	}
+}
+
 func createTestManifestRef(
 	t *testing.T,
 	ctx context.Context,

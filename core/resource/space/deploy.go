@@ -108,6 +108,11 @@ func (r *SpaceResource) DeployManifest(strm s4wave_space.SRPCSpaceResourceServic
 		r.le.WithError(err).Warn("deploy manifest: set manifest failed")
 		return sendDeployResult(strm, err.Error())
 	}
+	quad := bldr_manifest_world.NewManifestQuad(objectKey, objectKey, manifestID)
+	if err := tx.SetGraphQuad(ctx, quad); err != nil {
+		r.le.WithError(err).Warn("deploy manifest: link manifest failed")
+		return sendDeployResult(strm, err.Error())
+	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
