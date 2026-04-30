@@ -52,8 +52,8 @@ github.com/aperturerobotics/go-multiaddr v0.17.0 h1:dYNEylrfGoFZEx5ZeTm01R5tX+vp
 github.com/aperturerobotics/go-multiaddr v0.17.0/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260422233706-e1850c2f41f0 h1:l0LZyNse5T03D/QEArRB4NOrkiy+9YKSuOXbir9xQ8E=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260422233706-e1850c2f41f0/go.mod h1:zlONaTcfb/0psjgAvDKY7kNSZ4I3JrYYKV0vMUpL41k=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92 h1:1NWa0LuaJxMysk18uRaWFOFbrgP2SWjQTOCOWLlaLSU=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430035411-f22d7e058e92/go.mod h1:zlONaTcfb/0psjgAvDKY7kNSZ4I3JrYYKV0vMUpL41k=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
@@ -78,8 +78,8 @@ github.com/aperturerobotics/starpc v0.49.7 h1:teNtPdGb+xeeaN3Ovcabu/S/1P8zFqlfuE
 github.com/aperturerobotics/starpc v0.49.7/go.mod h1:OHFZGc3qFPzztRW8XPJEGSw+HkRRlnXOnUK+nXF3iS4=
 github.com/aperturerobotics/util v1.34.3 h1:9lFYJovGlAHYX66aWKVzfoVzYox13P054d/Dy8T/GRg=
 github.com/aperturerobotics/util v1.34.3/go.mod h1:xtE2hwpgKGaW0TLx01+9xLsG+rYvhygQ+JCuQeAbvME=
-github.com/aperturerobotics/vitess v0.0.0-20260422234131-9045b4bf3daa h1:NbO4SSV8tP9gpcfBy8wZ4KfMRe1BavsO9Z+OIQjcwrQ=
-github.com/aperturerobotics/vitess v0.0.0-20260422234131-9045b4bf3daa/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
+github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf h1:BvkNwljrCyCto2KreFeaDGZALRG6UTloIwTqAwmqCPM=
+github.com/aperturerobotics/vitess v0.0.0-20260430035359-6e3fff771bbf/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6/go.mod h1:SLrPtbLCdMA1cJ2wmpnozln6nLjIH4l/88jcOUEac00=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
