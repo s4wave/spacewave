@@ -14,6 +14,7 @@ import {
   getQuickstartOption,
   isQuickstartId,
 } from '@s4wave/app/quickstart/options.js'
+import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 import {
   type DashboardSpace,
@@ -138,6 +139,17 @@ export function SessionDashboardContainer() {
   const deleteAt = onboarding?.onboarding?.deleteAt
   const isPendingDelete = onboarding?.isPendingDelete ?? false
   const isReadOnly = isPendingDelete || (onboarding?.isReadOnlyGrace ?? false)
+  const selfEnrollmentStatus = useMemo(() => {
+    switch (onboarding?.onboarding?.selfEnrollmentGateState) {
+      case SelfEnrollmentGateState.UNKNOWN:
+      case SelfEnrollmentGateState.CHECKING:
+        return 'Checking connected spaces'
+      case SelfEnrollmentGateState.AUTO_CONNECTING:
+        return 'Connecting spaces'
+      default:
+        return undefined
+    }
+  }, [onboarding?.onboarding?.selfEnrollmentGateState])
 
   const navigate = useNavigate()
   const navigateSession = useSessionNavigate()
@@ -220,6 +232,7 @@ export function SessionDashboardContainer() {
         accountResource={accountResource}
         session={session ?? undefined}
         readOnly={isReadOnly}
+        topStatus={selfEnrollmentStatus}
       />
     </SessionFrame>
   )

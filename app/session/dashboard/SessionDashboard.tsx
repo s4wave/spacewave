@@ -73,6 +73,7 @@ export interface SessionDashboardProps {
   isCloud?: boolean
   accountResource?: Resource<Account | null>
   session?: Session
+  topStatus?: string
 }
 
 // SessionDashboard displays the main session dashboard page.
@@ -90,6 +91,7 @@ export function SessionDashboard({
   isCloud,
   accountResource,
   session,
+  topStatus,
 }: SessionDashboardProps) {
   const navigate = useNavigate()
   const isLoading = spaces === undefined
@@ -114,6 +116,14 @@ export function SessionDashboard({
       <div className="relative z-10 p-3">
         <DashboardNav />
       </div>
+
+      {topStatus && (
+        <div className="pointer-events-none absolute inset-x-0 top-14 z-20 flex justify-center px-4">
+          <div className="border-border/60 bg-background/80 rounded-full border px-3 py-1 shadow-sm backdrop-blur">
+            <LoadingInline label={topStatus} tone="muted" size="sm" />
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
         {isEmpty && isCloud && !readOnly && <WelcomeHeading />}

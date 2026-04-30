@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 const CDN_SPACE_ID = '01kpm6m5mg9ncme4ve3jraxv5n'
 
@@ -14,7 +15,7 @@ const mockOnboardingUseContextSafe = vi.hoisted(() => vi.fn())
 const mockUseSessionInfo = vi.hoisted(() => vi.fn())
 const mockUseMountAccount = vi.hoisted(() => vi.fn())
 const mockUseRootResource = vi.hoisted(() => vi.fn())
-const mockUseSessionIndex = vi.hoisted(() => vi.fn())
+const mockUseSessionIndex = vi.hoisted(() => vi.fn<() => number>())
 const mockUseSessionNavigate = vi.hoisted(() => vi.fn())
 const renderedDashboard = vi.hoisted(
   () =>
@@ -95,13 +96,18 @@ vi.mock('@s4wave/app/quickstart/create.js', () => ({
 import { SessionDashboardContainer } from './SessionDashboardContainer.js'
 
 function getRenderedSpaces() {
-  const props = renderedDashboard.mock.calls[0]?.[0] as
-    | {
-        spaces?: Array<{ id: string; name: string; orgId?: string }>
-      }
-    | undefined
+  const props = getRenderedDashboardProps()
   expect(props).toBeDefined()
   return props?.spaces ?? []
+}
+
+function getRenderedDashboardProps() {
+  return renderedDashboard.mock.calls[0]?.[0] as
+    | {
+        spaces?: Array<{ id: string; name: string; orgId?: string }>
+        topStatus?: string
+      }
+    | undefined
 }
 
 describe('SessionDashboardContainer', () => {
@@ -261,5 +267,35 @@ describe('SessionDashboardContainer', () => {
     expect(getRenderedSpaces()).not.toContainEqual(
       expect.objectContaining({ id: CDN_SPACE_ID }),
     )
+  })
+
+  it('passes self-enrollment checking status to the dashboard', () => {
+    mockOnboardingUseContextSafe.mockReturnValue({
+      onboarding: {
+        selfEnrollmentGateState: SelfEnrollmentGateState.CHECKING,
+      },
+      isPendingDelete: false,
+      isReadOnlyGrace: false,
+    })
+
+    render(<SessionDashboardContainer />)
+
+    expect(getRenderedDashboardProps()?.topStatus).toBe(
+      'Checking connected spaces',
+    )
+  })
+
+  it('passes self-enrollment auto-connect status to the dashboard', () => {
+    mockOnboardingUseContextSafe.mockReturnValue({
+      onboarding: {
+        selfEnrollmentGateState: SelfEnrollmentGateState.AUTO_CONNECTING,
+      },
+      isPendingDelete: false,
+      isReadOnlyGrace: false,
+    })
+
+    render(<SessionDashboardContainer />)
+
+    expect(getRenderedDashboardProps()?.topStatus).toBe('Connecting spaces')
   })
 })
