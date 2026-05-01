@@ -6,6 +6,7 @@ import GetStarted from './GetStarted.js'
 
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
+const mockUseIsStaticMode = vi.hoisted(() => vi.fn(() => false))
 
 vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
   useSessionMetadata: mockUseSessionMetadata,
@@ -16,7 +17,7 @@ vi.mock('@s4wave/web/router/router.js', () => ({
 }))
 
 vi.mock('../prerender/StaticContext.js', () => ({
-  useIsStaticMode: () => false,
+  useIsStaticMode: mockUseIsStaticMode,
 }))
 
 vi.mock('@s4wave/web/style/utils.js', () => ({
@@ -73,6 +74,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  mockUseIsStaticMode.mockReturnValue(false)
 })
 
 describe('GetStarted', () => {
@@ -124,5 +126,22 @@ describe('GetStarted', () => {
     expect(screen.getByText('Account: second-user')).toBeTruthy()
     expect(screen.queryByText('Session 1')).toBeNull()
     expect(screen.queryByText('Session 2')).toBeNull()
+  })
+
+  it('uses hash links for non-prerendered static quickstart routes', () => {
+    mockUseIsStaticMode.mockReturnValue(true)
+
+    render(<GetStarted />)
+
+    expect(
+      screen
+        .getByRole('link', { name: /sign in or create account/i })
+        .getAttribute('href'),
+    ).toBe('#/login')
+    expect(
+      screen
+        .getByRole('link', { name: /create a drive/i })
+        .getAttribute('href'),
+    ).toBe('/quickstart/drive')
   })
 })

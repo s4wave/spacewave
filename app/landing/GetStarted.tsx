@@ -8,6 +8,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import {
   getQuickstartPath,
+  isQuickstartOptionPublic,
   VISIBLE_QUICKSTART_OPTIONS,
 } from '../quickstart/options.js'
 import {
@@ -23,6 +24,11 @@ import { useIsStaticMode } from '../prerender/StaticContext.js'
 const COMMAND_ITEMS = [...VISIBLE_QUICKSTART_OPTIONS]
 
 const CATEGORIES = [...new Set(COMMAND_ITEMS.map((item) => item.category))]
+
+function getStaticQuickstartHref(item: (typeof COMMAND_ITEMS)[number]): string {
+  const path = getQuickstartPath(item)
+  return isQuickstartOptionPublic(item, false) ? path : `#${path}`
+}
 
 const GetStartedItem = ({ item }: { item: (typeof COMMAND_ITEMS)[number] }) => {
   const navigate = useNavigate()
@@ -124,7 +130,7 @@ function StaticGetStarted({ className }: { className?: string }) {
             {items.map((item) => (
               <a
                 key={item.id}
-                href={getQuickstartPath(item)}
+                href={getStaticQuickstartHref(item)}
                 className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
               >
                 <div className="bg-foreground/5 flex h-9 w-9 items-center justify-center rounded-md">
