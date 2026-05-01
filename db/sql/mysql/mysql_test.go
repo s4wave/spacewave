@@ -206,7 +206,7 @@ func TestMysql(t *testing.T) {
 func TestMysqlReadInsertedRowBeforeCommit(t *testing.T) {
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
-	_, bcs := block.NewTransaction(store, nil, nil, nil)
+	tx, bcs := block.NewTransaction(store, nil, nil, nil)
 	bcs.SetBlock(NewDatabaseRootBlock(), true)
 	db, err := NewDatabase(ctx, "r2sql", false, bcs)
 	if err != nil {
@@ -254,5 +254,13 @@ func TestMysqlReadInsertedRowBeforeCommit(t *testing.T) {
 	}
 	if len(row) != 3 || row[0] != int64(1) || row[1] != "alpha" || row[2] != int64(11) {
 		t.Fatalf("unexpected row: %#v", row)
+	}
+	db.MarkDirty()
+	root, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if root.GetEmpty() {
+		t.Fatal("expected database root")
 	}
 }

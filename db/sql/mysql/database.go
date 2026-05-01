@@ -49,6 +49,11 @@ func (d *Database) IsReadOnly() bool {
 	return d.readOnly
 }
 
+// MarkDirty marks the database root dirty for the next transaction write.
+func (d *Database) MarkDirty() {
+	d.bcs.SetBlock(d.root, true)
+}
+
 // GetTableInsensitive retrieves a table by its case insensitive name.
 // Implementations should look for exact (case-sensitive matches) first. If no
 // exact matches are found then any table matching the name case insensitively
