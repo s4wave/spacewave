@@ -28,9 +28,9 @@ import {
   LuTriangleAlert,
 } from 'react-icons/lu'
 
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-
 import { ORG_ROLE_OWNER } from '@s4wave/app/org/org-constants.js'
+import { SpaceMountingScreen } from '@s4wave/app/space/SpaceMountingScreen.js'
+import { spaceMountStageFromHealth } from '@s4wave/app/space/spaceMountStage.js'
 import {
   useNavigate,
   useParams,
@@ -57,7 +57,6 @@ import {
   WatchResourcesListResponse,
 } from '@s4wave/sdk/session/session.pb.js'
 import { SharedObjectBodyContainer } from '@s4wave/app/sobject/SharedObjectBodyContainer.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
@@ -441,19 +440,29 @@ function SharedObjectHealthCard({
   const [selectedAction, setSelectedAction] =
     useState<SharedObjectRemediationAction>(null)
   const [confirmingReinitialize, setConfirmingReinitialize] = useState(false)
+
+  if (isLoading) {
+    return (
+      <SpaceMountingScreen
+        stage={spaceMountStageFromHealth(health)}
+        detail={summary.description}
+        onBack={onBack}
+        onRetry={onRetry}
+      />
+    )
+  }
+
   const tone = getSharedObjectHealthTone(isLoading, isDegraded)
 
   const detail = health.error?.trim() ?? ''
   const showRetry =
-    health.remediationHint === SharedObjectHealthRemediationHint.RETRY ||
-    isLoading
+    health.remediationHint === SharedObjectHealthRemediationHint.RETRY
 
-  // Layer label only appears in error/degraded states. The body vs shared
-  // object distinction is internal and never surfaces on the loading screen.
+  // Layer label appears in error/degraded states. The body vs shared object
+  // distinction is internal and never surfaces on the loading screen.
   const layerLabel =
     health.layer === SharedObjectHealthLayer.BODY ? 'Body' : 'Shared Object'
-  const badgeLabel =
-    isLoading ? summary.badge : `${summary.badge} - ${layerLabel}`
+  const badgeLabel = `${summary.badge} - ${layerLabel}`
 
   return (
     <div className="relative flex h-full w-full items-start justify-center overflow-auto px-4 py-12">
@@ -475,9 +484,7 @@ function SharedObjectHealthCard({
                 tone.iconWrap,
               )}
             >
-              {isLoading ?
-                <Spinner size="lg" className={tone.iconColor} />
-              : <tone.Icon className={cn('h-6 w-6', tone.iconColor)} />}
+              <tone.Icon className={cn('h-6 w-6', tone.iconColor)} />
             </div>
             <span
               className={cn(
@@ -495,18 +502,7 @@ function SharedObjectHealthCard({
             </p>
           </div>
 
-          {isLoading ?
-            showRetry ?
-              <div className="mt-4 flex justify-center">
-                <DashboardButton
-                  icon={<LuRefreshCw className="h-3.5 w-3.5" />}
-                  onClick={onRetry}
-                >
-                  Retry
-                </DashboardButton>
-              </div>
-            : null
-          : <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-3">
               <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
                 <div className="flex items-center gap-1.5">
                   <LuCircleAlert className="text-foreground-alt/60 h-3.5 w-3.5" />
@@ -631,7 +627,6 @@ function SharedObjectHealthCard({
                 : null}
               </div>
             </div>
-          }
         </div>
       </div>
     </div>
@@ -946,7 +941,12 @@ export function SessionSharedObjectContainer() {
           mutationPending={mutationPending}
           mutationError={mutationError}
         />
-      : <LoadingCard view={{ state: 'loading', title: 'Loading space' }} />}
+      : <SpaceMountingScreen
+          stage="resolve"
+          detail="Looking up the shared object."
+          onBack={handleBack}
+        />
+      }
       {credentialRepairOpen ?
         <AccountDashboardStateProvider account={accountResource}>
           <AuthConfirmDialog

@@ -282,7 +282,7 @@ describe('SessionSharedObjectContainer', () => {
 
     render(<SessionSharedObjectContainer />)
 
-    expect(screen.getByText('Loading space')).toBeTruthy()
+    expect(screen.getByText('Mounting your space')).toBeTruthy()
     expect(
       screen.getByText('Almost ready. Loading the space contents.'),
     ).toBeTruthy()

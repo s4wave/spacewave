@@ -54,9 +54,13 @@ import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { useShellTabs, useTabId } from '@s4wave/app/ShellTabContext.js'
 import { SpaceBody } from './SpaceBody.js'
+import { SpaceMountingScreen } from './SpaceMountingScreen.js'
+import {
+  spaceMountDetailFromWorld,
+  spaceMountStageFromWorld,
+} from './spaceMountStage.js'
 import { SpaceCommands } from './SpaceCommands.js'
 import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
 import { SpacePlugins } from './SpacePlugins.js'
@@ -526,22 +530,21 @@ export function SpaceContainer() {
                 <CreateObjectButton />
                 <SpaceBody />
               </SpaceContainerContext.Provider>
-            : <div className="flex h-full w-full items-center justify-center p-6">
-                <div className="w-full max-w-sm">
-                  <LoadingCard
-                    view={{
-                      state: 'active',
-                      title: 'Loading space',
-                      detail: spaceWorldLoadingDetail(
-                        !!root,
-                        !!space,
-                        !!spaceWorld,
-                        !!spaceState?.ready,
-                      ),
-                    }}
-                  />
-                </div>
-              </div>
+            : <SpaceMountingScreen
+                stage={spaceMountStageFromWorld(
+                  !!root,
+                  !!space,
+                  !!spaceWorld,
+                  !!spaceState?.ready,
+                )}
+                detail={spaceMountDetailFromWorld(
+                  !!root,
+                  !!space,
+                  !!spaceWorld,
+                  !!spaceState?.ready,
+                )}
+                onBack={() => navigate({ path: '../' })}
+              />
             }
           </SpaceContentsContext.Provider>
         </SpaceContext.Provider>
@@ -569,20 +572,4 @@ export function SpaceContainer() {
       />
     </StateNamespaceProvider>
   )
-}
-
-// spaceWorldLoadingDetail returns a detail line describing which dependency
-// is still outstanding when the space mount is ready but the space world
-// state has not finished loading.
-function spaceWorldLoadingDetail(
-  root: boolean,
-  space: boolean,
-  spaceWorld: boolean,
-  spaceState: boolean,
-): string {
-  if (!root) return 'Waiting for the session root.'
-  if (!space) return 'Mounting the space.'
-  if (!spaceWorld) return 'Loading the space world state.'
-  if (!spaceState) return 'Preparing the space contents.'
-  return 'Finishing space load.'
 }

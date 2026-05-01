@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { cn } from '@s4wave/web/style/utils.js'
 import { ShineBorder } from '@s4wave/web/ui/shine-border.js'
 
 import { ProgressBar } from './ProgressBar.js'
@@ -16,7 +17,22 @@ interface LoadingScreenProps {
   // to true for full-app boot screens; disable for panel-level full-screen
   // overlays.
   showShineBorder?: boolean
+  // topLeftSlot renders an absolutely positioned overlay in the top-left
+  // corner of the screen, above the shine border. Used for floating Back
+  // buttons on route-level loaders.
+  topLeftSlot?: ReactNode
+  // children render after the title/detail/progress block, inside the same
+  // centered column. Use for stage steppers, retry buttons, or any extra
+  // content specific to the surface.
+  children?: ReactNode
+  // containerClassName overrides the default outer wrapper classes. Defaults
+  // to the full-viewport boot wrapper. Pass `h-full w-full` (or similar) to
+  // fit the screen inside an existing layout frame.
+  containerClassName?: string
 }
+
+const defaultContainerClassName =
+  'bg-background relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden'
 
 // LoadingScreen is the full-viewport boot surface. Keeps the animated logo
 // slot and shine border while driving title / detail / progress from a
@@ -26,11 +42,14 @@ export function LoadingScreen({
   view,
   logo,
   showShineBorder = true,
+  topLeftSlot,
+  children,
+  containerClassName,
 }: LoadingScreenProps) {
   return (
-    <div className="bg-background relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden">
+    <div className={cn(defaultContainerClassName, containerClassName)}>
       {showShineBorder ?
-        <div className="absolute inset-0">
+        <div className="pointer-events-none absolute inset-0">
           <ShineBorder
             borderWidth={2}
             duration={20}
@@ -44,6 +63,8 @@ export function LoadingScreen({
           />
         </div>
       : null}
+
+      {topLeftSlot ?? null}
 
       <div className="relative z-10 flex flex-col items-center space-y-6">
         {logo ?
@@ -79,6 +100,8 @@ export function LoadingScreen({
             </p>
           : null}
         </div>
+
+        {children ?? null}
       </div>
     </div>
   )
