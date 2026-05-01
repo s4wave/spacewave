@@ -133,3 +133,97 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 		t.Fatal("expected target grant in posted key epoch")
 	}
 }
+
+func TestSessionClientEnrollSpacePeer(t *testing.T) {
+	const (
+		soID      = "so-standalone-peer-enroll"
+		accountID = "test-account"
+	)
+
+	entityPriv, _ := generateTestKeypair(t)
+	ownerPriv, ownerPID := generateTestKeypair(t)
+	_, targetPID := generateTestKeypair(t)
+
+	state, chainResp, _, keypairResp := buildRejoinTestFixtures(
+		t,
+		soID,
+		accountID,
+		ownerPriv,
+		ownerPID,
+		entityPriv,
+		3,
+	)
+
+	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
+	chainJSON := mustMarshalVT(t, chainResp)
+	keypairJSON := mustMarshalVT(t, keypairResp)
+
+	var posted *api.PostConfigStateRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/sobject/" + soID + "/state":
+			_, _ = w.Write(stateJSON)
+		case "/api/sobject/" + soID + "/config-chain":
+			_, _ = w.Write(chainJSON)
+		case "/api/sobject/" + soID + "/recovery-entity-keypairs":
+			_, _ = w.Write(keypairJSON)
+		case "/api/sobject/" + soID + "/config-state":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read config-state body: %v", err)
+			}
+			req := &api.PostConfigStateRequest{}
+			if err := req.UnmarshalVT(body); err != nil {
+				t.Fatalf("unmarshal config-state request: %v", err)
+			}
+			posted = req
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	cli := NewSessionClient(
+		http.DefaultClient,
+		srv.URL,
+		DefaultSigningEnvPrefix,
+		ownerPriv,
+		ownerPID.String(),
+	)
+	changed, err := cli.EnrollSpacePeer(
+		context.Background(),
+		soID,
+		targetPID.String(),
+		sobject.SOParticipantRole_SOParticipantRole_WRITER,
+	)
+	if err != nil {
+		t.Fatalf("EnrollSpacePeer: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected changed")
+	}
+	if posted == nil {
+		t.Fatal("expected config-state write")
+	}
+	change := &sobject.SOConfigChange{}
+	if err := change.UnmarshalVT(posted.GetConfigChange()); err != nil {
+		t.Fatalf("unmarshal posted config change: %v", err)
+	}
+	got := participantConfigForPeer(change.GetConfig(), targetPID.String())
+	if got == nil {
+		t.Fatal("expected target peer in posted config")
+	}
+	if got.GetEntityId() != "" {
+		t.Fatalf("entity id = %q", got.GetEntityId())
+	}
+	if got.GetRole() != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("role = %v", got.GetRole())
+	}
+	if posted.GetKeyEpoch() == nil {
+		t.Fatal("expected posted key epoch")
+	}
+	if !soGrantSliceHasPeerID(posted.GetKeyEpoch().GetGrants(), targetPID.String()) {
+		t.Fatal("expected target grant in posted key epoch")
+	}
+}
